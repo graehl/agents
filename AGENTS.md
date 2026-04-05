@@ -5,6 +5,25 @@ summary before ending work, and `/hi` at the start of a new session to
 pick up context. `/hi` and `/bye` — that's the whole ritual. Task files in `tasks/` track per-feature progress and
 architectural decisions — read the active task file when resuming.
 
+## Global authority
+
+`~/agents/AGENTS.md` is the authoritative global instructions file. Repo-local
+`AGENTS.md` / `CLAUDE.md` symlinks or copies may point here, but global policy
+changes belong in this file first.
+
+Likewise, shared helper scripts under `~/agents/` and `~/bin/` should be kept in
+sync when they intentionally mirror each other. When those global instructions or
+helper scripts are modified, make a brief commit directly on `~/agents` `master`
+so the authoritative copy has a clear history.
+
+### Confirmation threshold
+
+When the user gives a clear affirmative reply to a proposed approach or policy,
+such as `yes`, `yes that's correct`, `sounds good`, or `ok`, treat that as
+alignment and proceed. Do not keep re-checking whether we are "on the same page"
+unless there is a concrete unresolved ambiguity, a new risk introduced by later
+findings, or a choice whose consequences materially changed.
+
 ## Task and branch structure
 
 Each **main task** (a significant feature, experiment, or refactor) gets its own
@@ -55,13 +74,154 @@ Results tables in `research/<branchname>.md` **must** include:
   A table row without these is uninterpretable after time passes.
 - Example header: `HF results, chi.dev head-20 (N=20, dev subset), MetricX-24 hybrid-large:`
 - If the same table mixes splits or Ns, add a column for them.
+- When showing tables to the user in chat, prefer layouts that remain legible in a terminal
+  while still being valid Markdown tables. Favor short headers, compact wording, and only
+  the columns needed for the current decision.
 
 **Statistical significance**: when reporting that method A is better than method B,
 use bootstrap resampling over per-example scores to establish significance:
 - * = p < 0.05, ** = p < 0.01 (two-tailed, 10,000 bootstrap iterations)
 - Report: mean_A, mean_B, diff(A−B), p-value, and % of bootstrap samples where A wins
 - Do NOT claim ordering without significance markers — N=20 is almost never sufficient
+- **Minimum eval N = 40** (head-20 is only a smoke-test during development, never for conclusions)
 - Prefer N ≥ 200 for pilot conclusions; use the full split for final results
+- LoRA fine-tuning: always train on at least the full dev set (≥1 epoch over all dev examples)
+
+When editing a branch research paper (`research/<branchname>.md`), show the full diff
+afterward, eliding only long unchanged stretches if needed to keep the displayed output
+within roughly one 70-line screen. Focus the displayed diff on the modified output.
+
+For head-N pilot or smoke-test evaluations, compare against prior full runs by reusing
+saved hypothesis outputs or saved per-example score files whenever possible, rather than
+re-running old baselines from scratch. Prefer evaluation paths that gracefully handle any
+number of lines or expose a `--head` flag so small-slice comparisons remain directly
+comparable to earlier full-split runs.
+
+### GPU access for Python ML commands
+
+When working in an ML repo that uses local accelerators, default to running Python
+commands with GPU-visible permissions whenever the script might import `torch`,
+`transformers`, `unsloth`, `vllm`, TensorRT helpers, or related ML code. This includes
+commands that look lightweight such as `--help`, because some scripts import the full
+runtime before parsing arguments.
+
+Do not infer "this machine has no GPU" from a sandboxed failure like `torch.cuda` or
+`unsloth` accelerator detection returning false. Treat that first as a likely sandbox
+GPU-visibility issue. If there is any realistic chance the command will touch the ML
+stack, rerun it with GPU-capable permissions instead of continuing with a sandboxed
+Python path.
+
+Before launching a GPU job, first confirm whether the GPU appears idle. If GPU use is
+already present unexpectedly, warn but proceed when estimated free VRAM still looks
+sufficient for the planned job, since this resource is assumed to be single-user. Only
+block or change the plan when current use makes the launch materially risky.
+
+### Implicitly authorized routine operations
+
+Do not stop to ask for permission for operations that are already implicitly authorized
+by an agreed research or engineering task and that a careful Linux expert would consider
+reasonably safe. This includes using GPUs, editing or removing git-tracked files in the
+repo, creating files anywhere in the project, editing or removing files the agent
+created, running project code or ad-hoc analysis scripts, monitoring processes, killing
+processes the agent launched, ordinary shell process composition such as
+redirection/backgrounding/`tee`, and similar routine execution needed to carry out the
+plan. Do not demand explicit approval for long command prefixes when the underlying
+action is already clearly authorized.
+
+### Research artifact metadata
+
+For important saved research outputs, use the output artifact as the anchor:
+
+- `<out>` — primary artifact
+- `<out>.meta.md` — compact provenance and summary
+- `<out>.log` — full stderr/runtime log
+
+The naming relationship is strict: `.meta.md` and `.log` are formed directly from the
+exact output filename. When a run has one primary output, redirect stderr to `<out>.log`.
+
+Always look for `*.meta.md` first. If `write_artifact_meta.py` is on `PATH`, prefer using
+it. Otherwise, agents may write the metadata manually using the same structure so later
+agents can also parse it.
+
+Use short relative paths inside `*.meta.md`, interpreted relative to that metadata file.
+
+Canonical `*.meta.md` structure:
+
+```markdown
+# Run Metadata: <artifact name or short title>
+
+## Output
+- out: [<out>](relative/path)
+- log: [<out>.log](relative/path)
+
+## Command
+```bash
+cd <working-directory-used-for-the-run>
+<actual command line used to generate the artifact>
+```
+
+## Setup
+- split: `<split>`
+- N: `<N, if known>`
+- metric: `<metric, if any>`
+- model: `<model, if useful>`
+- method: `<method summary, if useful>`
+
+## Result
+- <key>: `<value>`
+
+## Machine
+- <key>: `<value>`
+- <key>: `<value>`
+
+## Related
+- <label>: [<path>](relative/path)
+
+## Inputs
+### `<code>`
+- path: [<path>](relative/path)
+- meta: [<path>.meta.md](relative/path)
+- (`<code>.output`) out: [<path>](relative/path)
+- (`<code>.result`) score-summary: `<headline result>`
+- (`<code>.machine`) <key>: `<value>`
+
+## Notes
+- <free-form note>
+```
+
+Section semantics:
+- `## Command` is required when a command generated the artifact. Include the explicit
+  `cd ...` and the actual command that was run, not a reconstruction.
+- `## Result` is for headline outcomes a human will compare first.
+- `## Machine` is for compact machine-generated run stats or parsed summaries that are
+  still small enough to keep in the metadata file.
+- `## Related`, `## Inputs`, and `## Notes` are optional.
+- Under `## Inputs`, use one `### <code>` block per input. Short codenames should be
+  explicit when helpful (for example via `--input train=path/to/out`), otherwise derived
+  from the filename.
+- Inherited input metadata is **one level deep only**. Inline only selected top-level facts
+  from the input's own `*.meta.md` (typically `Output`, `Result`, and `Machine`) and prefix
+  them with the input codename such as `(<code>.result)`. Do **not** recursively inline the
+  input's own `## Inputs`.
+- The inherited restatement must not introduce additional `##` headings; reserve `##` for the
+  current artifact's top-level sections so simple `^## ` header scans remain reliable.
+
+When updating a research log, link directly to the saved output or its `*.meta.md`.
+If a linked artifact is missing later, search first for the corresponding `*.meta.md`,
+then by naming convention or distinctive command/log lines.
+
+**Dev vs test set discipline**:
+- **Dev set**: use freely for model selection, hyperparameter tuning, blend weight search,
+  early-stopping decisions, and all iterative exploration. Report dev results as "dev performance."
+- **Test set**: run once, after all selection decisions are finalized, to measure generalization.
+  Never use test results to choose between methods — that turns test into a second dev set and
+  invalidates it as a generalization estimate.
+- If dev and test rankings diverge consistently, treat it as a real signal: the model or
+  pipeline may be overfitting to dev (too many epochs, too strong LoRA scale, or too many
+  blend-weight candidates explored — each candidate counts as a parameter tuned on dev).
+- A sweep over K blend weight candidates on dev effectively has K × (dev size) degrees of
+  freedom; the resulting "best" may not generalize. Verify with held-out dev subsets or
+  accept that test divergence is informative, not a "bad slice."
 
 Eval scripts should output per-example scores (one float per line) so bootstrap
 comparisons can be run without re-invoking the model. The eval script should also
@@ -174,4 +334,4 @@ Do not run clang-format on entire files.
 You can use clangd to check your edits to a C/C++ source file (if a .clangd is present at project root)
 
 Composing commit messages: aim for a <=65 char subject, and strictly enforce a 72-column line wrap for the body.
-
+Use `fixup! <subject>` for fold-into-later follow-up commits; do not use `squash!` unless explicitly requested.

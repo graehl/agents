@@ -1,7 +1,6 @@
 ---
 name: bye
 description: Save a session summary and stop. Use when wrapping up a work session.
-disable-model-invocation: true
 allowed-tools: Bash(cat:*), Bash(git:*), Write, Read
 ---
 
