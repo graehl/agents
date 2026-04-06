@@ -16,6 +16,18 @@ sync when they intentionally mirror each other. When those global instructions o
 helper scripts are modified, make a brief commit directly on `~/agents` `master`
 so the authoritative copy has a clear history.
 
+### Instruction Routing
+
+When the user says something is a `global rule`, `project-level rule`, or `branch
+rule`, treat that as an instruction about where the rule must be persisted unless the
+user says otherwise:
+- `global rule` -> write it to `~/agents/AGENTS.md`
+- `project-level rule` -> write it to the repo-local `AGENTS.md`
+- `branch rule` -> write it to the branch main task file in `tasks/NNN-<branch>.md`
+
+If the user uses that phrasing, do not leave the rule only in chat state; persist it in
+the corresponding authoritative file.
+
 ### Confirmation threshold
 
 When the user gives a clear affirmative reply to a proposed approach or policy,
@@ -35,6 +47,9 @@ task also owns two companion documents in `research/`:
   future agent or human without the full conversation history.
 - `research/<branchname>.log.md` — the **running log**: timestamped notes,
   intermediate results, dead ends, decisions. Less polished, more complete.
+
+The main task file itself should explicitly track the branch's acceptance criteria,
+implementation steps, and current state, not merely act as a subtask index.
 
 ### Research log conventions
 
@@ -67,7 +82,25 @@ as the verbatim original)`.
 Do NOT log commands that were never actually run, or future plans disguised as
 past runs. The log is a factual record.
 
+Keep research-log analysis/commentary minimal. Prefer a short factual interpretation after
+the commands and bottom-line results, and update the log whenever the branch paper's
+headline conclusion changes so the two remain consistent.
+
+For run/experiment entries, include a brief factual preface before the command saying what
+the run is and why it is being done, then a brief factual coda after the command with the
+bottom-line result or interpretation. Do not leave raw commands unexplained, but do not
+expand the preface/coda into long narrative analysis.
+
+When a paper table cites a numbered or short-named run reference (for example `R17`,
+`pm-tau01`, or similar), the research log entry for that run should place the same ref
+immediately next to a one-line summary and point at the saved `*.meta.md` artifact when
+available. The log should make it easy to go from paper ref -> run summary -> metadata
+without scanning prose blocks.
+
 ### Research paper conventions
+
+The research paper should stay pruned, current, and accurate throughout the work so it
+remains the human-readable branch summary rather than an append-only dump of stale notes.
 
 Results tables in `research/<branchname>.md` **must** include:
 - The **split** (dev / test / dev-subset) and **N** (number of examples) used for scoring.
@@ -77,6 +110,20 @@ Results tables in `research/<branchname>.md` **must** include:
 - When showing tables to the user in chat, prefer layouts that remain legible in a terminal
   while still being valid Markdown tables. Favor short headers, compact wording, and only
   the columns needed for the current decision.
+- When comparing methods across multiple corpora and models, widen the table with additional
+  corpus columns and add additional row blocks for each model. It is acceptable to render
+  this as one table with repeated model-identifying rows, spacing rows, or separator rows,
+  as long as the direct comparison remains legible in plain Markdown.
+- When a new model or corpus is added to an existing comparison table, add explicit `TBD`
+  placeholders where the not-yet-run numbers belong so the intended comparison surface is
+  visible before all runs are complete.
+- Keep the paper pruned to informative direct comparisons and the actual hill-climbing /
+  decision story. Methods or conditions that are no longer part of that story should be
+  removed from the paper and archived to the research log with a short note saying they
+  were removed from the paper and why.
+- Important paper numbers should carry a human-invisible correlation marker such as an HTML
+  comment (`<!-- ref: R17 -->`) so a future reader can align the paper table entry with the
+  corresponding research-log run record and saved artifacts.
 
 **Statistical significance**: when reporting that method A is better than method B,
 use bootstrap resampling over per-example scores to establish significance:
@@ -335,3 +382,4 @@ You can use clangd to check your edits to a C/C++ source file (if a .clangd is p
 
 Composing commit messages: aim for a <=65 char subject, and strictly enforce a 72-column line wrap for the body.
 Use `fixup! <subject>` for fold-into-later follow-up commits; do not use `squash!` unless explicitly requested.
+For commits made on research branches, include newly resolved findings or newly discovered findings in the commit message whenever that is part of the checkpoint.
