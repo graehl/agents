@@ -125,6 +125,46 @@ Results tables in `research/<branchname>.md` **must** include:
   comment (`<!-- ref: R17 -->`) so a future reader can align the paper table entry with the
   corresponding research-log run record and saved artifacts.
 
+**What belongs in the paper vs. log vs. task files**:
+- Debugging steps, failed commands, environment troubleshooting, and routine
+  "plumbing works" sanity checks belong exclusively in `tasks/` files and the
+  research log — never in the research paper.
+- The paper is a record of findings, not process. Strip all testing/debugging
+  narrative even when that work was essential to reaching the result.
+- Exception: a correctness demonstration may appear in the paper when it is itself
+  a non-trivial finding — e.g., showing that two independently implemented pipelines
+  converge to equivalent output distributions, or that a method degrades gracefully
+  under a class of perturbations. The bar is: would a reader unfamiliar with the
+  project find this meaningful on its own merit, not merely reassuring to the author?
+  In the limit, such demonstrations should be replicable and meaningful as standalone
+  evidence.
+- **`tasks/` files are the canonical location for all research investigations** —
+  in-progress, parked, or planned work items live in `tasks/NNN-*.md`. They are
+  not committed to the branch and are not public.
+- **Research papers must NOT reference or mention `tasks/` files** — these are
+  non-public working state that a future reader will not have access to. Task files
+  may freely reference paper sections or hypothesis labels (e.g. "see H4 in the
+  paper"), but the paper must stand alone without assuming task-file context.
+- **Research papers should include a `## Future Work` section** surfacing the
+  big-idea, provocative, or longer-horizon directions that are interesting enough
+  to contextualize the paper's contribution. This section is for high-level
+  intellectual directions — it is not a substitute for `tasks/` tracking. Only
+  items that a reader unfamiliar with the project would find meaningful belong
+  here; routine plumbing, environment fixes, and incremental follow-ups stay in
+  `tasks/` only.
+
+**Eval split sizing defaults**:
+- **Smoke / reject-bad**: use the smallest slice that reveals obvious bugs — `head-20`
+  to `head-50` is fine; do not draw conclusions from these.
+- **Pilot / hillclimbing**: use as many dev examples as needed for significance; start
+  small and grow only when rejecting random noise matters.
+- **Default test evaluation**: use the first 1,000 lines of the test split (`head-1000`).
+  Any improvement detectable only beyond 1,000 test pairs is unlikely to be practically
+  meaningful; do not spend compute proving marginal differences at full scale.
+- **Final paper revision only**: run the full test split (e.g. 3,334 pairs) once, after
+  all method selection is finalized, to confirm the headline result holds at full scale.
+  Never use full-test numbers to choose between methods.
+
 **Statistical significance**: when reporting that method A is better than method B,
 use bootstrap resampling over per-example scores to establish significance:
 - * = p < 0.05, ** = p < 0.01 (two-tailed, 10,000 bootstrap iterations)
@@ -132,7 +172,6 @@ use bootstrap resampling over per-example scores to establish significance:
 - Do NOT claim ordering without significance markers — N=20 is almost never sufficient
 - **Minimum eval N = 40** (head-20 is only a smoke-test during development, never for conclusions)
 - Prefer N ≥ 200 for pilot conclusions; use the full split for final results
-- LoRA fine-tuning: always train on at least the full dev set (≥1 epoch over all dev examples)
 
 When editing a branch research paper (`research/<branchname>.md`), show the full diff
 afterward, eliding only long unchanged stretches if needed to keep the displayed output
@@ -163,17 +202,24 @@ already present unexpectedly, warn but proceed when estimated free VRAM still lo
 sufficient for the planned job, since this resource is assumed to be single-user. Only
 block or change the plan when current use makes the launch materially risky.
 
-### Implicitly authorized routine operations
+### Implicitly authorized routine operations, previously approved plans, and return-from-sidebar liveness
 
-Do not stop to ask for permission for operations that are already implicitly authorized
-by an agreed research or engineering task and that a careful Linux expert would consider
-reasonably safe. This includes using GPUs, editing or removing git-tracked files in the
-repo, creating files anywhere in the project, editing or removing files the agent
-created, running project code or ad-hoc analysis scripts, monitoring processes, killing
-processes the agent launched, ordinary shell process composition such as
-redirection/backgrounding/`tee`, and similar routine execution needed to carry out the
-plan. Do not demand explicit approval for long command prefixes when the underlying
-action is already clearly authorized.
+When idle and especially when returning from a sidebar or user request to update/add a subtask:
+ALWAYS suggest the previously understood logical next step or its successor if subtask or sidebar 
+discussion yielded valuable steering. Any plan proposed for more than 30 sec before last user input
+should be presumed approved and authorized, especially when returning to a task-recorded or previously
+session-approved course of action. Only in case the expected value of info yielded by pursuing one
+subtask/plan or an alternative is close should you ask for direction (and propose independently 
+pursuing both forks if you know how to manage this).
+
+Full GPU access is always permitted.
+
+Editing project files always permitted.
+
+Standard (this project) git operations (besides checking in private/.gitignore files eg tasks/), 
+standard command-execution plumbing/housekeeping - shell/tee/timeout/kill(processes you launched) - 
+always permitted.
+
 
 ### Research artifact metadata
 
@@ -372,14 +418,28 @@ When running builds or tests, always redirect full output to a log file
 (e.g., `make 2>&1 | tee /tmp/build.log`) and show only the tail.
 Never discard output with bare `| tail`.
 
-
 # C++
 When reformatting C/C++ changes, use clang-format only on modified lines:
   git diff -U0 HEAD -- '*.c*' '*.h*' | clang-format-diff -p1 -i
 Do not run clang-format on entire files.
-
 You can use clangd to check your edits to a C/C++ source file (if a .clangd is present at project root)
+
+# Commits
 
 Composing commit messages: aim for a <=65 char subject, and strictly enforce a 72-column line wrap for the body.
 Use `fixup! <subject>` for fold-into-later follow-up commits; do not use `squash!` unless explicitly requested.
 For commits made on research branches, include newly resolved findings or newly discovered findings in the commit message whenever that is part of the checkpoint.
+
+**Amend vs. second commit after a correction**: if the user contradicts or
+corrects a commit that has NOT yet been pushed to `origin/master`, always
+`git commit --amend` (or `git commit --amend --no-edit` for trivial fixups)
+so the branch history stays clean and the corrected state is the canonical
+record. A second stand-alone commit for a one-line correction adds noise and
+can leave a misleading intermediate state in history.
+
+**Push to origin/master only in high-confidence, mechanical scenarios** —
+e.g., a passing-test engineering checkpoint where the content is clearly
+non-sensitive. Never autonomously push research documents, config changes,
+or anything that could contain non-public information without explicit user
+confirmation. Once pushed, a corrected amend becomes an unwanted force-push
+or requires a second commit — either outcome is worse than waiting.
