@@ -202,6 +202,67 @@ already present unexpectedly, warn but proceed when estimated free VRAM still lo
 sufficient for the planned job, since this resource is assumed to be single-user. Only
 block or change the plan when current use makes the launch materially risky.
 
+**PyTorch CUDA allocator — prevent memory over-reservation:**
+Always set `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,garbage_collection_threshold:0.5`
+before launching any PyTorch training or inference job. Without this, PyTorch's caching
+allocator holds large VRAM slabs even when not in active use, blocking concurrent jobs.
+
+- `expandable_segments:True` — lets PyTorch grow/shrink allocations and return unused pages
+  to CUDA rather than holding them in its own cache pool. This is the primary fix.
+- `garbage_collection_threshold:0.5` — proactively frees cached blocks once this process
+  holds more than 50% of total GPU memory. Semantics: **default (0.0) = never GC proactively
+  = most greedy**; 0.5 = GC at >22 GiB on a 44 GiB GPU; 0.95 = almost never GC = near-default
+  greed. Lower values free cache sooner and leave more VRAM for other processes.
+
+This allows 2–4 concurrent 0.8B training jobs or 2 concurrent 2B jobs on a 44 GiB GPU.
+
+`env.sh` sets this — always `source env.sh` or export the variable explicitly before
+launching background jobs with `nohup`. The typo `PYTORCH_ALLOC_CONF` (missing `CUDA_`)
+is silently ignored by PyTorch.
+
+### GPU utilization and parallelism policy
+
+The GPU is non-shared and must be kept busy with planned work at all times —
+without being asked and without churning the repo.
+
+**Keep-busy rule**: Whenever a job finishes (or while one runs and a slot is
+free), immediately queue or launch the next planned job. Never leave the GPU
+idle between planned jobs. Use `wait <PID>` wrappers with a brief sleep buffer
+(~90 s) between sequential jobs to let GPU memory fully release.
+
+**Parallelism rule** — two independent jobs must run simultaneously whenever:
+- the running job uses **< 50% of total VRAM**, AND
+- a second planned job also fits in remaining VRAM with ≥ 10% headroom.
+
+A single job is acceptable only when it uses **≥ 80% of VRAM** (or ≥ 80%
+sustained utilization per `nvidia-smi utilization.gpu`). The 50–80% band is
+the trigger zone: find and launch a second job from the plan without asking.
+
+**Operationally**:
+1. After any job launch or completion, run `nvidia-smi` and check VRAM.
+2. If VRAM < 50%: immediately identify the next independent planned job that
+   fits in free VRAM (≥ 10% headroom) and launch it without asking.
+3. Two jobs are "independent" if they write to different output directories and
+   neither reads the other's in-progress output.
+4. Prefer the next *planned* job from the task/research queue; only propose new
+   experiments if the queue is exhausted.
+5. When chaining via `wait <PID>`, check whether any queued job can be promoted
+   to run now in parallel with the current job.
+6. When a run finishes, immediately show the user a brief highlight: headline
+   result, key metric(s), and 1–2 sample output comparisons. Do not wait to be
+   asked.
+7. **Verify GPU is in use after every job launch.** After starting a background
+   job (direct or via a `nohup` wrapper), wait ~30 s and run `nvidia-smi` to
+   confirm VRAM rose as expected. If the GPU stays at 0 MiB, the job silently
+   failed — investigate the log immediately and relaunch. Never assume a
+   background job succeeded without this check.
+8. **Use VRAM-polling waits between chained jobs**, not fixed sleeps.
+   Before launching the next job in a chain, poll until VRAM drops below a
+   safe threshold (e.g. `while [ $(nvidia-smi --query-gpu=memory.used
+   --format=csv,noheader | tr -d ' MiB') -gt 3000 ]; do sleep 15; done`).
+   Fixed sleeps are unreliable because child/worker processes can hold GPU
+   memory well past the parent's exit.
+
 ### Implicitly authorized routine operations, previously approved plans, and return-from-sidebar liveness
 
 When idle and especially when returning from a sidebar or user request to update/add a subtask:
@@ -226,8 +287,48 @@ always permitted.
 For important saved research outputs, use the output artifact as the anchor:
 
 - `<out>` — primary artifact
-- `<out>.meta.md` — compact provenance and summary
+- `<out>.meta.md` — compact provenance and summary (written at job completion)
 - `<out>.log` — full stderr/runtime log
+- `<out>.running.md` — launch record written by the agent at job start; deleted on clean completion
+
+#### In-flight job tracking (`.running.md`)
+
+**The agent writes `.running.md` immediately when launching a background job.** Scripts
+are not responsible for creating or deleting it. This file survives crashes and lets a
+resumed agent discover in-flight or interrupted work without reading shell history.
+
+Minimal structure:
+
+```markdown
+# In-Flight Job: <out-name>
+
+- status: running
+- pid: <PID>
+- started: <ISO timestamp>
+- log: <path to stdout/stderr log>
+- trainlog: <path to structured trainlog, if separate>
+- out: <output dir or file path>
+
+## Command
+\`\`\`bash
+cd <cwd>
+<full command>
+\`\`\`
+```
+
+**On session resume after a crash:**
+1. `ls untracked/*.running.md` (or wherever jobs are launched) to find candidates.
+2. For each: `kill -0 <pid>` — if alive, job is still running; tail the log for progress.
+   If dead and no `.meta.md` exists, the job was killed mid-run — tail the log for
+   partial results and record them informally in the research log.
+3. If `.meta.md` exists alongside `.running.md`, the job completed but cleanup was
+   skipped — delete the `.running.md`.
+
+**Cleanup:** `artifact_meta.cleanup_running(output)` in Python, or
+`write_artifact_meta.py ... --cleanup-running` from the CLI.
+`hf-translate.py` calls `cleanup_running` automatically at its normal exit.
+For `train-lora.py` and other scripts that don't write `.meta.md`, the agent
+cleans up manually after recording results in the research log.
 
 The naming relationship is strict: `.meta.md` and `.log` are formed directly from the
 exact output filename. When a run has one primary output, redirect stderr to `<out>.log`.
@@ -443,3 +544,22 @@ non-sensitive. Never autonomously push research documents, config changes,
 or anything that could contain non-public information without explicit user
 confirmation. Once pushed, a corrected amend becomes an unwanted force-push
 or requires a second commit — either outcome is worse than waiting.
+
+# Explanation style: "remind me" / "refresher"
+
+When the user says **"remind me"** or **"refresher"** before a concept or technique,
+deliver a self-contained paragraph or short textbook-style section with these properties:
+
+- **Computation-focused**: lead with the core equation, algorithm step, or worked
+  micro-example (small concrete numbers). Do not open with historical background.
+- **Worked example**: include at least one small numerical or pseudocode illustration
+  that a reader can trace by hand in under two minutes.
+- **Mnemonic anchors**: give the acronym expansion on first use and the primary
+  discoverer's last name + year (e.g., "RSLoRA (Rank-Stabilized LoRA, Kalajdzic 2023)").
+- **Assumes deep ML background**: do not explain SGD, attention, tokenization, or other
+  standard field concepts unless the reminder is specifically about them. Skip motivation
+  sentences the user already knows.
+- **Related concepts**: briefly name the 1–3 most closely related techniques the user
+  likely knows, so they can cross-reference their own memory (e.g., "contrasts with
+  plain LoRA in that…", "same family as DoRA but without…").
+- **Length**: one to three paragraphs maximum; tighter is better.
