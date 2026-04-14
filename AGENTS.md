@@ -1,9 +1,17 @@
+# Banner
+
+Immediately say "Global AGENTS understood" after reading all of this.
+
 # Session management
 
 Session state is saved in `last-session.md`. Use `/bye` to save a
 summary before ending work, and `/hi` at the start of a new session to
 pick up context. `/hi` and `/bye` — that's the whole ritual. Task files in `tasks/` track per-feature progress and
 architectural decisions — read the active task file when resuming.
+
+### Resume source priority
+
+When the user provides an extract, handoff, or `continues` resume log from a previous agent session, treat that as evidence that the source session did not successfully run `/bye`. This overrides the normal resume instructions for `last-session.md`: in that situation, `last-session.md` is presumed stale by default and should not be treated as the primary source of truth. Prefer the provided extract or handoff, plus current branch/task state and live artifacts/jobs, over `last-session.md` unless there is explicit evidence that the previous session did in fact update it by completing `/bye` afterward.
 
 ## Global authority
 
@@ -15,6 +23,19 @@ Likewise, shared helper scripts under `~/agents/` and `~/bin/` should be kept in
 sync when they intentionally mirror each other. When those global instructions or
 helper scripts are modified, make a brief commit directly on `~/agents` `master`
 so the authoritative copy has a clear history.
+
+### Skills path aliasing (important)
+
+In this environment, `~/agents/skills` and `~/.codex/skills/user` may be two paths
+to the same underlying directory (hard-link/bind-like aliasing). Always treat
+`~/agents/skills` as the canonical edit target.
+
+Do **not** "sync" these paths by converting one side to symlinks. That can create
+self-referential loops (for example `skills/foo -> skills/foo`) and break skill
+loading with "Too many levels of symbolic links".
+
+Before any migration or sync operation, verify whether they are the same inode:
+`stat -c '%d:%i %n' ~/agents/skills ~/.codex/skills/user`
 
 ### Instruction Routing
 
@@ -30,11 +51,14 @@ the corresponding authoritative file.
 
 ### Confirmation threshold
 
-When the user gives a clear affirmative reply to a proposed approach or policy,
-such as `yes`, `yes that's correct`, `sounds good`, or `ok`, treat that as
-alignment and proceed. Do not keep re-checking whether we are "on the same page"
-unless there is a concrete unresolved ambiguity, a new risk introduced by later
-findings, or a choice whose consequences materially changed.
+A clear affirmative means alignment — proceed without re-checking unless a
+genuinely new ambiguity or risk has emerged.
+
+### Search conventions
+
+`rg` (ripgrep) is installed and should be the default text-search tool. Use
+type filters when they help narrow the search, e.g. `rg -t md "pattern" .` to
+find text in project Markdown files.
 
 ## Task and branch structure
 
@@ -53,11 +77,9 @@ implementation steps, and current state, not merely act as a subtask index.
 
 ### Research log conventions
 
-Log entries go at the **top** of the file (newest first). Each entry should be
-human-readable prose. For experiments or training runs, record **both** the
-semantic description (what it is and why) **and** the actual shell command run,
-so a future reader can reproduce it without reverse-engineering flags from config
-files. Put the command in a fenced code block immediately following the description:
+Log entries go at the **top** (newest first). For each experiment: brief preface
+(what and why), the actual command in a fenced block, brief coda with the result.
+Update the log whenever the paper's headline conclusion changes.
 
 ```markdown
 ### Retrain v2c (seed=999, same config as v2b)
@@ -82,15 +104,6 @@ as the verbatim original)`.
 Do NOT log commands that were never actually run, or future plans disguised as
 past runs. The log is a factual record.
 
-Keep research-log analysis/commentary minimal. Prefer a short factual interpretation after
-the commands and bottom-line results, and update the log whenever the branch paper's
-headline conclusion changes so the two remain consistent.
-
-For run/experiment entries, include a brief factual preface before the command saying what
-the run is and why it is being done, then a brief factual coda after the command with the
-bottom-line result or interpretation. Do not leave raw commands unexplained, but do not
-expand the preface/coda into long narrative analysis.
-
 When a paper table cites a numbered or short-named run reference (for example `R17`,
 `pm-tau01`, or similar), the research log entry for that run should place the same ref
 immediately next to a one-line summary and point at the saved `*.meta.md` artifact when
@@ -99,28 +112,17 @@ without scanning prose blocks.
 
 ### Research paper conventions
 
-The research paper should stay pruned, current, and accurate throughout the work so it
-remains the human-readable branch summary rather than an append-only dump of stale notes.
-
 Results tables in `research/<branchname>.md` **must** include:
 - The **split** (dev / test / dev-subset) and **N** (number of examples) used for scoring.
   A table row without these is uninterpretable after time passes.
 - Example header: `HF results, chi.dev head-20 (N=20, dev subset), MetricX-24 hybrid-large:`
-- If the same table mixes splits or Ns, add a column for them.
-- When showing tables to the user in chat, prefer layouts that remain legible in a terminal
-  while still being valid Markdown tables. Favor short headers, compact wording, and only
-  the columns needed for the current decision.
-- When comparing methods across multiple corpora and models, widen the table with additional
-  corpus columns and add additional row blocks for each model. It is acceptable to render
-  this as one table with repeated model-identifying rows, spacing rows, or separator rows,
-  as long as the direct comparison remains legible in plain Markdown.
+- For multi-corpus/multi-model comparisons, widen the table; repeated model-identifying
+  rows or separator rows are fine as long as direct comparison stays legible.
 - When a new model or corpus is added to an existing comparison table, add explicit `TBD`
   placeholders where the not-yet-run numbers belong so the intended comparison surface is
   visible before all runs are complete.
-- Keep the paper pruned to informative direct comparisons and the actual hill-climbing /
-  decision story. Methods or conditions that are no longer part of that story should be
-  removed from the paper and archived to the research log with a short note saying they
-  were removed from the paper and why.
+- Stale methods/conditions no longer part of the decision story should be removed from the
+  paper and archived to the research log with a note.
 - Important paper numbers should carry a human-invisible correlation marker such as an HTML
   comment (`<!-- ref: R17 -->`) so a future reader can align the paper table entry with the
   corresponding research-log run record and saved artifacts.
@@ -129,35 +131,20 @@ Results tables in `research/<branchname>.md` **must** include:
 - Debugging steps, failed commands, environment troubleshooting, and routine
   "plumbing works" sanity checks belong exclusively in `tasks/` files and the
   research log — never in the research paper.
-- The paper is a record of findings, not process. Strip all testing/debugging
-  narrative even when that work was essential to reaching the result.
-- Exception: a correctness demonstration may appear in the paper when it is itself
-  a non-trivial finding — e.g., showing that two independently implemented pipelines
-  converge to equivalent output distributions, or that a method degrades gracefully
-  under a class of perturbations. The bar is: would a reader unfamiliar with the
-  project find this meaningful on its own merit, not merely reassuring to the author?
-  In the limit, such demonstrations should be replicable and meaningful as standalone
-  evidence.
+- The paper is a record of findings, not process — strip debugging/testing narrative.
+  Exception: a correctness demonstration that is itself a finding (replicable,
+  meaningful to an unfamiliar reader) may appear in the paper.
 - **`tasks/` files are the canonical location for all research investigations** —
   in-progress, parked, or planned work items live in `tasks/NNN-*.md`. They are
   not committed to the branch and are not public.
-- **Research papers must NOT reference or mention `tasks/` files** — these are
-  non-public working state that a future reader will not have access to. Task files
-  may freely reference paper sections or hypothesis labels (e.g. "see H4 in the
-  paper"), but the paper must stand alone without assuming task-file context.
-- **Research papers should include a `## Future Work` section** surfacing the
-  big-idea, provocative, or longer-horizon directions that are interesting enough
-  to contextualize the paper's contribution. This section is for high-level
-  intellectual directions — it is not a substitute for `tasks/` tracking. Only
-  items that a reader unfamiliar with the project would find meaningful belong
-  here; routine plumbing, environment fixes, and incremental follow-ups stay in
-  `tasks/` only.
+- **Research papers must NOT reference `tasks/` files** (non-public). Task files
+  may cite the paper; the paper must stand alone.
+- **Include a `## Future Work` section** for high-level directions meaningful to
+  an unfamiliar reader. Routine follow-ups stay in `tasks/` only.
 
 **Eval split sizing defaults**:
-- **Smoke / reject-bad**: use the smallest slice that reveals obvious bugs — `head-20`
-  to `head-50` is fine; do not draw conclusions from these.
-- **Pilot / hillclimbing**: use as many dev examples as needed for significance; start
-  small and grow only when rejecting random noise matters.
+- **Smoke / reject-bad**: `head-20` to `head-50`; no conclusions from these.
+- **Pilot / hillclimbing**: dev set; grow slice size as needed for significance.
 - **Default test evaluation**: use the first 1,000 lines of the test split (`head-1000`).
   Any improvement detectable only beyond 1,000 test pairs is unlikely to be practically
   meaningful; do not spend compute proving marginal differences at full scale.
@@ -169,9 +156,8 @@ Results tables in `research/<branchname>.md` **must** include:
 use bootstrap resampling over per-example scores to establish significance:
 - * = p < 0.05, ** = p < 0.01 (two-tailed, 10,000 bootstrap iterations)
 - Report: mean_A, mean_B, diff(A−B), p-value, and % of bootstrap samples where A wins
-- Do NOT claim ordering without significance markers — N=20 is almost never sufficient
-- **Minimum eval N = 40** (head-20 is only a smoke-test during development, never for conclusions)
-- Prefer N ≥ 200 for pilot conclusions; use the full split for final results
+- **Minimum eval N = 200** for any conclusion; head-20/head-50 are smoke-tests only
+- Use the full split for final results
 
 When editing a branch research paper (`research/<branchname>.md`), show the full diff
 afterward, eliding only long unchanged stretches if needed to keep the displayed output
@@ -204,21 +190,9 @@ block or change the plan when current use makes the launch materially risky.
 
 **PyTorch CUDA allocator — prevent memory over-reservation:**
 Always set `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,garbage_collection_threshold:0.5`
-before launching any PyTorch training or inference job. Without this, PyTorch's caching
-allocator holds large VRAM slabs even when not in active use, blocking concurrent jobs.
-
-- `expandable_segments:True` — lets PyTorch grow/shrink allocations and return unused pages
-  to CUDA rather than holding them in its own cache pool. This is the primary fix.
-- `garbage_collection_threshold:0.5` — proactively frees cached blocks once this process
-  holds more than 50% of total GPU memory. Semantics: **default (0.0) = never GC proactively
-  = most greedy**; 0.5 = GC at >22 GiB on a 44 GiB GPU; 0.95 = almost never GC = near-default
-  greed. Lower values free cache sooner and leave more VRAM for other processes.
-
-This allows 2–4 concurrent 0.8B training jobs or 2 concurrent 2B jobs on a 44 GiB GPU.
-
-`env.sh` sets this — always `source env.sh` or export the variable explicitly before
-launching background jobs with `nohup`. The typo `PYTORCH_ALLOC_CONF` (missing `CUDA_`)
-is silently ignored by PyTorch.
+before any PyTorch job — without it the caching allocator holds large VRAM slabs between
+jobs, preventing concurrency. `env.sh` sets this; always `source env.sh` or export
+explicitly before `nohup` jobs. (The typo `PYTORCH_ALLOC_CONF`, missing `CUDA_`, is silently ignored.)
 
 ### GPU utilization and parallelism policy
 
@@ -263,15 +237,13 @@ the trigger zone: find and launch a second job from the plan without asking.
    Fixed sleeps are unreliable because child/worker processes can hold GPU
    memory well past the parent's exit.
 
-### Implicitly authorized routine operations, previously approved plans, and return-from-sidebar liveness
+### Implicitly authorized routine operations and return-from-sidebar liveness
 
-When idle and especially when returning from a sidebar or user request to update/add a subtask:
-ALWAYS suggest the previously understood logical next step or its successor if subtask or sidebar 
-discussion yielded valuable steering. Any plan proposed for more than 30 sec before last user input
-should be presumed approved and authorized, especially when returning to a task-recorded or previously
-session-approved course of action. Only in case the expected value of info yielded by pursuing one
-subtask/plan or an alternative is close should you ask for direction (and propose independently 
-pursuing both forks if you know how to manage this).
+After a sidebar, immediately resume with the previously agreed next step (or its
+successor if the sidebar changed the plan). Treat any plan previously proposed and
+not contradicted as approved; ask only when two alternatives have meaningfully
+different outcomes and comparable expected value. Offer to run independent forks
+in parallel when feasible.
 
 Full GPU access is always permitted.
 
@@ -484,8 +456,8 @@ Rules for maintaining this section:
 - Update `Last subtask completed` only when the user explicitly confirms satisfaction.
 - Update `Last subtask worked on` and `Likely next` at the end of each work session
   (i.e., during `/bye`).
-- To find all subtask files for a branch, grep:
-  `grep -rl "Branch: <branchname>" tasks/`
+- To find all subtask files for a branch:
+  `rg -t md -l "Branch: <branchname>" tasks/`
 
 ### Research document paths (derive from git branch name)
 
