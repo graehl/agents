@@ -54,11 +54,59 @@ the corresponding authoritative file.
 A clear affirmative means alignment — proceed without re-checking unless a
 genuinely new ambiguity or risk has emerged.
 
+### "Don't forget" reminders
+
+When the user says `don't forget X` (or similar phrasing), briefly check whether
+`X` is already present in the governing global/project/branch instructions or is
+only an inferred expectation from the current plan. Report back succinctly:
+- where it was already covered, quoting or paraphrasing the closest governing
+  phrasing when practical
+- or that it was not explicit and should be added if the user appears to want it
+
+When helpful, also say whether `X` would have been independently likely from the
+existing instructions and current task direction, or whether the reminder was
+surprising enough that an explicit rule is warranted. Do this with judgment; do
+not overclaim access to a counterfactual inner state.
+
+### Planning rationale
+
+When the user gives planning or sequencing directions, assume there is often an
+implicit claim or justification behind "A before B" that is worth surfacing.
+Briefly ponder and suggest the most likely rationale for the ordering or choice,
+especially when that rationale would sharpen the plan, expose a hidden tradeoff,
+or help the user correct/generalize an unspoken intuition. Keep this brief and
+tentative rather than leading: the goal is to elicit or refine the user's real
+reasoning, not to force agreement or create confirmation bias.
+
+### Asynchronous questions
+
+Socratic or genuine clarifying questions are allowed when they can improve the
+shared understanding of the work, but they must be treated as asynchronous by
+default. Do not let such questions stall execution for more than about 30
+seconds while awaiting a reply. Assume many of them will go unanswered; if the
+question is still worth posing, ask it briefly and continue working. When
+helpful, tag the question with a short project-style codename prefix such as
+`ORBIT:` or `KEPLER:` so the user can quickly recognize it as an optional
+reasoning probe rather than a hard blocker. Do not standardize on one fixed
+keyword forever; choose a brief topical codename that fits the question. A
+later user reply may still be answering such a codename-tagged question; do not
+reject that interpretation merely because of delay. Only treat the reply as
+unrelated when the surrounding context makes the intended referent clearly
+different.
+
 ### Search conventions
 
 `rg` (ripgrep) is installed and should be the default text-search tool. Use
 type filters when they help narrow the search, e.g. `rg -t md "pattern" .` to
 find text in project Markdown files.
+
+### Project-scope instructions before tools
+
+Before running tools in a repository for the first time in a session, check for
+project-scope instruction files in that workspace. At minimum, look for repo-local
+`AGENTS.md` / `CLAUDE.md` and any project `README.md` they point to, duplicate, or
+explicitly name as an instruction source. Do not assume task files or prior session
+state are sufficient substitutes for this initial project-scope instruction check.
 
 ## Task and branch structure
 
@@ -115,6 +163,10 @@ without scanning prose blocks.
 Results tables in `research/<branchname>.md` **must** include:
 - The **split** (dev / test / dev-subset) and **N** (number of examples) used for scoring.
   A table row without these is uninterpretable after time passes.
+- Training and decode comparisons must also report **wall time**; decode rows must report
+  **batch width** whenever more than one request/example was translated concurrently.
+  Many methods are attempted speedups, so a result is incomplete unless a future reader can
+  place it on the time/performance Pareto frontier.
 - Example header: `HF results, chi.dev head-20 (N=20, dev subset), MetricX-24 hybrid-large:`
 - For multi-corpus/multi-model comparisons, widen the table; repeated model-identifying
   rows or separator rows are fine as long as direct comparison stays legible.
@@ -491,6 +543,85 @@ When running builds or tests, always redirect full output to a log file
 (e.g., `make 2>&1 | tee /tmp/build.log`) and show only the tail.
 Never discard output with bare `| tail`.
 
+For `agentctl` and other long-running waits, do not say `in agentctl wait.`
+unless the wait/watch command is still live in this turn and you are actively
+using its output as the current control point. If the environment will not
+reliably wake you on completion, do not use that phrase.
+
+A resolved wait is not a resting state. Once the watched job finishes or the
+relevant idle condition is met, immediately consume that completion and launch
+or attach the next already-approved successor in the same turn before giving a
+status update.
+
+### Wait watchdog discipline
+
+In this Codex environment, a live PTY does **not** automatically create a new
+assistant turn when fresh output appears. Therefore, a bare `agentctl watch`
+process is not a sufficient wait primitive by itself. Likewise, a tmux pane
+that merely prints status to the screen is useful for the human operator but
+does not by itself create a fresh user-input event for the local CLI.
+
+When work is gated on a long-running job, the default wait primitive is:
+- the built-in `agentctl wait/watch --heartbeat ...` path first; prefer this
+  over ad hoc shell sleep loops when all you need is bounded-latency liveness
+  output
+- a foreground watchdog process that emits a timestamped poll at least every
+  300 seconds and includes `agentctl status`/`list` plus `nvidia-smi`
+- explicit PTY polling by the agent at least every 300 seconds while the wait
+  is active
+- when Codex itself is running inside tmux, a second helper from another shell
+  or pane that periodically injects a benign key into the Codex pane so the
+  local CLI receives a real tty input event; default to `C-l` unless there is
+  a concrete reason to use a different key sequence
+
+Use the helper `~/agents/agent-wait-watchdog` (mirrored as
+`~/bin/agent-wait-watchdog`) when you need an external poll block that combines
+`agentctl` state with `nvidia-smi`, not as the first-line substitute for the
+built-in `agentctl` heartbeat. When Codex is running inside tmux and prolonged
+quiescence would be harmful, pair the normal `agentctl` wait/watch path with
+`~/agents/agent-tmux-nudge` (mirrored as `~/bin/agent-tmux-nudge`) targeting
+the Codex pane. This helper is for synthetic tty input, not for on-screen
+dashboards.
+
+Never claim to be waiting on a job after the watchdog or watch PTY has already
+resolved. Re-check live state first.
+
+Do not use GPU-idle thresholds for a short sidecar watch if another intended
+GPU job is still running. For sidecars, watch the job to completion only; keep
+GPU-idle watches for the gating job whose successor truly needs the GPU clear.
+
+If a watched job is no longer running, or the GPU is idle unexpectedly, or an
+already-approved successor can now be launched, the wait state is over and must
+be consumed immediately in the same turn.
+
+Synthetic heartbeat turns delivered through the current yepanywhere session are
+not new semantic user requests. Treat them as liveness nudges for the current
+plan. The default text may be `yepanywhere heartbeat`, but session-specific
+overrides may use a different configured phrase. On receiving one, immediately:
+- re-check the live wait/watch/job/GPU state, including explicit polling of any
+  active unified-exec PTY that backs an `agentctl` watch or other foreground wait
+- continue the already-approved next step if one exists
+- emit a short verified in-session status line even when still waiting, so the
+  heartbeat causes visible observable output in the active session/CLI rather
+  than only silent internal revalidation
+- keep the response terse unless there is a blocker, completion, or new result
+
+Temporary observability rule for `yepanywhere heartbeat`: when a heartbeat turn
+causes any action that may become visible in the active CLI session (for
+example a status line, a wait/liveness note, or a command-launch preface),
+prefix the first such visible output with the code word `PULSE:` so the user
+can tell it was heartbeat-related rather than an unrelated spontaneous turn.
+
+### Failure postmortems
+
+When troubleshooting your own failure to comply with instructions, explicitly
+cite the AGENTS sections that were likely governing or distorting the mistaken
+behavior. This may require post-hoc reconstruction rather than direct access to
+the exact activations that produced an earlier turn; say so plainly when
+uncertain. Prefer section headers and short quoted phrases over vague
+summaries, for example `Long-running commands`, `Wait watchdog discipline`, or
+repo-local wait-state rules.
+
 # C++
 When reformatting C/C++ changes, use clang-format only on modified lines:
   git diff -U0 HEAD -- '*.c*' '*.h*' | clang-format-diff -p1 -i
@@ -516,6 +647,14 @@ non-sensitive. Never autonomously push research documents, config changes,
 or anything that could contain non-public information without explicit user
 confirmation. Once pushed, a corrected amend becomes an unwanted force-push
 or requires a second commit — either outcome is worse than waiting.
+
+**Recent pushed oopsies on personal GitHub**: if a pushed commit to the user's
+`github.com/graehl` remote is discovered within days to be wrong, and there are
+no downstream forks/consumers depending on that erroneous commit, prefer
+`git commit --amend` plus a force-push/overwrite so the bad state disappears
+rather than accumulating noise-fix history. Exception: do not rewrite once the
+branch/commit has already been submitted as a PR elsewhere; in that case, keep
+history stable and repair forward unless the user explicitly says otherwise.
 
 # Explanation style: "remind me" / "refresher"
 

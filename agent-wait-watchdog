@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: agent-wait-watchdog JOB [INTERVAL_SECONDS] [-- WATCH_ARGS...]
+
+Run `agentctl watch JOB` in the background while printing a timestamped poll
+block every INTERVAL_SECONDS (default: 300). The poll block includes:
+- `agentctl status JOB`
+- `agentctl list --running-only --recent 8`
+- `nvidia-smi`
+
+Prefer the built-in `agentctl wait/watch --heartbeat ...` options first when
+all you need is bounded-latency liveness output. This helper is for the
+stronger case where you want an external combined poll block alongside watch.
+
+Environment overrides:
+- AGENTCTL_ROOT: working directory to run from (default: current directory)
+- AGENTCTL_PY: Python executable used to run agentctl (default:
+  pixi-gemma4/.pixi/envs/default/bin/python)
+- WATCH_TAIL: default `agentctl watch --tail` value (default: 20)
+- WATCH_NOTIFY_GPU_IDLE: 1 to add `--notify-gpu-idle` by default, 0 to omit
+
+If Codex itself is running inside tmux, pair this helper with
+`agent-tmux-nudge` from another shell or pane when you need periodic synthetic
+tty input delivered to the Codex pane. That is different from printing status
+in another tmux pane.
+EOF
+}
+
+if [[ $# -lt 1 ]]; then
+    usage >&2
+    exit 2
+fi
+
+job="$1"
+shift
+
+interval=300
+if [[ $# -gt 0 && "$1" != "--" ]]; then
+    interval="$1"
+    shift
+fi
+
+if ! [[ "$interval" =~ ^[0-9]+$ ]] || (( interval <= 0 )); then
+    echo "interval must be a positive integer number of seconds" >&2
+    exit 2
+fi
+
+watch_extra=()
+if [[ $# -gt 0 ]]; then
+    if [[ "$1" != "--" ]]; then
+        echo "unexpected argument: $1" >&2
+        usage >&2
+        exit 2
+    fi
+    shift
+    watch_extra=("$@")
+fi
+
+root="${AGENTCTL_ROOT:-$PWD}"
+py="${AGENTCTL_PY:-pixi-gemma4/.pixi/envs/default/bin/python}"
+tail_lines="${WATCH_TAIL:-20}"
+notify_gpu_idle="${WATCH_NOTIFY_GPU_IDLE:-1}"
+
+watch_args=(watch "$job" --tail "$tail_lines")
+if [[ "$notify_gpu_idle" != "0" ]]; then
+    watch_args+=(--notify-gpu-idle)
+fi
+if [[ ${#watch_extra[@]} -gt 0 ]]; then
+    watch_args+=("${watch_extra[@]}")
+fi
+
+cleanup() {
+    if [[ -n "${watch_pid:-}" ]] && kill -0 "$watch_pid" 2>/dev/null; then
+        kill "$watch_pid" 2>/dev/null || true
+        wait "$watch_pid" 2>/dev/null || true
+    fi
+}
+trap cleanup EXIT INT TERM
+
+poll_block() {
+    local ts
+    ts="$(date -Is)"
+    echo
+    echo "=== WATCHDOG ${ts} job=${job} interval=${interval}s cwd=${root} ==="
+    (
+        cd "$root"
+        echo "--- agentctl status ${job} ---"
+        "$py" agentctl.py status "$job" || true
+        echo "--- agentctl list --running-only --recent 8 ---"
+        "$py" agentctl.py list --running-only --recent 8 || true
+    )
+    echo "--- nvidia-smi ---"
+    nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu,power.draw \
+        --format=csv,noheader || true
+}
+
+(
+    cd "$root"
+    exec "$py" agentctl.py "${watch_args[@]}"
+) &
+watch_pid=$!
+
+poll_block
+while kill -0 "$watch_pid" 2>/dev/null; do
+    sleep "$interval"
+    kill -0 "$watch_pid" 2>/dev/null || break
+    poll_block
+done
+
+wait "$watch_pid"
