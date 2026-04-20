@@ -17,6 +17,10 @@ allowed-tools: Bash(cat:*), Bash(find:*), Bash(git:*), Bash(ls:*), Read
      branch/task files, `.agentctl/jobs/*/current.json`, and git state as
      primary truth
 3. Read the task file mentioned or in progress (check tasks/*.md)
+3a. If `RESEARCH.md` exists and the repository/task indicates research workflow
+    (for example `research/` or `tasks/` layout), read `RESEARCH.md`.
+3b. If `RUNS.md` exists and there are active/pending job indicators (for
+    example `.agentctl/` or `*.running.md`), read `RUNS.md`.
 4. Check current branch and git status to verify state matches
    what the summary expects
 5. Report:
