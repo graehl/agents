@@ -13,6 +13,11 @@ hint. `/hi` and `/bye` — that's the whole ritual. Task files in `tasks/`
 track per-feature progress and architectural decisions — read the active
 task file when resuming.
 
+For implementation or bugfix work, search for related `tasks/*.md` files when
+that directory exists. Cite the relevant task file(s) in planning and again
+when concluding the request, so longer-running follow-up inventory stays
+visible without forcing every small request to create a task.
+
 ### Resume source priority
 
 When the user provides an extract, handoff, or `continues` resume log from a previous agent session, treat that as evidence that the source session did not successfully run `/bye`. This overrides the normal resume instructions for `last-session.md`: in that situation, `last-session.md` is presumed stale by default and should not be treated as the primary source of truth. Prefer the provided extract or handoff, plus current branch/task state and live artifacts/jobs, over `last-session.md` unless there is explicit evidence that the previous session did in fact update it by completing `/bye` afterward.
@@ -71,6 +76,32 @@ follow are not.
 A clear affirmative means alignment — proceed without re-checking unless a
 genuinely new ambiguity or risk has emerged.
 
+### Terse-reference ambiguity
+
+When a terse user instruction or query seems redundant under shared common
+knowledge, first consider whether an alternate interpretation is more likely,
+especially whether a pronoun or elliptical reference points back a few turns in
+the real engaged conversation. Prefer user/system instruction content over tool
+outputs, pasted logs, or other bulky artifacts when resolving that reference.
+
+### Speech-recognition noise
+
+When user text has sparse punctuation and includes likely mischosen words, treat
+speech-recognition errors as a possible noise source. Decipher the turn with
+near-homonyms and deficient language-model word choices in mind before deciding
+the user meant the literal transcript.
+
+When you do silently disambiguate a likely speech-recognition error or other
+transcript noise (typos, missing punctuation, dropped words), briefly restate
+what you understood the user to mean before acting on it — typically as the
+opening of your next sentence, paraphrased rather than quoted, e.g. "Got it —
+you want X, not Y." Do this whenever a literal reading would be a different
+task than the one you're proceeding with. The user's choice not to interrupt
+is implicit confirmation, which is far better than just "right" + diving in:
+they get a free chance to correct a misread before you spend effort on the
+wrong interpretation. Keep the restatement to one short sentence; do not
+quote the original transcript back at them.
+
 ### User shorthand
 
 `YA` / `yepanywhere` refers to the user's client: `github.com/graehl/yepanywhere`.
@@ -98,6 +129,17 @@ especially when that rationale would sharpen the plan, expose a hidden tradeoff,
 or help the user correct/generalize an unspoken intuition. Keep this brief and
 tentative rather than leading: the goal is to elicit or refine the user's real
 reasoning, not to force agreement or create confirmation bias.
+
+### Agreement and Disagreement Quality
+
+When agreeing or disagreeing with the user on a substantive technical claim,
+briefly paraphrase the claim as understood and give the checked crux of the
+reasoning. Prefer a compact argument sketch that an expert can verify over
+credibility-seeking phrases. If the crux has not been checked, say that directly
+and label the agreement or disagreement as tentative. Do not add plausible but
+unverified reasons merely to make alignment sound stronger; low-quality
+"because..." clauses waste the user's time by forcing them to debug the agent's
+reasoning.
 
 ### Asynchronous questions
 
@@ -159,11 +201,30 @@ When launched in a project root:
 Project docs are supplementary by default. If they materially conflict and
 precedence is unclear, ask the user.
 
+Committed project instructions such as repo-local `AGENTS.md` should stand
+alone for future agents and reviewers. Project-local/private amendments such as
+`AGENTS.local.md` may be brief deltas against these global instructions instead
+of repeating the full policy.
+
+### Local instruction file backups
+
+Before editing or deleting an agent instruction file whose current contents are
+not safely recoverable from git, first save a snapshot under
+`.backups/<YYYYmmdd-HHMMSS>/<relative-path>` in the same workspace or nearest
+repo. This applies especially to ignored or untracked local instruction files
+such as `AGENTS.local.md`, and also to tracked instruction files with
+uncommitted local changes that you might otherwise overwrite.
+
 ## Research and run supplements
 
 Research-method and run-operation policies are split into companion docs:
 - `RESEARCH.md`
 - `RUNS.md`
+
+Treat reusable research-method guidance and run-operation / `agentctl` tracking
+policy as generally global. Persist those rules in `~/agents/RESEARCH.md` or
+`~/agents/RUNS.md` unless the rule depends on a particular repository's data,
+scripts, artifact schema, or paper-specific decisions.
 
 Activation triggers:
 - Load `RESEARCH.md` before substantive work when the repo or request indicates
@@ -205,6 +266,9 @@ direction so a Maintainer could paste the message, add their own
 adjustments, and recreate something close to the intended result. Prune
 digressions, secrets, and low-signal chat detail; do not aim for a
 verbatim or exhaustive transcript.
+Exclude iterative back-and-forth testing, UI tweaking, and debugging dialog
+from the synthesis unless it records a durable product or architecture
+decision the Maintainer would need to re-derive the change.
 
 The subject line is the conventional scannable headline result — keep
 it scannable in `git log --oneline`. The synthesis lives
