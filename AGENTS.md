@@ -71,6 +71,16 @@ defaults the user wants to override are load-bearing; restatements of
 standard tool mechanics or documented defaults the model would already
 follow are not.
 
+### Feature validation
+
+When adding or enabling a feature that can affect runtime, memory use, model
+quality, or experimental conclusions, plan an explicit on/off comparison unless
+the effect is mechanically obvious and low risk. Scope the comparison to the
+blast radius: a smoke-scale timing check is enough for narrow plumbing, while
+research-facing training, decoding, scoring, scheduling, or data-selection
+changes need a recorded contrastive run or a clear task note explaining why the
+comparison is postponed.
+
 ### Confirmation threshold
 
 A clear affirmative means alignment — proceed without re-checking unless a
@@ -162,6 +172,40 @@ different.
 `rg` (ripgrep) is installed and should be the default text-search tool. Use
 type filters when they help narrow the search, e.g. `rg -t md "pattern" .` to
 find text in project Markdown files.
+
+### Agent-facing CLI help
+
+When designing or modifying command-line tools likely to be used by agents, make
+their `--help` output agent-friendly. Do not hard-wrap option descriptions by
+default based only on `TERM` or terminal column guesses; agent invocations may
+still present as ordinary color terminals. If traditional human-wrapped help is
+useful, expose it through an explicit width/env setting or other opt-in path.
+Prefer shared parser/formatter helpers when a repo already has them, so option
+UI conventions stay consistent across tools. Non-wrapped help is more efficient
+for agents to parse because it saves tokens and avoids follow-up wider-context
+reads to reconstruct wrapped option descriptions.
+
+For info/warn log messages whose behavior is controlled by an option, include
+the exact option name when practical, or at least a greppable word that appears
+in that option's `--help` text. Prefer spelling the log term the same way in
+logs and help text, without avoidable hyphen/underscore variants, so post-run
+analysis can connect symptoms back to controllable knobs.
+
+### PDF reading
+
+For substantive PDF reading, use `marker-pdf` from a dedicated Python
+environment. Do not install it into a project's ML runtime environment: marker
+brings its own ML/OCR dependency stack and multi-GB model cache. In Pixi
+projects, add a separate feature/environment such as `pdf`; in non-Pixi
+projects, use a dedicated venv or `uvx`/`uv tool`-style isolation. Set a
+project-local marker/surya model cache and temp directory when the default home
+cache or `/tmp` may be space-constrained.
+
+Do not use `pdftotext` for paper reading. Marker is the default extractor for
+papers because it preserves tables, columns, math, and section structure much
+better. Treat it as the practical lightweight alternative to GROBID: comparable
+purpose for structured academic-paper extraction, but without the heavier Docker
+service setup.
 
 ### Diff presentation
 

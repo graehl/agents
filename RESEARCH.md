@@ -55,6 +55,36 @@ without scanning prose blocks.
 
 ### Research paper conventions
 
+For a paper-specific related-work catch-up, prefer a companion artifact folder
+next to the paper: `research/<paper-name>/related-work/` for
+`research/<paper-name>.md`. Put a small fetch/extract script there that
+recreates the PDF/HTML/markdown extraction cache for cited papers. The generated
+markdown/text output is a valuable `rg` search target for finding method,
+threat-model, limitation, and table sections before reading them carefully.
+Commit the script and lightweight notes when useful; normally ignore downloaded
+PDFs, model caches, and generated extraction outputs unless the project
+explicitly wants vendored sources.
+
+Do not let extracted markdown become citation-orphaned text. The related-work
+script should also create a lightweight metadata manifest for every paper key,
+morally equivalent to a BibTeX entry plus source URL: stable key, title,
+authors, venue or preprint server, year/date, DOI/arXiv/OpenReview/ACL/etc.
+identifier when available, PDF URL, fetched/extracted timestamp, and extraction
+tool/version. Prefer one repo-readable file such as `papers.bib`, `papers.yaml`,
+or per-paper markdown front matter that can be regenerated alongside the
+extracts. The paper can still hand-format citations, but the artifact folder
+must preserve enough metadata for a future agent to reconstruct exact
+bibliography entries without re-searching the web.
+
+When the candidate related-work list grows beyond about eight papers, tier the
+artifact folder and fetch/extract script. Fully extract the high-value tier:
+papers with suspected proposal overlap, directly applicable methods, or likely
+threat-model lessons. Leave peripheral/background papers on demand until a
+comprehensive pass needs them. Make the tiering explicit in the paper or
+companion notes, because `rg` over generated markdown/text only searches papers
+that have actually been extracted; expand the extraction tier before claiming
+coverage across the whole bibliography.
+
 Results tables in `research/<branchname>.md` **must** include:
 - The **split** (dev / test / dev-subset) and **N** (number of examples) used for scoring.
   A table row without these is uninterpretable after time passes.
@@ -86,6 +116,11 @@ Results tables in `research/<branchname>.md` **must** include:
   not committed to the branch and are not public.
 - **Research papers must NOT reference `tasks/` files** (non-public). Task files
   may cite the paper; the paper must stand alone.
+- When a task governs a research paper, keep the task file as a summary and
+  control plane: point to the paper, summarize the current framing or acceptance
+  state, and note what session learnings should be synced into the paper when
+  applicable. Do not duplicate whole paper sections into the task file; that
+  creates two divergent sources of truth.
 - **Published intake/split recipes must NOT reference private paths** such as `/lps`
   or other local-only mounts. Paper-facing recipes must point at public sources,
   checked-in scripts, or explicitly named non-public prerequisites instead.
@@ -153,6 +188,35 @@ comparable to earlier full-split runs.
 - A sweep over K blend weight candidates on dev effectively has K × (dev size) degrees of
   freedom; the resulting "best" may not generalize. Verify with held-out dev subsets or
   accept that test divergence is informative, not a "bad slice."
+
+**Research-line closure before moving on**:
+- After a substantial experiment line produces a surprising or weakly-positive signal, do
+  not immediately jump to the next high-level research-plan item. First exhaust the
+  reasonable closure tests that explain whether the previous investment paid off, failed
+  for a code/configuration reason, or only beat an insufficient baseline.
+- For combination-only gains, compare against embarrassing null baselines with the same
+  decode/selection budget, such as random same-norm adapter perturbations or random
+  one-step experts. A learned adapter that cannot improve on its own only earns credit in
+  a blend or system-combination result if it beats those random-direction controls across
+  enough seeds or validation-selected candidates.
+- Treat this closure work as part of the result, not a detour: record the null baselines,
+  bug checks, and plausible failure explanations before declaring the line exhausted or
+  moving to the next paper-level project.
+
+**Post-run option audit**:
+- When post-run analysis of logs raises a possible mishap, inefficiency, anomaly, or
+  suboptimal behavior, grep the relevant tool's `--help` output for the symptom terms
+  and nearby concepts before assuming the behavior is fixed. The log does not need to
+  show an outright bug; terms such as "reload", "sync", "batch", "patience",
+  "checkpoint", "cache", "offload", "wrap", "timeout", or "floor" may indicate an
+  existing controllable knob.
+- Use context-aware searches over help text so the matched option and its neighboring
+  descriptions are visible. Prefer an agent-friendly non-wrapped help mode when
+  available because it saves tokens and avoids follow-up wider-context reads to
+  reconstruct wrapped option descriptions.
+- Summaries should name any relevant existing options and recommend the smallest
+  follow-up run or setting change that would distinguish "tool limitation" from
+  "unexamined option/configuration".
 
 Eval scripts should output per-example scores (one float per line) so bootstrap
 comparisons can be run without re-invoking the model. The eval script should also
@@ -240,7 +304,10 @@ it should run `git branch --show-current` to get the branch name, then write to
 
 When resuming a session with `/hi`:
 1. Read `last-session.md` → active branch name, active task numbers, next step
-2. Read `research/<branchname>.md` (paper) for experimental context
+2. Skim `research/<branchname>.md` (paper) for current framing, findings, and
+   tables; if the governing task mentions a different paper path, skim that
+   paper too.
 3. Read the main task file matching the branch name — check its Subtasks section
+   and any summary of what needs to be synced into the paper.
 4. Read any in-progress subtask files listed in last-session.md
 5. Check `research/<branchname>.log.md` for the most recent session's notes
