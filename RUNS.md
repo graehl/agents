@@ -290,6 +290,24 @@ example a status line, a wait/liveness note, or a command-launch preface),
 prefix the first such visible output with the code word `PULSE:` so the user
 can tell it was heartbeat-related rather than an unrelated spontaneous turn.
 
+### Natural pause run status
+
+When reaching a natural pause in any project that has run operations,
+background jobs, `.agentctl/`, `*.running.md`, or GPU scheduling state, end the
+status or final response with a brief live run/GPU footer even if no wait is
+currently active. This footer should use the freshest cheap checks available
+(`agentctl list` / `agentctl status` and `nvidia-smi` when present), name active
+jobs if any, and say explicitly when there are no active jobs and the GPU is
+idle. If the known queue is exhausted, say that too rather than leaving the user
+to infer it from silence.
+
+If planned or pending runs are known, end with a clearly marked `Pending GPU
+Jobs` line naming them. If none are known, write `Pending GPU Jobs: none known`
+or the closest truthful equivalent. This is a presentation rule for observability
+at handoff/pause points; it does not weaken the stronger keep-busy rule that
+agents should zoom back out, choose, and launch the next valuable planned run
+when the project instructions call for that.
+
 ### Failure postmortems
 
 When troubleshooting your own failure to comply with instructions, explicitly

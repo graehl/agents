@@ -107,15 +107,21 @@ Results tables in `research/<branchname>.md` **must** include:
 **What belongs in the paper vs. log vs. task files**:
 - Debugging steps, failed commands, environment troubleshooting, and routine
   "plumbing works" sanity checks belong exclusively in `tasks/` files and the
-  research log — never in the research paper.
-- The paper is a record of findings, not process — strip debugging/testing narrative.
-  Exception: a correctness demonstration that is itself a finding (replicable,
-  meaningful to an unfamiliar reader) may appear in the paper.
+  research log until they produce a legitimate publication-facing insight.
+- The paper is a record of findings, not process — strip debugging/testing narrative
+  from claim-bearing sections. Exception: a correctness demonstration that is
+  itself a finding (replicable, meaningful to an unfamiliar reader) may appear in
+  the paper.
 - **`tasks/` files are the canonical location for all research investigations** —
   in-progress, parked, or planned work items live in `tasks/NNN-*.md`. They are
   not committed to the branch and are not public.
-- **Research papers must NOT reference `tasks/` files** (non-public). Task files
-  may cite the paper; the paper must stand alone.
+- Working research-paper drafts may temporarily include a brief plan note or
+  related-task pointer when it improves navigation for active collaborators. Mark
+  such text as draft/navigation scaffolding and keep it short; do not let it carry
+  the actual investigation detail, which belongs in `tasks/` and the research log.
+  The final/submission-prep phase must remove these task references so the paper
+  stands alone. The precise pre-submittal cleanup gate can be defined later for
+  each project.
 - When a task governs a research paper, keep the task file as a summary and
   control plane: point to the paper, summarize the current framing or acceptance
   state, and note what session learnings should be synced into the paper when
@@ -311,3 +317,6 @@ When resuming a session with `/hi`:
    and any summary of what needs to be synced into the paper.
 4. Read any in-progress subtask files listed in last-session.md
 5. Check `research/<branchname>.log.md` for the most recent session's notes
+
+Do not run this checklist for a fresh, specific request that lacks an explicit
+`/hi` or resume signal; follow the AGENTS.md session-opening rule instead.

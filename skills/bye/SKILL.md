@@ -26,10 +26,19 @@ allowed-tools: Bash(cat:*), Bash(find:*), Bash(ls:*), Bash(git:*), Write, Read
    for any with Status: In Progress). Also search for related task files when
    `tasks/` exists, and cite them in `## Branch/Task Structure` and relevant
    next-step bullets.
-3. Inspect `.agentctl/jobs/*/current.json` when present and capture the known
+3. Capture source-session metadata for the current agent/provider when
+   available. Include a lightweight `## Source Session` section in
+   `last-session.md` with session ID, provider, model, and a provider JSONL
+   log path or logdir/glob hint for deeper transcript/debug detail. Make the
+   session ID the stable grep key when possible, e.g. `grep -R <session-id>
+   ~/.codex/sessions/**/*.jsonl` or search the matching Claude project logs
+   under `~/.claude/projects/**/*.jsonl`. If a value is not available, write
+   `unknown` rather than omitting the section.
+4. Inspect `.agentctl/jobs/*/current.json` when present and capture the known
    jobs still marked `running`.
-4. Write (project-root) `last-session.md` with exactly these sections:
+5. Write (project-root) `last-session.md` with exactly these sections:
    - `# Last Session`
+   - `## Source Session`
    - `## Branch`
    - `## What We Did`
    - `## Commits Made This Session`
@@ -39,7 +48,7 @@ allowed-tools: Bash(cat:*), Bash(find:*), Bash(ls:*), Bash(git:*), Write, Read
    - `## Branch/Task Structure`
    - `## Working Tree State`
    - `## Environment`
-5. In `## Running Agentctl Jobs`, list each known running `agentctl` job with:
+6. In `## Running Agentctl Jobs`, list each known running `agentctl` job with:
    - job name
    - serial and run id when present
    - log path
@@ -49,16 +58,16 @@ allowed-tools: Bash(cat:*), Bash(find:*), Bash(ls:*), Bash(git:*), Write, Read
    chat memory. Write it so a resumed agent can launch or monitor the successor
    action without rereading the whole conversation.
    If there are no known running `agentctl` jobs, write `None`.
-6. `## Running Agentctl Jobs` is the persisted handoff for unfinished
+7. `## Running Agentctl Jobs` is the persisted handoff for unfinished
    `agentctl` work. Keep it factual and current; do not list finished/stopped
    jobs there.
-7. This file is consumed by `/hi`; treat it as the canonical resume handoff.
-8. Write only the canonical summary content described above; do not append
+8. This file is consumed by `/hi`; treat it as the canonical resume handoff.
+9. Write only the canonical summary content described above; do not append
    chat logs, tool traces, or unrelated scratch notes.
-9. Keep entries concise and factual. Use bullets or numbering as appropriate.
-10. In `## Immediate Next Steps`, put the single best next action first. If a
+10. Keep entries concise and factual. Use bullets or numbering as appropriate.
+11. In `## Immediate Next Steps`, put the single best next action first. If a
    running `agentctl` job blocks that action, say so and point to the relevant
    item in `## Running Agentctl Jobs`.
-11. Include concrete file paths and commit hashes where relevant.
-12. If a section has nothing to report, write `None`.
-13. Stop after writing `last-session.md`.
+12. Include concrete file paths and commit hashes where relevant.
+13. If a section has nothing to report, write `None`.
+14. Stop after writing `last-session.md`.

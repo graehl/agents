@@ -1,17 +1,15 @@
-# Banner
-
-Immediately say "Global AGENTS understood" after reading all of this.
-
 # Session management
 
 Session state is saved in `last-session.md`. Use `/bye` to save a
 summary before ending work. Use `/hi` to recover context only when the
 user greets you, explicitly resumes prior work, or otherwise signals that
-they want session recovery. Independent sidequests do not require `/hi`,
-though `last-session.md` can still be checked as an optional time-saving
-hint. `/hi` and `/bye` — that's the whole ritual. Task files in `tasks/`
-track per-feature progress and architectural decisions — read the active
-task file when resuming.
+they want session recovery. When a fresh user turn is already a specific
+request and does not explicitly ask for `/hi` or prior-session recovery,
+treat it as an independent request by default: do not read or cite
+`last-session.md` merely because it exists. 
+
+local (git ignored) .md files in `tasks/` track per-feature progress and
+architectural decisions — read the active task file when resuming.
 
 For implementation or bugfix work, search for related `tasks/*.md` files when
 that directory exists. Cite the relevant task file(s) in planning and again
@@ -20,7 +18,36 @@ visible without forcing every small request to create a task.
 
 ### Resume source priority
 
-When the user provides an extract, handoff, or `continues` resume log from a previous agent session, treat that as evidence that the source session did not successfully run `/bye`. This overrides the normal resume instructions for `last-session.md`: in that situation, `last-session.md` is presumed stale by default and should not be treated as the primary source of truth. Prefer the provided extract or handoff, plus current branch/task state and live artifacts/jobs, over `last-session.md` unless there is explicit evidence that the previous session did in fact update it by completing `/bye` afterward.
+Explicit automated handoff instructions or context compression 
+as the first turn mean `bye` was not previously run
+before creating the handoff (unless actually seen at end of transcript).
+The previous session may be accessible by a link/session id present in a
+handoff; browse that session (as if to compress context or summarize)
+to ensure you are caught up; sometimes sessions pursue multiple unrelated
+tasks in series so you can first scan for obvious commit/topic change boundaries
+and closely read only the last two such sections.
+
+When resuming after a disconnected session, crashed browser/client, full agent
+restart, or context compaction that may have dropped live details, presume
+`last-session.md` is stale unless the user explicitly says the prior agent ran
+`/bye` after the disconnect. The same applies when `last-session.md` is older
+than live worktree files, recently modified task/subtask files, active job
+state, or artifact metadata. In those stale-summary cases, recover from live
+state first: the worktree, newest relevant task/subtask files, `.agentctl`/run
+metadata, saved artifacts, and only then the platform-wide session JSONL logs
+for the dead ancestor session. In repos with `tasks/`, sort task files by mtime
+and read the newest relevant entries even when `tasks/` is untracked or ignored
+by git; task files are live working state, not necessarily repository history.
+For Codex, check recent `~/.codex/sessions/**/*.jsonl` entries; for Claude,
+check the matching project logs under `~/.claude/projects/**/*.jsonl`. Use
+`last-session.md` only as a historical hint after those sources, not as primary
+truth.
+
+# Search and retrieval-led reasoning
+
+When a task depends on a claim about the contents of a software project,
+verify it against the repository before relying on it. Treat user and agent
+assumptions as hypotheses until checked. ripgrep (`rg`) is available.
 
 ## Global authority
 
@@ -58,6 +85,109 @@ user says otherwise:
 If the user uses that phrasing, do not leave the rule only in chat state; persist it in
 the corresponding authoritative file.
 
+# Big-effect command gate (BIG ACTIONS)
+
+Before running any big-effect command, including nontrivial commits, amend of a non-trivial commit, push, force push, file edits that entirely replace previous user-written content, deploy commands, database migrations,
+dependency upgrades, or destructive filesystem commands except of recently created scratch/log/tmp files not known to user (user does not know a filename just because it was part of an approval; user knows files organized according to schemes agreed w/ user or added to git:
+
+1. Stop before executing the command.
+2. Quote the applicable AGENTS instruction.
+3. State why this command is big-effect.
+4. List the required checks for this command.
+5. Verify each check against current repo/session state.
+6. Show the exact command that would be run.
+7. Do not proceed if any required check is missing or ambiguous.
+
+# Commits
+
+Composing commit messages: aim for a <=65 char subject, and manually wrap body
+prose at 71 columns.
+Prefer bullet lists in the commit body when items are numerous or complex; prose when the content is short and simple.
+
+## Commit message checklist
+
+Trivial commits get a short message (possibly subject-only)
+
+For non-trivial commit messages:
+* Format is a narrative session-summary synthesis of the motivation and decision => change
+* Exclude credentials/secrets from commit contents and message
+* Include main user decision points from session log of work committed
+* Exclude unrelated side discussions but include approaches ruled out for non-obvious reasons
+* Standard subject line (scannable headline for `git log --oneline`)
+* Briefly indicate whether the test suite is known to pass after the commit (in commit-as-you-go or split commits this is not always the case)
+* Explain the existence of significant diffs esp. creations of >3 lines length
+  or significant-effect edits of any kind if not already mentioned or implied somewhere
+  in the commit message; checking that what is said in the message appears compliant is
+  not enough; we want every change at least broadly described (besides trivial: whitespace/formatting,
+  comments, fully file-local var renames/refactors, etc)
+
+For ALL amends of non-trivial commits: 
+* commit messages specifying amendment are to be
+amendments or additions to the existing well-crafted and valuable commit message.
+* NEVER describe just the amendment in the amended commit message even though 
+the amending change may be trivial. ALWAYS preserve the existing commit message info
+(the amendment can simply edit the part of the message corresponding to what was
+changed; if it's a change to a minor detail then no message change at all is needed)
+* example of FORBIDDEN amend commit messages: 'moved X to Y.hpp' when X is created
+in this commit; instead don't mention it or better find if the old Z.hpp where X used
+to live is mentioned as the site for X and correct that minimally.
+* the amended commit message must be true of the commit contents by the original
+non-trivial commit message standards!
+
+All commit messages: manually wrap body prose at 71 columns. This keeps
+fixed-width formatting intentional and avoids Gerrit double-wrapping.
+Exceed 71 only for unavoidable long tokens/strings, not to reduce
+raggedness or avoid a short neighboring line. Do not link to
+git-ignored content e.g. `tasks/`; no `Co-Authored-By`.
+
+Manual wrapping is a visual formatting rule, not greedy fill:
+preserve bullets, hanging indents, aligned continuations, short tables,
+quoted blocks, and ASCII diagrams, even when that leaves a non-full
+line before the target.
+
+* Before commiting, ALWAYS make an additional final commit message global improvement check for coherency
+  and conformance w/ checklist. This is equivalent to a kind of brief review for coverage;
+  every impactful item in the diff must be covered by some motivating or summary implying
+  existence of some similar diff chunk. In this final edit, consider (rereading the draft message) splitting
+  into independent impl. parts, or impl. and then research finding parts (if this is
+  a research project)
+
+**Commit Topic series threading**: when a commit is part of a related series, append
+a `Topic: <string>` trailer at the bottom of the body. The topic string
+is freeform (short descriptive free-case free-space phrasing allowed).
+A topic series shares the exact same topic string across
+all commits — "first in wins": commit #1 sets the canonical text, later
+commits copy it verbatim so `git log --grep "Topic: ..."` finds the
+chain. Switch topic strings only when it's obviously time for a new
+one. Topic should ideally allow be a needle for searching `tasks/*.md`.
+Standalone commits with no task spec. and no expected follow-up: no topic trailer.
+
+To avoid accidentally reusing a topic for an unrelated series, keep a
+project-level `topics.md` log at the repo root and append each new
+topic string to it when the series begins. The log is appended to
+whether or not it's tracked in git — tracking is a project-collab-style
+decision (commit it for shared/team repos where topic discipline is
+mutual practice; leave it untracked on solo repos if preferred).
+Format is freeform (not a traditional ChangeLog) — typically a
+bulleted list with optional one-line notes. Scan `topics.md` before
+opening a new series.
+
+**Amend vs. second commit after a correction**: if the user contradicts or
+corrects a commit that has NOT yet been pushed to the upstream default branch
+(`origin/main` or `origin/master`, whichever exists), always `git commit
+--amend` (or `git commit --amend --no-edit` for trivial fixups) so the branch
+history stays clean and the corrected state is the canonical record. A second
+stand-alone commit for a one-line correction adds noise and can leave a
+misleading intermediate state in history.
+
+**Recent pushed oopsies on personal GitHub**: if a pushed commit to the user's
+`github.com/graehl` remote is discovered within days to be wrong, and there are
+no downstream forks/consumers depending on that erroneous commit, prefer
+`git commit --amend` plus a force-push/overwrite so the bad state disappears
+rather than accumulating noise-fix history. Exception: do not rewrite once the
+branch/commit has already been submitted as a PR elsewhere; in that case, keep
+history stable and repair forward unless the user explicitly says otherwise.
+
 ### Load-bearing instructions
 
 When writing or editing instructions for agents (AGENTS.md,
@@ -80,6 +210,16 @@ blast radius: a smoke-scale timing check is enough for narrow plumbing, while
 research-facing training, decoding, scoring, scheduling, or data-selection
 changes need a recorded contrastive run or a clear task note explaining why the
 comparison is postponed.
+
+### Avoid redundant compute
+
+For compute-intensive implementation paths, treat redundant computation as a
+design bug to avoid up front. Reuse cached, prefetched, or intermediate work
+that has already been paid for, and repair only the rows, systems, shards, or
+states that actually need repair. Pure discovery and housekeeping scripts are
+exempt unless they become performance-critical. If an obvious reuse path is
+left out for expedience, mark it as temporary with a task note and a planned
+on/off timing comparison.
 
 ### Confirmation threshold
 
@@ -169,9 +309,9 @@ different.
 
 ### Search conventions
 
-`rg` (ripgrep) is installed and should be the default text-search tool. Use
-type filters when they help narrow the search, e.g. `rg -t md "pattern" .` to
-find text in project Markdown files.
+Use `rg` for repository text search and `rg --files` for file discovery. Add
+type filters when they narrow the question, e.g. `rg -t md "pattern" .` for
+project Markdown files.
 
 ### Agent-facing CLI help
 
@@ -291,82 +431,19 @@ When reformatting C/C++ changes, use clang-format only on modified lines:
 Do not run clang-format on entire files.
 You can use clangd to check your edits to a C/C++ source file (if a .clangd is present at project root)
 
-# Commits
+# Commit-message gate
 
-Composing commit messages: aim for a <=65 char subject, and strictly enforce a 72-column line wrap for the body.
-Prefer bullet lists in the commit body when items are numerous or complex; prose when the content is short and simple.
-Do not add `Co-Authored-By` trailers crediting an AI assistant — the human is the author.
-## Instruction synthesis
+Before running `git commit` for a non-trivial change:
 
-**Maintainer**, here, means the human reviewer or a future agent
-(possibly you) re-reading this commit to understand or re-derive the
-change.
-
-For non-trivial commits, include a concise excerpt or synthesis of the
-originating instruction (or motivating observation, when the change
-wasn't user-prompted) that is feasible to land in the committed
-changes. Summarize the motivating request and key implementation
-direction so a Maintainer could paste the message, add their own
-adjustments, and recreate something close to the intended result. Prune
-digressions, secrets, and low-signal chat detail; do not aim for a
-verbatim or exhaustive transcript.
-Exclude iterative back-and-forth testing, UI tweaking, and debugging dialog
-from the synthesis unless it records a durable product or architecture
-decision the Maintainer would need to re-derive the change.
-
-The subject line is the conventional scannable headline result — keep
-it scannable in `git log --oneline`. The synthesis lives
-in the body. The 72-column body wrap applies to synthesis prose as
-well.
-
-**Exemption**: skip the synthesis for mechanical or small + self-evident
-changes — formatter passes, typo fixes, version bumps, trivial renames
-with no substantive user direction. The conventional one-line message
-alone is sufficient there.
-
-**Research projects** follow a different commit-organization rule:
-separate commit kinds — implementation changes versus research/plan-doc
-changes (findings, paper edits, plan updates). Do not mix the two in
-one commit; implementation typically lands first, with the findings or
-plan commit that uses it as a separate follow-up. Commit as you go to
-avoid accumulating a mixed checkpoint. (Each kind's synthesis body
-naturally carries what's load-bearing — the user direction for impl,
-the finding or plan rationale for the doc.)
-
-**Series threading**: when a commit is part of a related series, append
-a `Topic: <string>` trailer at the bottom of the body. The topic string
-is freeform (descriptive phrasing fine; not constrained to a short
-UPPERCASE codename). A series shares the exact same topic string across
-all commits — "first in wins": commit-1 sets the canonical text, later
-commits copy it verbatim so `git log --grep "Topic: ..."` finds the
-chain. Switch topic strings only when it's obviously time for a new
-one. Standalone commits with no expected follow-up: no trailer.
-
-To avoid accidentally reusing a topic for an unrelated series, keep a
-project-level `topics.md` log at the repo root and append each new
-topic string to it when the series begins. The log is appended to
-whether or not it's tracked in git — tracking is a project-collab-style
-decision (commit it for shared/team repos where topic discipline is
-mutual practice; leave it untracked on solo repos if preferred).
-Format is freeform (not a traditional ChangeLog) — typically a
-bulleted list with optional one-line notes. Scan `topics.md` before
-opening a new series.
-
-**Amend vs. second commit after a correction**: if the user contradicts or
-corrects a commit that has NOT yet been pushed to the upstream default branch
-(`origin/main` or `origin/master`, whichever exists), always `git commit
---amend` (or `git commit --amend --no-edit` for trivial fixups) so the branch
-history stays clean and the corrected state is the canonical record. A second
-stand-alone commit for a one-line correction adds noise and can leave a
-misleading intermediate state in history.
-
-**Recent pushed oopsies on personal GitHub**: if a pushed commit to the user's
-`github.com/graehl` remote is discovered within days to be wrong, and there are
-no downstream forks/consumers depending on that erroneous commit, prefer
-`git commit --amend` plus a force-push/overwrite so the bad state disappears
-rather than accumulating noise-fix history. Exception: do not rewrite once the
-branch/commit has already been submitted as a PR elsewhere; in that case, keep
-history stable and repair forward unless the user explicitly says otherwise.
+1. Quote the AGENTS commit-message rule.
+2. Decide whether the change is trivial or non-trivial.
+3. If non-trivial, list the session requirements and implementation
+   decisions that another agent would need to recreate an equivalent
+   change (but not fully specifying exact explanatory documentation/comments/UI/usage text).
+4. Draft the commit message per instructions.
+5. Check that every item from step 3 appears in the message.
+6. Only then run `git commit`.
+7. no `Co-Authored-By` - I am author.
 
 # Explanation style: "remind me" / "refresher"
 
@@ -382,7 +459,44 @@ deliver a self-contained paragraph or short textbook-style section with these pr
 - **Assumes deep ML background**: do not explain SGD, attention, tokenization, or other
   standard field concepts unless the reminder is specifically about them. Skip motivation
   sentences the user already knows.
-- **Related concepts**: briefly name the 1–3 most closely related techniques the user
-  likely knows, so they can cross-reference their own memory (e.g., "contrasts with
-  plain LoRA in that…", "same family as DoRA but without…").
-- **Length**: one to three paragraphs maximum; tighter is better.
+- **Related concepts**: briefly name the 1–3 most closely related field-known techniques
+
+# Ideal coding - for human-competent programmers / agents
+
+- Use precomputation or verifiable 'proofs' (e.g. exhaustive enough testing) of
+library contracts when possible to achieve n*lg n or better performance on
+tasks that feel they should be simple. It's shameful to make something
+quadratic or worse that need not be. However, easily scannable/verifiable code
+is also important. It's an aesthetic tradeoff that depends on how hot the path
+could become in practice. Further, an understanding of whether memory or
+compute is the bottleneck is needed when proposing even O(n) added per-input
+scratch space to improve past O(n * lg n) time.
+- Everything you change should become a polished 'gem' limited primarily by
+prudent (and courteous to collaborators) avoidance of scope creep / sweeping
+refactors. Prefer the shortest conventional readable option that correctly
+expresses the contract. Clever low-level tricks are permitted when they
+meaningfully improve size or speed, especially in hot code, but document the
+reason. This is a strong aesthetic preference.
+- Do favor styles that allow useful work by lesser programmers in referring to
+popular conventions in domain and programming terminology, patterns, etc. but
+do not sprinkle obvious "strategy pattern" type comments everywhere - unwanted
+and ugly. Part of the name of something can allude to known terms/patterns.
+Lesser programmers copy/paste. While we favor reusability-ready code, general
+facilities invented for one use need to live close in the source to their use.
+- Since error handling, logging, and other defensive/boilerplate items are
+distracting, especially focus on a concise "get these things checked and right"
+once positioning of such gates. You can rely on exceptions. Correctly reducing
+overall code size/reading burden by placing these logs etc once per input
+execution (or once at load time) does require a global view or even grep for
+such logs. Observe the structure of run logs for potential reductions in
+logging code and also interpretability/elegance of the log flow with agent
+search/inference in mind, e.g. nested indents mirroring subtasks are nice if
+used everywhere but hard to line-search for correctly so cannot be the only
+signal (open and close brace type conventions for logs are not in widespread
+currency). Therefore some context info can be repeated across multiple lines in
+spite of it compromising on an otherwise essential aesthetic: things are most
+elegantly defined (and run-logged) only once.
+- Tradeoffs of fundamental elegant/polished gem aesthetic are allowed in the
+direction of both human and agent new-maintainer immediate
+legibility/searchability; needless runtime inefficiency is not in the case of
+planned future large runs' hotspots.
