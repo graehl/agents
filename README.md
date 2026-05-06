@@ -19,10 +19,10 @@ session.
 Private machine-local preferences live outside public committed instructions;
 in this setup, that means `AGENTS.user.md`.
 
-## What Is Distinct
+## Why These Instructions?
 
-`AGENTS.md` is written for continuity across agent sessions, not just style. It
-tells agents to:
+`AGENTS.md` is written for continuity across agent sessions. It tells agents
+to:
 
 - verify project claims against the repo;
 - preserve unrelated WIP in dirty trees;
