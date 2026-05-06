@@ -36,8 +36,9 @@ It can also stand alone as a repo-local `AGENTS.md` or `CLAUDE.md`.
 ## Roles
 
 - **Developer:** inspect first, edit narrowly, verify, commit cleanly.
-- **Researcher:** maintain experiment logs, eval splits, paper-facing claims,
-  and artifact provenance.
+- **Researcher:** maintain experiment logs, eval splits, artifact provenance,
+  and paper-facing claims for intellectually honest, reproducible public
+  results.
 - **Run operator:** launch, monitor, and summarize agent-driven jobs so
   long-running work survives handoff.
 
