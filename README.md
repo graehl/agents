@@ -21,9 +21,13 @@ in this setup, that means `AGENTS.user.md`.
 
 ## Why These Instructions?
 
-`AGENTS.md` is written for continuity across agent sessions. It tells agents
-to:
+Do you want a strict procedure that scripts today's weaker agents, or lean
+policy that preserves real intent for strong present and future agents? This
+repo chooses the latter.
 
+It tells agents to:
+
+- preserve continuity and resumability across agent sessions;
 - verify project claims against the repo;
 - preserve unrelated WIP in dirty trees;
 - route global, project, and branch rules to durable files;

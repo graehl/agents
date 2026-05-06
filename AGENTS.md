@@ -110,6 +110,12 @@ project-specific context, and counters to defaults the user wants to override
 are load-bearing; restatements of standard tool mechanics or documented
 defaults the model would already follow are not.
 
+When adding instruction policy, ask whether the goal is to build a strict
+bureaucratic procedure for today's weakest acceptable model, or to preserve
+real intent for strong present and future agents. Prefer the latter: add
+explicit rules when they prevent known project-specific failures, but avoid
+prompt debt that replaces ordinary engineering judgment.
+
 ## Project-level instructions
 
 Before running tools in a repository for the first time in a session, check
