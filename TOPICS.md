@@ -78,13 +78,21 @@ incrementally.
 `temperature`, `top-p`, `beam-search`, `tool-use`, `agent-loop`
 
 *LLM evaluation and alignment*:
-`llm-judge`, `perplexity`, `benchmark`, `evals`,
+`model-based-evaluation`, `perplexity`, `benchmark`, `evals`,
 `safety-alignment`, `red-teaming`
 
 *Distributed compute / HPC*:
 `collective-communication`, `model-parallelism`, `fault-tolerance`,
 `gpu-memory`, `job-scheduling`, `resource-accounting`,
 `process-lifecycle`, `profiling`
+
+*CUDA / GPU kernel programming*:
+`kernel-correctness`, `grid-block-geometry`, `memory-access-patterns`,
+`shared-memory-tiling`, `warp-level-programming`, `gpu-synchronization`,
+`occupancy-and-register-pressure`, `kernel-fusion`,
+`precision-and-accumulation`, `async-copy-pipeline`,
+`custom-op-integration`, `architecture-portability`,
+`kernel-profiling`
 
 *Message queue / event streaming*:
 `message-delivery`, `exactly-once`, `consumer-groups`, `dead-letter`,

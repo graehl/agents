@@ -226,6 +226,75 @@ or verbatim plus additions.
 
 ---
 
+## CUDA / GPU kernel programming
+
+| topic | definition |
+|---|---|
+| `kernel-correctness` | Bounds, indexing, shape handling, aliasing, race freedom, and reference-equivalence for custom GPU kernels |
+| `grid-block-geometry` | Map problem dimensions onto CUDA grids, blocks, warps, tiles, and per-thread work; controls indexing, edge handling, occupancy, and memory locality |
+| `memory-access-patterns` | Global-memory layout, coalescing, alignment, vectorized loads/stores, and cache behavior |
+| `shared-memory-tiling` | Tile shapes, shared-memory staging, bank-conflict avoidance, and halo/edge handling |
+| `warp-level-programming` | Warp-synchronous algorithms using lanes, masks, shuffles, ballots, and divergence control |
+| `gpu-synchronization` | Correct use of barriers, atomics, memory scopes, and inter-thread/inter-block ordering |
+| `occupancy-and-register-pressure` | Balance registers, shared memory, block size, and active warps per SM for throughput |
+| `kernel-fusion` | Combine operations to reduce launch overhead and memory traffic while managing register pressure |
+| `precision-and-accumulation` | Numeric formats, accumulation type, rounding, determinism, overflow, and error tolerance |
+| `async-copy-pipeline` | Overlap memory movement and compute with staged or double-buffered async copies |
+| `custom-op-integration` | Bind kernels into PyTorch/C++/Python runtimes with dispatch, build flags, ABI, and shape contracts |
+| `architecture-portability` | Handle compute capability, SM features, tensor cores, PTX/SASS differences, and fallback paths |
+| `kernel-profiling` | Use profiler evidence, roofline reasoning, and microbenchmarks to distinguish memory vs. compute limits |
+
+| vernacular | definition |
+|---|---|
+| `CUDA` | NVIDIA GPU programming platform/API for kernels, memory management, streams, and libraries |
+| `CUDA C++` | Canonical CUDA kernel implementation language/front end for NVIDIA GPUs |
+| `Triton` | Python-based DSL/JIT for writing custom GPU kernels, common in ML projects |
+| `PyTorch C++/CUDA extension` | PyTorch integration route for custom C++ and CUDA operators |
+| `CUTLASS` | NVIDIA C++ template library for high-performance GEMM/convolution-style CUDA kernels |
+| `CuTe` | CUTLASS tensor-layout and tiling DSL used in modern NVIDIA kernel templates |
+| `HIP` | AMD CUDA-like kernel programming API used with ROCm |
+| `ROCm` | AMD GPU compute software stack; HIP, libraries, compiler, and runtime |
+| `kernel` | Function launched across many GPU threads |
+| `grid` | Whole launched collection of thread blocks |
+| `block` | Cooperative thread group scheduled onto one SM; also called CTA |
+| `CTA` | Cooperative thread array; CUDA block-level execution unit |
+| `thread` | Single CUDA execution instance with its own registers and lane position |
+| `SM` | Streaming multiprocessor; hardware unit that schedules warps and executes instructions |
+| `warp` | Group of 32 CUDA threads executing in SIMT lockstep |
+| `lane` | Thread position within a warp |
+| `execution configuration` | CUDA launch parameters such as grid size, block size, dynamic shared memory, and stream |
+| `grid-stride loop` | Kernel loop pattern where each thread processes elements separated by total grid size |
+| `thread-block shape` | Block dimensions chosen to match data layout, tile shape, memory coalescing, and occupancy |
+| `launch bounds` | CUDA annotation constraining threads per block/register use to guide compiler occupancy choices |
+| `occupancy` | Ratio of active warps on an SM to the hardware maximum |
+| `register pressure` | High per-thread register use that can reduce occupancy or cause spills |
+| `spill` | Register value stored to local memory because registers are exhausted |
+| `global memory` | High-latency device DRAM visible to all threads |
+| `shared memory` | Low-latency per-block scratchpad memory |
+| `constant memory` | Cached read-only memory optimized for broadcast-style access |
+| `coalescing` | Combining adjacent lane memory accesses into efficient memory transactions |
+| `bank conflict` | Shared-memory accesses contend for the same memory bank and serialize |
+| `warp divergence` | Lanes in a warp take different control-flow paths, reducing parallel efficiency |
+| `shuffle` | Warp intrinsic that moves values between lanes without shared memory |
+| `ballot` | Warp intrinsic that collects per-lane predicates into a bitmask |
+| `CUDA atomics` | Device atomic operations such as atomicAdd; correctness tool with memory-scope and contention costs |
+| `tensor core` | Specialized NVIDIA matrix-multiply hardware for mixed-precision GEMM-like operations |
+| `WMMA` | Warp-level matrix multiply-accumulate API targeting tensor cores |
+| `MMA` | Matrix multiply-accumulate instruction family used by tensor-core kernels |
+| `PTX` | NVIDIA virtual ISA emitted before target-specific assembly |
+| `SASS` | NVIDIA machine assembly for a specific GPU architecture |
+| `compute capability` | NVIDIA architecture version describing available hardware features |
+| `stream` | Ordered queue of GPU work; independent streams can overlap |
+| `event` | GPU timing/synchronization marker recorded in a stream |
+| `pinned memory` | Page-locked host memory enabling faster/asynchronous host-device transfers |
+| `unified memory` | CUDA-managed memory addressable by CPU and GPU with migration |
+| `cp.async` | Async copy instruction family for moving global memory into shared memory |
+| `roofline` | Performance model comparing arithmetic intensity against memory bandwidth and peak FLOPs |
+| `Nsight Compute` | NVIDIA profiler for per-kernel metrics, stalls, occupancy, and memory behavior |
+| `compute-sanitizer` | NVIDIA correctness tool for memory errors, races, and synchronization bugs |
+
+---
+
 ## Message queue / event streaming
 
 | topic | definition |
@@ -753,6 +822,9 @@ or verbatim plus additions.
 | `batching` | Combine multiple meshes/sprites into one draw call |
 | `frustum culling` | Skip rendering objects outside the camera view volume |
 | `LOD` | Level of detail; swap high-poly mesh for lower-poly at distance |
+| `Vulkan` | Khronos cross-vendor low-level graphics and compute API, common in engines and portable GPU rendering paths |
+| `compute shader` | GPU shader stage used for general compute work outside the traditional graphics pipeline |
+| `SPIR-V` | Khronos binary intermediate representation used by Vulkan shaders and compute kernels |
 
 ---
 
@@ -900,7 +972,7 @@ or verbatim plus additions.
 
 | topic | definition |
 |---|---|
-| `llm-judge` | Use a capable LLM to score or compare outputs; cheap proxy for human evaluation |
+| `model-based-evaluation` | Use learned/model scorers to grade outputs, label preferences, filter data, guide training, or monitor regressions |
 | `perplexity` | exp(cross-entropy loss) on held-out text; measures model surprise; lower = better |
 | `benchmark` | Standardized test suite (MMLU, HumanEval, HellaSwag); reproducible apples-to-apples comparison |
 | `evals` | Evaluation harness: dataset + metric + runner; broader than benchmark, can be product-specific |
@@ -913,6 +985,13 @@ or verbatim plus additions.
 | `HumanEval` | 164 Python programming problems with unit tests; measures code generation |
 | `MT-Bench` | Multi-turn conversation quality benchmark; GPT-4 as judge |
 | `ELO` | Chess-style rating updated by win/loss; used in chatbot arena leaderboards |
+| `LLM-as-judge` | Use an LLM to score, compare, or critique outputs from prompts, rubrics, or pairwise choices |
+| `judge model` | Model used as an evaluator rather than the system being evaluated |
+| `learned evaluator` | Trained model or learned metric used to score outputs against a task-specific quality target |
+| `reward model` | Learned scorer trained from preference or quality labels; can drive RLHF/RLAIF or ranking |
+| `preference model` | Model that predicts which of two or more candidate outputs is preferred |
+| `critic` | Model/component that evaluates or critiques candidate outputs, plans, or actions |
+| `pairwise preference` | Evaluation format comparing two outputs and choosing the better one |
 | `jailbreak` | Adversarial prompt that bypasses safety training |
 | `alignment tax` | Reduction in raw capability caused by safety fine-tuning |
 | `RLHF` | Reinforcement learning from human feedback; PPO + reward model |
