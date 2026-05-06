@@ -19,11 +19,15 @@ pretraining docs and technical discussion, useful for human recall and
 effective communication with an agent. Include acronym expansions,
 named algorithms, named protocols, named standards, and common
 compound terms. Do not duplicate terms already in Table 1. One-line
-definitions only.
+definitions only. These rows are curated and are not directly
+regeneratable from `TOPICS.md`; on regeneration, preserve existing
+vernacular rows verbatim unless intentionally correcting/removing a row,
+then add new jargon where useful.
 
 Separate sections with `---`. Do not alter this spec block.
-Agents do not need to maintain this file incrementally — regenerate the
-whole file on demand.
+Agents do not need to maintain topic-derived rows incrementally; regenerate
+the whole file on demand while preserving curated vernacular rows verbatim
+or verbatim plus additions.
 
 ---
 
@@ -944,15 +948,64 @@ whole file on demand.
 | `jank` | Visible frame drops or stuttering; typically caused by main-thread blocking past 16ms |
 | `FLIP` | First Last Invert Play; technique for performant layout animations using transform instead of layout properties |
 | `RAF` | requestAnimationFrame; schedule work to run before next paint |
+| `easing` | Motion timing curve controlling acceleration and deceleration |
+| `spring` | Physics-like animation model with stiffness and damping instead of fixed timing |
+| `stagger` | Delayed sequence where related elements animate one after another |
+| `enter/exit animation` | Motion used when an element appears or disappears |
 | `virtual scrolling` | Render only visible list items; recycle DOM nodes as user scrolls to handle arbitrarily large lists |
 | `skeleton screen` | Placeholder UI showing content shape before data loads; reduces perceived wait vs. spinner |
 | `optimistic update` | Update UI immediately before server confirms; roll back on error |
+| `empty state` | View shown when there is no content yet; should explain the state and expose the next useful action |
+| `loading state` | Temporary UI while work is pending; includes spinners, skeletons, disabled controls, and progress text |
 | `command palette` | Keyboard-driven search over all available commands and features; primary discoverability mechanism for power users |
+| `home link` | Logo, title, or nav affordance that routes to the app's default or top-level view; navigation, not creation |
+| `launcher` | Entry-point control that starts or opens a primary workflow, app, tool, or workspace; qualify it when ambiguous |
 | `affordance` | Visual or physical property that signals how an object can be used (Gibson/Norman); basis for discoverability |
+| `tooltip` | Short hover/focus explanation for an element; informational, not an interactive panel |
+| `tooltip trigger` | Element whose hover or keyboard focus reveals a tooltip |
+| `hover target` | Mouse hover-sensitive element; should have a keyboard-focus equivalent when it reveals information |
 | `Fitts's law` | Time to acquire a target ∝ log(distance/size + 1); basis for minimum touch target sizing |
+| `touch target` | Interactive area large enough to tap reliably on touch devices |
+| `hit target` | Actual clickable/tappable region for an element, which may be larger than the visible affordance |
+| `focus ring` | Visible indicator showing the currently keyboard-focused element |
+| `focus trap` | Keyboard focus stays inside an open modal, drawer, or sheet until it is dismissed |
 | `prefers-reduced-motion` | CSS media query indicating the user has requested minimal animation; must gate all non-essential motion |
 | `WAI-ARIA` | Web Accessibility Initiative ARIA; roles and properties for assistive technology interop |
 | `WCAG` | Web Content Accessibility Guidelines; A/AA/AAA conformance levels; legal requirement in many jurisdictions |
+| `badge` | Compact count/status marker attached to a label, icon, tab, row, or button |
+| `pill` | Rounded compact label or control, often used for status, filters, modes, or small option groups |
+| `chip` | Compact inline token representing an item, filter, attachment, or selection; often removable |
+| `segmented control` | Small set of mutually exclusive options presented as adjacent buttons |
+| `accordion` | Disclosure pattern where sections expand or collapse, often one at a time |
+| `toast` | Temporary non-modal notification; should not steal focus; often auto-dismisses |
+| `snackbar` | Toast-like transient message, often bottom-aligned and sometimes carrying one short action |
+| `banner` | Prominent page- or section-level message strip; usually more persistent than a toast |
+| `callout` | Inline contextual note, warning, or explanation placed near the related content |
+| `dialog` | Focused panel for details, confirmation, or input; may be modal or non-modal |
+| `modal` | Blocking dialog/overlay mode where background interaction is disabled and focus should be managed |
+| `sidebar` | Persistent side region for navigation or supporting content; may resize, collapse, or become a drawer on narrow screens |
+| `drawer` | Edge-attached panel that opens and closes over or beside content |
+| `navigation drawer` | Drawer used for app navigation, often the mobile or overlay form of a sidebar |
+| `sheet` | Edge-presented temporary panel, commonly used for secondary choices or details |
+| `bottom sheet` | Mobile-style sheet rising from the bottom, often partially or fully expanded |
+| `popover` | Anchored floating panel with richer content or controls than a tooltip |
+| `scrim` | Dimmed visual layer behind an overlay that separates foreground from background |
+| `backdrop` | Layer behind an overlay, often used for dimming, blur, outside-click dismissal, or inert background coverage |
+| `portal` | Render overlay content outside its normal DOM parent so stacking, clipping, and positioning work predictably |
+| `z-index` | CSS stacking order value; only comparable within the same stacking context |
+| `stacking context` | CSS layering boundary that controls how z-index values compare; common cause of overlay ordering bugs |
+| `scroll lock` | Prevent background or page scrolling while an overlay or modal interaction is active |
+| `overview ruler` | Scrollbar-adjacent rail summarizing important off-screen positions with markers, such as search hits, errors, comments, or user turns |
+| `scroll anchoring` | Keep the user's visible scroll position stable when content above changes |
+| `scroll restoration` | Restore previous scroll position after navigation, reload, or reopening a view |
+| `responsive layout` | Layout adapts across viewport sizes, input modes, and device constraints |
+| `viewport` | Visible browser/app region used for layout calculations; on mobile it can be affected by browser chrome and safe areas |
+| `breakpoint` | Width or condition where layout rules change, such as a sidebar becoming a bottom nav |
+| `media query` | CSS condition based on viewport, device, or user preference state |
+| `container query` | Style or layout decision based on a component's container size rather than the whole viewport |
+| `safe area` | Screen inset reserved for notches, rounded corners, and mobile home indicators |
+| `density` | Compactness of UI spacing and controls, such as compact, default, or comfortable modes |
+| `sticky positioning` | Element remains fixed within its scroll container after crossing a threshold; common for headers and toolbars |
 
 ---
 
