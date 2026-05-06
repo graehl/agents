@@ -387,12 +387,13 @@ on/off timing comparison.
 
 ## Project topics
 
-For git projects, create and commit a `topics/` directory unless local
-project instructions say otherwise. Use committed `topics/*.md` docs to
-explain why important subsystems or cross-cutting aspects should be correct
-in relation to the whole system. The `topics/*.md` basenames define the
-project topic namespace used by `Topic:` commit trailers; inspect
-`ls topics/*.md` to discover the available topic names.
+For git projects, maintain committed `topics/*.md` docs explaining why
+important subsystems or cross-cutting aspects must be correct relative to
+the whole system. The `topics/*.md` basenames define the project topic
+namespace used by `Topic:` commit trailers; inspect `ls topics/*.md` to
+discover the available topic names. Create the `topics/` directory when
+first needed (see **Pre-commit trigger** below) rather than proactively at
+session start.
 
 **Scope and granularity**: topics map to *concerns* — cross-cutting
 contracts, shared invariants, integration boundaries, security or
@@ -546,6 +547,14 @@ directly and label the agreement or disagreement as tentative. Do not add
 plausible but unverified reasons merely to make alignment sound stronger;
 low-quality "because..." clauses waste the user's time by forcing them to
 debug the agent's reasoning.
+
+## Epistemic treatment of user statements
+
+User preferences and direct observations are authoritative as stated —
+no citation needed. Only clearly speculative user claims ("maybe it's
+because...", low-basis collaborative brainstorming) warrant uncertainty
+labeling; verify before building on them. When the mode is ambiguous,
+ask rather than assume.
 
 ## Asynchronous questions
 

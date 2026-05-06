@@ -10,6 +10,11 @@ similar names is a searchability bonus, not a requirement. A topic that
 only describes one module's internals with no external dependency is
 probably a README section, not a topic doc.
 
+See [`topic-definitions.md`](topic-definitions.md) for one-line definitions
+of every term listed here, plus additional field jargon. That file is a
+human reference — regenerate it on demand rather than maintaining it
+incrementally.
+
 ## By domain
 
 *Realtime / websocket backend*:
@@ -17,18 +22,29 @@ probably a README section, not a topic doc.
 `replay-and-catchup`, `transport-modes`, `e2e-encryption`,
 `provider-integration`, `render-pipeline`, `auth-and-admission`
 
-*General web / API service*:
+*Backend service*:
 `auth-and-admission`, `session-lifecycle`, `input-validation`,
 `api-compatibility`, `rate-limiting`, `caching`, `background-jobs`,
 `error-handling`, `observability`, `feature-flags`,
 `schema-migrations`, `consistency`, `graceful-shutdown`, `resumability`
 
-*Security and compliance (cross-cutting)*:
-`injection-and-csrf`, `secrets-management`, `privacy-and-retention`,
-`supply-chain-integrity`, `regulatory-compliance`, `responsible-disclosure`,
-`a11y-and-i18n` (WCAG, color contrast, captions, screen-reader, locale,
-text-direction; legal requirement for UI-bearing software in many
-jurisdictions)
+*Code conventions (cross-cutting)*:
+`impl-style`, `shared-primitives`, `shared-constants`
+
+*Availability (cross-cutting)*:
+`fault-tolerance`, `backup-and-recovery`, `data-durability`, `failover`,
+`circuit-breaker`, `retry-and-backoff`, `degraded-mode`, `chaos-engineering`
+
+*Performance (cross-cutting)*:
+`performance`, `scalability`, `profiling`, `caching`
+
+*Security (cross-cutting)*:
+`injection-and-csrf`, `secrets-management`, `supply-chain-integrity`,
+`responsible-disclosure`
+
+*Compliance (cross-cutting)*:
+`privacy-and-retention`, `regulatory-compliance`, `accessibility`,
+`localization`
 
 *Desktop / native app*:
 `persistence-and-migration`, `undo-redo`, `plugin-api`, `print-and-export`,
@@ -39,6 +55,31 @@ jurisdictions)
 `numerical-stability`, `mixed-precision`, `gradient-accumulation`,
 `eval-harness`, `hyperparameter-search`, `fine-tuning`, `rlhf`,
 `context-length`, `experiment-tracking`, `model-serving`
+
+*LLM / transformer architecture*:
+`attention`, `positional-encoding`, `rope`, `kv-cache`, `layer-norm`,
+`feed-forward`, `moe`, `gqa`, `flash-attention`, `tokenization`
+
+*LLM training and optimization*:
+`gradient-descent`, `adam`, `learning-rate-schedule`, `dropout`,
+`weight-decay`, `gradient-clipping`, `gradient-checkpointing`,
+`mixed-precision`, `data-mixture`
+
+*LLM fine-tuning and adaptation*:
+`sft`, `lora`, `qlora`, `adapter`, `prompt-tuning`, `dpo`,
+`reward-model`, `distillation`, `quantization`, `pruning`
+
+*LLM inference and serving*:
+`speculative-decoding`, `continuous-batching`, `paged-attention`,
+`tensor-parallelism`, `pipeline-parallelism`, `structured-generation`
+
+*Prompting and agentic*:
+`prompt-engineering`, `few-shot`, `chain-of-thought`, `rag`,
+`temperature`, `top-p`, `beam-search`, `tool-use`, `agent-loop`
+
+*LLM evaluation and alignment*:
+`llm-judge`, `perplexity`, `benchmark`, `evals`,
+`safety-alignment`, `red-teaming`
 
 *Distributed compute / HPC*:
 `collective-communication`, `model-parallelism`, `fault-tolerance`,
@@ -54,6 +95,14 @@ jurisdictions)
 `state-management`, `ssr-and-hydration`, `file-upload`, `search-and-indexing`,
 `multitenancy`, `billing`, `oauth`, `webhooks`,
 `analytics`, `cdn-and-caching`, `feature-flags`
+
+*UI / frontend*:
+`scroll-prefetch`, `layout-stability`, `discoverability`,
+`perceived-performance`, `spatial-stability`,
+`progressive-disclosure`, `direct-manipulation`,
+`keybinds`, `power-user-efficiency`, `theming`,
+`temporal-layout`, `linearization`, `animation`,
+`audio-feedback`, `haptic-feedback`
 
 *General infrastructure / ops*:
 `deployment`, `dependency-pinning`, `secrets-management`, `observability`,
@@ -90,3 +139,44 @@ jurisdictions)
 `thread-safety`, `lock-ordering`, `memory-ordering`, `async`,
 `task-scheduling`, `connection-pooling`, `sharding`, `load-balancing`,
 `consensus`, `leader-election`, `eventual-consistency`, `cache-coherence`
+
+*Distributed systems (cross-cutting)*:
+`crdt`, `vector-clocks`, `failure-detector`, `distributed-transactions`,
+`distributed-snapshot`, `split-brain`, `idempotency`, `quorum`,
+`write-ahead-log`, `tail-latency`, `byzantine-fault-tolerance`,
+`geo-replication`
+
+*Peer-to-peer / overlay networks*:
+`dht`, `gossip-protocol`, `nat-traversal`, `peer-discovery`,
+`sybil-resistance`, `content-addressing`, `churn`, `routing-overlay`
+
+*Compiler / language runtime*:
+`parsing`, `ir-design`, `optimization-passes`, `codegen`,
+`register-allocation`, `garbage-collection`, `jit`, `ffi`
+
+*Database internals*:
+`storage-engine`, `mvcc`, `query-optimizer`, `index-structures`,
+`transaction-isolation`, `buffer-pool`
+
+*Networking / protocol design*:
+`tcp-semantics`, `tls`, `http-semantics`, `wire-format`,
+`congestion-control`, `protocol-versioning`
+
+*OS / systems programming*:
+`virtual-memory`, `file-system`, `ipc`, `container-isolation`,
+`signal-handling`, `kernel-interface`
+
+*Cryptography*:
+`key-exchange`, `symmetric`, `asymmetric`, `hash-and-mac`,
+`digital-signatures`, `zero-knowledge`, `secure-channel`
+
+*Testing / QA methodology (cross-cutting)*:
+`property-based-testing`, `fuzzing`, `mutation-testing`,
+`test-isolation`, `coverage-adequacy`
+
+*Physics simulation*:
+`rigid-body`, `collision-detection`, `constraint-solver`,
+`soft-body`, `fluid-simulation`, `numerical-integration`
+
+*Game development / netcode*:
+`game-loop`, `ecs`, `netcode`, `lag-compensation`, `render-graph`

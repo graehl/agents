@@ -274,7 +274,7 @@ be consumed immediately in the same turn.
 
 Synthetic heartbeat turns delivered through the current yepanywhere session are
 not new semantic user requests. Treat them as liveness nudges for the current
-plan. The default text may be `yepanywhere heartbeat`, but session-specific
+plan. The default text may be `heartbeat`, but session-specific
 overrides may use a different configured phrase. On receiving one, immediately:
 - re-check the live wait/watch/job/GPU state, including explicit polling of any
   active unified-exec PTY that backs an `agentctl` watch or other foreground wait
@@ -284,7 +284,7 @@ overrides may use a different configured phrase. On receiving one, immediately:
   than only silent internal revalidation
 - keep the response terse unless there is a blocker, completion, or new result
 
-Temporary observability rule for `yepanywhere heartbeat`: when a heartbeat turn
+Temporary observability rule for `heartbeat`: when a heartbeat turn
 causes any action that may become visible in the active CLI session (for
 example a status line, a wait/liveness note, or a command-launch preface),
 prefix the first such visible output with the code word `PULSE:` so the user
