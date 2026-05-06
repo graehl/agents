@@ -83,9 +83,9 @@ Full GPU access is always permitted.
 
 Editing project files always permitted.
 
-Standard (this project) git operations (besides checking in private/.gitignore files eg tasks/), 
-standard command-execution plumbing/housekeeping - shell/tee/timeout/kill(processes you launched) - 
-always permitted.
+Standard git operations (excluding private/gitignored files such as
+`tasks/`) always permitted. Standard command-execution plumbing —
+shell, tee, timeout, kill (processes you launched) — always permitted.
 
 
 ### Research artifact metadata
@@ -272,23 +272,8 @@ If a watched job is no longer running, or the GPU is idle unexpectedly, or an
 already-approved successor can now be launched, the wait state is over and must
 be consumed immediately in the same turn.
 
-Synthetic heartbeat turns delivered through the current yepanywhere session are
-not new semantic user requests. Treat them as liveness nudges for the current
-plan. The default text may be `heartbeat`, but session-specific
-overrides may use a different configured phrase. On receiving one, immediately:
-- re-check the live wait/watch/job/GPU state, including explicit polling of any
-  active unified-exec PTY that backs an `agentctl` watch or other foreground wait
-- continue the already-approved next step if one exists
-- emit a short verified in-session status line even when still waiting, so the
-  heartbeat causes visible observable output in the active session/CLI rather
-  than only silent internal revalidation
-- keep the response terse unless there is a blocker, completion, or new result
-
-Temporary observability rule for `heartbeat`: when a heartbeat turn
-causes any action that may become visible in the active CLI session (for
-example a status line, a wait/liveness note, or a command-launch preface),
-prefix the first such visible output with the code word `PULSE:` so the user
-can tell it was heartbeat-related rather than an unrelated spontaneous turn.
+See `~/agents/yepanywhere.md` for heartbeat turn handling and the `PULSE:`
+observability convention.
 
 ### Natural pause run status
 

@@ -127,7 +127,7 @@ Results tables in `research/<branchname>.md` **must** include:
   state, and note what session learnings should be synced into the paper when
   applicable. Do not duplicate whole paper sections into the task file; that
   creates two divergent sources of truth.
-- **Published intake/split recipes must NOT reference private paths** such as `/lps`
+- **Published intake/split recipes must NOT reference private paths** such as `/private-mount`
   or other local-only mounts. Paper-facing recipes must point at public sources,
   checked-in scripts, or explicitly named non-public prerequisites instead.
 - **Include a `## Future Work` section** for high-level directions meaningful to
@@ -278,12 +278,12 @@ section that serves as the authoritative list of all work under this branch:
 | NNN | Name | File | Status |
 |-----|------|------|--------|
 | 003 | prompt-consistency-refactor | tasks/003-prompt-consistency-refactor.md | In Progress |
-| 004 | trtllm-lora-debug | tasks/004-trtllm-lora-debug.md | Not Started |
+| 004 | decoder-tuning | tasks/004-decoder-tuning.md | Not Started |
 | —   | retrain v2c (seed=999) | (inline) | Not Started |
 
 **Last subtask completed** (user confirmed): _(none yet)_
 **Last subtask worked on**: 003-prompt-consistency-refactor
-**Likely next**: retrain v2c, then 004-trtllm-lora-debug
+**Likely next**: retrain v2c, then 004-decoder-tuning
 ```
 
 Rules for maintaining this section:

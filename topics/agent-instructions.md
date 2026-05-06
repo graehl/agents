@@ -11,7 +11,7 @@ projects without relying on stale chat state.
 - `AGENTS.md` is the authoritative global policy file.
 - Local project instructions may add narrower rules, but global policy changes
   belong here first.
-- Correctness topics are defined by committed `theories/*.md` basenames, and
+- Correctness topics are defined by committed `topics/*.md` basenames, and
   related commit series use matching `Topic:` trailers.
 - Task files may track work, but they are not the durable source of global
   correctness arguments.
@@ -29,7 +29,7 @@ projects without relying on stale chat state.
 
 ## Contract Notes
 
-- The topic namespace depends on `ls theories/*.md`, so agents have one
+- The topic namespace depends on `ls topics/*.md`, so agents have one
   committed place to inspect both the topic name and its correctness model.
 - The `agent-instructions` topic spans commit policy, task cross-references,
   and theory docs because all three determine how future agents recover the

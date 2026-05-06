@@ -273,7 +273,7 @@ adds noise and can leave a misleading intermediate state in history.
 
 ### Recent pushed oopsies on personal GitHub
 
-If a pushed commit to the user's `github.com/graehl` remote is discovered
+If a pushed commit to the user's `github.com/<owner>` remote is discovered
 within days to be wrong, and there are no downstream forks/consumers
 depending on that erroneous commit, prefer `git commit --amend` plus a
 force-push/overwrite so the bad state disappears rather than accumulating
@@ -357,13 +357,15 @@ on/off timing comparison.
   correctly expresses the contract. Clever low-level tricks are permitted
   when they meaningfully improve size or speed, especially in hot code, but
   document the reason. This is a strong aesthetic preference.
-- Do favor styles that allow useful work by lesser programmers in referring
-  to popular conventions in domain and programming terminology, patterns,
-  etc. but do not sprinkle obvious "strategy pattern" type comments
-  everywhere — unwanted and ugly. Part of the name of something can allude
-  to known terms/patterns. Lesser programmers copy/paste. While we favor
-  reusability-ready code, general facilities invented for one use need to
-  live close in the source to their use.
+- Prefer idiomatic conventions and well-known domain/programming terminology
+  so the codebase is navigable without full context. Let names allude to
+  known patterns rather than annotating them with comments — a name that
+  evokes a known concept is self-documenting; a comment saying "strategy
+  pattern" is noise. A spelunking AI will pattern-match on visible
+  conventions and confidently duplicate anything it fails to recognize as
+  shared; consult `topics/shared-primitives.md` before introducing a new
+  general facility. General facilities invented for a single use should
+  live close to that use.
 - Since error handling, logging, and other defensive/boilerplate items are
   distracting, especially focus on a concise "get these things checked and
   right" once positioning of such gates. You can rely on exceptions.

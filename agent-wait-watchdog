@@ -16,9 +16,7 @@ all you need is bounded-latency liveness output. This helper is for the
 stronger case where you want an external combined poll block alongside watch.
 
 Environment overrides:
-- AGENTCTL_ROOT: working directory to run from (default: current directory)
-- AGENTCTL_PY: Python executable used to run agentctl (default:
-  pixi-gemma4/.pixi/envs/default/bin/python)
+- PROJECT_ROOT: project root where agentctl is run from (default: current directory)
 - WATCH_TAIL: default `agentctl watch --tail` value (default: 20)
 - WATCH_NOTIFY_GPU_IDLE: 1 to add `--notify-gpu-idle` by default, 0 to omit
 
@@ -59,8 +57,7 @@ if [[ $# -gt 0 ]]; then
     watch_extra=("$@")
 fi
 
-root="${AGENTCTL_ROOT:-$PWD}"
-py="${AGENTCTL_PY:-pixi-gemma4/.pixi/envs/default/bin/python}"
+root="${PROJECT_ROOT:-$PWD}"
 tail_lines="${WATCH_TAIL:-20}"
 notify_gpu_idle="${WATCH_NOTIFY_GPU_IDLE:-1}"
 
@@ -88,9 +85,9 @@ poll_block() {
     (
         cd "$root"
         echo "--- agentctl status ${job} ---"
-        "$py" agentctl.py status "$job" || true
+        agentctl status "$job" || true
         echo "--- agentctl list --running-only --recent 8 ---"
-        "$py" agentctl.py list --running-only --recent 8 || true
+        agentctl list --running-only --recent 8 || true
     )
     echo "--- nvidia-smi ---"
     nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu,power.draw \
@@ -99,7 +96,7 @@ poll_block() {
 
 (
     cd "$root"
-    exec "$py" agentctl.py "${watch_args[@]}"
+    exec agentctl "${watch_args[@]}"
 ) &
 watch_pid=$!
 
