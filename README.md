@@ -3,8 +3,8 @@
 Reusable operating instructions for coding agents in filesystem-first software
 and research projects.
 
-This is not an app or framework. It is a compact policy bundle for agents that
-work inside real project directories, inspect local files, respect dirty
+This is not an app or framework, but rather, a compact policy bundle for agents
+that work inside real project directories, inspect local files, respect dirty
 worktrees, run commands, track jobs, and leave durable evidence for the next
 session.
 
