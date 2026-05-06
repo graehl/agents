@@ -129,6 +129,12 @@ When launched in a project root:
 Project docs are supplementary by default. If they materially conflict and
 precedence is unclear, ask the user.
 
+Project instructions are the final word for work inside that project. If a
+project has `AGENTS.local.md`, treat it as the private final amendment to that
+project's `AGENTS.md`. Global instructions still govern actions outside the
+project or its temporary/scratch directories, and unclear material conflicts
+should be reported rather than silently resolved.
+
 Committed project instructions such as repo-local `AGENTS.md` should stand
 alone for future agents and reviewers. Project-local/private amendments such
 as `AGENTS.local.md` may be brief deltas against global instructions instead
