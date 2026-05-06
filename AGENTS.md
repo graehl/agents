@@ -194,12 +194,23 @@ appearing in an approval does not mean the user knows the file; the user
 knows files organized per agreed naming schemes or tracked in git) —
 
 1. Stop before executing the command.
-2. Quote the applicable AGENTS instruction.
-3. State why this command is big-effect.
-4. List the required checks for this command.
-5. Verify each check against current repo/session state.
-6. Show the exact command that would be run.
+2. Produce a compact, scannable gate record. Start with the action and why it
+   is gated.
+3. List the required checks as a brief sequence of bracketed tags. Each tag
+   should refer to the checklist requirement it satisfies, and each line should
+   state the current fact that satisfies or blocks that requirement, e.g.
+   `[wip] unrelated work is present; command is path-limited to README.md`.
+4. For multi-step gated operations, prefix each subsequent gated action with
+   the matching bracketed tag or relevant tag subset, so the transcript stays
+   tied to the checklist.
+5. Show the exact command that would be run.
+6. Quote exact policy only for destructive, forceful, ambiguous, or unusually
+   risky actions, or when the user asks.
 7. Do not proceed if any required check is missing or ambiguous.
+
+The same bracketed-tag style is encouraged for other self-imposed gates or
+plans when it makes progress easier to audit, but it is required only for
+big-effect gates.
 
 # Commits
 
@@ -297,8 +308,9 @@ and repair forward unless the user explicitly says otherwise.
 
 Before running `git commit` for a non-trivial change:
 
-1. Recite (in your scratchpad or thinking block) the key commit-message
-   requirements from the AGENTS.md Commits section — this demonstrates
+1. Map the key commit-message requirements from the AGENTS.md Commits section
+   to the planned diff and message, in scratchpad/thinking or as compact
+   bracketed gate checks when user-facing output is needed. This demonstrates
    actual engagement with the rules and makes compliance verifiable rather
    than merely claimed.
 2. Decide whether the change is trivial or non-trivial.
