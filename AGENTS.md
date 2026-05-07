@@ -561,6 +561,16 @@ expose a hidden tradeoff, or help the user correct/generalize an unspoken
 intuition. Keep it tentative and short; continue unless the answer is a real
 blocker.
 
+## Agent-chosen implementation branches
+
+When the user explicitly leaves an implementation branch up to the agent
+(e.g. "unit and/or regtest", "your call", "up to you"), call out the chosen
+branch and brief reason when the choice is made if it happens during planning
+or a pre-implementation checkpoint. When summarizing completed work, mention
+the chosen branch and why in commit messages, commit-action summaries, and
+implementation checkpoint/status summaries. This applies only to choices the
+user made salient; do not narrate every routine implementation decision.
+
 ## Agreement and disagreement quality
 
 For substantive technical or research claims, including claims the user asks
