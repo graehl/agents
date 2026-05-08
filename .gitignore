@@ -1,3 +1,6 @@
 AGENTS.user.md
 AGENTS.local.md
 tasks/
+.agentctl/
+runs/
+__pycache__/

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+is_py310() { "$1" -c 'import sys;sys.exit(0 if sys.version_info>=(3,10) else 1)' 2>/dev/null; }
+
+find_python() {
+    # 1. explicit override
+    if [[ -n "${AGENTCTL_PYTHON:-}" && -x "$AGENTCTL_PYTHON" ]] && is_py310 "$AGENTCTL_PYTHON"; then
+        echo "$AGENTCTL_PYTHON"; return
+    fi
+    # 2. project-local envs
+    local p
+    for p in "$repo_dir/.venv/bin/python" \
+             "$repo_dir/.pixi/envs/default/bin/python" \
+             "$repo_dir/pixi-gemma4/.pixi/envs/default/bin/python"; do
+        [[ -x "$p" ]] && is_py310 "$p" && { echo "$p"; return; }
+    done
+    # 3. active conda
+    if [[ -n "${CONDA_PREFIX:-}" && -x "$CONDA_PREFIX/bin/python" ]] && is_py310 "$CONDA_PREFIX/bin/python"; then
+        echo "$CONDA_PREFIX/bin/python"; return
+    fi
+    # 4. versioned binaries on PATH (newest first)
+    local v
+    for v in 3.13 3.12 3.11 3.10; do
+        p=$(command -v "python$v" 2>/dev/null) && { echo "$p"; return; }
+    done
+    # 5. bare python3 if recent enough
+    p=$(command -v python3 2>/dev/null) && is_py310 "$p" && { echo "$p"; return; }
+    return 1
+}
+
+py=$(find_python) || {
+    echo "agentctl: need Python >= 3.10 (set AGENTCTL_PYTHON=/path/to/python or activate a conda/venv env)" >&2
+    exit 1
+}
+exec "$py" "$repo_dir/agentctl.py" "$@"

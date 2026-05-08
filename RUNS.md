@@ -93,7 +93,8 @@ shell, tee, timeout, kill (processes you launched) — always permitted.
 For important saved research outputs, use the output artifact as the anchor:
 
 - `<out>` — primary artifact
-- `<out>.meta.md` — compact provenance and summary (written at job completion)
+- `<out>.meta.md` — compact provenance and summary (written by agent-managed
+  launch plumbing such as `agentctl`, not by payload scripts)
 - `<out>.log` — full stderr/runtime log
 - `<out>.running.md` — launch record written by the agent at job start; deleted on clean completion
 
@@ -130,18 +131,26 @@ cd <cwd>
 3. If `.meta.md` exists alongside `.running.md`, the job completed but cleanup was
    skipped — delete the `.running.md`.
 
-**Cleanup:** `artifact_meta.cleanup_running(output)` in Python, or
-`write_artifact_meta.py ... --cleanup-running` from the CLI.
-`hf-translate.py` calls `cleanup_running` automatically at its normal exit.
-For `train-lora.py` and other scripts that don't write `.meta.md`, the agent
-cleans up manually after recording results in the research log.
+**Cleanup:** ordinary operation should not require a manual cleanup step: the
+launching agent, or `agentctl` when it owns the launch, removes `.running.md`
+after a clean completion. If a reboot, crash, or interrupted cleanup leaves
+stale markers and you need a "where were we?" pass, run
+`agentctl cleanup-running` with no arguments: it scans the workspace, reports
+`running` / `completed` / `interrupted`, and only removes markers that are
+clearly completed via adjacent `.meta.md` or `.meta.json`. To delete a known
+marker explicitly, run `agentctl cleanup-running <out>` or pass the marker
+path directly, `agentctl cleanup-running <out>.running.md`. Payload scripts
+should not be expected to create `.meta.md` or clean up `.running.md`; they
+produce outputs and may optionally write cooperative run declarations such as
+`$AGENTCTL_RUN_DIR/propagate.json`.
 
 The naming relationship is strict: `.meta.md` and `.log` are formed directly from the
 exact output filename. When a run has one primary output, redirect stderr to `<out>.log`.
 
-Always look for `*.meta.md` first. If `write_artifact_meta.py` is on `PATH`, prefer using
-it. Otherwise, agents may write the metadata manually using the same structure so later
-agents can also parse it.
+For new tracked runs, prefer the `agentctl` run record and the output
+`<out>.meta.json` back-pointer. For legacy or manually managed artifacts,
+`*.meta.md` remains a useful compact human summary; if writing one manually,
+use the same structure so later agents can parse it.
 
 Use short relative paths inside `*.meta.md`, interpreted relative to that metadata file.
 
@@ -209,6 +218,41 @@ Section semantics:
 When updating a research log, link directly to the saved output or its `*.meta.md`.
 If a linked artifact is missing later, search first for the corresponding `*.meta.md`,
 then by naming convention or distinctive command/log lines.
+
+### Run records and provenance
+
+When a project tracks runs through `agentctl`, the canonical run record is the
+JSON dump under `runs/aim/<experiment>/runs/<run-id>.json` (or the legacy
+`research/aim/<experiment>/runs/<run-id>.json` for older trees — both are searched
+by `artifact_meta.find_aim_run_record/text`). Refer to that record rather than
+reconstructing run history from logs or `.meta.md` content alone: the dump
+carries the structured argv/cwd, declared inputs and outputs, the script
+fingerprint, git branch+commit, and any producer-tagged propagation facts.
+
+Output files produced under tracked runs get a `<output>.meta.json` sidecar next
+to them, containing `agentctl_run_id` and `run_dump` pointing back at the
+producing record. When you encounter an unfamiliar file, check for this sidecar
+before assuming it's untracked — following `run_dump` gives you the full
+provenance one read away.
+
+When `agentctl` is on `PATH`, prefer `agentctl start ... -- <command>` for any
+launch you might later need to reproduce, audit, or trace. Two tiers:
+
+- **Tracked launch** (default): writes the full dump + meta sidecars; the run is
+  reachable via the runs DB and via filesystem-discoverable back-pointers.
+  Declared inputs (`--input KEY=PATH`) get sidecar lookup so the run record
+  shows what produced each input one-deep.
+- **Trivial launch** (`agentctl start --no-aim ...`): records nothing under
+  `runs/aim/`, no sidecars. Useful when the value is just having a tracked
+  launcher and an agent-permission boundary (one trusted binary in PATH instead
+  of raw shell exec) without paying the dump cost. Per the
+  `~/d/research/aim/README.md` exception policy, trivial janitorial commands
+  do not need Aim records.
+
+For the full schema and algorithms (input source resolution, output sidecar
+writing, propagation protocol, plugin contract), see
+`topics/provenance-tracking.md`. For the agentctl plugin/hook surface
+specifically, see `topics/agentctl.md`.
 
 # Long-running commands 
 If a command times out:

@@ -174,8 +174,8 @@ Activation triggers:
   research-paper/log updates).
 - Load `RUNS.md` before launching/monitoring/summarizing jobs when the repo
   or request indicates run operations (e.g., `.agentctl/`, `*.running.md`,
-  `write_artifact_meta.py`, long-running jobs, watchdogs, background jobs,
-  or GPU scheduling/utilization).
+  `runs/aim/`, `<output>.meta.json`, long-running jobs, watchdogs,
+  background jobs, or GPU scheduling/utilization).
 
 Resolution order for companion docs:
 1. repo root (`./RESEARCH.md`, `./RUNS.md`)
@@ -308,20 +308,19 @@ and repair forward unless the user explicitly says otherwise.
 
 Before running `git commit` for a non-trivial change:
 
-1. Map the key commit-message requirements from the AGENTS.md Commits section
-   to the planned diff and message, in scratchpad/thinking or as compact
-   bracketed gate checks when user-facing output is needed. This demonstrates
-   actual engagement with the rules and makes compliance verifiable rather
-   than merely claimed.
-2. Decide whether the change is trivial or non-trivial.
-3. If non-trivial, list the session requirements and implementation decisions
-   that another agent would need to recreate an equivalent change (but not
-   fully specifying exact explanatory documentation, comments, UI, or usage
-   text).
-4. Draft the commit message per the checklist.
-5. Check that every item from step 3 appears in the message.
-6. Only then run `git commit`.
-7. No `Co-Authored-By` — the user is the author.
+1. List in scratchpad/thinking (or compact bracketed gate checks when
+   user-facing output is needed) the session requirements and
+   implementation decisions another agent would need to recreate an
+   equivalent change. Not the explanatory documentation, comments, UI, or
+   usage text — just the load-bearing decisions. This demonstrates actual
+   engagement with the Commits-section rules and makes compliance
+   verifiable rather than claimed.
+2. Draft the commit message per the Commits-section checklist.
+3. Check that every item from step 1 appears in the message.
+4. Verify the staged index matches the intended scope before committing
+   (e.g. `git diff --cached --name-only`); pre-staged work from earlier in
+   the session can otherwise leak into the commit.
+5. Only then run `git commit`.
 
 # Code quality
 
@@ -544,19 +543,12 @@ quote the original transcript back at them.
 
 ## "Don't forget" reminders
 
-When the user says `don't forget X` (or similar phrasing), briefly check
-whether `X` is already present in the governing global/project/branch
-instructions or is only an inferred expectation from the current plan. Report
-back succinctly:
-- where it was already covered, quoting or paraphrasing the closest governing
-  phrasing when practical
-- or that it was not explicit and should be added if the user appears to
-  want it
-
-When helpful, also say whether `X` would have been independently likely from
-the existing instructions and current task direction, or whether the reminder
-was surprising enough that an explicit rule is warranted. Do this with
-judgment; do not overclaim access to a counterfactual inner state.
+When the user says `don't forget X`, check whether `X` is in governing
+instructions or only inferred from the current plan. Reply briefly: where
+it's covered (quoting closest phrasing), or that it isn't and should be
+added if the user appears to want it. Optionally note whether the reminder
+was independently likely from existing instructions or surprising enough to
+warrant an explicit rule.
 
 ## Planning rationale
 

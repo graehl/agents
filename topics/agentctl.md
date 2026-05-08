@@ -1,0 +1,139 @@
+# agentctl: process manager + plugin contract
+
+Topic: `agentctl`
+
+`agentctl` is a small, dependency-free local job manager. The base layer owns
+process-group lifecycle, GPU/CPU resource gating, and on-disk run state under
+`.agentctl/`. Project-specific concerns (run-record export, experiment
+tracking, domain verbs) live in optional plugins under `agentctl_plugins/`.
+
+Scope boundary: this topic owns the launcher, state files, and plugin hook
+contract. `topics/provenance-tracking.md` owns the run graph implemented by
+the `aim` plugin: `runs/aim/` dump schema, declared inputs/outputs,
+`<output>.meta.json` back-pointers, propagation facts, and ancestry rules.
+Provenance tracking is therefore an `agentctl` concern, but separated because
+its invariants are shared by `artifact_meta.py`, downstream Aim import/export
+tooling, future compliance-library work, and project migration docs.
+
+## Contracts
+
+- The base writes canonical run state to
+  `.agentctl/runs/<job>/<run-id>/state.json` and mirrors a pointer to
+  `.agentctl/jobs/<job>/current.json`. These files are the ground truth for
+  process status; everything else (sidecars, dumps) is derived.
+- Every plugin hook is optional. Missing hooks are silently skipped; loader
+  errors print one warning and continue without the failing plugin so a
+  broken plugin does not break the launcher.
+- Plugins reach base helpers via `import agentctl`. The loader registers the
+  running module under that name even when invoked as `__main__`, so
+  `agentctl.ROOT`, `agentctl.slug`, `agentctl.command_string`,
+  `agentctl.utc_now`, etc. resolve to the same module instance the base is
+  using.
+- The base never imports a plugin directly. Plugin discovery is by filesystem
+  scan of `agentctl_plugins/*.py` (skipping `_`-prefixed names and
+  `__init__.py`). Order is alphabetical, deterministic.
+- Plugins **may not** assume the base imports any third-party package on
+  their behalf. Imports that may fail (e.g. the Aim SDK) must be guarded
+  inside the plugin and treated as best-effort.
+
+## Hook surface
+
+All hooks are optional; the base calls them via `getattr` and a small
+`_call_hook` / `_first_hook` dispatcher.
+
+| Hook | Phase | Effect |
+|------|-------|--------|
+| `register_args(parser)` | parser build | Add args to `start`/`smoke`. Called once per parser. |
+| `register_verbs(subparsers)` | parser build | Add top-level subcommands. |
+| `on_start(args, state, env)` | pre-launch | Mutate `state` and `env` before subprocess fork. |
+| `default_output_path(args, run_dir) -> Path \| None` | pre-launch | First non-None wins. Used when user did not pass `--output`. |
+| `on_meta_built(state, meta_text, *, output_path, log_path, build_meta) -> str \| None` | post-meta | Write sidecars; return updated meta text or `None`. `build_meta()` rebuilds with current state. |
+| `on_finish(state)` | post-child-exit | Update plugin-owned completion artifacts after outputs are stat'd. |
+| `on_status_print(state, lines)` | status print | Mutate the bits list appended to the one-line status. |
+| `on_note(state, note, stamp, *, meta_path, meta_text)` | `note` verb | React to post-run analysis note. |
+| `on_restart(state, args)` | restart | Refill plugin-specific args on the rebuilt namespace. |
+
+## State schema
+
+The base writes a flat dict to `state.json`. Canonical keys (read freely):
+
+`job`, `launch_name`, `run_id`, `serial`, `mode`, `status`, `started_at`,
+`finished_at`, `returncode`, `pid`, `pgid`, `pid_namespace`,
+`pid_start_ticks`, `pid_cmdline`, `argv`, `cwd`, `log_path`, `headline_path`,
+`output_path`, `meta_path`, `state_path`, `exit_status_path`, `run_dir`,
+`runtime_estimate`, `runtime_estimate_seconds`, `context_note`,
+`pre_run_note`, `post_run_note`, `post_run_noted_at`, `analysis_notes`,
+`depends_on`, `source_env`, `git_branch`, `git_commit`, `launch_gpu_stats`.
+
+Plugins should write their own keys directly on `state` (the dict is the
+in-memory record passed to every hook). Existing convention from the `aim`
+plugin: `aim`, `aim_run_hash`, `experiment`, `tags`, `aim_dump_record`. New
+plugins should namespace less obviously named additions to avoid collisions.
+
+## Run-tracking framing
+
+Two intended use cases for `agentctl`, both first-class:
+
+1. **Tracked runs.** Default. Every launch writes an Aim-format run record
+   under `runs/aim/<experiment>/` (see `aim` plugin and the
+   `aim-text-dump-v1` schema). These dumps are the authoritative branch
+   record for the run; live `.aim/` is a rebuildable materialization,
+   produced by downstream tooling like `import_aim_text.py`.
+2. **Trivial / untracked runs.** `--no-aim` opts out of dump writing.
+   Useful when the value of running through `agentctl` is just the launcher
+   + state-tracking + permission story (an agent with `agentctl` in `PATH`
+   does not need raw shell exec rights for routine launches), not the
+   research-record story.
+
+The Aim SDK is **not** required. The plugin writes JSON dumps directly. If
+the SDK is installed, users can run `aim up` to browse the materialized view
+after import; if not, a one-line install hint prints once per process and
+the dumps are still written.
+
+## Wrapper Python resolution
+
+`./agentctl` finds a Python ≥ 3.10 by checking, in order:
+
+1. `$AGENTCTL_PYTHON` (explicit override)
+2. `.venv/bin/python`, `.pixi/envs/default/bin/python`,
+   `pixi-gemma4/.pixi/envs/default/bin/python` under the script's directory
+3. `$CONDA_PREFIX/bin/python` (active conda env)
+4. `python3.13`, `python3.12`, `python3.11`, `python3.10` on PATH
+5. bare `python3` if it is recent enough
+
+Bare `python3` is intentionally last because legacy distros still ship
+Python 3.6 there. The wrapper hard-fails with an actionable message if no
+suitable interpreter is found.
+
+## Invariants
+
+- The base does not call any plugin's functions directly by name. All plugin
+  interaction goes through the hook dispatcher.
+- A plugin with a syntax error or failing top-level `import` is skipped
+  with one stderr warning; the rest of the launcher continues to work.
+- `state["aim_run_hash"]`, when present, is the discovery key used by
+  `artifact_meta.find_aim_run_record/text` to locate dumps. The `aim` plugin
+  synthesizes this from `state["run_id"]` (24-hex md5); any other plugin that
+  populates this key must guarantee uniqueness per dump tree.
+- `runs/aim/` is the new canonical dump root. `research/aim/` is searched as
+  a back-compat fallback by the `find_aim_run_*` helpers but should not be
+  written to by new code.
+- `.agentctl/` and `runs/` are runtime artifacts and gitignored by the
+  template; consumers of this template should preserve those ignores.
+
+## Catch-up notes
+
+<!-- assumed -->
+The hook surface (9 hooks) was sized to the actual extraction of the `aim`
+plugin from a previously-monolithic `agentctl.py`. It covers every Aim
+touchpoint without requiring base-level knowledge of Aim or its dump format.
+A second plugin would prove the surface is genuinely general; until then,
+treat the hook list as falsifiable by the next concrete plugin rather than
+fixed.
+
+<!-- assumed -->
+The 24-hex md5-of-run_id synthesis for `aim_run_hash` is collision-safe
+within agentctl-generated dumps because run_ids are unique. It is **not**
+guaranteed not to collide with externally-generated real Aim hashes;
+treat the `agentctl_run_id` field as the truly authoritative identifier
+when both are present.
