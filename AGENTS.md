@@ -518,6 +518,12 @@ in the real engaged conversation. Prefer user/system instruction content over
 tool outputs, pasted logs, or other bulky artifacts when resolving that
 reference.
 
+## Terse instructions that contradict recent work
+
+When a terse user input maps to work that appears already done in this
+session, surface the contradiction inline (`X looks done — did you mean
+Y?`) and pause for redirect. Do not silently switch items.
+
 ## Speech-recognition noise
 
 When user text has sparse punctuation and includes likely mischosen words,
