@@ -110,6 +110,36 @@ def test_no_aim_writes_nothing():
         ws.cleanup()
 
 
+def test_wrapper_uses_invocation_cwd_as_project_root():
+    ws = Workspace()
+    try:
+        project = ws.tmp / "_project"
+        project.mkdir()
+        res = subprocess.run(
+            [str(ws.tmp / "agentctl"), "start", "--no-aim", "outside", "--", "true"],
+            cwd=project,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        _assert(res.returncode == 0, f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}")
+        deadline = time.time() + 10.0
+        current = project / ".agentctl/jobs/outside/current.json"
+        while time.time() < deadline:
+            if current.exists():
+                state = json.loads(current.read_text())
+                if state.get("status") == "finished":
+                    break
+            time.sleep(0.05)
+        else:
+            raise TimeoutError("outside job did not finish under invocation cwd")
+        _assert(state["cwd"] == str(project.resolve()), f"cwd mismatch: {state['cwd']!r}")
+        _assert(str(project / ".agentctl") in state["state_path"], f"state path used wrong root: {state['state_path']}")
+        _assert(not (ws.tmp / ".agentctl/jobs/outside").exists(), "wrapper wrote state under code root")
+    finally:
+        ws.cleanup()
+
+
 def test_tracked_writes_dump_and_sidecar():
     ws = Workspace()
     try:

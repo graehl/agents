@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+code_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+project_dir="${AGENTCTL_ROOT:-$PWD}"
+project_dir="$(cd "$project_dir" && pwd)"
 
 is_py310() { "$1" -c 'import sys;sys.exit(0 if sys.version_info>=(3,10) else 1)' 2>/dev/null; }
 
@@ -12,9 +14,9 @@ find_python() {
     fi
     # 2. project-local envs
     local p
-    for p in "$repo_dir/.venv/bin/python" \
-             "$repo_dir/.pixi/envs/default/bin/python" \
-             "$repo_dir/pixi-gemma4/.pixi/envs/default/bin/python"; do
+    for p in "$project_dir/.venv/bin/python" \
+             "$project_dir/.pixi/envs/default/bin/python" \
+             "$project_dir/pixi-gemma4/.pixi/envs/default/bin/python"; do
         [[ -x "$p" ]] && is_py310 "$p" && { echo "$p"; return; }
     done
     # 3. active conda
@@ -35,4 +37,5 @@ py=$(find_python) || {
     echo "agentctl: need Python >= 3.10 (set AGENTCTL_PYTHON=/path/to/python or activate a conda/venv env)" >&2
     exit 1
 }
-exec "$py" "$repo_dir/agentctl.py" "$@"
+export AGENTCTL_ROOT="$project_dir"
+exec "$py" "$code_dir/agentctl.py" "$@"

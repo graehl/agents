@@ -15,7 +15,8 @@ import sys
 import time
 
 
-ROOT = Path(__file__).resolve().parent
+CODE_ROOT = Path(__file__).resolve().parent
+ROOT = Path(os.environ.get("AGENTCTL_ROOT") or os.getcwd()).expanduser().resolve()
 STATE = ROOT / ".agentctl"
 JOBS = STATE / "jobs"
 RUNS = STATE / "runs"
@@ -23,10 +24,11 @@ RUNS = STATE / "runs"
 
 # ---- Plugin loader ----
 #
-# Plugins live in ./agentctl_plugins/<name>.py and expose any subset of these
+# Plugins live in CODE_ROOT/agentctl_plugins/<name>.py and expose any subset of these
 # optional hook functions; the base calls each via getattr, so missing hooks are
 # simply skipped. Plugins may import this module as `agentctl` to reach the
 # helpers below (e.g. `agentctl.slug`, `agentctl.command_string`, `agentctl.ROOT`).
+# `agentctl.ROOT` is the project root; `agentctl.CODE_ROOT` is the install path.
 #
 #   register_args(parser)                       — extend start/smoke parsers
 #   register_verbs(subparsers)                  — add top-level subcommands
@@ -51,11 +53,11 @@ def _load_plugins() -> None:
     # as __main__ (which would otherwise cause a second load on `import agentctl`).
     if "agentctl" not in sys.modules:
         sys.modules["agentctl"] = sys.modules[__name__]
-    plugin_dir = ROOT / "agentctl_plugins"
+    plugin_dir = CODE_ROOT / "agentctl_plugins"
     if not plugin_dir.is_dir():
         return
-    if str(ROOT) not in sys.path:
-        sys.path.insert(0, str(ROOT))
+    if str(CODE_ROOT) not in sys.path:
+        sys.path.insert(0, str(CODE_ROOT))
     for path in sorted(plugin_dir.glob("*.py")):
         if path.name.startswith("_"):
             continue
@@ -815,7 +817,7 @@ def write_meta(state: dict) -> dict:
     output = state.get("output_path")
     if not output:
         return state
-    sys.path.insert(0, str(ROOT))
+    sys.path.insert(0, str(CODE_ROOT))
     import artifact_meta
 
     launch_note = "Created by agentctl at launch; output-specific metadata may overwrite or extend this file."
@@ -1367,7 +1369,7 @@ def tail(args: argparse.Namespace) -> int:
 
 def note_job(args: argparse.Namespace) -> int:
     state = load_job(args.job)
-    sys.path.insert(0, str(ROOT))
+    sys.path.insert(0, str(CODE_ROOT))
     import artifact_meta
 
     note = artifact_meta.normalize_one_line(" ".join(args.note).strip())
@@ -1407,7 +1409,7 @@ def note_job(args: argparse.Namespace) -> int:
 
 
 def cleanup_running(args: argparse.Namespace) -> int:
-    sys.path.insert(0, str(ROOT))
+    sys.path.insert(0, str(CODE_ROOT))
     import artifact_meta
 
     def _marker_fields(path: Path) -> dict[str, str]:
