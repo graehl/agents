@@ -245,9 +245,8 @@ launch you might later need to reproduce, audit, or trace. Two tiers:
 - **Trivial launch** (`agentctl start --no-aim ...`): records nothing under
   `runs/aim/`, no sidecars. Useful when the value is just having a tracked
   launcher and an agent-permission boundary (one trusted binary in PATH instead
-  of raw shell exec) without paying the dump cost. Per the
-  `~/d/research/aim/README.md` exception policy, trivial janitorial commands
-  do not need Aim records.
+  of raw shell exec) without paying the dump cost. Per project-local
+  run-record policy, trivial janitorial commands do not need Aim records.
 
 For the full schema and algorithms (input source resolution, output sidecar
 writing, propagation protocol, plugin contract), see

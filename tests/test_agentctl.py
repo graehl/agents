@@ -477,6 +477,41 @@ def test_research_aim_back_compat_search():
         ws.cleanup()
 
 
+def test_aim_read_roots_env_override():
+    """AGENTCTL_AIM_READ_ROOTS can add read-only migration roots."""
+    ws = Workspace()
+    try:
+        alt_dump = ws.tmp / "old-runs/aim/legacy/runs/r1.json"
+        alt_dump.parent.mkdir(parents=True, exist_ok=True)
+        meta_target = ws.scratch / "fake.meta.md"
+        meta_target.write_text("# fake\n")
+        alt_dump.write_text(
+            json.dumps(
+                {
+                    "params": {"output": {"meta_path": str(meta_target.resolve())}},
+                    "source": {"aim_run_hash": "abc123def456"},
+                }
+            )
+        )
+
+        py = sys.executable
+        code = (
+            f'import sys; sys.path.insert(0, {str(ws.tmp)!r}); '
+            f'import artifact_meta; '
+            f'r = artifact_meta.find_aim_run_record('
+            f'meta_path={str(meta_target.resolve())!r}, '
+            f'setup=[("aim_run_hash","abc123def456")], '
+            f'repo_root={str(ws.tmp)!r}); '
+            f'print(r)'
+        )
+        env = {**os.environ, "AGENTCTL_AIM_READ_ROOTS": "old-runs/aim"}
+        result = subprocess.run([py, "-c", code], capture_output=True, text=True, cwd=ws.tmp, env=env)
+        _assert("old-runs/aim/legacy/runs/r1.json" in result.stdout,
+                f"env read-root search failed: stdout={result.stdout!r} stderr={result.stderr!r}")
+    finally:
+        ws.cleanup()
+
+
 def test_cleanup_running_accepts_output_or_marker_path():
     ws = Workspace()
     try:

@@ -85,8 +85,9 @@ whether to extend the system or to introduce something parallel.
 ## Authority model
 
 - **`runs/aim/<experiment>/runs/<ref>.json`** is the canonical branch
-  record for tracked runs. The dump format is `aim-text-dump-v1`,
-  reviewable in git.
+  record for tracked runs. The dump format is `aim-text-dump-v1`. Projects
+  may commit these dumps as reviewable authority or ignore them as local
+  runtime provenance; project-local instructions decide.
 - **Live `.aim/`** (when present) is a rebuildable materialized view
   produced by downstream tooling like `import_aim_text.py` from the dumps.
   Live disagrees with text → repair from the text, never the other way.
@@ -461,8 +462,8 @@ and writes no sidecars. The run is a graph leaf. Useful when:
 - The launch is genuinely trivial (one-off janitorial command)
 - The agent benefits from agentctl as a launcher / permission boundary
   without paying the dump cost
-- Per `~/d/research/aim/README.md` exception policy: trivial commands
-  don't need Aim records
+- Per project-local run-record policy: trivial commands don't need Aim
+  records
 
 ## Reproducibility scope
 
@@ -504,6 +505,12 @@ as a back-compat fallback by `artifact_meta.find_aim_run_record` /
 `find_aim_run_text`. New writes always go to `runs/aim/`. Migration of
 existing `research/aim/` artifacts is per-project (see
 `tasks/003-d-migration.md`).
+
+Projects decide whether `runs/aim/` is committed or ignored. Research repos
+may treat it as git-reviewed text authority; operational repos may treat it
+as disposable local provenance. `AGENTCTL_AIM_READ_ROOTS` may specify a
+pathsep-separated read-only root list during migrations or unusual layouts.
+Writes remain single-target and canonical.
 
 ### KEY extensibility
 

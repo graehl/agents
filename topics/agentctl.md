@@ -118,8 +118,10 @@ suitable interpreter is found.
 - `runs/aim/` is the new canonical dump root. `research/aim/` is searched as
   a back-compat fallback by the `find_aim_run_*` helpers but should not be
   written to by new code.
-- `.agentctl/` and `runs/` are runtime artifacts and gitignored by the
-  template; consumers of this template should preserve those ignores.
+- `.agentctl/` is runtime state and should normally be gitignored. `runs/`
+  policy is project-specific: commit `runs/aim/` when a project declares text
+  run dumps to be reviewable branch authority; otherwise ignore it as runtime
+  provenance.
 
 ## Catch-up notes
 

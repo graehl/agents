@@ -9,7 +9,7 @@ import json
 import math
 import re
 import subprocess
-from typing import Iterable
+from typing import Iterable, Sequence
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,9 @@ class AimWriteResult:
     repo: str
     experiment: str
     run_name: str
+
+
+DEFAULT_AIM_READ_ROOTS = ("runs/aim", "research/aim")
 
 
 def sidecars_for_output(output: str | Path) -> Sidecars:
@@ -270,24 +273,49 @@ def autodetect_related(sidecars: Sidecars) -> list[tuple[str, Path]]:
     return related
 
 
+def aim_read_roots(
+    repo_root: str | Path = ".",
+    read_roots: Sequence[str | Path] | None = None,
+) -> list[Path]:
+    """Return configured Aim text dump roots, newest convention first."""
+    root = Path(repo_root).resolve()
+    if read_roots is None:
+        env_roots = [p for p in os.environ.get("AGENTCTL_AIM_READ_ROOTS", "").split(os.pathsep) if p]
+        raw_roots: Sequence[str | Path] = env_roots or DEFAULT_AIM_READ_ROOTS
+    else:
+        raw_roots = read_roots
+
+    paths: list[Path] = []
+    seen: set[Path] = set()
+    for raw in raw_roots:
+        path = Path(raw).expanduser()
+        if not path.is_absolute():
+            path = root / path
+        path = path.resolve()
+        if path in seen:
+            continue
+        seen.add(path)
+        paths.append(path)
+    return paths
+
+
 def find_aim_run_record(
     *,
     meta_path: str | Path,
     setup: list[tuple[str, str]] | None = None,
     repo_root: str | Path = ".",
+    read_roots: Sequence[str | Path] | None = None,
 ) -> Path | None:
     """Return the exported Aim-format run record for this run when present.
 
-    Searches ``runs/aim/`` first (current convention) then ``research/aim/``
-    (legacy layout) so dumps written under either tree are discoverable."""
-    root = Path(repo_root).resolve()
+    Searches configured read roots. By default this means ``runs/aim/`` first
+    (current convention) then ``research/aim/`` (legacy layout). Override with
+    ``AGENTCTL_AIM_READ_ROOTS`` or the ``read_roots`` argument for migrations."""
     target_meta = str(Path(meta_path).resolve())
     setup_dict = keyval_dict(setup or [])
     target_hash = setup_dict.get("aim_run_hash", "")
-    for dump_root in (root / "runs" / "aim", root / "research" / "aim"):
-        for run_json in dump_root.glob("*/*/*.json"):
-            if run_json.parent.name != "runs":
-                continue
+    for dump_root in aim_read_roots(repo_root=repo_root, read_roots=read_roots):
+        for run_json in dump_root.glob("*/runs/*.json"):
             try:
                 record = json.loads(run_json.read_text(encoding="utf-8"))
             except Exception:
@@ -313,9 +341,10 @@ def find_aim_run_text(
     meta_path: str | Path,
     setup: list[tuple[str, str]] | None = None,
     repo_root: str | Path = ".",
+    read_roots: Sequence[str | Path] | None = None,
 ) -> Path | None:
     """Return the exported Aim-format text artifact for this run when present."""
-    run_json = find_aim_run_record(meta_path=meta_path, setup=setup, repo_root=repo_root)
+    run_json = find_aim_run_record(meta_path=meta_path, setup=setup, repo_root=repo_root, read_roots=read_roots)
     if run_json is None:
         return None
     try:
