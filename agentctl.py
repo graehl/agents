@@ -2495,4 +2495,12 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except BrokenPipeError:
+        # Let common truncating consumers such as `head` close the pipe without
+        # turning a successful status/list command into a traceback.
+        try:
+            sys.stdout.close()
+        finally:
+            raise SystemExit(0)
