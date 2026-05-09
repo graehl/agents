@@ -295,6 +295,19 @@ When work is gated on a long-running job, the default wait primitive is:
   local CLI receives a real tty input event; default to `C-l` unless there is
   a concrete reason to use a different key sequence
 
+When a healthy run is the only active foreground obligation, prefer the
+low-token `agentctl` heartbeat path over repeated log pulling or speculative
+planning. Use the heartbeat interval to keep the session recoverable, then
+defer deeper planning and analysis until the run finishes, fails, stalls, or
+needs a successor decision.
+
+User heartbeat or activity turns are wake-up points, not a request to stay in
+high-token log-following mode forever. At minimum, check current run and GPU
+state, give a concise status, and briefly engage with steering, planning, or
+pre-finish interpretation when useful while the wait/watch keeps running in the
+background. If practical after roughly five minutes without more user activity,
+return to the low-token heartbeat posture.
+
 Use the helper `~/agents/agent-wait-watchdog` (mirrored as
 `~/bin/agent-wait-watchdog`) when you need an external poll block that combines
 `agentctl` state with `nvidia-smi`, not as the first-line substitute for the
