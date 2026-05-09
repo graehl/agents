@@ -122,9 +122,8 @@ suitable interpreter is found.
   `artifact_meta.find_aim_run_record/text` to locate dumps. The `aim` plugin
   synthesizes this from `state["run_id"]` (24-hex md5); any other plugin that
   populates this key must guarantee uniqueness per dump tree.
-- `runs/aim/` is the new canonical dump root. `research/aim/` is searched as
-  a back-compat fallback by the `find_aim_run_*` helpers but should not be
-  written to by new code.
+- `runs/aim/` is the current canonical dump root. No fallback dump root
+  should be used for new writes.
 - `.agentctl/` is runtime state and should normally be gitignored. `runs/`
   policy is project-specific: commit `runs/aim/` when a project declares text
   run dumps to be reviewable branch authority; otherwise ignore it as runtime

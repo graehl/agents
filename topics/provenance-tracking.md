@@ -498,13 +498,11 @@ convention. A fresh agent or human dropping into a directory recognizes
 the pattern instantly. The directory-clutter cost is real but standard
 remediation (extension filtering) handles it.
 
-### `runs/aim/` vs `research/aim/`
+### `runs/aim/` and read-root overrides
 
-`runs/aim/` is the current canonical dump root. `research/aim/` is searched
-as a back-compat fallback by `artifact_meta.find_aim_run_record` /
-`find_aim_run_text`. New writes always go to `runs/aim/`. Migration of
-existing `research/aim/` artifacts is per-project (see
-`tasks/003-d-migration.md`).
+`runs/aim/` is the current canonical dump root. New writes always go there.
+Migration can use alternate read roots via `AGENTCTL_AIM_READ_ROOTS` when run
+dumps remain in other layouts, while keeping the one authoritative write target.
 
 Projects decide whether `runs/aim/` is committed or ignored. Research repos
 may treat it as git-reviewed text authority; operational repos may treat it

@@ -343,9 +343,8 @@ def on_finish(state) -> None:
 
 def on_restart(state, args) -> None:
     args.no_aim = not state.get("aim", True)
-    # Back-compat: old state files used aim_experiment/aim_tags top-level.
-    args.experiment = state.get("experiment", "") or state.get("aim_experiment", "")
-    args.tag = state.get("tags", []) or state.get("aim_tags", [])
+    args.experiment = state.get("experiment", "")
+    args.tag = state.get("tags", [])
     # Reconstruct declared inputs/outputs so the rerun keeps the same provenance shape.
     # An input with sha256 recorded was either declared via --input-hash or had hashing
     # otherwise requested; preserve that on restart.

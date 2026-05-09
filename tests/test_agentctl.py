@@ -472,22 +472,22 @@ def test_plugin_loader_skips_broken():
         ws.cleanup()
 
 
-def test_research_aim_back_compat_search():
-    """find_aim_run_record falls back to research/aim/ when runs/aim/ has no match."""
+def test_aim_run_record_default_runs_root():
+    """find_aim_run_record reads from runs/aim/ when output has a matching meta path."""
     ws = Workspace()
     try:
-        # Place a fake legacy dump.
-        legacy_dump = ws.tmp / "research/aim/legacy/runs/r1.json"
-        legacy_dump.parent.mkdir(parents=True, exist_ok=True)
+        # Place a dump in the canonical runs/aim/ root.
+        dump = ws.tmp / "runs/aim/primary/runs/r1.json"
+        dump.parent.mkdir(parents=True, exist_ok=True)
         meta_target = ws.scratch / "fake.meta.md"
         meta_target.write_text("# fake\n")
-        legacy_record = {
+        record = {
             "params": {
                 "output": {"meta_path": str(meta_target.resolve())}
             },
             "source": {"aim_run_hash": "abc123def456"},
         }
-        legacy_dump.write_text(json.dumps(legacy_record))
+        dump.write_text(json.dumps(record))
 
         # Find Python and call find_aim_run_record.
         py = sys.executable
@@ -502,7 +502,7 @@ def test_research_aim_back_compat_search():
         )
         result = subprocess.run([py, "-c", code], capture_output=True, text=True, cwd=ws.tmp)
         _assert("FOUND" in result.stdout,
-                f"back-compat search failed: stdout={result.stdout!r} stderr={result.stderr!r}")
+                f"run-record lookup failed: stdout={result.stdout!r} stderr={result.stderr!r}")
     finally:
         ws.cleanup()
 
@@ -511,7 +511,7 @@ def test_aim_read_roots_env_override():
     """AGENTCTL_AIM_READ_ROOTS can add read-only migration roots."""
     ws = Workspace()
     try:
-        alt_dump = ws.tmp / "old-runs/aim/legacy/runs/r1.json"
+        alt_dump = ws.tmp / "alt-runs/aim/archive/runs/r1.json"
         alt_dump.parent.mkdir(parents=True, exist_ok=True)
         meta_target = ws.scratch / "fake.meta.md"
         meta_target.write_text("# fake\n")
@@ -534,9 +534,9 @@ def test_aim_read_roots_env_override():
             f'repo_root={str(ws.tmp)!r}); '
             f'print(r)'
         )
-        env = {**os.environ, "AGENTCTL_AIM_READ_ROOTS": "old-runs/aim"}
+        env = {**os.environ, "AGENTCTL_AIM_READ_ROOTS": "alt-runs/aim"}
         result = subprocess.run([py, "-c", code], capture_output=True, text=True, cwd=ws.tmp, env=env)
-        _assert("old-runs/aim/legacy/runs/r1.json" in result.stdout,
+        _assert("alt-runs/aim/archive/runs/r1.json" in result.stdout,
                 f"env read-root search failed: stdout={result.stdout!r} stderr={result.stderr!r}")
     finally:
         ws.cleanup()

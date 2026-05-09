@@ -222,11 +222,10 @@ then by naming convention or distinctive command/log lines.
 ### Run records and provenance
 
 When a project tracks runs through `agentctl`, the canonical run record is the
-JSON dump under `runs/aim/<experiment>/runs/<run-id>.json` (or the legacy
-`research/aim/<experiment>/runs/<run-id>.json` for older trees — both are searched
-by `artifact_meta.find_aim_run_record/text`). Refer to that record rather than
-reconstructing run history from logs or `.meta.md` content alone: the dump
-carries the structured argv/cwd, declared inputs and outputs, the script
+JSON dump under `runs/aim/<experiment>/runs/<run-id>.json`, using the
+`artifact_meta.find_aim_run_record/text` lookup path. Refer to that record
+rather than reconstructing run history from logs or `.meta.md` content alone: the
+dump carries the structured argv/cwd, declared inputs and outputs, the script
 fingerprint, git branch+commit, and any producer-tagged propagation facts.
 
 Output files produced under tracked runs get a `<output>.meta.json` sidecar next

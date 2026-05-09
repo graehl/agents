@@ -33,7 +33,7 @@ class AimWriteResult:
     run_name: str
 
 
-DEFAULT_AIM_READ_ROOTS = ("runs/aim", "research/aim")
+DEFAULT_AIM_READ_ROOTS = ("runs/aim",)
 
 
 def sidecars_for_output(output: str | Path) -> Sidecars:
@@ -308,9 +308,8 @@ def find_aim_run_record(
 ) -> Path | None:
     """Return the exported Aim-format run record for this run when present.
 
-    Searches configured read roots. By default this means ``runs/aim/`` first
-    (current convention) then ``research/aim/`` (legacy layout). Override with
-    ``AGENTCTL_AIM_READ_ROOTS`` or the ``read_roots`` argument for migrations."""
+    Searches configured read roots. By default this means ``runs/aim/``.
+    Override with ``AGENTCTL_AIM_READ_ROOTS`` or the ``read_roots`` argument."""
     target_meta = str(Path(meta_path).resolve())
     setup_dict = keyval_dict(setup or [])
     target_hash = setup_dict.get("aim_run_hash", "")
@@ -357,6 +356,7 @@ def find_aim_run_text(
             if candidate.exists():
                 return candidate.resolve()
     return None
+
 
 
 def upsert_analysis_summary_markdown(
@@ -716,7 +716,7 @@ def merge_legacy_setup(
 def aim_enabled(explicit: bool | None = None) -> bool:
     if explicit is not None:
         return explicit
-    if env_flag("AIM_DISABLE") or env_flag("NO_AIM"):
+    if env_flag("AIM_DISABLE"):
         return False
     return bool(
         os.environ.get("AIM_REPO")
