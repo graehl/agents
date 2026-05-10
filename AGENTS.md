@@ -274,13 +274,15 @@ and ASCII diagrams, even when that leaves a non-full line before the target.
 
 ### Commit topic series threading
 
-When a commit is part of a related series, append a `Topic: <string>`
-trailer at the bottom of the body. The topic string is the basename of the
-relevant committed `topics/<topic>.md` file when one exists; inspect
-`ls topics/*.md` to see the project topic namespace. A topic series shares
-the exact same topic string across all commits: commit #1 sets the canonical
-text, later commits copy it verbatim so `git log --grep "Topic: ..."` finds
-the chain. Switch topic strings only when it's obviously time for a new one.
+When a commit is part of a related series, append one or more
+`Topic: <string>` trailers at the bottom of the body. The topic string is
+the basename of the relevant committed `topics/<topic>.md` file when one
+exists; inspect `ls topics/*.md` to see the project topic namespace.
+A topic series shares the exact same topic string across all commits:
+commit #1 sets the canonical text, later commits copy it verbatim for that
+topic so `git log --grep "Topic: ..."` finds the chain. Switch topic
+strings only when it's obviously time for a new one.
+Use multiple `Topic:` lines when a commit legitimately spans multiple topics.
 Topic should also be easy to cross-reference from related `tasks/*.md` files.
 Standalone commits with no task spec. and no expected follow-up: no topic
 trailer.
