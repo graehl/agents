@@ -239,20 +239,18 @@ For non-trivial commit messages:
   broadly described (besides trivial: whitespace/formatting, comments, fully
   file-local var renames/refactors, etc)
 
-For ALL amends of non-trivial commits:
-* commit messages specifying amendment are to be amendments or additions to
-  the existing well-crafted and valuable commit message.
-* NEVER describe just the amendment in the amended commit message even though
-  the amending change may be trivial. ALWAYS preserve the existing commit
-  message info (the amendment can simply edit the part of the message
-  corresponding to what was changed; if it's a change to a minor detail then
-  no message change at all is needed)
-* example of FORBIDDEN amend commit messages: 'moved X to Y.hpp' when X is
-  created in this commit; instead don't mention it or better find if the old
-  Z.hpp where X used to live is mentioned as the site for X and correct that
+For ALL amends of ALL commits:
+* Leave commit subject unchanged
+* Amended commit messages are written as additive or corrected updates to
+  the current message; do not erase prior content except to fix incorrect
+  text.
+* Describe what changed relative to `HEAD~1` only; do not describe changes
+  from the previous patchset. this implies these are FORBIDDEN amend commit messages: 
+  - 'preserved/ensured Z' where Z was already described in prev. message
+  - 'moved X to Y.hpp' when X is created in this commit
   minimally.
-* the amended commit message must be true of the commit contents by the
-  original non-trivial commit message standards!
+* the amended commit message must satisfy non-trivial commit message standards if the original commit was non-trivial! (the checklist/process may not be needed to ensure the message meets standards if the edit is simple)
+* SHOW THE EDITED COMMIT MESSAGE as a diff. User needs to see what was done.
 
 All commit messages: manually wrap body prose at 71 columns. This keeps
 fixed-width formatting intentional and avoids Gerrit double-wrapping.
@@ -264,7 +262,7 @@ Manual wrapping is a visual formatting rule, not greedy fill: preserve
 bullets, hanging indents, aligned continuations, short tables, quoted blocks,
 and ASCII diagrams, even when that leaves a non-full line before the target.
 
-* Before committing, ALWAYS make an additional final commit message global
+* Before commiting (except trivial amends), ALWAYS make a commit message global
   improvement check for coherency and conformance w/ checklist. This is
   equivalent to a kind of brief review for coverage; every impactful item in
   the diff must be covered by some motivating or summary implying existence
