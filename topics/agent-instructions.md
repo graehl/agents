@@ -34,3 +34,31 @@ projects without relying on stale chat state.
 - The `agent-instructions` topic spans commit policy, task cross-references,
   and theory docs because all three determine how future agents recover the
   intended policy from repository state.
+
+## Verifying instruction changes
+
+A reading pass finds rules that *look* wrong; it misses rules that only
+misfire when practiced. Before finalizing an instruction change — and
+especially after compressing or rewording existing rules — run a
+trace-simulation pass:
+
+1. Triage (cheap): pick the rules most likely to misfire — those that fire
+   often, overlap with other rules, hedge, or create perverse incentives.
+2. Simulate (bounded): for each, construct 2-3 concrete scenarios and play
+   the rule forward. Does following it literally produce a worse outcome
+   than not having it?
+3. Keep only changes that survive their traces; fix the ones that fail.
+
+This is the falsification discipline applied inward: "what realistic
+situation makes this rule backfire?" Compression is the highest-risk case —
+a reword can invert a rule's logic while still reading fine on the page,
+and the inversion surfaces only in a trace.
+
+Past trace passes and what they caught are recorded in the companion
+ledger `agent-instructions.evidence.md` — consult it when proposing an
+instruction change, not routinely.
+
+When a trace exposes that the rule's gap is only safe because a frontier
+agent infers around it, prefer adding redundancy (a worked example, or the
+rule's rationale) over leaving the gap, since non-frontier agents also edit
+these projects.
