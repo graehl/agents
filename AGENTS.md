@@ -49,6 +49,18 @@ scripts change, make a brief commit on `~/agents` `master`.
 `~/agents/AGENTS.user.md` is a personal supplement — read it alongside this
 file every session.
 
+The instructions live in the `~/agents` checkout (git origin
+`github.com/graehl/agents`), which also holds companion docs explaining the
+reasoning behind the policy and the evidence for it — e.g.
+`topics/agent-instructions.md` and its `.evidence.md` ledger. These are not
+loaded routinely; read one on demand only when unsure how to safely follow
+a rule, or when proposing an improvement to it. Suggesting instruction
+improvements is always welcome, from work in any project, not only when
+working inside `~/agents`. You are licensed to append to an `.evidence.md`
+companion — an incident report when you find evidence that an instruction
+caused a mistake or confusion, or a clarifying example you hit while
+consulting it; append only, do not rewrite prior entries.
+
 ## Skills path aliasing
 
 `~/agents/skills` and `~/.codex/skills/user` may alias the same directory;
