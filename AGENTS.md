@@ -1,738 +1,468 @@
 # Session management
 
-Session state is saved in `last-session.md`. Use `/bye` to save a
-summary before ending work. Use `/hi` to recover context only when the
-user greets you, explicitly resumes prior work, or otherwise signals that
-they want session recovery. When a fresh user turn is already a specific
-request and does not explicitly ask for `/hi` or prior-session recovery,
-treat it as an independent request by default: do not read or cite
-`last-session.md` merely because it exists.
+Session state lives in `last-session.md`. `/bye` saves a summary; `/hi`
+recovers context — but only on a greeting or explicit resume signal. A
+fresh, specific request is independent: do not read or cite
+`last-session.md` just because it exists.
 
-local (git ignored) .md files in `tasks/` track per-feature progress and
-architectural decisions — read the active task file when resuming.
-Upon believed completion of a task, append a dated completion status note at
-the end of the task file listing the relevant git commit(s) and one line of
-evidence for believing the work complete. If the task file contains inline
-subtasks, make this a formal section listing status for each inline subtask.
-It is permissible to judge each task file in isolation; agents need not recurse
-into linked non-inline subtask files.
+Git-ignored `tasks/*.md` files track per-feature progress and decisions;
+read the active one when resuming. On believed completion, append a dated
+status note with the relevant commit(s) and one line of evidence; if the
+task file has inline subtasks, make it a section listing each subtask's
+status. Judge each task file in isolation — no recursing into linked
+subtask files.
 
-For implementation or bugfix work, search for related `tasks/*.md` files when
-that directory exists. Cite the relevant task file(s) in planning and again
-when concluding the request, so longer-running follow-up inventory stays
-visible without forcing every small request to create a task. When task files
-exist, they should define or cross-reference the relevant `topics/*.md`
-topic(s) when practical.
+For implementation or bugfix work, search `tasks/*.md` when that directory
+exists, and cite the relevant file(s) in planning and conclusion. Task
+files should cross-reference relevant `topics/*.md`.
 
 ## Resume source priority
 
-Explicit automated handoff instructions or context compression as the first
-turn mean `bye` was not previously run before creating the handoff (unless
-actually seen at end of transcript). The previous session may be accessible
-by a link/session id present in a handoff; browse that session (as if to
-compress context or summarize) to ensure you are caught up; sometimes
-sessions pursue multiple unrelated tasks in series so you can first scan for
-obvious commit/topic change boundaries and closely read only the last two
-such sections.
+A handoff or context-compression message as the first turn means `/bye`
+did not run before the handoff. If it carries a link/session id, browse
+that session to catch up — scan for commit/topic boundaries and read the
+last two sections closely.
 
-When resuming after a disconnected session, crashed browser/client, full
-agent restart, or context compaction that may have dropped live details,
-presume `last-session.md` is stale unless the user explicitly says the prior
-agent ran `/bye` after the disconnect. The same applies when `last-session.md`
-is older than live worktree files, recently modified task/subtask files,
-active job state, or artifact metadata. In those stale-summary cases, recover
-from live state first: the worktree, newest relevant task/subtask files,
-`.agentctl`/run metadata, saved artifacts, and only then the platform-wide
-session JSONL logs for the dead ancestor session. In repos with `tasks/`,
-sort task files by mtime and read the newest relevant entries even when
-`tasks/` is untracked or ignored by git; task files are live working state,
-not necessarily repository history. For Codex, check recent
-`~/.codex/sessions/**/*.jsonl` entries; for Claude, check the matching
-project logs under `~/.claude/projects/**/*.jsonl`. Use `last-session.md`
-only as a historical hint after those sources, not as primary truth.
+When resuming after a disconnect, crash, restart, or compaction, presume
+`last-session.md` is stale unless the user says `/bye` ran after the
+disconnect — and stale regardless when it is older than live worktree/task
+files, job state, or artifacts. Recover from live state first: worktree, newest `tasks/*.md`
+(by mtime, even if git-ignored), `.agentctl`/run metadata, artifacts, then
+session logs (`~/.codex/sessions/**/*.jsonl` or
+`~/.claude/projects/**/*.jsonl`). Use `last-session.md` only as a last
+historical hint.
 
 # Verification and retrieval
 
-When a task depends on a claim about the contents of a software project,
-verify it against the repository before relying on it. Treat user and agent
-assumptions as hypotheses until checked. ripgrep (`rg`) is available.
+Verify claims about a project against the repo before relying on them;
+treat user and agent assumptions as hypotheses until checked. `rg` is
+available.
 
 # Authority and instruction files
 
-`~/agents/AGENTS.md` is the authoritative global instructions file. Repo-local
-`AGENTS.md` / `CLAUDE.md` symlinks or copies may point here, but global policy
-changes belong in this file first.
+`~/agents/AGENTS.md` is the authoritative global instructions file; global
+policy changes belong here first, even when a repo-local `AGENTS.md` /
+`CLAUDE.md` symlinks or copies it. Keep shared helper scripts under
+`~/agents/` and `~/bin/` in sync. When global instructions or those
+scripts change, make a brief commit on `~/agents` `master`.
 
-Likewise, shared helper scripts under `~/agents/` and `~/bin/` should be kept
-in sync when they intentionally mirror each other. When those global
-instructions or helper scripts are modified, make a brief commit directly on
-`~/agents` `master` so the authoritative copy has a clear history.
-
-**User-specific supplement**: `~/agents/AGENTS.user.md` contains personal
-preferences specific to this user. Read it alongside this file at the start
-of every session — it is not optional.
+`~/agents/AGENTS.user.md` is a personal supplement — read it alongside this
+file every session.
 
 ## Skills path aliasing
 
-In this environment, `~/agents/skills` and `~/.codex/skills/user` may be two
-paths to the same underlying directory (hard-link/bind-like aliasing). Always
-treat `~/agents/skills` as the canonical edit target.
-
-Do **not** "sync" these paths by converting one side to symlinks. That can
-create self-referential loops (for example `skills/foo -> skills/foo`) and
-break skill loading with "Too many levels of symbolic links".
-
-Before any migration or sync operation, verify whether they are the same
-inode: `stat -c '%d:%i %n' ~/agents/skills ~/.codex/skills/user`
+`~/agents/skills` and `~/.codex/skills/user` may alias the same directory;
+treat `~/agents/skills` as the canonical edit target. Do not "sync" them
+into symlinks — that creates self-referential loops that break skill
+loading. Check first:
+`stat -c '%d:%i %n' ~/agents/skills ~/.codex/skills/user`.
 
 ## Instruction routing
 
-When the user says something is a `global rule`, `project-level rule`, or
-`branch rule`, treat that as an instruction about where the rule must be
-persisted unless the user says otherwise:
-- `global rule` -> write it to `~/agents/AGENTS.md`
-- `project-level rule` -> write it to the repo-local `AGENTS.md`
-- `branch rule` -> write it to the branch main task file in
-  `tasks/NNN-<branch>.md`
-
-If the user uses that phrasing, do not leave the rule only in chat state;
-persist it in the corresponding authoritative file.
+When the user labels a rule, persist it (do not leave it only in chat):
+- `global rule` -> `~/agents/AGENTS.md`
+- `project-level rule` -> repo-local `AGENTS.md`
+- `branch rule` -> branch main task file `tasks/NNN-<branch>.md`
 
 ## Load-bearing instructions
 
-When writing or editing instructions for agents (AGENTS.md,
-AGENTS.local.md), propose deletions and simplifications for entries that
-don't bear load — rules that don't steer behavior beyond what a capable
-coding agent (frontier models like ChatGPT 5.x or Opus 4.x, and local
-open-weights models only a little behind) already does by default. Use your
-own knowledge of default agent behavior as the baseline. Preferences,
-project-specific context, and counters to defaults the user wants to override
-are load-bearing; restatements of standard tool mechanics or documented
-defaults the model would already follow are not.
+When editing agent instructions, propose cutting entries that don't steer
+behavior beyond what a capable agent does by default. Preferences,
+project-specific context, and deliberate counters to defaults are
+load-bearing; restatements of standard tool mechanics or defaults are not.
+Add explicit rules to prevent known project-specific failures; avoid
+prompt debt that just replaces ordinary engineering judgment.
 
-When adding instruction policy, ask whether the goal is to build a strict
-bureaucratic procedure for today's weakest acceptable model, or to preserve
-real intent for strong present and future agents. Prefer the latter: add
-explicit rules when they prevent known project-specific failures, but avoid
-prompt debt that replaces ordinary engineering judgment.
+Non-frontier agents occasionally edit these projects, so keep redundancy —
+worked examples, and the rationale behind counterintuitive rules — that
+stops a weaker agent reasoning its way around a rule, even where a frontier
+agent would not need it.
 
 ## Project-level instructions
 
-Before running tools in a repository for the first time in a session, check
-for project-scope instruction files. At minimum look for `AGENTS.md`,
-`AGENTS.local.md`, and `CLAUDE.md` in the repo root, and any `README.md`
-they explicitly name as an instruction source. Do not assume task files or
-prior session state substitute for this check.
+Before using tools in a repo for the first time in a session, read its
+root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, and any `README.md` they
+name as an instruction source. Task files do not substitute for this. If a
+file is unreadable or a symlink is broken, report once and continue.
 
-When launched in a project root:
-- If `AGENTS.md` exists (regular file or symlink), resolve and read it as
-  project-level instructions.
-- If `AGENTS.local.md` exists, read it as a supplementary amendment to the
-  project-level instructions.
-- If either is unreadable or a symlink is broken, report once and continue
-  with global instructions.
-
-Project docs are supplementary by default. If they materially conflict and
-precedence is unclear, ask the user.
-
-Project instructions are the final word for work inside that project. If a
-project has `AGENTS.local.md`, treat it as the private final amendment to that
-project's `AGENTS.md`. Global instructions still govern actions outside the
-project or its temporary/scratch directories, and unclear material conflicts
-should be reported rather than silently resolved.
-
-Committed project instructions such as repo-local `AGENTS.md` should stand
-alone for future agents and reviewers. Project-local/private amendments such
-as `AGENTS.local.md` may be brief deltas against global instructions instead
-of repeating the full policy.
+Project instructions are the final word for work inside that project;
+`AGENTS.local.md` is its private final amendment. Global instructions
+govern actions outside the project. Report material conflicts with unclear
+precedence rather than resolving them silently. A committed repo `AGENTS.md`
+should stand alone; `AGENTS.local.md` may be a brief delta against global
+policy.
 
 ### Local instruction file backups
 
-Before editing or deleting an agent instruction file whose current contents
-are not safely recoverable from git, first save a snapshot under
-`.backups/<YYYYmmdd-HHMMSS>/<relative-path>` in the same workspace or nearest
-repo. This applies especially to ignored or untracked local instruction files
-such as `AGENTS.local.md`, and also to tracked instruction files with
-uncommitted local changes that you might otherwise overwrite.
+Before editing or deleting an agent instruction file whose contents are
+not safely recoverable from git (especially untracked files like
+`AGENTS.local.md`, or tracked files with uncommitted changes), first
+snapshot it under `.backups/<YYYYmmdd-HHMMSS>/<relative-path>`.
 
 ## Research and run supplements
 
-Research-method and run-operation policies are split into companion docs:
-- `RESEARCH.md`
-- `RUNS.md`
+Companion docs hold split-out policy:
+- `RESEARCH.md` — research method; load before substantive work when the
+  repo or request indicates research/experimentation (`research/`,
+  `tasks/`, notebooks, train/eval scripts, significance requests).
+- `RUNS.md` — run-operation / `agentctl` policy; load before
+  launching/monitoring/summarizing jobs (`.agentctl/`, `*.running.md`,
+  long-running jobs, watchdogs, GPU scheduling).
 - `survey-field.md`, `research-frontier.md` — field-survey and
-  research-frontier templates; research-method companions, but
-  triggered independently of `RESEARCH.md`
+  research-frontier templates; load when the task is surveying a field,
+  gathering prior art, or void-mapping/capstone suggestion. This trigger
+  is independent of `RESEARCH.md`.
 
-Treat reusable research-method guidance and run-operation / `agentctl`
-tracking policy as generally global. Persist those rules in
-`~/agents/RESEARCH.md` or `~/agents/RUNS.md` unless the rule depends on a
-particular repository's data, scripts, artifact schema, or paper-specific
-decisions.
-
-Activation triggers:
-- Load `RESEARCH.md` before substantive work when the repo or request
-  indicates research/experimentation (e.g., `research/`, `tasks/`,
-  notebooks, train/eval scripts, significance requests, or
-  research-paper/log updates).
-- Load `RUNS.md` before launching/monitoring/summarizing jobs when the repo
-  or request indicates run operations (e.g., `.agentctl/`, `*.running.md`,
-  `runs/aim/`, `<output>.meta.json`, long-running jobs, watchdogs,
-  background jobs, or GPU scheduling/utilization).
-- Load `survey-field.md` / `research-frontier.md` when the task is
-  surveying a research field, gathering prior art, or void-mapping /
-  capstone suggestion. This trigger is independent of `RESEARCH.md`:
-  read them directly on such a request, even with no research-project
-  contours (`research/` dir, etc.) present. Do not read them for
-  unrelated work.
-
-Resolution order for companion docs:
-1. repo root (`./RESEARCH.md`, `./RUNS.md`)
-2. global alongside this file (`~/agents/RESEARCH.md`, `~/agents/RUNS.md`)
-
-If a triggered file is missing, report once and continue.
+Resolve companion docs at the repo root first, then `~/agents/`. If a
+triggered file is missing, report once and continue. Keep reusable
+research/run guidance global (in `~/agents/`) unless it depends on a
+specific repo's data, scripts, or schema.
 
 # Big-effect command gate
 
-Before running any big-effect command — including nontrivial commits,
-amending a non-trivial commit, push, force push, file edits that entirely
-replace previous user-written content, deploy commands, database migrations,
-dependency upgrades, or destructive filesystem commands (exception: recently
-created scratch/log/tmp files the user has not been shown; a filename
-appearing in an approval does not mean the user knows the file; the user
-knows files organized per agreed naming schemes or tracked in git) —
+Big-effect commands fall in two tiers.
 
-1. Stop before executing the command.
-2. Produce a compact, scannable gate record. Start with the action and why it
-   is gated.
-3. List the required checks as a brief sequence of bracketed tags. Each tag
-   should refer to the checklist requirement it satisfies, and each line should
-   state the current fact that satisfies or blocks that requirement, e.g.
-   `[wip] unrelated work is present; command is path-limited to README.md`.
-4. For multi-step gated operations, prefix each subsequent gated action with
-   the matching bracketed tag or relevant tag subset, so the transcript stays
-   tied to the checklist.
-5. Show the exact command that would be run.
-6. Quote exact policy only for destructive, forceful, ambiguous, or unusually
-   risky actions, or when the user asks.
-7. Do not proceed if any required check is missing or ambiguous.
+**Full gate record** — for irreversible or shared-state actions: push,
+force push, deploys, migrations, dependency upgrades, destructive
+filesystem commands, and file edits that wholly replace user-written
+content. Stop and produce the record below before running one.
 
-The same bracketed-tag style is encouraged for other self-imposed gates or
-plans when it makes progress easier to audit, but it is required only for
-big-effect gates.
+**Light check** — for local commits and amends (especially doc-only): no
+formal record, just a one-line confirmation that the staged scope is
+intended and, for an amend, that prior commit-message content is
+preserved. A local commit is cheaply reversible, so the full ceremony is
+not worth it. Amending an already-pushed commit is still local (light
+check); the force-push it then requires gets the full record.
+
+Exception to both tiers: recently created scratch/log/tmp files the user
+has not been shown — a filename appearing in an approval does not mean the
+user knows the file.
+
+The full gate record:
+1. State the action and why it is gated.
+2. List required checks as bracketed tags, each stating the current fact
+   that satisfies or blocks it, e.g. `[wip] unrelated work present;
+   command is path-limited to README.md`.
+3. For multi-step gated operations, prefix each later action with the
+   matching tag(s).
+4. Show the exact command.
+5. Quote exact policy only for destructive, forceful, ambiguous, or
+   unusually risky actions, or on request.
+6. Do not proceed if any required check is missing or ambiguous.
+
+The bracketed-tag style is encouraged for other self-imposed gates; it is
+required only for the full gate record.
 
 # Commits
 
-Composing commit messages: aim for a <=65 char subject, and manually wrap
-body prose at 71 columns. Prefer bullet lists in the commit body when items
-are numerous or complex; prose when the content is short and simple.
+Subject <=65 chars and scannable for `git log --oneline`. Wrap body prose
+manually at 71 columns — a visual rule, not greedy fill: preserve bullets,
+hanging indents, aligned continuations, short tables, and ASCII diagrams
+even when that leaves a short line. Exceed 71 only for unavoidable long
+tokens. Use body bullets when items are numerous or complex, prose when
+short. No `Co-Authored-By`; no links to git-ignored content (e.g.
+`tasks/`).
 
 ## Commit messages
 
-Trivial commits get a short message (possibly subject-only).
+Trivial commits get a short, possibly subject-only message.
 
-For non-trivial commit messages:
-* Format is a narrative session-summary synthesis of the motivation and
-  decision => change
-* Exclude credentials/secrets from commit contents and message
-* Include main user decision points from session log of work committed
-* Exclude unrelated side discussions but include approaches ruled out for
-  non-obvious reasons
-* Standard subject line (scannable headline for `git log --oneline`)
-* Briefly indicate whether the test suite is known to pass after the commit
-  (in commit-as-you-go or split commits this is not always the case)
-* Explain the existence of significant diffs esp. creations of >3 lines
-  length or significant-effect edits of any kind if not already mentioned
-  or implied somewhere in the commit message; checking that what is said in
-  the message appears compliant is not enough; we want every change at least
-  broadly described (besides trivial: whitespace/formatting, comments, fully
-  file-local var renames/refactors, etc)
+Non-trivial messages are a narrative synthesis of motivation and
+decision => change:
+- Exclude credentials/secrets from contents and message.
+- Include the main user decision points from the session.
+- Exclude unrelated side discussions, but include approaches ruled out for
+  non-obvious reasons.
+- State whether the test suite is known to pass after the commit.
+- Broadly describe every non-trivial change — especially >3-line creations
+  and significant-effect edits. Trivial changes (whitespace, comments,
+  file-local renames) need no mention.
+
+Consider splitting unrelated changes into independent commits (e.g.
+implementation vs. research finding).
+
+### Amends
 
 For ALL amends of ALL commits:
-* Leave commit subject unchanged
-* Amended commit messages are written as additive or corrected updates to
-  the current message; do not erase prior content except to fix incorrect
-  text.
-* Describe what changed relative to `HEAD~1` only; do not describe changes
-  from the previous patchset. this implies these are FORBIDDEN amend commit messages: 
-  - 'preserved/ensured Z' where Z was already described in prev. message
-  - 'moved X to Y.hpp' when X is created in this commit
-  minimally.
-* the amended commit message must satisfy non-trivial commit message standards if the original commit was non-trivial! (the checklist/process may not be needed to ensure the message meets standards if the edit is simple)
-* SHOW THE EDITED COMMIT MESSAGE as a diff. User needs to see what was done.
+- Leave the subject unchanged.
+- Write the message as an additive or corrected update; do not erase prior
+  content except to fix what is now incorrect.
+- Describe only what changed relative to `HEAD~1`, not changes from the
+  previous patchset. Forbidden: "preserved Z" when Z was already described;
+  "moved X to Y.hpp" when X is created in this commit.
+- An amended message must meet non-trivial standards if the original
+  commit was non-trivial.
+- Show the edited message as a diff, and confirm no prior content was
+  dropped or replaced except as a deliberate correction.
 
-All commit messages: manually wrap body prose at 71 columns. This keeps
-fixed-width formatting intentional and avoids Gerrit double-wrapping.
-Exceed 71 only for unavoidable long tokens/strings, not to reduce raggedness
-or avoid a short neighboring line. Do not link to git-ignored content e.g.
-`tasks/`; no `Co-Authored-By`.
+When the user corrects a commit not yet pushed to the upstream default
+branch, amend it (`--amend --no-edit` for trivial fixups) rather than
+adding a noisy second correction commit. When a commit already pushed to
+the user's personal GitHub is found wrong within days and has no
+downstream forks/consumers, prefer amend + force-push over accumulating
+fix history — but not once it has been submitted as a PR elsewhere; then
+repair forward.
 
-Manual wrapping is a visual formatting rule, not greedy fill: preserve
-bullets, hanging indents, aligned continuations, short tables, quoted blocks,
-and ASCII diagrams, even when that leaves a non-full line before the target.
+### Topic trailers
 
-* Before commiting (except trivial amends), ALWAYS make a commit message global
-  improvement check for coherency and conformance w/ checklist. This is
-  equivalent to a kind of brief review for coverage; every impactful item in
-  the diff must be covered by some motivating or summary implying existence
-  of some similar diff chunk. In this final edit, consider (rereading the
-  draft message) splitting into independent impl. parts, or impl. and then
-  research finding parts (if this is a research project).
-
-### Commit topic series threading
-
-When a commit is part of a related series, append one or more
-`Topic: <string>` trailers at the bottom of the body. The topic string is
-the basename of the relevant committed `topics/<topic>.md` file when one
-exists; inspect `ls topics/*.md` to see the project topic namespace.
-A topic series shares the exact same topic string across all commits:
-commit #1 sets the canonical text, later commits copy it verbatim for that
-topic so `git log --grep "Topic: ..."` finds the chain. Switch topic
-strings only when it's obviously time for a new one.
-Use multiple `Topic:` lines when a commit legitimately spans multiple topics.
-Topic should also be easy to cross-reference from related `tasks/*.md` files.
-Standalone commits with no task spec. and no expected follow-up: no topic
-trailer.
-
-### Amend vs. second commit after a correction
-
-If the user contradicts or corrects a commit that has NOT yet been pushed to
-the upstream default branch (`origin/main` or `origin/master`, whichever
-exists), always `git commit --amend` (or `git commit --amend --no-edit` for
-trivial fixups) so the branch history stays clean and the corrected state is
-the canonical record. A second stand-alone commit for a one-line correction
-adds noise and can leave a misleading intermediate state in history.
-
-### Recent pushed oopsies on personal GitHub
-
-If a pushed commit to the user's `github.com/<owner>` remote is discovered
-within days to be wrong, and there are no downstream forks/consumers
-depending on that erroneous commit, prefer `git commit --amend` plus a
-force-push/overwrite so the bad state disappears rather than accumulating
-noise-fix history. Exception: do not rewrite once the branch/commit has
-already been submitted as a PR elsewhere; in that case, keep history stable
-and repair forward unless the user explicitly says otherwise.
-
-## Pre-commit gate
-
-Before running `git commit` for a non-trivial change:
-
-1. List in scratchpad/thinking (or compact bracketed gate checks when
-   user-facing output is needed) the session requirements and
-   implementation decisions another agent would need to recreate an
-   equivalent change. Not the explanatory documentation, comments, UI, or
-   usage text — just the load-bearing decisions. This demonstrates actual
-   engagement with the Commits-section rules and makes compliance
-   verifiable rather than claimed.
-2. Draft the commit message per the Commits-section checklist.
-3. Check that every item from step 1 appears in the message.
-4. Verify the staged index matches the intended scope before committing
-   (e.g. `git diff --cached --name-only`); pre-staged work from earlier in
-   the session can otherwise leak into the commit.
-5. Only then run `git commit`.
+A commit in a related series gets one or more `Topic: <string>` trailers.
+The string is the basename of the relevant `topics/<topic>.md` (`ls
+topics/*.md` for the namespace); all commits in a series copy it verbatim
+so `git log --grep` finds the chain. Use multiple `Topic:` lines for a
+commit spanning topics. The trailer marks thread membership, not merely
+that the diff touched a `topics/` file: a standalone commit with no task
+spec and no expected follow-up gets no trailer even if it edits a topic
+doc, while the commit that starts a thread gets one as #1.
 
 # Code quality
 
 ## Anti-slop implementation
 
-Do not turn implementation or debugging work into a maze of permissive
-fallbacks just to make the current trace succeed. Unrequested recovery,
-precondition softening, broad exception swallowing, warning-and-continuing,
-skipping required work, or proceeding with partial state are acceptable only
-when they preserve the documented contract and are part of the requested
-behavior. If the requested outcome needs a missing precondition, establish
-that precondition explicitly or fail with a clear, actionable error; do not
-silently reinterpret bad inputs or bypass required checks to keep moving.
+Do not pile on permissive fallbacks to make the current trace succeed.
+Unrequested recovery, precondition softening, broad exception swallowing,
+warn-and-continue, or proceeding on partial state are acceptable only when
+they preserve the documented contract and are part of the requested
+behavior. If the outcome needs a missing precondition, establish it
+explicitly or fail with a clear, actionable error — do not silently
+reinterpret bad input or bypass checks.
 
-Prefer repairing the model of the problem over adding output-forcing patches.
-A chain of "if this input condition then force that output condition" clauses
-is a design smell unless each branch follows from an explicit domain rule.
-Before adding a special case, name the invariant or contract it preserves,
-check whether a simpler representation would make the branch unnecessary, and
-test the contract boundary instead of only replaying the observed debugger
-trace. Future maintainers should be able to prove the behavior from
-principles and local contracts, not reconstruct accumulated exceptions.
+Prefer repairing the model of the problem over output-forcing patches. A
+chain of "if this input then force that output" clauses is a design smell
+unless each branch follows from an explicit domain rule. Before adding a
+special case, name the invariant it preserves, check whether a simpler
+representation removes the need, and test the contract boundary rather than
+just replaying the observed trace.
 
 ## Feature validation
 
-When adding or enabling a feature that can affect runtime, memory use, model
+When adding or enabling a feature that affects runtime, memory, model
 quality, or experimental conclusions, plan an explicit on/off comparison
-unless the effect is mechanically obvious and low risk. Scope the comparison
-to the blast radius: a smoke-scale timing check is enough for narrow
-plumbing, while research-facing training, decoding, scoring, scheduling, or
-data-selection changes need a recorded contrastive run or a clear task note
-explaining why the comparison is postponed.
+unless the effect is mechanically obvious and low risk. Scope it to the
+blast radius: a smoke-scale timing check for narrow plumbing; a recorded
+contrastive run (or a task note deferring it) for research-facing changes.
 
 ## Avoid redundant compute
 
-For compute-intensive implementation paths, treat redundant computation as a
-design bug to avoid up front. Reuse cached, prefetched, or intermediate work
-that has already been paid for, and repair only the rows, systems, shards, or
-states that actually need repair. Pure discovery and housekeeping scripts are
-exempt unless they become performance-critical. If an obvious reuse path is
-left out for expedience, mark it as temporary with a task note and a planned
-on/off timing comparison.
+On compute-intensive paths, treat redundant computation as a design bug:
+reuse cached/prefetched/intermediate work, and repair only the states that
+need repair. Discovery and housekeeping scripts are exempt unless
+performance-critical. If an obvious reuse path is skipped for expedience,
+mark it temporary with a task note.
 
 ## Ideal coding
 
-- Use precomputation or verifiable 'proofs' (e.g. exhaustive enough testing)
-  of library contracts when possible to achieve n*lg n or better performance
-  on tasks that feel they should be simple. It's shameful to make something
-  quadratic or worse that need not be. However, easily scannable/verifiable
-  code is also important. It's an aesthetic tradeoff that depends on how hot
-  the path could become in practice. Further, an understanding of whether
-  memory or compute is the bottleneck is needed when proposing even O(n)
-  added per-input scratch space to improve past O(n * lg n) time.
-- Everything you change should become a polished 'gem' limited primarily by
-  prudent (and courteous to collaborators) avoidance of scope creep /
-  sweeping refactors. Prefer the shortest conventional readable option that
-  correctly expresses the contract. Clever low-level tricks are permitted
-  when they meaningfully improve size or speed, especially in hot code, but
-  document the reason. This is a strong aesthetic preference.
-- Prefer idiomatic conventions and well-known domain/programming terminology
-  so the codebase is navigable without full context. Let names allude to
-  known patterns rather than annotating them with comments — a name that
-  evokes a known concept is self-documenting; a comment saying "strategy
-  pattern" is noise. A spelunking AI will pattern-match on visible
-  conventions and confidently duplicate anything it fails to recognize as
-  shared; consult `topics/shared-primitives.md` before introducing a new
-  general facility. General facilities invented for a single use should
-  live close to that use.
-- Since error handling, logging, and other defensive/boilerplate items are
-  distracting, especially focus on a concise "get these things checked and
-  right" once positioning of such gates. You can rely on exceptions.
-  Correctly reducing overall code size/reading burden by placing these logs
-  etc once per input execution (or once at load time) does require a global
-  view or even grep for such logs. Observe the structure of run logs for
-  potential reductions in logging code and also interpretability/elegance of
-  the log flow with agent search/inference in mind, e.g. nested indents
-  mirroring subtasks are nice if used everywhere but hard to line-search for
-  correctly so cannot be the only signal (open and close brace type
-  conventions for logs are not in widespread currency). Therefore some
-  context info can be repeated across multiple lines in spite of it
-  compromising on an otherwise essential aesthetic: things are most elegantly
-  defined (and run-logged) only once.
-- Tradeoffs of fundamental elegant/polished gem aesthetic are allowed in the
-  direction of both human and agent new-maintainer immediate
-  legibility/searchability; needless runtime inefficiency is not in the case
-  of planned future large runs' hotspots.
+- Avoid needlessly quadratic work — use precomputation or verified
+  library-contract assumptions to reach n log n or better on hot paths.
+  Weigh this against code scannability, and know whether memory or compute
+  is the bottleneck before spending scratch space to save time.
+- Make changed code a polished gem: the shortest conventional readable form
+  that correctly expresses the contract, without scope creep or sweeping
+  refactors. Clever low-level tricks are fine when they meaningfully
+  improve size or speed on hot paths — document why.
+- Prefer idiomatic conventions and known domain terminology so code is
+  navigable without full context; let names allude to known patterns
+  instead of comments (a name evoking the concept beats a comment saying
+  "strategy pattern"). Before introducing a new general facility, consult
+  `topics/shared-primitives.md`; keep single-use facilities close to their
+  use.
+- Concentrate error handling and logging at execution or load-time
+  boundaries; rely on exceptions. Keep run logs greppable: tag every line
+  of a phase with the phase name (`WARMUP: ...`), rather than bracketing a
+  span (`[start WARMUP]` / `[end WARMUP]`) or relying on indentation.
 
 # Project organization
 
 ## Project topics
 
 For git projects, maintain committed `topics/*.md` docs explaining why
-important subsystems or cross-cutting aspects must be correct relative to
-the whole system. The `topics/*.md` basenames define the project topic
-namespace used by `Topic:` commit trailers; inspect `ls topics/*.md` to
-discover the available topic names. Create the `topics/` directory when
-first needed (see **Pre-commit trigger** below) rather than proactively at
-session start.
+important cross-cutting concerns must hold relative to the whole system.
+Their basenames are the `Topic:` trailer namespace (`ls topics/*.md`).
+Create `topics/` when first needed, not proactively.
 
-**Scope and granularity**: topics map to *concerns* — cross-cutting
-contracts, shared invariants, integration boundaries, security or
-performance properties — not to modules or directories. A topic that only
-describes one module's internals with no external consumer is probably a
-README section. Topic count is useful as developer onboarding, casual commit
-review orientation, and a forcing function for periodic global-consistency
-checks.
+Topics map to *concerns* — cross-cutting contracts, shared invariants,
+integration boundaries, security/performance properties — not to modules
+or directories; a doc describing one module with no external consumer is a
+README section. A topic doc is not a changelog: it names contracts,
+invariants, assumptions, dependencies, and known edge cases. For
+granularity calibration and a topic-name vocabulary, read
+`~/agents/TOPICS.md` when creating or assessing a topic.
 
-For granularity calibration and a domain-organized vocabulary of well-scoped
-topic names, read `~/agents/TOPICS.md`. Do this when creating a new topic,
-assessing whether an existing one is correctly scoped, or running a periodic
-global-consistency pass. It is not required reading on every task.
+Epistemic labeling: an unlabeled claim means "plausible, not verified".
+Add an inline HTML comment only when its absence would mislead:
+`<!-- verified: SHA abcdef0 -->` (confirmed by test/bisect/audit) or
+`<!-- assumed -->` (unverified design intent). When a commit weakens a
+verified claim it touches, downgrade that claim's marker rather than
+leaving it stale. Do not use "last updated" dates.
 
-Most projects carry tech debt: architectural concerns that are real,
-load-bearing, and simply unwritten. Catch-up topic creation is appropriate
-whenever you need to state a contract between a topic you are writing and an
-adjacent concern that has no doc yet — write the missing stub rather than
-leaving the cross-reference dangling.
+Active use: before touching code for a bug, or before committing to a
+significant plan, read the relevant topic doc. Its contracts tell you what
+must be true and therefore where a violation must live — form a hypothesis
+that satisfies the invariants, then check it against the trace, not the
+reverse. A full consistency pass over all topics is a separate periodic
+ritual.
 
-**Content**: a topic doc is not a change log. It names contracts, invariants,
-assumptions, dependencies, known edge cases, and representative change types.
-When work discovers a contract relied upon across concerns, add or update a
-concise note in the relevant topic doc even if the implementation change
-itself is small.
-
-**Epistemic labeling**: an unlabeled claim means "plausible architectural
-claim, not specifically verified." Add an inline HTML comment only when the
-absence of a label would mislead a reader about confidence:
-- `<!-- verified: SHA abcdef0 -->` — confirmed by test, bisect, or audit
-- `<!-- assumed -->` — design intent or working hypothesis, unverified
-
-`<!-- assumed -->` annotations are natural review targets. Do not use
-"last updated" dates — they create false confidence. When a commit directly
-weakens a `<!-- verified -->` claim it touches, downgrade it to
-`<!-- assumed, see SHA ... -->` rather than leaving a stale marker. Apply
-this check only to the specific invariant the diff touches, not to the whole
-topic doc.
-
-**Active use — debugging and significant planning**: before touching any
-code in response to a bug, scan `topics/` filenames for the affected concern
-and read the relevant doc. Do not chase a log trace or debugger observation
-directly to a fix — that path produces patches that silence the symptom
-while violating a contract the trace never showed. Contracts and invariants
-in the topic doc tell you what *must* be true and therefore where the
-violation must actually live. Form a hypothesis that satisfies those
-invariants, then verify it against the trace — not the other way around.
-Follow cross-references outward (grep, links) as needed. Before committing
-to a significant or risky implementation plan, do the same: topic contracts
-limit the design space and name external consumers that are required test
-targets. A full pass over all topics for global consistency is a separate
-periodic ritual, not a per-task step.
-
-**Pre-commit trigger**: before finalizing a nontrivial commit message, read
-the topic docs relevant to the changed aspect and confirm whether the commit
-needs a `Topic:` trailer. If the change touches an important cross-cutting
-contract and no relevant topic doc exists, create or update one (prefer
-adding a section to an existing related topic over a new file unless the
-concern is genuinely orthogonal). Explicitly check whether any claim the
-diff directly touches is now false or weakened; update or downgrade its
-epistemic marker rather than leaving a silent contradiction. Add a note when
-the change alters the correctness argument, exposes a new edge case, or
-leaves a risk unresolved. Use the topic to design tests: what violation
-would falsify the contract? Build targeted tests around that boundary.
+Before finalizing a non-trivial commit message, read the topic docs for
+the changed concern and decide whether a `Topic:` trailer is needed. If the
+change touches a cross-cutting contract with no topic doc, create or update
+one (prefer a section in a related topic over a new file). Check whether
+the diff falsifies or weakens any claim it touches, and design boundary
+tests around the contract it could violate.
 
 # Language tooling
 
 ## C++
 
-When reformatting C/C++ changes, use clang-format only on modified lines:
-  git diff -U0 HEAD -- '*.c*' '*.h*' | clang-format-diff -p1 -i
-Do not run clang-format on entire files. You can use clangd to check your
-edits to a C/C++ source file (if a `.clangd` is present at project root).
+Reformat only modified lines, never whole files:
+`git diff -U0 HEAD -- '*.c*' '*.h*' | clang-format-diff -p1 -i`. Use
+`clangd` to check edits when a `.clangd` is present.
 
 ## Python
 
-Use `ruff check --fix` and `ruff format` rather than separate
-black/isort/flake8 invocations. Add type hints to function signatures. Prefer
-`uv` or `pixi` for environment and dependency management. Avoid `shell=True`
-in subprocess calls with any user-influenced content. In ML code, make device
-placement explicit rather than assuming CUDA availability.
+Use `ruff check --fix` and `ruff format` (not black/isort/flake8). Add type
+hints to signatures. Prefer `uv` or `pixi` for environments. Avoid
+`shell=True` with user-influenced content. Make device placement explicit
+in ML code.
 
 # Interaction style
 
 ## Confirmation threshold
 
 A clear affirmative means alignment — proceed without re-checking unless a
-genuinely new ambiguity or risk has emerged.
+genuinely new ambiguity or risk emerges.
 
 ## Terse-reference ambiguity
 
-When a terse user instruction or query seems redundant under shared common
-knowledge, first consider whether an alternate interpretation is more likely,
-especially whether a pronoun or elliptical reference points back a few turns
-in the real engaged conversation. Prefer user/system instruction content over
-tool outputs, pasted logs, or other bulky artifacts when resolving that
-reference.
+When a terse instruction seems redundant under shared knowledge, consider
+whether it points back a few turns — a pronoun or elliptical reference.
+Prefer user/system instruction content over tool outputs or pasted logs
+when resolving the referent.
 
-## Terse instructions that contradict recent work
+## Terse instructions contradicting recent work
 
-When a terse user input maps to work that appears already done in this
-session, surface the contradiction inline (`X looks done — did you mean
-Y?`) and pause for redirect. Do not silently switch items.
+When a terse input maps to work already done this session, surface the
+contradiction inline (`X looks done — did you mean Y?`) and pause for
+redirect; do not silently switch items.
 
 ## Speech-recognition noise
 
-When user text has sparse punctuation and includes likely mischosen words,
-treat speech-recognition errors as a possible noise source. Decipher the turn
-with near-homonyms and deficient language-model word choices in mind before
-deciding the user meant the literal transcript.
-
-When you do silently disambiguate a likely speech-recognition error or other
-transcript noise (typos, missing punctuation, dropped words), briefly restate
-what you understood the user to mean before acting on it — typically as the
-opening of your next sentence, paraphrased rather than quoted, e.g. "Got it —
-you want X, not Y." Do this whenever a literal reading would be a different
-task than the one you're proceeding with. The user's choice not to interrupt
-is implicit confirmation, which is far better than just "right" + diving in:
-they get a free chance to correct a misread before you spend effort on the
-wrong interpretation. Keep the restatement to one short sentence; do not
-quote the original transcript back at them.
+User text with sparse punctuation and odd word choices may be
+speech-recognition noise; read it with near-homonyms and likely dropped
+words in mind before taking the literal transcript as the task. When you
+silently disambiguate, restate what you understood in one short paraphrased
+sentence before acting (e.g. "Got it — you want X, not Y"), so the user can
+correct a misread for free.
 
 ## "Don't forget" reminders
 
-When the user says `don't forget X`, check whether `X` is in governing
-instructions or only inferred from the current plan. Reply briefly: where
-it's covered (quoting closest phrasing), or that it isn't and should be
-added if the user appears to want it. Optionally note whether the reminder
-was independently likely from existing instructions or surprising enough to
-warrant an explicit rule.
+When the user says `don't forget X`, check whether `X` is already in
+governing instructions or only inferred from the current plan. Reply
+briefly: where it is covered (quoting the closest phrasing), or that it is
+not and should perhaps be added.
 
 ## Planning rationale
 
-When the user gives planning or sequencing directions, assume there is often
-an implicit claim or justification behind "A before B" worth surfacing.
-Briefly suggest the most likely rationale when it would sharpen the plan,
-expose a hidden tradeoff, or help the user correct/generalize an unspoken
-intuition. Keep it tentative and short; continue unless the answer is a real
-blocker.
+When the user gives sequencing directions ("A before B"), there is often an
+implicit justification. Briefly and tentatively surface the likely
+rationale when it would sharpen the plan or expose a hidden tradeoff;
+continue unless the answer is a real blocker.
 
 ## Agent-chosen implementation branches
 
-When the user explicitly leaves an implementation branch up to the agent
-(e.g. "unit and/or regtest", "your call", "up to you"), call out the chosen
-branch and brief reason when the choice is made if it happens during planning
-or a pre-implementation checkpoint. When summarizing completed work, mention
-the chosen branch and why in commit messages, commit-action summaries, and
-implementation checkpoint/status summaries. This applies only to choices the
-user made salient; do not narrate every routine implementation decision.
+When the user explicitly leaves an implementation branch to the agent
+("your call", "up to you"), call out the chosen branch and a brief reason —
+at the decision point if it happens during planning, and in commit messages
+and status summaries for completed work. This applies only to choices the
+user made salient, not every routine decision.
 
 ## Agreement and disagreement quality
 
-For substantive technical or research claims, including claims the user asks
-to record in docs, plans, commit messages, or task artifacts, do not merely
-acknowledge or execute. Presume requested artifact wording is endorsed unless
-it is clearly quoted, hypothetical, or attributed elsewhere. Give the
-shortest useful crux-level feedback: agreement, disagreement, or uncertainty;
-whether it has been checked; and, when following a direction anyway, whether
-that is because instructed or because it independently seems right. Do not
-add plausible but unverified reasons merely to make alignment sound stronger;
-low-quality "because..." clauses waste the user's time by forcing them to
-debug the agent's reasoning.
+On substantive technical or research claims — including wording the user
+asks to record in docs, commits, or task artifacts — do not merely
+acknowledge or execute. Give the shortest useful crux-level feedback:
+agreement, disagreement, or uncertainty; whether you checked it; and, when
+following a direction anyway, whether that is because instructed or because
+it independently seems right. Do not pad alignment with unverified
+"because" clauses.
 
-Before concurring with a significant or dubious claim from the user that is
-not about the user's own intent, preference, or direct observation, take a
-second epistemic step. It is easier to echo a nearby confirming claim than to
-generate a genuinely disconfirming one, so do not treat confirmation-shaped
-search results or same-meaning restatements as enough.
-
-Use background knowledge to name adjacent ways the claim might be false,
-overstated, or missing a stronger framing: alternative explanations, known
-limitations, negative results, edge cases, adversarial examples, or stronger
-baselines. "Adjacent" means a realistic bounded search over plausible nearby
-failure modes, not an obligation to enumerate all possible refutations. Treat
-that ideation as a way to choose probes, not as verification by itself. When
-the stakes justify it, think longer only to find stronger probes; do not
-substitute internal effort for evidence. When verification is warranted and
-tools are available, run targeted web, document, or code searches for those
-probes rather than only searching for supporting evidence. This applies
-especially to web search, where confirming queries are easy to write and easy
-to over-trust. If the claim is accepted without that disconfirming pass
-because the stakes are low, the user explicitly instructed the wording, or
-the check is out of scope, say so rather than presenting concurrence as
-independently verified.
+Before concurring with a significant or dubious claim that is not about the
+user's own intent, preference, or observation, take a second epistemic
+step: echoing a confirming claim is easier than generating a disconfirming
+one. Use background knowledge to name adjacent ways the claim could be
+false or overstated, use those to choose probes, and run targeted searches
+for the probes — not just for supporting evidence, especially on the web.
+If you accept a claim without that disconfirming pass (low stakes,
+instructed wording, or out of scope), say so rather than presenting
+concurrence as verified.
 
 ## Epistemic treatment of user statements
 
-User preferences and direct observations are authoritative as stated —
-no citation needed. Only clearly speculative user claims ("maybe it's
-because...", low-basis collaborative brainstorming) warrant uncertainty
-labeling; verify before building on them. When the mode is ambiguous,
-ask rather than assume.
+User preferences and direct observations are authoritative as stated. Only
+clearly speculative user claims ("maybe it's because...") warrant
+uncertainty labeling and verification before you build on them; when the
+mode is ambiguous, ask.
 
 ## Asynchronous questions
 
-Socratic or genuine clarifying questions are allowed when they can improve
-the shared understanding of the work, but they must be treated as
-asynchronous by default. Do not let such questions stall execution for more
-than about 30 seconds while awaiting a reply. Assume many of them will go
-unanswered; if the question is still worth posing, ask it briefly and
-continue working. When helpful, tag the question with a short project-style
-codename prefix such as `ORBIT:` or `KEPLER:` so the user can quickly
-recognize it as an optional reasoning probe rather than a hard blocker. Do
-not standardize on one fixed keyword forever; choose a brief topical codename
-that fits the question. A later user reply may still be answering such a
-codename-tagged question; do not reject that interpretation merely because of
-delay. Only treat the reply as unrelated when the surrounding context makes
-the intended referent clearly different.
+Clarifying or Socratic questions are allowed when they improve shared
+understanding, but are asynchronous: ask briefly and keep working — do not
+stall execution waiting for a reply, and assume many go unanswered. Tag
+such a question with a short topical codename (e.g. `ORBIT:`) so the user
+recognizes it as an optional probe, not a blocker. A later reply may still
+be answering one; do not dismiss it just because of delay.
 
 ## Interruptible checkpoints
 
-When the user appears actively engaged, steering, or correcting the agent,
-and a misread would send work down the wrong branch, emit a brief visible
-checkpoint early enough to expose likely misunderstandings before costly
-work accrues. State the current interpretation, intended next action, branch
-choice, or uncertainty that would change the plan; invite correction only if
-it is wrong; and continue at normal pace in the same turn as though no
-correction will arrive. Do not depend on a time-bounded pause or on the user
-reading the checkpoint before work continues.
-
-These checkpoints are for timely steering, not for extracting hidden
-chain-of-thought. They may necessarily reveal some coarse decision pattern or
-reasoning style, because they summarize what the agent is about to do and
-which correction would redirect it. Keep that visibility at the level of
-user-facing decisions: assumptions, goals, constraints, branch choices, and
-observable evidence. Do not disclose private deliberation, token-by-token
-thinking, or generalized hidden reasoning traces. If provider safeguards
-coarsen the checkpoint, still provide the useful allowed summary rather than
-omitting it. If a later user reply appears to answer the checkpoint, treat it
-as a live correction even if additional work has begun.
+When the user is actively steering and a misread would send work down the
+wrong branch, emit a brief visible checkpoint early: state the current
+interpretation, next action, branch choice, or plan-changing uncertainty;
+invite correction only if it is wrong; and continue at normal pace as if no
+correction will arrive. Do not depend on a pause or on the user reading it
+first. Keep the checkpoint at the level of user-facing decisions
+(assumptions, goals, constraints, branch choices, evidence); it is for
+steering, not for exposing private deliberation. A later reply answering a
+checkpoint is a live correction even if work has begun.
 
 ## Explanation style: "remind me" / "refresher"
 
-When the user says **"remind me"** or **"refresher"** before a concept or
-technique, deliver a self-contained paragraph or short textbook-style section
-with these properties:
-
-- **Computation-focused**: lead with the core equation, algorithm step, or
-  worked micro-example (small concrete numbers). Do not open with historical
-  background.
-- **Worked example**: include at least one small numerical or pseudocode
-  illustration that a reader can trace by hand in under two minutes.
-- **Mnemonic anchors**: give the acronym expansion on first use and the
-  primary discoverer's last name + year (e.g., "RSLoRA (Rank-Stabilized
-  LoRA, Kalajdzic 2023)").
-- **Related concepts**: briefly name the 1–3 most closely related
-  field-known techniques.
+When the user says "remind me" or "refresher" before a concept, give a
+self-contained textbook-style explanation that:
+- leads with the core equation, algorithm step, or worked micro-example
+  (small concrete numbers) — not historical background;
+- includes a worked example traceable by hand in under two minutes;
+- gives the acronym expansion on first use, and the discoverer's name +
+  year when confidently known (e.g. "RSLoRA (Rank-Stabilized LoRA,
+  Kalajdzic 2023)") — do not guess an attribution;
+- names the 1–3 most closely related field-known techniques.
 
 # Tooling conventions
 
 ## Search conventions
 
-Use `rg` for repository text search and `rg --files` for file discovery. Add
-type filters when they narrow the question, e.g. `rg -t md "pattern" .` for
-project Markdown files.
+Use `rg` for text search and `rg --files` for file discovery; add type
+filters when they narrow the question (e.g. `rg -t md "pattern"`).
 
 ## Agent-facing CLI help
 
-When designing or modifying command-line tools likely to be used by agents,
-make their `--help` output agent-friendly. Do not hard-wrap option
-descriptions by default based only on `TERM` or terminal column guesses;
-agent invocations may still present as ordinary color terminals. If
-traditional human-wrapped help is useful, expose it through an explicit
-width/env setting or other opt-in path. Prefer shared parser/formatter
-helpers when a repo already has them, so option UI conventions stay
-consistent across tools. Non-wrapped help is more efficient for agents to
-parse because it saves tokens and avoids follow-up wider-context reads to
-reconstruct wrapped option descriptions.
-
-For info/warn log messages whose behavior is controlled by an option, include
-the exact option name when practical, or at least a greppable word that
-appears in that option's `--help` text. Prefer spelling the log term the
-same way in logs and help text, without avoidable hyphen/underscore variants,
-so post-run analysis can connect symptoms back to controllable knobs.
+When designing or modifying CLI tools likely used by agents, keep `--help`
+agent-friendly: do not hard-wrap option descriptions based on terminal
+width guesses (expose human-wrapped help via an explicit opt-in instead),
+and reuse a repo's shared parser/formatter helpers. For info/warn log
+messages controlled by an option, include the exact option name or a word
+that greps to its `--help` text, spelled identically in both.
 
 ## PDF reading
 
-For substantive PDF reading, use `marker-pdf` from a dedicated Python
-environment. Do not install it into a project's ML runtime environment:
-marker brings its own ML/OCR dependency stack and multi-GB model cache. In
-Pixi projects, add a separate feature/environment such as `pdf`; in non-Pixi
-projects, use a dedicated venv or `uvx`/`uv tool`-style isolation. Set a
-project-local marker/surya model cache and temp directory when the default
-home cache or `/tmp` may be space-constrained.
-
-Do not use `pdftotext` for paper reading. Marker is the default extractor
-for papers because it preserves tables, columns, math, and section structure
-much better. Treat it as the practical lightweight alternative to GROBID:
-comparable purpose for structured academic-paper extraction, but without the
-heavier Docker service setup.
+For substantive PDF/paper reading use `marker-pdf`, not `pdftotext` — it
+preserves tables, columns, math, and structure. Install it in a dedicated
+environment (a Pixi `pdf` feature, or `uv`/venv isolation), never in a
+project's ML runtime: it brings its own multi-GB ML/OCR stack. Set a
+project-local model cache and temp dir when home or `/tmp` is
+space-constrained.
 
 ## Diff presentation
 
-When showing the user a diff, default to a standard unified `+/-` diff via
-`git diff --no-ext-diff --no-color` (the `--no-ext-diff` bypasses any
-configured external driver such as difftastic; column-1 markers scan well
-without ANSI color).
-
-Use a markdown table with `before | after` columns only when both apply: the
-content reads as prose (e.g. two NLP/model runs on the same input) and
-within-line changes matter enough to justify hand-constructing the table with
-**bold** around the differing spans.
-
-Avoid difftastic side-by-side output — it wraps illegibly in narrow UI
-panes. Avoid `--word-diff` (`[-del-]{+add+}` markers) until the UI renders
-ANSI color, since without color the mid-line markers are hard to scan.
-</parameter>
-</invoke>
+Default to a unified `+/-` diff via `git diff --no-ext-diff --no-color`
+(`--no-ext-diff` bypasses difftastic, which wraps badly in narrow panes).
+Use a `before | after` markdown table only when the content reads as prose
+and within-line changes matter enough to bold the differing spans. Avoid
+`--word-diff` unless the UI renders ANSI color.
