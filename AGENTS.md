@@ -160,6 +160,9 @@ uncommitted local changes that you might otherwise overwrite.
 Research-method and run-operation policies are split into companion docs:
 - `RESEARCH.md`
 - `RUNS.md`
+- `survey-field.md`, `research-frontier.md` — field-survey and
+  research-frontier templates; research-method companions, but
+  triggered independently of `RESEARCH.md`
 
 Treat reusable research-method guidance and run-operation / `agentctl`
 tracking policy as generally global. Persist those rules in
@@ -176,6 +179,12 @@ Activation triggers:
   or request indicates run operations (e.g., `.agentctl/`, `*.running.md`,
   `runs/aim/`, `<output>.meta.json`, long-running jobs, watchdogs,
   background jobs, or GPU scheduling/utilization).
+- Load `survey-field.md` / `research-frontier.md` when the task is
+  surveying a research field, gathering prior art, or void-mapping /
+  capstone suggestion. This trigger is independent of `RESEARCH.md`:
+  read them directly on such a request, even with no research-project
+  contours (`research/` dir, etc.) present. Do not read them for
+  unrelated work.
 
 Resolution order for companion docs:
 1. repo root (`./RESEARCH.md`, `./RUNS.md`)

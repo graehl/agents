@@ -85,6 +85,30 @@ companion notes, because `rg` over generated markdown/text only searches papers
 that have actually been extracted; expand the extraction tier before claiming
 coverage across the whole bibliography.
 
+### Field surveys and frontier mapping
+
+Two companion templates cover field-survey work:
+- `survey-field.md` — building and maintaining a field map for a survey
+  paper/presentation, or prior-art reconnaissance on a subtopic.
+- `research-frontier.md` — void-mapping and capstone-question suggestion
+  built on top of a field map.
+
+Load them (repo root first, then alongside this file in `~/agents/`) when
+the task is to survey a field, gather prior art before planning a solution,
+or rank unexplored research directions. If a triggered file is missing,
+report once and continue.
+
+Field surveys are standalone, cross-branch reference material under
+`surveys/<field-slug>/`, not branch-scoped `research/` artifacts. When a
+`surveys/<field-slug>/` covering a paper's field exists, the paper's
+related-work should **reference and extend that shared survey's
+`related-work/` extraction artifacts** rather than maintain a private
+duplicate. Keep a per-paper `research/<paper-name>/related-work/` only when
+no `surveys/` subdir covers the field, or for the paper-specific
+overlap tier (suspected proposal-overlap papers) that does not belong in a
+general field survey. A paper that draws on a survey should cite the
+`surveys/<field-slug>/` path so a future agent can find the shared map.
+
 Results tables in `research/<branchname>.md` **must** include:
 - The **split** (dev / test / dev-subset) and **N** (number of examples) used for scoring.
   A table row without these is uninterpretable after time passes.
