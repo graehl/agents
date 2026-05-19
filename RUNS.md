@@ -144,6 +144,13 @@ should not be expected to create `.meta.md` or clean up `.running.md`; they
 produce outputs and may optionally write cooperative run declarations such as
 `$AGENTCTL_RUN_DIR/propagate.json`.
 
+`agentctl start --after <job-or-output>` may depend on either an `agentctl`
+job or an output path following this `.running.md` convention. The queued job
+is visible as `waiting`, but its payload is not launched and output metadata is
+not written until all dependencies complete cleanly. Use this only when the
+follow-on is mechanically determined; if the next step depends on interpreting
+the completed `.meta.md` or output contents, wait and inspect before launching.
+
 The naming relationship is strict: `.meta.md` and `.log` are formed directly from the
 exact output filename. When a run has one primary output, redirect stderr to `<out>.log`.
 

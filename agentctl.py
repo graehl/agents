@@ -94,6 +94,7 @@ DEFAULT_HEARTBEAT_GPU_SMOOTH_INTERVAL_S = 1.0
 DEFAULT_ZERO_COMPUTE_REPORT_INTERVAL_S = 300.0
 DEFAULT_ZERO_COMPUTE_INTERRUPT_AFTER_S = 1200.0
 DEFAULT_ZERO_COMPUTE_MIN_VRAM_MIB = 3000
+DEFAULT_WAIT_AFTER_UNKNOWN_GRACE_S = 15.0
 
 
 def utc_now() -> str:
@@ -145,7 +146,7 @@ def format_duration(seconds: float | int | None) -> str:
 
 
 def elapsed_seconds(state: dict) -> int | None:
-    started = state.get("started_at")
+    started = state.get("started_at") or state.get("queued_at")
     if not started:
         return None
     try:
@@ -245,6 +246,56 @@ def exit_status_path_for_state(state: dict) -> Path:
     if run_dir:
         return Path(str(run_dir)) / "exit-status.json"
     return Path(state["state_path"]).with_name("exit-status.json")
+
+
+def running_marker_path(target: str | Path) -> Path:
+    path = Path(target)
+    if str(path).endswith(".running.md"):
+        return path
+    return Path(f"{path}.running.md")
+
+
+def marker_fields(path: Path) -> dict[str, str]:
+    fields: dict[str, str] = {}
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return fields
+    for line in lines:
+        if not line.startswith("- ") or ": " not in line:
+            continue
+        key, value = line[2:].split(": ", 1)
+        fields[key.strip()] = value.strip()
+    return fields
+
+
+def output_for_marker(path: Path, fields: dict[str, str]) -> Path:
+    raw = fields.get("out", "").strip()
+    if raw:
+        out = Path(raw)
+        return out if out.is_absolute() else (ROOT / out).resolve(strict=False)
+    marker = str(path)
+    if marker.endswith(".running.md"):
+        return Path(marker[: -len(".running.md")])
+    return path
+
+
+def completion_sidecar(output: Path) -> Path | None:
+    for candidate in (Path(f"{output}.meta.md"), Path(f"{output}.meta.json")):
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def marker_pid_status(fields: dict[str, str]) -> str:
+    raw = fields.get("pid", "").strip()
+    if not raw:
+        return "unknown"
+    try:
+        pid = int(raw)
+    except ValueError:
+        return "unknown"
+    return "running" if pid_alive(pid) else "dead"
 
 
 def serial_path(job: str) -> Path:
@@ -893,15 +944,144 @@ def write_meta(state: dict) -> dict:
     return state
 
 
+def resolve_after_target(spec: str) -> dict:
+    job_path = current_path(spec)
+    if job_path.exists():
+        return {"kind": "job", "spec": spec, "job": slug(spec)}
+
+    raw = Path(spec).expanduser()
+    candidates: list[Path] = []
+    if raw.is_absolute():
+        candidates.append(raw)
+    else:
+        candidates.append((ROOT / raw).resolve(strict=False))
+    for candidate in list(candidates):
+        candidates.append(running_marker_path(candidate))
+
+    seen: set[Path] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        marker = candidate if str(candidate).endswith(".running.md") else running_marker_path(candidate)
+        output = Path(str(marker)[: -len(".running.md")]) if str(marker).endswith(".running.md") else candidate
+        if marker.exists() or completion_sidecar(output) is not None:
+            return {
+                "kind": "running_marker",
+                "spec": spec,
+                "marker_path": str(marker),
+                "output_path": str(output),
+            }
+
+    raise SystemExit(
+        f"--after target not found as an agentctl job or .running.md artifact: {spec}"
+    )
+
+
+def after_target_done(target: dict) -> tuple[bool, int, str]:
+    kind = target.get("kind")
+    if kind == "job":
+        dep_state = load_job(str(target["job"]))
+        status = dep_state.get("status", "")
+        if status in {"running", "waiting"}:
+            return False, 0, f"job={dep_state['job']} status={status} elapsed={elapsed_estimate_text(dep_state)}"
+        if status == "finished" and dep_state.get("returncode") in (None, "", "unknown"):
+            finished_at = dep_state.get("finished_at")
+            try:
+                finished_age = time.time() - parse_utc(str(finished_at)).timestamp()
+            except (TypeError, ValueError):
+                finished_age = 0.0
+            if finished_age < DEFAULT_WAIT_AFTER_UNKNOWN_GRACE_S:
+                return (
+                    False,
+                    0,
+                    f"job={dep_state['job']} status=finished returncode=unknown settling",
+                )
+        rc = status_returncode_exit_code(dep_state)
+        if rc != 0:
+            return True, rc, f"job={dep_state['job']} ended status={status} returncode={dep_state.get('returncode')}"
+        return True, 0, f"job={dep_state['job']} ended status={status} returncode={dep_state.get('returncode', '')}"
+
+    if kind == "running_marker":
+        marker = Path(str(target["marker_path"]))
+        output = Path(str(target["output_path"]))
+        if not marker.exists():
+            sidecar = completion_sidecar(output)
+            if sidecar is not None:
+                return True, 0, f"marker gone: {marker} sidecar={sidecar}"
+            return True, 1, f"marker gone without completion sidecar: {marker} out={output}"
+        fields = marker_fields(marker)
+        output = output_for_marker(marker, fields)
+        sidecar = completion_sidecar(output)
+        pid_state = marker_pid_status(fields)
+        if sidecar is not None and pid_state != "running":
+            return True, 0, f"marker completed: {marker} sidecar={sidecar}"
+        if pid_state == "running":
+            return False, 0, f"marker={marker} pid={fields.get('pid', '') or '?'} running"
+        return True, 1, f"marker interrupted: {marker} pid={fields.get('pid', '') or '?'} out={output}"
+
+    return True, 1, f"unknown --after target kind: {kind!r}"
+
+
+def wait_for_after_targets(state: dict) -> int:
+    targets = state.get("wait_after") or []
+    if not targets:
+        return 0
+    poll = float(state.get("wait_after_poll") or 10.0)
+    timeout = float(state.get("wait_after_timeout") or 0.0)
+    heartbeat = float(state.get("wait_after_heartbeat") or 30.0)
+    deadline = time.time() + timeout if timeout > 0 else None
+    next_report = 0.0
+    while True:
+        pending: list[str] = []
+        for target in targets:
+            done, rc, detail = after_target_done(target)
+            if done and rc != 0:
+                print(f"[wait-after] failed: {detail}", file=sys.stderr, flush=True)
+                return rc
+            if not done:
+                pending.append(detail)
+        if not pending:
+            return 0
+        now = time.time()
+        if heartbeat > 0 and (next_report == 0.0 or now >= next_report):
+            headline = "waiting on " + "; ".join(pending)
+            if state.get("headline_path"):
+                write_headline(Path(state["headline_path"]), headline)
+            print(f"[wait-after] {headline}", flush=True)
+            next_report = now + heartbeat
+        if deadline is not None and now >= deadline:
+            print(f"timeout waiting for --after targets: {'; '.join(pending)}", file=sys.stderr)
+            return 1
+        time.sleep(poll)
+
+
+def mark_wait_failed(state_path: Path, current: Path, exit_status_path: Path, rc: int) -> None:
+    finished_at = utc_now()
+    record = {"finished_at": finished_at, "returncode": rc}
+    write_json(exit_status_path, record)
+    try:
+        state = read_json(state_path)
+        state["status"] = "finished"
+        state["finished_at"] = finished_at
+        state["returncode"] = rc
+        update_state_files(state)
+        write_json(current, state)
+    except Exception as exc:
+        print(f"warning: wait-after failure state update failed: {exc!r}", file=sys.stderr)
+
+
 def start(args: argparse.Namespace) -> int:
     if not args.argv:
         raise SystemExit("missing command after --")
+    if args.watch and args.after:
+        raise SystemExit("--after is not supported with --watch; start queued work detached, then watch the job")
     runtime_estimate = ""
     runtime_estimate_seconds = 0
     if args.runtime_estimate:
         runtime_estimate_seconds = parse_duration_seconds(args.runtime_estimate)
         runtime_estimate = format_duration(runtime_estimate_seconds)
-    if args.wait_max_memory_used is not None:
+    if args.wait_max_memory_used is not None and not args.after:
         wait_rc = wait_for_gpu_memory(
             gpu=args.wait_gpu,
             max_memory_used=args.wait_max_memory_used,
@@ -911,6 +1091,7 @@ def start(args: argparse.Namespace) -> int:
         )
         if wait_rc != 0:
             return wait_rc
+    wait_after = [resolve_after_target(spec) for spec in (args.after or [])]
     job = slug(args.job)
     rid = args.run_id or run_id()
     # run_id() resolution is one second; consecutive starts (e.g. quick restart)
@@ -1083,6 +1264,19 @@ def start(args: argparse.Namespace) -> int:
         "source_env": list(args.source_env),
         "state_path": str(state_path),
     }
+    if wait_after:
+        state["wait_after"] = wait_after
+        state["wait_after_specs"] = list(args.after or [])
+        state["wait_after_poll"] = args.after_poll
+        state["wait_after_heartbeat"] = args.after_heartbeat
+        state["wait_after_timeout"] = args.after_timeout
+        state["wait_on"] = ",".join(target["spec"] for target in wait_after)
+        if args.wait_max_memory_used is not None:
+            state["deferred_wait_gpu"] = args.wait_gpu
+            state["deferred_wait_max_memory_used"] = args.wait_max_memory_used
+            state["deferred_wait_poll"] = args.wait_poll
+            state["deferred_wait_heartbeat"] = args.wait_heartbeat
+            state["deferred_wait_timeout"] = args.wait_timeout
     _call_hook("on_start", args, state, env)
 
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1121,11 +1315,14 @@ def start(args: argparse.Namespace) -> int:
             "pid_cmdline": proc_cmdline(proc.pid) or "",
             "pid_namespace": current_pid_namespace(),
             "pid_start_ticks": proc_start_ticks(proc.pid) or 0,
-            "started_at": utc_now(),
-            "status": "running",
+            "status": "waiting" if wait_after else "running",
             "meta": bool(args.meta),
         }
     )
+    if wait_after:
+        state["queued_at"] = utc_now()
+    else:
+        state["started_at"] = utc_now()
     if launch_gpu_stats is not None:
         state["launch_gpu_stats"] = launch_gpu_stats
     update_state_files(state)
@@ -1169,10 +1366,41 @@ def run_child(args: argparse.Namespace) -> int:
     state_path = Path(args.state_path)
     current = Path(args.current_path)
     exit_status_path = Path(args.exit_status_path)
+    try:
+        state = read_json(state_path)
+        wait_rc = wait_for_after_targets(state)
+    except Exception as exc:
+        print(f"warning: wait-after failed before payload launch: {exc!r}", file=sys.stderr)
+        wait_rc = 1
+    if wait_rc != 0:
+        mark_wait_failed(state_path, current, exit_status_path, wait_rc)
+        return wait_rc
+    try:
+        state = read_json(state_path)
+        if state.get("deferred_wait_max_memory_used") is not None:
+            wait_rc = wait_for_gpu_memory(
+                gpu=int(state.get("deferred_wait_gpu") or 0),
+                max_memory_used=int(state["deferred_wait_max_memory_used"]),
+                poll=float(state.get("deferred_wait_poll") or 10.0),
+                timeout=float(state.get("deferred_wait_timeout") or 0.0),
+                heartbeat=float(state.get("deferred_wait_heartbeat") or 10.0),
+            )
+            if wait_rc != 0:
+                mark_wait_failed(state_path, current, exit_status_path, wait_rc)
+                return wait_rc
+    except Exception as exc:
+        print(f"warning: deferred wait-gpu failed before payload launch: {exc!r}", file=sys.stderr)
+        mark_wait_failed(state_path, current, exit_status_path, 1)
+        return 1
     # Pre-launch: write meta + dump record now (serialized inside the child so
     # there's no race between start()'s post-Popen writes and our completion read).
     try:
         state = read_json(state_path)
+        if state.get("status") == "waiting":
+            state["status"] = "running"
+            state["started_at"] = utc_now()
+            state.pop("returncode", None)
+            state.pop("finished_at", None)
         if state.get("meta", True) and state.get("output_path"):
             state = write_meta(state)
         update_state_files(state)
@@ -1333,6 +1561,8 @@ def print_status_state(state: dict, args: argparse.Namespace) -> None:
         bits.append(f"returncode={status_returncode_text(state)}")
     if state.get("depends_on"):
         bits.append(f"depends_on={','.join(state['depends_on'])}")
+    if state.get("wait_on"):
+        bits.append(f"wait_on={state['wait_on']}")
     if state.get("_liveness_note"):
         bits.append("liveness=unknown")
     elif state.get("status") == "running" and state.get("pgid"):
@@ -1412,45 +1642,6 @@ def cleanup_running(args: argparse.Namespace) -> int:
     sys.path.insert(0, str(CODE_ROOT))
     import artifact_meta
 
-    def _marker_fields(path: Path) -> dict[str, str]:
-        fields: dict[str, str] = {}
-        try:
-            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-        except OSError:
-            return fields
-        for line in lines:
-            if not line.startswith("- ") or ": " not in line:
-                continue
-            key, value = line[2:].split(": ", 1)
-            fields[key.strip()] = value.strip()
-        return fields
-
-    def _output_for_marker(path: Path, fields: dict[str, str]) -> Path:
-        raw = fields.get("out", "").strip()
-        if raw:
-            out = Path(raw)
-            return out if out.is_absolute() else (ROOT / out).resolve(strict=False)
-        marker = str(path)
-        if marker.endswith(".running.md"):
-            return Path(marker[: -len(".running.md")])
-        return path
-
-    def _pid_status(fields: dict[str, str]) -> str:
-        raw = fields.get("pid", "").strip()
-        if not raw:
-            return "unknown"
-        try:
-            pid = int(raw)
-        except ValueError:
-            return "unknown"
-        return "running" if pid_alive(pid) else "dead"
-
-    def _completion_sidecar(output: Path) -> Path | None:
-        for candidate in (Path(f"{output}.meta.md"), Path(f"{output}.meta.json")):
-            if candidate.exists():
-                return candidate
-        return None
-
     def _scan_markers() -> list[Path]:
         skip = {".git", ".agentctl", "runs", "__pycache__", ".venv", ".pixi", "node_modules"}
         found: list[Path] = []
@@ -1491,10 +1682,10 @@ def cleanup_running(args: argparse.Namespace) -> int:
 
     kept = 0
     for path in markers:
-        fields = _marker_fields(path)
-        output = _output_for_marker(path, fields)
-        pid_state = _pid_status(fields)
-        sidecar = _completion_sidecar(output)
+        fields = marker_fields(path)
+        output = output_for_marker(path, fields)
+        pid_state = marker_pid_status(fields)
+        sidecar = completion_sidecar(output)
         if sidecar is not None and pid_state != "running":
             if args.dry_run:
                 would_remove += 1
@@ -1988,6 +2179,10 @@ def restart(args: argparse.Namespace) -> int:
         argv=state["argv"],
         context_note=state.get("context_note", ""),
         depends_on=state.get("depends_on", []),
+        after=[],
+        after_poll=10.0,
+        after_heartbeat=30.0,
+        after_timeout=0.0,
         env=[],
         gpus="",
         input_file="",
@@ -2039,6 +2234,29 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         action="append",
         default=[],
         help="Prior job name this run logically follows; metadata only, does not auto-schedule.",
+    )
+    sp.add_argument(
+        "--after",
+        action="append",
+        default=[],
+        help=(
+            "Queue this launch until an agentctl job or <output>.running.md artifact is done. "
+            "Use only for mechanical dependencies; inspect results manually when follow-on "
+            "choice depends on completed content."
+        ),
+    )
+    sp.add_argument("--after-poll", type=float, default=10.0, help="Seconds between --after dependency checks.")
+    sp.add_argument(
+        "--after-heartbeat",
+        type=float,
+        default=30.0,
+        help="Seconds between --after heartbeat lines/headline updates (0 disables).",
+    )
+    sp.add_argument(
+        "--after-timeout",
+        type=float,
+        default=0.0,
+        help="Maximum seconds to wait for --after dependencies; 0 means no timeout.",
     )
     sp.add_argument("--env", action="append", default=[], help="Extra environment KEY=VALUE.")
     sp.add_argument("--gpus", default="", help="CUDA_VISIBLE_DEVICES value.")

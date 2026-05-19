@@ -21,6 +21,12 @@ tooling, future compliance-library work, and project migration docs.
   `.agentctl/runs/<job>/<run-id>/state.json` and mirrors a pointer to
   `.agentctl/jobs/<job>/current.json`. These files are the ground truth for
   process status; everything else (sidecars, dumps) is derived.
+- `start --after <job-or-output>` is a mechanical launch gate, not a
+  result-interpretation scheduler. It records the new job as `waiting`, then
+  starts the payload only after each named `agentctl` job exits cleanly or
+  each named artifact's `.running.md` marker resolves cleanly. If the
+  follow-on decision depends on reading completed outputs or `.meta.md`
+  contents, do not prequeue it with `--after`.
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.
@@ -63,7 +69,8 @@ The base writes a flat dict to `state.json`. Canonical keys (read freely):
 `output_path`, `meta_path`, `state_path`, `exit_status_path`, `run_dir`,
 `runtime_estimate`, `runtime_estimate_seconds`, `context_note`,
 `pre_run_note`, `post_run_note`, `post_run_noted_at`, `analysis_notes`,
-`depends_on`, `source_env`, `git_branch`, `git_commit`, `launch_gpu_stats`.
+`depends_on`, `wait_on`, `wait_after`, `queued_at`, `source_env`,
+`git_branch`, `git_commit`, `launch_gpu_stats`.
 
 Plugins should write their own keys directly on `state` (the dict is the
 in-memory record passed to every hook). Existing convention from the `aim`

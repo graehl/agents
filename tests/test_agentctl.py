@@ -411,6 +411,138 @@ def test_nested_agentctl_parent_run():
         ws.cleanup()
 
 
+def test_start_after_agentctl_job_waits_before_payload():
+    ws = Workspace()
+    try:
+        dep_out = ws.scratch / "dep.txt"
+        follow_out = ws.scratch / "follow.txt"
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", f"sleep 0.4; echo dep > {dep_out}")
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "follower",
+            "--",
+            "bash",
+            "-c",
+            f"test -s {dep_out}; echo follower > {follow_out}",
+        )
+        deadline = time.time() + 2.0
+        saw_waiting = False
+        while time.time() < deadline:
+            try:
+                s = ws.state("follower")
+            except FileNotFoundError:
+                time.sleep(0.02)
+                continue
+            if s.get("status") == "waiting":
+                saw_waiting = True
+                _assert(s.get("wait_on") == "slowdep", f"wait_on mismatch: {s.get('wait_on')!r}")
+                break
+            time.sleep(0.02)
+        _assert(saw_waiting, "follower never reported waiting")
+        s = ws.wait_finished("follower")
+        _assert(s["returncode"] == 0, f"follower failed: {s!r}")
+        _assert(follow_out.read_text().strip() == "follower", "follower payload did not run")
+        _assert(s.get("started_at"), "started_at should be set when payload launches")
+    finally:
+        ws.cleanup()
+
+
+def test_start_after_running_marker_waits_before_payload():
+    ws = Workspace()
+    proc = None
+    try:
+        external_out = ws.scratch / "external.out"
+        marker = Path(f"{external_out}.running.md")
+        proc = subprocess.Popen(
+            [
+                "bash",
+                "-c",
+                f"sleep 0.4; echo '# done' > {external_out}.meta.md; rm -f {marker}",
+            ],
+            cwd=ws.tmp,
+        )
+        marker.write_text(f"- status: running\n- pid: {proc.pid}\n- out: {external_out}\n")
+        follow_out = ws.scratch / "marker-follow.txt"
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            str(external_out),
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "markerfollower",
+            "--",
+            "bash",
+            "-c",
+            f"test -s {external_out}.meta.md; echo follower > {follow_out}",
+        )
+        deadline = time.time() + 2.0
+        saw_waiting = False
+        while time.time() < deadline:
+            try:
+                s = ws.state("markerfollower")
+            except FileNotFoundError:
+                time.sleep(0.02)
+                continue
+            if s.get("status") == "waiting":
+                saw_waiting = True
+                _assert(s.get("wait_on") == str(external_out), f"wait_on mismatch: {s.get('wait_on')!r}")
+                break
+            time.sleep(0.02)
+        _assert(saw_waiting, "marker follower never reported waiting")
+        s = ws.wait_finished("markerfollower")
+        _assert(s["returncode"] == 0, f"marker follower failed: {s!r}")
+        _assert(follow_out.read_text().strip() == "follower", "marker follower payload did not run")
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
+            proc.wait(timeout=5)
+        ws.cleanup()
+
+
+def test_start_after_marker_without_sidecar_does_not_launch_payload():
+    ws = Workspace()
+    proc = None
+    try:
+        external_out = ws.scratch / "external-no-meta.out"
+        marker = Path(f"{external_out}.running.md")
+        proc = subprocess.Popen(["bash", "-c", f"sleep 0.2; rm -f {marker}"], cwd=ws.tmp)
+        marker.write_text(f"- status: running\n- pid: {proc.pid}\n- out: {external_out}\n")
+        follow_out = ws.scratch / "should-not-exist.txt"
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            str(external_out),
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "markerfail",
+            "--",
+            "bash",
+            "-c",
+            f"echo bad > {follow_out}",
+        )
+        s = ws.wait_finished("markerfail")
+        _assert(s["returncode"] != 0, f"markerfail should fail, got {s!r}")
+        _assert(not follow_out.exists(), "payload should not launch for unresolved marker dependency")
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
+            proc.wait(timeout=5)
+        ws.cleanup()
+
+
 def test_script_override():
     ws = Workspace()
     try:
