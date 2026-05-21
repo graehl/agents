@@ -187,7 +187,14 @@ decision => change:
 - Include the main user decision points from the session.
 - Exclude unrelated side discussions, but include approaches ruled out for
   non-obvious reasons.
-- State whether the test suite is known to pass after the commit.
+- Flag known uncovered areas or risks. Default presumption: work
+  is at least manually smoke-tested; automated coverage is evident
+  from the diff. Do not enumerate which tests were run or passed —
+  that is busywork; the diff and CI carry it.
+- Use a `Known coverage gaps:` labeled section near the end of
+  the body (before trailers) when there are gaps worth flagging.
+  Prose or short bulleted list, whichever fits. Be specific about
+  the structural gap; omit the section entirely when empty.
 - Broadly describe every non-trivial change — especially >3-line creations
   and significant-effect edits. Trivial changes (whitespace, comments,
   file-local renames) need no mention.
