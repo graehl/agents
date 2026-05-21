@@ -73,6 +73,8 @@ companion files. For each topic doc, read the `> ` blockquote lede
 immediately after the H1 — multi-line `> ` lines are space-joined
 into one sentence — and use it as the definition of the row whose
 `topic / refs` column links the corresponding `topics/<name>.md`.
+Link form is `[<name>](topics/<name>.md)`: link text is the
+basename, URL is the relative path.
 When a topic doc lacks a `> ` lede, synthesize one from its first
 body paragraph and apply the fix as part of regeneration (per the
 topic-doc auto-fix license in `AGENTS.md § Project topics`).
