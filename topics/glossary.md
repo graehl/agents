@@ -21,6 +21,30 @@ Topic: `glossary`
   `GLOSSARY.md` itself stays free of build instructions for readers
   who only look up terms.
 
+## Scoped sub-glossaries
+
+Beyond the root `GLOSSARY.md`, a project may carry per-subtree
+`GLOSSARY.md` files marking subsystem-local vocabularies. Two
+invariants govern them:
+
+- **Placement**: a term lives in the `GLOSSARY.md` at the narrowest
+  enclosing directory containing every use of it. Create the file
+  if missing. Freely promote a row to a parent directory's
+  `GLOSSARY.md` as the term's scope widens; the root `GLOSSARY.md`
+  is the terminal scope.
+- **Consultation**: before naming or paraphrasing in a subtree,
+  consult the nearest-enclosing `GLOSSARY.md`. The rule states the
+  obligation; the agent picks the discovery mechanism.
+
+Scope is declared by file placement, not by a path-pattern rule.
+A project marks its cutpoints by where it places `GLOSSARY.md`
+files, not by directory depth or naming conventions; layouts vary
+too much across projects to pin to a generic pattern.
+
+Sub-glossaries are pure vernacular: regeneration (the topic-doc
+lede pipeline) runs against the root only, so sub-glossaries carry
+no `topic / refs` rows by default.
+
 ## Topic-doc format the spec relies on
 
 H1 stating the topic, blank line, `> ` blockquote lede (one or more
@@ -63,6 +87,17 @@ multi-field reference, deliberately not loaded per conversation.
 - **Location at repo root** (vs. `topics/README.md`): prioritizes
   top-level discovery and avoids duplicating what the glossary
   already does; accepts losing co-location with topic-doc inputs.
+- **Scoped sub-glossaries declared by placement** (vs. a path-
+  pattern rule like `*/GLOSSARY.md`): prioritizes per-project
+  freedom — subsystem cutpoints vary too much across projects to
+  pin to a depth or naming convention; accepts that the agent must
+  discover sub-glossary locations rather than infer them from
+  convention.
+- **Declarative two-invariant phrasing** (vs. a procedural "scan
+  for missing sub-glossaries" recipe): prioritizes the placement +
+  consultation invariants that produce create-as-you-go behavior
+  organically; accepts that the agent picks the discovery
+  mechanism rather than following a prescribed walk.
 - **`GLOSSARY.md` holds only the table** (vs. embedding the regen
   spec inline): prioritizes signal for everyday readers who only
   look up terms; accepts that contributors must navigate to

@@ -358,6 +358,16 @@ curated and preserved verbatim on regeneration, including
 belong in the project's `topics/glossary.md`; `GLOSSARY.md` itself
 stays free of build instructions for readers.
 
+Scoped sub-glossaries: a term lives in the `GLOSSARY.md` at the
+narrowest enclosing directory; create the file if missing. Freely
+promote a row to a parent's `GLOSSARY.md` as the term's scope
+widens; the root `GLOSSARY.md` is the terminal scope. Before
+naming or paraphrasing in a subtree, consult the nearest-enclosing
+`GLOSSARY.md`. Scope is declared by file placement, not by a path-
+pattern rule (subsystem cutpoints vary too much across projects).
+Sub-glossaries hold pure vernacular; topic-doc autopopulation feeds
+the root only.
+
 When a user phrase is unclear and the resolution would change action,
 emit an interruptible checkpoint with the inferred meaning plus 1–2
 alternatives. Continue at normal pace when the fork is minor or
