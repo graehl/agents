@@ -167,6 +167,17 @@ The full gate record:
 The bracketed-tag style is encouraged for other self-imposed gates; it is
 required only for the full gate record.
 
+# Ancillary workdir hygiene
+
+When working in an ancillary worktree or scratch checkout, do not
+put it on reboot-cleared storage (`/tmp`, tmpfs); use durable
+storage — a sibling directory of the primary workdir, on the same
+filesystem, is a good default. Before transferring content back
+to the primary workdir,
+verify source and destination branches match, and stash or
+formally commit (or amend) first — a committed state is the only
+safe transfer unit. Do not rely on default agent caution here.
+
 # Commits
 
 Subject <=65 chars and scannable for `git log --oneline`. Wrap body prose
