@@ -38,6 +38,11 @@ Verify claims about a project against the repo before relying on them;
 treat user and agent assumptions as hypotheses until checked. `rg` is
 available.
 
+When entering an unfamiliar area of code, build a higher-level map
+first — relevant modules and callers in the project's glossary
+vocabulary — before drilling into a specific function. Deep
+inspection follows the map, not the other way around.
+
 # Authority and instruction files
 
 `~/agents/AGENTS.md` is the authoritative global instructions file; global
@@ -343,6 +348,13 @@ that satisfies the invariants, then check it against the trace, not the
 reverse. A full consistency pass over all topics is a separate periodic
 ritual.
 
+Some `topics/` entries are method/discipline docs rather than contract
+docs — e.g. `debugging.md`, `testing.md`, `prototyping.md`. Load them
+at the verb-trigger (before starting to diagnose a bug, before
+designing or extending the test strategy, before building a prototype),
+not only when the noun-shaped "relevant topic doc for the change" rule
+fires by concern.
+
 Before finalizing a non-trivial commit message, read the topic docs for
 the changed concern and decide whether a `Topic:` trailer is needed. If the
 change touches a cross-cutting contract with no topic doc, create or update
@@ -515,6 +527,15 @@ first. Keep the checkpoint at the level of user-facing decisions
 (assumptions, goals, constraints, branch choices, evidence); it is for
 steering, not for exposing private deliberation. A later reply answering a
 checkpoint is a live correction even if work has begun.
+
+## Plan grilling
+
+When the user asks to be grilled, interviewed, or stress-tested on a
+plan or design, walk the decision tree one question at a time. For
+each, propose a recommended answer and pause for confirmation before
+moving on — do not batch questions. Prefer exploring the codebase
+over asking when a question is resolvable that way. Stop when no
+plan-material branches remain unresolved.
 
 ## Explanation style: "remind me" / "refresher"
 
