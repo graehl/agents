@@ -31,6 +31,9 @@ incrementally.
 *Code conventions (cross-cutting)*:
 `impl-style`, `shared-primitives`, `shared-constants`
 
+*Engineering discipline (cross-cutting)*:
+`debugging`, `testing`, `prototyping`
+
 *Availability (cross-cutting)*:
 `fault-tolerance`, `backup-and-recovery`, `data-durability`, `failover`,
 `circuit-breaker`, `retry-and-backoff`, `degraded-mode`, `chaos-engineering`
