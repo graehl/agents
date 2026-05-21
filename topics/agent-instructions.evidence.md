@@ -1,9 +1,12 @@
 # agent-instructions — verification evidence
 
-A ledger for the instruction system: what trace-simulation passes (see the
-"Verifying instruction changes" section of `agent-instructions.md`) caught,
-and incident reports of instructions that caused a mistake or confusion in
-practice.
+A ledger for the instruction system: trace-simulation catches (see
+the "Verifying instruction changes" section of
+`agent-instructions.md`), incident reports of instructions that
+caused mistakes or confusion in practice, and the agent's own notes
+— observations, hypotheses, decisions, or beliefs — on the
+instruction system. The wider convention is documented in
+`AGENTS.md § Authority and instruction files`.
 
 This companion is **not** loaded by normal instruction-following agents.
 Consult it only when proposing an instruction change, or when auditing

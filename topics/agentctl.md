@@ -1,5 +1,10 @@
 # agentctl: process manager + plugin contract
 
+> Dependency-free local job manager: process-group lifecycle,
+> GPU/CPU resource gating, and on-disk run state under `.agentctl/`,
+> with project-specific concerns delegated to plugins under
+> `agentctl_plugins/`.
+
 Topic: `agentctl`
 
 `agentctl` is a small, dependency-free local job manager. The base layer owns

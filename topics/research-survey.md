@@ -1,8 +1,8 @@
 # Topic: research-survey
 
-How the project surveys an active research field and maps its frontier.
-Governs the `survey-field.md` and `research-frontier.md` supplements and
-the `surveys/` artifact tree they produce.
+> How the project surveys an active research field and maps its
+> frontier; governs `survey-field.md`, `research-frontier.md`, and
+> the `surveys/` artifact tree.
 
 ## Contracts
 

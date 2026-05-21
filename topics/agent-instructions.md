@@ -1,5 +1,9 @@
 # Agent Instructions Theory
 
+> The repo's core correctness claim: committed global instructions
+> give future agents stable, searchable policy across projects
+> without relying on stale chat state.
+
 Topic: `agent-instructions`
 
 This repo's main correctness claim is that committed global instructions give
@@ -34,6 +38,14 @@ projects without relying on stale chat state.
 - The `agent-instructions` topic spans commit policy, task cross-references,
   and theory docs because all three determine how future agents recover the
   intended policy from repository state.
+
+## Section extraction
+
+When a topic doc would benefit from referencing a specific AGENTS.md
+section, prefer extracting that section to a dedicated file so
+AGENTS.md keeps a pointer and the file carries the full content.
+Avoids restatement and lets topic docs link the dedicated file rather
+than a deep AGENTS.md section.
 
 ## Verifying instruction changes
 

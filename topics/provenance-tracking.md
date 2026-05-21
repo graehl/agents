@@ -1,5 +1,8 @@
 # Provenance tracking
 
+> What run produced an output, what its inputs were, what to rerun
+> to regenerate it, and what's changed since the last good run.
+
 Topic: `provenance-tracking`
 
 A run-launcher / job-tracking system needs to answer:

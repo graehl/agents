@@ -56,10 +56,11 @@ reasoning behind the policy and the evidence for it — e.g.
 loaded routinely; read one on demand only when unsure how to safely follow
 a rule, or when proposing an improvement to it. Suggesting instruction
 improvements is always welcome, from work in any project, not only when
-working inside `~/agents`. You are licensed to append to an `.evidence.md`
-companion — an incident report when you find evidence that an instruction
-caused a mistake or confusion, or a clarifying example you hit while
-consulting it; append only, do not rewrite prior entries.
+working inside `~/agents`. You may append to a topic's `.evidence.md`
+companion (the topic's evidence ledger and your own notes on the
+topic). The convention — what to append, when, how, the append-only
+and not-routinely-loaded constraints — is in
+`~/agents/topics/evidence-ledger.md`.
 
 ## Skills path aliasing
 
@@ -93,9 +94,10 @@ agent would not need it.
 ## Project-level instructions
 
 Before using tools in a repo for the first time in a session, read its
-root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, and any `README.md` they
-name as an instruction source. Task files do not substitute for this. If a
-file is unreadable or a symlink is broken, report once and continue.
+root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, any `README.md` they
+name as an instruction source, and `GLOSSARY.md` if present. Task
+files do not substitute for this. If a file is unreadable or a symlink
+is broken, report once and continue.
 
 Project instructions are the final word for work inside that project;
 `AGENTS.local.md` is its private final amendment. Global instructions
@@ -299,6 +301,16 @@ invariants, assumptions, dependencies, and known edge cases. For
 granularity calibration and a topic-name vocabulary, read
 `~/agents/TOPICS.md` when creating or assessing a topic.
 
+Topic-doc format: an H1 stating the topic, then a `> ` blockquote
+lede (one or more `> ` lines, no other content between H1 and lede,
+multi-line `> ` lines space-joined when consumed), then optional
+metadata (e.g., a `Topic: <name>` trailer) and body sections. The
+lede is the canonical one-sentence definition consumed by
+`GLOSSARY.md`. The agent may auto-edit existing topic docs to bring
+them into this format without separate confirmation — synthesize a
+missing lede from the doc's first body paragraph, move stray
+trailers — provided the edit preserves body content faithfully.
+
 Epistemic labeling: an unlabeled claim means "plausible, not verified".
 Add an inline HTML comment only when its absence would mislead:
 `<!-- verified: SHA abcdef0 -->` (confirmed by test/bisect/audit) or
@@ -319,6 +331,48 @@ change touches a cross-cutting contract with no topic doc, create or update
 one (prefer a section in a related topic over a new file). Check whether
 the diff falsifies or weakens any claim it touches, and design boundary
 tests around the contract it could violate.
+
+## Project glossary
+
+`GLOSSARY.md` is the project glossary: a shared, prescriptive
+vocabulary for talk, planning, code, UI copy, and commits in the
+repo. Read on first repo use alongside `AGENTS.md` so terms stay
+in attention. When naming a code symbol, UI element, doc heading,
+or commit topic — or when prose starts spelling out in several
+words something one term could carry — check the glossary first
+and reuse an existing term rather than introducing a synonym or
+paraphrase. When a user phrase or pasted log drifts from a glossary
+term, prefer the glossary's wording. If `GLOSSARY.md` has fallen
+out of context (deep in a long session, post-compaction), `rg` it
+before proposing a new row or claiming a term is absent.
+
+A glossary row is not a pending topic doc — most rows are vernacular
+forever. A row becomes a `topics/<name>.md` only when it meets the
+cross-cutting-concern bar in `~/agents/TOPICS.md`.
+
+One sorted table: `| term | definition | topic / refs |`. Rows whose
+`topic / refs` column links a `topics/<name>.md` are autopopulated
+from that doc's `> ` lede (see `## Project topics`); other rows are
+curated and preserved verbatim on regeneration, including
+`<!-- unconfirmed -->` markers. Contribution and regeneration rules
+belong in the project's `topics/glossary.md`; `GLOSSARY.md` itself
+stays free of build instructions for readers.
+
+When a user phrase is unclear and the resolution would change action,
+emit an interruptible checkpoint with the inferred meaning plus 1–2
+alternatives. Continue at normal pace when the fork is minor or
+cheaply reversible; hold for the reply when proceeding with the wrong
+branch would waste significant work. On resolution, propose a
+glossary row flagged `<!-- unconfirmed: YYYY-mm-dd -->` until the
+user prunes or confirms it. When the user explicitly introduces a distinction ("by
+X I mean Y, not Z"), add the row immediately. When a row is clearly
+general-domain — a term recognizable outside this project's
+specifics — surface it once as a candidate for
+`~/agents/topic-definitions.md` or `~/agents/TOPICS.md`; do not edit
+those global files autonomously.
+
+Create `GLOSSARY.md` when the project has more than one topic
+doc or when project jargon starts recurring; not proactively.
 
 # Language tooling
 
