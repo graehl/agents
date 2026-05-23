@@ -241,6 +241,10 @@ producing record. When you encounter an unfamiliar file, check for this sidecar
 before assuming it's untracked — following `run_dump` gives you the full
 provenance one read away.
 
+Bare `agentctl` invocations throughout this doc assume PATH lookup; when
+`command -v agentctl` fails, invoke it via `~/agents/agentctl` (the canonical
+absolute path — `./agentctl` will not work from arbitrary project CWDs).
+
 When `agentctl` is on `PATH`, prefer `agentctl start ... -- <command>` for any
 launch you might later need to reproduce, audit, or trace. Two tiers:
 

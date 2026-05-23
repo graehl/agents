@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-code_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+code_dir="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 project_dir="${AGENTCTL_ROOT:-$PWD}"
 project_dir="$(cd "$project_dir" && pwd)"
 
