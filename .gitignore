@@ -4,3 +4,6 @@ tasks/
 .agentctl/
 runs/
 __pycache__/
+.attachments/
+.backups/
+.codex

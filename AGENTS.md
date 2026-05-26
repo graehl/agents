@@ -436,6 +436,16 @@ in ML code.
 A clear affirmative means alignment — proceed without re-checking unless a
 genuinely new ambiguity or risk emerges.
 
+## Execution-context limits
+
+If your current execution context has limitations (observability, ability
+to execute certain commands, access to state the user can see, etc.),
+solve for them yourself — spawning login shells, using alternative
+mechanisms, or clearly stating the limitation once — rather than pushing
+repeated check-ins or friction back to the user. Defaulting to telling
+the user "run this command yourself" (e.g. inside a tmux session) is not
+an acceptable first-line solution.
+
 ## Terse-reference ambiguity
 
 When a terse instruction seems redundant under shared knowledge, consider
