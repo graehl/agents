@@ -74,3 +74,17 @@ When a trace exposes that the rule's gap is only safe because a frontier
 agent infers around it, prefer adding redundancy (a worked example, or the
 rule's rationale) over leaving the gap, since non-frontier agents also edit
 these projects.
+
+## Provider-scoped supplements
+
+`AGENTS.weak.md` is a sibling instruction file carrying restatements of
+behavior that frontier agents perform by default but weaker models
+(Haiku, Kimi, Spark-class) tend to miss. It is intentionally not
+referenced from `AGENTS.md` — the main file stays narrowly load-bearing
+— and is instead surfaced by provider-specific launcher conventions
+that include it alongside `AGENTS.md` when a smaller model is in use.
+
+Edit policy: `AGENTS.weak.md` is for restatements of frontier defaults
+only. Anything load-bearing — a rule a capable agent would otherwise
+plausibly get wrong — belongs in `AGENTS.md` itself, so every model
+loading the main file gets it.
