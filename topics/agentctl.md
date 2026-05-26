@@ -32,6 +32,12 @@ tooling, future compliance-library work, and project migration docs.
   each named artifact's `.running.md` marker resolves cleanly. If the
   follow-on decision depends on reading completed outputs or `.meta.md`
   contents, do not prequeue it with `--after`.
+- A finished run with nonzero or `unknown` return code is an early-failure
+  result, not a still-running wait state. `status` and `list` print `FAILED`
+  for these runs, `list` includes them even when `--completed-min-elapsed`
+  would hide short successful runs, and `status/list --failed` exists as a
+  troubleshooting view. `wait --target not-running` prints the final return
+  code and log path, and exits nonzero for failed `finished` jobs.
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.
@@ -101,6 +107,29 @@ The Aim SDK is **not** required. The plugin writes JSON dumps directly. If
 the SDK is installed, users can run `aim up` to browse the materialized view
 after import; if not, a one-line install hint prints once per process and
 the dumps are still written.
+
+## Failure visibility ADR
+
+Decision: treat early failures as first-class status output, not as a special
+case left to log inspection. The launcher already records child return codes in
+`exit-status.json` and refreshes state from that sidecar, so the status layer
+can reliably distinguish `finished returncode=0` from `finished returncode=1`
+without reading logs. Agents are prone to interpret "no summary rows yet" or
+an interrupted polling command as "still running"; surfacing `FAILED` in the
+same one-line status path makes the cheap check harder to skip.
+
+Operational consequences:
+
+- `agentctl status <job>` is the required truth check after a manual sleep,
+  timeout, interrupted tool call, or apparent lack of output.
+- `agentctl list --failed` is the fastest catch-up view for short failed runs
+  that would otherwise be absent from "recent completed" lists.
+- Default `list` includes failed finished runs regardless of
+  `--completed-min-elapsed`, because a job that failed after 18 seconds is
+  often more important than a job that succeeded after 18 seconds.
+- `agentctl wait <job> --target not-running` is preferred over ad hoc
+  `sleep; cat summary` loops when a run's terminal state matters, because it
+  returns nonzero for failed `finished` jobs and prints the log path.
 
 ## Wrapper Python resolution
 

@@ -330,6 +330,15 @@ dashboards.
 Never claim to be waiting on a job after the watchdog or watch PTY has already
 resolved. Re-check live state first.
 
+Early failure is a terminal result, not a wait state. After any manual sleep,
+timeout, interrupted tool call, or "no output yet" poll for an `agentctl` run,
+immediately run `agentctl status <job>` (or `agentctl list --failed`) before
+telling the user the run is still pending. If status is `finished` with a
+nonzero or `unknown` return code, inspect the run log and report the failure
+instead of continuing to wait. Prefer `agentctl wait <job> --target
+not-running --heartbeat ...` over ad hoc `sleep; cat summary` loops because it
+returns nonzero for failed runs and prints the final return code and log path.
+
 Do not use GPU-idle thresholds for a short sidecar watch if another intended
 GPU job is still running. For sidecars, watch the job to completion only; keep
 GPU-idle watches for the gating job whose successor truly needs the GPU clear.

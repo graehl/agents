@@ -190,6 +190,10 @@ def status_returncode_exit_code(state: dict) -> int:
     return 0
 
 
+def state_failed(state: dict) -> bool:
+    return state.get("status") == "finished" and status_returncode_exit_code(state) != 0
+
+
 def slug(text: str) -> str:
     out = "".join(ch if ch.isalnum() or ch in "._-" else "-" for ch in text.strip())
     while "--" in out:
@@ -1501,7 +1505,11 @@ def status(args: argparse.Namespace) -> int:
         for path in sorted(JOBS.glob("*/current.json")):
             states.append(refresh_state(read_json(path)))
         states.sort(key=state_sort_key, reverse=True)
-        if getattr(args, "live_only", False):
+        if getattr(args, "failed_only", False):
+            states = [state for state in states if state_failed(state)]
+            if args.recent and args.recent > 0:
+                states = states[: args.recent]
+        elif getattr(args, "live_only", False):
             states = [state for state in states if state.get("status") == "running"]
         elif getattr(args, "where", False) and not getattr(args, "all_jobs", False):
             running = [state for state in states if state.get("status") == "running"]
@@ -1509,7 +1517,8 @@ def status(args: argparse.Namespace) -> int:
             completed = [
                 state
                 for state in states
-                if state.get("status") == "finished" and (elapsed_seconds(state) or 0) >= min_elapsed
+                if state.get("status") == "finished"
+                and ((elapsed_seconds(state) or 0) >= min_elapsed or state_failed(state))
             ]
             completed_n = args.recent if args.recent and args.recent > 0 else args.completed_recent
             completed = completed[: max(0, completed_n)]
@@ -1557,6 +1566,8 @@ def print_status_state(state: dict, args: argparse.Namespace) -> None:
         f"pgid={state.get('pgid', '')}",
         f"log={state.get('log_path', '')}",
     ]
+    if state_failed(state):
+        bits.append("FAILED")
     if status_returncode_text(state):
         bits.append(f"returncode={status_returncode_text(state)}")
     if state.get("depends_on"):
@@ -1718,7 +1729,12 @@ def wait_job(args: argparse.Namespace) -> int:
         else:
             done = status == args.target
         if done:
-            print(f"{state['job']} {state['run_id']} {status}")
+            bits = [state["job"], state["run_id"], status]
+            if status_returncode_text(state):
+                bits.append(f"returncode={status_returncode_text(state)}")
+            if state.get("log_path"):
+                bits.append(f"log={state['log_path']}")
+            print(" ".join(bits))
             return status_returncode_exit_code(state) if status == "finished" else 0
         now = time.time()
         if heartbeat_interval > 0 and (next_report == 0.0 or now >= next_report):
@@ -2483,6 +2499,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show only jobs currently marked running (ignored when a job is named).",
     )
     s.add_argument(
+        "--failed",
+        action="store_true",
+        dest="failed_only",
+        help="Show only finished jobs with nonzero/unknown return codes.",
+    )
+    s.add_argument(
         "--all",
         action="store_true",
         dest="all_jobs",
@@ -2497,7 +2519,8 @@ def build_parser() -> argparse.ArgumentParser:
         dest="recent",
         help="Show only the most recent N jobs after filtering (0 = all).",
     )
-    s.set_defaults(func=status, live_only=False, all_jobs=True, where=False, completed_recent=0)
+    s.set_defaults(func=status, live_only=False, failed_only=False, all_jobs=True,
+                   where=False, completed_recent=0)
 
     s = sub.add_parser(
         "list",
@@ -2517,6 +2540,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         dest="live_only",
         help="Show only jobs currently marked running.",
+    )
+    s.add_argument(
+        "--failed",
+        action="store_true",
+        dest="failed_only",
+        help="Show only finished jobs with nonzero/unknown return codes.",
     )
     s.add_argument(
         "--all",
@@ -2549,7 +2578,8 @@ def build_parser() -> argparse.ArgumentParser:
             "With --all: show only the most recent N jobs after filtering (0 = all)."
         ),
     )
-    s.set_defaults(func=status, job=None, live_only=False, all_jobs=False, where=True)
+    s.set_defaults(func=status, job=None, live_only=False, failed_only=False,
+                   all_jobs=False, where=True)
 
     s = sub.add_parser("tail", help="Print last log lines for a job.")
     s.add_argument("job")
