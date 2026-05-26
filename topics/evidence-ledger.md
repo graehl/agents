@@ -39,9 +39,11 @@ matters. Date-stamp entries that benefit from chronology.
   implementation branch, term, format, or convention, log the
   choice plus brief reason. Future agents pick up the trail rather
   than re-deriving.
-- **Experiment, probe, or negative result** — record configuration,
-  observation, and conclusion (including "didn't work because Z").
-  Saves the next agent from re-running.
+- **Experiment, probe, or negative result** — record runs and their
+  artifacts in `<topic>.runs/` (see `topics/runs-ledger.md`), not
+  here. Use evidence.md only for qualitative notes around a run —
+  surprise, updated hypothesis, model change — that don't belong as
+  a run artifact.
 - **Anchoring user instruction** — selectively, quote a user
   message that established or modified a topic-doc claim where the
   provenance would otherwise be lost. Not every user message — only
