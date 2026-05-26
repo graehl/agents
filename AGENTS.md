@@ -334,6 +334,25 @@ them into this format without separate confirmation — synthesize a
 missing lede from the doc's first body paragraph, move stray
 trailers — provided the edit preserves body content faithfully.
 
+Topic-doc companions: structured ancillaries ride alongside the main
+topic doc as `topics/<name>.<suffix>` — either a `.<suffix>.md` file
+or a `.<suffix>/` directory, depending on the convention. The main
+topic doc stays free-form prose; concerns with their own structure
+live in suffixed companions rather than dedicated sections of the
+main doc. Current suffixes: `.evidence.md` (verification ledger,
+append-only — see `topics/evidence-ledger.md`); `.runs/` (curated
+run records — see `topics/runs-ledger.md`); `.bearings.md`
+(orientation — see below).
+
+`topics/<name>.bearings.md` is a nested outline of plan items. Each
+non-leaf node carries `> why: <one line>` so the chain of "why we
+opened this" reconstructs by reading parent → child whys; `> why:`
+is required where non-obvious, optional on self-evident leaves.
+Status markers per node: `[ ]` planned, `[*]` active, `[~]`
+paused/blocked, `[x]` done; optional `★` for high-value. The
+active backtrace is the chain of `[*]` from root to deepest active
+leaf — a single highlighted spine through the tree.
+
 Epistemic labeling: an unlabeled claim means "plausible, not verified".
 Add an inline HTML comment only when its absence would mislead:
 `<!-- verified: SHA abcdef0 -->` (confirmed by test/bisect/audit) or
@@ -341,12 +360,21 @@ Add an inline HTML comment only when its absence would mislead:
 verified claim it touches, downgrade that claim's marker rather than
 leaving it stale. Do not use "last updated" dates.
 
-Active use: before touching code for a bug, or before committing to a
-significant plan, read the relevant topic doc. Its contracts tell you what
-must be true and therefore where a violation must live — form a hypothesis
-that satisfies the invariants, then check it against the trace, not the
-reverse. A full consistency pass over all topics is a separate periodic
-ritual.
+Active use: before touching code for a bug, before committing to a
+significant plan, or when entering a topic's area for the first time
+in a session (including on resume), read the relevant topic doc and
+its `.bearings.md` companion if present. The topic doc's contracts
+tell you what must be true and therefore where a violation must
+live — form a hypothesis that satisfies the invariants, then check
+it against the trace, not the reverse. The bearings file gives
+current orientation: synthesize it against live state (recent
+commits, WIP, task notes), not a verbatim recap. Additional
+bearings-read triggers: user says `bearings`, `orient`, `lost`, or
+states a recollection of where work stands; the user's stated
+recollection enters the discussion as an LTM-hunch candidate even
+when outdated. After such a discussion, update the bearings file
+and commit alongside the work. A full consistency pass over all
+topics is a separate periodic ritual.
 
 Some `topics/` entries are method/discipline docs rather than contract
 docs — e.g. `debugging.md`, `testing.md`, `prototyping.md`. Load them
