@@ -263,13 +263,6 @@ behavior. If the outcome needs a missing precondition, establish it
 explicitly or fail with a clear, actionable error — do not silently
 reinterpret bad input or bypass checks.
 
-Prefer repairing the model of the problem over output-forcing patches. A
-chain of "if this input then force that output" clauses is a design smell
-unless each branch follows from an explicit domain rule. Before adding a
-special case, name the invariant it preserves, check whether a simpler
-representation removes the need, and test the contract boundary rather than
-just replaying the observed trace.
-
 ## Feature validation
 
 When adding or enabling a feature that affects runtime, memory, model
@@ -278,34 +271,18 @@ unless the effect is mechanically obvious and low risk. Scope it to the
 blast radius: a smoke-scale timing check for narrow plumbing; a recorded
 contrastive run (or a task note deferring it) for research-facing changes.
 
-## Avoid redundant compute
-
-On compute-intensive paths, treat redundant computation as a design bug:
-reuse cached/prefetched/intermediate work, and repair only the states that
-need repair. Discovery and housekeeping scripts are exempt unless
-performance-critical. If an obvious reuse path is skipped for expedience,
-mark it temporary with a task note.
-
 ## Ideal coding
 
-- Avoid needlessly quadratic work — use precomputation or verified
-  library-contract assumptions to reach n log n or better on hot paths.
-  Weigh this against code scannability, and know whether memory or compute
-  is the bottleneck before spending scratch space to save time.
-- Make changed code a polished gem: the shortest conventional readable form
-  that correctly expresses the contract, without scope creep or sweeping
-  refactors. Clever low-level tricks are fine when they meaningfully
-  improve size or speed on hot paths — document why.
-- Prefer idiomatic conventions and known domain terminology so code is
-  navigable without full context; let names allude to known patterns
-  instead of comments (a name evoking the concept beats a comment saying
-  "strategy pattern"). Before introducing a new general facility, consult
+See `~/agents/topics/software-aesthetic.md` for the full shared aesthetic —
+naming, comments, structure, abstraction, and input/output contracts. The
+points below are either not in that doc or are worth repeating here:
+
+- Before introducing a new general facility, consult
   `topics/shared-primitives.md`; keep single-use facilities close to their
   use.
-- Concentrate error handling and logging at execution or load-time
-  boundaries; rely on exceptions. Keep run logs greppable: tag every line
-  of a phase with the phase name (`WARMUP: ...`), rather than bracketing a
-  span (`[start WARMUP]` / `[end WARMUP]`) or relying on indentation.
+- Keep run logs greppable: tag every line of a phase with the phase name
+  (`WARMUP: ...`), rather than bracketing a span (`[start WARMUP]` /
+  `[end WARMUP]`) or relying on indentation.
 
 # Project organization
 
