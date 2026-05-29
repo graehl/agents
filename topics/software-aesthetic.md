@@ -1,42 +1,40 @@
 # Software aesthetic
 
-> Shared criteria for how code should look, feel, and be structured — applied both when writing code and when reviewing it.
+> Shared criteria for how code should look and be structured — applied both when writing it and when reviewing it.
 
 Topic: software-aesthetic
 
-Rules here are universal — each applies to any individual code unit regardless of project context. Rules that pay off only when observed project-wide live in [software-aesthetic.coordinated.md](software-aesthetic.coordinated.md); apply those to greenfield projects or ones that already follow them.
+Every rule here is universal: it applies to a single unit of code regardless of project. Rules that only pay off when a whole project observes them live in [software-aesthetic.coordinated.md](software-aesthetic.coordinated.md).
 
 ## Core
 
-The ideal piece of code is the shortest conventional readable form that correctly expresses the contract. Clever tricks are welcome on hot paths when they measurably improve size or speed; avoid them elsewhere.
+The ideal piece of code is the shortest conventional, readable form that correctly expresses its contract. Cleverness earns its place only on a hot path where it measurably buys size or speed; anywhere else it costs the next reader more than it saves.
 
 ## Naming
 
-Names should evoke known domain terms or patterns so the code is navigable without full context. A name evoking the concept beats a comment explaining it. Named predicates and booleans that express a domain concept in the codebase's vocabulary are welcome even when the implementation is trivial. Avoid names that force the reader to look through them immediately — `Manager`, `Handler`, `Processor`, `Helper`.
+A name should carry a known domain concept, so the reader navigates the code without holding all of it in their head — the right name does the work a comment otherwise would. This extends to predicates and booleans: name the concept they decide, even when the body is a single comparison. Avoid names a reader has to look straight through to learn anything: `Manager`, `Handler`, `Processor`, `Helper`.
 
 ## Comments
 
-Write no comments by default. Add one only when the WHY is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug. Never explain what the code does; well-named identifiers already do that. One short line maximum — no multi-paragraph docstrings or multi-line comment blocks.
+Write none by default. Add one only for a *why* the code cannot show on its own — a hidden constraint, a subtle invariant, a workaround for a specific bug. Never restate what the code does; the names already say it. One line; no docstring essays.
 
 ## Structure
 
-- Delete complexity rather than rearrange it. A reframing that makes conditionals disappear is better than one that centralizes them — often this means reframing the model, not the conditions (see *code judo*).
-- Prefer repairing the model of the problem over output-forcing patches. A chain of "if this input then force that output" clauses is a design smell unless each branch follows from an explicit domain rule.
-- Decompose at seams — natural boundaries where behavior can be altered without editing surrounding code.
-- Spaghetti (ad-hoc conditionals, mode flags, special-case branches scattered across unrelated flows) belongs behind a dedicated abstraction, state machine, or separate module.
-- Feature logic should not leak into shared paths.
-- Single-use facilities belong close to their use.
+- Delete complexity instead of relocating it. A reframing that makes the conditionals vanish beats one that gathers them somewhere tidier — and usually that means fixing the model, not the branches (*code judo*; see [design-thinking](design-thinking.md)).
+- Decompose at *seams* — natural boundaries where behavior can change without editing the surrounding code.
+- Put *spaghetti* — ad-hoc conditionals, mode flags, special cases threaded through unrelated flows — behind one abstraction, state machine, or module.
+- Keep feature logic out of shared paths, and single-use helpers next to their use.
 
 ## Abstraction
 
-An abstraction earns its keep when callers do not need to understand its internals to use it correctly (not *leaky*) and when it names a stable concept rather than just renaming a call. Pass-through wrappers and bespoke one-offs duplicating canonical helpers are indirection without abstraction.
+An abstraction earns its keep on two conditions: callers can use it correctly without knowing its internals (it is not *leaky*), and it names a stable concept rather than just renaming a call. Pass-through wrappers and one-offs that re-implement a canonical helper are indirection wearing the costume of abstraction.
 
-Three similar lines is better than a premature abstraction. Duplication is correct at *divergence points* — copies expected to evolve independently. The smell to reject is collapsing distinct use cases into one shared function distinguished by mode/flag arguments.
+Duplication is correct at *divergence points* — copies you expect to evolve apart. The real smell is the opposite move: folding genuinely distinct cases into one function steered by mode or flag arguments.
 
-## Input/output contracts
+## Input boundaries
 
-At input boundaries, prefer early-exit validation: guard at the top, assume valid below.
+Guard at the top and assume valid below: prefer early-exit validation where input enters. (The output side — normalizing on the way in, repairing on the way out — is a project-wide commitment; see [coordinated](software-aesthetic.coordinated.md).)
 
 ## Size and performance
 
-A file that has grown too large to hold in a reader's head at once is a candidate for decomposition at the nearest seam. On hot paths, avoid needlessly quadratic work — use precomputation or verified library-contract assumptions to reach n log n or better; know whether memory or compute is the bottleneck before spending scratch space to save time. Treat redundant computation as a design bug: reuse cached/prefetched/intermediate work and repair only the states that need repair.
+A file too large to hold in your head is a candidate for splitting at its nearest seam. On a hot path, refuse needlessly quadratic work — precompute, or lean on a known library contract, to reach n log n or better — and learn whether memory or compute is the bottleneck before you trade one away for the other. Treat recomputation as a design bug: reuse cached, prefetched, or intermediate results, and repair only the state that actually changed.
