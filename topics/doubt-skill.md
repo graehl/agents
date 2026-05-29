@@ -60,22 +60,42 @@ diagnosis under partial observability.
 
 ## Implementation notes
 
-If a runtime exposes a prior response or conversation handle, use it
-carefully. For the OpenAI Responses API, the
+The ideal `/doubt` implementation would be an orchestration, not merely an
+instruction: fork a context-isolated worker that receives only the problem
+statement and ground-truth materials, let it solve independently with tools,
+then give a comparison worker the fresh answer plus the prior visible
+answer/transcript/summaries. There is no obvious model-capability barrier to
+server-side agents doing this.
+
+The portability gap is the skill surface. A cross-provider skill file has no
+agreed way to request "spawn an independent subagent", "exclude prior
+assistant context", "include the old response only in the comparison
+phase", or "select these reasoning items and not those". In ordinary
+agent-executed skills, the fallback is therefore prompt discipline: instruct
+the same agent to disregard the previous attempt, and rely harder on
+external checks.
+
+If a custom orchestrator exposes a prior response or conversation handle,
+use it carefully. For the OpenAI Responses API, the
 [`previous_response_id`](https://platform.openai.com/docs/guides/conversation-state?api-mode=responses)
 conversation-state mechanism can chain responses and carry previous
-response context into a later call, but it should not be used for the
-independent pass because it may re-anchor the model on the suspect answer.
-It is useful after the independent pass, when the task is to compare
-against the prior response. Even then, it may not provide faithful access to
-hidden reasoning; the divergence claim must stay scoped to available
-evidence.
+response context into a later call, but that is a "continue from here"
+primitive, not a way to cite or select particular reasoning blocks. It
+should not be used for the independent pass because it may re-anchor the
+model on the suspect answer. It is at most useful in a custom comparison
+phase, and only as access to prior visible response state.
 
 When using response chaining, restate the current doubt instructions in the
 new request. The
 [OpenAI API reference](https://platform.openai.com/docs/api-reference/responses?api-mode=responses)
 notes that prior `instructions` are not carried over when
 `previous_response_id` is used.
+
+Even a custom orchestrator still cannot accurately characterize where hidden
+reasoning actually diverged when provider policy exposes only final answers,
+tool traces, artifacts, optional summaries, or opaque encrypted reasoning
+items. The honest claim is "first evidence-visible divergence", not "the
+actual latent decision where the model went wrong".
 
 ## Non-goals
 

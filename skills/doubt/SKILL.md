@@ -50,11 +50,15 @@ reasoning just applied by the agent in the current session.
 
 ## Runtime continuity
 
-If the runtime exposes a response or conversation handle, use it only after
-the independent pass. For example, with the OpenAI Responses API,
-`previous_response_id` can help compare against the prior response state,
-but using it during the independent pass risks re-anchoring on the suspect
-answer.
+Ordinary skill execution usually cannot fork a fresh context or choose which
+reasoning items to include. Treat the workflow as prompt discipline unless
+the runtime explicitly exposes stronger orchestration primitives.
+
+If a custom orchestrator exposes a response or conversation handle, use it
+only after the independent pass. For example, with the OpenAI Responses API,
+`previous_response_id` is a continuation primitive, not a selector for
+reasoning blocks; using it during the independent pass risks re-anchoring
+on the suspect answer.
 
 When chaining to the prior response, restate the doubt instructions in the
 new request; prior response `instructions` may not carry over. Chaining also
