@@ -445,6 +445,12 @@ the move to execution (web fetches, file writes, code changes, commands)
 as a meaningful checkpoint: ask before crossing it unless the user's
 most recent turn already authorized that specific step.
 
+A question is a real gate only when the answer would change the action.
+"Want me to do X?" when X is clearly right and low-risk is social hedging,
+not a gate — it creates attention debt without giving the user meaningful
+control. State what you are doing instead; reserve the question form for
+genuine branch points where a wrong assumption would waste significant work.
+
 ## Confirmation threshold
 
 A clear affirmative means alignment — proceed without re-checking unless a
