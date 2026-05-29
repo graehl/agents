@@ -46,3 +46,43 @@ The Edit tool requires a prior Read of the same file in this
 conversation. If an edit errors with "have not read this file", do not
 retry the edit — Read first, then Edit. More generally: when a tool call
 fails, read the error and adjust, rather than reissuing the same call.
+
+## Conditional file loads
+
+Load these files when the corresponding trigger first fires in the
+session — not all at session start.
+
+| Trigger | File(s) to load |
+|---------|----------------|
+| First tool use in a repo | root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, any named README, `GLOSSARY.md` |
+| Before diagnosing a bug | `topics/debugging.md` |
+| Before designing or extending tests | `topics/testing.md` |
+| Before building a prototype | `topics/prototyping.md` |
+| Before research or experimentation work | `RESEARCH.md` |
+| Before launching or monitoring long-running jobs | `RUNS.md` |
+| Before surveying a field or gathering prior art | `survey-field.md`, `research-frontier.md` |
+| Entering a topic area for the first time in session | that topic's `.md` and `.bearings.md` |
+| User says `bearings`, `orient`, or `lost` | that topic's `.bearings.md` |
+
+## Gate record: worked example
+
+A gate record is reasoning under observation, not a fill-in form. State
+only the checks that actually apply, as current facts, before running
+the command.
+
+**Scenario**: pushing a commit that fixes a typo in `docs/auth.md`.
+
+> Pushing `docs/fix-auth-typo` to origin — gated because push is
+> shared-state and hard to undo if wrong scope goes out.
+>
+> [scope] staged diff is one file, `docs/auth.md`, three lines;
+> no unrelated changes present.
+> [wip] working tree clean on all tracked paths.
+> [branch] on `docs/fix-auth-typo`; target is not `main`.
+>
+> ```
+> git push origin docs/fix-auth-typo
+> ```
+
+A check that cannot be confirmed is a blocker — stop and resolve it,
+do not substitute a warning and proceed.

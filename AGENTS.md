@@ -180,8 +180,7 @@ required only for the full gate record.
 When working in an ancillary worktree or scratch checkout, do not
 put it on reboot-cleared storage (`/tmp`, tmpfs); use durable
 storage — a sibling directory of the primary workdir, on the same
-filesystem, is a good default. Before transferring content back
-to the primary workdir,
+filesystem, is a good default. Before transferring content back to the primary workdir,
 verify source and destination branches match, and stash or
 formally commit (or amend) first — a committed state is the only
 safe transfer unit. Do not rely on default agent caution here.
@@ -281,8 +280,8 @@ naming, comments, structure, abstraction, and input/output contracts. The
 points below are either not in that doc or are worth repeating here:
 
 - Before introducing a new general facility, consult
-  `topics/shared-primitives.md`; keep single-use facilities close to their
-  use.
+  `GLOSSARY.md` (contribution rules in `topics/glossary.md`);
+  keep single-use facilities close to their use.
 - Keep run logs greppable: tag every line of a phase with the phase name
   (`WARMUP: ...`), rather than bracketing a span (`[start WARMUP]` /
   `[end WARMUP]`) or relying on indentation.
