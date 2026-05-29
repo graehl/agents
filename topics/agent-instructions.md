@@ -82,6 +82,57 @@ agent infers around it, prefer adding redundancy (a worked example, or the
 rule's rationale) over leaving the gap, since non-frontier agents also edit
 these projects.
 
+## Limits of these methods
+
+The verification apparatus here — trace-simulation and the
+`*.evidence.md` ledgers — is intuition-grade, not measurement. Every
+rule rests on the unverified premise that an agent reads meaningful
+text and acts on it; none has been validated by an outcome comparison
+(see `agent-instructions.evidence.md`, 2026-05-29).
+
+Be skeptical of the evidence-ledger ritual itself. Appending something
+true and interesting-in-the-moment *feels* like progress — capture,
+provenance, diligence — while changing no future behavior. That is the
+celebratory failure of [design-thinking](design-thinking.md) wearing a
+lab coat: a note can read as insight and be inert. Append only what
+would plausibly change a later decision (the ledger's own trigger), and
+treat the act of writing as zero evidence that the underlying rule
+works.
+
+The real validation, deferred until compute is cheap enough, is to test
+agents on engineering tasks under varied instruction setups and measure
+outcomes — an ablation over the instruction corpus, not introspection
+about it. Until then, a well-written rule is a hypothesis, not a result.
+
+Prior art grounding that plan <!-- verified: web search 2026-05-29 -->:
+- **SWE-agent** (Yang, Jimenez et al., NeurIPS 2024; arXiv 2405.15793) —
+  ablation on 300 SWE-bench issues: a tailored agent-computer interface
+  solves 10.7 pp more than the same model on a bare shell. The closest
+  existing evidence that scaffolding/instruction design has a large,
+  measurable effect on engineering success.
+- **SWE-bench** (Jimenez et al., ICLR 2024; arXiv 2310.06770) — the
+  real-GitHub-issue benchmark such an ablation would run on.
+- **"State of What Art? A Call for Multi-Prompt LLM Evaluation"**
+  (Mizrahi et al., TACL 2024; arXiv 2401.00595) — across 6.5M instances,
+  20 models, 39 tasks, instruction paraphrases change absolute *and
+  relative* performance. An instruction ablation must therefore sweep
+  paraphrases, not conclude from one wording.
+- **"An Empirical Study on the Effects of System Prompts in
+  Instruction-Tuned Models for Code Generation"** (arXiv 2602.15228) —
+  360 configurations isolating system-prompt detail for code gen; close
+  to the experiment template this plan wants.
+- **"Trust Over Fear: Motivation Framing in System Prompts Affects AI
+  Agent Debugging Depth"** (arXiv 2603.14373) — measured: framing shifts
+  agents from breadth-first scanning to depth-first investigation (~74%
+  more investigative steps, ~25% more hidden issues found). Direct
+  evidence that instruction *tone*, not only content, moves engineering
+  behavior — encouraging for this corpus, and a caution that effects are
+  framing-confounded.
+- **"LLMs Cannot Self-Correct Reasoning Yet"** (Huang et al., DeepMind,
+  ICLR 2024; arXiv 2310.01798) — without external feedback, intrinsic
+  self-correction does not help and can degrade. Direct caution that a
+  self-recorded evidence ledger is not self-grounding.
+
 ## Provider-scoped supplements
 
 `AGENTS.weak.md` is a sibling instruction file carrying restatements of
