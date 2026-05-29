@@ -20,6 +20,7 @@ regeneration rules.
 | `evidence-ledger` | An optional, append-only `<topic>.evidence.md` companion to a topic doc — agent-owned space for notes that help maintain accurate knowledge and good behavior on the topic | [evidence-ledger](topics/evidence-ledger.md) |
 | full gate record | Big-effect-gate tier for irreversible or shared-state actions; requires the numbered record block (action, checks, command) before running | |
 | `glossary` | Project-specific terminology lives in `GLOSSARY.md` at repo root: one sorted table whose topic-linked rows are autopopulated from `topics/<name>.md` ledes and whose vernacular rows are curated | [glossary](topics/glossary.md) |
+| `goal-distillation` | Training a goal-conditioned agent from goal-annotated sessions: the goal's testable done-condition serves as the verifier/reward, process labels keep the agent from gaming that reward, and a strong teacher or self-critique installs integrity a prompt can only request | [goal-distillation](topics/goal-distillation.md) |
 | handoff message | First-turn context-dump from another agent or compaction event; signals that `/bye` did not run and `last-session.md` is probably stale | |
 | interruptible checkpoint | Brief visible statement of the agent's current interpretation, branch choice, or assumption; invites correction only if wrong, continues at normal pace as if no correction will arrive | |
 | `lede` (topic-doc) | The `> ` blockquote line(s) immediately after a topic doc's H1; canonical one-sentence definition consumed by glossary regeneration | |
