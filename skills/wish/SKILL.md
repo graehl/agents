@@ -2,7 +2,7 @@
 name: wish
 description: Pursue a wish X (a goal) autonomously across many cycles until it is *verifiably* achieved — establish a testable done-condition, infer the intent behind a terse X, work the plan, prove completion by running tests, and stop at real completion or a genuine blocker. Not a fire-and-forget wish granter; explicitly resists satisfying the letter of X while violating its spirit.
 argument-hint: <what to achieve, e.g. "make the auth flow pass its integration tests">
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Wish loop (`/wish X`)
