@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rep"
+  short_description: "Repeat a prompt until it is done"
+  default_prompt: "Use $rep to keep checking a task until it completes."
