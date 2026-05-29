@@ -9,7 +9,10 @@ disable-model-invocation: true
 
 Keep working toward X across as many unattended cycles as it takes, and
 stop only when X is **demonstrated** done — by a test you can quote — or
-when you hit a real blocker. The danger of this command is that the user
+when you hit a real blocker. On Codex, prefer the native `/goal` command
+(it reinjects the goal each turn via the runtime's `<goal_context>` and
+survives context limits); use `wish` on harnesses without a built-in goal
+loop, or as the discipline layer on top of `/goal`. The danger of this command is that the user
 fires a short, careless X and then walks away: many cycles run with no one
 watching. That makes two things load-bearing that are optional elsewhere:
 getting the *intent* right before you start, and refusing the cheap
@@ -40,9 +43,14 @@ durable file, e.g. `tasks/wish-<slug>.md` (or a
 - **Assumptions** — every interpretive choice you made turning a vague X
   into a concrete plan. These are what a returning user audits.
 - **Plan, budget, log** — the steps, a cycle/time ceiling, and a running
-  greppable record (tag lines `WISH: …`) of what you tried and what the
-  evidence showed. Use the harness's plan/todo affordance if it has one;
-  the contract file is the durable backing store, the todo is the live view.
+  append-only `## Cycle log` in the contract file. Use the harness's
+  plan/todo affordance for the live view; the contract file is the durable
+  backing store and the resume/handoff record for a fresh agent.
+- **Mutable head** — a short `## Current state` section (current gap,
+  next step) rewritten each cycle so the live state is one place.
+- **Cycle counter** — increment a `cycle: N` field in the head each
+  iteration; the STUCK "~3 cycles" rule is checkable across context resets
+  only if the count is recorded.
 
 Then emit **one** interruptible checkpoint (see AGENTS.md): declare the
 mode explicitly — "I am now acting under goal G; G is done iff
@@ -76,13 +84,24 @@ acting on inferred intent under recorded assumptions.
 
 ## 3 — Each cycle
 
-1. Re-read the contract (intent + done-condition + log). Refresh your map
-   of the area — don't re-derive from scratch, don't trust stale state.
-2. Choose the single highest-value step toward an unmet predicate.
-3. Do it. Keep the log greppable.
-4. **Verify against the done-condition**: run the bearing test(s). Record
-   the command and its actual output — evidence, not a claim.
-5. Update the contract: progress, findings, revised plan, remaining gap.
+On resume or fresh pickup (new agent, context reset): reconstruct from
+the contract file — mutable head gives current state; cycle log shows
+history and oscillation. Do not re-derive from scratch.
+
+1. Re-read the contract head (`## Current state`) and the last 2–3 cycle
+   log entries. Increment `cycle: N`.
+2. Choose the single highest-value step toward an unmet done-condition
+   predicate.
+3. Do it. Gather, don't speculate — if the step turns on a fact you lack,
+   use a tool to get ground truth first.
+4. **Verify against the done-condition**: run the test(s), record the
+   command and its actual output — evidence, not a claim.
+5. Append one terse line to `## Cycle log`:
+   `cycle N | did: … | evidence: … | gap: … | next: …`
+   Keep it one line; verbose journaling is the same performative trap as
+   "but wait" loops — it rewards the form, not progress.
+6. Rewrite `## Current state`: current gap, next step, remaining
+   done-condition predicates.
 
 ## 4 — Stop and report when ANY holds
 
