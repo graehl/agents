@@ -1,6 +1,6 @@
 ---
 name: doubt
-description: Re-evaluate a conclusion the user doubts by solving independently first, using external checks where possible, then comparing against prior reasoning to identify the first consequential divergence. Use when the user invokes /doubt or says they doubt, distrust, are unconvinced by, or want a clean re-check of an agent conclusion, answer, plan, proof, diagnosis, or review.
+description: Re-solve a doubted conclusion independently before comparing against prior reasoning, to find the first consequential divergence. Use when the user invokes /doubt or says they doubt or distrust a result.
 ---
 
 # Doubt
@@ -50,25 +50,16 @@ reasoning just applied by the agent in the current session.
 
 ## Runtime continuity
 
-Ordinary skill execution usually cannot fork a fresh context or choose which
-reasoning items to include. Treat the workflow as prompt discipline unless
-the runtime explicitly exposes stronger orchestration primitives.
-
-If a custom orchestrator exposes a response or conversation handle, use it
-only after the independent pass. For example, with the OpenAI Responses API,
-`previous_response_id` is a continuation primitive, not a selector for
-reasoning blocks; using it during the independent pass risks re-anchoring
-on the suspect answer.
-
-When chaining to the prior response, restate the doubt instructions in the
-new request; prior response `instructions` may not carry over. Chaining also
-does not guarantee faithful access to hidden reasoning, so divergence
-claims still need to be limited to visible or otherwise available evidence.
+This is prompt discipline: ordinary skill execution cannot fork a fresh
+context or choose which reasoning items to include. Do not assign causal
+blame to a hidden chain-of-thought you cannot inspect; restrict divergence
+claims to what is visible. Orchestration options (e.g. OpenAI Responses
+API `previous_response_id`) are covered in `topics/doubt-skill.md` under
+*Implementation notes*; consult that doc only when the runtime exposes a
+response/conversation handle worth using.
 
 ## Anti-patterns
 
-- Starting by critiquing the old answer.
-- Treating the old answer as a default that needs only a patch.
-- Assigning causal blame to a hidden chain-of-thought you cannot inspect.
-- Letting a plausible narrative override a failed external check.
+- If you find yourself defending or patching the old answer instead of
+  re-solving, you have skipped step 2.
 - Reporting "no issue found" without saying what was actually checked.

@@ -6,18 +6,14 @@ disable-model-invocation: false
 
 # Harsh review
 
-This skill operationalizes three docs as reviewer obligations:
+Review procedure for the three docs that hold the definitions and reasoning. Read them first:
 - `~/agents/topics/software-aesthetic.md` — universal per-unit rules
 - `~/agents/topics/software-aesthetic.coordinated.md` — project-wide rules (apply when the project follows them; see `AGENTS.user.md` ask-once)
 - `~/agents/topics/design-thinking.md` — the problem-approach principles behind the structural calls
 
-Read all three first. They hold the definitions and the reasoning; this file is the review procedure, not a summary of them. The terms below — *code judo*, *spaghetti*, *leaky abstraction*, *divergence point*, *seam* — are used in their `GLOSSARY.md` sense.
+The terms below — *code judo*, *spaghetti*, *leaky abstraction*, *divergence point*, *seam* — are used in their `GLOSSARY.md` sense.
 
-Review past the diff. Judge the structure the change lands in, and ask whether the problem had a better approach from the outside. Hunt actively for code-judo: a restructuring that deletes whole branches, layers, or concepts while preserving behavior.
-
-**Calibration.** Demanding a restructure on every merge just churns the system, so separate the bars:
-- **Blocker** — correctness failures, behavioral regressions, and changes that actively make the surrounding code harder to work in.
-- **Advisory** — simplification and decomposition opportunities: push with conviction as pressure toward a better state, not as a gate. Exception: when the diff already opens the relevant *seam*, fixing it now is cheap, so the bar to block drops.
+Review past the diff. Judge the structure the change lands in, and ask whether the problem had a better approach from the outside. Hunt actively for code-judo: a restructuring that deletes whole branches, layers, or concepts while preserving behavior. Demanding a restructure on every merge just churns the system, so the procedure tags each item *blocker* or *advisory*; raise advisories with conviction but weigh the fix against the churn of blocking now. Exception: when the diff already opens the relevant *seam*, fixing it now is cheap and the bar to block drops.
 
 ## Review pass
 
@@ -30,15 +26,7 @@ Walk these in order; skip any with no real hit — a short review is success, no
 5. **Unearned abstraction** — leaky abstractions, pass-through wrappers, one-offs duplicating a canonical helper, nullable/type-erasure churn that hides an invariant. *(blocker)*
 6. **Boundary shape** — at an input/output boundary the diff touches, name the concrete same-outcome alternative from the aesthetic docs rather than only flagging the mess. *(advisory)*
 7. **Sequencing** — independent work serialized, or partial-update patterns that can leave state half-applied. *(advisory)*
-
-## Caller impact
-
-When the diff touches a shared facility, check call sites outside the diff:
-- Does the change break or surprise an existing caller?
-- Does the new behavior hold under every call site's assumptions, not just the ones the author had in mind?
-- If the contract moved — signature, semantics, errors, performance — is every caller updated or aware?
-
-This matters most where no CI battery catches the ripples and the facility sits at a boundary many callers cross.
+8. **Caller impact** — when the diff touches a shared facility, check call sites outside the diff: does the change break or surprise an existing caller; does the new behavior hold under every call site's assumptions; if the contract moved (signature, semantics, errors, performance), is every caller updated or aware? Matters most where no CI battery catches the ripples and the facility sits at a boundary many callers cross. *(blocker)*
 
 ## Correctness
 
@@ -51,8 +39,4 @@ Flag logic that reads fine but breaks on a concrete input: an empty collection, 
 
 ## Approval bar
 
-The changed paths read as near-provably correct, and the diff does not worsen the structure it touches. Everything beyond that is advisory — raise it with conviction, but weigh the fix against the churn of blocking now.
-
-## Tone
-
-Direct and demanding. Do not soften a structural blocker into a suggestion.
+The changed paths read as near-provably correct, and the diff does not worsen the structure it touches. Be direct and demanding — do not soften a structural blocker into a suggestion.
