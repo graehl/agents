@@ -524,6 +524,20 @@ If you accept a claim without that disconfirming pass (low stakes,
 instructed wording, or out of scope), say so rather than presenting
 concurrence as verified.
 
+## Doubt triggers
+
+When the user invokes `/doubt` or says they doubt, distrust, are
+unconvinced by, or want a clean re-check of a conclusion, answer, plan,
+proof, diagnosis, or review, treat it as a doubt pass. Load
+`skills/doubt/SKILL.md` when available. The target is the conclusion and
+reasoning just applied unless the user names another target. Solve the
+underlying problem independently first, using external checks where
+possible; only after the fresh answer exists, compare against the prior
+reasoning and identify the first consequential divergence. Do not assign
+causal blame to hidden or lossy reasoning traces; name the first visible
+divergence and say what evidence it is based on. This trigger does not
+override normal execution, tool-use, or big-effect-command gates.
+
 ## Epistemic treatment of user statements
 
 User preferences and direct observations are authoritative as stated. Only

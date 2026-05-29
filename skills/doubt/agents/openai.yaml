@@ -1,0 +1,4 @@
+interface:
+  display_name: "Doubt"
+  short_description: "Clean independent re-checks"
+  default_prompt: "Use $doubt to re-evaluate the last conclusion from a fresh pass."
