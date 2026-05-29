@@ -30,6 +30,13 @@ projects without relying on stale chat state.
   instruction text.
 - Theory docs should explain why contracts are believed, not accumulate a
   chronological list of every change.
+- Instructions should steer behavior, not flatter the reader. Prefer
+  phrasing that changes what an agent does over wit that evokes several
+  related-but-non-instrumental meanings: an aphorism or clever reversal
+  reads as profound while leaving the directive ambiguous, and an agent
+  can comply with it performatively without changing behavior. When a
+  rule needs its *why*, name the concrete failure it prevents rather than
+  restating the rule in fancier words.
 
 ## Contract Notes
 

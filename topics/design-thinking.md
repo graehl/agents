@@ -14,7 +14,7 @@ This is *code judo* — a reframing that preserves behavior while deleting whole
 
 ## Map before drilling
 
-Entering an unfamiliar area, build the high-level map first — the modules, callers, and invariants that matter, named in the project's vocabulary — before opening any single function. The map decides which functions are worth reading; you do not start deep inside one function and reconstruct the system outward from it. On re-entry, refresh the map before drilling again.
+Entering an unfamiliar area, build the high-level map first — the modules, callers, and invariants that matter, named in the project's vocabulary — before opening any single function. Skipping the map is how you patch a function while missing the three callers that depended on the old behavior, or reimplement something that already exists one module over. On re-entry, refresh the map before drilling again.
 
 ## Hypotheses over traces
 
