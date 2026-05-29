@@ -57,6 +57,17 @@ Caveat: verifiers are noisy. One 2025 analysis found ~38% of
 rule-flagged-incorrect answers were actually correct; a noisy verifier
 silently caps the achievable ceiling and can teach the wrong lesson.
 
+Worked example — *reward shapes the form of reasoning, not its substance.*
+A mid-size reasoning model, at the genuine edge of its competence and under
+a "more thinking" agent design, emits pages of "but wait…" speculation
+oscillating between two weak hypotheses instead of using a tool to gather
+ground truth. The signal rewarded the *visible shape* of reflection
+(length, self-correction tokens), not progress or the decision to go look.
+The inference-time countermeasure is the `wish` "gather, don't speculate"
+rule; the training-time fix is to reward state progress and tool-grounded
+fact-finding, not thinking length. <!-- assumed: field-observed pattern,
+not a controlled result -->.
+
 ## Teacher branch: on-policy distillation
 
 For a strong-model teacher, the current best-in-class is **on-policy
@@ -69,6 +80,17 @@ DAgger-style relabeling — student visits the states, teacher says "here you
 should have asked / stopped at the gate / not gamed the metric." Known
 ceiling: a single teacher's errors transfer to the student, and per-step
 errors compound over long agentic trajectories.
+
+Reproduction status <!-- verified: web search 2026-05-29 -->: the headline
+efficiency figures (~10× GPU-hours vs RL — 1,800 vs ~17,920 to reach 70%
+AIME'24; 9–30× vs off-policy SFT) are single-setup vendor benchmarks
+(Qwen3-8B student, Qwen3-32B teacher, math), reproducible only via the
+authors' own Tinker cookbook, not independently audited; the wider "50–100×
+total compute" is a gradient-step extrapolation, not a measurement. The
+*direction* (dense on-policy supervision ≫ sparse RL) is well-founded
+(it is the GKD result) and corroborated by convergent adoption across
+Qwen3, MiMo, and GLM — but treat the magnitudes as illustrative, since the
+ratio is highly sensitive to how well the RL baseline was tuned.
 
 ## Assembling the pipeline
 
