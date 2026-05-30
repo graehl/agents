@@ -1,8 +1,6 @@
 ---
 name: wish
-description: Pursue a goal X across unattended cycles until verifiably done (by quoted test). Establishes a testable done-condition, infers intent behind terse X, refuses to game the verifier.
-argument-hint: <what to achieve, e.g. "make the auth flow pass its integration tests">
-disable-model-invocation: false
+description: Pursue a goal X across unattended cycles until verifiably done (by quoted test). Use when the user invokes /wish, $wish, or asks Codex to keep working toward a goal until a demonstrated done-condition is met. Establishes a testable done-condition, infers intent behind terse X, refuses to game the verifier.
 ---
 
 # Wish loop (`/wish X`)

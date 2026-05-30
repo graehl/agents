@@ -1,7 +1,6 @@
 ---
 name: harsh-review
-description: Deliberately strict structural + correctness audit — hunts code-judo simplifications, spaghetti, leaky abstraction, and logic that breaks on a concrete input. For a deep review, not a routine merge gate.
-disable-model-invocation: false
+description: Deliberately strict structural + correctness audit — hunts code-judo simplifications, spaghetti, leaky abstraction, and logic that breaks on a concrete input. Use when the user invokes /harsh-review, $harsh-review, or asks for a harsh/deep structural review rather than a routine merge gate.
 ---
 
 # Harsh review
