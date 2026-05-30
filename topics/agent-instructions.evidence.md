@@ -18,6 +18,23 @@ Append new entries at the top; do not rewrite prior ones. Agents are
 licensed to append trace findings, incident reports, and clarifying
 examples encountered while consulting this file.
 
+## 2026-05-30 — concrete ablation method + `.testing` rider convention
+
+- **Decision** — wrote [`instruction-ablation.md`](instruction-ablation.md),
+  the concrete realization of the deferred validation plan: a paired
+  SWE-bench-style A/B over the corpus, network-off and directory-scoped
+  (no OS-level isolation — user does not demand it for a supervised
+  workflow), with McNemar pairing, a paraphrase sweep, contamination
+  invariants, and a cheap pilot to estimate the noise floor before the
+  full spend. Still a proposal — nothing has been run.
+- **Convention** — standardized an optional `<topic>.testing.md` rider
+  (see [`testing-rider.md`](testing-rider.md)): how to check a change to
+  a topic's concern. The agent-instructions rider
+  ([`agent-instructions.testing.md`](agent-instructions.testing.md))
+  makes trace-simulation the mandatory cheap tier and the ablation the
+  optional/deferred tier. Decision-relevant for a future agent proposing
+  an instruction change: there is now a named check to run.
+
 ## 2026-05-29 — the whole instruction corpus is intuition, not measurement
 
 - **Claim** — the habits and triggered focusings these docs prescribe

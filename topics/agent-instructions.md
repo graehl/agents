@@ -103,6 +103,11 @@ The real validation, deferred until compute is cheap enough, is to test
 agents on engineering tasks under varied instruction setups and measure
 outcomes — an ablation over the instruction corpus, not introspection
 about it. Until then, a well-written rule is a hypothesis, not a result.
+The concrete method for that ablation — SWE-bench-style, paired,
+network-off, with the confound and contamination controls a small effect
+needs — is [`instruction-ablation.md`](instruction-ablation.md); how to
+check any instruction change (cheap trace-sim now, ablation when worth
+it) is the rider [`agent-instructions.testing.md`](agent-instructions.testing.md).
 
 Prior art grounding that plan <!-- verified: web search 2026-05-29 -->:
 - **SWE-agent** (Yang, Jimenez et al., NeurIPS 2024; arXiv 2405.15793) —

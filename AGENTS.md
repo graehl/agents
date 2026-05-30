@@ -321,7 +321,9 @@ live in suffixed companions rather than dedicated sections of the
 main doc. Current suffixes: `.evidence.md` (verification ledger,
 append-only — see `topics/evidence-ledger.md`); `.runs/` (curated
 run records — see `topics/runs-ledger.md`); `.bearings.md`
-(orientation — see below).
+(orientation — see below); `.testing.md` (optional rider: how to
+check a change to the topic's concern before committing — see
+`topics/testing-rider.md`).
 
 `topics/<name>.bearings.md` is a nested outline of plan items. Each
 non-leaf node carries `> why: <one line>` so the chain of "why we
