@@ -136,9 +136,11 @@ Results tables in `research/<branchname>.md` **must** include:
   from claim-bearing sections. Exception: a correctness demonstration that is
   itself a finding (replicable, meaningful to an unfamiliar reader) may appear in
   the paper.
-- **`tasks/` files are the canonical location for all research investigations** —
+- **`tasks/` files are the private control plane for research investigations** —
   in-progress, parked, or planned work items live in `tasks/NNN-*.md`. They are
-  not committed to the branch and are not public.
+  not committed to the branch and are not public. Durable conclusions belong in
+  the paper or an appropriate committed `topics/` doc once they are more than
+  private direction-setting.
 - Working research-paper drafts may temporarily include a brief plan note or
   related-task pointer when it improves navigation for active collaborators. Mark
   such text as draft/navigation scaffolding and keep it short; do not let it carry

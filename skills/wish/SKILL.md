@@ -32,9 +32,12 @@ layer on top of `/goal`.
 ## 1 — Form the wish contract (explicit goal contract + done-condition)
 
 Do not start grinding on the literal words. First write a **wish
-contract** (explicit goal contract / done-condition record) — a short
-durable file, e.g. `tasks/wish-<slug>.md` (or a
-`topics/<name>.bearings.md` outline if one fits). It holds:
+contract** (explicit goal contract / done-condition record) in the
+narrowest durable place that matches the audience: prefer a
+`topics/<name>.bearings.md` outline when the work is about a
+project-facing topic; use a private `tasks/wish-<slug>.md` when
+ephemeral direction-setting, acceptance notes, or session/agent
+coordination would help. It holds:
 
 - **X, restated** — in your own words, including the *broader intent* you
   infer from the context at the time X was sent. A terse X is a pointer to

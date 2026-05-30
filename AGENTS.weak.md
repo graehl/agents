@@ -62,7 +62,7 @@ session — not all at session start.
 | Before launching or monitoring long-running jobs | `RUNS.md` |
 | Before surveying a field or gathering prior art | `survey-field.md`, `research-frontier.md` |
 | Entering a topic area for the first time in session | that topic's `.md` and `.bearings.md` |
-| User says `bearings`, `orient`, or `lost` | that topic's `.bearings.md` |
+| User says `bearings`, `orient`, or `lost` | relevant topic `.md`/`.bearings.md`, plus recent dirty files, topic/task edits, git history, run records, and live job state |
 
 ## Gate record: worked example
 

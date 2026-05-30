@@ -5,8 +5,13 @@ recovers context — but only on a greeting or explicit resume signal. A
 fresh, specific request is independent: do not read or cite
 `last-session.md` just because it exists.
 
-Git-ignored `tasks/*.md` files track per-feature progress and decisions;
-read the active one when resuming. On believed completion, append a dated
+Git-ignored private `tasks/*.md` files track per-feature direction,
+coordination, acceptance notes, and unfinished session state. Prefer
+opening or updating a committed `topics/` doc for durable conclusions,
+contracts, and project-facing knowledge. Create or extend a task file
+when private direction-setting, handoff state, or an active-work
+scratchpad would make the work easier to resume or coordinate. Read the
+active task file when resuming. On believed completion, append a dated
 status note with the relevant commit(s) and one line of evidence; if the
 task file has inline subtasks, make it a section listing each subtask's
 status. Judge each task file in isolation — no recursing into linked
@@ -348,14 +353,17 @@ its `.bearings.md` companion if present. The topic doc's contracts
 tell you what must be true and therefore where a violation must
 live — form a hypothesis that satisfies the invariants, then check
 it against the trace, not the reverse. The bearings file gives
-current orientation: synthesize it against live state (recent
-commits, WIP, task notes), not a verbatim recap. Additional
-bearings-read triggers: user says `bearings`, `orient`, `lost`, or
-states a recollection of where work stands; the user's stated
-recollection enters the discussion as an LTM-hunch candidate even
-when outdated. After such a discussion, update the bearings file
-and commit alongside the work. A full consistency pass over all
-topics is a separate periodic ritual.
+current orientation, but it is not the whole state: synthesize it
+against recent live evidence such as dirty files, recent `topics/`
+and topic-companion edits, private task files, research-log/run
+records, git history, and live `.agentctl` state. Use that evidence
+to infer what work may have been opened but not saved back into the
+bearings file. Additional bearings-read triggers: user says
+`bearings`, `orient`, `lost`, or states a recollection of where work
+stands; the user's stated recollection enters the discussion as an
+LTM-hunch candidate even when outdated. After such a discussion,
+update the bearings file and commit alongside the work. A full
+consistency pass over all topics is a separate periodic ritual.
 
 Some `topics/` entries are method/discipline docs rather than contract
 docs — e.g. `debugging.md`, `testing.md`, `prototyping.md`. Load them
