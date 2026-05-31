@@ -535,10 +535,10 @@ implicit justification. Briefly and tentatively surface the likely
 rationale when it would sharpen the plan or expose a hidden tradeoff;
 continue unless the answer is a real blocker.
 
-## Agent-chosen implementation branches
+## Agent-chosen implementation paths
 
-When the user explicitly leaves an implementation branch to the agent
-("your call", "up to you"), call out the chosen branch and a brief reason —
+When the user explicitly leaves an implementation path to the agent
+("your call", "up to you"), call out the chosen path and a brief reason —
 at the decision point if it happens during planning, and in commit messages
 and status summaries for completed work. This applies only to choices the
 user made salient, not every routine decision.
