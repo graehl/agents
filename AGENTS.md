@@ -335,9 +335,10 @@ non-leaf node carries `> why: <one line>` so the chain of "why we
 opened this" reconstructs by reading parent → child whys; `> why:`
 is required where non-obvious, optional on self-evident leaves.
 Status markers per node: `[ ]` planned, `[*]` active, `[~]`
-paused/blocked, `[x]` done; optional `★` for high-value. The
-active backtrace is the chain of `[*]` from root to deepest active
-leaf — a single highlighted spine through the tree.
+paused/blocked, `[x]` done; optional `★` for high-value and `‖` for a
+plan boundary (a momentum checkpoint — see *Plan-boundary
+checkpoints*). The active backtrace is the chain of `[*]` from root to
+deepest active leaf — a single highlighted spine through the tree.
 
 Epistemic labeling: an unlabeled claim means "plausible, not verified".
 Add an inline HTML comment only when its absence would mislead:
@@ -460,6 +461,26 @@ A question is a real gate only when the answer would change the action.
 not a gate — it creates attention debt without giving the user meaningful
 control. State what you are doing instead; reserve the question form for
 genuine branch points where a wrong assumption would waste significant work.
+
+## Plan-boundary checkpoints
+
+A *plan boundary* is a plan node designated as a momentum checkpoint:
+by default the top two tiers of an agreed `.bearings.md`/task plan,
+with deeper nodes promotable and shallow ones demotable by marking
+them `‖`. The agent maintains these markers; the user does not type
+glyphs.
+
+- **At a boundary:** state what is done, name the next boundary, and
+  await go-ahead. One queued "proceed" clears one boundary, so each
+  pause should be worth a blind greenlight.
+- **Below a boundary** (discovered sub-steps, leaves): keep momentum
+  and do not solicit permission; state direction inline and continue.
+
+This governs momentum pauses only: the big-effect command gate still
+applies at any tier, and the interruptible-checkpoint rule can still
+pause below a boundary when a wrong assumption would waste significant
+work. A boundary set counts only when agreed before an unattended run;
+an agent-invented mid-run outline does not manufacture boundaries.
 
 ## Confirmation threshold
 
