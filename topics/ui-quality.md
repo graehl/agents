@@ -72,6 +72,16 @@ next line's start; too short and rhythm breaks. Establish a **type scale**
 (a small ramp of sizes) and a clear weight hierarchy rather than many
 ad-hoc sizes.
 
+Traditional typography advice (Bringhurst, Butterick) was written for
+print and wide desktop reading; on a screen it is **always compromised**
+toward the overriding constraints of human context and small-screen
+efficiency. Allow cramping when the alternative is forcing the user to
+scroll past every paragraph: tighter leading, narrower measure, smaller
+type, and denser spacing are the correct response on phone-sized
+viewports and information-dense panes (logs, tables, TUIs, side rails).
+The textbook numbers are a *reference* — not a budget to defend at the
+cost of fitting the content on the screen the user actually has.
+
 **Understood — convention and signifiers.** Don Norman's distinction is the
 core idea: an *affordance* is what an element can do; a *signifier* is the
 visible cue that tells the user it can (the button looks pressable, the
@@ -145,8 +155,8 @@ where relevant, in a clickable TUI.
 A **theme** is a coherent set of presentation values (color, typography,
 elevation) that can be swapped *without changing layout or behavior*. The
 modern mechanism is **design tokens** — named design decisions stored as
-data (the W3C Design Tokens Format Module reached its first stable version
-in October 2025) and consumed as CSS custom properties. Full treatment in
+data (the W3C Design Tokens Format Module) and consumed as CSS custom
+properties. Full treatment in
 [`theming`](theming.md). The vocabulary worth fixing now:
 
 - **mode** — a paired environmental variant: light/dark, high-contrast.
