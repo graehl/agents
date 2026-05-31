@@ -85,7 +85,6 @@ loading. Check first:
 When the user labels a rule, persist it (do not leave it only in chat):
 - `global rule` -> `~/agents/AGENTS.md`
 - `project-level rule` -> repo-local `AGENTS.md`
-- `branch rule` -> branch main task file `tasks/NNN-<branch>.md`
 
 ## Load-bearing instructions
 
@@ -123,9 +122,9 @@ not safely recoverable from git (especially untracked files like
 `AGENTS.local.md`, or tracked files with uncommitted changes), first
 snapshot it under `.backups/<YYYYmmdd-HHMMSS>/<relative-path>`.
 
-## Research and run supplements
+## Optional supplements
 
-Companion docs hold split-out policy:
+Companion docs hold split-out, opt-in policy:
 - `RESEARCH.md` — research method; load before substantive work when the
   repo or request indicates research/experimentation (`research/`,
   `tasks/`, notebooks, train/eval scripts, significance requests).
@@ -136,10 +135,13 @@ Companion docs hold split-out policy:
   research-frontier templates; load when the task is surveying a field,
   gathering prior art, or void-mapping/capstone suggestion. This trigger
   is independent of `RESEARCH.md`.
+- `feature-branch.md` — branch-per-feature workflow policy; load when the
+  project's `AGENTS.md` names it or the repo plainly uses feature
+  branches. Default policy is branch-agnostic without it.
 
 Resolve companion docs at the repo root first, then `~/agents/`. If a
 triggered file is missing, report once and continue. Keep reusable
-research/run guidance global (in `~/agents/`) unless it depends on a
+cross-project guidance global (in `~/agents/`) unless it depends on a
 specific repo's data, scripts, or schema.
 
 # Big-effect command gate
