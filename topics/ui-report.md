@@ -18,6 +18,17 @@ Subtopic of [`ui-quality`](ui-quality.md). This doc is a checklist for
 *producing* a report; the *criteria* the report cites live in the four
 sibling docs and in `GLOSSARY.md`.
 
+## How to request one
+
+The glossary term *is* the trigger — ask for a **UI report** (or a
+"screenshot audit"); naming this doc is never required. Natural
+forms: *"produce a UI report for the app"*, *"ui-report on ./web"*,
+*"do a screenshot-backed UI audit before the release."* Optionally
+name the output directory (*"…into docs/ui-2026-06/"*); whatever the
+directory, the report file inside it is always `README.md` (see
+*Output layout*), so the directory renders as a browsable report on
+GitHub without naming a file.
+
 ## Audience and purpose
 
 The report serves two readers at once and is written with both in mind:
@@ -55,8 +66,10 @@ not.
 ## Output layout
 
 Write everything under the report directory (default `ui-report/`,
-override on request). Self-contained, committable, browsable as
-rendered markdown:
+override on request). Whatever directory is chosen, the narrative
+file inside it is always `README.md` — the directory is the unit you
+name, the report file within it is fixed. Self-contained,
+committable, browsable as rendered markdown:
 
 ```
 ui-report/
@@ -263,6 +276,64 @@ against absolute thresholds, do a baseline pass:
 This ordering matters: a project's own conventions are the cheapest
 fix and the most useful feedback. Absolute critiques are noise if
 they're applied to the whole codebase uniformly.
+
+## Keeping a report current
+
+A report is a snapshot, but a *living* one once committed. When a UI
+change lands and a `ui-report/` already exists, re-capture the
+affected views rather than letting the gallery go stale: re-shoot the
+nominal/narrow frames (and the theme frame, if that view carries one)
+for each changed screen, refresh that entry's orientation prose and
+any inconsistency items it touched, and re-run the manifest so the
+live-URL links stay valid. Untouched views keep their existing
+shots — the point is a cheap, targeted refresh of the changed
+session/screen captures, not a full re-capture every commit. If a
+`MANUAL.md` (below) exists, check whether the change altered an
+operation or an illustrated affordance and update that too.
+
+## Companion: MANUAL.md (optional operations manual)
+
+The manual is a **byproduct of the report**: by default it is the
+report's onboarding payload — *what each view is for* and *what you
+can do with it* — with the designer/critique commentary removed, and
+nothing more. It is produced **after** the report has been read,
+reacted to, and brought up to date, as a *separate, optional product*,
+never instead of it. Some restructuring and editing *for the manual's
+purpose* is permitted on top of that default:
+
+- **Audience: users and operators only.** It carries the orientation
+  half of the report and drops the critique half entirely — no
+  Strengths / Weaknesses / Inconsistencies, no `> **Suggestion**` or
+  `> **Designer note**` blockquotes. That stripping is the floor; a
+  manual that editorializes about the UI's quality has drifted back
+  into being a report.
+- **May reorganize by operation rather than by view.** The default
+  inherits the report's per-view order; where it reads better, regroup
+  the prose under the important things a user *does* ("Create a
+  project", "Import a dataset", "Switch theme"), each a short procedure
+  in `GLOSSARY.md` vocabulary. A view may then appear under several
+  operations and an operation span several views. Reorganizing is an
+  allowed enhancement, not a requirement — the critique-stripped
+  view-ordered form is a valid manual on its own.
+- **Options footnoted locally.** Each operation states the common path
+  in the body; less-common flags, toggles, and edge-case options go in
+  footnotes attached *to that operation*, so the main flow stays short
+  while the full surface stays documented. Keep the footnotes with the
+  operation, not collected in a global appendix.
+- **Affordance-focused illustration.** Where an operation hinges on a
+  specific control, include a screenshot framed on *that affordance* —
+  a cropped (and, if helpful, annotated) shot of the relevant button,
+  menu, or field — not the full-view frames the report's gallery uses.
+  Reuse a report capture when it already shows the control clearly;
+  add a tighter, operation-specific shot when it does not.
+
+`MANUAL.md` and its referenced images are intended to be
+**committed** (the report itself a project may or may not keep under
+version control). Put it where the project keeps user docs — repo-root
+`MANUAL.md` or `docs/MANUAL.md` — with its attachments in a sibling
+`manual-assets/`, or reused from `ui-report/views/`. It is not
+generated mechanically from the report; producing it is a deliberate
+follow-up step.
 
 ## What this report is *not*
 
