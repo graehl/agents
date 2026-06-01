@@ -85,3 +85,48 @@ git commit -F <(commit-msg-lint < draft.txt) && rm draft.txt
 # or, fail fast before committing:
 commit-msg-lint < draft.txt && git commit -F draft.txt
 ```
+
+### commit-msg-fmt
+
+**CLI**: `commit-msg-fmt -m "subject" [-m "para" ...]`. Writes a
+formatted commit message to stdout, exits 0. The first `-m` is the
+subject and passes through unwrapped. Subsequent `-m` args are
+wrapped to 71 cols. `-m` args are joined with single newlines —
+**no blank lines are inserted automatically**, unlike `git commit
+-m -m`. To insert a blank line (e.g. between subject and body),
+pass `-m ''`. No `-m` args or empty subject exits 2.
+
+**Post-conditions**:
+- output line 1 (subject) equals first `-m` arg verbatim
+- each body line ≤71 cols (except where a single token in the
+  input is itself >71)
+- blank lines in output come only from explicit `-m ''`
+- output ends with exactly one trailing newline
+
+**Scope limitation**: each `-m` is treated as one plain-prose
+paragraph. Pre-formatted content (bullets, hanging indents, ASCII
+diagrams, tables, code blocks) must not be passed through this
+formatter — write those messages directly with `git commit -F`
+instead. The formatter intentionally collapses internal whitespace
+when wrapping.
+
+**Examples**:
+1. `commit-msg-fmt -m "feat: do thing"` → `feat: do thing` + newline.
+2. `commit-msg-fmt -m "feat: do thing" -m "" -m "Body paragraph
+   long enough to wrap across two lines at 71 cols of width."`
+   → subject, blank line, body wrapped to ≤71 cols.
+3. `commit-msg-fmt -m "feat: do thing" -m "" -m "Para 1." -m "" -m
+   "Para 2."` → subject, blank, `Para 1.`, blank, `Para 2.`.
+4. `commit-msg-fmt -m "feat: do thing" -m "Body, no blank above."`
+   → subject directly followed by body line; commit-msg-lint will
+   flag the missing blank.
+5. `commit-msg-fmt` (no args) → exit 2, `no -m args`.
+
+**Canonical source**: `~/agents/scripts/commit-msg-fmt`.
+**Install target**: `~/bin/commit-msg-fmt` (symlink by default).
+
+**Composes with commit-msg-lint**:
+```sh
+commit-msg-fmt -m "feat: do thing" -m '' -m "Body paragraph." \
+  | commit-msg-lint && git commit -F -
+```

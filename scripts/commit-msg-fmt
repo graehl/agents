@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""commit-msg-fmt — format a commit message from multiple -m args.
+
+Spec: ~/agents/topics/helper-scripts.md (commit-msg-fmt entry).
+First -m is the subject (passed through unwrapped). Subsequent
+-m args are wrapped to 71 cols. -m args are joined with single
+newlines; no blank lines are inserted automatically. Pass -m ''
+to insert a blank line. No -m args or empty subject exits 2.
+"""
+from __future__ import annotations
+
+import argparse
+import sys
+import textwrap
+
+BODY_WIDTH = 71
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(
+        description=(
+            "Format a commit message from -m args; first is subject "
+            "(unwrapped), rest are wrapped to 71; '' inserts a blank line."
+        ),
+        prog="commit-msg-fmt",
+    )
+    p.add_argument(
+        "-m",
+        action="append",
+        default=[],
+        dest="messages",
+        metavar="MSG",
+        help=(
+            "message paragraph; first is the subject (unwrapped); "
+            "subsequent ones are wrapped to 71 cols; '' inserts a "
+            "blank line"
+        ),
+    )
+    args = p.parse_args()
+
+    if not args.messages:
+        print("commit-msg-fmt: no -m args", file=sys.stderr)
+        return 2
+    if not args.messages[0].strip():
+        print("commit-msg-fmt: empty subject", file=sys.stderr)
+        return 2
+
+    out: list[str] = []
+    for i, msg in enumerate(args.messages):
+        if i == 0:
+            out.append(msg)
+        elif msg == "":
+            out.append("")
+        else:
+            wrapped = textwrap.fill(
+                msg,
+                width=BODY_WIDTH,
+                break_long_words=False,
+                break_on_hyphens=False,
+            )
+            out.append(wrapped)
+    sys.stdout.write("\n".join(out) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
