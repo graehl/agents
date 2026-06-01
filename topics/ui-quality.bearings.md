@@ -38,6 +38,12 @@ Active backtrace is the chain of `[*]` from root to the deepest active leaf.
     - [x] Design-token taxonomy + W3C format + CSS custom properties
     - [x] Presentation-only contract as a verifiable claim
     - [x] forced-colors / high-contrast; user/third-party skin sandbox
+  - [x] **ui-report** — informal-skill checklist for periodic
+        screenshot-backed audits
+    > why: agents asked "is this UI good?" need a rendered tour and a
+    > consistency-relative evaluation, not an a11y-tree opinion;
+    > inverted-pyramid evaluation lands the most actionable finding
+    > (inconsistencies vs. project's own baseline) at the top.
   - [~] Decide whether general-domain typography/theme terms should be
         surfaced as candidates for `~/agents/TOPICS.md` / `topic-definitions.md`
     > note: surfaced once to the user as a candidate set; awaiting their call,

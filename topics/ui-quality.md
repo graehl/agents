@@ -181,6 +181,10 @@ while silently breaking another (a prettier theme that shifts layout; a
 "responsive" tweak that drops the measure to 30 characters on mobile) has
 not improved UI quality.
 
+For periodic audits of an existing UI — a screenshot-backed markdown
+report scored first against the project's own prevailing style and
+second against these principles — see [`ui-report`](ui-report.md).
+
 ## Learn more — beginner tutorials
 
 Exceptional, mostly-free, novice-friendly material, gentlest first. These
