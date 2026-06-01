@@ -192,6 +192,21 @@ verify source and destination branches match, and stash or
 formally commit (or amend) first — a committed state is the only
 safe transfer unit. Do not rely on default agent caution here.
 
+# Hot-reload / live-interpreted projects
+
+When a project's running process re-reads source on save (dev server,
+nodemon, watcher-driven build, live REPL/notebook session), a related
+series of edits must not leave the live tree in a state that crashes
+that process between writes. The watcher observes each write; the
+contract covers the sequence of observed states, not only the final
+one.
+
+Choose any mechanism that satisfies the contract — make each
+intermediate state self-consistent, pause/stop the watcher across the
+batch, stage and transfer together. Before applying a batch built
+against earlier reads, verify the target files have not drifted from
+those reads.
+
 # Commits
 
 Subject <=65 chars and scannable for `git log --oneline`. Wrap body prose
