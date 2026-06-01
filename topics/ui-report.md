@@ -5,12 +5,14 @@
 > reference that covers users who size fonts up or zoom their browser,
 > plus a single-view theme gallery — that serves two readers: new
 > users and UI developers learning what the screens are and what you
-> can do with them, and maintainers wanting a critique evaluated first
-> against the project's own prevailing style and second against the
-> principles in `ui-quality` / `functional-layout` / `ui-verification`
-> / `theming`. Inline improvement suggestions and designer-rationale
-> notes are welcomed but visibly bracketed from the observations. The
-> evaluation runs at the top as a conclusion-as-lead.
+> can do with them, and maintainers wanting a critique — plus a
+> first-steps improvement direction — evaluated first against the
+> project's own prevailing style and second against the principles in
+> `ui-quality` / `functional-layout` / `ui-verification` / `theming`.
+> Inline improvement suggestions and designer-rationale notes are
+> welcomed but visibly bracketed from the observations. The evaluation
+> runs at the top as a conclusion-as-lead, opening with a one-paragraph
+> direction thesis (preserve / improve), not a detailed mockup.
 
 Topic: ui-report
 
@@ -97,20 +99,43 @@ heading in the report.
 `README.md` is the only narrative file. Sections in this order:
 
 1. **Evaluation** (conclusion-as-lead — the most-read section).
-   Three short subsections, each a bullet list, each bullet one
-   sentence and one in-document anchor to the gallery row that
-   demonstrates it:
-   - **Strengths** — what the UI does consistently and well, in the
-     project's own vocabulary.
+   Open with a **direction thesis**: one short paragraph naming what
+   the UI fundamentally *is*, the single coherent direction it should
+   move in, and the spirit to keep while moving (e.g. "a conservative
+   consolidation: keep the dense operator-first workbench, make the
+   recurring control patterns uniform, surface high-value actions
+   without adding chrome"). Asking for a report is often a tacit
+   admission that the UI grew screen-by-screen and was never designed
+   as a whole — so synthesizing one direction across the gallery is a
+   large part of the report's value, not an aside. This is *first-steps
+   proposing* — improvement directions, not a detailed mockup (those
+   are a separate later artifact; see *What this report is not*).
+
+   Then the subsections, each a bullet list, each bullet one sentence
+   with an in-document anchor to the gallery row that demonstrates it:
+   - **Preserve** (a.k.a. Strengths) — what the UI does consistently
+     and well, in the project's own vocabulary, framed as a *guardrail*:
+     things a change must not break.
+   - **Improve** — the proposing half, grouped by **lens** so the
+     directions are legible rather than a flat wishlist:
+     - *Consistency* — same affordance shown two ways; spacing or type
+       scale violated; color tokens bypassed; density mixed within one
+       screen. **Usually the fattest and most actionable lens — lead
+       with it if so**; it is the cheapest fix and the most useful
+       feedback.
+     - *Power-user convenience* — friction in the high-frequency flows
+       a returning operator runs many times a day; reachability of
+       dense controls across widths.
+     - *Discoverability / aesthetics* — actions that don't advertise
+       themselves (icon-only rows, sparse surfaces), plus restraint of
+       one-off page dialects. Aesthetic notes ride here, not as a
+       separate beauty contest.
    - **Weaknesses** — failures against testable thresholds (contrast,
      target size, jitter, focus, motion); cite WCAG numbers from
-     `ui-verification` when applicable.
-   - **Inconsistencies** — same affordance shown two ways; spacing or
-     type scale violated; color tokens bypassed; density mixed within
-     one screen. *Most actionable category — lead with it if it's the
-     fattest.*
+     `ui-verification` when applicable. These are defects to fix, kept
+     distinct from the *Improve* directions above.
 
-   Optionally a fourth subsection, **Deliberate tradeoffs**, naming
+   Optionally a further subsection, **Deliberate tradeoffs**, naming
    places the UI knowingly compromises textbook typography for
    small-screen efficiency or information density (per the tradeoff
    note in `ui-quality` §1). Calling these out separately avoids
@@ -303,8 +328,9 @@ purpose* is permitted on top of that default:
 
 - **Audience: users and operators only.** It carries the orientation
   half of the report and drops the critique half entirely — no
-  Strengths / Weaknesses / Inconsistencies, no `> **Suggestion**` or
-  `> **Designer note**` blockquotes. That stripping is the floor; a
+  direction thesis, no Preserve / Improve / Weaknesses sections, no
+  `> **Suggestion**` or `> **Designer note**` blockquotes. That
+  stripping is the floor; a
   manual that editorializes about the UI's quality has drifted back
   into being a report.
 - **May reorganize by operation rather than by view.** The default
@@ -341,11 +367,14 @@ follow-up step.
   output if you want one (see `ui-verification` §4).
 - Not a performance audit — INP/CLS belong here only as observed
   defects on real flows, not as a Lighthouse score dump.
-- Not a redesign proposal or mockup deliverable. Inline suggestions
-  are welcomed (see *Suggestions and designer notes*) but sit
-  alongside observations, not as a parallel "proposed redesign"
-  track. Full mockups, before/after comps, or a comprehensive
-  rework belong in a different artifact.
+- Not a *detailed* redesign or mockup deliverable. Proposing
+  improvement *directions* is in scope and wanted — that is exactly
+  the Evaluation's direction thesis and *Improve* lenses (first-steps
+  proposing). What sits out of scope is the heavyweight form: full
+  mockups, before/after comps, pixel specs, or a comprehensive rework
+  presented as a parallel "proposed redesign" track. Those belong in a
+  separate artifact (to be defined later); the report names where and
+  why to move, not the finished destination.
 - Not a substitute for the verification tests in `ui-verification` —
   a report is a snapshot for humans; tests catch regressions.
 
