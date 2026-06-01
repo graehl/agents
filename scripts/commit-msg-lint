@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""commit-msg-lint — validate a commit message draft.
+
+Spec: ~/agents/topics/helper-scripts.md (commit-msg-lint entry).
+Reads draft on stdin. Echoes draft to stdout on success (exit 0).
+On violation, lists issues on stderr (exit 1). Empty input exits 2.
+"""
+from __future__ import annotations
+
+import re
+import sys
+
+SUBJECT_MAX = 65
+BODY_MAX = 71
+
+
+def lint(text: str) -> list[str]:
+    issues: list[str] = []
+    lines = text.rstrip("\n").split("\n")
+    if not lines or not lines[0].strip():
+        return ["empty subject"]
+    subject = lines[0]
+    if len(subject) > SUBJECT_MAX:
+        issues.append(f"subject {len(subject)} > {SUBJECT_MAX} chars")
+    if "\\n" in subject:
+        issues.append("literal '\\n' in subject (shell-quoting bug?)")
+
+    body_start: int | None = None
+    if len(lines) > 1:
+        if lines[1].strip():
+            issues.append("missing blank line between subject and body")
+            body_start = 1
+        else:
+            body_start = 2
+
+    if body_start is not None:
+        for offset, line in enumerate(lines[body_start:]):
+            n = body_start + offset + 1
+            if len(line) > BODY_MAX:
+                tokens = line.split()
+                longest = max((len(t) for t in tokens), default=0)
+                if longest <= BODY_MAX:
+                    issues.append(f"line {n}: {len(line)} > {BODY_MAX} cols")
+            if re.search(r"\bCo-Authored-By:", line, re.IGNORECASE):
+                issues.append(f"line {n}: Co-Authored-By disallowed")
+    return issues
+
+
+def main() -> int:
+    text = sys.stdin.read()
+    if not text.strip():
+        print("commit-msg-lint: empty input", file=sys.stderr)
+        return 2
+    issues = lint(text)
+    if issues:
+        for issue in issues:
+            print(f"commit-msg-lint: {issue}", file=sys.stderr)
+        return 1
+    sys.stdout.write(text)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
