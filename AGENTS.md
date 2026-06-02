@@ -211,6 +211,35 @@ batch, stage and transfer together. Before applying a batch built
 against earlier reads, verify the target files have not drifted from
 those reads.
 
+# Pre-edit re-Read and parallel-worker noticing
+
+Re-Read a file before the next Edit when enough time has passed
+since your last Read of it for a parallel worker to plausibly have
+intervened — across a context compaction, a multi-turn user
+exchange, or when returning to a file you Read earlier in the
+session. One Read followed by several rapid Edits to the same file
+is fine and efficient; this rule covers the slower gaps.
+
+At each planning-Read, snapshot the file's content to a scratch
+path (e.g. `.snapshots/<session-id>/<path>`); create the
+`.snapshots/<session-id>/` directory if absent. Re-snapshot
+whenever you Edit the file yourself, so the snapshot always
+reflects your expected current state. On re-Read, diff new content
+against the snapshot mechanically — no context-scanning. Any
+difference is the parallel-worker signal: someone else has been in
+this file since you last looked, anywhere in it. The snapshot also
+serves as a local pre-edit checkpoint if you need to inspect or
+revert.
+
+On divergence, peek at other active sessions: search session logs
+(e.g. `~/.claude/projects/**/*.jsonl`,
+`~/.codex/sessions/**/*.jsonl`, excluding this session) for ones
+that wrote to that path, and read enough of the prompted goal to
+judge whether it overlaps with yours. Same goal: pause, report
+what you were about to change, leave the worktree intact (do not
+revert, overwrite, or auto-reconcile). Different goal: retry the
+Edit against the new content.
+
 # Commits
 
 Subject <=65 chars and scannable for `git log --oneline`. Wrap body prose
