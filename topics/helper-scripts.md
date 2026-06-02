@@ -18,11 +18,10 @@ pipelines do not.
 
 ## Where impls live
 
-- **Canonical source**: `~/agents/scripts/<name>`. Committed under
-  the synced `~/agents` repo, Python 3.10+ pure-stdlib unless a
-  dependency is justified. Every helper ships with its initial
-  tested impl — specs without a working impl are aspirational, not
-  installable.
+- **Canonical source**: `scripts/<name>` in this repo. Python
+  3.10+ pure-stdlib unless a dependency is justified.
+  Every helper ships with its initial tested impl — specs without a
+  working impl are aspirational, not installable.
 - **Runtime install**: `~/bin/<name>` per machine. Agent installs
   on first use (symlink to the canonical source, or copy if the env
   rejects symlinks). Assumption: a Python 3.10+ interpreter is on
@@ -32,8 +31,9 @@ pipelines do not.
   `~/bin/<name>` with a fresh impl built to the same spec — keep
   the name and CLI identical so callers do not change.
 - **Project-shaped helpers** (those that know repo-specific
-  conventions): repo-local gitignored `scripts/agent/<name>`.
-  Agent rebuilds from spec on first use per clone.
+  conventions): repo-local gitignored `scripts/agent/<name>` inside
+  the consuming project. Agent rebuilds from spec on first use per
+  clone.
 
 ## Rebuild trigger
 
@@ -50,8 +50,7 @@ all or do not ship the rebuild. Do not invent a different UI.
 stdout, exits 0. On violation lists issues on stderr (one per line,
 prefixed `commit-msg-lint:`), exits 1. Empty input exits 2.
 
-**Post-conditions** (derived from `~/agents/AGENTS.md` Commits
-section):
+**Post-conditions** (derived from `AGENTS.md` Commits section):
 - subject ≤65 chars
 - no literal `\n` in subject (multi-`-m` shell-quoting symptom)
 - blank line between subject and body if body present
@@ -76,7 +75,7 @@ section structure.
 5. Clean subject, blank line, body line containing a single
    90-char URL with no spaces → exit 0 (long-token carve-out).
 
-**Canonical source**: `~/agents/scripts/commit-msg-lint`.
+**Canonical source**: `scripts/commit-msg-lint` (in this repo).
 **Install target**: `~/bin/commit-msg-lint` (symlink by default).
 
 **Usage**:
@@ -122,7 +121,7 @@ when wrapping.
    flag the missing blank.
 5. `commit-msg-fmt` (no args) → exit 2, `no -m args`.
 
-**Canonical source**: `~/agents/scripts/commit-msg-fmt`.
+**Canonical source**: `scripts/commit-msg-fmt` (in this repo).
 **Install target**: `~/bin/commit-msg-fmt` (symlink by default).
 
 **Composes with commit-msg-lint**:

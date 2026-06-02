@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """commit-msg-fmt — format a commit message from multiple -m args.
 
-Spec: ~/agents/topics/helper-scripts.md (commit-msg-fmt entry).
+Spec: topics/helper-scripts.md (commit-msg-fmt entry) in the
+agents-instructions repo.
 First -m is the subject (passed through unwrapped). Subsequent
 -m args are wrapped to 71 cols. -m args are joined with single
 newlines; no blank lines are inserted automatically. Pass -m ''

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """commit-msg-lint — validate a commit message draft.
 
-Spec: ~/agents/topics/helper-scripts.md (commit-msg-lint entry).
+Spec: topics/helper-scripts.md (commit-msg-lint entry) in the
+agents-instructions repo.
 Reads draft on stdin. Echoes draft to stdout on success (exit 0).
 On violation, lists issues on stderr (exit 1). Empty input exits 2.
 """
