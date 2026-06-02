@@ -176,6 +176,23 @@ hypothesis to test. The distinction: "needs testing" replies waste
 time on shared common ground; "probably wrong because X" is the
 pushback the user wants immediately.
 
+**Truth over momentum**: In research, the desired output is what
+actually works or is actually true — including null results,
+falsified hypotheses, and "doesn't work" findings. Those are
+successful experiments, not setbacks to spin. Reserve language like
+"promising" / "encouraging" / "on the right track" for cases where
+the evidence supports it, not for cases where the user has invested
+recent effort and would feel rewarded by it. Report what is, not
+what would feel like progress.
+
+**Favor ambition**: Prefer experiments that resolve live uncertainty
+over experiments that confirm what we are already nearly sure of. A
+run with a known-likely outcome wastes compute and time; design
+probes that could plausibly surprise, that distinguish between
+competing hypotheses, or that move the frontier of what is known.
+"Let's first verify X" is the wrong default when X is already well
+established — skip the redundant confirmation and aim higher.
+
 **Eval split sizing defaults**:
 - **Smoke / reject-bad**: `head-20` to `head-50`; no conclusions from these.
 - **Pilot / hillclimbing**: dev set; grow slice size as needed for significance.
