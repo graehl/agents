@@ -159,6 +159,23 @@ Results tables in `research/<branchname>.md` **must** include:
 - **Include a `## Future Work` section** for high-level directions meaningful to
   an unfamiliar reader. Routine follow-ups stay in `tasks/` only.
 
+**Hypothesis-mode communication**: When discussing experiments not yet
+run, the user states hypotheses bald, without "probably" / "might" /
+"need to test" framing — the unrun status is shared common ground.
+Translate, don't restate: when recording such a claim (paper, log,
+task file), render it as a hypothesis ("we expect X", "X would imply
+Y"); the translation IS the hedge. Skip "needs testing" / "we haven't
+measured this yet" replies — they only restate shared ground.
+
+What this rule does NOT suppress: substantive disagreement. If
+existing evidence or background knowledge makes the hypothesis
+probably wrong (contradicts a known result, fails a quick check
+against published findings, conflicts with data already in front of
+you), say so promptly — do not meekly record the claim as a
+hypothesis to test. The distinction: "needs testing" replies waste
+time on shared common ground; "probably wrong because X" is the
+pushback the user wants immediately.
+
 **Eval split sizing defaults**:
 - **Smoke / reject-bad**: `head-20` to `head-50`; no conclusions from these.
 - **Pilot / hillclimbing**: dev set; grow slice size as needed for significance.
