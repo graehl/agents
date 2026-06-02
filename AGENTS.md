@@ -50,34 +50,42 @@ inspection follows the map, not the other way around.
 
 # Authority and instruction files
 
-`~/agents/AGENTS.md` is the authoritative global instructions file; global
-policy changes belong here first, even when a repo-local `AGENTS.md` /
-`CLAUDE.md` symlinks or copies it. Keep shared helper scripts under
-`~/agents/` and `~/bin/` in sync. When global instructions or those
-scripts change, make a brief commit on `~/agents` `master`.
+`~/agents/AGENTS.md` is the authoritative global instructions file;
+global policy changes belong here first, even when a repo-local
+`AGENTS.md` / `CLAUDE.md` symlinks or copies it. Keep shared helper
+scripts under `~/agents/` and `~/bin/` in sync. When global instructions
+or those scripts change, make a brief commit on `~/agents` `master`.
 
-`~/agents/AGENTS.user.md` is a personal supplement — read it alongside this
-file every session.
+In these instructions, `~/agents` means the agents-instructions checkout
+(git origin `github.com/graehl/agents`) wherever it actually lives on the
+current host. If the checkout is not literally at `/home/.../agents`,
+resolve `~/agents/...` references to the loaded checkout path; do not
+look for those files in the current project. Relative paths appearing in
+`~/agents` instructions, such as `topics/...`, `skills/...`, or
+`TOPICS.md`, also resolve inside the `~/agents` checkout unless the rule
+explicitly says they are project-local.
 
-The instructions live in the `~/agents` checkout (git origin
-`github.com/graehl/agents`), which also holds companion docs explaining the
-reasoning behind the policy and the evidence for it — e.g.
-`topics/agent-instructions.md` and its `.evidence.md` ledger. These are not
-loaded routinely; read one on demand only when unsure how to safely follow
-a rule, or when proposing an improvement to it. Suggesting instruction
-improvements is always welcome, from work in any project, not only when
-working inside `~/agents`. You may append to a topic's `.evidence.md`
-companion (the topic's evidence ledger and your own notes on the
-topic). The convention — what to append, when, how, the append-only
-and not-routinely-loaded constraints — is in
+`~/agents/AGENTS.user.md` is a personal supplement — read it alongside
+this file every session.
+
+The instructions live in the `~/agents` checkout, which also holds
+companion docs explaining the reasoning behind the policy and the
+evidence for it — e.g. `~/agents/topics/agent-instructions.md` and its
+`.evidence.md` ledger. These are not loaded routinely; read one on demand
+only when unsure how to safely follow a rule, or when proposing an
+improvement to it. Suggesting instruction improvements is always welcome,
+from work in any project, not only when working inside `~/agents`. You may
+append to a topic's `.evidence.md` companion (the topic's evidence ledger
+and your own notes on the topic). The convention — what to append, when,
+how, the append-only and not-routinely-loaded constraints — is in
 `~/agents/topics/evidence-ledger.md`.
 
 ## Skills path aliasing
 
-`~/agents/skills` and `~/.codex/skills/user` may alias the same directory;
-treat `~/agents/skills` as the canonical edit target. Do not "sync" them
-into symlinks — that creates self-referential loops that break skill
-loading. Check first:
+`~/agents/skills` and `~/.codex/skills/user` may alias the same
+directory; treat `~/agents/skills` as the canonical edit target.
+Do not "sync" them into symlinks — that creates self-referential loops
+that break skill loading. Check first:
 `stat -c '%d:%i %n' ~/agents/skills ~/.codex/skills/user`.
 
 ## Instruction routing
@@ -323,7 +331,9 @@ or directories; a doc describing one module with no external consumer is a
 README section. A topic doc is not a changelog: it names contracts,
 invariants, assumptions, dependencies, and known edge cases. For
 granularity calibration and a topic-name vocabulary, read
-`~/agents/TOPICS.md` when creating or assessing a topic.
+`~/agents/TOPICS.md` when creating or assessing a topic. Do not look for
+this file in the project checkout unless the project explicitly has its
+own topic taxonomy.
 
 Topic-doc format: an H1 stating the topic, then a `> ` blockquote
 lede (one or more `> ` lines, no other content between H1 and lede,
@@ -341,11 +351,11 @@ or a `.<suffix>/` directory, depending on the convention. The main
 topic doc stays free-form prose; concerns with their own structure
 live in suffixed companions rather than dedicated sections of the
 main doc. Current suffixes: `.evidence.md` (verification ledger,
-append-only — see `topics/evidence-ledger.md`); `.runs/` (curated
-run records — see `topics/runs-ledger.md`); `.bearings.md`
-(orientation — see below); `.testing.md` (optional rider: how to
-check a change to the topic's concern before committing — see
-`topics/testing-rider.md`).
+append-only — see `~/agents/topics/evidence-ledger.md`); `.runs/`
+(curated run records — see `~/agents/topics/runs-ledger.md`);
+`.bearings.md` (orientation — see below); `.testing.md` (optional
+rider: how to check a change to the topic's concern before committing —
+see `~/agents/topics/testing-rider.md`).
 
 `topics/<name>.bearings.md` is a nested outline of plan items. Each
 non-leaf node carries `> why: <one line>` so the chain of "why we
@@ -583,14 +593,15 @@ concurrence as verified.
 When the user invokes `/doubt` or says they doubt, distrust, are
 unconvinced by, or want a clean re-check of a conclusion, answer, plan,
 proof, diagnosis, or review, treat it as a doubt pass. Load
-`skills/doubt/SKILL.md` when available. The target is the conclusion and
-reasoning just applied unless the user names another target. Solve the
-underlying problem independently first, using external checks where
-possible; only after the fresh answer exists, compare against the prior
-reasoning and identify the first consequential divergence. Do not assign
-causal blame to hidden or lossy reasoning traces; name the first visible
-divergence and say what evidence it is based on. This trigger does not
-override normal execution, tool-use, or big-effect-command gates.
+`~/agents/skills/doubt/SKILL.md` when available. The target is the
+conclusion and reasoning just applied unless the user names another
+target. Solve the underlying problem independently first, using external
+checks where possible; only after the fresh answer exists, compare
+against the prior reasoning and identify the first consequential
+divergence. Do not assign causal blame to hidden or lossy reasoning
+traces; name the first visible divergence and say what evidence it is
+based on. This trigger does not override normal execution, tool-use, or
+big-effect-command gates.
 
 ## Epistemic treatment of user statements
 
