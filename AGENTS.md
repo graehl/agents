@@ -56,14 +56,10 @@ global policy changes belong here first, even when a repo-local
 scripts under `~/agents/` and `~/bin/` in sync. When global instructions
 or those scripts change, make a brief commit on `~/agents` `master`.
 
-In these instructions, `~/agents` means the agents-instructions checkout
-(git origin `github.com/graehl/agents`) wherever it actually lives on the
-current host. If the checkout is not literally at `/home/.../agents`,
-resolve `~/agents/...` references to the loaded checkout path; do not
-look for those files in the current project. Relative paths appearing in
-`~/agents` instructions, such as `topics/...`, `skills/...`, or
-`TOPICS.md`, also resolve inside the `~/agents` checkout unless the rule
-explicitly says they are project-local.
+In these instructions, `~/agents` refers to this checkout's root,
+expected at `$HOME/agents`. If this file was loaded from a different
+path, substitute that directory for `~/agents` in all paths below;
+do not look for `~/agents/...` files in the current project.
 
 `~/agents/AGENTS.user.md` is a personal supplement — read it alongside
 this file every session.
@@ -310,7 +306,7 @@ naming, comments, structure, abstraction, and input/output contracts. The
 points below are either not in that doc or are worth repeating here:
 
 - Before introducing a new general facility, consult
-  `GLOSSARY.md` (contribution rules in `topics/glossary.md`);
+  `GLOSSARY.md` (contribution rules in `~/agents/topics/glossary.md`);
   keep single-use facilities close to their use.
 - Keep run logs greppable: tag every line of a phase with the phase name
   (`WARMUP: ...`), rather than bracketing a span (`[start WARMUP]` /
