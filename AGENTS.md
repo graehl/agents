@@ -446,6 +446,13 @@ term, prefer the glossary's wording. If `GLOSSARY.md` has fallen
 out of context (deep in a long session, post-compaction), `rg` it
 before proposing a new row or claiming a term is absent.
 
+In any new-reader-accessible doc, briefly spell out a glossary term
+at first use when the term is project-specific or could be mistaken
+for ordinary English. After that, use the glossary term consistently.
+Do not expand obvious general-domain terms, or terms whose definition
+is immediately supplied by a heading, caption, table, or adjacent
+sentence.
+
 A glossary row is not a pending topic doc — most rows are vernacular
 forever. A row becomes a `topics/<name>.md` only when it meets the
 cross-cutting-concern bar in `~/agents/TOPICS.md`.

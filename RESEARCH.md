@@ -55,6 +55,33 @@ without scanning prose blocks.
 
 ### Research paper conventions
 
+#### First-contact public-facing sections
+
+For the first public-facing section of a research paper, report, or
+presentation, model a reader who has none of the live conversation context.
+Before accepting the opening framing, check:
+
+- Does the opening state the main result or claim before mechanism detail?
+- Can a reader understand the task without knowing internal run names?
+- Are condition names literal enough to decode from the table alone?
+- Are all abbreviations, glossary terms, and project-specific labels expanded
+  or briefly glossed on first use?
+- Does the first table avoid implementation/debug-only columns?
+- Are table columns defined immediately below the caption when they are not
+  ordinary field-wide terms?
+- Are cost columns clearly stage vs. cumulative, or omitted until needed?
+- Are estimates labeled as estimates?
+- Are diagnostic, parser-audit, or instrumentation-only runs separated from
+  scored experimental conditions?
+- Does the text say what is measured, what is not measured, and what is
+  pending?
+- Would a reader know which comparison is the main claim?
+- Would a skeptical reader know which controls or baselines are missing?
+
+Diagnostic, parser-audit, or instrumentation-only runs do not belong in the
+main result table unless they are scored under the same output contract as the
+main conditions. Mention them separately as audit evidence.
+
 For a paper-specific related-work catch-up, prefer a companion artifact folder
 next to the paper: `research/<paper-name>/related-work/` for
 `research/<paper-name>.md`. Put a small fetch/extract script there that
