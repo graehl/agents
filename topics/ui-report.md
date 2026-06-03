@@ -129,7 +129,13 @@ heading in the report.
      - *Discoverability / aesthetics* — actions that don't advertise
        themselves (icon-only rows, sparse surfaces), plus restraint of
        one-off page dialects. Aesthetic notes ride here, not as a
-       separate beauty contest.
+       separate beauty contest. On a **brand surface** (landing,
+       marketing, launch content — see the regime split in `ui-quality`
+       §1), also flag generic-AI defaults that signal an unmade choice:
+       system/utility fonts (Inter, Roboto, Arial), cliché palettes
+       (purple-on-white gradients), and converged "distinctive" picks
+       (Space Grotesk). On an operator/data surface this lens is muted —
+       convention is correct there and bold styling is the defect.
    - **Weaknesses** — failures against testable thresholds (contrast,
      target size, jitter, focus, motion); cite WCAG numbers from
      `ui-verification` when applicable. These are defects to fix, kept

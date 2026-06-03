@@ -113,6 +113,24 @@ technique animates from first to last position smoothly) and must honor
 `prefers-reduced-motion` — large motion triggers vestibular symptoms in a
 substantial population (WCAG 2.3.3).
 
+**Functional by default, distinctive when distinctiveness is the job.**
+The "functional, not trendy" stance above is the *default* regime — it is
+right for operator tools, dense data views, logs, config, and anything a
+returning user drives many times a day, where convention is a feature and a
+bold aesthetic is friction. A second regime exists: **brand surfaces** —
+marketing pages, landing pages, editorial/launch content — where being
+memorable *is* the function and defaulting to convention is the failure.
+There, the move is to commit to one clear aesthetic direction and execute it
+precisely (refined-minimal and maximal both work; intentionality, not
+intensity, is the lever), and to avoid the generic-AI defaults that signal
+"no one chose this": the system/utility fonts (Inter, Roboto, Arial), the
+cliché color schemes (notably purple gradients on white), and the handful of
+"distinctive" choices that everyone converges on anyway (Space Grotesk).
+Match code complexity to the vision — maximalism earns elaborate
+animation/effects; restraint earns precision in spacing and type. The two
+regimes share every §2 verification threshold (contrast, target size,
+motion, stability); distinctiveness never buys an exemption from those.
+
 ## 2. Verification: test what the user meets
 
 A UI is verified across four layers, cheap to costly. Full treatment in

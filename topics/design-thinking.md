@@ -23,3 +23,5 @@ Treat every assumption as a hypothesis until you check it. Form one that fits th
 ## Scope discipline
 
 Build for the problem in front of you, not a hypothetical future. A bug fix needs no surrounding cleanup; a one-shot needs no helper. Add no feature, refactor, or abstraction the task did not ask for.
+
+One regime inverts the "no unasked-for flourish" default: a **brand surface** (landing/marketing/launch content) where being memorable *is* the requirement, so committing to a distinctive aesthetic direction is in scope rather than scope creep. See the functional ↔ distinctive split in [ui-quality.md](ui-quality.md) §1; it does not license skipping the verification thresholds.
