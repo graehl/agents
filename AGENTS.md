@@ -250,6 +250,35 @@ what you were about to change, leave the worktree intact (do not
 revert, overwrite, or auto-reconcile). Different goal: retry the
 Edit against the new content.
 
+# Edit mechanism discipline
+
+For any change that could or should be an ordinary edit, the
+structured edit tool (`Edit`/`apply_patch`) is the mechanism. Never
+substitute `sed`/`perl`/`python`/here-doc in-place rewrites for a
+normal edit in order to dodge an approval prompt, a permission mode
+(e.g. 'Ask'), or a temporarily blocked edit tool. Choosing a more
+error-prone mechanism to slip past a gate is forbidden — the gate
+exists precisely for the change you are trying to make. A blocked
+edit tool means the edit needs approval or a fix, not a quieter route
+around it.
+
+If the normal edit tool cannot be used — permission mode, a sandbox
+or environment error, a broken helper — first try to solve it
+head-on: request the edit through the prompt, or fix the environment
+fault. If it cannot be solved head-on, raise it to the user once and
+stop; this is exactly the execution-context limitation you state
+plainly (see *Execution-context limits*), not one you engineer
+around with riskier tooling. A giant `perl -0pi -e q~...~` block
+replacement of a multi-line function — brittle, unverifiable, silent
+on a whitespace drift — is never the right answer to "the edit tool
+asked for permission."
+
+Shell text transforms remain the right tool when they genuinely are:
+mechanical rewrites fanned across many files, `clang-format-diff`,
+codemods. The line is intent — a bulk transform that is awkward as
+hand-edits is fine; a single targeted edit re-expressed as a shell
+substitution to avoid a prompt is not.
+
 # Commits
 
 Subject <=65 chars and scannable for `git log --oneline`. Wrap body prose
