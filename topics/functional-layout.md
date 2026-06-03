@@ -52,6 +52,18 @@ high-contrast detail for large display text, sturdier shapes for small
 text. Variable fonts expose this as the `opsz` axis
 (`font-optical-sizing: auto`).
 
+For a **wall of small body text** — dense logs, long articles, table
+cells, side rails — reach for a face with a true small-text optical
+size rather than a display cut shrunk down. A good free default is
+**Source Serif 4** (variable, SIL OFL) with `opsz` pinned to its
+**small-text / caption end (≈ 8–12)**: that cut has sturdier strokes,
+lower stroke contrast, and more open counters, so it stays legible at
+small sizes and high line-counts where a display optical size would
+go spindly and close up. Set it explicitly
+(`font-variation-settings: "opsz" 10`) when you want to *hold* the
+small-text shaping regardless of rendered size, rather than letting
+`auto` track the size up into the display range.
+
 **Measure.** Line length of **45–75 characters, ~66 ideal** for a single
 column (Bringhurst). Too long and the eye loses the next line's start; too
 short and rhythm breaks. Set it with `max-width` — but note the CSS `ch`
