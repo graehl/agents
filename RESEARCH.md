@@ -297,6 +297,12 @@ re-running old baselines from scratch. Prefer evaluation paths that gracefully h
 number of lines or expose a `--head` flag so small-slice comparisons remain directly
 comparable to earlier full-split runs.
 
+For machine translation (MT) evals, apply the global result-sanity preview
+using MT-specific alignment: verify source/reference/hypothesis counts,
+inspect at least one aligned source/ref/hyp example per new condition, and
+confirm the scored hypothesis is plain translated text rather than JSONL
+wrappers, prompt echoes, parser markers, diagnostic text, or shifted rows.
+
 **Dev vs test set discipline**:
 - **Dev set**: use freely for model selection, hyperparameter tuning, blend weight search,
   early-stopping decisions, and all iterative exploration. Report dev results as "dev performance."

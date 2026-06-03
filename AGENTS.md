@@ -330,6 +330,25 @@ unless the effect is mechanically obvious and low risk. Scope it to the
 blast radius: a smoke-scale timing check for narrow plumbing; a recorded
 contrastive run (or a task note deferring it) for research-facing changes.
 
+## Experiment / eval result sanity
+
+Before presenting any newly wired experiment/eval/benchmark/scorer/decode/
+parser/extraction result as meaningful, do a cheap output-contract sanity
+preview, including for prototypes and pilots.
+
+Check, as applicable: item counts and empty/malformed outputs; producer
+format vs. consumer format (`txt`, JSONL, auto, extracted field); one aligned
+example per new condition showing input, expected target when one exists,
+produced output, and the exact payload consumed by the scorer/downstream tool;
+and condition order plus item/row mapping for promptsets, multi-policy outputs,
+concatenations, extractions, or joins.
+
+When reporting a new result, quote the preview unless the path is unchanged.
+Treat results as provisional until it passes; if it fails, fix the path and
+explicitly supersede contaminated numbers. Never present new-wiring scores
+whose consumed examples could be wrappers, record objects, prompt echoes,
+parser markers, diagnostic text, or shifted rows.
+
 ## Ideal coding
 
 See `~/agents/topics/software-aesthetic.md` for the full shared aesthetic —
