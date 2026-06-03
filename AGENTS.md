@@ -222,9 +222,17 @@ exchange, or when returning to a file you Read earlier in the
 session. One Read followed by several rapid Edits to the same file
 is fine and efficient; this rule covers the slower gaps.
 
-At each planning-Read, snapshot the file's content to a scratch
-path (e.g. `.snapshots/<session-id>/<path>`); create the
-`.snapshots/<session-id>/` directory if absent. Re-snapshot
+The snapshot machinery below is conditional on the precondition it
+defends against: a parallel worker plausibly in the same tree —
+multiple active sessions, a watched/shared worktree, or a long gap
+where one could have started. In a solo session doing a bounded edit,
+skip it: just Read, then Edit. A private/isolated worktree (your own
+checkout that no other session shares) is likewise exempt — isolation
+already guarantees no parallel writer.
+
+When that precondition holds: at each planning-Read, snapshot the
+file's content to a scratch path (e.g. `.snapshots/<session-id>/<path>`);
+create the `.snapshots/<session-id>/` directory if absent. Re-snapshot
 whenever you Edit the file yourself, so the snapshot always
 reflects your expected current state. On re-Read, diff new content
 against the snapshot mechanically — no context-scanning. Any
