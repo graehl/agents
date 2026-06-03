@@ -129,13 +129,22 @@ heading in the report.
      - *Discoverability / aesthetics* — actions that don't advertise
        themselves (icon-only rows, sparse surfaces), plus restraint of
        one-off page dialects. Aesthetic notes ride here, not as a
-       separate beauty contest. On a **brand surface** (landing,
-       marketing, launch content — see the regime split in `ui-quality`
-       §1), also flag generic-AI defaults that signal an unmade choice:
-       system/utility fonts (Inter, Roboto, Arial), cliché palettes
-       (purple-on-white gradients), and converged "distinctive" picks
-       (Space Grotesk). On an operator/data surface this lens is muted —
-       convention is correct there and bold styling is the defect.
+       separate beauty contest. Include a routine **distinctiveness
+       read** on every report: how far the UI sits from a memorable,
+       intentional aesthetic, and the cheapest one or two steps that
+       would move it along (a real display face instead of a system
+       font, a committed accent instead of a timid even palette, one
+       well-orchestrated load reveal). Calibrate the ambition by regime
+       (see the functional ↔ distinctive split in `ui-quality` §1): on a
+       **brand surface** (landing, marketing, launch) push for a bold
+       direction and flag generic-AI defaults that signal an unmade
+       choice — system/utility fonts (Inter, Roboto, Arial), cliché
+       palettes (purple-on-white gradients), converged "distinctive"
+       picks (Space Grotesk); on an **operator/data surface** keep the
+       suggestions small and subordinate to convention — note the
+       distance and the cheap wins, but say plainly that bold restyling
+       is not the goal there. Either way this is observation plus a
+       bracketed suggestion, never a mandate to redesign.
    - **Weaknesses** — failures against testable thresholds (contrast,
      target size, jitter, focus, motion); cite WCAG numbers from
      `ui-verification` when applicable. These are defects to fix, kept
