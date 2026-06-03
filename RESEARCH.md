@@ -116,6 +116,34 @@ Results tables in `research/<branchname>.md` **must** include:
   **batch width** whenever more than one request/example was translated concurrently.
   Many methods are attempted speedups, so a result is incomplete unless a future reader can
   place it on the time/performance Pareto frontier.
+- **One typed column per quantity; caveats go in footnotes, never in the cell.**
+  A column is homogeneous down its length (all tokens, all seconds, all the same
+  metric); a table is heterogeneous across columns. So a metric request means one
+  column per quantity — "tokens and time" is **two** numeric columns, not one cell
+  holding `1234 tok / 5.6s`. Manual decoration is always allowed regardless of a
+  column's type — it annotates the number rather than replacing it: **bold** the
+  best value, a `±ci` confidence interval on the number, or stat-sig markers in a
+  comparison (the common research convention is `*`/`**`/`***` for p<.05/.01/.001,
+  `†` for a noted exception), plus footnote refs. These form a small fixed set, so
+  a query treating the table as a database strips them to recover the bare value;
+  free prose has no such closed vocabulary and cannot be stripped, which is the
+  operational reason it must move to a footnote rather than sit in the cell. (A
+  per-cell unit recap like `5.6s` is itself such a strippable token, so it breaks
+  nothing — but it's stylistically discouraged: carry the unit in the header and
+  leave cells bare. The searching-agent-friendly rule that favors self-describing
+  *log lines* doesn't transfer, since a cell's header sits right beside it; recap
+  only earns its noise for a table whose cells are quoted out of context.) When a
+  number needs words — an outlier, an OOM-truncated run, a
+  not-comparable condition — write a Markdown footnote (`[^r17]`) inline, freely,
+  the moment you notice it: as cheap and local as cramming the cell (drop the
+  marker, append one line) but the column stays clean and no table rewrite is
+  forced. Make no column-vs-footnote decision mid-build — footnote always works.
+  Defer the only structural choice to one pass *after* the table, its captions, and
+  all explanatory/analysis prose are written: revisit then and extract or promote
+  footnotes where it improves readability and renderer compatibility (e.g. dense
+  parallel notes lifted into a mostly-empty comment column). The two errors to
+  avoid are both about the cell: prose fragments crammed into a numeric cell, and —
+  over-correcting — deleting legitimate commentary to force a numbers-only table.
 - Example header: `HF results, chi.dev head-20 (N=20, dev subset), MetricX-24 hybrid-large:`
 - For multi-corpus/multi-model comparisons, widen the table; repeated model-identifying
   rows or separator rows are fine as long as direct comparison stays legible.
