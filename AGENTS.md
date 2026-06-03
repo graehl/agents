@@ -21,6 +21,22 @@ For implementation or bugfix work, search `tasks/*.md` when that directory
 exists, and cite the relevant file(s) in planning and conclusion. Task
 files should cross-reference relevant `topics/*.md`.
 
+## Agent activity register
+
+On the first planning-to-act step in a shared workdir, write
+`.agentctl/active/<session-id>` with a short present-tense status line.
+Update at each milestone, after 10+ min of continuous work, or at the
+60-min heartbeat cap — whichever comes first. On completion write
+`DONE: <one-line summary>`. Pure read-only or interview sessions: skip.
+
+Check for active peers:
+
+```bash
+find .agentctl/active -maxdepth 1 -type f -mmin -70 2>/dev/null
+```
+
+Files older than 70 min without `DONE` are stale/crashed.
+
 ## Resume source priority
 
 A handoff or context-compression message as the first turn means `/bye`
