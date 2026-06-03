@@ -131,7 +131,9 @@ snapshot it under `.backups/<YYYYmmdd-HHMMSS>/<relative-path>`.
 Companion docs hold split-out, opt-in policy:
 - `RESEARCH.md` — research method; load before substantive work when the
   repo or request indicates research/experimentation (`research/`,
-  `tasks/`, notebooks, train/eval scripts, significance requests).
+  `tasks/`, notebooks, train/eval scripts, significance requests,
+  experiment/result tables, paper/report/presentation drafting, or
+  public-facing research result summaries).
 - `RUNS.md` — run-operation / `agentctl` policy; load before
   launching/monitoring/summarizing jobs (`.agentctl/`, `*.running.md`,
   long-running jobs, watchdogs, GPU scheduling).
