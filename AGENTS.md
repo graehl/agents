@@ -33,12 +33,12 @@ Create `.agentctl/active/` if it is missing. This register is a separate
 artifact: task-file status notes, snapshots, run logs, and commit status do
 not satisfy it. Use the provider's real resumable session id when
 discoverable — the id a provider resume/list command would use, and the id
-recorded in provider session logs (for Codex, the current
-`~/.codex/sessions/**/*.jsonl` `session_meta.payload.id`). If no session id
-is exposed directly, inspect provider session metadata/logs before falling
-back. Only when no real provider id can be discovered may you use a stable,
-unique personal tag; record it once and keep reusing it after context
-compaction or resume instead of minting a new tag.
+recorded in provider session logs. Provider supplements list known local
+transcript locations and session-id discovery steps. If no session id is
+exposed directly, inspect provider session metadata/logs before falling back.
+Only when no real provider id can be discovered may you use a stable, unique
+personal tag; record it once and keep reusing it after context compaction or
+resume instead of minting a new tag.
 
 Check for active peers:
 
@@ -60,9 +60,8 @@ When resuming after a disconnect, crash, restart, or compaction, presume
 disconnect — and stale regardless when it is older than live worktree/task
 files, job state, or artifacts. Recover from live state first: worktree, newest `tasks/*.md`
 (by mtime, even if git-ignored), `.agentctl`/run metadata, artifacts, then
-session logs (`~/.codex/sessions/**/*.jsonl` or
-`~/.claude/projects/**/*.jsonl`). Use `last-session.md` only as a last
-historical hint.
+provider session logs named by your provider supplement. Use
+`last-session.md` only as a last historical hint.
 
 # Verification and retrieval
 
@@ -91,6 +90,21 @@ do not look for `~/agents/...` files in the current project.
 `~/agents/AGENTS.user.md` is a personal supplement — read it alongside
 this file every session.
 
+After reading this file and `AGENTS.user.md`, read the provider-specific
+supplement for your harness when present:
+- Codex / OpenAI Codex: `~/agents/AGENTS.codex.md`
+- Claude: `~/agents/AGENTS.claude.md`
+
+Provider supplements carry harness mechanics only: session-log locations,
+provider resume identifiers, provider skill paths, and launcher quirks.
+Cross-provider policy stays here. If the relevant supplement is missing or
+unreadable, report once and continue.
+
+When checking whether a provider-specific instruction file is truly separate
+or merely aliases this file, follow symlinks and compare target device/inode;
+hardlinks and symlinks to the same target are the same loaded source for
+instruction-routing purposes.
+
 The instructions live in the `~/agents` checkout, which also holds
 companion docs explaining the reasoning behind the policy and the
 evidence for it — e.g. `~/agents/topics/agent-instructions.md` and its
@@ -102,14 +116,6 @@ append to a topic's `.evidence.md` companion (the topic's evidence ledger
 and your own notes on the topic). The convention — what to append, when,
 how, the append-only and not-routinely-loaded constraints — is in
 `~/agents/topics/evidence-ledger.md`.
-
-## Skills path aliasing
-
-`~/agents/skills` and `~/.codex/skills/user` may alias the same
-directory; treat `~/agents/skills` as the canonical edit target.
-Do not "sync" them into symlinks — that creates self-referential loops
-that break skill loading. Check first:
-`stat -c '%d:%i %n' ~/agents/skills ~/.codex/skills/user`.
 
 ## Instruction routing
 
@@ -268,14 +274,12 @@ this file since you last looked, anywhere in it. The snapshot also
 serves as a local pre-edit checkpoint if you need to inspect or
 revert.
 
-On divergence, peek at other active sessions: search session logs
-(e.g. `~/.claude/projects/**/*.jsonl`,
-`~/.codex/sessions/**/*.jsonl`, excluding this session) for ones
-that wrote to that path, and read enough of the prompted goal to
-judge whether it overlaps with yours. Same goal: pause, report
-what you were about to change, leave the worktree intact (do not
-revert, overwrite, or auto-reconcile). Different goal: retry the
-Edit against the new content.
+On divergence, peek at other active sessions: search provider session logs
+named by your provider supplement, excluding this session, for ones that wrote
+to that path, and read enough of the prompted goal to judge whether it
+overlaps with yours. Same goal: pause, report what you were about to change,
+leave the worktree intact (do not revert, overwrite, or auto-reconcile).
+Different goal: retry the Edit against the new content.
 
 # Edit mechanism discipline
 

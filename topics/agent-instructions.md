@@ -140,12 +140,16 @@ Prior art grounding that plan <!-- verified: web search 2026-05-29 -->:
 
 ## Provider-scoped supplements
 
+`AGENTS.codex.md` and `AGENTS.claude.md` are sibling instruction files for
+harness-specific mechanics: session-log locations, real resume identifiers,
+provider skill paths, and launcher quirks. `AGENTS.md` routes agents to the
+matching supplement when present but keeps cross-provider policy in the main
+file.
+
 `AGENTS.weak.md` is a sibling instruction file carrying restatements of
 behavior that frontier agents perform by default but weaker models
-(Haiku, Kimi, Spark-class) tend to miss. It is intentionally not
-referenced from `AGENTS.md` — the main file stays narrowly load-bearing
-— and is instead surfaced by provider-specific launcher conventions
-that include it alongside `AGENTS.md` when a smaller model is in use.
+(Haiku, Kimi, Spark-class) tend to miss. It is surfaced by provider-specific
+launcher conventions when a smaller model is in use.
 
 Edit policy: `AGENTS.weak.md` is for restatements of frontier defaults
 only. Anything load-bearing — a rule a capable agent would otherwise

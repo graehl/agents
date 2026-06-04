@@ -18,6 +18,21 @@ Append new entries at the top; do not rewrite prior ones. Agents are
 licensed to append trace findings, incident reports, and clarifying
 examples encountered while consulting this file.
 
+## 2026-06-04 — provider mechanics split from shared policy
+
+- **Decision** — introduced `AGENTS.codex.md` and `AGENTS.claude.md` for
+  provider-scoped mechanics, while `AGENTS.md` keeps the shared contract and
+  routes agents to the matching supplement. Codex-specific session JSONL
+  lookup and skill-path aliasing moved out of the shared file; Claude's
+  local transcript path is recorded in its supplement.
+- **Trace** — a Codex session reads `AGENTS.md`, then `AGENTS.codex.md`, and
+  can recover the real resumable id from `~/.codex/sessions/` before writing
+  `.agentctl/active/<session-id>`. A Claude session reads
+  `AGENTS.claude.md` and searches `~/.claude/projects/**/*.jsonl` when the
+  shared policy says "provider session logs." A future provider sees only the
+  shared contract; if no supplement exists, it reports once and continues
+  without inheriting Codex/Claude-specific paths.
+
 ## 2026-06-04 — activity register confused with task notes
 
 - **Incident** — an agent doing implementation work was nudged to "log your
