@@ -255,30 +255,13 @@ exchange, or when returning to a file you Read earlier in the
 session. One Read followed by several rapid Edits to the same file
 is fine and efficient; this rule covers the slower gaps.
 
-The snapshot machinery below is conditional on the precondition it
-defends against: a parallel worker plausibly in the same tree —
-multiple active sessions, a watched/shared worktree, or a long gap
-where one could have started. In a solo session doing a bounded edit,
-skip it: just Read, then Edit. A private/isolated worktree (your own
-checkout that no other session shares) is likewise exempt — isolation
-already guarantees no parallel writer.
-
-When that precondition holds: at each planning-Read, snapshot the
-file's content to a scratch path (e.g. `.snapshots/<session-id>/<path>`);
-create the `.snapshots/<session-id>/` directory if absent. Re-snapshot
-whenever you Edit the file yourself, so the snapshot always
-reflects your expected current state. On re-Read, diff new content
-against the snapshot mechanically — no context-scanning. Any
-difference is the parallel-worker signal: someone else has been in
-this file since you last looked, anywhere in it. The snapshot also
-serves as a local pre-edit checkpoint if you need to inspect or
-revert.
-
-On divergence, peek at other active sessions: search provider session logs
-named by your provider supplement, excluding this session, for ones that wrote
-to that path, and read enough of the prompted goal to judge whether it
-overlaps with yours. Same goal: pause, report what you were about to change,
-leave the worktree intact (do not revert, overwrite, or auto-reconcile).
+Detecting peer-agent intervention is cheap now that
+`.agentctl/active/` is the agreed convention: `find
+.agentctl/active -mmin -70` answers "any peers in this tree?" in
+one call. The remaining intervention path is a direct user edit,
+which the re-Read itself surfaces. On detected divergence, pause
+and report what you were about to change; do not revert, overwrite,
+or auto-reconcile. Same goal as a peer: leave the worktree intact.
 Different goal: retry the Edit against the new content.
 
 # Edit mechanism discipline
