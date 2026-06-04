@@ -18,6 +18,24 @@ Append new entries at the top; do not rewrite prior ones. Agents are
 licensed to append trace findings, incident reports, and clarifying
 examples encountered while consulting this file.
 
+## 2026-06-04 — activity register confused with task notes
+
+- **Incident** — an agent doing implementation work was nudged to "log your
+  activity" and repeatedly updated a task note / pre-edit-rule note instead
+  of creating `.agentctl/active/<session-id>`. A later direct challenge
+  surfaced the actual `Agent activity register` rule.
+- **Decision** — `AGENTS.md` now states that `.agentctl/active/` must be
+  created if missing, that task notes/snapshots/run logs/commit status do
+  not satisfy the register, and that agents should use the provider's real
+  resumable session id from session metadata/logs when discoverable.
+- **Trace** — in a repo with no `.agentctl/` directory, the first
+  planning-to-act step creates `.agentctl/active/<real-session-id>` before
+  implementation edits. In a context compaction or resume, the agent
+  recovers the same provider id from session metadata/logs and updates the
+  existing register file rather than minting a new tag. In a provider
+  environment with no discoverable id, a stable unique personal tag is
+  permitted only after the metadata/log search fails, and it must be reused.
+
 ## 2026-05-30 — concrete ablation method + `.testing` rider convention
 
 - **Decision** — wrote [`instruction-ablation.md`](instruction-ablation.md),

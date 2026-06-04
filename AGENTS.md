@@ -29,6 +29,17 @@ Update at each milestone, after 10+ min of continuous work, or at the
 60-min heartbeat cap — whichever comes first. On completion write
 `DONE: <one-line summary>`. Pure read-only or interview sessions: skip.
 
+Create `.agentctl/active/` if it is missing. This register is a separate
+artifact: task-file status notes, snapshots, run logs, and commit status do
+not satisfy it. Use the provider's real resumable session id when
+discoverable — the id a provider resume/list command would use, and the id
+recorded in provider session logs (for Codex, the current
+`~/.codex/sessions/**/*.jsonl` `session_meta.payload.id`). If no session id
+is exposed directly, inspect provider session metadata/logs before falling
+back. Only when no real provider id can be discovered may you use a stable,
+unique personal tag; record it once and keep reusing it after context
+compaction or resume instead of minting a new tag.
+
 Check for active peers:
 
 ```bash
