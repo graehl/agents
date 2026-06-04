@@ -34,9 +34,12 @@ project to check it.
 
 3. **Scan**. Both `$root/.agentctl/active/` and (if present)
    `$root/.agentctl/done/` are inspected. For each file, capture
-   relative path, mtime, and first line (`head -n1`). If both
-   subdirs are missing, every bucket is `none` and the report
-   says `no .agentctl/active/ here yet`.
+   relative path, mtime, line 1 (`head -n1`), line 2 if it
+   matches `^scope:` (the schema-defined scope declaration), and
+   total line count (so a `+N more lines` indicator can hint at
+   free-content prose below the schema). If both subdirs are
+   missing, every bucket is `none` and the report says
+   `no .agentctl/active/ here yet`.
 
 4. **Categorize**:
 
@@ -59,33 +62,43 @@ project to check it.
 
 ## Output format
 
-Number every row so the user can reference by row number.
+Number every row so the user can reference by row number. Each
+row shows line 1; if line 2 matches `^scope:` it appears on the
+next line aligned under the gist; a `(+N more lines)` indicator
+follows when the file has free content beyond the schema.
 
 ```
 **self**: <state>
 
 **active peers** (n):
-  1. <relpath>  (<delta> ago)  → "<first line>"
+  1. <relpath>  (<delta> ago)  → "<line 1>"  [(+N more lines)]
+                                  scope: <globs from line 2>
   2. ...
 
 **stale** (n):
-  1. <relpath>  (<delta> ago)  → "<first line>"
+  1. <relpath>  (<delta> ago)  → "<line 1>"  [(+N more lines)]
+                                  [scope: <globs from line 2>]
   ...
 
 **done in last 24h** (n):
-  1. <relpath>  (<delta> ago)  → "<first line, including DONE:>"
+  1. <relpath>  (<delta> ago)  → "<line 1, including DONE:>"  [(+N more lines)]
   ...
 ```
 
 Self states:
 
 - Registered:
-  `**self**: .agentctl/active/<id>  (<delta> ago)  → "<first line>"`
+  `**self**: .agentctl/active/<id>  (<delta> ago)  → "<line 1>"`
+  (plus `scope:` row and `(+N more lines)` indicator as for peers)
 - Lurking:
   `**self**: lurking (no .agentctl/active/ entry); will register on first planning-to-act step`
 
 Empty buckets:
 `**<bucket>**: none`
+
+Omit the `scope:` row when line 2 does not match the schema.
+Omit `(+N more lines)` when the file has no free content (≤2
+schema-conforming lines, or ≤1 line total).
 
 ## Implementation hints
 
