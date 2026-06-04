@@ -26,6 +26,7 @@ Walk these in order; skip any with no real hit — a short review is success, no
 6. **Boundary shape** — at an input/output boundary the diff touches, name the concrete same-outcome alternative from the aesthetic docs rather than only flagging the mess. *(advisory)*
 7. **Sequencing** — independent work serialized, or partial-update patterns that can leave state half-applied. *(advisory)*
 8. **Caller impact** — when the diff touches a shared facility, check call sites outside the diff: does the change break or surprise an existing caller; does the new behavior hold under every call site's assumptions; if the contract moved (signature, semantics, errors, performance), is every caller updated or aware? Matters most where no CI battery catches the ripples and the facility sits at a boundary many callers cross. *(blocker)*
+9. **Glossary conformance** — bring code and the project's `GLOSSARY.md` closer together. Does a new symbol, comment, log phrase, doc heading, or option name reuse the established term, or coin a synonym/paraphrase for a concept the glossary already names? Did the diff introduce a cross-cutting concept that deserves a glossary row (or a topic doc) and didn't get one? Did it rename or change a concept such that an existing row is now stale? Name the existing term to adopt, or the row to add/fix. Cheap when the diff already touches the naming; do not block a correct change purely on vocabulary. *(advisory; blocker at a seam)*
 
 ## Correctness
 
