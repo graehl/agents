@@ -553,6 +553,24 @@ silently disambiguate, restate what you understood in one short paraphrased
 sentence before acting (e.g. "Got it — you want X, not Y"), so the user can
 correct a misread for free.
 
+## Queued-send time separators
+
+A harness may inject `--- (Ns ago)` ahead of the first chunk of
+a queued user turn, and `--- (Ns later)` between chunks. The
+leading "Ns ago" counts seconds from composition to the moment
+this prompt was rendered — no separate anchor like "previous
+turn end" is named, since flush-time anchors break under
+autonomous-multi-turn and deferred-queue-during-turn flows where
+a chunk's submit can predate the most recent turn. The
+inter-chunk "Ns later" counts seconds from the previous chunk's
+submit time. Steering messages carry no separator.
+
+A large N on the leading separator means composition predates
+prompt-render by that much; the chunk may have been queued
+through one or more agent turns. Read the chunk's content to
+judge whether it continues, refines, or shifts from the
+preceding context.
+
 ## "Don't forget" reminders
 
 When the user says `don't forget X`, check whether `X` is already in
