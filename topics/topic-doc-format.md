@@ -2,7 +2,7 @@
 
 > Layout of a `topics/<name>.md` doc — H1, blockquote lede,
 > trailer, body — and the suffix vocabulary for companion
-> artifacts (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing`).
+> artifacts (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`).
 > Includes the glyph set for `.bearings.md` plan outlines.
 
 Topic: `topic-doc-format`
