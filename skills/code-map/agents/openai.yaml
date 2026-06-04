@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Map"
+  short_description: "Generate developer codebase map reports"
+  default_prompt: "Use $code-map to produce a developer code map for this repository."
