@@ -25,9 +25,18 @@ files should cross-reference relevant `topics/*.md`.
 
 On the first planning-to-act step in a shared workdir, write
 `.agentctl/active/<session-id>` with a short present-tense status line.
-Update at each milestone, after 10+ min of continuous work, or at the
-60-min heartbeat cap — whichever comes first. On completion write
-`DONE: <one-line summary>`. Pure read-only or interview sessions: skip.
+Create `.agentctl/active/` if missing — autocreate is mandatory, not
+optional courtesy. Update at each milestone, after 10+ min of
+continuous work, or at the 60-min heartbeat cap — whichever comes
+first. On completion write `DONE: <one-line summary>`. Pure read-only
+or interview sessions: skip.
+
+File schema: line 1 is the present-tense gist (self-contained,
+readable on its own). Line 2 may declare scope as `scope: <globs>` —
+a space- or comma-separated glob list relative to project root — for
+tool-detected overlap with peers. Anything beyond line 2 is free
+content at agent discretion (plan notes, considered approaches,
+longer status). Brief readers stop after line 2.
 
 The register is a separate artifact — task-file status, run logs,
 and commit status do not satisfy it. Always attempt to discover
