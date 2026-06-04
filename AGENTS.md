@@ -87,21 +87,14 @@ provider resume identifiers, provider skill paths, and launcher quirks.
 Cross-provider policy stays here. If the relevant supplement is missing or
 unreadable, report once and continue.
 
-When checking whether a provider-specific instruction file is truly separate
-or merely aliases this file, follow symlinks and compare target device/inode;
-hardlinks and symlinks to the same target are the same loaded source for
-instruction-routing purposes.
+Symlinks and hardlinks to the same target are the same loaded
+source for provider-supplement routing.
 
-The instructions live in the `~/agents` checkout, which also holds
-companion docs explaining the reasoning behind the policy and the
-evidence for it — e.g. `~/agents/topics/agent-instructions.md` and its
-`.evidence.md` ledger. These are not loaded routinely; read one on demand
-only when unsure how to safely follow a rule, or when proposing an
-improvement to it. Suggesting instruction improvements is always welcome,
-from work in any project, not only when working inside `~/agents`. You may
-append to a topic's `.evidence.md` companion (the topic's evidence ledger
-and your own notes on the topic). The convention — what to append, when,
-how, the append-only and not-routinely-loaded constraints — is in
+`~/agents/topics/agent-instructions.md` (and its `.evidence.md`
+ledger) carry the reasoning behind these instructions. Read on
+demand — when unsure how to safely follow a rule, or when
+proposing an improvement (welcome from work in any project, not
+only inside `~/agents`). Evidence-ledger conventions are in
 `~/agents/topics/evidence-ledger.md`.
 
 ## Instruction routing
@@ -589,18 +582,12 @@ concurrence as verified.
 
 ## Doubt triggers
 
-When the user invokes `/doubt` or says they doubt, distrust, are
-unconvinced by, or want a clean re-check of a conclusion, answer, plan,
-proof, diagnosis, or review, treat it as a doubt pass. Load
-`~/agents/skills/doubt/SKILL.md` when available. The target is the
-conclusion and reasoning just applied unless the user names another
-target. Solve the underlying problem independently first, using external
-checks where possible; only after the fresh answer exists, compare
-against the prior reasoning and identify the first consequential
-divergence. Do not assign causal blame to hidden or lossy reasoning
-traces; name the first visible divergence and say what evidence it is
-based on. This trigger does not override normal execution, tool-use, or
-big-effect-command gates.
+On `/doubt` or when the user says they doubt, distrust, are
+unconvinced by, or want a clean re-check of a conclusion, load
+`skills/doubt/SKILL.md` and run a doubt pass. The target is the
+conclusion just applied unless the user names another. The
+trigger does not override execution, tool-use, or big-effect
+gates.
 
 ## Epistemic treatment of user statements
 
