@@ -218,6 +218,53 @@ sight, and dragging the handle makes it *judder* as each reflow nudges it.
   single `requestAnimationFrame` to avoid layout thrash and the judder it
   causes.
 
+**Worked resize example.** The bug is usually that the app only repairs the
+bottom anchor when *appending*:
+
+```js
+function appendMessage(node) {
+  const pinned =
+    scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 32;
+  scroller.append(node);
+  if (pinned) scroller.scrollTop = scroller.scrollHeight;
+}
+```
+
+That passes ordinary "new message arrived" tests, but drag-resize changes
+`scrollHeight` without calling `appendMessage`. The fix is to preserve the
+same `pinned` intent across *any* layout-height change:
+
+```js
+const slack = 32;
+let pinned = true;
+const content = scroller.firstElementChild;
+
+function readPinned() {
+  pinned =
+    scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - slack;
+}
+
+function restoreAnchorAfterLayout() {
+  requestAnimationFrame(() => {
+    if (pinned) scroller.scrollTop = scroller.scrollHeight;
+  });
+}
+
+scroller.addEventListener("scroll", readPinned, { passive: true });
+new ResizeObserver(restoreAnchorAfterLayout).observe(scroller);
+if (content) new ResizeObserver(restoreAnchorAfterLayout).observe(content);
+
+function appendMessage(node) {
+  readPinned();
+  scroller.append(node);
+  restoreAnchorAfterLayout();
+}
+```
+
+For a top-anchored feed, replace the `pinned` boolean with "the first
+visible row and its offset from the viewport top," then restore by the
+measured height delta after the prepend or resize.
+
 **Motion preserves the focal point; reduced motion is mandatory.** When a
 layout change *should* be animated (an item moving, a panel opening), use
 **FLIP** (First, Last, Invert, Play — Paul Lewis): measure the element's

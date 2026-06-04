@@ -54,9 +54,8 @@ Active backtrace is the chain of `[*]` from root to the deepest active leaf.
 
 - User to prune/confirm the 13 `<!-- unconfirmed: 2026-05-31 -->` vernacular
   glossary rows (typography + theme terms).
-- Does this cluster want a small worked before/after of a jitter-on-resize
-  bug to ground the tutorial? `functional-layout.md` now carries a prose
-  repro+fix; a runnable example is still optional.
+- Worked before/after for jitter-on-resize is now in
+  `functional-layout.md`; a runnable demo remains optional, not active.
 - Typography boundary (font-family vs. type-scale) — resolved in
   `theming.md`: the typeface is a theme token *iff* metric-preserving;
   the scale is layout. Left here as the rationale of record.
