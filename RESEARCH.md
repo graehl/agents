@@ -269,6 +269,28 @@ When editing a branch research paper (`research/<branchname>.md`), show the full
 afterward, eliding only long unchanged stretches if needed to keep the displayed output
 within roughly one 70-line screen. Focus the displayed diff on the modified output.
 
+### Result-sanity preview
+
+Before presenting any newly wired
+experiment/eval/benchmark/scorer/decode/parser/extraction result
+as meaningful, do a cheap output-contract sanity preview,
+including for prototypes and pilots.
+
+Check, as applicable: item counts and empty/malformed outputs;
+producer format vs. consumer format (`txt`, JSONL, auto,
+extracted field); one aligned example per new condition showing
+input, expected target when one exists, produced output, and the
+exact payload consumed by the scorer/downstream tool; and
+condition order plus item/row mapping for promptsets, multi-policy
+outputs, concatenations, extractions, or joins.
+
+When reporting a new result, quote the preview unless the path is
+unchanged. Treat results as provisional until it passes; if it
+fails, fix the path and explicitly supersede contaminated numbers.
+Never present new-wiring scores whose consumed examples could be
+wrappers, record objects, prompt echoes, parser markers,
+diagnostic text, or shifted rows.
+
 ### Reporting eval conditions precisely
 
 When summarizing a research run, eval result, or claimed "gate", report the

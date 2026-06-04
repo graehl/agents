@@ -311,25 +311,11 @@ implementation vs. research finding).
 
 ### Amends
 
-For ALL amends of ALL commits:
-- Leave the subject unchanged.
-- Write the message as an additive or corrected update; do not erase prior
-  content except to fix what is now incorrect.
-- Describe only what changed relative to `HEAD~1`, not changes from the
-  previous patchset. Forbidden: "preserved Z" when Z was already described;
-  "moved X to Y.hpp" when X is created in this commit.
-- An amended message must meet non-trivial standards if the original
-  commit was non-trivial.
-- Show the edited message as a diff, and confirm no prior content was
-  dropped or replaced except as a deliberate correction.
-
-When the user corrects a commit not yet pushed to the upstream default
-branch, amend it (`--amend --no-edit` for trivial fixups) rather than
-adding a noisy second correction commit. When a commit already pushed to
-the user's personal GitHub is found wrong within days and has no
-downstream forks/consumers, prefer amend + force-push over accumulating
-fix history — but not once it has been submitted as a PR elsewhere; then
-repair forward.
+When amending: keep the subject; treat the message as additive or
+corrective (do not erase prior content); describe only what changed
+relative to `HEAD~1`. Prefer amend over a correction commit while
+local; never amend after a PR has been opened elsewhere. Full
+procedure in `topics/commits.md`.
 
 ### Topic trailers
 
@@ -361,25 +347,6 @@ quality, or experimental conclusions, plan an explicit on/off comparison
 unless the effect is mechanically obvious and low risk. Scope it to the
 blast radius: a smoke-scale timing check for narrow plumbing; a recorded
 contrastive run (or a task note deferring it) for research-facing changes.
-
-## Experiment / eval result sanity
-
-Before presenting any newly wired experiment/eval/benchmark/scorer/decode/
-parser/extraction result as meaningful, do a cheap output-contract sanity
-preview, including for prototypes and pilots.
-
-Check, as applicable: item counts and empty/malformed outputs; producer
-format vs. consumer format (`txt`, JSONL, auto, extracted field); one aligned
-example per new condition showing input, expected target when one exists,
-produced output, and the exact payload consumed by the scorer/downstream tool;
-and condition order plus item/row mapping for promptsets, multi-policy outputs,
-concatenations, extractions, or joins.
-
-When reporting a new result, quote the preview unless the path is unchanged.
-Treat results as provisional until it passes; if it fails, fix the path and
-explicitly supersede contaminated numbers. Never present new-wiring scores
-whose consumed examples could be wrappers, record objects, prompt echoes,
-parser markers, diagnostic text, or shifted rows.
 
 ## Ideal coding
 
@@ -718,12 +685,9 @@ checkpoint is a live correction even if work has begun.
 
 ## Plan grilling
 
-When the user asks to be grilled, interviewed, or stress-tested on a
-plan or design, walk the decision tree one question at a time. For
-each, propose a recommended answer and pause for confirmation before
-moving on — do not batch questions. Prefer exploring the codebase
-over asking when a question is resolvable that way. Stop when no
-plan-material branches remain unresolved.
+On "grill me" / "interview me" / "stress-test this plan", see
+`topics/plan-grilling.md`: one branch at a time, recommend an
+answer, pause for confirmation.
 
 ## External systems and vendor guidance
 
@@ -741,15 +705,9 @@ When writing setup or operator docs that include vendor-specific steps:
 
 ## Explanation style: "remind me" / "refresher"
 
-When the user says "remind me" or "refresher" before a concept, give a
-self-contained textbook-style explanation that:
-- leads with the core equation, algorithm step, or worked micro-example
-  (small concrete numbers) — not historical background;
-- includes a worked example traceable by hand in under two minutes;
-- gives the acronym expansion on first use, and the discoverer's name +
-  year when confidently known (e.g. "RSLoRA (Rank-Stabilized LoRA,
-  Kalajdzic 2023)") — do not guess an attribution;
-- names the 1–3 most closely related field-known techniques.
+On "remind me X" / "refresher on X", see
+`topics/explanation-style.md`: worked micro-example first, acronym
+expansion on first use, named prior art, no historical lead-in.
 
 # Tooling conventions
 
