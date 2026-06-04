@@ -30,10 +30,12 @@ Update at each milestone, after 10+ min of continuous work, or at the
 `DONE: <one-line summary>`. Pure read-only or interview sessions: skip.
 
 The register is a separate artifact — task-file status, run logs,
-and commit status do not satisfy it. Use the provider's real
-resumable session id when discoverable; the provider supplement
-lists discovery steps. Only when none can be discovered may you
-use a stable personal tag; reuse it across compaction or resume.
+and commit status do not satisfy it. Always attempt to discover
+the provider's real resumable session id before falling back to a
+personal tag — the provider supplement carries the discovery
+snippet for each harness. A personal tag is a last resort; do not
+skip the discovery attempt for convenience. Once chosen, reuse
+the same id or tag across compaction or resume.
 
 Check for active peers with `find .agentctl/active -maxdepth 1
 -type f -mmin -70`. Older files without `DONE` are stale/crashed.
