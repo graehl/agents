@@ -32,11 +32,15 @@ first. On completion write `DONE: <one-line summary>`. Pure read-only
 or interview sessions: skip.
 
 File schema: line 1 is the present-tense gist (self-contained,
-readable on its own). Line 2 may declare scope as `scope: <globs>` —
-a space- or comma-separated glob list relative to project root — for
-tool-detected overlap with peers. Anything beyond line 2 is free
-content at agent discretion (plan notes, considered approaches,
-longer status). Brief readers stop after line 2.
+readable on its own). Line 2 may declare scope as `scope: <paths>` —
+a space- or comma-separated list of project-root-relative paths,
+each either a plain path or a path with a trailing `**` (e.g.
+`packages/client/**`), for tool-detected overlap with peers. Glob
+patterns beyond trailing-`**` need a glob-aware consumer and are
+noise to prefix-match readers; reach for them only when narrowing
+by suffix or pattern is genuinely the point. Anything beyond line
+2 is free content at agent discretion (plan notes, considered
+approaches, longer status). Brief readers stop after line 2.
 
 The register is a separate artifact — task-file status, run logs,
 and commit status do not satisfy it. Always attempt to discover
