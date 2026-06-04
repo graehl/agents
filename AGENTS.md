@@ -365,151 +365,98 @@ points below are either not in that doc or are worth repeating here:
 
 ## Project topics
 
-For git projects, maintain committed `topics/*.md` docs explaining why
-important cross-cutting concerns must hold relative to the whole system.
-Their basenames are the `Topic:` trailer namespace (`ls topics/*.md`).
-Create `topics/` when first needed, not proactively.
+For git projects, maintain committed `topics/*.md` docs explaining
+cross-cutting concerns that must hold relative to the whole
+system. Basenames are the `Topic:` trailer namespace (`ls
+topics/*.md`). Create `topics/` when first needed, not
+proactively.
 
-Topics map to *concerns* — cross-cutting contracts, shared invariants,
-integration boundaries, security/performance properties — not to modules
-or directories; a doc describing one module with no external consumer is a
-README section. A topic doc is not a changelog: it names contracts,
-invariants, assumptions, dependencies, and known edge cases. For
-granularity calibration and a topic-name vocabulary, read
-`~/agents/TOPICS.md` when creating or assessing a topic. Do not look for
-this file in the project checkout unless the project explicitly has its
-own topic taxonomy.
+Topics map to *concerns* — cross-cutting contracts, shared
+invariants, integration boundaries, security/performance
+properties — not to modules or directories. A doc describing one
+module with no external consumer is a README section. A topic doc
+names contracts, invariants, assumptions, dependencies, and edge
+cases; it is not a changelog. For granularity calibration and a
+topic-name vocabulary, read `~/agents/TOPICS.md` when creating or
+assessing a topic.
 
-Topic-doc format: an H1 stating the topic, then a `> ` blockquote
-lede (one or more `> ` lines, no other content between H1 and lede,
-multi-line `> ` lines space-joined when consumed), then optional
-metadata (e.g., a `Topic: <name>` trailer) and body sections. The
-lede is the canonical one-sentence definition consumed by
-`GLOSSARY.md`. The agent may auto-edit existing topic docs to bring
-them into this format without separate confirmation — synthesize a
-missing lede from the doc's first body paragraph, move stray
-trailers — provided the edit preserves body content faithfully.
+Format of a topic doc (H1 + `> ` lede + `Topic:` trailer + body),
+companion-suffix vocabulary (`.evidence.md`, `.runs/`,
+`.bearings.md`, `.testing.md`), bearings-outline glyphs, and
+epistemic-labeling markers all live in
+`topics/topic-doc-format.md`.
 
-Topic-doc companions: structured ancillaries ride alongside the main
-topic doc as `topics/<name>.<suffix>` — either a `.<suffix>.md` file
-or a `.<suffix>/` directory, depending on the convention. The main
-topic doc stays free-form prose; concerns with their own structure
-live in suffixed companions rather than dedicated sections of the
-main doc. Current suffixes: `.evidence.md` (verification ledger,
-append-only — see `~/agents/topics/evidence-ledger.md`); `.runs/`
-(curated run records — see `~/agents/topics/runs-ledger.md`);
-`.bearings.md` (orientation — see below); `.testing.md` (optional
-rider: how to check a change to the topic's concern before committing —
-see `~/agents/topics/testing-rider.md`).
+**Active use**: before touching code for a bug, before committing
+to a significant plan, or when entering a topic's area for the
+first time in a session (including on resume), read the relevant
+topic doc and its `.bearings.md` companion if present. The topic
+doc's contracts tell you what must be true and therefore where a
+violation must live — form a hypothesis that satisfies the
+invariants, then check it against the trace, not the reverse.
+Synthesize bearings against recent live evidence (dirty files,
+recent topic edits, task files, run records, git history, live
+`.agentctl` state) — the bearings file is not the whole state.
+Additional read triggers: user says `bearings`, `orient`, `lost`,
+or states a recollection of where work stands.
 
-`topics/<name>.bearings.md` is a nested outline of plan items. Each
-non-leaf node carries `> why: <one line>` so the chain of "why we
-opened this" reconstructs by reading parent → child whys; `> why:`
-is required where non-obvious, optional on self-evident leaves.
-Status markers per node: `[ ]` planned, `[*]` active, `[~]`
-paused/blocked, `[x]` done; optional `★` for high-value and `‖` for a
-plan boundary (a momentum checkpoint — see *Plan-boundary
-checkpoints*). The active backtrace is the chain of `[*]` from root to
-deepest active leaf — a single highlighted spine through the tree.
+Some `topics/` entries are method/discipline docs (e.g.
+`debugging.md`, `testing.md`, `prototyping.md`); load them at the
+verb-trigger (before diagnosing, before designing tests, before
+building a prototype), not only when the noun-shaped concern-doc
+rule fires.
 
-Epistemic labeling: an unlabeled claim means "plausible, not verified".
-Add an inline HTML comment only when its absence would mislead:
-`<!-- verified: SHA abcdef0 -->` (confirmed by test/bisect/audit) or
-`<!-- assumed -->` (unverified design intent). When a commit weakens a
-verified claim it touches, downgrade that claim's marker rather than
-leaving it stale. Do not use "last updated" dates.
-
-Active use: before touching code for a bug, before committing to a
-significant plan, or when entering a topic's area for the first time
-in a session (including on resume), read the relevant topic doc and
-its `.bearings.md` companion if present. The topic doc's contracts
-tell you what must be true and therefore where a violation must
-live — form a hypothesis that satisfies the invariants, then check
-it against the trace, not the reverse. The bearings file gives
-current orientation, but it is not the whole state: synthesize it
-against recent live evidence such as dirty files, recent `topics/`
-and topic-companion edits, private task files, research-log/run
-records, git history, and live `.agentctl` state. Use that evidence
-to infer what work may have been opened but not saved back into the
-bearings file. Additional bearings-read triggers: user says
-`bearings`, `orient`, `lost`, or states a recollection of where work
-stands; the user's stated recollection enters the discussion as an
-LTM-hunch candidate even when outdated. After such a discussion,
-update the bearings file and commit alongside the work. A full
-consistency pass over all topics is a separate periodic ritual.
-
-Some `topics/` entries are method/discipline docs rather than contract
-docs — e.g. `debugging.md`, `testing.md`, `prototyping.md`. Load them
-at the verb-trigger (before starting to diagnose a bug, before
-designing or extending the test strategy, before building a prototype),
-not only when the noun-shaped "relevant topic doc for the change" rule
-fires by concern.
-
-Before finalizing a non-trivial commit message, read the topic docs for
-the changed concern and decide whether a `Topic:` trailer is needed. If the
-change touches a cross-cutting contract with no topic doc, create or update
-one (prefer a section in a related topic over a new file). Check whether
-the diff falsifies or weakens any claim it touches, and design boundary
-tests around the contract it could violate.
+Before finalizing a non-trivial commit message, read the topic
+docs for the changed concern and decide whether a `Topic:` trailer
+is needed. If the change touches a cross-cutting contract with no
+topic doc, create or update one (prefer a section in a related
+topic over a new file). Check whether the diff falsifies or
+weakens any claim it touches, and design boundary tests around the
+contract it could violate.
 
 ## Project glossary
 
-`GLOSSARY.md` is the project glossary: a shared, prescriptive
-vocabulary for talk, planning, code, UI copy, and commits in the
-repo. Read on first repo use alongside `AGENTS.md` so terms stay
-in attention. When naming a code symbol, UI element, doc heading,
-or commit topic — or when prose starts spelling out in several
-words something one term could carry — check the glossary first
-and reuse an existing term rather than introducing a synonym or
-paraphrase. When a user phrase or pasted log drifts from a glossary
-term, prefer the glossary's wording. If `GLOSSARY.md` has fallen
-out of context (deep in a long session, post-compaction), `rg` it
-before proposing a new row or claiming a term is absent.
+`GLOSSARY.md` is the project's shared, prescriptive vocabulary
+for talk, planning, code, UI copy, and commits. Read on first
+repo use alongside `AGENTS.md`. When naming a code symbol, UI
+element, doc heading, or commit topic — or when prose starts
+spelling out in several words what one term could carry — check
+the glossary first and reuse an existing term rather than
+introduce a synonym or paraphrase. When a user phrase or pasted
+log drifts from a glossary term, prefer the glossary's wording.
+If `GLOSSARY.md` has fallen out of context (deep session,
+post-compaction), `rg` it before proposing a new row.
 
-In any new-reader-accessible doc, briefly spell out a glossary term
-at first use when the term is project-specific or could be mistaken
-for ordinary English. After that, use the glossary term consistently.
-Do not expand obvious general-domain terms, or terms whose definition
-is immediately supplied by a heading, caption, table, or adjacent
-sentence.
+In any new-reader-accessible doc, briefly spell out a glossary
+term at first use when the term is project-specific or could be
+mistaken for ordinary English. Do not expand obvious general-
+domain terms or terms whose definition is supplied by adjacent
+context.
 
-A glossary row is not a pending topic doc — most rows are vernacular
-forever. A row becomes a `topics/<name>.md` only when it meets the
-cross-cutting-concern bar in `~/agents/TOPICS.md`.
+Most glossary rows are vernacular forever; a row becomes a
+`topics/<name>.md` only when it meets the cross-cutting-concern
+bar in `~/agents/TOPICS.md`.
 
-One sorted table: `| term | definition | topic / refs |`. Rows whose
-`topic / refs` column links a `topics/<name>.md` are autopopulated
-from that doc's `> ` lede (see `## Project topics`); other rows are
-curated and preserved verbatim on regeneration, including
-`<!-- unconfirmed -->` markers. Contribution and regeneration rules
-belong in the project's `topics/glossary.md`; `GLOSSARY.md` itself
-stays free of build instructions for readers.
+**Scoped sub-glossaries**: a term lives in the `GLOSSARY.md` at
+the narrowest enclosing directory; create the file if missing.
+Promote a row to a parent's `GLOSSARY.md` as the term's scope
+widens; the root is the terminal scope. Before naming or
+paraphrasing in a subtree, consult the nearest-enclosing
+`GLOSSARY.md`.
 
-Scoped sub-glossaries: a term lives in the `GLOSSARY.md` at the
-narrowest enclosing directory; create the file if missing. Freely
-promote a row to a parent's `GLOSSARY.md` as the term's scope
-widens; the root `GLOSSARY.md` is the terminal scope. Before
-naming or paraphrasing in a subtree, consult the nearest-enclosing
-`GLOSSARY.md`. Scope is declared by file placement, not by a path-
-pattern rule (subsystem cutpoints vary too much across projects).
-Sub-glossaries hold pure vernacular; topic-doc autopopulation feeds
-the root only.
+When a user phrase is ambiguous and the resolution would change
+action, emit an interruptible checkpoint with the inferred meaning
+plus 1–2 alternatives. On resolution, propose a glossary row
+flagged `<!-- unconfirmed: YYYY-mm-dd -->`. When the user
+explicitly introduces a distinction ("by X I mean Y, not Z"), add
+the row immediately. When a row is clearly general-domain —
+recognizable outside this project — surface it once as a
+candidate for `~/agents/topic-definitions.md` or
+`~/agents/TOPICS.md`; do not edit those global files autonomously.
 
-When a user phrase is unclear and the resolution would change action,
-emit an interruptible checkpoint with the inferred meaning plus 1–2
-alternatives. Continue at normal pace when the fork is minor or
-cheaply reversible; hold for the reply when proceeding with the wrong
-branch would waste significant work. On resolution, propose a
-glossary row flagged `<!-- unconfirmed: YYYY-mm-dd -->` until the
-user prunes or confirms it. When the user explicitly introduces a distinction ("by
-X I mean Y, not Z"), add the row immediately. When a row is clearly
-general-domain — a term recognizable outside this project's
-specifics — surface it once as a candidate for
-`~/agents/topic-definitions.md` or `~/agents/TOPICS.md`; do not edit
-those global files autonomously.
-
-Create `GLOSSARY.md` when the project has more than one topic
-doc or when project jargon starts recurring; not proactively.
+Format, regeneration, and the design rationale for these
+conventions live in `topics/glossary.md`. Create `GLOSSARY.md`
+when the project has more than one topic doc or when project
+jargon starts recurring; not proactively.
 
 # Language tooling
 
