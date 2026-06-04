@@ -29,39 +29,28 @@ Update at each milestone, after 10+ min of continuous work, or at the
 60-min heartbeat cap — whichever comes first. On completion write
 `DONE: <one-line summary>`. Pure read-only or interview sessions: skip.
 
-Create `.agentctl/active/` if it is missing. This register is a separate
-artifact: task-file status notes, snapshots, run logs, and commit status do
-not satisfy it. Use the provider's real resumable session id when
-discoverable — the id a provider resume/list command would use, and the id
-recorded in provider session logs. Provider supplements list known local
-transcript locations and session-id discovery steps. If no session id is
-exposed directly, inspect provider session metadata/logs before falling back.
-Only when no real provider id can be discovered may you use a stable, unique
-personal tag; record it once and keep reusing it after context compaction or
-resume instead of minting a new tag.
+The register is a separate artifact — task-file status, run logs,
+and commit status do not satisfy it. Use the provider's real
+resumable session id when discoverable; the provider supplement
+lists discovery steps. Only when none can be discovered may you
+use a stable personal tag; reuse it across compaction or resume.
 
-Check for active peers:
-
-```bash
-find .agentctl/active -maxdepth 1 -type f -mmin -70 2>/dev/null
-```
-
-Files older than 70 min without `DONE` are stale/crashed.
+Check for active peers with `find .agentctl/active -maxdepth 1
+-type f -mmin -70`. Older files without `DONE` are stale/crashed.
 
 ## Resume source priority
 
 A handoff or context-compression message as the first turn means `/bye`
 did not run before the handoff. If it carries a link/session id, browse
-that session to catch up — scan for commit/topic boundaries and read the
-last two sections closely.
+that session to catch up — scan for commit/topic boundaries and read
+the last two sections closely.
 
-When resuming after a disconnect, crash, restart, or compaction, presume
-`last-session.md` is stale unless the user says `/bye` ran after the
-disconnect — and stale regardless when it is older than live worktree/task
-files, job state, or artifacts. Recover from live state first: worktree, newest `tasks/*.md`
-(by mtime, even if git-ignored), `.agentctl`/run metadata, artifacts, then
-provider session logs named by your provider supplement. Use
-`last-session.md` only as a last historical hint.
+When resuming after a disconnect, crash, restart, or compaction,
+presume `last-session.md` is stale and recover from live state
+first: worktree, newest `tasks/*.md` (by mtime, even if git-
+ignored), `.agentctl/active/`, run metadata, artifacts, then
+provider session logs. Use `last-session.md` only as a last
+historical hint.
 
 # Verification and retrieval
 
@@ -82,10 +71,8 @@ global policy changes belong here first, even when a repo-local
 scripts under `~/agents/` and `~/bin/` in sync. When global instructions
 or those scripts change, make a brief commit on `~/agents` `master`.
 
-In these instructions, `~/agents` refers to this checkout's root,
-expected at `$HOME/agents`. If this file was loaded from a different
-path, substitute that directory for `~/agents` in all paths below;
-do not look for `~/agents/...` files in the current project.
+`~/agents` in these instructions means this checkout's root;
+substitute the actual path if loaded from elsewhere.
 
 `~/agents/AGENTS.user.md` is a personal supplement — read it alongside
 this file every session.
@@ -162,19 +149,13 @@ snapshot it under `.backups/<YYYYmmdd-HHMMSS>/<relative-path>`.
 ## Optional supplements
 
 Companion docs hold split-out, opt-in policy:
-- `RESEARCH.md` — research method; load before substantive work when the
-  repo or request indicates research/experimentation (`research/`,
-  `tasks/`, notebooks, train/eval scripts, significance requests,
-  experiment/result tables, paper/report/presentation drafting, or
-  public-facing research result summaries).
+- `RESEARCH.md` — research method; load before substantive
+  research/experimentation work (notebooks, train/eval, significance
+  claims, paper/report drafting). Also names the survey-field and
+  research-frontier templates.
 - `RUNS.md` — run-operation / `agentctl` policy; load before
-  launching/monitoring/summarizing jobs (`.agentctl/`, `*.running.md`,
-  long-running jobs, watchdogs, GPU scheduling).
-- `survey-field.md`, `research-frontier.md` — field-survey and
-  research-frontier templates; load when the task is surveying a field,
-  gathering prior art, or void-mapping/capstone suggestion. This trigger
-  is independent of `RESEARCH.md`.
-- `feature-branch.md` — branch-per-feature workflow policy; load when the
+  launching/monitoring/summarizing long-running jobs.
+- `feature-branch.md` — branch-per-feature workflow; load when the
   project's `AGENTS.md` names it or the repo plainly uses feature
   branches. Default policy is branch-agnostic without it.
 
