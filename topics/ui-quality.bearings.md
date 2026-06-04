@@ -12,8 +12,8 @@ Active backtrace is the chain of `[*]` from root to the deepest active leaf.
   - [x] Glossary rows — topic-linked (4) + typography/theme vernacular
     > why: user flagged missing typography/font/spacing/weight + theme/skin
     > vocabulary; these double as testable thresholds.
-    > note: 13 vernacular rows still carry `<!-- unconfirmed: 2026-05-31 -->`
-    > pending the user's prune/confirm pass.
+    > note: confirmed in `c696ae9`; no `<!-- unconfirmed -->` markers remain
+    > in `GLOSSARY.md`.
   - [x] **functional-layout** — design-language subtopic (full draft)
     > why: the "legible, understood, responsive, stable" design contract,
     > incl. the user's no-jitter / viewport-anchoring requirement.
@@ -52,8 +52,8 @@ Active backtrace is the chain of `[*]` from root to the deepest active leaf.
 
 ## Open questions / asyncs
 
-- User to prune/confirm the 13 `<!-- unconfirmed: 2026-05-31 -->` vernacular
-  glossary rows (typography + theme terms).
+- UI-quality glossary row confirmation is complete; no `<!-- unconfirmed -->`
+  markers remain in `GLOSSARY.md`.
 - Worked before/after for jitter-on-resize is now in
   `functional-layout.md`; a runnable demo remains optional, not active.
 - Typography boundary (font-family vs. type-scale) — resolved in
