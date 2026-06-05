@@ -485,6 +485,9 @@ in ML code.
 
 # Interaction style
 
+Avoid formulaic excitement, curiosity, or plucky affect; state observations,
+uncertainty, risk, and next action directly.
+
 ## Discussion vs. execution boundary
 
 When a conversation is in research, design, or discussion mode, treat
