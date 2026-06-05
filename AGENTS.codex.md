@@ -11,6 +11,33 @@ id: the id a Codex resume/list command would use. Prefer any id exposed by
 the runtime. If none is exposed, inspect Codex's local JSONL transcripts under
 `~/.codex/sessions/`.
 
+Codex currently exposes `$CODEX_THREAD_ID` in the runtime. In observed local
+JSONL transcripts this matches the resumable `session_meta.payload.id`, so use
+it as the first fast lookup hint, then verify the matching transcript before
+keying `.agentctl/active/`:
+
+```bash
+cwd=$(pwd -P)
+if [ -n "${CODEX_THREAD_ID:-}" ]; then
+  find "$HOME/.codex/sessions" -type f -name "*${CODEX_THREAD_ID}.jsonl" -print 2>/dev/null |
+    while IFS= read -r file; do
+      head -n 1 "$file" |
+        jq -er --arg cwd "$cwd" --arg id "$CODEX_THREAD_ID" '
+          select(.type == "session_meta"
+            and .payload.id == $id
+            and .payload.cwd == $cwd) |
+          .payload.id
+        ' 2>/dev/null && break
+    done
+fi
+```
+
+If `$CODEX_THREAD_ID` and `session_meta.payload.id` diverge, prefer the
+resumable `session_meta.payload.id` for active-session filenames until the
+divergence is understood. Record both ids in notes: a future Codex fork/resume
+behavior could justify keying activity on thread id, but do not switch merely
+because both names are present.
+
 Codex transcripts contain a first-line `session_meta` record with
 `payload.id` and `payload.cwd`. A quick lookup is:
 
