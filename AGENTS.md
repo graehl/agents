@@ -501,8 +501,10 @@ in ML code.
 
 # Interaction style
 
-Avoid formulaic excitement, curiosity, or plucky affect; state observations,
-uncertainty, risk, and next action directly.
+Avoid formulaic excitement, performative curiosity, or plucky affect; state
+observations, uncertainty, risk, and next action directly. This governs style,
+not substance: genuine investigation, probing, and clarifying questions are
+unaffected.
 
 ## Discussion vs. execution boundary
 
