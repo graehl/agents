@@ -41,20 +41,23 @@ project to check it.
    missing, every bucket is `none` and the report says
    `no .agentctl/active/ here yet`.
 
+   A file is DONE when it starts with `DONE` (`DONE*`). Do not
+   require exactly `DONE` or exactly `DONE:`; examples include
+   `DONE`, `DONE: ...`, and `DONE ...`.
+
 4. **Categorize**:
 
    - **self**: file at `$root/.agentctl/active/<session-id>` if
      present; else the agent declares lurking.
-   - **active peers**: in `active/`, mtime <70 min, content does
-     not start with `DONE:`, not self.
-   - **stale**: in `active/`, mtime ≥70 min, content does not
-     start with `DONE:`, not self. ("Stale" is the category
+   - **active peers**: in `active/`, mtime <70 min, file does
+     not start with `DONE`, not self.
+   - **stale**: in `active/`, mtime ≥70 min, file does not
+     start with `DONE`, not self. ("Stale" is the category
      label; the cause may be a crash, a forgotten DONE write, or
      an in-progress session that has just been quiet — do not
      judge.)
    - **done in last 24h**: any file (in `active/` or `done/`)
-     whose first line starts with `DONE:` and mtime is within 24
-     hours.
+     that starts with `DONE` and mtime is within 24 hours.
 
 5. **Emit the report** (see *Output format*). Buckets with zero
    entries still print a header so the user can see the bucket
@@ -81,7 +84,7 @@ follows when the file has free content beyond the schema.
   ...
 
 **done in last 24h** (n):
-  1. <relpath>  (<delta> ago)  → "<line 1, including DONE:>"  [(+N more lines)]
+  1. <relpath>  (<delta> ago)  → "<line 1, including DONE prefix>"  [(+N more lines)]
   ...
 ```
 
@@ -114,6 +117,7 @@ schema-conforming lines, or ≤1 line total).
   future maintenance step may move files older than 24h to
   `done/`. The skill handles either location and does not
   itself move files.
+- A shell implementation can use `[[ $line1 == DONE* ]]`.
 - The skill does NOT create `.agentctl/active/`. Creation
   happens via the normal register-on-first-act rule, not as a
   side effect of inspection.

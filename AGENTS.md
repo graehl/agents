@@ -28,8 +28,9 @@ On the first planning-to-act step in a shared workdir, write
 Create `.agentctl/active/` if missing — autocreate is mandatory, not
 optional courtesy. Update at each milestone, after 10+ min of
 continuous work, or at the 60-min heartbeat cap — whichever comes
-first. On completion write `DONE: <one-line summary>`. Pure read-only
-or interview sessions: skip.
+first. On completion start the file with `DONE`, preferably
+`DONE: <one-line summary>`. Readers must treat files starting with `DONE`
+(`DONE*`) as complete. Pure read-only or interview sessions: skip.
 
 File schema: line 1 is the present-tense gist (self-contained,
 readable on its own). Line 2 may declare scope as `scope: <paths>` —
@@ -51,7 +52,8 @@ skip the discovery attempt for convenience. Once chosen, reuse
 the same id or tag across compaction or resume.
 
 Check for active peers with `find .agentctl/active -maxdepth 1
--type f -mmin -70`. Older files without `DONE` are stale/crashed.
+-type f -mmin -70`. Older files that do not start with `DONE` are
+stale/crashed.
 
 ## Resume source priority
 
