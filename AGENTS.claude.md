@@ -6,7 +6,18 @@ policy stays in `AGENTS.md`.
 
 ## Session Identity And Logs
 
-The harness exports your session id ambiently as
+If `$AGENTCTL_SESSION_ID` is already set in your Bash env, use it
+verbatim and skip the transcript-stem discovery below — that is the
+done answer, not a hint to verify. A launcher such as yepanywhere
+(YA) injects it per command through a `BASH_ENV` bridge, and
+`agentctl` adopts the same var first, so its `active/` entry and
+yours name the same file with no extra work. When the launcher mints
+that id with `claude --session-id <uuid>` (the supported way to fix a
+new session's id up front), it also equals this session's transcript
+stem; if it is an arbitrary tag instead, `active/` stays
+self-consistent but will not match a transcript.
+
+Otherwise the harness exports your session id ambiently as
 `$CLAUDE_CODE_SESSION_ID` in every Bash shell — use it directly as
 the session id for `.agentctl/active/<session-id>` and other
 identifiers. It equals the stem of this session's transcript at

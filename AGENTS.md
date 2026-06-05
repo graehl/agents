@@ -74,6 +74,20 @@ entry, and never lets a launched job adopt your identity (an
 internal launch-depth counter, so jobs cannot masquerade as your
 session).
 
+To author or re-scope your entry without launching a job, use the
+run-free `agentctl active` verb (no job, dump, or log) — e.g. to
+declare intended-edit scope for peer overlap detection:
+
+    agentctl active "wiring the active verb" agentctl.py topics/agentctl.md
+
+This sets line 1 to the banner and line 2 to `scope: agentctl.py
+topics/agentctl.md`, preserving any free content below; with no
+path args it leaves an existing `scope:` line in place. A leading
+`DONE` in the banner marks completion. The launch-depth guard still
+applies, so a launched job cannot author your entry. This is a
+convenience over hand-writing the file, not a new requirement — the
+file remains an ordinary text artifact you may edit directly.
+
 ## Resume source priority
 
 A handoff or context-compression message as the first turn means `/bye`

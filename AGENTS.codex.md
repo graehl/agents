@@ -6,10 +6,20 @@ only; shared policy stays in `AGENTS.md`.
 
 ## Session Identity
 
-When `AGENTS.md` asks for `<session-id>`, use Codex's real resumable session
-id: the id a Codex resume/list command would use. Prefer any id exposed by
-the runtime. If none is exposed, inspect Codex's local JSONL transcripts under
-`~/.codex/sessions/`.
+If `$AGENTCTL_SESSION_ID` is already set in your Bash env, use it verbatim and
+skip the lookup below — that is the done answer, not a hint to verify. A
+launcher such as yepanywhere (YA) injects it per command through a `BASH_ENV`
+bridge, and `agentctl` adopts the same var first, so its `active/` entry and
+yours name the same file with no extra work. The tradeoff is the same as a
+personal tag: a launcher-injected id overrides Codex's real resumable id, so
+`active/` stays self-consistent but may not match a `~/.codex/sessions/`
+transcript. When the launcher derives the value from the resumable
+`session_meta.payload.id`, the two agree; if it diverges, note both ids.
+
+Otherwise, when `AGENTS.md` asks for `<session-id>`, use Codex's real
+resumable session id: the id a Codex resume/list command would use. Prefer any
+id exposed by the runtime. If none is exposed, inspect Codex's local JSONL
+transcripts under `~/.codex/sessions/`.
 
 Codex currently exposes `$CODEX_THREAD_ID` in the runtime. In observed local
 JSONL transcripts this matches the resumable `session_meta.payload.id`, so use

@@ -52,6 +52,15 @@ tooling, future compliance-library work, and project migration docs.
   refresh or masquerade as the agent — a count-down-once guard that needs no
   env stripping and leaves the harness's own session var intact. With no
   session id resolvable, the launcher does not touch `active/` at all.
+- The `active` verb is the explicit, run-free counterpart to that passive
+  refresh: `agentctl active "<banner>" [paths...]` authors the agent's own
+  line 1 and (from the path args) `scope:` line 2 directly — no job, no dump,
+  no log. Because the agent owns those lines, the verb writes them
+  authoritatively (line 1 replaced verbatim, a leading `DONE` honored; scope
+  replaced when paths are given, preserved when omitted) while keeping any
+  free-content lines below the header. It shares the launch-depth guard
+  (`active` from inside a job is refused) and the no-session-id behavior
+  (refuses with a nonzero exit rather than writing an unkeyed entry).
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.

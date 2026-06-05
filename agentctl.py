@@ -305,6 +305,111 @@ def refresh_active_register(summary: str, note: str) -> None:
         print(f"warning: could not update active session {path}: {exc}", file=sys.stderr)
 
 
+def active_scope_path(raw: str) -> str:
+    """Normalize one intend-to-edit path for an active-session `scope:` line.
+
+    Scope paths are project-root-relative so the prefix-match overlap check
+    (AGENTS.md § Active sessions) lines up across peers regardless of each
+    agent's cwd. An absolute path under ROOT is made relative; a leading
+    `./` is stripped; a trailing `**` is kept. Everything else is preserved
+    verbatim, and existence is not required — the path may name a file the
+    agent is about to create.
+    """
+    p = raw.strip()
+    if not p:
+        return ""
+    candidate = Path(p)
+    if candidate.is_absolute():
+        try:
+            return str(candidate.resolve(strict=False).relative_to(ROOT))
+        except ValueError:
+            return p
+    if p.startswith("./"):
+        return p[2:]
+    return p
+
+
+def active_register(args) -> int:
+    """`active` verb: author this session's `.agentctl/active/<id>` entry.
+
+    Unlike the passive refresh on launch (refresh_active_register), this is
+    the agent deliberately authoring its own entry, and it writes no run
+    record — no job, no Aim dump, no log — so a session can announce or
+    re-scope its presence without launch noise. The launch-depth guard
+    still applies: a launched job (depth > 0) is not an agent and may not
+    author the entry.
+
+    The agent owns line 1 and the `scope:` line 2, so both are written
+    authoritatively rather than appended:
+
+      - line 1 becomes `banner` verbatim; a leading `DONE` marks the
+        session complete exactly as a hand-written entry would;
+      - `scope: <paths>` becomes line 2 when intend-to-edit paths are
+        given, replacing any prior scope line; with no paths an existing
+        scope line is left in place;
+      - any free-content lines below the header are preserved.
+    """
+    try:
+        depth = int(os.environ.get(LAUNCH_DEPTH_ENV, "0") or "0")
+    except ValueError:
+        depth = 0
+    if depth > 0:
+        print(
+            "agentctl active: refusing to author an active entry from inside a "
+            "launched job (a job is not an agent)",
+            file=sys.stderr,
+        )
+        return 2
+    sid = agent_session_id()
+    if not sid:
+        print(
+            "agentctl active: no session id; set one of "
+            f"{', '.join(SESSION_ID_ENVS)} (a launcher such as yepanywhere can "
+            "inject AGENTCTL_SESSION_ID)",
+            file=sys.stderr,
+        )
+        return 2
+    banner = normalize_headline_text(args.banner)
+    if not banner:
+        print("agentctl active: empty banner", file=sys.stderr)
+        return 2
+    scope_paths = [s for s in (active_scope_path(p) for p in args.paths) if s]
+
+    path = ACTIVE / sid
+    old_scope: str | None = None
+    body: list[str] = []
+    if path.exists():
+        rest = path.read_text(encoding="utf-8", errors="replace").splitlines()[1:]
+        if rest and rest[0].startswith("scope:"):
+            old_scope = rest[0]
+            rest = rest[1:]
+        body = rest
+
+    out = [banner]
+    scope_line = ("scope: " + " ".join(scope_paths)) if scope_paths else old_scope
+    if scope_line:
+        out.append(scope_line)
+    out.extend(body)
+
+    try:
+        ACTIVE.mkdir(parents=True, exist_ok=True)
+        tmp = path.parent / (path.name + ".tmp")
+        tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
+        tmp.replace(path)
+    except OSError as exc:
+        print(f"agentctl active: could not write {path}: {exc}", file=sys.stderr)
+        return 1
+
+    try:
+        shown: Path | str = path.relative_to(ROOT)
+    except ValueError:
+        shown = path
+    print(f"active {shown}: {banner}")
+    if scope_line:
+        print(f"  {scope_line}")
+    return 0
+
+
 def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -2811,6 +2916,24 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("job")
     s.add_argument("--grace", type=float, default=5.0)
     s.set_defaults(func=restart)
+
+    s = sub.add_parser(
+        "active",
+        help="Author this session's .agentctl/active/<id> entry (banner + optional "
+             "intend-to-edit scope) without launching a job.",
+    )
+    s.add_argument(
+        "banner",
+        help="Line-1 present-tense status (quote it). A leading DONE marks the "
+             "session complete.",
+    )
+    s.add_argument(
+        "paths",
+        nargs="*",
+        help="Intended-edit paths -> a `scope:` line 2 for peer overlap detection. "
+             "Omit to leave any existing scope unchanged.",
+    )
+    s.set_defaults(func=active_register)
 
     _call_hook("register_verbs", sub)
 

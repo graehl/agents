@@ -52,8 +52,12 @@ class Workspace:
         env = os.environ.copy()
         # Hermetic: drop ambient agent/harness session vars (the test runner may
         # itself be under an agent, e.g. CLAUDE_CODE_SESSION_ID) so each test
-        # controls active-sessions behavior explicitly.
-        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID", "AGENTCTL_LAUNCH_DEPTH"):
+        # controls active-sessions behavior explicitly. BASH_ENV is dropped too:
+        # the agentctl wrapper is a bash script, and a launcher such as
+        # yepanywhere re-exports AGENTCTL_SESSION_ID via a BASH_ENV bridge that
+        # would otherwise defeat the pops below.
+        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID",
+                    "AGENTCTL_LAUNCH_DEPTH", "BASH_ENV"):
             env.pop(var, None)
         if env_extra:
             env.update(env_extra)
@@ -809,6 +813,93 @@ def test_launched_job_gets_depth_guard():
         ws.wait_finished("depthjob")
         got = out.read_text()
         _assert(got == "1", f"child should be marked at launch depth 1, got {got!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_active_verb_authors_banner_and_scope():
+    # `active` authors line 1 + scope line 2 directly, with no run record.
+    ws = Workspace()
+    sid = "sess-active1"
+    active = ws.tmp / ".agentctl/active" / sid
+    try:
+        res = ws.run("active", "refactoring the scope parser",
+                     "agentctl.py", "topics/agentctl.md",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        lines = active.read_text().splitlines()
+        _assert(lines[0] == "refactoring the scope parser",
+                f"line 1 should be the banner: {lines!r}")
+        _assert(lines[1] == "scope: agentctl.py topics/agentctl.md",
+                f"line 2 should be the scope: {lines!r}")
+        # No run noise: the verb must not create job/run state.
+        _assert(not (ws.tmp / ".agentctl/jobs").exists(),
+                "active must not create job state")
+        _assert(not (ws.tmp / ".agentctl/runs").exists(),
+                "active must not create run state")
+    finally:
+        ws.cleanup()
+
+
+def test_active_verb_replaces_header_preserves_body():
+    # A re-author replaces line 1 and the scope line but keeps free content.
+    ws = Workspace()
+    sid = "sess-active2"
+    active = ws.tmp / ".agentctl/active" / sid
+    try:
+        active.parent.mkdir(parents=True)
+        active.write_text("old banner\nscope: old/**\nfree note line\n")
+        res = ws.run("active", "new banner", "pkg/a", "pkg/b",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        lines = active.read_text().splitlines()
+        _assert(lines == ["new banner", "scope: pkg/a pkg/b", "free note line"],
+                f"header replaced, body preserved: {lines!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_active_verb_keeps_scope_when_no_paths():
+    # Banner-only update leaves an existing scope line untouched.
+    ws = Workspace()
+    sid = "sess-active3"
+    active = ws.tmp / ".agentctl/active" / sid
+    try:
+        active.parent.mkdir(parents=True)
+        active.write_text("old banner\nscope: keep/me/**\n")
+        res = ws.run("active", "status only",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        lines = active.read_text().splitlines()
+        _assert(lines == ["status only", "scope: keep/me/**"],
+                f"scope should be preserved with no path args: {lines!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_active_verb_requires_session_id():
+    # With no resolvable session id the verb fails loudly and writes nothing.
+    ws = Workspace()
+    try:
+        res = ws.run("active", "no identity here")
+        _assert(res.returncode != 0, "active should fail without a session id")
+        _assert(not (ws.tmp / ".agentctl/active").exists(),
+                "no active/ dir should be created without a session id")
+    finally:
+        ws.cleanup()
+
+
+def test_active_verb_depth_guard():
+    # A launched job (depth > 0) is not an agent and may not author the entry.
+    ws = Workspace()
+    sid = "sess-active4"
+    try:
+        res = ws.run("active", "from inside a job",
+                     env_extra={"AGENTCTL_SESSION_ID": sid,
+                                "AGENTCTL_LAUNCH_DEPTH": "1"})
+        _assert(res.returncode != 0, "active should refuse at launch depth > 0")
+        _assert(not (ws.tmp / ".agentctl/active" / sid).exists(),
+                "no entry should be authored from a launched job")
     finally:
         ws.cleanup()
 
