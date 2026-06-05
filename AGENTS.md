@@ -134,6 +134,7 @@ After reading this file and `AGENTS.user.md`, read the provider-specific
 supplement for your harness when present:
 - Codex / OpenAI Codex: `~/agents/AGENTS.codex.md`
 - Claude: `~/agents/AGENTS.claude.md`
+- Grok / xAI: `~/agents/AGENTS.grok.md`
 
 Provider supplements carry harness mechanics only: session-log locations,
 provider resume identifiers, provider skill paths, and launcher quirks.
