@@ -22,7 +22,8 @@ Use this shape:
 1. `# Code Map`
 2. `## Orientation` — one paragraph naming the dominant architecture and the
    two or three flows a new developer should understand first.
-3. `## Module Index` — compact table of important files/directories.
+3. `## Module Index` — compact table of important files/directories, or
+   artifact families when the repository is data/config heavy.
 4. `## Flow Slices` — 2-5 end-to-end traces through user-facing operations
    or core lifecycles.
 5. `## Contracts And Seams` — relevant `topics/*.md` contracts, natural edit
@@ -50,7 +51,10 @@ over broad HTML comments unless a claim would otherwise mislead.
    present. Prefer glossary terms in headings, prose, and flow names.
 2. **Static inventory first.** Use `rg --files`, manifests, package files,
    entrypoints, CLI parsers, route tables, tests, and README references.
-   Record the exact commands for `## Reproduce / Refresh`.
+   For very large data/config/artifact trees, first count and sample by
+   top-level family, then narrow to representative files; do not let a raw
+   inventory dump become the report. Record the exact commands for
+   `## Reproduce / Refresh`.
 3. **Choose flow slices.** Pick 2-5 flows by operation or lifecycle, not by
    directory. Examples: request handling, command execution, model loading,
    build pipeline, persistence/migration, render/update loop.
@@ -71,11 +75,13 @@ over broad HTML comments unless a claim would otherwise mislead.
 
 Use columns like:
 
-| Path | Responsibility | Inputs / Outputs | Key Callers / Callees | Evidence |
+| Path / Family | Responsibility | Inputs / Outputs | Key Callers / Callees | Evidence |
 |---|---|---|---|---|
 
 Collapse obvious leaf files. The goal is the smallest map that lets a
-developer navigate, not an inventory dump.
+developer navigate, not an inventory dump. In data-heavy repositories, rows
+may name artifact families such as `data/<lp>/`, `results/*.txt`, or
+`apexes/<task>/` when those are the real units a maintainer must understand.
 
 ## Flow Slice Pattern
 
