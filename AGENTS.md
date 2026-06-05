@@ -55,14 +55,16 @@ Check for active peers with `find .agentctl/active -maxdepth 1
 -type f -mmin -70`. Older files that do not start with `DONE` are
 stale/crashed.
 
-Export `AGENTCTL_SESSION_ID=<this session's id>` in your shell so
-`agentctl` keeps your entry's heartbeat fresh: on `start`/`smoke`/
-`restart` it refreshes the entry's mtime and appends a free-text
-launch note. If no entry exists yet it creates one with a
-placeholder line 1 for you to overwrite. It never rewrites your
-line 1 or `scope:` line 2, and never touches a `DONE`-prefixed
-entry. The id is stripped from each launched job's environment, so
-jobs cannot masquerade as your session.
+`agentctl` maintains your entry automatically. It adopts your
+session id from `AGENTCTL_SESSION_ID`, else a harness-provided var
+your supplement names (Claude: `CLAUDE_CODE_SESSION_ID`), so no
+manual step is needed. On `start`/`smoke`/`restart` it refreshes
+mtime and appends a free-text launch note, creating the entry with
+a placeholder line 1 if absent (overwrite it). It never rewrites
+your line 1 or `scope:` line 2, never touches a `DONE`-prefixed
+entry, and never lets a launched job adopt your identity (an
+internal launch-depth counter, so jobs cannot masquerade as your
+session).
 
 ## Resume source priority
 

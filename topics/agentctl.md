@@ -38,16 +38,20 @@ tooling, future compliance-library work, and project migration docs.
   would hide short successful runs, and `status/list --failed` exists as a
   troubleshooting view. `wait --target not-running` prints the final return
   code and log path, and exits nonzero for failed `finished` jobs.
-- Active-sessions participation is gated on `AGENTCTL_SESSION_ID`. The
-  `.agentctl/active/<session-id>` files are an AGENTS.md convention owned by
-  agents and read by the `/others` skill, not job state. When the launching
-  agent exports its session id, `start`/`smoke`/`restart` keep that agent's
-  entry live: create it with a placeholder line 1 if absent, else append a
-  free-text launch note (which refreshes mtime), never rewriting the
-  agent-authored line 1 or `scope:` line 2, and never touching a `DONE`-
-  prefixed entry. The id is stripped from each launched child's environment so
-  jobs cannot refresh or masquerade as the agent's entry. With the var unset
-  (the default), the launcher does not touch `active/` at all.
+- Active-sessions participation: the `.agentctl/active/<session-id>` files are
+  an AGENTS.md convention owned by agents and read by the `/others` skill, not
+  job state. `agent_session_id()` resolves the launching agent's id from
+  `AGENTCTL_SESSION_ID`, else a known harness var (`SESSION_ID_ENVS`, e.g.
+  `CLAUDE_CODE_SESSION_ID`), so plain `./agentctl` participates with no per-call
+  setup. On `start`/`smoke`/`restart` it keeps that agent's entry live: create
+  with a placeholder line 1 if absent, else append a free-text launch note
+  (which refreshes mtime), never rewriting the agent-authored line 1 or
+  `scope:` line 2, and never touching a `DONE`-prefixed entry. Each launch
+  increments `AGENTCTL_LAUNCH_DEPTH` in the child env; `agent_session_id()`
+  returns "" at depth > 0, so a launched job (or any agentctl it shells) cannot
+  refresh or masquerade as the agent — a count-down-once guard that needs no
+  env stripping and leaves the harness's own session var intact. With no
+  session id resolvable, the launcher does not touch `active/` at all.
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.

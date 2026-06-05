@@ -23,9 +23,10 @@ Three flows orient a new reader fastest:
 Distinguish the two `.agentctl` worlds: **job state** (`jobs/`, `runs/`) is
 owned by `agentctl.py`; the **active sessions** (`active/`) are owned by the
 agent-instructions convention and written primarily by agents. `agentctl.py`
-participates in the register *only* when the launching agent exports
-`AGENTCTL_SESSION_ID` (keeping that agent's entry live on launch); with the
-var unset — the default — no Python here touches `active/`.
+also keeps the launching agent's entry live on launch, adopting the session id
+from `AGENTCTL_SESSION_ID` or a harness var (`CLAUDE_CODE_SESSION_ID`) via
+`agent_session_id()`; a launched job is suppressed by the `AGENTCTL_LAUNCH_DEPTH`
+counter, so jobs never masquerade as the agent.
 
 ## Module Index
 
@@ -42,7 +43,7 @@ var unset — the default — no Python here touches `active/`.
 | `skills/others/SKILL.md` | Reads `.agentctl/active/` to report own status, live peers, recent DONE, stale entries. | In: register files + mtimes. Out: peer summary. | Pure reader of the convention `AGENTS.md` defines. | verified: `rg -n 'find .agentctl\|DONE\|mmin' skills/others/SKILL.md` |
 | `tasks/*.md` | Git-ignored active-work scratchpads / handoff state. | In: per-feature direction. Out: private resume context. | Read on resume; not durable project authority. | verified: `ls tasks` (git-ignored) |
 | `./agentctl` | Shell wrapper: pick Python ≥3.10, set `AGENTCTL_ROOT` to invocation dir, `exec agentctl.py`. | In: argv, `AGENTCTL_PYTHON`, local envs, conda, PATH. Out: exec into `agentctl.py`. | Lets one global checkout drive many project roots. | verified: `cat agentctl` |
-| `agentctl.py` (2754 LOC) | Dependency-free local job manager: parser, plugin loader, process lifecycle, `.agentctl/` job state, GPU waits, and `start`/`smoke`/`status`/`tail`/`note`/`cleanup`/`watch`/`wait`/`wait-gpu`/`stop`/`restart` verbs. Touches `.agentctl/active/` only via `refresh_active_register()`, gated on `AGENTCTL_SESSION_ID`. | In: argv, optional `agentctl_plugins/*.py` hooks. Out: `.agentctl/{jobs,runs}/...`, logs, metadata, child env. | Imports `artifact_meta` in `write_meta`; calls `aim` hooks; tested by `tests/test_agentctl.py`. | verified: `rg -n '^def (start\|run_child\|status\|main\|build_parser\|refresh_active_register)' agentctl.py` |
+| `agentctl.py` (2754 LOC) | Dependency-free local job manager: parser, plugin loader, process lifecycle, `.agentctl/` job state, GPU waits, and `start`/`smoke`/`status`/`tail`/`note`/`cleanup`/`watch`/`wait`/`wait-gpu`/`stop`/`restart` verbs. Touches `.agentctl/active/` only via `refresh_active_register()`, using `agent_session_id()` (adopts `AGENTCTL_SESSION_ID`/`CLAUDE_CODE_SESSION_ID`, suppressed at `AGENTCTL_LAUNCH_DEPTH` > 0). | In: argv, optional `agentctl_plugins/*.py` hooks. Out: `.agentctl/{jobs,runs}/...`, logs, metadata, child env. | Imports `artifact_meta` in `write_meta`; calls `aim` hooks; tested by `tests/test_agentctl.py`. | verified: `rg -n '^def (start\|run_child\|status\|main\|build_parser\|refresh_active_register)' agentctl.py` |
 | `agentctl_plugins/aim.py` (383 LOC) | Default plugin: Aim-format text dumps + output back-pointer sidecars, no Aim SDK import. | In: agentctl state/hooks. Out: `runs/aim/<exp>/manifest.jsonl`, `runs/<ref>.json`, `texts/<ref>/...`, `<output>.meta.json`. | Loaded by `agentctl.py` plugin loader; `import agentctl` helpers. | verified: `rg -n '^def ' agentctl_plugins/aim.py` |
 | `artifact_meta.py` (1072 LOC) | Metadata sidecar builder + provenance lookup (`build_meta_markdown`, `find_aim_run_record`, `find_aim_run_text`, `stat_artifact`). | In: output paths, key/vals, declared inputs, read roots. Out: `.meta.md`/`.running.md`, summary updates, ancestry excerpts. | Called by `agentctl.py:write_meta`; searched by downstream/tests. | verified: `rg -n '^def (build_meta_markdown\|find_aim_run_record)' artifact_meta.py` |
 | `tests/test_agentctl.py` (783 LOC) | Stdlib-only end-to-end tests for wrapper root selection, runs, Aim dumps, sidecars, propagation, plugin tolerance, restart, cleanup. | In: copied agentctl files in temp dirs. Out: pass/fail. | The current vertical test slice for the Python layer. | verified: `wc -l tests/test_agentctl.py` |
@@ -113,24 +114,26 @@ Evidence: verified: `rg -n '^def ' agentctl_plugins/aim.py`;
    `.agentctl/active/<session-id>` on first planning-to-act in a shared
    workdir — line 1 a present-tense gist, optional line 2 `scope: <paths>`,
    `DONE`-prefixed on completion.
-2. The session id is the provider's real resumable id; `AGENTS.claude.md`
-   gives the discovery snippet (transcript filename stem under
-   `~/.claude/projects/<hash>/`).
+2. The session id is the provider's real resumable id, available ambiently as
+   `$CLAUDE_CODE_SESSION_ID` (equals the transcript stem under
+   `~/.claude/projects/<hash>/`); `AGENTS.claude.md` documents both.
 3. The `/others` skill (`skills/others/SKILL.md`) reads the directory,
    classifying files by mtime and `DONE`-prefix into self / live peers /
    recent DONE / stale.
-4. `agentctl.py:refresh_active_register()` participates when a launching agent
-   exports `AGENTCTL_SESSION_ID`: on `start`/`smoke`/`restart` it creates the
-   entry (placeholder line 1) if absent, else appends a free-text launch note
-   and refreshes mtime — never rewriting line 1/`scope:`, never touching a
-   `DONE` entry. The id is stripped from the child env so jobs can't
-   masquerade as the agent. (Unrelated: the `--active` *flag* is just a
-   `--running-only` job-filter alias.)
+4. `agentctl.py:refresh_active_register()` keeps the agent's entry live on
+   `start`/`smoke`/`restart`, adopting the id via `agent_session_id()`
+   (`AGENTCTL_SESSION_ID` or `CLAUDE_CODE_SESSION_ID`): create the entry
+   (placeholder line 1) if absent, else append a free-text launch note and
+   refresh mtime — never rewriting line 1/`scope:`, never touching a `DONE`
+   entry. Each launch increments `AGENTCTL_LAUNCH_DEPTH`; `agent_session_id()`
+   returns "" at depth > 0, so jobs can't masquerade (count-down-once guard, no
+   env stripping). (Unrelated: the `--active` *flag* is just a `--running-only`
+   job-filter alias.)
 
 Seams: register schema → `AGENTS.md`; launcher participation →
-`refresh_active_register()` + child-env strip in `start()`; reader
-classification → `skills/others`; id discovery → provider supplement. The
-register is *not* job state.
+`agent_session_id()` + `refresh_active_register()` + `AGENTCTL_LAUNCH_DEPTH`
+in `start()`; reader classification → `skills/others`; id source → provider
+supplement. The register is *not* job state.
 Evidence: verified: `rg -n 'refresh_active_register\|AGENTCTL_SESSION_ID' agentctl.py`;
 observed: `python3 tests/test_agentctl.py -k active`.
 
@@ -166,8 +169,9 @@ Evidence: verified: `cat GLOSSARY.md topics/glossary.md`.
 - Active-sessions contract (documented in `topics/agentctl.md` + `AGENTS.md`
   prose): `.agentctl/active/` files are present-tense status, `DONE`-prefixed
   when complete, classified by 70-min staleness. Authored by agents and read
-  by `/others`; `agentctl.py` keeps an entry live only under
-  `AGENTCTL_SESSION_ID` and never rewrites line 1/`scope:`.
+  by `/others`; `agentctl.py` keeps an entry live by adopting the agent's
+  session id (`agent_session_id()`), never rewrites line 1/`scope:`, and
+  suppresses jobs via the `AGENTCTL_LAUNCH_DEPTH` counter.
   Evidence: verified: `rg -n 'Active sessions' AGENTS.md`;
   `rg -n 'Active-sessions participation' topics/agentctl.md`.
 - Python test seam: `tests/test_agentctl.py` is the vertical slice guarding
@@ -203,7 +207,7 @@ wc -l agentctl.py artifact_meta.py agentctl_plugins/aim.py tests/test_agentctl.p
 rg -n '^def (start|run_child|status|print_status_state|main|build_parser|add_start_options|watch|wait_job|stop|restart)\b' agentctl.py
 rg -n '^def ' agentctl_plugins/aim.py
 rg -n '^def (build_meta_markdown|find_aim_run_record|find_aim_run_text)\b' artifact_meta.py
-find .agentctl/active -maxdepth 1 -type f          # convention register, not job state
-rg -n 'refresh_active_register|AGENTCTL_SESSION_ID' agentctl.py   # launcher's gated participation
-python3 tests/test_agentctl.py -k active           # register create/append/DONE + child-env strip
+find .agentctl/active -maxdepth 1 -type f          # active sessions, not job state
+rg -n 'agent_session_id|LAUNCH_DEPTH|SESSION_ID_ENVS' agentctl.py   # adoption + count-down-once guard
+python3 tests/test_agentctl.py -k active           # create/append/DONE, harness-id adoption, depth guard
 ```

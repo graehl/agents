@@ -21,9 +21,19 @@ STATE = ROOT / ".agentctl"
 JOBS = STATE / "jobs"
 RUNS = STATE / "runs"
 # Active sessions (AGENTS.md convention, not job state): one file per
-# launching-agent session, named by that session's id. agentctl only writes
-# here when the agent advertises its id via AGENTCTL_SESSION_ID.
+# launching-agent session, named by that session's id. agentctl maintains
+# the current agent's entry on launch; see agent_session_id().
 ACTIVE = STATE / "active"
+# Env vars carrying the launching agent's session id, in priority order: an
+# explicit override first, then known harness-provided ids. agentctl adopts the
+# first value set, so plain `./agentctl` maintains the entry with no per-call
+# setup. Add other harnesses' session-id vars here as they are learned.
+SESSION_ID_ENVS = ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID")
+# Set in every launched child's env and incremented per hop. A launched job is
+# not an agent, so agentctl ignores the session id at depth > 0: this is the
+# count-down-once flag that stops a job (or any agentctl it shells) from
+# refreshing or masquerading as the launching agent's active-sessions entry.
+LAUNCH_DEPTH_ENV = "AGENTCTL_LAUNCH_DEPTH"
 
 
 # ---- Plugin loader ----
@@ -233,15 +243,36 @@ def write_headline(path: Path, text: str) -> None:
     path.write_text(headline + "\n", encoding="utf-8")
 
 
+def agent_session_id() -> str:
+    """The launching agent's session id for active-sessions upkeep, or "".
+
+    Empty when this invocation is inside an agentctl-launched job
+    (LAUNCH_DEPTH > 0) — a job is not an agent — or when no session id is
+    advertised. Otherwise the first set of SESSION_ID_ENVS wins, so plain
+    `./agentctl` adopts the harness's ambient session id with no per-call
+    setup.
+    """
+    try:
+        depth = int(os.environ.get(LAUNCH_DEPTH_ENV, "0") or "0")
+    except ValueError:
+        depth = 0
+    if depth > 0:
+        return ""
+    for var in SESSION_ID_ENVS:
+        sid = os.environ.get(var, "").strip()
+        if sid:
+            return sid
+    return ""
+
+
 def refresh_active_register(summary: str, note: str) -> None:
     """Keep the launching agent's `.agentctl/active/<session-id>` entry live.
 
     Active sessions are an AGENTS.md convention, not agentctl job state:
     line 1 is an agent-authored present-tense summary, optional line 2 is
     `scope:`, and a leading `DONE` on line 1 marks completion. agentctl
-    participates only when the agent advertises its session id via
-    AGENTCTL_SESSION_ID, and only on foreground launches (start / smoke /
-    restart). It then:
+    maintains the current agent's entry (per `agent_session_id()`) on
+    foreground launches (start / smoke / restart). It then:
 
       - creates the entry with `summary` as line 1 when the file did not
         exist before (the agent has not authored one yet; the agent is
@@ -254,7 +285,7 @@ def refresh_active_register(summary: str, note: str) -> None:
 
     Best-effort: a failure here must never affect the launch.
     """
-    sid = os.environ.get("AGENTCTL_SESSION_ID", "").strip()
+    sid = agent_session_id()
     if not sid:
         return
     path = ACTIVE / sid
@@ -1233,11 +1264,16 @@ def start(args: argparse.Namespace) -> int:
     for script in args.source_env:
         env = source_env_script(env, script)
     env.setdefault("PYTHONUNBUFFERED", "1")
-    # Downgrade: a launched job is not an agent. Strip the launching agent's
-    # session id from the child env so the job (or any agentctl it shells)
-    # cannot refresh or masquerade as that agent's active-sessions entry.
-    # The register coordinates edits between agents sharing a workdir, not jobs.
-    env.pop("AGENTCTL_SESSION_ID", None)
+    # Count-down-once: mark the child as one hop deeper into an agentctl launch
+    # so neither the job nor any agentctl it shells adopts the launching agent's
+    # session id (agent_session_id() ignores it at depth > 0). A job is not an
+    # agent and must not refresh or masquerade as that agent's active-sessions
+    # entry — without rewriting the harness's own ambient session var.
+    try:
+        _launch_depth = int(env.get(LAUNCH_DEPTH_ENV, "0") or "0")
+    except ValueError:
+        _launch_depth = 0
+    env[LAUNCH_DEPTH_ENV] = str(_launch_depth + 1)
     # Inherit parent run id (if this agentctl invocation is itself running under
     # another agentctl-tracked run) so the child record can reference parent_run.
     parent_run_id = env.get("AGENTCTL_PARENT_RUN_ID", "").strip()

@@ -50,6 +50,11 @@ class Workspace:
 
     def run(self, *args, env_extra=None, timeout=20) -> subprocess.CompletedProcess:
         env = os.environ.copy()
+        # Hermetic: drop ambient agent/harness session vars (the test runner may
+        # itself be under an agent, e.g. CLAUDE_CODE_SESSION_ID) so each test
+        # controls active-sessions behavior explicitly.
+        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID", "AGENTCTL_LAUNCH_DEPTH"):
+            env.pop(var, None)
         if env_extra:
             env.update(env_extra)
         return subprocess.run(
@@ -773,18 +778,37 @@ def test_active_register_create_append_and_done():
         ws.cleanup()
 
 
-def test_active_session_id_stripped_from_child():
+def test_active_register_adopts_harness_session_id():
+    # With no explicit AGENTCTL_SESSION_ID, agentctl adopts a known harness var
+    # (here CLAUDE_CODE_SESSION_ID), so plain `start` maintains the entry.
     ws = Workspace()
-    sid = "sess-xyz"
-    out = ws.scratch / "child_sid.txt"
+    sid = "sess-harness"
+    active = ws.tmp / ".agentctl/active" / sid
     try:
-        res = ws.run("start", "--no-aim", "echojob", "--",
-                     "sh", "-c", f'printf %s "${{AGENTCTL_SESSION_ID-UNSET}}" > {out}',
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run("start", "--no-aim", "adopted", "--", "true",
+                     env_extra={"CLAUDE_CODE_SESSION_ID": sid})
         _assert(res.returncode == 0, f"start failed: {res.stderr}")
-        ws.wait_finished("echojob")
+        ws.wait_finished("adopted")
+        _assert(active.exists(), "entry should be created from the adopted harness session id")
+        _assert("adopted" in active.read_text(), "summary should mention the launch")
+    finally:
+        ws.cleanup()
+
+
+def test_launched_job_gets_depth_guard():
+    # A launched job is marked one hop deeper, so any agentctl it shells ignores
+    # the session id (agent_session_id() returns "" at depth > 0) — a job cannot
+    # masquerade as the launching agent.
+    ws = Workspace()
+    out = ws.scratch / "child_depth.txt"
+    try:
+        res = ws.run("start", "--no-aim", "depthjob", "--",
+                     "sh", "-c", f'printf %s "${{AGENTCTL_LAUNCH_DEPTH-UNSET}}" > {out}',
+                     env_extra={"CLAUDE_CODE_SESSION_ID": "sess-harness"})
+        _assert(res.returncode == 0, f"start failed: {res.stderr}")
+        ws.wait_finished("depthjob")
         got = out.read_text()
-        _assert(got == "UNSET", f"child must not inherit AGENTCTL_SESSION_ID, got {got!r}")
+        _assert(got == "1", f"child should be marked at launch depth 1, got {got!r}")
     finally:
         ws.cleanup()
 
