@@ -1,6 +1,6 @@
 ---
 name: start-task
-description: Scaffold a new task and create a feature branch.
+description: Scaffold a new root task (point tasks/ROOT at it) and create a feature branch.
 disable-model-invocation: true
 argument-hint: "<short-description, e.g. auth-refactor>"
 ---
@@ -30,6 +30,10 @@ argument-hint: "<short-description, e.g. auth-refactor>"
    - `## Plan`
    - `## Risks`
    - `## Subtasks` with the required table and the three summary lines
-6. Create and switch to branch `<slug>`. If that branch already exists, stop
+6. Point the active-root-task pointer at the new file:
+   `printf '%s\n' NNN-<slug>.md > tasks/ROOT` (git-ignored; see
+   `AGENTS.md` § Session management). This step is independent of any
+   branch.
+7. Create and switch to branch `<slug>`. If that branch already exists, stop
    and ask whether to reuse it or choose a different slug.
-7. Commit the new task file as the first commit on the new branch.
+8. Commit the new task file as the first commit on the new branch.
