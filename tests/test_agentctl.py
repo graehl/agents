@@ -720,6 +720,75 @@ def test_cleanup_running_scan_reports_recovery_state():
         ws.cleanup()
 
 
+def test_active_register_skipped_without_session_id():
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "trivial", "--", "true")
+        ws.wait_finished("trivial")
+        _assert(not (ws.tmp / ".agentctl/active").exists(),
+                "no active/ dir should be created without AGENTCTL_SESSION_ID")
+    finally:
+        ws.cleanup()
+
+
+def test_active_register_create_append_and_done():
+    ws = Workspace()
+    sid = "sess-abc123"
+    active = ws.tmp / ".agentctl/active" / sid
+    try:
+        # No prior entry: agentctl authors a degraded line 1 from the launch.
+        res = ws.run("start", "--no-aim", "job1", "--", "true",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"start failed: {res.stderr}")
+        ws.wait_finished("job1")
+        _assert(active.exists(), "active entry should be created when session id is set")
+        lines = active.read_text().splitlines()
+        _assert(lines == [lines[0]] and "job1" in lines[0],
+                f"fresh entry should be a single summary line mentioning the launch: {lines!r}")
+
+        # Agent overwrites with its own authored summary + scope; agentctl must
+        # preserve both and append only free text below them.
+        active.write_text("Coordinating edits to pkg/foo\nscope: pkg/foo/**\n")
+        res = ws.run("start", "--no-aim", "job2", "--", "true",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"start failed: {res.stderr}")
+        ws.wait_finished("job2")
+        lines = active.read_text().splitlines()
+        _assert(lines[0] == "Coordinating edits to pkg/foo",
+                f"agent line 1 must be preserved: {lines!r}")
+        _assert(lines[1] == "scope: pkg/foo/**",
+                f"scope line 2 must be preserved: {lines!r}")
+        _assert(any("job2" in ln for ln in lines[2:]),
+                f"a free-text note should be appended for job2: {lines!r}")
+
+        # DONE-prefixed entry: the session is complete; leave it untouched.
+        active.write_text("DONE: wrapped up\n")
+        res = ws.run("start", "--no-aim", "job3", "--", "true",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"start failed: {res.stderr}")
+        ws.wait_finished("job3")
+        _assert(active.read_text() == "DONE: wrapped up\n",
+                f"DONE entry must be left untouched: {active.read_text()!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_active_session_id_stripped_from_child():
+    ws = Workspace()
+    sid = "sess-xyz"
+    out = ws.scratch / "child_sid.txt"
+    try:
+        res = ws.run("start", "--no-aim", "echojob", "--",
+                     "sh", "-c", f'printf %s "${{AGENTCTL_SESSION_ID-UNSET}}" > {out}',
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"start failed: {res.stderr}")
+        ws.wait_finished("echojob")
+        got = out.read_text()
+        _assert(got == "UNSET", f"child must not inherit AGENTCTL_SESSION_ID, got {got!r}")
+    finally:
+        ws.cleanup()
+
+
 # ---- Runner ----------------------------------------------------------------
 
 

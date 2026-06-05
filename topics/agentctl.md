@@ -38,6 +38,16 @@ tooling, future compliance-library work, and project migration docs.
   would hide short successful runs, and `status/list --failed` exists as a
   troubleshooting view. `wait --target not-running` prints the final return
   code and log path, and exits nonzero for failed `finished` jobs.
+- Activity-register participation is gated on `AGENTCTL_SESSION_ID`. The
+  `.agentctl/active/<session-id>` register is an AGENTS.md convention owned by
+  agents and read by the `/others` skill, not job state. When the launching
+  agent exports its session id, `start`/`smoke`/`restart` keep that agent's
+  entry live: create it with a placeholder line 1 if absent, else append a
+  free-text launch note (which refreshes mtime), never rewriting the
+  agent-authored line 1 or `scope:` line 2, and never touching a `DONE`-
+  prefixed entry. The id is stripped from each launched child's environment so
+  jobs cannot refresh or masquerade as the agent's entry. With the var unset
+  (the default), the launcher does not touch the register at all.
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.

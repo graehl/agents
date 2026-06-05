@@ -55,6 +55,15 @@ Check for active peers with `find .agentctl/active -maxdepth 1
 -type f -mmin -70`. Older files that do not start with `DONE` are
 stale/crashed.
 
+Export `AGENTCTL_SESSION_ID=<this session's id>` in your shell so
+`agentctl` keeps your entry's heartbeat fresh: on `start`/`smoke`/
+`restart` it refreshes the entry's mtime and appends a free-text
+launch note. If no entry exists yet it creates one with a
+placeholder line 1 for you to overwrite. It never rewrites your
+line 1 or `scope:` line 2, and never touches a `DONE`-prefixed
+entry. The id is stripped from each launched job's environment, so
+jobs cannot masquerade as your session.
+
 ## Resume source priority
 
 A handoff or context-compression message as the first turn means `/bye`

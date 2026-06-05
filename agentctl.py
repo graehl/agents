@@ -20,6 +20,10 @@ ROOT = Path(os.environ.get("AGENTCTL_ROOT") or os.getcwd()).expanduser().resolve
 STATE = ROOT / ".agentctl"
 JOBS = STATE / "jobs"
 RUNS = STATE / "runs"
+# Agent activity register (AGENTS.md convention, not job state): one file per
+# launching-agent session, named by that session's id. agentctl only writes
+# here when the agent advertises its id via AGENTCTL_SESSION_ID.
+ACTIVE = STATE / "active"
 
 
 # ---- Plugin loader ----
@@ -227,6 +231,47 @@ def write_headline(path: Path, text: str) -> None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(headline + "\n", encoding="utf-8")
+
+
+def refresh_active_register(summary: str, note: str) -> None:
+    """Keep the launching agent's `.agentctl/active/<session-id>` entry live.
+
+    The active register is an AGENTS.md convention, not agentctl job state:
+    line 1 is an agent-authored present-tense summary, optional line 2 is
+    `scope:`, and a leading `DONE` on line 1 marks completion. agentctl
+    participates only when the agent advertises its session id via
+    AGENTCTL_SESSION_ID, and only on foreground launches (start / smoke /
+    restart). It then:
+
+      - creates the entry with `summary` as line 1 when the file did not
+        exist before (the agent has not authored one yet; the agent is
+        expected to overwrite this degraded line later);
+      - otherwise appends `note` as a free-text line (which also refreshes
+        mtime for staleness checks), never rewriting the agent-authored
+        line 1 or `scope:` line 2;
+      - leaves a DONE-prefixed entry untouched — the session is complete and
+        readers (the /others skill) key off that prefix.
+
+    Best-effort: a failure here must never affect the launch.
+    """
+    sid = os.environ.get("AGENTCTL_SESSION_ID", "").strip()
+    if not sid:
+        return
+    path = ACTIVE / sid
+    try:
+        if not path.exists():
+            ACTIVE.mkdir(parents=True, exist_ok=True)
+            path.write_text(normalize_headline_text(summary) + "\n", encoding="utf-8")
+            return
+        first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        if first and first[0].startswith("DONE"):
+            return
+        line = normalize_headline_text(note)
+        if line:
+            with path.open("a", encoding="utf-8") as fh:
+                fh.write(line + "\n")
+    except OSError as exc:
+        print(f"warning: could not refresh active register {path}: {exc}", file=sys.stderr)
 
 
 def read_json(path: Path) -> dict:
@@ -1188,6 +1233,11 @@ def start(args: argparse.Namespace) -> int:
     for script in args.source_env:
         env = source_env_script(env, script)
     env.setdefault("PYTHONUNBUFFERED", "1")
+    # Downgrade: a launched job is not an agent. Strip the launching agent's
+    # session id from the child env so the job (or any agentctl it shells)
+    # cannot refresh or masquerade as that agent's activity-register entry.
+    # The register coordinates edits between agents sharing a workdir, not jobs.
+    env.pop("AGENTCTL_SESSION_ID", None)
     # Inherit parent run id (if this agentctl invocation is itself running under
     # another agentctl-tracked run) so the child record can reference parent_run.
     parent_run_id = env.get("AGENTCTL_PARENT_RUN_ID", "").strip()
@@ -1338,6 +1388,10 @@ def start(args: argparse.Namespace) -> int:
         update_state_files(state)
     print(f"started {launch_name} job={job} serial={serial} run={rid} pid={proc.pid}")
     print(f"log: {log_path}")
+    refresh_active_register(
+        summary=f"agentctl {args.mode} {launch_name}: {command_string(final_argv)}",
+        note=f"agentctl: started {launch_name} run={rid}",
+    )
     if args.watch:
         try:
             return watch(
