@@ -7,10 +7,14 @@ session is too full or corrupted to resume normally. Recover prior
 context only on a greeting or explicit resume signal — a fresh, specific
 request is independent.
 
-Git-ignored private `tasks/*.md` files track per-task direction,
-coordination, acceptance notes, and unfinished session state. The
-active root task is named by `tasks/ROOT` (a one-line pointer holding
-its filename); update it when a new root task begins — rarely. Prefer
+`tasks/*.md` files track per-task direction, coordination, acceptance
+notes, and unfinished session state. Whether `tasks/` is git-ignored is
+the customization point: ignored (the default here) means task files are
+private working state — never commit them and stay branch-agnostic;
+tracked means the feature-branch workflow (committed task files, branch
+per task). The active root task is named by `tasks/ROOT` (a one-line
+pointer holding its filename); update it when a new root task begins —
+rarely. Prefer
 opening or updating a committed `topics/` doc for durable conclusions,
 contracts, and project-facing knowledge. Create or extend a task file
 when private direction-setting, handoff state, or an active-work

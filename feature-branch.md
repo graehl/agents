@@ -2,9 +2,12 @@
 
 This file is loaded only when a project opts in — its `AGENTS.md` names
 this supplement, or the repo plainly uses a branch-per-feature (or
-branch-per-task) workflow. Without it the global instructions stay
-branch-agnostic and default agent git behavior applies; the user does not
-use feature branches by default.
+branch-per-task) workflow. Tracked `tasks/` (not git-ignored) is the
+signal this applies; git-ignored `tasks/` is the default, where task
+files stay private and uncommitted and work is branch-agnostic. Without
+this supplement the global instructions stay branch-agnostic and default
+agent git behavior applies; the user does not use feature branches by
+default.
 
 It restores the branch-scoped rules that the global `AGENTS.md` omits and
 points at the touchpoints that already assume a branch.
