@@ -1,17 +1,21 @@
 # Session management
 
-Session state lives in `last-session.md`. `/bye` saves a summary; `/hi`
-recovers context — but only on a greeting or explicit resume signal. A
-fresh, specific request is independent: do not read or cite
-`last-session.md` just because it exists.
+Session continuity is primarily resume-by-session-id plus live state
+(active sessions, `tasks/*.md`, run metadata). `/hi` and `/bye` are an
+optional manual save/restore pair, mainly worth reaching for when a
+session is too full or corrupted to resume normally. Recover prior
+context only on a greeting or explicit resume signal — a fresh, specific
+request is independent.
 
-Git-ignored private `tasks/*.md` files track per-feature direction,
-coordination, acceptance notes, and unfinished session state. Prefer
+Git-ignored private `tasks/*.md` files track per-task direction,
+coordination, acceptance notes, and unfinished session state. The
+active root task is named by `tasks/ROOT` (a one-line pointer holding
+its filename); update it when a new root task begins — rarely. Prefer
 opening or updating a committed `topics/` doc for durable conclusions,
 contracts, and project-facing knowledge. Create or extend a task file
 when private direction-setting, handoff state, or an active-work
 scratchpad would make the work easier to resume or coordinate. Read the
-active task file when resuming. On believed completion, append a dated
+active root task when resuming. On believed completion, append a dated
 status note with the relevant commit(s) and one line of evidence; if the
 task file has inline subtasks, make it a section listing each subtask's
 status. Judge each task file in isolation — no recursing into linked
@@ -74,11 +78,12 @@ that session to catch up — scan for commit/topic boundaries and read
 the last two sections closely.
 
 When resuming after a disconnect, crash, restart, or compaction,
-presume `last-session.md` is stale and recover from live state
-first: worktree, newest `tasks/*.md` (by mtime, even if git-
-ignored), `.agentctl/active/`, run metadata, artifacts, then
-provider session logs. Use `last-session.md` only as a last
-historical hint.
+recover from live state first: worktree, the active root task
+(`tasks/ROOT` names it if present, else newest `tasks/*.md` by
+mtime, even if git-ignored), `.agentctl/active/`, run metadata,
+artifacts, then provider session logs. A `last-session.md` newer
+than that live evidence may be offered as an optional restore
+step; never treat it as authoritative.
 
 # Verification and retrieval
 
