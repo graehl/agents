@@ -33,15 +33,15 @@ examples encountered while consulting this file.
   shared contract; if no supplement exists, it reports once and continues
   without inheriting Codex/Claude-specific paths.
 
-## 2026-06-04 — activity register confused with task notes
+## 2026-06-04 — active-sessions entry confused with task notes
 
 - **Incident** — an agent doing implementation work was nudged to "log your
   activity" and repeatedly updated a task note / pre-edit-rule note instead
   of creating `.agentctl/active/<session-id>`. A later direct challenge
-  surfaced the actual `Agent activity register` rule.
+  surfaced the actual `Active sessions` rule.
 - **Decision** — `AGENTS.md` now states that `.agentctl/active/` must be
   created if missing, that task notes/snapshots/run logs/commit status do
-  not satisfy the register, and that agents should use the provider's real
+  not satisfy active sessions, and that agents should use the provider's real
   resumable session id from session metadata/logs when discoverable.
 - **Trace** — in a repo with no `.agentctl/` directory, the first
   planning-to-act step creates `.agentctl/active/<real-session-id>` before

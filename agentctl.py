@@ -20,7 +20,7 @@ ROOT = Path(os.environ.get("AGENTCTL_ROOT") or os.getcwd()).expanduser().resolve
 STATE = ROOT / ".agentctl"
 JOBS = STATE / "jobs"
 RUNS = STATE / "runs"
-# Agent activity register (AGENTS.md convention, not job state): one file per
+# Active sessions (AGENTS.md convention, not job state): one file per
 # launching-agent session, named by that session's id. agentctl only writes
 # here when the agent advertises its id via AGENTCTL_SESSION_ID.
 ACTIVE = STATE / "active"
@@ -236,7 +236,7 @@ def write_headline(path: Path, text: str) -> None:
 def refresh_active_register(summary: str, note: str) -> None:
     """Keep the launching agent's `.agentctl/active/<session-id>` entry live.
 
-    The active register is an AGENTS.md convention, not agentctl job state:
+    Active sessions are an AGENTS.md convention, not agentctl job state:
     line 1 is an agent-authored present-tense summary, optional line 2 is
     `scope:`, and a leading `DONE` on line 1 marks completion. agentctl
     participates only when the agent advertises its session id via
@@ -271,7 +271,7 @@ def refresh_active_register(summary: str, note: str) -> None:
             with path.open("a", encoding="utf-8") as fh:
                 fh.write(line + "\n")
     except OSError as exc:
-        print(f"warning: could not refresh active register {path}: {exc}", file=sys.stderr)
+        print(f"warning: could not update active session {path}: {exc}", file=sys.stderr)
 
 
 def read_json(path: Path) -> dict:
@@ -1235,7 +1235,7 @@ def start(args: argparse.Namespace) -> int:
     env.setdefault("PYTHONUNBUFFERED", "1")
     # Downgrade: a launched job is not an agent. Strip the launching agent's
     # session id from the child env so the job (or any agentctl it shells)
-    # cannot refresh or masquerade as that agent's activity-register entry.
+    # cannot refresh or masquerade as that agent's active-sessions entry.
     # The register coordinates edits between agents sharing a workdir, not jobs.
     env.pop("AGENTCTL_SESSION_ID", None)
     # Inherit parent run id (if this agentctl invocation is itself running under

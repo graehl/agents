@@ -6,7 +6,7 @@ description: Show what other agents are doing in this project — own .agentctl/
 # /others — see what other agents are doing here
 
 Reports the multi-agent state of the current project: the agent's
-own register entry (or that it is lurking), peers currently
+own active-sessions entry (or that it is lurking), peers currently
 active, work recently DONE, and stale entries that may be
 orphaned.
 
@@ -29,7 +29,7 @@ project to check it.
    it has one, is at `$root/.agentctl/active/<session-id>`.
 
    If the agent is lurking — no intent to write or change state
-   this turn and no prior register — there is no self entry.
+   this turn and no prior entry — there is no self entry.
    Reporting will say so.
 
 3. **Scan**. Both `$root/.agentctl/active/` and (if present)
@@ -111,7 +111,7 @@ schema-conforming lines, or ≤1 line total).
   then format as `Nm` / `Nh` / `Nd`.
 - First line: `head -n1 FILE`.
 - The 70-min active threshold matches
-  `AGENTS.md § Agent activity register`.
+  `AGENTS.md § Active sessions`.
 - The `done/` subdir is optional. The base convention writes
   `DONE: <summary>` into the same file at its `active/` path; a
   future maintenance step may move files older than 24h to

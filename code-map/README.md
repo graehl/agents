@@ -16,12 +16,12 @@ Three flows orient a new reader fastest:
 2. **`agentctl` run lifecycle** — `./agentctl` → `agentctl.py` launch/child/
    status verbs writing `.agentctl/jobs/` and `.agentctl/runs/` state, with
    `aim`-plugin provenance dumps.
-3. **The agent activity register** — `.agentctl/active/<session-id>`, a
+3. **Active sessions** — `.agentctl/active/<session-id>`, a
    *convention-only* coordination file (written by agents per `AGENTS.md`,
    read by the `/others` skill), distinct from `agentctl.py` job state.
 
 Distinguish the two `.agentctl` worlds: **job state** (`jobs/`, `runs/`) is
-owned by `agentctl.py`; the **active register** (`active/`) is owned by the
+owned by `agentctl.py`; the **active sessions** (`active/`) are owned by the
 agent-instructions convention and written primarily by agents. `agentctl.py`
 participates in the register *only* when the launching agent exports
 `AGENTCTL_SESSION_ID` (keeping that agent's entry live on launch); with the
@@ -31,7 +31,7 @@ var unset — the default — no Python here touches `active/`.
 
 | Path | Responsibility | Inputs / Outputs | Key Callers / Callees | Evidence |
 |---|---|---|---|---|
-| `AGENTS.md` | Authoritative global operating contract: session recovery, activity register, task/topic use, edit discipline, commits, glossary, gates, tool conventions. | In: user/project requests, repo state, companion docs. Out: behavioral constraints, commit/topic policy. | Provider supplements and skills build on it. | verified: `wc -l AGENTS.md` (≈32KB) |
+| `AGENTS.md` | Authoritative global operating contract: session recovery, active sessions, task/topic use, edit discipline, commits, glossary, gates, tool conventions. | In: user/project requests, repo state, companion docs. Out: behavioral constraints, commit/topic policy. | Provider supplements and skills build on it. | verified: `wc -l AGENTS.md` (≈32KB) |
 | `AGENTS.user.md` | Personal supplement (active-project hints, ML explanation prefs) layered after the global contract. | In: graehl-specific defaults. Out: narrower per-user policy. | Read alongside `AGENTS.md` each session. | verified: `cat AGENTS.user.md` |
 | `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.weak.md` | Provider/capability supplements: session-id discovery, log paths, weak-model amendments. Harness mechanics only. | In: provider runtime facts. Out: id/log guidance. | Loaded after `AGENTS.md` by harness routing. | verified: `cat AGENTS.claude.md` |
 | `README.md`, `RESEARCH.md`, `RUNS.md`, `feature-branch.md` | Repo intro + opt-in companion policy (research method, run ops, branch-per-feature). | In: triggering work mode. Out: scoped extra rules. | `AGENTS.md` "Optional supplements" loads on trigger. | verified: `cat README.md` |
@@ -107,9 +107,9 @@ Seams: the hook list is the provenance boundary; sidecar schema →
 Evidence: verified: `rg -n '^def ' agentctl_plugins/aim.py`;
 `cat topics/provenance-tracking.md`.
 
-### Agent Activity Register (convention-only)
+### Active Sessions (convention-only)
 
-1. `AGENTS.md` "Agent activity register" tells an agent to write
+1. `AGENTS.md` "Active sessions" tells an agent to write
    `.agentctl/active/<session-id>` on first planning-to-act in a shared
    workdir — line 1 a present-tense gist, optional line 2 `scope: <paths>`,
    `DONE`-prefixed on completion.
@@ -163,13 +163,13 @@ Evidence: verified: `cat GLOSSARY.md topics/glossary.md`.
 - `glossary`: `GLOSSARY.md` is one sorted table; topic-linked rows derive from
   ledes; scoped sub-glossaries sit at the narrowest enclosing dir.
   Evidence: verified: `cat topics/glossary.md`.
-- Activity-register contract (documented in `topics/agentctl.md` + `AGENTS.md`
+- Active-sessions contract (documented in `topics/agentctl.md` + `AGENTS.md`
   prose): `.agentctl/active/` files are present-tense status, `DONE`-prefixed
   when complete, classified by 70-min staleness. Authored by agents and read
   by `/others`; `agentctl.py` keeps an entry live only under
   `AGENTCTL_SESSION_ID` and never rewrites line 1/`scope:`.
-  Evidence: verified: `rg -n 'Agent activity register' AGENTS.md`;
-  `rg -n 'Activity-register participation' topics/agentctl.md`.
+  Evidence: verified: `rg -n 'Active sessions' AGENTS.md`;
+  `rg -n 'Active-sessions participation' topics/agentctl.md`.
 - Python test seam: `tests/test_agentctl.py` is the vertical slice guarding
   wrapper root selection, Aim dumps, I/O declarations, propagation, plugin
   loading, restart, and marker cleanup.

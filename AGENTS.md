@@ -21,7 +21,7 @@ For implementation or bugfix work, search `tasks/*.md` when that directory
 exists, and cite the relevant file(s) in planning and conclusion. Task
 files should cross-reference relevant `topics/*.md`.
 
-## Agent activity register
+## Active sessions
 
 On the first planning-to-act step in a shared workdir, write
 `.agentctl/active/<session-id>` with a short present-tense status line.
@@ -43,8 +43,8 @@ by suffix or pattern is genuinely the point. Anything beyond line
 2 is free content at agent discretion (plan notes, considered
 approaches, longer status). Brief readers stop after line 2.
 
-The register is a separate artifact — task-file status, run logs,
-and commit status do not satisfy it. Always attempt to discover
+Active sessions are a separate artifact — task-file status, run logs,
+and commit status do not satisfy this. Always attempt to discover
 the provider's real resumable session id before falling back to a
 personal tag — the provider supplement carries the discovery
 snippet for each harness. A personal tag is a last resort; do not
