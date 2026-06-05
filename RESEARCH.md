@@ -452,13 +452,15 @@ it should run `git branch --show-current` to get the branch name, then write to
 `research/<branchname>.log.md` or `research/<branchname>.md` respectively.
 
 When resuming a session with `/hi`:
-1. Read `last-session.md` → active branch name, active task numbers, next step
+1. Recover the active root task and live state per `AGENTS.md` § Resume
+   source priority (`tasks/ROOT`, `.agentctl/active/`, run metadata) — not a
+   session summary.
 2. Skim `research/<branchname>.md` (paper) for current framing, findings, and
    tables; if the governing task mentions a different paper path, skim that
    paper too.
-3. Read the main task file matching the branch name — check its Subtasks section
-   and any summary of what needs to be synced into the paper.
-4. Read any in-progress subtask files listed in last-session.md
+3. Read the active root task — check its Subtasks section and any summary of
+   what needs to be synced into the paper.
+4. Read any in-progress subtask files it lists.
 5. Check `research/<branchname>.log.md` for the most recent session's notes
 
 Do not run this checklist for a fresh, specific request that lacks an explicit
