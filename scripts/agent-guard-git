@@ -58,7 +58,12 @@ is_destructive() {
             # worktree is touched unless the call is --staged-only
             [ "$wt" -eq 1 ] || [ "$staged" -eq 0 ] && return 0
             return 1 ;;
-        checkout)
+        checkout|co)
+            # `co` is the near-universal alias for checkout; match it too,
+            # since the shim sees the literal token before git expands aliases.
+            # We catch only the explicit path-discard forms (-- / . / -f); a
+            # bare `git checkout <file>` is left to the advised `co -- <path>`
+            # form (AGENTS.md) rather than a per-call branch/path query.
             local a
             for a in "${rest[@]}"; do
                 case "$a" in -f|--force|--|.) return 0 ;; esac
