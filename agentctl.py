@@ -25,6 +25,11 @@ RUNS = STATE / "runs"
 # launching-agent session, named by that session's id. agentctl maintains
 # the current agent's entry on launch; see agent_session_id().
 ACTIVE = STATE / "active"
+# Minutes after which a non-DONE active-sessions entry is treated as stale
+# (crashed / quiet), matching the AGENTS.md "check for active peers" idiom
+# (`find .agentctl/active -mmin -70`). The `active` list view uses it as the
+# default freshness window.
+ACTIVE_STALE_MINUTES = 70
 # Env vars carrying the launching agent's session id, in priority order: an
 # explicit override first, then known harness-provided ids. agentctl adopts the
 # first value set, so plain `./agentctl` maintains the entry with no per-call
@@ -411,6 +416,76 @@ def active_register(args) -> int:
     if scope_line:
         print(f"  {scope_line}")
     return 0
+
+
+def active_list(args) -> int:
+    """`active` with no banner: list active-sessions entries + status lines.
+
+    The read counterpart to authoring `agentctl active "<banner>"`. It is the
+    AGENTS.md "check for active peers" idiom (`find .agentctl/active -mmin -70`,
+    entries not starting with DONE) as a verb, printing each session's line-1
+    status and `scope:` line so a peer-overlap check is one command instead of
+    a find+head pipeline. By default it shows only fresh (mtime within
+    --minutes, default ACTIVE_STALE_MINUTES) non-DONE entries; --minutes 0
+    drops the freshness window so stale/crashed entries show too, and --done
+    also includes DONE-prefixed (completed) entries.
+
+    Output is to stdout, newest first, one entry per block:
+
+        .agentctl/active/<id>  (12m34s ago)  status line one  (self)
+            scope: pkg/a/** pkg/b
+    """
+    minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
+    include_done = bool(getattr(args, "done", False))
+    self_id = agent_session_id()
+    now = time.time()
+
+    if not ACTIVE.is_dir():
+        print("no active sessions (.agentctl/active/ does not exist)")
+        return 0
+
+    rows: list[tuple[float, str, str, str, bool]] = []
+    for path in ACTIVE.iterdir():
+        if not path.is_file():
+            continue
+        try:
+            mtime = path.stat().st_mtime
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        lines = text.splitlines()
+        line1 = lines[0].strip() if lines else ""
+        is_done = line1.startswith("DONE")
+        if is_done and not include_done:
+            continue
+        age = now - mtime
+        if minutes and age > minutes * 60:
+            continue
+        scope = lines[1].strip() if len(lines) > 1 and lines[1].startswith("scope:") else ""
+        rows.append((mtime, path.name, line1, scope, path.name == self_id))
+
+    if not rows:
+        window = "any age" if not minutes else f"last {minutes}m"
+        kind = "sessions" if include_done else "non-DONE sessions"
+        print(f"no active {kind} ({window})")
+        return 0
+
+    rows.sort(key=lambda r: r[0], reverse=True)
+    for mtime, name, line1, scope, is_self in rows:
+        rel = f".agentctl/active/{name}"
+        age = format_duration(now - mtime)
+        marker = "  (self)" if is_self else ""
+        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{marker}")
+        if scope:
+            print(f"    {scope}")
+    return 0
+
+
+def active_cmd(args) -> int:
+    """Dispatch the `active` verb: list with no banner, author with one."""
+    if getattr(args, "banner", None) is None:
+        return active_list(args)
+    return active_register(args)
 
 
 def read_json(path: Path) -> dict:
@@ -3126,13 +3201,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser(
         "active",
-        help="Author this session's .agentctl/active/<id> entry (banner + optional "
-             "intend-to-edit scope) without launching a job.",
+        help="With a banner: author this session's .agentctl/active/<id> entry "
+             "(banner + optional intend-to-edit scope) without launching a job. "
+             "With no banner: list active (non-DONE) sessions and their status.",
     )
     s.add_argument(
         "banner",
+        nargs="?",
         help="Line-1 present-tense status (quote it). A leading DONE marks the "
-             "session complete.",
+             "session complete. Omit entirely to list active sessions instead.",
     )
     s.add_argument(
         "paths",
@@ -3140,7 +3217,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Intended-edit paths -> a `scope:` line 2 for peer overlap detection. "
              "Omit to leave any existing scope unchanged.",
     )
-    s.set_defaults(func=active_register)
+    s.add_argument(
+        "-m", "--minutes", type=int, default=ACTIVE_STALE_MINUTES,
+        help="List mode: freshness window in minutes (default %(default)s, the "
+             "AGENTS.md stale threshold). 0 shows entries of any age, including "
+             "stale/crashed ones.",
+    )
+    s.add_argument(
+        "--done", action="store_true",
+        help="List mode: also include DONE-prefixed (completed) sessions.",
+    )
+    s.set_defaults(func=active_cmd)
 
     _call_hook("register_verbs", sub)
 

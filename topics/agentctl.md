@@ -61,6 +61,16 @@ tooling, the cooperative declaration helper, and project migration docs.
   free-content lines below the header. It shares the launch-depth guard
   (`active` from inside a job is refused) and the no-session-id behavior
   (refuses with a nonzero exit rather than writing an unkeyed entry).
+- `active` with no banner is the read counterpart: it lists active-sessions
+  entries (newest first) with each one's line-1 status and `scope:` line —
+  the `find .agentctl/active -mmin -70` peer-check idiom as a verb. Default
+  shows only fresh (mtime within `--minutes`, default `ACTIVE_STALE_MINUTES`
+  = 70) non-DONE entries; `--minutes 0` drops the window to include
+  stale/crashed entries, `--done` adds DONE-prefixed (completed) ones, and
+  the caller's own entry (by resolved session id) is tagged `(self)`.
+  Listing is read-only: no session id is required, no `active/` dir is
+  created, and it exits 0 even when empty (unlike the write path, it never
+  errors on missing identity — there is nothing to key).
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.

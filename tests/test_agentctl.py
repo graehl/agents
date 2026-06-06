@@ -1055,6 +1055,97 @@ def test_active_verb_depth_guard():
         ws.cleanup()
 
 
+def _seed_active(ws, name: str, text: str, age_minutes: float = 0.0) -> Path:
+    """Write a .agentctl/active/<name> entry with an mtime age_minutes in the past."""
+    active = ws.tmp / ".agentctl/active"
+    active.mkdir(parents=True, exist_ok=True)
+    path = active / name
+    path.write_text(text if text.endswith("\n") else text + "\n")
+    if age_minutes:
+        old = time.time() - age_minutes * 60
+        os.utime(path, (old, old))
+    return path
+
+
+def test_active_list_shows_fresh_non_done_with_status_and_scope():
+    # `active` with no banner lists fresh, non-DONE entries + their status line.
+    ws = Workspace()
+    try:
+        _seed_active(ws, "sess-fresh", "editing the parser\nscope: agentctl.py")
+        _seed_active(ws, "sess-done", "DONE: shipped it")
+        _seed_active(ws, "sess-stale", "long gone", age_minutes=120)
+        res = ws.run("active")  # no banner -> list mode
+        _assert(res.returncode == 0, f"active list failed: {res.stderr}")
+        out = res.stdout
+        _assert("sess-fresh" in out and "editing the parser" in out,
+                f"fresh non-DONE entry should be listed: {out!r}")
+        _assert("scope: agentctl.py" in out, f"scope line should be shown: {out!r}")
+        _assert("sess-done" not in out, f"DONE entry should be hidden by default: {out!r}")
+        _assert("sess-stale" not in out, f"stale entry should be hidden by default: {out!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_active_list_minutes_zero_includes_stale():
+    # --minutes 0 drops the freshness window so stale (crashed) entries show.
+    ws = Workspace()
+    try:
+        _seed_active(ws, "sess-stale", "quiet since lunch", age_minutes=200)
+        res_default = ws.run("active")
+        _assert("sess-stale" not in res_default.stdout,
+                f"stale should be hidden in the default window: {res_default.stdout!r}")
+        res_all = ws.run("active", "-m", "0")
+        _assert(res_all.returncode == 0, f"active -m 0 failed: {res_all.stderr}")
+        _assert("sess-stale" in res_all.stdout,
+                f"stale should appear with -m 0: {res_all.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_active_list_done_flag_includes_completed():
+    # --done also lists DONE-prefixed (completed) entries.
+    ws = Workspace()
+    try:
+        _seed_active(ws, "sess-done", "DONE: shipped it")
+        res = ws.run("active", "--done")
+        _assert(res.returncode == 0, f"active --done failed: {res.stderr}")
+        _assert("sess-done" in res.stdout and "DONE: shipped it" in res.stdout,
+                f"DONE entry should appear with --done: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_active_list_marks_self():
+    # The caller's own entry (resolved session id) is tagged (self).
+    ws = Workspace()
+    sid = "sess-me"
+    try:
+        _seed_active(ws, sid, "my own work")
+        _seed_active(ws, "sess-peer", "peer work")
+        res = ws.run("active", env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"active list failed: {res.stderr}")
+        self_line = next((ln for ln in res.stdout.splitlines() if sid in ln), "")
+        _assert("(self)" in self_line, f"own entry should be marked (self): {self_line!r}")
+        peer_line = next((ln for ln in res.stdout.splitlines() if "sess-peer" in ln), "")
+        _assert("(self)" not in peer_line, f"peer should not be marked self: {peer_line!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_active_list_empty_is_clean_exit():
+    # No active/ dir at all -> friendly message, exit 0 (read-only, never errors).
+    ws = Workspace()
+    try:
+        res = ws.run("active")
+        _assert(res.returncode == 0, f"empty active list should exit 0: {res.stderr}")
+        _assert("no active" in res.stdout.lower(),
+                f"should report no active sessions: {res.stdout!r}")
+        _assert(not (ws.tmp / ".agentctl/active").exists(),
+                "listing must not create the active/ dir")
+    finally:
+        ws.cleanup()
+
+
 # ---- Runner ----------------------------------------------------------------
 
 

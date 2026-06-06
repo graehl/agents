@@ -61,7 +61,12 @@ the same id or tag across compaction or resume.
 
 Check for active peers with `find .agentctl/active -maxdepth 1
 -type f -mmin -70`. Older files that do not start with `DONE` are
-stale/crashed.
+stale/crashed. As a convenience, `agentctl active` with no banner
+lists exactly those fresh non-DONE entries (each with its status
+line, `scope:` line, and `(self)` marker); `agentctl active -m 0`
+drops the freshness window to show stale ones too, and `--done`
+adds completed entries. The plain `find` stays the dependency-free
+definition of the convention.
 
 `agentctl` maintains your entry automatically. It adopts your
 session id from `AGENTCTL_SESSION_ID`, else a harness-provided var
@@ -86,7 +91,9 @@ path args it leaves an existing `scope:` line in place. A leading
 `DONE` in the banner marks completion. The launch-depth guard still
 applies, so a launched job cannot author your entry. This is a
 convenience over hand-writing the file, not a new requirement — the
-file remains an ordinary text artifact you may edit directly.
+file remains an ordinary text artifact you may edit directly. The
+same verb with no banner is its read counterpart (the peer listing
+above); a banner means write, no banner means list.
 
 ## Resume source priority
 
