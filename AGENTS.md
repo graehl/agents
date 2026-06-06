@@ -267,6 +267,14 @@ Run a discard command only when the user explicitly requests that exact
 operation after being told it can delete uncommitted shared work, and even
 then narrow it to named paths.
 
+When discarding worktree changes to a path, use the explicit `git checkout
+-- <path>` / `git restore <path>` form, never `git checkout <path>` — `--`
+keeps git from mistaking a pathspec for a branch. Shared-workdir projects
+should launch harnesses via `agent-guarded`, which shims `git` to refuse
+these commands while a live `.agentctl/active` peer exists; if `AGENT_GUARD`
+is unset, warn once that the launch is unguarded. Contract, bypass surface,
+and deployment: `topics/agent-guard.md`.
+
 # Ancillary workdir hygiene
 
 When working in an ancillary worktree or scratch checkout, do not
