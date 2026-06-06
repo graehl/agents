@@ -16,48 +16,25 @@ personal tag: a launcher-injected id overrides Codex's real resumable id, so
 transcript. When the launcher derives the value from the resumable
 `session_meta.payload.id`, the two agree; if it diverges, note both ids.
 
-### Resumed TUI sessions (no injected id)
+### Resumed sessions (terminal resume)
 
-A YA launch injects `$AGENTCTL_SESSION_ID`; a plain `codex resume <id> [cmd]`
-typed in a terminal does **not**, so `agentctl active` / `start` cannot find
-your entry and will report it cannot refresh. The id Codex was told to resume
-*is* the resumable `session_meta.payload.id`, and it sits on an ancestor
-process's argv — recover it by walking parents. Read `PPid` from
-`/proc/<pid>/status` (robust against the parenthesized, space-bearing `comm`
-field that corrupts naive `/proc/<pid>/stat` parsing):
+A YA launch injects `$AGENTCTL_SESSION_ID`. A terminal `codex resume <id>`
+(positional `resume`, **not** `--resume`) does not — but two mechanisms now
+recover it automatically, so this is normally handled for you:
 
-```bash
-sid=$(
-  pid=$PPID
-  while [ "${pid:-0}" -gt 1 ]; do
-    args=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)
-    case "$args" in
-      *codex*resume*)
-        printf '%s\n' "$args" |
-          grep -oiE 'resume[[:space:]]+[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' |
-          head -n1 | awk '{print $NF}'
-        break ;;
-    esac
-    pid=$(awk '/^PPid:/{print $2}' "/proc/$pid/status" 2>/dev/null)
-    [ -n "$pid" ] || break
-  done
-)
-```
+- The `~/bin/codex` wrapper parses `resume <id>` and exports
+  `AGENTCTL_SESSION_ID` from it, so your Bash shells and agentctl inherit it.
+- `agentctl` independently recovers the id from a `resume <id>` ancestor in
+  the process tree (`agent_session_id` → `session_id_from_proc_tree`), gated
+  by the same launch-depth guard, so it keys the right
+  `.agentctl/active/<id>` even if the wrapper was bypassed.
 
-`agentctl` adopts the session id only from env vars (`AGENTCTL_SESSION_ID`,
-then known harness vars), so the recovered id must reach it that way. Each
-Bash tool call is a fresh shell, so a one-shot `export` does not carry
-between calls: recover the id once, then pass the literal inline on every
-agentctl call.
-
-```bash
-AGENTCTL_SESSION_ID=<recovered-id> ./agentctl active "<banner>" <paths...>
-```
-
-The resume arg is the resumable id by construction, so it needs no extra
-transcript cross-check. The `$CODEX_THREAD_ID` / transcript-scan methods
-below remain for fresh (non-resume) sessions, which have no `codex resume
-<id>` ancestor.
+So read `$AGENTCTL_SESSION_ID` for your own id; if it is set, that is the
+answer. It is empty only when both are bypassed — codex launched by an
+absolute path that skips the wrapper *and* a PID namespace that hides the
+launcher, or `AGENTCTL_NO_PROC_SESSION_ID` is set. Then fall back to the
+`$CODEX_THREAD_ID` / transcript lookups below; the resume arg, where visible,
+is the resumable `session_meta.payload.id` by construction.
 
 Otherwise, when `AGENTS.md` asks for `<session-id>`, use Codex's real
 resumable session id: the id a Codex resume/list command would use. Prefer any

@@ -60,6 +60,11 @@ class Workspace:
         for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID",
                     "AGENTCTL_LAUNCH_DEPTH", "BASH_ENV"):
             env.pop(var, None)
+        # Also disable parent-process-tree recovery by default: the test runner
+        # is frequently under a `claude --resume <uuid>` / `codex resume <uuid>`
+        # ancestor, which agentctl would otherwise recover as the session id.
+        # The dedicated recovery tests bypass run() and opt back in.
+        env["AGENTCTL_NO_PROC_SESSION_ID"] = "1"
         if env_extra:
             env.update(env_extra)
         return subprocess.run(
@@ -1142,6 +1147,74 @@ def test_active_list_empty_is_clean_exit():
                 f"should report no active sessions: {res.stdout!r}")
         _assert(not (ws.tmp / ".agentctl/active").exists(),
                 "listing must not create the active/ dir")
+    finally:
+        ws.cleanup()
+
+
+def test_resume_id_from_argv_parsing():
+    # Unit: pull a resume session id out of a launcher argv, Codex and Claude forms.
+    sys.path.insert(0, str(REPO_ROOT))
+    import agentctl
+    uid = "061e2fa8-da37-42d4-93b2-94351ebec717"
+    cases = {
+        "codex positional": (["codex", "resume", uid], uid),
+        "claude --resume": (["claude", "--resume", uid], uid),
+        "--resume=uuid": ([f"--resume={uid}"], uid),
+        "resume w/o uuid": (["codex", "resume", "--last"], ""),
+        "uuid not after resume": (["codex", "exec", uid], ""),
+        "non-uuid after resume": (["codex", "resume", "not-a-uuid"], ""),
+    }
+    for label, (argv, want) in cases.items():
+        got = agentctl._resume_id_from_argv(argv)
+        _assert(got == want, f"{label}: argv={argv!r} got {got!r} want {want!r}")
+
+
+def test_active_recovers_session_id_from_resume_ancestor():
+    # E2e: a terminal `codex resume <id>` injects no AGENTCTL_SESSION_ID, so
+    # agentctl must recover the id from the `resume <id>` ancestor argv and key
+    # the active entry by it. The parent shell carries `resume <uid>` in its
+    # argv; `true; ...` keeps bash from exec-replacing itself (which would drop
+    # that argv from the tree).
+    ws = Workspace()
+    uid = "11111111-2222-3333-4444-555555555555"
+    active = ws.tmp / ".agentctl/active" / uid
+    try:
+        env = os.environ.copy()
+        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID",
+                    "AGENTCTL_LAUNCH_DEPTH", "BASH_ENV"):
+            env.pop(var, None)
+        script = 'true; ./agentctl active "resumed via proc-tree recovery"'
+        res = subprocess.run(
+            ["bash", "-c", script, "codex", "resume", uid],
+            cwd=ws.tmp, capture_output=True, text=True, env=env, timeout=20,
+        )
+        _assert(res.returncode == 0, f"active failed: rc={res.returncode}\n{res.stderr}")
+        seen = sorted(p.name for p in active.parent.glob("*")) if active.parent.exists() else []
+        _assert(active.exists(), f"entry should be keyed by recovered resume id; saw {seen}")
+        _assert(active.read_text().splitlines()[0] == "resumed via proc-tree recovery",
+                f"banner should be written under the recovered id: {active.read_text()!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_launch_depth_blocks_resume_ancestor_recovery():
+    # The count-down launch-depth guard wins over proc-tree recovery too: a
+    # depth>0 invocation (a launched job, or a recursive agentctl loop) must not
+    # refresh an entry even when a `resume <id>` ancestor is present.
+    ws = Workspace()
+    uid = "99999999-8888-7777-6666-555555555555"
+    try:
+        env = os.environ.copy()
+        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID", "BASH_ENV"):
+            env.pop(var, None)
+        env["AGENTCTL_LAUNCH_DEPTH"] = "1"
+        script = 'true; ./agentctl active "should be refused" || true'
+        subprocess.run(
+            ["bash", "-c", script, "codex", "resume", uid],
+            cwd=ws.tmp, capture_output=True, text=True, env=env, timeout=20,
+        )
+        _assert(not (ws.tmp / ".agentctl/active" / uid).exists(),
+                "depth>0 must not author an entry even with a resume ancestor")
     finally:
         ws.cleanup()
 

@@ -43,7 +43,15 @@ tooling, the cooperative declaration helper, and project migration docs.
   job state. `agent_session_id()` resolves the launching agent's id from
   `AGENTCTL_SESSION_ID`, else a known harness var (`SESSION_ID_ENVS`, e.g.
   `CLAUDE_CODE_SESSION_ID`), so plain `./agentctl` participates with no per-call
-  setup. On `start`/`smoke`/`restart` it keeps that agent's entry live: create
+  setup. When no env var carries an id — a resumed session that exports none,
+  e.g. a terminal `codex resume <id>` — it falls back to
+  `session_id_from_proc_tree()`, which walks the parent process chain (Linux
+  `/proc`) and reads the id off a `resume <id>` / `--resume <id>` ancestor argv
+  (PPid from `/proc/<pid>/status`, not the paren-`comm` `stat` field). The
+  recovery is a fallback only: an env id always wins, the launch-depth guard is
+  checked first (below), and `AGENTCTL_NO_PROC_SESSION_ID` disables it for
+  environments under an unrelated `resume <uuid>` ancestor and for hermetic
+  tests. On `start`/`smoke`/`restart` it keeps that agent's entry live: create
   with a placeholder line 1 if absent, else append a free-text launch note
   (which refreshes mtime), never rewriting the agent-authored line 1 or
   `scope:` line 2, and never touching a `DONE`-prefixed entry. Each launch

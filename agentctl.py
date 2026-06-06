@@ -40,6 +40,11 @@ SESSION_ID_ENVS = ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID")
 # count-down-once flag that stops a job (or any agentctl it shells) from
 # refreshing or masquerading as the launching agent's active-sessions entry.
 LAUNCH_DEPTH_ENV = "AGENTCTL_LAUNCH_DEPTH"
+# Set to a non-empty value to disable the parent-process-tree session-id
+# recovery (session_id_from_proc_tree). Recovery is a fallback used only when
+# no SESSION_ID_ENVS var is set; this opt-out exists for environments that run
+# under an unrelated `resume <uuid>` ancestor and for hermetic tests.
+NO_PROC_SESSION_ID_ENV = "AGENTCTL_NO_PROC_SESSION_ID"
 DECLARED_IO_FILENAME = "declared.json"
 PROPAGATE_FILENAME = "propagate.json"
 
@@ -251,14 +256,104 @@ def write_headline(path: Path, text: str) -> None:
     path.write_text(headline + "\n", encoding="utf-8")
 
 
+_UUID_RE = re.compile(
+    r"\A[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
+    r"-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\Z"
+)
+
+
+def _proc_ppid(pid: int) -> int | None:
+    """Parent pid of `pid` from /proc/<pid>/status, or None.
+
+    Read `PPid:` from status, not field 4 of /proc/<pid>/stat: the stat
+    `comm` field is parenthesized and may contain spaces, so naive
+    whitespace-splitting of stat returns the wrong field.
+    """
+    try:
+        for line in Path(f"/proc/{pid}/status").read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines():
+            if line.startswith("PPid:"):
+                return int(line.split()[1])
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
+
+
+def _proc_argv(pid: int) -> list[str]:
+    """argv tokens of `pid` from /proc/<pid>/cmdline (NUL-separated), or []."""
+    try:
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except OSError:
+        return []
+    return [tok.decode("utf-8", "replace") for tok in raw.split(b"\x00") if tok]
+
+
+def _resume_id_from_argv(argv: list[str]) -> str:
+    """A resume session id from a `resume <uuid>` / `--resume[=]<uuid>` argv.
+
+    Matches both the Codex form (positional `resume <uuid>` subcommand) and
+    the Claude form (`--resume <uuid>` / `--resume=<uuid>`). Returns the first
+    UUID-shaped value so found, else "".
+    """
+    for i, tok in enumerate(argv):
+        if tok in ("resume", "--resume"):
+            if i + 1 < len(argv) and _UUID_RE.match(argv[i + 1]):
+                return argv[i + 1]
+        elif tok.startswith("--resume="):
+            val = tok[len("--resume="):]
+            if _UUID_RE.match(val):
+                return val
+    return ""
+
+
+def session_id_from_proc_tree(max_hops: int = 8) -> str:
+    """Recover a resumable session id from an ancestor's `resume <uuid>` argv.
+
+    A terminal `codex resume <id>` (and Claude's `--resume <id>`) carries the
+    resumable session id on the launching process's command line but exports
+    no AGENTCTL_SESSION_ID, so a resumed agent — and agentctl with it — would
+    otherwise not know which `.agentctl/active/<id>` entry is its own. Walk the
+    parent chain (Linux /proc) and return the nearest such id. Best-effort:
+    returns "" off Linux, in a sandbox PID namespace that hides the launcher,
+    or when no resume arg is present.
+
+    Set AGENTCTL_NO_PROC_SESSION_ID to opt out of the process-tree walk
+    entirely (returns "" before reading any /proc): for a caller that does not
+    want agentctl inspecting ancestor command lines, and for hermetic tests
+    that must not pick up the harness's own resume id from the ambient tree.
+    """
+    if os.environ.get(NO_PROC_SESSION_ID_ENV, "").strip():
+        return ""
+    try:
+        pid: int | None = os.getppid()
+    except OSError:
+        return ""
+    hops = 0
+    while pid and pid > 1 and hops < max_hops:
+        sid = _resume_id_from_argv(_proc_argv(pid))
+        if sid:
+            return sid
+        nxt = _proc_ppid(pid)
+        if not nxt or nxt == pid:
+            break
+        pid = nxt
+        hops += 1
+    return ""
+
+
 def agent_session_id() -> str:
     """The launching agent's session id for active-sessions upkeep, or "".
 
     Empty when this invocation is inside an agentctl-launched job
     (LAUNCH_DEPTH > 0) — a job is not an agent — or when no session id is
-    advertised. Otherwise the first set of SESSION_ID_ENVS wins, so plain
-    `./agentctl` adopts the harness's ambient session id with no per-call
-    setup.
+    resolvable. The launch-depth guard is checked first so a recursive /
+    looping agentctl (each launch increments the count-down var) never
+    refreshes or masquerades as the agent's entry, no matter how the id would
+    otherwise resolve. Then the first set of SESSION_ID_ENVS wins (so plain
+    `./agentctl` adopts the harness's ambient id), and finally — for a resumed
+    session that exports no id (e.g. a terminal `codex resume <id>`) — the id
+    is recovered from a `resume <id>` ancestor in the process tree.
     """
     try:
         depth = int(os.environ.get(LAUNCH_DEPTH_ENV, "0") or "0")
@@ -270,7 +365,9 @@ def agent_session_id() -> str:
         sid = os.environ.get(var, "").strip()
         if sid:
             return sid
-    return ""
+    if os.environ.get(NO_PROC_SESSION_ID_ENV, "").strip():
+        return ""
+    return session_id_from_proc_tree()
 
 
 def refresh_active_register(summary: str, note: str) -> None:
