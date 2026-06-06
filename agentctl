@@ -12,11 +12,24 @@ find_python() {
     if [[ -n "${AGENTCTL_PYTHON:-}" && -x "$AGENTCTL_PYTHON" ]] && is_py310 "$AGENTCTL_PYTHON"; then
         echo "$AGENTCTL_PYTHON"; return
     fi
+    # 1b. project pointer file: one line naming the interpreter to use.
+    #     Path may be absolute, ~-prefixed, or relative to the project root.
+    local pf="$project_dir/.agentctl/python"
+    if [[ -r "$pf" ]]; then
+        local pp
+        pp="$(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' "$pf" | head -n1)"
+        pp="${pp/#\~/$HOME}"
+        [[ -n "$pp" && "$pp" != /* ]] && pp="$project_dir/$pp"
+        if [[ -n "$pp" && -x "$pp" ]] && is_py310 "$pp"; then
+            echo "$pp"; return
+        elif [[ -n "$pp" ]]; then
+            echo "agentctl: $pf names '$pp' but it is not an executable Python >= 3.10; ignoring" >&2
+        fi
+    fi
     # 2. project-local envs
     local p
     for p in "$project_dir/.venv/bin/python" \
-             "$project_dir/.pixi/envs/default/bin/python" \
-             "$project_dir/pixi-gemma4/.pixi/envs/default/bin/python"; do
+             "$project_dir/.pixi/envs/default/bin/python"; do
         [[ -x "$p" ]] && is_py310 "$p" && { echo "$p"; return; }
     done
     # 3. active conda

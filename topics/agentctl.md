@@ -166,11 +166,16 @@ projects without writing their state under `~/agents`.
 The wrapper finds a Python ≥ 3.10 by checking, in order:
 
 1. `$AGENTCTL_PYTHON` (explicit override)
-2. `.venv/bin/python`, `.pixi/envs/default/bin/python`,
-   `pixi-gemma4/.pixi/envs/default/bin/python` under the project root
-3. `$CONDA_PREFIX/bin/python` (active conda env)
-4. `python3.13`, `python3.12`, `python3.11`, `python3.10` on PATH
-5. bare `python3` if it is recent enough
+2. `.agentctl/python` project pointer file: first non-comment line names the
+   interpreter (absolute, `~`-prefixed, or relative to the project root). Use
+   this to pin a project whose desired env is shadowed by an earlier match in
+   the list below — e.g. a research env carrying extra packages (an experiment
+   tracker, say) under a non-default path, losing to a bare project-root
+   `.pixi/envs/default`.
+3. `.venv/bin/python`, `.pixi/envs/default/bin/python` under the project root
+4. `$CONDA_PREFIX/bin/python` (active conda env)
+5. `python3.13`, `python3.12`, `python3.11`, `python3.10` on PATH
+6. bare `python3` if it is recent enough
 
 Bare `python3` is intentionally last because legacy distros still ship
 Python 3.6 there. The wrapper hard-fails with an actionable message if no
