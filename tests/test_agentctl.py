@@ -13,6 +13,7 @@ Exits non-zero on any failure.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import shutil
@@ -344,6 +345,45 @@ def test_missing_output_recorded():
                 f"expected status=missing, got {s['outputs']['r']!r}")
         _assert(not Path(f"{out}.meta.json").exists(),
                 "sidecar should NOT be written for missing output")
+    finally:
+        ws.cleanup()
+
+
+def test_sandbox_liveness_visible_pid_mismatch_finishes_unknown():
+    ws = Workspace()
+    try:
+        module_name = "agentctl_under_test_liveness"
+        spec = importlib.util.spec_from_file_location(module_name, ws.tmp / "agentctl.py")
+        _assert(spec is not None and spec.loader is not None, "could not load agentctl spec")
+        mod = importlib.util.module_from_spec(spec)
+        old_root = os.environ.get("AGENTCTL_ROOT")
+        os.environ["AGENTCTL_ROOT"] = str(ws.tmp)
+        try:
+            spec.loader.exec_module(mod)
+        finally:
+            if old_root is None:
+                os.environ.pop("AGENTCTL_ROOT", None)
+            else:
+                os.environ["AGENTCTL_ROOT"] = old_root
+
+        mod.process_visibility_limited = lambda: True
+        state_path = ws.tmp / ".agentctl/runs/stale/r1/state.json"
+        state_path.parent.mkdir(parents=True)
+        state = {
+            "job": "stale",
+            "run_id": "r1",
+            "status": "running",
+            "pid": os.getpid(),
+            "pid_cmdline": "definitely-not-this-process\0",
+            "started_at": mod.utc_now(),
+            "state_path": str(state_path),
+        }
+        refreshed = mod.refresh_state(state)
+        _assert(refreshed["status"] == "finished", f"status: {refreshed!r}")
+        _assert(refreshed["returncode"] == "unknown", f"returncode: {refreshed!r}")
+        _assert("_liveness_note" not in refreshed, f"liveness note should be absent: {refreshed!r}")
+        current = json.loads((ws.tmp / ".agentctl/jobs/stale/current.json").read_text())
+        _assert(current["status"] == "finished", f"current status: {current!r}")
     finally:
         ws.cleanup()
 

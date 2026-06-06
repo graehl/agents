@@ -145,6 +145,10 @@ Operational consequences:
 
 - `agentctl status <job>` is the required truth check after a manual sleep,
   timeout, interrupted tool call, or apparent lack of output.
+- In a sandboxed PID namespace, an invisible recorded PID is inconclusive, but
+  a visible PID that fails the recorded launch identity (`pid_start_ticks` or
+  `pid_cmdline`) is conclusive PID reuse; status refresh may mark that run
+  `finished returncode=unknown` rather than keeping it `running`.
 - `agentctl list --failed` is the fastest catch-up view for short failed runs
   that would otherwise be absent from "recent completed" lists.
 - Default `list` includes failed finished runs regardless of

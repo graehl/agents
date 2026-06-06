@@ -728,6 +728,35 @@ def state_alive(state: dict) -> bool:
     return pid_alive(pid)
 
 
+def state_liveness_refuted_by_visible_process(state: dict) -> bool:
+    """Return true when visible /proc state proves a recorded job is gone.
+
+    A sandbox may hide the host PID namespace, so an invisible recorded PID is
+    not enough to declare a job finished. A visible PID that does not match the
+    recorded launch identity is different: that proves the PID was reused or is
+    otherwise not the payload agentctl launched.
+    """
+    try:
+        pid = int(state["pid"])
+    except (KeyError, TypeError, ValueError):
+        pid = 0
+    if pid > 0 and Path(f"/proc/{pid}").exists():
+        if proc_state(pid) == "Z":
+            return True
+        if not pid_matches_state(pid, state):
+            return True
+
+    pgid = state.get("pgid")
+    if pgid:
+        try:
+            pgid_int = int(pgid)
+        except (TypeError, ValueError):
+            return False
+        if process_group_members(pgid_int) and not process_group_matches_state(pgid_int, state):
+            return True
+    return False
+
+
 def refresh_state(state: dict) -> dict:
     state = apply_exit_status_record(state)
     if (
@@ -740,7 +769,7 @@ def refresh_state(state: dict) -> dict:
         state.pop("returncode", None)
         update_state_files(state)
     if state.get("status") == "running" and not state_alive(state):
-        if process_visibility_limited():
+        if process_visibility_limited() and not state_liveness_refuted_by_visible_process(state):
             state["_liveness_note"] = "process visibility limited; not marking finished"
             return state
         state["status"] = "finished"
