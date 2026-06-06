@@ -31,6 +31,189 @@ or verbatim plus additions.
 
 ---
 
+## Code conventions (cross-cutting)
+
+| topic | definition |
+|---|---|
+| `impl-style` | Project's idiomatic point on the inline↔abstracted spectrum; when to extract vs. inline, how much indirection is normal |
+| `shared-primitives` | Code artifacts intentionally designed for multi-consumer reuse; operational/behavioral building blocks with a known shared contract |
+| `shared-constants` | Named values (IDs, limits, codes, enum-like constants) with a single authoritative definition; eliminates magic values |
+
+| vernacular | definition |
+|---|---|
+| `DRY` | Don't Repeat Yourself; extract shared logic to avoid duplication — but only when the reuse is intentional, not accidental |
+| `SRP` | Single Responsibility Principle; a module or class has one reason to change |
+| `magic number` | Unexplained numeric or string literal in code; should be replaced by a named constant |
+| `shared/` | Directory convention for intentionally multi-consumer modules; implies coordinated change when the contract evolves |
+| `util/` | Directory convention for grab-bag helpers; lower reuse intent and weaker contract than shared/ |
+| `common/` | Equivalent to shared/ in many codebases; often used for cross-cutting constants and small utilities |
+
+---
+
+## Engineering discipline (cross-cutting)
+
+| topic | definition |
+|---|---|
+| `debugging` | Diagnose failures with reproducible traces, falsifiable hypotheses, and evidence that distinguishes root cause from symptoms |
+| `testing` | Verify behavior through durable checks that exercise public contracts and survive implementation refactors |
+| `prototyping` | Build throwaway code to answer a narrow uncertainty, then delete it or absorb the learned path into production code |
+
+| vernacular | definition |
+|---|---|
+| `root cause` | The underlying defect or violated assumption that explains the observed failure, not merely the symptom |
+| `repro` | Minimal repeatable procedure or input that triggers the behavior under investigation |
+| `regression test` | Test added for a previously observed failure so the same class of bug cannot return silently |
+| `red-green-refactor` | TDD loop: write a failing test, make it pass minimally, then clean up while preserving behavior |
+| `spike` | Time-boxed investigation or prototype used to reduce uncertainty before committing to an implementation path |
+
+---
+
+## Testing / QA methodology (cross-cutting)
+
+| topic | definition |
+|---|---|
+| `property-based-testing` | QuickCheck-style: auto-generate inputs from invariants, shrink counterexamples |
+| `fuzzing` | Mutation/grammar-based random input generation to find crashes and security bugs |
+| `mutation-testing` | Inject faults into code; measure what fraction your tests catch |
+| `test-isolation` | Hermetic environments: no shared state, deterministic ordering |
+| `coverage-adequacy` | Line/branch/MC-DC coverage as proxy for test thoroughness |
+
+| vernacular | definition |
+|---|---|
+| `unit test` | Test one function/class in isolation with mocked dependencies |
+| `integration test` | Test multiple components together against real or near-real dependencies |
+| `end-to-end test` | Test the full system from UI to database; slow but high confidence |
+| `test double` | Umbrella for mock, stub, spy, fake; substitute for a real dependency |
+| `mock` | Test double that asserts it was called with specific arguments |
+| `stub` | Test double that returns canned responses without assertions |
+| `fixture` | Reusable test setup or sample data |
+| `flaky test` | Non-deterministic test that sometimes passes and sometimes fails |
+| `snapshot test` | Compare rendered output to stored baseline; detects unintended UI changes |
+| `contract test` | Verify a service implements its API contract; consumer-driven (Pact) |
+| `TDD` | Test-driven development; write test first, then code to make it pass |
+
+---
+
+## UI / frontend
+
+| topic | definition |
+|---|---|
+| `scroll-prefetch` | Prefetch off-screen content based on scroll velocity so load latency is hidden before the user reaches it |
+| `layout-stability` | Prevent unexpected content shifts (CLS) by reserving space before content loads; covers pre-load extent estimates and server-sent height placeholders |
+| `discoverability` | Ensure users can find features and affordances; command palette, tooltips, empty-state guidance, progressive feature reveal |
+| `perceived-performance` | Felt speed of the UI regardless of actual latency; skeleton screens, optimistic updates, streaming, and prefetch all serve this |
+| `spatial-stability` | Elements must not move unexpectedly under any trigger (load, resize, stream arrival, scroll); governing principle behind layout-stability |
+| `progressive-disclosure` | Show only what is needed now; reveal complexity on demand to avoid overwhelming new users while keeping expert paths reachable |
+| `direct-manipulation` | Actions feel physically coupled to objects; drag, resize, inline edit; feedback latency must be <100ms to feel immediate |
+| `keybinds` | Keyboard shortcut registration, conflict detection, customization persistence, and in-UI discoverability (tooltips, cheat-sheet overlay) |
+| `power-user-efficiency` | Features that reduce friction for expert/repetitive workflows: keybinds, macros, command palette, batch operations |
+| `theming` | Aesthetic customization: color schemes, font choice, density, dark/light mode; separate from functional accessibility requirements |
+| `temporal-layout` | Spatial encoding of time in 1D or 2D: timelines, calendar grids, scatter plots with time axes, inactivity gap separators in chat |
+| `linearization` | Rendering inherently non-linear structure (DAG, causal graph) as a scannable 1D spatial sequence with minimal back-edges |
+| `animation` | UI motion: micro-animations, transitions, time-swept evolution highlights; must respect prefers-reduced-motion; frame budget ≤16ms |
+| `audio-feedback` | Sound cues for events (notifications, errors, success); must be mutable; accessible fallback to visual-only feedback |
+| `haptic-feedback` | Device vibration patterns for touch events; mobile/device-specific; permission and pattern vocabulary vary by platform |
+
+| vernacular | definition |
+|---|---|
+| `CLS` | Cumulative Layout Shift; Core Web Vitals metric for visual stability; sum of unexpected layout shift scores |
+| `LCP` | Largest Contentful Paint; Core Web Vitals metric for perceived load speed |
+| `INP` | Interaction to Next Paint; Core Web Vitals responsiveness metric (replaced FID) |
+| `jank` | Visible frame drops or stuttering; typically caused by main-thread blocking past 16ms |
+| `FLIP` | First Last Invert Play; technique for performant layout animations using transform instead of layout properties |
+| `RAF` | requestAnimationFrame; schedule work to run before next paint |
+| `easing` | Motion timing curve controlling acceleration and deceleration |
+| `spring` | Physics-like animation model with stiffness and damping instead of fixed timing |
+| `stagger` | Delayed sequence where related elements animate one after another |
+| `enter/exit animation` | Motion used when an element appears or disappears |
+| `virtual scrolling` | Render only visible list items; recycle DOM nodes as user scrolls to handle arbitrarily large lists |
+| `skeleton screen` | Placeholder UI showing content shape before data loads; reduces perceived wait vs. spinner |
+| `optimistic update` | Update UI immediately before server confirms; roll back on error |
+| `empty state` | View shown when there is no content yet; should explain the state and expose the next useful action |
+| `loading state` | Temporary UI while work is pending; includes spinners, skeletons, disabled controls, and progress text |
+| `command palette` | Keyboard-driven search over all available commands and features; primary discoverability mechanism for power users |
+| `home link` | Logo, title, or nav affordance that routes to the app's default or top-level view; navigation, not creation |
+| `launcher` | Entry-point control that starts or opens a primary workflow, app, tool, or workspace; qualify it when ambiguous |
+| `affordance` | Visual or physical property that signals how an object can be used (Gibson/Norman); basis for discoverability |
+| `tooltip` | Short hover/focus explanation for an element; informational, not an interactive panel |
+| `tooltip trigger` | Element whose hover or keyboard focus reveals a tooltip |
+| `hover target` | Mouse hover-sensitive element; should have a keyboard-focus equivalent when it reveals information |
+| `Fitts's law` | Time to acquire a target ∝ log(distance/size + 1); basis for minimum touch target sizing |
+| `touch target` | Interactive area large enough to tap reliably on touch devices |
+| `hit target` | Actual clickable/tappable region for an element, which may be larger than the visible affordance |
+| `focus ring` | Visible indicator showing the currently keyboard-focused element |
+| `focus trap` | Keyboard focus stays inside an open modal, drawer, or sheet until it is dismissed |
+| `prefers-reduced-motion` | CSS media query indicating the user has requested minimal animation; must gate all non-essential motion |
+| `WAI-ARIA` | Web Accessibility Initiative ARIA; roles and properties for assistive technology interop |
+| `WCAG` | Web Content Accessibility Guidelines; A/AA/AAA conformance levels; legal requirement in many jurisdictions |
+| `badge` | Compact count/status marker attached to a label, icon, tab, row, or button |
+| `pill` | Rounded compact label or control, often used for status, filters, modes, or small option groups |
+| `chip` | Compact inline token representing an item, filter, attachment, or selection; often removable |
+| `segmented control` | Small set of mutually exclusive options presented as adjacent buttons |
+| `accordion` | Disclosure pattern where sections expand or collapse, often one at a time |
+| `toast` | Temporary non-modal notification; should not steal focus; often auto-dismisses |
+| `snackbar` | Toast-like transient message, often bottom-aligned and sometimes carrying one short action |
+| `banner` | Prominent page- or section-level message strip; usually more persistent than a toast |
+| `callout` | Inline contextual note, warning, or explanation placed near the related content |
+| `dialog` | Focused panel for details, confirmation, or input; may be modal or non-modal |
+| `modal` | Blocking dialog/overlay mode where background interaction is disabled and focus should be managed |
+| `sidebar` | Persistent side region for navigation or supporting content; may resize, collapse, or become a drawer on narrow screens |
+| `drawer` | Edge-attached panel that opens and closes over or beside content |
+| `navigation drawer` | Drawer used for app navigation, often the mobile or overlay form of a sidebar |
+| `sheet` | Edge-presented temporary panel, commonly used for secondary choices or details |
+| `bottom sheet` | Mobile-style sheet rising from the bottom, often partially or fully expanded |
+| `popover` | Anchored floating panel with richer content or controls than a tooltip |
+| `scrim` | Dimmed visual layer behind an overlay that separates foreground from background |
+| `backdrop` | Layer behind an overlay, often used for dimming, blur, outside-click dismissal, or inert background coverage |
+| `portal` | Render overlay content outside its normal DOM parent so stacking, clipping, and positioning work predictably |
+| `z-index` | CSS stacking order value; only comparable within the same stacking context |
+| `stacking context` | CSS layering boundary that controls how z-index values compare; common cause of overlay ordering bugs |
+| `scroll lock` | Prevent background or page scrolling while an overlay or modal interaction is active |
+| `overview ruler` | Scrollbar-adjacent rail summarizing important off-screen positions with markers, such as search hits, errors, comments, or user turns |
+| `scroll anchoring` | Keep the user's visible scroll position stable when content above changes |
+| `scroll restoration` | Restore previous scroll position after navigation, reload, or reopening a view |
+| `responsive layout` | Layout adapts across viewport sizes, input modes, and device constraints |
+| `viewport` | Visible browser/app region used for layout calculations; on mobile it can be affected by browser chrome and safe areas |
+| `breakpoint` | Width or condition where layout rules change, such as a sidebar becoming a bottom nav |
+| `media query` | CSS condition based on viewport, device, or user preference state |
+| `container query` | Style or layout decision based on a component's container size rather than the whole viewport |
+| `safe area` | Screen inset reserved for notches, rounded corners, and mobile home indicators |
+| `density` | Compactness of UI spacing and controls, such as compact, default, or comfortable modes |
+| `sticky positioning` | Element remains fixed within its scroll container after crossing a threshold; common for headers and toolbars |
+
+---
+
+## Full stack / product
+
+| topic | definition |
+|---|---|
+| `state-management` | Client-side app state: Redux, Zustand, signals; sync strategy with server state |
+| `ssr-and-hydration` | Render HTML on server for fast first paint; attach event handlers client-side |
+| `file-upload` | Chunked or multipart upload; resume on failure; virus scan; storage handoff |
+| `search-and-indexing` | Full-text and faceted search; inverted index, tokenization, relevance ranking |
+| `multitenancy` | Isolate data and configuration per tenant; shared vs. dedicated infrastructure |
+| `billing` | Usage metering, subscription lifecycle, invoice generation, payment provider integration |
+| `oauth` | Delegated authorization; authorization code flow, PKCE, token refresh, scopes |
+| `webhooks` | Push event notifications to registered URLs; signing, retries, idempotent handlers |
+| `analytics` | Event capture, aggregation, funnel analysis; privacy-compliant instrumentation |
+| `cdn-and-caching` | Edge caching of static and dynamic content; cache invalidation strategy |
+| `feature-flags` | Gate features per user/cohort; gradual rollout, A/B testing, kill switch |
+
+| vernacular | definition |
+|---|---|
+| `SPA` | Single-page application; JS renders UI; server returns data APIs, not HTML |
+| `CSR` | Client-side rendering; browser fetches data and renders entirely in JS |
+| `SSG` | Static site generation; render HTML at build time; no per-request server |
+| `ISR` | Incremental static regeneration (Next.js); revalidate pages in background |
+| `virtual DOM` | In-memory tree diffed against real DOM to minimize mutations (React) |
+| `component` | Reusable UI unit with props, state, and lifecycle; React/Vue/Svelte |
+| `hook` | React/Svelte function for stateful logic inside functional components |
+| `suspense` | React mechanism to show fallback while async data loads |
+| `tree-shaking` | Dead-code elimination for JS bundles; remove unused exports |
+| `hydration mismatch` | Server-rendered HTML differs from client render; React error at startup |
+
+---
+
 ## Realtime / websocket backend
 
 | topic | definition |
@@ -94,207 +277,6 @@ or verbatim plus additions.
 
 ---
 
-## Security (cross-cutting)
-
-| topic | definition |
-|---|---|
-| `injection-and-csrf` | SQL/command/template injection prevention; CSRF token and SameSite cookie defense |
-| `secrets-management` | Store and rotate API keys, passwords, certs in a vault; never in env vars or plaintext |
-| `supply-chain-integrity` | Pin dependencies; verify signatures; audit transitive packages; maintain SBOM |
-| `responsible-disclosure` | Process for receiving and responding to external vulnerability reports |
-
-| vernacular | definition |
-|---|---|
-| `OWASP` | Open Web Application Security Project; publishes top-10 web vulnerability list |
-| `XSS` | Cross-site scripting; inject malicious scripts into pages viewed by other users |
-| `SQLi` | SQL injection; embed SQL in user input to manipulate database queries |
-| `SSRF` | Server-side request forgery; trick server into making unintended internal requests |
-| `JWT` | JSON Web Token; self-contained signed/encrypted claims for stateless auth |
-| `OAuth2` | Delegated authorization framework; resource owner grants scoped token to client |
-| `OIDC` | OpenID Connect; identity layer on OAuth2; issues ID tokens with user claims |
-| `MFA` | Multi-factor authentication; require ≥2 factors (knowledge, possession, biometric) |
-| `ABAC` | Attribute-based access control; policies evaluate arbitrary subject/resource attributes |
-| `PKI` | Public key infrastructure; CAs, certificate chains, revocation (CRL/OCSP) |
-| `STRIDE` | Threat modeling: Spoofing, Tampering, Repudiation, Info Disclosure, DoS, Elevation |
-
----
-
-## Compliance (cross-cutting)
-
-| topic | definition |
-|---|---|
-| `privacy-and-retention` | Collect minimal PII; enforce deletion schedules and data retention windows |
-| `regulatory-compliance` | GDPR, CCPA, SOC 2, ISO 27001; map controls to implementation |
-| `accessibility` | WCAG conformance, screen-reader support, keyboard navigation, color contrast; legal requirement in many jurisdictions |
-| `localization` | Adapt content and formatting for locale: string translation, date/number/currency formats, text direction, plural rules |
-
-| vernacular | definition |
-|---|---|
-| `GDPR` | EU General Data Protection Regulation; governs personal data collection, processing, and deletion rights |
-| `CCPA` | California Consumer Privacy Act; US state-level data privacy law with opt-out rights |
-| `PII` | Personally Identifiable Information; data that can identify an individual; subject to retention and deletion rules |
-| `l10n` | Localization (abbreviation: 18 letters between l and n); adapting a product for a specific locale |
-| `i18n` | Internationalization (abbreviation: 18 letters between i and n); engineering the infrastructure that enables l10n |
-| `RTL` | Right-to-left text direction; required for Arabic, Hebrew, Persian; affects layout mirroring |
-| `ICU` | International Components for Unicode; standard library for locale-aware formatting and collation |
-| `plural rules` | Locale-specific rules for noun pluralization; CLDR defines categories (zero, one, two, few, many, other) |
-| `CLDR` | Common Locale Data Repository; Unicode consortium's dataset of locale-specific formatting rules |
-
----
-
-## Desktop / native app
-
-| topic | definition |
-|---|---|
-| `persistence-and-migration` | Local database or file storage; schema migration without data loss on upgrade |
-| `undo-redo` | Command history stack; inverse operations or memento snapshots |
-| `plugin-api` | Extension points for third-party code; sandboxing, versioning, lifecycle hooks |
-| `print-and-export` | Render document to PDF/PNG/paper; pagination, fonts, resolution concerns |
-| `auto-update` | Check for, download, verify, and apply updates; rollback on failure |
-
-| vernacular | definition |
-|---|---|
-| `sandboxing` | Restrict app permissions via OS policy (macOS entitlements, AppContainer) |
-| `deep-link` | URL scheme that opens the app to a specific location |
-| `tray` | System notification area / menu bar icon |
-| `native-module` | C/C++ addon called from JS/Python for performance or OS access |
-| `code-signing` | Digitally sign the app binary; required for notarization and distribution |
-| `main/renderer` | Electron process model; main has OS access, renderer runs page JS |
-
----
-
-## ML / training
-
-| topic | definition |
-|---|---|
-| `data-pipeline` | Ingest, transform, and feed training data; throughput must not bottleneck GPU |
-| `dataset-versioning` | Track dataset snapshots so experiments are reproducible; DVC, Delta Lake |
-| `tokenization` | Convert raw text to integer token IDs; BPE/WordPiece/SentencePiece |
-| `checkpointing` | Save model weights and optimizer state periodically; resume from failure |
-| `numerical-stability` | Avoid NaN/inf via initialization, gradient clipping, stable loss formulations |
-| `mixed-precision` | Train in bf16/fp16, keep fp32 master weights; saves memory, speeds matmuls |
-| `gradient-accumulation` | Sum gradients over N mini-batches before updating; simulates larger batch |
-| `eval-harness` | Standardized pipeline to run evaluation tasks; separates model from metric logic |
-| `hyperparameter-search` | Grid, random, or Bayesian search over lr, batch size, architecture dims |
-| `fine-tuning` | Continue training on task-specific data after pretraining; full or parameter-efficient |
-| `rlhf` | Reinforcement learning from human feedback; train reward model then optimize via PPO |
-| `context-length` | Maximum token sequence the model can attend to; affects memory and capability |
-| `experiment-tracking` | Log hyperparameters, metrics, and artifacts per run (MLflow, W&B, Neptune) |
-| `model-serving` | Deploy trained model for inference; batching, latency SLAs, versioning |
-
-| vernacular | definition |
-|---|---|
-| `epoch` | One full pass over the training dataset |
-| `batch size` | Number of samples per gradient update step |
-| `learning rate` | Step size for gradient update; most sensitive hyperparameter |
-| `loss function` | Scalar objective being minimized; cross-entropy, MSE, contrastive |
-| `backpropagation` | Chain-rule-based gradient computation through the compute graph |
-| `overfitting` | Model memorizes training data, fails to generalize to held-out data |
-| `regularization` | Techniques to reduce overfitting: dropout, weight decay, data augmentation |
-| `validation set` | Held-out split used to tune hyperparameters; distinct from test set |
-| `precision/recall` | Precision = TP/(TP+FP); recall = TP/(TP+FN); F1 is harmonic mean |
-| `AUC-ROC` | Area under ROC curve; threshold-independent classification quality |
-| `early stopping` | Halt training when validation loss stops improving |
-| `confusion matrix` | TP/FP/TN/FN breakdown for classification models |
-
----
-
-## Distributed compute / HPC
-
-| topic | definition |
-|---|---|
-| `collective-communication` | AllReduce, AllGather, Scatter across ranks; NCCL/MPI primitives for gradient sync |
-| `model-parallelism` | Split model weights across devices when single-device memory is insufficient |
-| `fault-tolerance` | Detect failed workers; checkpoint and restart or elastically rescale the job |
-| `gpu-memory` | VRAM budget: activations, optimizer states, gradients, KV cache all compete |
-| `job-scheduling` | Allocate cluster resources to jobs; queue, priority, preemption (SLURM, k8s) |
-| `resource-accounting` | Track GPU-hours, cost, and utilization per user/project for billing or fairness |
-| `process-lifecycle` | Launch, monitor, and cleanly terminate distributed processes; rendezvous/init |
-| `profiling` | Measure compute/memory/communication bottlenecks; nsight, torch.profiler |
-
-| vernacular | definition |
-|---|---|
-| `rank` | Identity of a process in a distributed job; rank 0 is typically the coordinator |
-| `world size` | Total number of processes in a distributed job |
-| `gradient sync` | AllReduce across ranks to average gradients before parameter update |
-| `bandwidth-bound` | Operation limited by memory bandwidth, not arithmetic throughput |
-| `compute-bound` | Operation limited by arithmetic throughput, not memory bandwidth |
-| `FLOP` | Floating-point operation; used to measure compute cost of a model or training run |
-| `MFU` | Model FLOP utilization; fraction of peak FLOP/s actually achieved |
-| `ZeRO` | Zero redundancy optimizer (DeepSpeed); shards optimizer states, gradients, params |
-| `FSDP` | Fully sharded data parallel; PyTorch's ZeRO-3 equivalent |
-
----
-
-## CUDA / GPU kernel programming
-
-| topic | definition |
-|---|---|
-| `kernel-correctness` | Bounds, indexing, shape handling, aliasing, race freedom, and reference-equivalence for custom GPU kernels |
-| `grid-block-geometry` | Map problem dimensions onto CUDA grids, blocks, warps, tiles, and per-thread work; controls indexing, edge handling, occupancy, and memory locality |
-| `memory-access-patterns` | Global-memory layout, coalescing, alignment, vectorized loads/stores, and cache behavior |
-| `shared-memory-tiling` | Tile shapes, shared-memory staging, bank-conflict avoidance, and halo/edge handling |
-| `warp-level-programming` | Warp-synchronous algorithms using lanes, masks, shuffles, ballots, and divergence control |
-| `gpu-synchronization` | Correct use of barriers, atomics, memory scopes, and inter-thread/inter-block ordering |
-| `occupancy-and-register-pressure` | Balance registers, shared memory, block size, and active warps per SM for throughput |
-| `kernel-fusion` | Combine operations to reduce launch overhead and memory traffic while managing register pressure |
-| `precision-and-accumulation` | Numeric formats, accumulation type, rounding, determinism, overflow, and error tolerance |
-| `async-copy-pipeline` | Overlap memory movement and compute with staged or double-buffered async copies |
-| `custom-op-integration` | Bind kernels into PyTorch/C++/Python runtimes with dispatch, build flags, ABI, and shape contracts |
-| `architecture-portability` | Handle compute capability, SM features, tensor cores, PTX/SASS differences, and fallback paths |
-| `kernel-profiling` | Use profiler evidence, roofline reasoning, and microbenchmarks to distinguish memory vs. compute limits |
-
-| vernacular | definition |
-|---|---|
-| `CUDA` | NVIDIA GPU programming platform/API for kernels, memory management, streams, and libraries |
-| `CUDA C++` | Canonical CUDA kernel implementation language/front end for NVIDIA GPUs |
-| `Triton` | Python-based DSL/JIT for writing custom GPU kernels, common in ML projects |
-| `PyTorch C++/CUDA extension` | PyTorch integration route for custom C++ and CUDA operators |
-| `CUTLASS` | NVIDIA C++ template library for high-performance GEMM/convolution-style CUDA kernels |
-| `CuTe` | CUTLASS tensor-layout and tiling DSL used in modern NVIDIA kernel templates |
-| `HIP` | AMD CUDA-like kernel programming API used with ROCm |
-| `ROCm` | AMD GPU compute software stack; HIP, libraries, compiler, and runtime |
-| `kernel` | Function launched across many GPU threads |
-| `grid` | Whole launched collection of thread blocks |
-| `block` | Cooperative thread group scheduled onto one SM; also called CTA |
-| `CTA` | Cooperative thread array; CUDA block-level execution unit |
-| `thread` | Single CUDA execution instance with its own registers and lane position |
-| `SM` | Streaming multiprocessor; hardware unit that schedules warps and executes instructions |
-| `warp` | Group of 32 CUDA threads executing in SIMT lockstep |
-| `lane` | Thread position within a warp |
-| `execution configuration` | CUDA launch parameters such as grid size, block size, dynamic shared memory, and stream |
-| `grid-stride loop` | Kernel loop pattern where each thread processes elements separated by total grid size |
-| `thread-block shape` | Block dimensions chosen to match data layout, tile shape, memory coalescing, and occupancy |
-| `launch bounds` | CUDA annotation constraining threads per block/register use to guide compiler occupancy choices |
-| `occupancy` | Ratio of active warps on an SM to the hardware maximum |
-| `register pressure` | High per-thread register use that can reduce occupancy or cause spills |
-| `spill` | Register value stored to local memory because registers are exhausted |
-| `global memory` | High-latency device DRAM visible to all threads |
-| `shared memory` | Low-latency per-block scratchpad memory |
-| `constant memory` | Cached read-only memory optimized for broadcast-style access |
-| `coalescing` | Combining adjacent lane memory accesses into efficient memory transactions |
-| `bank conflict` | Shared-memory accesses contend for the same memory bank and serialize |
-| `warp divergence` | Lanes in a warp take different control-flow paths, reducing parallel efficiency |
-| `shuffle` | Warp intrinsic that moves values between lanes without shared memory |
-| `ballot` | Warp intrinsic that collects per-lane predicates into a bitmask |
-| `CUDA atomics` | Device atomic operations such as atomicAdd; correctness tool with memory-scope and contention costs |
-| `tensor core` | Specialized NVIDIA matrix-multiply hardware for mixed-precision GEMM-like operations |
-| `WMMA` | Warp-level matrix multiply-accumulate API targeting tensor cores |
-| `MMA` | Matrix multiply-accumulate instruction family used by tensor-core kernels |
-| `PTX` | NVIDIA virtual ISA emitted before target-specific assembly |
-| `SASS` | NVIDIA machine assembly for a specific GPU architecture |
-| `compute capability` | NVIDIA architecture version describing available hardware features |
-| `stream` | Ordered queue of GPU work; independent streams can overlap |
-| `event` | GPU timing/synchronization marker recorded in a stream |
-| `pinned memory` | Page-locked host memory enabling faster/asynchronous host-device transfers |
-| `unified memory` | CUDA-managed memory addressable by CPU and GPU with migration |
-| `cp.async` | Async copy instruction family for moving global memory into shared memory |
-| `roofline` | Performance model comparing arithmetic intensity against memory bandwidth and peak FLOPs |
-| `Nsight Compute` | NVIDIA profiler for per-kernel metrics, stalls, occupancy, and memory behavior |
-| `compute-sanitizer` | NVIDIA correctness tool for memory errors, races, and synchronization bugs |
-
----
-
 ## Message queue / event streaming
 
 | topic | definition |
@@ -322,34 +304,24 @@ or verbatim plus additions.
 
 ---
 
-## Full stack / product
+## Desktop / native app
 
 | topic | definition |
 |---|---|
-| `state-management` | Client-side app state: Redux, Zustand, signals; sync strategy with server state |
-| `ssr-and-hydration` | Render HTML on server for fast first paint; attach event handlers client-side |
-| `file-upload` | Chunked or multipart upload; resume on failure; virus scan; storage handoff |
-| `search-and-indexing` | Full-text and faceted search; inverted index, tokenization, relevance ranking |
-| `multitenancy` | Isolate data and configuration per tenant; shared vs. dedicated infrastructure |
-| `billing` | Usage metering, subscription lifecycle, invoice generation, payment provider integration |
-| `oauth` | Delegated authorization; authorization code flow, PKCE, token refresh, scopes |
-| `webhooks` | Push event notifications to registered URLs; signing, retries, idempotent handlers |
-| `analytics` | Event capture, aggregation, funnel analysis; privacy-compliant instrumentation |
-| `cdn-and-caching` | Edge caching of static and dynamic content; cache invalidation strategy |
-| `feature-flags` | Gate features per user/cohort; gradual rollout, A/B testing, kill switch |
+| `persistence-and-migration` | Local database or file storage; schema migration without data loss on upgrade |
+| `undo-redo` | Command history stack; inverse operations or memento snapshots |
+| `plugin-api` | Extension points for third-party code; sandboxing, versioning, lifecycle hooks |
+| `print-and-export` | Render document to PDF/PNG/paper; pagination, fonts, resolution concerns |
+| `auto-update` | Check for, download, verify, and apply updates; rollback on failure |
 
 | vernacular | definition |
 |---|---|
-| `SPA` | Single-page application; JS renders UI; server returns data APIs, not HTML |
-| `CSR` | Client-side rendering; browser fetches data and renders entirely in JS |
-| `SSG` | Static site generation; render HTML at build time; no per-request server |
-| `ISR` | Incremental static regeneration (Next.js); revalidate pages in background |
-| `virtual DOM` | In-memory tree diffed against real DOM to minimize mutations (React) |
-| `component` | Reusable UI unit with props, state, and lifecycle; React/Vue/Svelte |
-| `hook` | React/Svelte function for stateful logic inside functional components |
-| `suspense` | React mechanism to show fallback while async data loads |
-| `tree-shaking` | Dead-code elimination for JS bundles; remove unused exports |
-| `hydration mismatch` | Server-rendered HTML differs from client render; React error at startup |
+| `sandboxing` | Restrict app permissions via OS policy (macOS entitlements, AppContainer) |
+| `deep-link` | URL scheme that opens the app to a specific location |
+| `tray` | System notification area / menu bar icon |
+| `native-module` | C/C++ addon called from JS/Python for performance or OS access |
+| `code-signing` | Digitally sign the app binary; required for notarization and distribution |
+| `main/renderer` | Electron process model; main has OS access, renderer runs page JS |
 
 ---
 
@@ -378,30 +350,132 @@ or verbatim plus additions.
 
 ---
 
-## ML research paper
+## Availability (cross-cutting)
 
 | topic | definition |
 |---|---|
-| `eval-split-discipline` | Keep test set unseen until final report; no hyperparameter selection on test |
-| `statistical-significance` | Bootstrap CIs, paired t-test, or permutation test before claiming improvement |
-| `run-reproducibility` | Seed control, environment pinning, artifact logging for exact re-run |
-| `result-provenance` | Link every reported number to the exact run, config, and data version |
-| `data-contamination` | Verify eval benchmarks don't appear in training data; n-gram overlap checks |
-| `ablation-design` | Isolate one variable per ablation; share all other hyperparameters across conditions |
-| `related-work` | Fair comparison to baselines; cite concurrent work; distinguish from prior art |
-| `compute-budget` | Report GPU-hours and cost; enables readers to assess feasibility and fairness |
-| `paper-log-separation` | Keep experimental logs and paper prose separate; logs are not the paper |
+| `fault-tolerance` | System continues operating correctly despite component failures; achieved via redundancy, isolation, and graceful degradation |
+| `backup-and-recovery` | Periodic snapshots of data with tested restore paths; defined by RPO and RTO targets |
+| `data-durability` | Data survives failures; achieved via replication, checksums, fsync, and write-ahead log |
+| `failover` | Automatic promotion of a standby system when the primary fails; requires health detection and state synchronization |
+| `circuit-breaker` | Stop calling a failing dependency and fail fast; half-open probe to detect recovery; prevents cascading failure |
+| `retry-and-backoff` | Retry transient failures with exponential backoff and jitter; distinguish retryable from non-retryable errors |
+| `degraded-mode` | Operate with reduced functionality when components fail; define what is essential vs. optional per subsystem |
+| `chaos-engineering` | Deliberately inject failures in production-like environments to verify fault-tolerance assumptions hold |
 
 | vernacular | definition |
 |---|---|
-| `baseline` | Published or reproduced comparison model; minimum bar to beat |
-| `SOTA` | State of the art; best published result on a benchmark at a given time |
-| `ablation` | Variant with one component removed; quantifies that component's contribution |
-| `held-out set` | Data not used during training or hyperparameter tuning |
-| `confidence interval` | Range capturing the true value with stated probability (e.g. 95% CI) |
-| `effect size` | Magnitude of difference independent of sample size (Cohen's d, etc.) |
-| `replication` | Reproduce a result with the same method; distinct from reproduction (new code) |
-| `hyperparameter` | Setting not learned by gradient descent (lr, batch size, architecture) |
+| `RPO` | Recovery Point Objective; maximum acceptable data loss measured in time |
+| `RTO` | Recovery Time Objective; maximum acceptable downtime before service is restored |
+| `MTTR` | Mean Time To Recovery; average time to restore service after a failure event |
+| `MTBF` | Mean Time Between Failures; average uptime between failure events |
+| `SLA` | Service Level Agreement; contractual availability guarantee (e.g., 99.9% uptime) |
+| `SLO` | Service Level Objective; internal target stricter than the SLA (e.g., 99.95% over 30 days) |
+| `SLI` | Service Level Indicator; the measured metric underlying an SLO (e.g., request success rate) |
+| `health check` | Liveness/readiness probe; distinguishes "process alive" from "can serve traffic" |
+| `bulkhead` | Isolate failure domains so one slow dependency cannot exhaust all threads or connections |
+| `active-passive` | One primary handles traffic; a cold standby takes over on failure |
+| `active-active` | Multiple nodes handle traffic simultaneously; no cold failover delay |
+| `Chaos Monkey` | Netflix tool that randomly terminates instances to test resilience of the system |
+
+---
+
+## Performance (cross-cutting)
+
+| topic | definition |
+|---|---|
+| `performance` | Throughput, latency, and resource efficiency under expected and peak load; cross-cutting property availability depends on |
+| `scalability` | Ability to handle growing load by adding resources; horizontal vs. vertical scaling; identify bottlenecks before they bind |
+| `profiling` | Measure where time and memory are actually spent; flamegraphs, perf counters, sampling vs. instrumentation tradeoffs |
+| `caching` | Store computed results to avoid redundant work; cache invalidation, TTL, and consistency trade-offs |
+
+| vernacular | definition |
+|---|---|
+| `p50/p95/p99` | Percentile latencies; tail latency (p99) often matters most for user experience and SLO compliance |
+| `throughput` | Requests or operations per second the system can sustain at target latency |
+| `bottleneck` | The slowest stage limiting overall system throughput; profiling locates it; Amdahl's law bounds the gain from fixing it |
+| `flamegraph` | Visualization of sampled call stacks; width = time spent; finds hot paths quickly |
+| `Amdahl's law` | Parallelization speedup is bounded by the sequential fraction; S ≤ 1/(1−p) |
+| `working set` | Data actively accessed in a time window; must fit in cache or RAM for good performance |
+| `cache hit rate` | Fraction of requests served from cache without a backend call; >95% is typically the target for hot paths |
+| `GC pause` | Stop-the-world garbage collection pause; causes latency spikes in managed runtimes |
+| `lock contention` | Multiple threads waiting for the same lock; degrades throughput under concurrency |
+| `Little's law` | L = λW; mean queue length = arrival rate × mean wait time; useful for capacity planning |
+
+---
+
+## Security (cross-cutting)
+
+| topic | definition |
+|---|---|
+| `injection-and-csrf` | SQL/command/template injection prevention; CSRF token and SameSite cookie defense |
+| `secrets-management` | Store and rotate API keys, passwords, certs in a vault; never in env vars or plaintext |
+| `supply-chain-integrity` | Pin dependencies; verify signatures; audit transitive packages; maintain SBOM |
+| `responsible-disclosure` | Process for receiving and responding to external vulnerability reports |
+
+| vernacular | definition |
+|---|---|
+| `OWASP` | Open Web Application Security Project; publishes top-10 web vulnerability list |
+| `XSS` | Cross-site scripting; inject malicious scripts into pages viewed by other users |
+| `SQLi` | SQL injection; embed SQL in user input to manipulate database queries |
+| `SSRF` | Server-side request forgery; trick server into making unintended internal requests |
+| `JWT` | JSON Web Token; self-contained signed/encrypted claims for stateless auth |
+| `OAuth2` | Delegated authorization framework; resource owner grants scoped token to client |
+| `OIDC` | OpenID Connect; identity layer on OAuth2; issues ID tokens with user claims |
+| `MFA` | Multi-factor authentication; require ≥2 factors (knowledge, possession, biometric) |
+| `ABAC` | Attribute-based access control; policies evaluate arbitrary subject/resource attributes |
+| `PKI` | Public key infrastructure; CAs, certificate chains, revocation (CRL/OCSP) |
+| `STRIDE` | Threat modeling: Spoofing, Tampering, Repudiation, Info Disclosure, DoS, Elevation |
+
+---
+
+## Cryptography
+
+| topic | definition |
+|---|---|
+| `key-exchange` | DH / ECDH: establish shared secret over an untrusted channel |
+| `symmetric` | AES, ChaCha20: fast bulk encryption with a shared key |
+| `asymmetric` | RSA, ECC: public/private key pairs for encryption or signing |
+| `hash-and-mac` | SHA-2/3, BLAKE3, HMAC: integrity and authentication without encryption |
+| `digital-signatures` | EdDSA, ECDSA: non-repudiable proof of origin |
+| `zero-knowledge` | Prove a statement without revealing the witness — zk-SNARKs, Bulletproofs |
+| `secure-channel` | Compose authenticated encryption + forward secrecy — Noise protocol, TLS 1.3 |
+
+| vernacular | definition |
+|---|---|
+| `nonce` | Number used once; prevents replay attacks and ciphertext reuse |
+| `IV` | Initialization vector; random input to block cipher mode; must not repeat |
+| `GCM` | Galois/Counter Mode; authenticated encryption for AES; produces ciphertext + tag |
+| `AEAD` | Authenticated encryption with associated data; confidentiality + integrity together |
+| `forward secrecy` | Session keys derived ephemerally; compromise of long-term key doesn't decrypt past traffic |
+| `certificate` | X.509 binding of public key to identity; signed by CA |
+| `CA` | Certificate authority; trusted party that signs certificates |
+| `entropy` | Randomness quality; cryptographic operations require high-entropy random numbers |
+| `padding oracle` | Timing/error side-channel that leaks plaintext via padding validity |
+| `constant-time` | Code that runs in equal time regardless of secret values; prevents timing attacks |
+
+---
+
+## Compliance (cross-cutting)
+
+| topic | definition |
+|---|---|
+| `privacy-and-retention` | Collect minimal PII; enforce deletion schedules and data retention windows |
+| `regulatory-compliance` | GDPR, CCPA, SOC 2, ISO 27001; map controls to implementation |
+| `accessibility` | WCAG conformance, screen-reader support, keyboard navigation, color contrast; legal requirement in many jurisdictions |
+| `localization` | Adapt content and formatting for locale: string translation, date/number/currency formats, text direction, plural rules |
+
+| vernacular | definition |
+|---|---|
+| `GDPR` | EU General Data Protection Regulation; governs personal data collection, processing, and deletion rights |
+| `CCPA` | California Consumer Privacy Act; US state-level data privacy law with opt-out rights |
+| `PII` | Personally Identifiable Information; data that can identify an individual; subject to retention and deletion rules |
+| `l10n` | Localization (abbreviation: 18 letters between l and n); adapting a product for a specific locale |
+| `i18n` | Internationalization (abbreviation: 18 letters between i and n); engineering the infrastructure that enables l10n |
+| `RTL` | Right-to-left text direction; required for Arabic, Hebrew, Persian; affects layout mirroring |
+| `ICU` | International Components for Unicode; standard library for locale-aware formatting and collation |
+| `plural rules` | Locale-specific rules for noun pluralization; CLDR defines categories (zero, one, two, few, many, other) |
+| `CLDR` | Common Locale Data Repository; Unicode consortium's dataset of locale-specific formatting rules |
 
 ---
 
@@ -521,6 +595,57 @@ or verbatim plus additions.
 
 ---
 
+## Networking / protocol design
+
+| topic | definition |
+|---|---|
+| `tcp-semantics` | Reliable ordered byte stream; flow control, congestion control, connection state machine |
+| `tls` | Handshake, certificate validation, record encryption, session resumption |
+| `http-semantics` | Request/response model, headers, status codes, caching directives, versions (1.1/2/3) |
+| `wire-format` | Binary/text encoding: framing, endianness, length-prefix vs. delimiter, schema evolution |
+| `congestion-control` | AIMD, BBR, CUBIC; detect overload and back off to avoid network collapse |
+| `protocol-versioning` | Version negotiation and backward-compatibility across protocol versions |
+
+| vernacular | definition |
+|---|---|
+| `RTT` | Round-trip time; key latency metric; drives timeout and window sizing |
+| `MTU` | Maximum transmission unit; largest packet a link carries without fragmentation |
+| `QUIC` | UDP-based transport with TLS 1.3 built in; no HOL blocking across streams |
+| `HTTP/2` | Multiplexed streams over one TCP connection; header compression (HPACK) |
+| `SNI` | Server name indication; TLS extension so server sends correct cert for hostname |
+| `ALPN` | Application-layer protocol negotiation; agree on HTTP/1.1 vs HTTP/2 in TLS |
+| `HOL blocking` | Head-of-line blocking; one slow stream stalls all behind it (TCP flaw fixed by QUIC) |
+| `Nagle's algorithm` | Buffer small TCP sends until ACK or MSS reached; trades latency for throughput |
+| `keepalive` | Probe idle TCP connections to detect silent drops |
+
+---
+
+## OS / systems programming
+
+| topic | definition |
+|---|---|
+| `virtual-memory` | Address space abstraction: page tables, TLB, demand paging, mmap |
+| `file-system` | On-disk structure (inodes, journal), VFS interface, fsync semantics |
+| `ipc` | Inter-process communication: pipes, Unix sockets, shared memory, message queues |
+| `container-isolation` | Linux namespaces + cgroups for filesystem, network, PID, user isolation |
+| `signal-handling` | Async notification delivery; masking, async-signal-safe function constraints |
+| `kernel-interface` | Syscall ABI, ioctl, proc/sys — stable contract between userspace and kernel |
+
+| vernacular | definition |
+|---|---|
+| `syscall` | Synchronous trap into the kernel; user mode → kernel mode transition |
+| `page fault` | Access to an unmapped or swapped-out page; kernel services it |
+| `TLB` | Translation lookaside buffer; cache for virtual→physical page translations |
+| `context switch` | Save current thread state, restore another; main scheduling overhead |
+| `spinlock` | Busy-wait loop instead of blocking; correct only if wait time < context-switch cost |
+| `futex` | Fast user-space mutex; syscall only on contention; Linux primitive under pthreads |
+| `mmap` | Map file or anonymous memory into address space; enables zero-copy I/O |
+| `copy-on-write` | Share pages until a write occurs, then copy; used in fork and immutable data |
+| `cgroup` | Control group; limit CPU, memory, I/O for a group of processes |
+| `eBPF` | Extended Berkeley packet filter; run sandboxed programs in kernel for tracing/networking |
+
+---
+
 ## Parallelism / concurrency / scaling
 
 | topic | definition |
@@ -615,6 +740,32 @@ or verbatim plus additions.
 
 ---
 
+## Database internals
+
+| topic | definition |
+|---|---|
+| `storage-engine` | On-disk data layout: B-tree, LSM-tree, heap files; controls read/write amplification |
+| `mvcc` | Multi-version concurrency control; readers see a snapshot, writers don't block readers |
+| `query-optimizer` | Transform logical plan to efficient physical plan via cost model or rules |
+| `index-structures` | B-tree, hash, GiST, bloom filter — fast lookup without full scan |
+| `transaction-isolation` | Read-committed / repeatable-read / serializable; which anomalies each level prevents |
+| `buffer-pool` | Shared page cache between storage and query execution; eviction and dirty-page management |
+
+| vernacular | definition |
+|---|---|
+| `B+ tree` | B-tree variant where all data is in leaf nodes linked as a list; standard index |
+| `LSM tree` | Log-structured merge tree; writes go to memtable + sorted files; write-optimized |
+| `WAL` | Write-ahead log; durability guarantee; crash recovery replays log |
+| `ACID` | Atomicity, consistency, isolation, durability; transaction correctness properties |
+| `dirty read` | Read uncommitted data from another transaction; prevented by read-committed |
+| `phantom read` | New rows appear in a repeated range query; prevented by serializable |
+| `vacuum` | Reclaim space from dead MVCC tuples (PostgreSQL VACUUM) |
+| `compaction` | Merge and GC sorted files in an LSM tree; reduce read amplification |
+| `page` | Fixed-size unit of disk I/O (typically 4–16 KB); unit of buffer pool management |
+| `index scan vs seq scan` | Use index for selective queries; sequential scan for large table fractions |
+
+---
+
 ## Compiler / language runtime
 
 | topic | definition |
@@ -643,188 +794,135 @@ or verbatim plus additions.
 
 ---
 
-## Database internals
+## Distributed compute / HPC
 
 | topic | definition |
 |---|---|
-| `storage-engine` | On-disk data layout: B-tree, LSM-tree, heap files; controls read/write amplification |
-| `mvcc` | Multi-version concurrency control; readers see a snapshot, writers don't block readers |
-| `query-optimizer` | Transform logical plan to efficient physical plan via cost model or rules |
-| `index-structures` | B-tree, hash, GiST, bloom filter — fast lookup without full scan |
-| `transaction-isolation` | Read-committed / repeatable-read / serializable; which anomalies each level prevents |
-| `buffer-pool` | Shared page cache between storage and query execution; eviction and dirty-page management |
+| `collective-communication` | AllReduce, AllGather, Scatter across ranks; NCCL/MPI primitives for gradient sync |
+| `model-parallelism` | Split model weights across devices when single-device memory is insufficient |
+| `fault-tolerance` | Detect failed workers; checkpoint and restart or elastically rescale the job |
+| `gpu-memory` | VRAM budget: activations, optimizer states, gradients, KV cache all compete |
+| `job-scheduling` | Allocate cluster resources to jobs; queue, priority, preemption (SLURM, k8s) |
+| `resource-accounting` | Track GPU-hours, cost, and utilization per user/project for billing or fairness |
+| `process-lifecycle` | Launch, monitor, and cleanly terminate distributed processes; rendezvous/init |
+| `profiling` | Measure compute/memory/communication bottlenecks; nsight, torch.profiler |
 
 | vernacular | definition |
 |---|---|
-| `B+ tree` | B-tree variant where all data is in leaf nodes linked as a list; standard index |
-| `LSM tree` | Log-structured merge tree; writes go to memtable + sorted files; write-optimized |
-| `WAL` | Write-ahead log; durability guarantee; crash recovery replays log |
-| `ACID` | Atomicity, consistency, isolation, durability; transaction correctness properties |
-| `dirty read` | Read uncommitted data from another transaction; prevented by read-committed |
-| `phantom read` | New rows appear in a repeated range query; prevented by serializable |
-| `vacuum` | Reclaim space from dead MVCC tuples (PostgreSQL VACUUM) |
-| `compaction` | Merge and GC sorted files in an LSM tree; reduce read amplification |
-| `page` | Fixed-size unit of disk I/O (typically 4–16 KB); unit of buffer pool management |
-| `index scan vs seq scan` | Use index for selective queries; sequential scan for large table fractions |
+| `rank` | Identity of a process in a distributed job; rank 0 is typically the coordinator |
+| `world size` | Total number of processes in a distributed job |
+| `gradient sync` | AllReduce across ranks to average gradients before parameter update |
+| `bandwidth-bound` | Operation limited by memory bandwidth, not arithmetic throughput |
+| `compute-bound` | Operation limited by arithmetic throughput, not memory bandwidth |
+| `FLOP` | Floating-point operation; used to measure compute cost of a model or training run |
+| `MFU` | Model FLOP utilization; fraction of peak FLOP/s actually achieved |
+| `ZeRO` | Zero redundancy optimizer (DeepSpeed); shards optimizer states, gradients, params |
+| `FSDP` | Fully sharded data parallel; PyTorch's ZeRO-3 equivalent |
 
 ---
 
-## Networking / protocol design
+## CUDA / GPU kernel programming
 
 | topic | definition |
 |---|---|
-| `tcp-semantics` | Reliable ordered byte stream; flow control, congestion control, connection state machine |
-| `tls` | Handshake, certificate validation, record encryption, session resumption |
-| `http-semantics` | Request/response model, headers, status codes, caching directives, versions (1.1/2/3) |
-| `wire-format` | Binary/text encoding: framing, endianness, length-prefix vs. delimiter, schema evolution |
-| `congestion-control` | AIMD, BBR, CUBIC; detect overload and back off to avoid network collapse |
-| `protocol-versioning` | Version negotiation and backward-compatibility across protocol versions |
+| `kernel-correctness` | Bounds, indexing, shape handling, aliasing, race freedom, and reference-equivalence for custom GPU kernels |
+| `grid-block-geometry` | Map problem dimensions onto CUDA grids, blocks, warps, tiles, and per-thread work; controls indexing, edge handling, occupancy, and memory locality |
+| `memory-access-patterns` | Global-memory layout, coalescing, alignment, vectorized loads/stores, and cache behavior |
+| `shared-memory-tiling` | Tile shapes, shared-memory staging, bank-conflict avoidance, and halo/edge handling |
+| `warp-level-programming` | Warp-synchronous algorithms using lanes, masks, shuffles, ballots, and divergence control |
+| `gpu-synchronization` | Correct use of barriers, atomics, memory scopes, and inter-thread/inter-block ordering |
+| `occupancy-and-register-pressure` | Balance registers, shared memory, block size, and active warps per SM for throughput |
+| `kernel-fusion` | Combine operations to reduce launch overhead and memory traffic while managing register pressure |
+| `precision-and-accumulation` | Numeric formats, accumulation type, rounding, determinism, overflow, and error tolerance |
+| `async-copy-pipeline` | Overlap memory movement and compute with staged or double-buffered async copies |
+| `custom-op-integration` | Bind kernels into PyTorch/C++/Python runtimes with dispatch, build flags, ABI, and shape contracts |
+| `architecture-portability` | Handle compute capability, SM features, tensor cores, PTX/SASS differences, and fallback paths |
+| `kernel-profiling` | Use profiler evidence, roofline reasoning, and microbenchmarks to distinguish memory vs. compute limits |
 
 | vernacular | definition |
 |---|---|
-| `RTT` | Round-trip time; key latency metric; drives timeout and window sizing |
-| `MTU` | Maximum transmission unit; largest packet a link carries without fragmentation |
-| `QUIC` | UDP-based transport with TLS 1.3 built in; no HOL blocking across streams |
-| `HTTP/2` | Multiplexed streams over one TCP connection; header compression (HPACK) |
-| `SNI` | Server name indication; TLS extension so server sends correct cert for hostname |
-| `ALPN` | Application-layer protocol negotiation; agree on HTTP/1.1 vs HTTP/2 in TLS |
-| `HOL blocking` | Head-of-line blocking; one slow stream stalls all behind it (TCP flaw fixed by QUIC) |
-| `Nagle's algorithm` | Buffer small TCP sends until ACK or MSS reached; trades latency for throughput |
-| `keepalive` | Probe idle TCP connections to detect silent drops |
+| `CUDA` | NVIDIA GPU programming platform/API for kernels, memory management, streams, and libraries |
+| `CUDA C++` | Canonical CUDA kernel implementation language/front end for NVIDIA GPUs |
+| `Triton` | Python-based DSL/JIT for writing custom GPU kernels, common in ML projects |
+| `PyTorch C++/CUDA extension` | PyTorch integration route for custom C++ and CUDA operators |
+| `CUTLASS` | NVIDIA C++ template library for high-performance GEMM/convolution-style CUDA kernels |
+| `CuTe` | CUTLASS tensor-layout and tiling DSL used in modern NVIDIA kernel templates |
+| `HIP` | AMD CUDA-like kernel programming API used with ROCm |
+| `ROCm` | AMD GPU compute software stack; HIP, libraries, compiler, and runtime |
+| `kernel` | Function launched across many GPU threads |
+| `grid` | Whole launched collection of thread blocks |
+| `block` | Cooperative thread group scheduled onto one SM; also called CTA |
+| `CTA` | Cooperative thread array; CUDA block-level execution unit |
+| `thread` | Single CUDA execution instance with its own registers and lane position |
+| `SM` | Streaming multiprocessor; hardware unit that schedules warps and executes instructions |
+| `warp` | Group of 32 CUDA threads executing in SIMT lockstep |
+| `lane` | Thread position within a warp |
+| `execution configuration` | CUDA launch parameters such as grid size, block size, dynamic shared memory, and stream |
+| `grid-stride loop` | Kernel loop pattern where each thread processes elements separated by total grid size |
+| `thread-block shape` | Block dimensions chosen to match data layout, tile shape, memory coalescing, and occupancy |
+| `launch bounds` | CUDA annotation constraining threads per block/register use to guide compiler occupancy choices |
+| `occupancy` | Ratio of active warps on an SM to the hardware maximum |
+| `register pressure` | High per-thread register use that can reduce occupancy or cause spills |
+| `spill` | Register value stored to local memory because registers are exhausted |
+| `global memory` | High-latency device DRAM visible to all threads |
+| `shared memory` | Low-latency per-block scratchpad memory |
+| `constant memory` | Cached read-only memory optimized for broadcast-style access |
+| `coalescing` | Combining adjacent lane memory accesses into efficient memory transactions |
+| `bank conflict` | Shared-memory accesses contend for the same memory bank and serialize |
+| `warp divergence` | Lanes in a warp take different control-flow paths, reducing parallel efficiency |
+| `shuffle` | Warp intrinsic that moves values between lanes without shared memory |
+| `ballot` | Warp intrinsic that collects per-lane predicates into a bitmask |
+| `CUDA atomics` | Device atomic operations such as atomicAdd; correctness tool with memory-scope and contention costs |
+| `tensor core` | Specialized NVIDIA matrix-multiply hardware for mixed-precision GEMM-like operations |
+| `WMMA` | Warp-level matrix multiply-accumulate API targeting tensor cores |
+| `MMA` | Matrix multiply-accumulate instruction family used by tensor-core kernels |
+| `PTX` | NVIDIA virtual ISA emitted before target-specific assembly |
+| `SASS` | NVIDIA machine assembly for a specific GPU architecture |
+| `compute capability` | NVIDIA architecture version describing available hardware features |
+| `stream` | Ordered queue of GPU work; independent streams can overlap |
+| `event` | GPU timing/synchronization marker recorded in a stream |
+| `pinned memory` | Page-locked host memory enabling faster/asynchronous host-device transfers |
+| `unified memory` | CUDA-managed memory addressable by CPU and GPU with migration |
+| `cp.async` | Async copy instruction family for moving global memory into shared memory |
+| `roofline` | Performance model comparing arithmetic intensity against memory bandwidth and peak FLOPs |
+| `Nsight Compute` | NVIDIA profiler for per-kernel metrics, stalls, occupancy, and memory behavior |
+| `compute-sanitizer` | NVIDIA correctness tool for memory errors, races, and synchronization bugs |
 
 ---
 
-## OS / systems programming
+## ML / training
 
 | topic | definition |
 |---|---|
-| `virtual-memory` | Address space abstraction: page tables, TLB, demand paging, mmap |
-| `file-system` | On-disk structure (inodes, journal), VFS interface, fsync semantics |
-| `ipc` | Inter-process communication: pipes, Unix sockets, shared memory, message queues |
-| `container-isolation` | Linux namespaces + cgroups for filesystem, network, PID, user isolation |
-| `signal-handling` | Async notification delivery; masking, async-signal-safe function constraints |
-| `kernel-interface` | Syscall ABI, ioctl, proc/sys — stable contract between userspace and kernel |
+| `data-pipeline` | Ingest, transform, and feed training data; throughput must not bottleneck GPU |
+| `dataset-versioning` | Track dataset snapshots so experiments are reproducible; DVC, Delta Lake |
+| `tokenization` | Convert raw text to integer token IDs; BPE/WordPiece/SentencePiece |
+| `checkpointing` | Save model weights and optimizer state periodically; resume from failure |
+| `numerical-stability` | Avoid NaN/inf via initialization, gradient clipping, stable loss formulations |
+| `mixed-precision` | Train in bf16/fp16, keep fp32 master weights; saves memory, speeds matmuls |
+| `gradient-accumulation` | Sum gradients over N mini-batches before updating; simulates larger batch |
+| `eval-harness` | Standardized pipeline to run evaluation tasks; separates model from metric logic |
+| `hyperparameter-search` | Grid, random, or Bayesian search over lr, batch size, architecture dims |
+| `fine-tuning` | Continue training on task-specific data after pretraining; full or parameter-efficient |
+| `rlhf` | Reinforcement learning from human feedback; train reward model then optimize via PPO |
+| `context-length` | Maximum token sequence the model can attend to; affects memory and capability |
+| `experiment-tracking` | Log hyperparameters, metrics, and artifacts per run (MLflow, W&B, Neptune) |
+| `model-serving` | Deploy trained model for inference; batching, latency SLAs, versioning |
 
 | vernacular | definition |
 |---|---|
-| `syscall` | Synchronous trap into the kernel; user mode → kernel mode transition |
-| `page fault` | Access to an unmapped or swapped-out page; kernel services it |
-| `TLB` | Translation lookaside buffer; cache for virtual→physical page translations |
-| `context switch` | Save current thread state, restore another; main scheduling overhead |
-| `spinlock` | Busy-wait loop instead of blocking; correct only if wait time < context-switch cost |
-| `futex` | Fast user-space mutex; syscall only on contention; Linux primitive under pthreads |
-| `mmap` | Map file or anonymous memory into address space; enables zero-copy I/O |
-| `copy-on-write` | Share pages until a write occurs, then copy; used in fork and immutable data |
-| `cgroup` | Control group; limit CPU, memory, I/O for a group of processes |
-| `eBPF` | Extended Berkeley packet filter; run sandboxed programs in kernel for tracing/networking |
-
----
-
-## Cryptography
-
-| topic | definition |
-|---|---|
-| `key-exchange` | DH / ECDH: establish shared secret over an untrusted channel |
-| `symmetric` | AES, ChaCha20: fast bulk encryption with a shared key |
-| `asymmetric` | RSA, ECC: public/private key pairs for encryption or signing |
-| `hash-and-mac` | SHA-2/3, BLAKE3, HMAC: integrity and authentication without encryption |
-| `digital-signatures` | EdDSA, ECDSA: non-repudiable proof of origin |
-| `zero-knowledge` | Prove a statement without revealing the witness — zk-SNARKs, Bulletproofs |
-| `secure-channel` | Compose authenticated encryption + forward secrecy — Noise protocol, TLS 1.3 |
-
-| vernacular | definition |
-|---|---|
-| `nonce` | Number used once; prevents replay attacks and ciphertext reuse |
-| `IV` | Initialization vector; random input to block cipher mode; must not repeat |
-| `GCM` | Galois/Counter Mode; authenticated encryption for AES; produces ciphertext + tag |
-| `AEAD` | Authenticated encryption with associated data; confidentiality + integrity together |
-| `forward secrecy` | Session keys derived ephemerally; compromise of long-term key doesn't decrypt past traffic |
-| `certificate` | X.509 binding of public key to identity; signed by CA |
-| `CA` | Certificate authority; trusted party that signs certificates |
-| `entropy` | Randomness quality; cryptographic operations require high-entropy random numbers |
-| `padding oracle` | Timing/error side-channel that leaks plaintext via padding validity |
-| `constant-time` | Code that runs in equal time regardless of secret values; prevents timing attacks |
-
----
-
-## Testing / QA methodology (cross-cutting)
-
-| topic | definition |
-|---|---|
-| `property-based-testing` | QuickCheck-style: auto-generate inputs from invariants, shrink counterexamples |
-| `fuzzing` | Mutation/grammar-based random input generation to find crashes and security bugs |
-| `mutation-testing` | Inject faults into code; measure what fraction your tests catch |
-| `test-isolation` | Hermetic environments: no shared state, deterministic ordering |
-| `coverage-adequacy` | Line/branch/MC-DC coverage as proxy for test thoroughness |
-
-| vernacular | definition |
-|---|---|
-| `unit test` | Test one function/class in isolation with mocked dependencies |
-| `integration test` | Test multiple components together against real or near-real dependencies |
-| `end-to-end test` | Test the full system from UI to database; slow but high confidence |
-| `test double` | Umbrella for mock, stub, spy, fake; substitute for a real dependency |
-| `mock` | Test double that asserts it was called with specific arguments |
-| `stub` | Test double that returns canned responses without assertions |
-| `fixture` | Reusable test setup or sample data |
-| `flaky test` | Non-deterministic test that sometimes passes and sometimes fails |
-| `snapshot test` | Compare rendered output to stored baseline; detects unintended UI changes |
-| `contract test` | Verify a service implements its API contract; consumer-driven (Pact) |
-| `TDD` | Test-driven development; write test first, then code to make it pass |
-
----
-
-## Physics simulation
-
-| topic | definition |
-|---|---|
-| `rigid-body` | Objects with mass + inertia tensor; integrate forces/torques, resolve contacts |
-| `collision-detection` | Broad phase (BVH, SAP) + narrow phase (GJK/EPA) to find intersecting geometry |
-| `constraint-solver` | Enforce joints and contacts via iterative impulse or Lagrange multipliers |
-| `soft-body` | Deformable objects: mass-spring, FEM, or position-based dynamics |
-| `fluid-simulation` | SPH, Eulerian grid, FLIP/APIC; advection + pressure solve |
-| `numerical-integration` | Euler, Verlet, RK4: stability vs. accuracy tradeoffs for ODE solving |
-
-| vernacular | definition |
-|---|---|
-| `AABB` | Axis-aligned bounding box; simplest broad-phase collision proxy |
-| `OBB` | Oriented bounding box; tighter than AABB, more expensive to test |
-| `BVH` | Bounding volume hierarchy; tree of AABBs for O(log N) collision queries |
-| `SAP` | Sweep and prune; sort object extents along axes to find overlapping pairs |
-| `GJK` | Gilbert-Johnson-Keerthi; narrow-phase distance algorithm for convex shapes |
-| `EPA` | Expanding polytope algorithm; follow-up to GJK to find penetration depth |
-| `impulse` | Instantaneous change in momentum; how constraints are resolved each frame |
-| `restitution` | Bounciness coefficient; 0 = perfectly inelastic, 1 = perfectly elastic |
-| `island` | Isolated group of bodies connected by contacts/joints; solve independently |
-| `CCD` | Continuous collision detection; sweep shapes through time to catch tunneling |
-
----
-
-## Game development / netcode
-
-| topic | definition |
-|---|---|
-| `game-loop` | Fixed/variable timestep update-render cycle; determinism vs. smoothness tradeoff |
-| `ecs` | Entity-component-system: data-oriented separation of data from behavior; cache-friendly |
-| `netcode` | Client-server sync: authoritative server, client prediction, state reconciliation |
-| `lag-compensation` | Server rewinds world state to client's perceived time for hit registration |
-| `render-graph` | Declarative DAG of render passes with automatic resource/barrier management |
-
-| vernacular | definition |
-|---|---|
-| `tick rate` | Server simulation update frequency (Hz); higher = more accurate, more bandwidth |
-| `delta compression` | Send only changed state fields each tick; reduces bandwidth |
-| `snapshot interpolation` | Interpolate between received state snapshots on the client |
-| `client prediction` | Apply inputs immediately client-side; reconcile when server confirms |
-| `rollback netcode` | Re-simulate from last confirmed state after misprediction; used in fighting games |
-| `entity interpolation` | Smooth remote entity movement between received positions |
-| `hitbox` | Invisible collision shape for hit detection; can differ from rendered mesh |
-| `draw call` | CPU-to-GPU command to render a mesh; minimize for performance |
-| `batching` | Combine multiple meshes/sprites into one draw call |
-| `frustum culling` | Skip rendering objects outside the camera view volume |
-| `LOD` | Level of detail; swap high-poly mesh for lower-poly at distance |
-| `Vulkan` | Khronos cross-vendor low-level graphics and compute API, common in engines and portable GPU rendering paths |
-| `compute shader` | GPU shader stage used for general compute work outside the traditional graphics pipeline |
-| `SPIR-V` | Khronos binary intermediate representation used by Vulkan shaders and compute kernels |
+| `epoch` | One full pass over the training dataset |
+| `batch size` | Number of samples per gradient update step |
+| `learning rate` | Step size for gradient update; most sensitive hyperparameter |
+| `loss function` | Scalar objective being minimized; cross-entropy, MSE, contrastive |
+| `backpropagation` | Chain-rule-based gradient computation through the compute graph |
+| `overfitting` | Model memorizes training data, fails to generalize to held-out data |
+| `regularization` | Techniques to reduce overfitting: dropout, weight decay, data augmentation |
+| `validation set` | Held-out split used to tune hyperparameters; distinct from test set |
+| `precision/recall` | Precision = TP/(TP+FP); recall = TP/(TP+FN); F1 is harmonic mean |
+| `AUC-ROC` | Area under ROC curve; threshold-independent classification quality |
+| `early stopping` | Halt training when validation loss stops improving |
+| `confusion matrix` | TP/FP/TN/FN breakdown for classification models |
 
 ---
 
@@ -999,162 +1097,82 @@ or verbatim plus additions.
 
 ---
 
-## UI / frontend
+## ML research paper
 
 | topic | definition |
 |---|---|
-| `scroll-prefetch` | Prefetch off-screen content based on scroll velocity so load latency is hidden before the user reaches it |
-| `layout-stability` | Prevent unexpected content shifts (CLS) by reserving space before content loads; covers pre-load extent estimates and server-sent height placeholders |
-| `discoverability` | Ensure users can find features and affordances; command palette, tooltips, empty-state guidance, progressive feature reveal |
-| `perceived-performance` | Felt speed of the UI regardless of actual latency; skeleton screens, optimistic updates, streaming, and prefetch all serve this |
-| `spatial-stability` | Elements must not move unexpectedly under any trigger (load, resize, stream arrival, scroll); governing principle behind layout-stability |
-| `progressive-disclosure` | Show only what is needed now; reveal complexity on demand to avoid overwhelming new users while keeping expert paths reachable |
-| `direct-manipulation` | Actions feel physically coupled to objects; drag, resize, inline edit; feedback latency must be <100ms to feel immediate |
-| `keybinds` | Keyboard shortcut registration, conflict detection, customization persistence, and in-UI discoverability (tooltips, cheat-sheet overlay) |
-| `power-user-efficiency` | Features that reduce friction for expert/repetitive workflows: keybinds, macros, command palette, batch operations |
-| `theming` | Aesthetic customization: color schemes, font choice, density, dark/light mode; separate from functional accessibility requirements |
-| `temporal-layout` | Spatial encoding of time in 1D or 2D: timelines, calendar grids, scatter plots with time axes, inactivity gap separators in chat |
-| `linearization` | Rendering inherently non-linear structure (DAG, causal graph) as a scannable 1D spatial sequence with minimal back-edges |
-| `animation` | UI motion: micro-animations, transitions, time-swept evolution highlights; must respect prefers-reduced-motion; frame budget ≤16ms |
-| `audio-feedback` | Sound cues for events (notifications, errors, success); must be mutable; accessible fallback to visual-only feedback |
-| `haptic-feedback` | Device vibration patterns for touch events; mobile/device-specific; permission and pattern vocabulary vary by platform |
+| `eval-split-discipline` | Keep test set unseen until final report; no hyperparameter selection on test |
+| `statistical-significance` | Bootstrap CIs, paired t-test, or permutation test before claiming improvement |
+| `run-reproducibility` | Seed control, environment pinning, artifact logging for exact re-run |
+| `result-provenance` | Link every reported number to the exact run, config, and data version |
+| `data-contamination` | Verify eval benchmarks don't appear in training data; n-gram overlap checks |
+| `ablation-design` | Isolate one variable per ablation; share all other hyperparameters across conditions |
+| `related-work` | Fair comparison to baselines; cite concurrent work; distinguish from prior art |
+| `compute-budget` | Report GPU-hours and cost; enables readers to assess feasibility and fairness |
+| `paper-log-separation` | Keep experimental logs and paper prose separate; logs are not the paper |
 
 | vernacular | definition |
 |---|---|
-| `CLS` | Cumulative Layout Shift; Core Web Vitals metric for visual stability; sum of unexpected layout shift scores |
-| `LCP` | Largest Contentful Paint; Core Web Vitals metric for perceived load speed |
-| `INP` | Interaction to Next Paint; Core Web Vitals responsiveness metric (replaced FID) |
-| `jank` | Visible frame drops or stuttering; typically caused by main-thread blocking past 16ms |
-| `FLIP` | First Last Invert Play; technique for performant layout animations using transform instead of layout properties |
-| `RAF` | requestAnimationFrame; schedule work to run before next paint |
-| `easing` | Motion timing curve controlling acceleration and deceleration |
-| `spring` | Physics-like animation model with stiffness and damping instead of fixed timing |
-| `stagger` | Delayed sequence where related elements animate one after another |
-| `enter/exit animation` | Motion used when an element appears or disappears |
-| `virtual scrolling` | Render only visible list items; recycle DOM nodes as user scrolls to handle arbitrarily large lists |
-| `skeleton screen` | Placeholder UI showing content shape before data loads; reduces perceived wait vs. spinner |
-| `optimistic update` | Update UI immediately before server confirms; roll back on error |
-| `empty state` | View shown when there is no content yet; should explain the state and expose the next useful action |
-| `loading state` | Temporary UI while work is pending; includes spinners, skeletons, disabled controls, and progress text |
-| `command palette` | Keyboard-driven search over all available commands and features; primary discoverability mechanism for power users |
-| `home link` | Logo, title, or nav affordance that routes to the app's default or top-level view; navigation, not creation |
-| `launcher` | Entry-point control that starts or opens a primary workflow, app, tool, or workspace; qualify it when ambiguous |
-| `affordance` | Visual or physical property that signals how an object can be used (Gibson/Norman); basis for discoverability |
-| `tooltip` | Short hover/focus explanation for an element; informational, not an interactive panel |
-| `tooltip trigger` | Element whose hover or keyboard focus reveals a tooltip |
-| `hover target` | Mouse hover-sensitive element; should have a keyboard-focus equivalent when it reveals information |
-| `Fitts's law` | Time to acquire a target ∝ log(distance/size + 1); basis for minimum touch target sizing |
-| `touch target` | Interactive area large enough to tap reliably on touch devices |
-| `hit target` | Actual clickable/tappable region for an element, which may be larger than the visible affordance |
-| `focus ring` | Visible indicator showing the currently keyboard-focused element |
-| `focus trap` | Keyboard focus stays inside an open modal, drawer, or sheet until it is dismissed |
-| `prefers-reduced-motion` | CSS media query indicating the user has requested minimal animation; must gate all non-essential motion |
-| `WAI-ARIA` | Web Accessibility Initiative ARIA; roles and properties for assistive technology interop |
-| `WCAG` | Web Content Accessibility Guidelines; A/AA/AAA conformance levels; legal requirement in many jurisdictions |
-| `badge` | Compact count/status marker attached to a label, icon, tab, row, or button |
-| `pill` | Rounded compact label or control, often used for status, filters, modes, or small option groups |
-| `chip` | Compact inline token representing an item, filter, attachment, or selection; often removable |
-| `segmented control` | Small set of mutually exclusive options presented as adjacent buttons |
-| `accordion` | Disclosure pattern where sections expand or collapse, often one at a time |
-| `toast` | Temporary non-modal notification; should not steal focus; often auto-dismisses |
-| `snackbar` | Toast-like transient message, often bottom-aligned and sometimes carrying one short action |
-| `banner` | Prominent page- or section-level message strip; usually more persistent than a toast |
-| `callout` | Inline contextual note, warning, or explanation placed near the related content |
-| `dialog` | Focused panel for details, confirmation, or input; may be modal or non-modal |
-| `modal` | Blocking dialog/overlay mode where background interaction is disabled and focus should be managed |
-| `sidebar` | Persistent side region for navigation or supporting content; may resize, collapse, or become a drawer on narrow screens |
-| `drawer` | Edge-attached panel that opens and closes over or beside content |
-| `navigation drawer` | Drawer used for app navigation, often the mobile or overlay form of a sidebar |
-| `sheet` | Edge-presented temporary panel, commonly used for secondary choices or details |
-| `bottom sheet` | Mobile-style sheet rising from the bottom, often partially or fully expanded |
-| `popover` | Anchored floating panel with richer content or controls than a tooltip |
-| `scrim` | Dimmed visual layer behind an overlay that separates foreground from background |
-| `backdrop` | Layer behind an overlay, often used for dimming, blur, outside-click dismissal, or inert background coverage |
-| `portal` | Render overlay content outside its normal DOM parent so stacking, clipping, and positioning work predictably |
-| `z-index` | CSS stacking order value; only comparable within the same stacking context |
-| `stacking context` | CSS layering boundary that controls how z-index values compare; common cause of overlay ordering bugs |
-| `scroll lock` | Prevent background or page scrolling while an overlay or modal interaction is active |
-| `overview ruler` | Scrollbar-adjacent rail summarizing important off-screen positions with markers, such as search hits, errors, comments, or user turns |
-| `scroll anchoring` | Keep the user's visible scroll position stable when content above changes |
-| `scroll restoration` | Restore previous scroll position after navigation, reload, or reopening a view |
-| `responsive layout` | Layout adapts across viewport sizes, input modes, and device constraints |
-| `viewport` | Visible browser/app region used for layout calculations; on mobile it can be affected by browser chrome and safe areas |
-| `breakpoint` | Width or condition where layout rules change, such as a sidebar becoming a bottom nav |
-| `media query` | CSS condition based on viewport, device, or user preference state |
-| `container query` | Style or layout decision based on a component's container size rather than the whole viewport |
-| `safe area` | Screen inset reserved for notches, rounded corners, and mobile home indicators |
-| `density` | Compactness of UI spacing and controls, such as compact, default, or comfortable modes |
-| `sticky positioning` | Element remains fixed within its scroll container after crossing a threshold; common for headers and toolbars |
+| `baseline` | Published or reproduced comparison model; minimum bar to beat |
+| `SOTA` | State of the art; best published result on a benchmark at a given time |
+| `ablation` | Variant with one component removed; quantifies that component's contribution |
+| `held-out set` | Data not used during training or hyperparameter tuning |
+| `confidence interval` | Range capturing the true value with stated probability (e.g. 95% CI) |
+| `effect size` | Magnitude of difference independent of sample size (Cohen's d, etc.) |
+| `replication` | Reproduce a result with the same method; distinct from reproduction (new code) |
+| `hyperparameter` | Setting not learned by gradient descent (lr, batch size, architecture) |
 
 ---
 
-## Code conventions (cross-cutting)
+## Physics simulation
 
 | topic | definition |
 |---|---|
-| `impl-style` | Project's idiomatic point on the inline↔abstracted spectrum; when to extract vs. inline, how much indirection is normal |
-| `shared-primitives` | Code artifacts intentionally designed for multi-consumer reuse; operational/behavioral building blocks with a known shared contract |
-| `shared-constants` | Named values (IDs, limits, codes, enum-like constants) with a single authoritative definition; eliminates magic values |
+| `rigid-body` | Objects with mass + inertia tensor; integrate forces/torques, resolve contacts |
+| `collision-detection` | Broad phase (BVH, SAP) + narrow phase (GJK/EPA) to find intersecting geometry |
+| `constraint-solver` | Enforce joints and contacts via iterative impulse or Lagrange multipliers |
+| `soft-body` | Deformable objects: mass-spring, FEM, or position-based dynamics |
+| `fluid-simulation` | SPH, Eulerian grid, FLIP/APIC; advection + pressure solve |
+| `numerical-integration` | Euler, Verlet, RK4: stability vs. accuracy tradeoffs for ODE solving |
 
 | vernacular | definition |
 |---|---|
-| `DRY` | Don't Repeat Yourself; extract shared logic to avoid duplication — but only when the reuse is intentional, not accidental |
-| `SRP` | Single Responsibility Principle; a module or class has one reason to change |
-| `magic number` | Unexplained numeric or string literal in code; should be replaced by a named constant |
-| `shared/` | Directory convention for intentionally multi-consumer modules; implies coordinated change when the contract evolves |
-| `util/` | Directory convention for grab-bag helpers; lower reuse intent and weaker contract than shared/ |
-| `common/` | Equivalent to shared/ in many codebases; often used for cross-cutting constants and small utilities |
+| `AABB` | Axis-aligned bounding box; simplest broad-phase collision proxy |
+| `OBB` | Oriented bounding box; tighter than AABB, more expensive to test |
+| `BVH` | Bounding volume hierarchy; tree of AABBs for O(log N) collision queries |
+| `SAP` | Sweep and prune; sort object extents along axes to find overlapping pairs |
+| `GJK` | Gilbert-Johnson-Keerthi; narrow-phase distance algorithm for convex shapes |
+| `EPA` | Expanding polytope algorithm; follow-up to GJK to find penetration depth |
+| `impulse` | Instantaneous change in momentum; how constraints are resolved each frame |
+| `restitution` | Bounciness coefficient; 0 = perfectly inelastic, 1 = perfectly elastic |
+| `island` | Isolated group of bodies connected by contacts/joints; solve independently |
+| `CCD` | Continuous collision detection; sweep shapes through time to catch tunneling |
 
 ---
 
-## Availability (cross-cutting)
+## Game development / netcode
 
 | topic | definition |
 |---|---|
-| `fault-tolerance` | System continues operating correctly despite component failures; achieved via redundancy, isolation, and graceful degradation |
-| `backup-and-recovery` | Periodic snapshots of data with tested restore paths; defined by RPO and RTO targets |
-| `data-durability` | Data survives failures; achieved via replication, checksums, fsync, and write-ahead log |
-| `failover` | Automatic promotion of a standby system when the primary fails; requires health detection and state synchronization |
-| `circuit-breaker` | Stop calling a failing dependency and fail fast; half-open probe to detect recovery; prevents cascading failure |
-| `retry-and-backoff` | Retry transient failures with exponential backoff and jitter; distinguish retryable from non-retryable errors |
-| `degraded-mode` | Operate with reduced functionality when components fail; define what is essential vs. optional per subsystem |
-| `chaos-engineering` | Deliberately inject failures in production-like environments to verify fault-tolerance assumptions hold |
+| `game-loop` | Fixed/variable timestep update-render cycle; determinism vs. smoothness tradeoff |
+| `ecs` | Entity-component-system: data-oriented separation of data from behavior; cache-friendly |
+| `netcode` | Client-server sync: authoritative server, client prediction, state reconciliation |
+| `lag-compensation` | Server rewinds world state to client's perceived time for hit registration |
+| `render-graph` | Declarative DAG of render passes with automatic resource/barrier management |
 
 | vernacular | definition |
 |---|---|
-| `RPO` | Recovery Point Objective; maximum acceptable data loss measured in time |
-| `RTO` | Recovery Time Objective; maximum acceptable downtime before service is restored |
-| `MTTR` | Mean Time To Recovery; average time to restore service after a failure event |
-| `MTBF` | Mean Time Between Failures; average uptime between failure events |
-| `SLA` | Service Level Agreement; contractual availability guarantee (e.g., 99.9% uptime) |
-| `SLO` | Service Level Objective; internal target stricter than the SLA (e.g., 99.95% over 30 days) |
-| `SLI` | Service Level Indicator; the measured metric underlying an SLO (e.g., request success rate) |
-| `health check` | Liveness/readiness probe; distinguishes "process alive" from "can serve traffic" |
-| `bulkhead` | Isolate failure domains so one slow dependency cannot exhaust all threads or connections |
-| `active-passive` | One primary handles traffic; a cold standby takes over on failure |
-| `active-active` | Multiple nodes handle traffic simultaneously; no cold failover delay |
-| `Chaos Monkey` | Netflix tool that randomly terminates instances to test resilience of the system |
-
----
-
-## Performance (cross-cutting)
-
-| topic | definition |
-|---|---|
-| `performance` | Throughput, latency, and resource efficiency under expected and peak load; cross-cutting property availability depends on |
-| `scalability` | Ability to handle growing load by adding resources; horizontal vs. vertical scaling; identify bottlenecks before they bind |
-| `profiling` | Measure where time and memory are actually spent; flamegraphs, perf counters, sampling vs. instrumentation tradeoffs |
-| `caching` | Store computed results to avoid redundant work; cache invalidation, TTL, and consistency trade-offs |
-
-| vernacular | definition |
-|---|---|
-| `p50/p95/p99` | Percentile latencies; tail latency (p99) often matters most for user experience and SLO compliance |
-| `throughput` | Requests or operations per second the system can sustain at target latency |
-| `bottleneck` | The slowest stage limiting overall system throughput; profiling locates it; Amdahl's law bounds the gain from fixing it |
-| `flamegraph` | Visualization of sampled call stacks; width = time spent; finds hot paths quickly |
-| `Amdahl's law` | Parallelization speedup is bounded by the sequential fraction; S ≤ 1/(1−p) |
-| `working set` | Data actively accessed in a time window; must fit in cache or RAM for good performance |
-| `cache hit rate` | Fraction of requests served from cache without a backend call; >95% is typically the target for hot paths |
-| `GC pause` | Stop-the-world garbage collection pause; causes latency spikes in managed runtimes |
-| `lock contention` | Multiple threads waiting for the same lock; degrades throughput under concurrency |
-| `Little's law` | L = λW; mean queue length = arrival rate × mean wait time; useful for capacity planning |
+| `tick rate` | Server simulation update frequency (Hz); higher = more accurate, more bandwidth |
+| `delta compression` | Send only changed state fields each tick; reduces bandwidth |
+| `snapshot interpolation` | Interpolate between received state snapshots on the client |
+| `client prediction` | Apply inputs immediately client-side; reconcile when server confirms |
+| `rollback netcode` | Re-simulate from last confirmed state after misprediction; used in fighting games |
+| `entity interpolation` | Smooth remote entity movement between received positions |
+| `hitbox` | Invisible collision shape for hit detection; can differ from rendered mesh |
+| `draw call` | CPU-to-GPU command to render a mesh; minimize for performance |
+| `batching` | Combine multiple meshes/sprites into one draw call |
+| `frustum culling` | Skip rendering objects outside the camera view volume |
+| `LOD` | Level of detail; swap high-poly mesh for lower-poly at distance |
+| `Vulkan` | Khronos cross-vendor low-level graphics and compute API, common in engines and portable GPU rendering paths |
+| `compute shader` | GPU shader stage used for general compute work outside the traditional graphics pipeline |
+| `SPIR-V` | Khronos binary intermediate representation used by Vulkan shaders and compute kernels |
