@@ -16,6 +16,49 @@ personal tag: a launcher-injected id overrides Codex's real resumable id, so
 transcript. When the launcher derives the value from the resumable
 `session_meta.payload.id`, the two agree; if it diverges, note both ids.
 
+### Resumed TUI sessions (no injected id)
+
+A YA launch injects `$AGENTCTL_SESSION_ID`; a plain `codex resume <id> [cmd]`
+typed in a terminal does **not**, so `agentctl active` / `start` cannot find
+your entry and will report it cannot refresh. The id Codex was told to resume
+*is* the resumable `session_meta.payload.id`, and it sits on an ancestor
+process's argv — recover it by walking parents. Read `PPid` from
+`/proc/<pid>/status` (robust against the parenthesized, space-bearing `comm`
+field that corrupts naive `/proc/<pid>/stat` parsing):
+
+```bash
+sid=$(
+  pid=$PPID
+  while [ "${pid:-0}" -gt 1 ]; do
+    args=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)
+    case "$args" in
+      *codex*resume*)
+        printf '%s\n' "$args" |
+          grep -oiE 'resume[[:space:]]+[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' |
+          head -n1 | awk '{print $NF}'
+        break ;;
+    esac
+    pid=$(awk '/^PPid:/{print $2}' "/proc/$pid/status" 2>/dev/null)
+    [ -n "$pid" ] || break
+  done
+)
+```
+
+`agentctl` adopts the session id only from env vars (`AGENTCTL_SESSION_ID`,
+then known harness vars), so the recovered id must reach it that way. Each
+Bash tool call is a fresh shell, so a one-shot `export` does not carry
+between calls: recover the id once, then pass the literal inline on every
+agentctl call.
+
+```bash
+AGENTCTL_SESSION_ID=<recovered-id> ./agentctl active "<banner>" <paths...>
+```
+
+The resume arg is the resumable id by construction, so it needs no extra
+transcript cross-check. The `$CODEX_THREAD_ID` / transcript-scan methods
+below remain for fresh (non-resume) sessions, which have no `codex resume
+<id>` ancestor.
+
 Otherwise, when `AGENTS.md` asks for `<session-id>`, use Codex's real
 resumable session id: the id a Codex resume/list command would use. Prefer any
 id exposed by the runtime. If none is exposed, inspect Codex's local JSONL
