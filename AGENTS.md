@@ -577,6 +577,16 @@ observations, uncertainty, risk, and next action directly. This governs style,
 not substance: genuine investigation, probing, and clarifying questions are
 unaffected.
 
+## Paragraph and section openers
+
+Head a paragraph or section with either a well-formed intro sentence
+(context first) or a typographically-marked slug — a bolded or
+colon-terminated label (`**Binds at launch.**`, `Motivation:`) that stands
+alone and uses the reader's vocabulary. Both read legibly and double as a
+greppable needle. Avoid the bare unmarked fragment that only resolves after
+later sentences, which garden-paths the reader. This is not a demand for
+essay-style exposition.
+
 ## Discussion vs. execution boundary
 
 When a conversation is in research, design, or discussion mode, treat
