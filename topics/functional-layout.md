@@ -103,6 +103,13 @@ relationship to its effect — a volume slider that goes up for louder) and
 common "is it broken?" bug, and it is invisible to a DOM snapshot — see
 [`ui-verification`](ui-verification.md)).
 
+For buttons, the visible label/icon must name the action the control will take,
+not merely report the current state. Do not indicate a toggled/current state by
+inserting a width-changing state word into the button body (for example a bold
+`ACTIVE`/`PATIENT` badge that appears only when selected). State belongs in
+stable styling, `aria-pressed`, a nearby switch/checkmark, or temporary feedback;
+the button's text/icon should remain an invitation to act.
+
 **Jakob's Law (Nielsen).** Users spend almost all their time on *other*
 products, so they expect yours to work like those. Convention beats
 novelty for comprehension: a cart icon top-right, a logo that returns home,
