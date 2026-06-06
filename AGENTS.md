@@ -249,22 +249,23 @@ sequence as: review → fix → push. Do not push first and review after.
 The bracketed-tag style is encouraged for other self-imposed gates; it is
 required only for the full gate record.
 
-# Shared Workdir Discard Ban
+# Shared-workdir discard ban
 
-In a shared workdir, never run repo-wide work-discarding commands such as
+In a shared workdir, never run repo-wide work-discarding commands —
 `git reset --hard`, `git clean`, broad `git checkout`/`git restore` of
-tracked paths, or scripted equivalents that overwrite the worktree. This is
-not merely a gated action: it is the wrong tool when unstaged user or peer
-edits may exist. Do not use these commands to repair a mistaken commit,
-amend, merge, rebase, cherry-pick, pull, or push preparation step.
+tracked paths, or scripted equivalents that overwrite the worktree. When
+unstaged user or peer edits may exist this is the wrong tool, not merely a
+gated one. In particular do not reach for it to line up or repair a mistaken
+commit, amend, merge, rebase, cherry-pick, pull, or push-prep step — "so I
+can land my amend against the right commit" is exactly how a peer's
+unsaved hour gets destroyed.
 
-If history or index state needs repair, preserve the worktree first and
-choose a non-discarding path: inspect status/reflog, save a patch or make a
-temporary commit of your own changes, use a separate worktree, revert with a
-new commit, or ask for explicit direction. Only consider a work-discarding
-command when the user explicitly requests that exact discard operation after
-being told it can delete uncommitted shared work; even then, narrow it to
-named paths when possible.
+To repair history or index state, preserve the worktree and take a
+non-discarding path: inspect status/reflog, stash or make a temporary commit
+of your own changes, use a separate worktree, or revert with a new commit.
+Run a discard command only when the user explicitly requests that exact
+operation after being told it can delete uncommitted shared work, and even
+then narrow it to named paths.
 
 # Ancillary workdir hygiene
 
@@ -390,16 +391,20 @@ relative to `HEAD~1`. Prefer amend over a correction commit while
 local; never amend after a PR has been opened elsewhere. Full
 procedure in `topics/commits.md`.
 
-Before amending in a shared worktree, take the project's commit lock if
-one exists or is required, then verify `HEAD` is the commit you intend to
-amend and is your own current-session work. Check at least the subject,
-files changed, and authorship/session context; if another user or agent
-has committed on top, do not amend. Stop and report the mismatch, then
-choose a non-overwriting path after direction: a follow-up commit, a
-separate worktree, or an explicit rebase/cherry-pick plan. Never "repair"
-a wrong amend in a dirty shared worktree with `git reset --hard` or any
-other command that rewrites the worktree and can discard unstaged peer
-edits.
+In a shared worktree, check for active peers first (`find .agentctl/active
+-maxdepth 1 -type f -mmin -70`; entries not starting with `DONE`). With any
+active peer, do not amend or rebase — a history rewrite races their in-flight
+commits and unstaged edits, and the urge to "line it up against the right
+commit" is what leads to a worktree-destroying `git reset --hard`. Make a
+follow-up commit instead, or do history surgery in a separate worktree.
+
+With no active peer you may amend: take the project's commit lock if one
+exists or is required, then verify `HEAD` is the commit you intend and is
+your own current-session work — at least subject, files changed, and
+authorship/session context. If another session has committed on top, stop
+and report the mismatch rather than amend. Recovery from a bad amend follows
+the shared-workdir discard ban: never `git reset --hard` in a dirty shared
+worktree; revert with a new commit or move your work to a separate worktree.
 
 ### Topic trailers
 
