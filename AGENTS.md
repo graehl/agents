@@ -249,6 +249,23 @@ sequence as: review → fix → push. Do not push first and review after.
 The bracketed-tag style is encouraged for other self-imposed gates; it is
 required only for the full gate record.
 
+# Shared Workdir Discard Ban
+
+In a shared workdir, never run repo-wide work-discarding commands such as
+`git reset --hard`, `git clean`, broad `git checkout`/`git restore` of
+tracked paths, or scripted equivalents that overwrite the worktree. This is
+not merely a gated action: it is the wrong tool when unstaged user or peer
+edits may exist. Do not use these commands to repair a mistaken commit,
+amend, merge, rebase, cherry-pick, pull, or push preparation step.
+
+If history or index state needs repair, preserve the worktree first and
+choose a non-discarding path: inspect status/reflog, save a patch or make a
+temporary commit of your own changes, use a separate worktree, revert with a
+new commit, or ask for explicit direction. Only consider a work-discarding
+command when the user explicitly requests that exact discard operation after
+being told it can delete uncommitted shared work; even then, narrow it to
+named paths when possible.
+
 # Ancillary workdir hygiene
 
 When working in an ancillary worktree or scratch checkout, do not
