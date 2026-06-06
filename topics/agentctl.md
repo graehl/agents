@@ -18,7 +18,7 @@ the `aim` plugin: `runs/aim/` dump schema, declared inputs/outputs,
 `<output>.meta.json` back-pointers, propagation facts, and ancestry rules.
 Provenance tracking is therefore an `agentctl` concern, but separated because
 its invariants are shared by `artifact_meta.py`, downstream Aim import/export
-tooling, future compliance-library work, and project migration docs.
+tooling, the cooperative declaration helper, and project migration docs.
 
 ## Contracts
 

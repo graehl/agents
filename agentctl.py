@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import datetime as dt
 import importlib
 import json
@@ -34,6 +35,8 @@ SESSION_ID_ENVS = ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID")
 # count-down-once flag that stops a job (or any agentctl it shells) from
 # refreshing or masquerading as the launching agent's active-sessions entry.
 LAUNCH_DEPTH_ENV = "AGENTCTL_LAUNCH_DEPTH"
+DECLARED_IO_FILENAME = "declared.json"
+PROPAGATE_FILENAME = "propagate.json"
 
 
 # ---- Plugin loader ----
@@ -909,15 +912,29 @@ def parse_keypath(spec: str, default_key: str = "primary") -> tuple[str, str]:
     return default_key, spec
 
 
-def stat_artifact(path: str | Path) -> dict:
-    """Return {path, [realpath], size, mtime, [is_dir]} for an existing path.
-    Raises SystemExit if missing — declared inputs/outputs that don't exist
-    indicate a usage error worth surfacing immediately."""
+def resolve_artifact_path(path: str | Path) -> Path:
+    """Resolve user-facing artifact paths relative to the project root.
+
+    This preserves symlink identity for absolute paths and for paths that are
+    already rooted under ROOT, matching the existing input/output provenance
+    convention: `path` records what the user named; `realpath` records symlink
+    resolution when it differs.
+    """
     p = Path(path).expanduser()
     if not p.is_absolute():
         p = (ROOT / p).resolve(strict=False)
+    return p
+
+
+def stat_artifact(path: str | Path, *, missing_ok: bool = False) -> dict:
+    """Return {path, [realpath], size, mtime, [is_dir]} for an existing path.
+    Raises SystemExit if missing — declared inputs/outputs that don't exist
+    indicate a usage error worth surfacing immediately."""
+    p = resolve_artifact_path(path)
     abs_str = str(p)
     if not p.exists():
+        if missing_ok:
+            return {"path": abs_str, "status": "missing"}
         raise SystemExit(f"declared path does not exist: {p}")
     real = p.resolve()
     rec: dict = {"path": abs_str}
@@ -946,6 +963,216 @@ def stat_artifact(path: str | Path) -> dict:
             "%Y-%m-%dT%H:%M:%SZ"
         )
     return rec
+
+
+def input_record(
+    key: str,
+    path: str | Path,
+    *,
+    raw: bool = False,
+    do_hash: bool = False,
+    missing_ok: bool = False,
+) -> dict:
+    """Build the canonical state.inputs record for one declared input."""
+    rec = stat_artifact(path, missing_ok=missing_ok)
+    if raw:
+        rec["raw"] = True
+    if rec.get("status") == "missing":
+        return rec
+    if do_hash:
+        try:
+            rec["sha256"] = compute_sha256(rec["path"])
+        except OSError as exc:
+            print(f"warning: sha256 failed for input {key}={path}: {exc}", file=sys.stderr)
+    src = resolve_input_source(rec["path"])
+    if src:
+        rec.update(src)
+    return rec
+
+
+_DECLARED_IO: dict[str, dict[str, str]] = {"inputs": {}, "outputs": {}}
+_DECLARED_IO_REGISTERED = False
+
+
+def _declared_io_path() -> Path | None:
+    run_dir = os.environ.get("AGENTCTL_RUN_DIR", "").strip()
+    if not run_dir:
+        return None
+    return Path(run_dir) / DECLARED_IO_FILENAME
+
+
+def _write_declared_io_at_exit() -> None:
+    path = _declared_io_path()
+    if path is None:
+        return
+    payload = {
+        kind: dict(values)
+        for kind, values in _DECLARED_IO.items()
+        if values
+    }
+    if not payload:
+        return
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(f"{path.suffix}.tmp")
+        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        tmp.replace(path)
+    except Exception as exc:
+        print(f"warning: failed to write {path}: {exc!r}", file=sys.stderr)
+
+
+def _register_declared_io_writer() -> None:
+    global _DECLARED_IO_REGISTERED
+    if _DECLARED_IO_REGISTERED:
+        return
+    _DECLARED_IO_REGISTERED = True
+    atexit.register(_write_declared_io_at_exit)
+
+
+def _declare_artifact(kind: str, key: str, path: str | Path) -> None:
+    if kind not in _DECLARED_IO:
+        raise ValueError(f"unknown declaration kind: {kind!r}")
+    if not isinstance(key, str) or not key:
+        raise ValueError("declaration key must be a non-empty string")
+    value = str(path)
+    if not value:
+        raise ValueError("declaration path must be non-empty")
+    if _declared_io_path() is None:
+        return
+    _DECLARED_IO[kind][key] = value
+    _register_declared_io_writer()
+
+
+def declare_input(key: str, path: str | Path) -> None:
+    """Declare a run input from inside a cooperating payload program.
+
+    When the program is launched by agentctl, declarations are buffered and
+    written at process exit to `$AGENTCTL_RUN_DIR/declared.json`. Outside an
+    agentctl run this is a no-op, so cooperating programs do not need wrapper
+    conditionals.
+    """
+    _declare_artifact("inputs", key, path)
+
+
+def declare_output(key: str, path: str | Path) -> None:
+    """Declare a run output from inside a cooperating payload program."""
+    _declare_artifact("outputs", key, path)
+
+
+def _declared_io_items(declared_file: Path, kind: str, payload: dict) -> list[tuple[str, str]]:
+    value = payload.get(kind, {})
+    if value in ({}, None):
+        return []
+    if not isinstance(value, dict):
+        raise ValueError(f"{declared_file}: {kind} must be an object")
+    out: list[tuple[str, str]] = []
+    for key, path in value.items():
+        if not isinstance(key, str) or not key:
+            raise ValueError(f"{declared_file}: {kind} key must be a non-empty string")
+        if not isinstance(path, str) or not path:
+            raise ValueError(f"{declared_file}: {kind}.{key} must be a non-empty path string")
+        out.append((key, path))
+    return out
+
+
+def _record_declaration_warning(state: dict, message: str) -> None:
+    print(f"warning: {message}", file=sys.stderr)
+    state.setdefault("declaration_warnings", [])
+    state["declaration_warnings"].append(message)
+
+
+def merge_declared_io(state: dict, declared_file: Path) -> None:
+    """Merge cooperative `$AGENTCTL_RUN_DIR/declared.json` into run state."""
+    if not declared_file.exists():
+        return
+    try:
+        payload = json.loads(declared_file.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("top-level value must be an object")
+        input_items = _declared_io_items(declared_file, "inputs", payload)
+        output_items = _declared_io_items(declared_file, "outputs", payload)
+    except Exception as exc:
+        _record_declaration_warning(state, f"failed to read {declared_file}: {exc!r}")
+        return
+
+    inputs = state.setdefault("inputs", {})
+    outputs = state.setdefault("outputs", {})
+    for key, path in input_items:
+        rec = input_record(key, path, missing_ok=True)
+        existing = inputs.get(key)
+        if existing and existing.get("path") != rec.get("path"):
+            _record_declaration_warning(
+                state,
+                (
+                    f"{declared_file}: input {key!r}={rec.get('path')!r} conflicts "
+                    f"with existing {existing.get('path')!r}; keeping existing"
+                ),
+            )
+            continue
+        inputs[key] = {**(existing or {}), **rec}
+    for key, path in output_items:
+        rec = {"path": str(resolve_artifact_path(path))}
+        existing = outputs.get(key)
+        if existing and existing.get("path") != rec["path"]:
+            _record_declaration_warning(
+                state,
+                (
+                    f"{declared_file}: output {key!r}={rec['path']!r} conflicts "
+                    f"with existing {existing.get('path')!r}; keeping existing"
+                ),
+            )
+            continue
+        outputs[key] = {**rec, **(existing or {})}
+
+
+def finalize_finished_state(state: dict) -> dict:
+    """Apply provenance finalization once a payload has a finished state."""
+    run_dir_str = state.get("run_dir", "")
+    if run_dir_str:
+        merge_declared_io(state, Path(run_dir_str) / DECLARED_IO_FILENAME)
+    # Stat declared outputs at completion. Missing outputs are recorded as such
+    # rather than failing — a tracked job with a missing output is a real outcome
+    # worth seeing in the record.
+    outputs = state.get("outputs") or {}
+    for key, info in outputs.items():
+        p = Path(info.get("path", ""))
+        if not p.exists():
+            info["status"] = "missing"
+            continue
+        try:
+            stat_rec = stat_artifact(info["path"])
+            for k, v in stat_rec.items():
+                if k != "path":
+                    info[k] = v
+        except Exception as exc:
+            info["status"] = f"stat_failed: {exc}"
+            continue
+        # --output-hash: compute sha256 now that the file exists.
+        if info.get("needs_hash"):
+            try:
+                info["sha256"] = compute_sha256(info["path"])
+            except OSError as exc:
+                print(f"warning: sha256 failed for output {key}: {exc}", file=sys.stderr)
+    # Cooperative propagation: program may have written facts to
+    # $AGENTCTL_RUN_DIR/propagate.json during the run. Merge into the static
+    # facts from --propagate-json (if any) — runtime values override static.
+    if run_dir_str:
+        propagate_file = Path(run_dir_str) / PROPAGATE_FILENAME
+        if propagate_file.exists():
+            try:
+                cooperative = json.loads(propagate_file.read_text(encoding="utf-8"))
+                if isinstance(cooperative, dict):
+                    merged = dict(state.get("propagate") or {})
+                    merged.update(cooperative)
+                    state["propagate"] = merged
+            except Exception as exc:
+                print(
+                    f"warning: failed to read {propagate_file}: {exc!r}",
+                    file=sys.stderr,
+                )
+    # Plugin hook: opportunity to write per-output sidecars, mirror to live aim, etc.
+    _call_hook("on_finish", state)
+    return state
 
 
 def resolve_input_source(input_path: str) -> dict | None:
@@ -1331,17 +1558,7 @@ def start(args: argparse.Namespace) -> int:
     input_translations: list[tuple[str, str]] = []
 
     def _record_input(key: str, path: str, raw: bool, do_hash: bool) -> None:
-        rec = stat_artifact(path)
-        if raw:
-            rec["raw"] = True
-        if do_hash:
-            try:
-                rec["sha256"] = compute_sha256(rec["path"])
-            except OSError as exc:
-                print(f"warning: sha256 failed for input {key}={path}: {exc}", file=sys.stderr)
-        src = resolve_input_source(rec["path"])
-        if src:
-            rec.update(src)
+        rec = input_record(key, path, raw=raw, do_hash=do_hash)
         declared_inputs[key] = rec
         if not raw:
             input_translations.append((key, rec["path"]))
@@ -1626,49 +1843,7 @@ def run_child(args: argparse.Namespace) -> int:
         state["status"] = "finished"
         state["finished_at"] = record["finished_at"]
         state["returncode"] = rc
-        # Stat declared outputs at completion. Missing outputs are recorded as such
-        # rather than failing — a tracked job with a missing output is a real outcome
-        # worth seeing in the record.
-        outputs = state.get("outputs") or {}
-        for key, info in outputs.items():
-            p = Path(info.get("path", ""))
-            if not p.exists():
-                info["status"] = "missing"
-                continue
-            try:
-                stat_rec = stat_artifact(info["path"])
-                for k, v in stat_rec.items():
-                    if k != "path":
-                        info[k] = v
-            except Exception as exc:
-                info["status"] = f"stat_failed: {exc}"
-                continue
-            # --output-hash: compute sha256 now that the file exists.
-            if info.get("needs_hash"):
-                try:
-                    info["sha256"] = compute_sha256(info["path"])
-                except OSError as exc:
-                    print(f"warning: sha256 failed for output {key}: {exc}", file=sys.stderr)
-        # Cooperative propagation: program may have written facts to
-        # $AGENTCTL_RUN_DIR/propagate.json during the run. Merge into the static
-        # facts from --propagate-json (if any) — runtime values override static.
-        run_dir_str = state.get("run_dir", "")
-        if run_dir_str:
-            propagate_file = Path(run_dir_str) / "propagate.json"
-            if propagate_file.exists():
-                try:
-                    cooperative = json.loads(propagate_file.read_text(encoding="utf-8"))
-                    if isinstance(cooperative, dict):
-                        merged = dict(state.get("propagate") or {})
-                        merged.update(cooperative)
-                        state["propagate"] = merged
-                except Exception as exc:
-                    print(
-                        f"warning: failed to read {propagate_file}: {exc!r}",
-                        file=sys.stderr,
-                    )
-        # Plugin hook: opportunity to write per-output sidecars, mirror to live aim, etc.
-        _call_hook("on_finish", state)
+        state = finalize_finished_state(state)
         write_json(state_path, state)
         write_json(current, state)
     except Exception as exc:
@@ -2226,6 +2401,9 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                 state.get("status") == "running" or state.get("returncode") == "unknown"
             ):
                 state = mark_state_finished(state, proc_returncode)
+                state = finalize_finished_state(state)
+                write_json(Path(state["state_path"]), state)
+                write_json(current_path(state["job"]), state)
         if log_path.exists():
             try:
                 data = log_path.read_bytes()

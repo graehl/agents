@@ -51,6 +51,13 @@ py=$(find_python) || {
     exit 1
 }
 export AGENTCTL_ROOT="$project_dir"
+# Make the lightweight `from agentctl import declare_input, declare_output`
+# helper available to launched Python payloads even when this wrapper is used
+# globally from another project. Append rather than prepend so project-local
+# imports keep their normal priority.
+if [[ ":${PYTHONPATH:-}:" != *":$code_dir:"* ]]; then
+    export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$code_dir"
+fi
 
 # matplotlib is pulled in transitively by aim (used here for run seeding, and by
 # many launched jobs). Under a restricted sandbox its default cache path

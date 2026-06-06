@@ -36,8 +36,10 @@ whether to extend the system or to introduce something parallel.
   a language everyone already speaks.
 - **Programs stay naive.** Wrapper-side declaration via
   `agentctl start --input KEY=PATH ...` is the baseline and works for any
-  program in any language. A library compliance path is planned for
-  cooperating programs (task 002, deferred) but never required.
+  program in any language. Cooperating programs may instead write
+  `$AGENTCTL_RUN_DIR/declared.json`, directly or through the lightweight
+  `declare_input` / `declare_output` helpers importable from `agentctl`;
+  that path is ergonomic sugar, not a requirement.
 - **Schema compatibility with existing tooling.** Run dumps are byte-for-byte
   `aim-text-dump-v1`, the same format produced by export-from-live-Aim
   tooling. `import_aim_text.py` and similar consumers work unchanged. The
@@ -82,8 +84,9 @@ whether to extend the system or to introduce something parallel.
   rerun by hand and to debug *why* outputs differ.
 - **No per-program library coupling required.** Wrapper-side declaration
   via `agentctl start --input KEY=PATH ...` is the baseline and works for
-  any program. A library for cooperating programs is planned (task 002,
-  deferred) but never required.
+  any program. The cooperative `declared.json` path exists for programs
+  that know their own I/O better than the caller, but a naive program that
+  ignores `AGENTCTL_RUN_DIR` remains a valid graph leaf.
 
 ## Authority model
 
@@ -149,7 +152,7 @@ recognizes the pattern without onboarding.
 | Variable | Set by | Read by |
 |----------|--------|---------|
 | `AGENTCTL_JOB`, `AGENTCTL_RUN_ID`, `AGENTCTL_MODE`, `AGENTCTL_HEADLINE_FILE`, `AGENTCTL_OUTPUT` | Parent agentctl `start` | The user's program (informational) |
-| `AGENTCTL_RUN_DIR` | Parent agentctl `start` | The user's program. Programs that want to flag runtime facts for propagation write JSON to `$AGENTCTL_RUN_DIR/propagate.json`; agentctl reads it at completion. |
+| `AGENTCTL_RUN_DIR` | Parent agentctl `start` | The user's program. Programs that know their own I/O write `$AGENTCTL_RUN_DIR/declared.json`; programs that want to flag runtime facts for propagation write `$AGENTCTL_RUN_DIR/propagate.json`. agentctl reads both at completion. |
 | `AGENTCTL_PARENT_RUN_ID` | Parent agentctl `start` (set to its own `run_id`) | Child agentctl invocations during this run; they record `state.parent_run = $AGENTCTL_PARENT_RUN_ID` so the dump record carries the link. Inherited automatically — no flag needed for nested-agentctl chains. |
 
 ## Run state schema (`.agentctl/runs/<job>/<run-id>/state.json`)
@@ -357,7 +360,52 @@ All recap is **one-deep by design**. Walking further (e.g. "what produced
 this run's inputs?") is a separate graph query against the dump tree, never
 recursive inlining.
 
-### Propagation protocol <!-- assumed -->
+### Cooperative declaration protocol <!-- verified: tests/test_agentctl.py declared/helper 2026-06-06 -->
+
+For programs that know their own inputs and outputs better than the caller,
+the payload may write `$AGENTCTL_RUN_DIR/declared.json` before exit. The
+file is optional; if absent, wrapper-side declarations remain the whole
+record.
+
+Shape:
+
+```json
+{
+  "inputs":  {"config": "configs/foo.json"},
+  "outputs": {"model": "models/foo.bin"}
+}
+```
+
+Program side can write the JSON directly, or in Python:
+
+```python
+from agentctl import declare_input, declare_output
+
+declare_input("config", "configs/foo.json")
+declare_output("model", "models/foo.bin")
+```
+
+The helpers no-op when `AGENTCTL_RUN_DIR` is absent. When the global wrapper
+is used from another project, it appends its code root to `PYTHONPATH`, so the
+helpers remain importable while project-local imports keep priority.
+
+Completion side:
+
+1. agentctl reads `declared.json` after the payload exits and before output
+   statting / plugin `on_finish`.
+2. Input records are built with the same `path/realpath/size/mtime/source_*`
+   logic as `--input`, but at completion time. Missing cooperative inputs are
+   recorded as `status: missing` instead of changing the finished job's return
+   code.
+3. Output declarations enter `state.outputs` before the usual completion
+   statting, so existing outputs get size/mtime and back-pointer sidecars just
+   like `--output` declarations.
+4. If a cooperative declaration conflicts with an explicit launch declaration
+   on the same key, the launch declaration wins and a warning is recorded in
+   `state.declaration_warnings`. This avoids silently rewriting caller intent
+   after the payload exits.
+
+### Propagation protocol <!-- verified: tests/test_agentctl.py propagation 2026-06-06 -->
 
 For facts the producer wants quoted at the next consumer (e.g. final loss,
 selected hyperparameter, computed checkpoint id) — useful when aim's
@@ -369,8 +417,9 @@ Producer side:
 - A flag like `--propagate-json '{"loss": 0.234}'` sets static facts at
   launch, OR
 - The program writes `$AGENTCTL_RUN_DIR/propagate.json` during execution
-  (computed values from the run); the aim plugin's `on_finish` reads it
-  and folds it into the output sidecar's `propagate` field.
+  (computed values from the run); agentctl reads it at completion before
+  plugin `on_finish`, and the aim plugin folds it into the output sidecar's
+  `propagate` field.
 
 Sidecar shape (extended):
 
@@ -582,6 +631,10 @@ Verified end-to-end in `~/agents`:
 - `$AGENTCTL_RUN_DIR/propagate.json`: cooperative file written by the
   program during execution is merged into `state.propagate` at completion
   (overrides static values), then propagates as above.
+- `$AGENTCTL_RUN_DIR/declared.json`: cooperative file written by the
+  program during execution is merged into `state.inputs` / `state.outputs`
+  before output statting and sidecar writing; the Python helpers
+  `declare_input` / `declare_output` write this file at process exit.
 - Nested agentctl: child invocation under a tracked outer run records
   `state.parent_run = <outer-run-id>`; verified via `AGENTCTL_PARENT_RUN_ID`
   env propagation.

@@ -378,6 +378,117 @@ def test_cooperative_propagation():
         ws.cleanup()
 
 
+def test_cooperative_declared_json_inputs_outputs():
+    ws = Workspace()
+    try:
+        inp = ws.scratch / "input.txt"
+        inp.write_text("declared")
+        out = ws.scratch / "output.txt"
+        code = (
+            "import json, os, pathlib; "
+            f"inp = pathlib.Path({str(inp)!r}); "
+            f"out = pathlib.Path({str(out)!r}); "
+            "out.write_text(inp.read_text()); "
+            "decl = pathlib.Path(os.environ['AGENTCTL_RUN_DIR']) / 'declared.json'; "
+            "decl.write_text(json.dumps({'inputs': {'data': str(inp)}, "
+            "'outputs': {'result': str(out)}}))"
+        )
+        _start(ws, "--experiment", "e", "declared", "--", sys.executable, "-c", code)
+        s = ws.wait_finished("declared")
+        _assert(s["inputs"]["data"]["path"] == str(inp), f"input path: {s['inputs']!r}")
+        _assert(s["inputs"]["data"]["size"] == len("declared"), f"input size: {s['inputs']!r}")
+        _assert(s["outputs"]["result"]["path"] == str(out), f"output path: {s['outputs']!r}")
+        _assert(s["outputs"]["result"]["size"] == len("declared"), f"output size: {s['outputs']!r}")
+        _assert(Path(f"{out}.meta.json").exists(), "declared output sidecar missing")
+    finally:
+        ws.cleanup()
+
+
+def test_watch_cooperative_declared_json_outputs():
+    ws = Workspace()
+    try:
+        out = ws.scratch / "watch-output.txt"
+        code = (
+            "import json, os, pathlib; "
+            f"out = pathlib.Path({str(out)!r}); "
+            "out.write_text('watch'); "
+            "decl = pathlib.Path(os.environ['AGENTCTL_RUN_DIR']) / 'declared.json'; "
+            "decl.write_text(json.dumps({'outputs': {'result': str(out)}}))"
+        )
+        _start(
+            ws,
+            "--watch",
+            "--watch-heartbeat",
+            "0",
+            "--watch-poll",
+            "0.05",
+            "--experiment",
+            "e",
+            "watchdecl",
+            "--",
+            sys.executable,
+            "-c",
+            code,
+        )
+        s = ws.state("watchdecl")
+        _assert(s["outputs"]["result"]["path"] == str(out), f"outputs: {s['outputs']!r}")
+        _assert(s["outputs"]["result"]["size"] == len("watch"), f"outputs: {s['outputs']!r}")
+        _assert(Path(f"{out}.meta.json").exists(), "watch-declared output sidecar missing")
+    finally:
+        ws.cleanup()
+
+
+def test_declare_helpers_import_from_external_project():
+    ws = Workspace()
+    try:
+        project = ws.tmp / "_project"
+        project.mkdir()
+        inp = project / "input.txt"
+        inp.write_text("helper")
+        out = project / "output.txt"
+        code = (
+            "from pathlib import Path; "
+            "from agentctl import declare_input, declare_output; "
+            "declare_input('data', 'input.txt'); "
+            "declare_output('result', 'output.txt'); "
+            "Path('output.txt').write_text(Path('input.txt').read_text())"
+        )
+        env = os.environ.copy()
+        for var in (
+            "AGENTCTL_SESSION_ID",
+            "CLAUDE_CODE_SESSION_ID",
+            "AGENTCTL_LAUNCH_DEPTH",
+            "BASH_ENV",
+            "PYTHONPATH",
+        ):
+            env.pop(var, None)
+        res = subprocess.run(
+            [str(ws.tmp / "agentctl"), "start", "--experiment", "e", "helper", "--", sys.executable, "-c", code],
+            cwd=project,
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=20,
+        )
+        _assert(res.returncode == 0, f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}")
+        deadline = time.time() + 10.0
+        current = project / ".agentctl/jobs/helper/current.json"
+        while time.time() < deadline:
+            if current.exists():
+                state = json.loads(current.read_text())
+                if state.get("status") == "finished":
+                    break
+            time.sleep(0.05)
+        else:
+            raise TimeoutError("helper job did not finish under external project")
+        _assert(state["returncode"] == 0, f"helper returncode: {state.get('returncode')}")
+        _assert(state["inputs"]["data"]["path"] == str(inp), f"inputs: {state['inputs']!r}")
+        _assert(state["outputs"]["result"]["path"] == str(out), f"outputs: {state['outputs']!r}")
+        _assert(Path(f"{out}.meta.json").exists(), "helper-declared sidecar missing")
+    finally:
+        ws.cleanup()
+
+
 def test_propagation_chain():
     ws = Workspace()
     try:
