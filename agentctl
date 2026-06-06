@@ -51,4 +51,16 @@ py=$(find_python) || {
     exit 1
 }
 export AGENTCTL_ROOT="$project_dir"
+
+# matplotlib is pulled in transitively by aim (used here for run seeding, and by
+# many launched jobs). Under a restricted sandbox its default cache path
+# ($HOME/.config/matplotlib) can be unwritable, producing a noisy warning and a
+# slow per-run import as it falls back to a fresh /tmp dir. Point it at a
+# writable dir we already own so the font cache persists; only when unset, so a
+# caller's explicit choice still wins. Inherited by agentctl.py and its children.
+if [[ -z "${MPLCONFIGDIR:-}" ]]; then
+    _mpldir="$project_dir/.agentctl/mplconfig"
+    mkdir -p "$_mpldir" 2>/dev/null && export MPLCONFIGDIR="$_mpldir"
+fi
+
 exec "$py" "$code_dir/agentctl.py" "$@"
