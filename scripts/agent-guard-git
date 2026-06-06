@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# agent-guard-git — PATH shim that resolves as `git` under agent-guarded.
+#
+# Refuses repo-wide work-discarding git subcommands when a live peer
+# session is active in the workdir (.agentctl/active, the same detection
+# AGENTS.md uses). Otherwise it execs the real git unchanged.
+#
+# Guardrail, not a sandbox (see agent-guarded): it stops the accidental
+# `reset --hard`/`clean`/`restore` that wipes a peer's unsaved work, not a
+# determined bypass. Recovery still belongs to the passive snapshot; this
+# is the prevention half.
+#
+# Scope: worktree/index discard only. Push/force-push (the gated remote
+# action) and branch-ref deletion are different concerns, left alone here.
+set -euo pipefail
+
+realgit="${AGENT_GUARD_REAL_GIT:-$(command -v git.real 2>/dev/null || echo /usr/bin/git)}"
+
+# Only active when launched under agent-guarded; bare use is a pure passthrough.
+[ -n "${AGENT_GUARD:-}" ] || exec "$realgit" "$@"
+
+# --- find the subcommand past any leading global options ---------------------
+# Some global options take a separate value; skip it too. Others are flags or
+# `--opt=value` single tokens; just skip them. First bare word is the subcommand.
+sub=""
+declare -a rest=()
+skip_next=0
+for tok in "$@"; do
+    if [ -n "$sub" ]; then rest+=("$tok"); continue; fi
+    if [ "$skip_next" -eq 1 ]; then skip_next=0; continue; fi
+    case "$tok" in
+        -C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix)
+            skip_next=1 ;;        # value follows in the next token
+        -*) : ;;                  # other global flag or --opt=value: skip
+        *)  sub="$tok" ;;
+    esac
+done
+
+# --- classify (sub, rest) as worktree/index-discarding -----------------------
+is_destructive() {
+    case "$sub" in
+        reset)
+            local a
+            for a in "${rest[@]}"; do
+                case "$a" in --hard|--merge) return 0 ;; esac
+            done
+            return 1 ;;
+        clean)
+            return 0 ;;           # clean's whole purpose is to delete untracked
+        restore)
+            local a staged=0 wt=0
+            for a in "${rest[@]}"; do
+                case "$a" in
+                    --staged|-S) staged=1 ;;
+                    --worktree|-W) wt=1 ;;
+                esac
+            done
+            # worktree is touched unless the call is --staged-only
+            [ "$wt" -eq 1 ] || [ "$staged" -eq 0 ] && return 0
+            return 1 ;;
+        checkout)
+            local a
+            for a in "${rest[@]}"; do
+                case "$a" in -f|--force|--|.) return 0 ;; esac
+            done
+            return 1 ;;
+        stash)
+            case "${rest[0]:-}" in drop|clear) return 0 ;; esac
+            return 1 ;;
+        *) return 1 ;;
+    esac
+}
+
+is_destructive || exec "$realgit" "$@"
+
+# --- destructive: block only if a live peer shares this workdir --------------
+toplevel="$("$realgit" rev-parse --show-toplevel 2>/dev/null || true)"
+activedir="${toplevel:-.}/.agentctl/active"
+own="${AGENTCTL_SESSION_ID:-${CLAUDE_CODE_SESSION_ID:-}}"
+
+declare -a peers=()
+if [ -d "$activedir" ]; then
+    while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        base="$(basename "$f")"
+        [ -n "$own" ] && [ "$base" = "$own" ] && continue   # not myself
+        first=""; IFS= read -r first < "$f" || true
+        case "$first" in DONE*) continue ;; esac             # finished peer
+        peers+=("$base")
+    done < <(find "$activedir" -maxdepth 1 -type f -mmin -70 2>/dev/null)
+fi
+
+if [ "${#peers[@]}" -eq 0 ]; then
+    exec "$realgit" "$@"   # solo in this workdir: allow
+fi
+
+cat >&2 <<EOF
+agent-guard-git: refusing 'git $*'
+  This is a work-discarding command and ${#peers[@]} peer session(s) are
+  active in $activedir:
+$(printf '    %s\n' "${peers[@]}")
+  It can wipe their unsaved work. Take a non-discarding path instead:
+  follow-up commit, separate worktree for history surgery, or revert with
+  a new commit. (See the shared-workdir discard ban in AGENTS.md.)
+  Override, knowing it can delete shared work: AGENT_GUARD= git $*
+EOF
+exit 1

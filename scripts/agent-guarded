@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# agent-guarded — run an agent harness behind a PATH-level guard that
+# refuses accidental repo-wide work-discarding git in a shared workdir.
+#
+# Usage: agent-guarded <command> [args...]
+#   e.g. agent-guarded claude
+#        agent-guarded codex
+#
+# It synthesizes a shim directory whose `git` resolves to agent-guard-git,
+# prepends it to PATH, and exports a marker (AGENT_GUARD=1) plus the real
+# git path. Env inheritance is transitive, so every subshell, script, and
+# grandchild the harness spawns is covered by one wrap at the boundary —
+# the coverage a per-harness PreToolUse hook lacks. The user's own shells
+# never go through this launcher, so they keep git friction-free.
+#
+# This is a guardrail, not a sandbox: trivially bypassed (/usr/bin/git,
+# `command git`, `env -u AGENT_GUARD`, absolute-path calls in scripts). It
+# exists to catch the careless destructive command — the actual failure
+# mode — not an adversary. See topics/ (agent-guard) for the discussion.
+set -euo pipefail
+
+[ $# -ge 1 ] || { echo "usage: agent-guarded <command> [args...]" >&2; exit 2; }
+
+here="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+guard="$here/agent-guard-git"
+[ -x "$guard" ] || { echo "agent-guarded: missing or non-executable $guard" >&2; exit 1; }
+
+realgit="$(command -v git || true)"
+[ -n "$realgit" ] || { echo "agent-guarded: no git found on PATH" >&2; exit 1; }
+
+shimdir="${AGENT_GUARD_SHIMDIR:-${XDG_CACHE_HOME:-$HOME/.cache}/agent-guard/shim}"
+mkdir -p "$shimdir"
+ln -sf "$guard" "$shimdir/git"
+
+export AGENT_GUARD=1
+export AGENT_GUARD_REAL_GIT="$realgit"
+export PATH="$shimdir:$PATH"
+
+exec "$@"
