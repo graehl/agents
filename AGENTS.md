@@ -373,6 +373,17 @@ relative to `HEAD~1`. Prefer amend over a correction commit while
 local; never amend after a PR has been opened elsewhere. Full
 procedure in `topics/commits.md`.
 
+Before amending in a shared worktree, take the project's commit lock if
+one exists or is required, then verify `HEAD` is the commit you intend to
+amend and is your own current-session work. Check at least the subject,
+files changed, and authorship/session context; if another user or agent
+has committed on top, do not amend. Stop and report the mismatch, then
+choose a non-overwriting path after direction: a follow-up commit, a
+separate worktree, or an explicit rebase/cherry-pick plan. Never "repair"
+a wrong amend in a dirty shared worktree with `git reset --hard` or any
+other command that rewrites the worktree and can discard unstaged peer
+edits.
+
 ### Topic trailers
 
 A commit in a related series gets one or more `Topic: <string>` trailers.
