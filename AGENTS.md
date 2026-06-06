@@ -353,6 +353,15 @@ decision => change:
   and significant-effect edits. Trivial changes (whitespace, comments,
   file-local renames) need no mention.
 
+The message has two usually-aligned purposes: orienting a reviewer now, and
+letting a later reader (`git blame`, a `bisect` bug-hunt) validate a diff
+hunk against the stated intent and result. Both are served by describing
+purpose and outcome — enough that an agent told to achieve this message would
+produce a similar diff, and that every group of files in the diff is
+explained by something in the text. Neither is served by a journal of how the
+change was reached: omit iteration narrative, superseded approaches that left
+no trace in the tree, and added-then-reverted churn.
+
 Consider splitting unrelated changes into independent commits (e.g.
 implementation vs. research finding).
 
