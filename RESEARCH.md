@@ -291,6 +291,12 @@ Never present new-wiring scores whose consumed examples could be
 wrappers, record objects, prompt echoes, parser markers,
 diagnostic text, or shifted rows.
 
+For outputs with no exact reference (generation, MT, model judgments),
+the scorer is a soft-check oracle — a property/metric or rubric over a
+kept case set, with metamorphic relations (paraphrase / terminology
+invariance) the native form for translation. See `topics/soft-checks.md`
+for the oracle-choice and no-leak-to-generator rules.
+
 ### Reporting eval conditions precisely
 
 When summarizing a research run, eval result, or claimed "gate", report the

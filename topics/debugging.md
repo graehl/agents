@@ -16,7 +16,10 @@ Topic: `debugging`
   script, replay of a captured trace, throwaway harness, property /
   fuzz loop, bisection or differential harness) before hypothesising.
   Iterate on the loop itself for speed, sharpness, and determinism
-  before iterating on the code.
+  before iterating on the code. When the thing under test *generates*
+  rather than computes (a model, a prompt, an MT system), the loop is a
+  soft check — a property or rubric oracle over a kept set of cases, see
+  [`soft-checks`](soft-checks.md) — not an exact-match assertion.
 - **Ranked falsifiable hypotheses before any probe.** 3–5
   hypotheses, each stating its prediction ("if X is the cause then
   changing Y will make the bug disappear"). Surface the ranked list

@@ -21,6 +21,11 @@ Topic: `testing`
 - **Mock at system boundaries only.** Network, filesystem, clock,
   external services — yes. Internal modules — no; that couples the
   test to today's structure and masks integration bugs.
+- **Non-exact-matchable behavior gets a soft check.** When the output
+  has no single correct value (generation, translation, layout, model
+  output), the check's oracle is a stated property or rubric, not a
+  string match — see [`soft-checks`](soft-checks.md). Don't skip verification because
+  the output isn't pinnable; pick the cheapest adequate oracle.
 
 ## Invariants
 
