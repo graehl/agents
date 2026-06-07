@@ -461,7 +461,8 @@ invariant, not the projection: before patching, name the contract the symptom
 violates (what must be true that currently isn't), then fix there.
 
 Block the brittle local patch — a special-case, an extra conditional, a CSS
-override, suppressing the output, hide-at-this-width, a permissive fallback —
+override, regexp-scrubbing generated output into shape, suppressing the
+output, hide-at-this-width, a permissive fallback —
 that makes *this* symptom vanish without restoring the contract; it just
 recurs at the next projection. Tells you are patching, not fixing: the
 third-plus fix in one area hits a different surface symptom of the same

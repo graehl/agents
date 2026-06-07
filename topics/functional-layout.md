@@ -129,6 +129,17 @@ relationships visible without borders or labels: things that belong
 together sit together. This is why generous, *consistent* spacing reads as
 organized and cramped, uneven spacing reads as chaotic.
 
+The obligation runs both ways. Because proximity *signals* a relationship,
+visually grouping unrelated things is a false signifier — and things you do
+group visually must be grouped in the code too: one data structure, operated
+on by the same layout logic, or at least joined by explicit constraints.
+Dropping a bespoke element into the space beside a group — without making it
+part of the group's representation — looks grouped but inherits none of the
+group's contracts, so it drifts the moment the group reflows. "Put this next
+to that" is a request to *join the representation*, not to position a sibling
+in adjacent screen space; the latter is the layout face of
+[`software-aesthetic`](software-aesthetic.md) § Structure.
+
 ## Responsive — adapt to the viewport
 
 The layout must hold from a wide desktop to a 320 px phone without
