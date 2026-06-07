@@ -396,7 +396,13 @@ change was reached: omit iteration narrative, superseded approaches that left
 no trace in the tree, and added-then-reverted churn.
 
 Consider splitting unrelated changes into independent commits (e.g.
-implementation vs. research finding).
+implementation vs. research finding). When a directive grants
+open-ended commit latitude — "make as many commits as you want",
+"commit at your own pace", "split however you like" — read it as a
+preference for thematically-unrelated large items landing in separate
+commits, not licence to batch them together for convenience. Closely
+related changes still belong in one commit; the split is by theme, not
+by count.
 
 ### Amends
 
