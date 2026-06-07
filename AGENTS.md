@@ -452,16 +452,31 @@ unless the effect is mechanically obvious and low risk. Scope it to the
 blast radius: a smoke-scale timing check for narrow plumbing; a recorded
 contrastive run (or a task note deferring it) for research-facing changes.
 
-## UI spec-vs-behavior gaps
+## Fix the invariant, not the symptom
 
-When handed screenshots — or any visual report — calling out a gap between
-intended UI behavior and what renders, especially across repeated rounds on
-one screen, read `~/agents/topics/ui-verification.md` (§ *Closing a
-spec-vs-behavior gap*) before the next edit. It prevents the characteristic
-failure: patching successive screenshot symptoms instead of deriving the
-single invariant + current falsifier that defines the fix. For
-fit/overlap/"must fit" layout specifically, model the row as a measured
-allocator, not breakpoint tiers (`~/agents/topics/functional-layout.md`).
+A request to "change this thing I see and don't like" — a visible defect, a
+screenshot annotation, "make this stop happening" — names a *symptom*, which
+is a projection of an underlying code/organization invariant. Fix at the
+invariant, not the projection: before patching, name the contract the symptom
+violates (what must be true that currently isn't), then fix there.
+
+Block the brittle local patch — a special-case, an extra conditional, a CSS
+override, suppressing the output, hide-at-this-width, a permissive fallback —
+that makes *this* symptom vanish without restoring the contract; it just
+recurs at the next projection. Tells you are patching, not fixing: the
+third-plus fix in one area hits a different surface symptom of the same
+constraint; the fix special-cases an instance rather than changing the shared
+mechanism; a new element is rendered *beside* a container instead of as an
+instance of it, so it can't inherit the container's contract (see
+`~/agents/topics/software-aesthetic.md` § Structure).
+
+Worked instances. A UI "wrong across rounds" → derive the invariant +
+current falsifier and make it the judge, not the screenshots
+(`~/agents/topics/ui-verification.md` § *Closing a spec-vs-behavior gap*;
+fit/overlap layout is a measured allocator, not breakpoint tiers,
+`~/agents/topics/functional-layout.md`). A "make this trace stop erroring" →
+establish the missing precondition or fail clearly, don't soften or swallow
+it (*Anti-slop implementation* above).
 
 ## Ideal coding
 

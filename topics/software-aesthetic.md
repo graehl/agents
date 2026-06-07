@@ -24,6 +24,7 @@ Write none by default. Add one only for a *why* the code cannot show on its own 
 - Decompose at *seams* — natural boundaries where behavior can change without editing the surrounding code.
 - Put *spaghetti* — ad-hoc conditionals, mode flags, special cases threaded through unrelated flows — behind one abstraction, state machine, or module.
 - Keep feature logic out of shared paths, and single-use helpers next to their use.
+- An element that must obey a container's contract belongs *inside* that container's representation, as an instance of it — not as a bespoke sibling rendered beside it. A sibling can't inherit the contract (e.g. a mini-sidebar's "collapsed → icon-only"), so it forces per-instance patching: the special case the invariant was meant to delete. Add to the existing representation in a form compatible with it; don't stuff a new element into adjacent space.
 
 ## Abstraction
 
