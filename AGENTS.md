@@ -452,6 +452,17 @@ unless the effect is mechanically obvious and low risk. Scope it to the
 blast radius: a smoke-scale timing check for narrow plumbing; a recorded
 contrastive run (or a task note deferring it) for research-facing changes.
 
+## UI spec-vs-behavior gaps
+
+When handed screenshots — or any visual report — calling out a gap between
+intended UI behavior and what renders, especially across repeated rounds on
+one screen, read `~/agents/topics/ui-verification.md` (§ *Closing a
+spec-vs-behavior gap*) before the next edit. It prevents the characteristic
+failure: patching successive screenshot symptoms instead of deriving the
+single invariant + current falsifier that defines the fix. For
+fit/overlap/"must fit" layout specifically, model the row as a measured
+allocator, not breakpoint tiers (`~/agents/topics/functional-layout.md`).
+
 ## Ideal coding
 
 See `~/agents/topics/software-aesthetic.md` for the full shared aesthetic —

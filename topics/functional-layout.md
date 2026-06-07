@@ -141,6 +141,22 @@ media queries; Flexbox `wrap` does the same for a row. Reach for a
 breakpoint only when the layout actually breaks, not at named device
 widths.
 
+**A conditional toolbar is an allocator, not a set of breakpoints.** When
+the controls in a row are themselves conditional — items that hide,
+collapse, or move behind an overflow affordance as space runs out —
+intrinsic CSS and breakpoints both fail, because each hidden control
+changes the width the next breakpoint assumed. Model the row as a measured
+allocator: measure the rendered width (plus gaps) of every candidate
+child, keep priority-ordered items visible while the running total fits the
+container, and move the rest behind one overflow control. Where the
+priority isn't given, derive it from the existing visual order plus any
+user-stated importance and state the order you chose — an unstated priority
+is the next thing to drift. The contract is
+geometric — total occupied width ≤ container width, no two visible items
+overlap, opening the overflow exposes exactly the hidden set — and it
+reappears in [`ui-verification`](ui-verification.md) as the invariant to
+assert *instead of* patching width-by-width.
+
 **Fluid type and space with `clamp()`.** `clamp(min, preferred, max)` ties
 a value to the viewport between two bounds — `font-size: clamp(1rem, 0.9rem
 + 0.5vw, 1.25rem)` scales body type smoothly without step changes. Use the

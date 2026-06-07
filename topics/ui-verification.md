@@ -92,6 +92,45 @@ A useful default **viewport matrix**: 360×640 (small phone), 414×896
 (desktop). Add the smallest you support (often 320 px) because that is
 where text wraps worst and overlap first appears.
 
+## Closing a spec-vs-behavior gap (don't chase the screenshot) ★
+
+When you are handed screenshots — or your own renders — that call out a gap
+between how the UI should behave and what it does, the trap is to fix the
+*symptom in the picture*. Each screenshot is one local projection of a
+single underlying constraint, so symptom-patching ("hide this at that
+width," "special-case this control," "split early/medium/late tiers")
+produces a string of local fixes that don't converge. The tell that you are
+in this loop: the third-plus fix targets a *different surface symptom of the
+same constraint*.
+
+The move that ends it is to convert the verbal/visual spec into the one
+**measurable invariant plus the current falsifying observation** — the exact
+content of a failing test — and make *that* the controlling objective and
+the primary judge. Screenshots then confirm aesthetics and edge cases; they
+do not diagnose. The intervention is cheap: a single sentence of the form
+*"not quite — `<invariant>`; right now `<what is violated>`"* has in practice
+short-circuited spirals that ten rounds of annotated screenshots did not,
+because it supplies the global constraint that the symptom-by-symptom loop
+keeps displacing. The agent reliably *executes* against a stated invariant;
+what it fails to do under repeated local-patch pressure is *hold and
+re-derive* that invariant itself — so make it external and explicit.
+
+Worked example — a dynamic-width one-dimensional toolbar (a left list, a
+fixed overflow anchor `…`, a right list). Symptom-chasing yielded breakpoint
+tiers, hide-at-width rules, and counting the `?` glyph as a box; none
+converged. The invariant that resolved it in one pass: **compute the total
+occupied width of the left and right lists — rendered child widths plus gaps
+plus the overflow affordance — and assert it fits the container with no
+horizontal overlap; advance collapse only until it fits; opening `…` exposes
+exactly the hidden items.** That is the [`functional-layout`](functional-layout.md)
+"a conditional toolbar is an allocator" contract, stated as the test.
+
+Caveat: an invariant can be *mis-specified*. "Fits and no overlap" can pass
+with a wrong priority order or ugly spacing — the geometric test raises the
+floor, it does not certify the look. So still render and look once the
+invariant holds; this is the spec-vs-behavior form of the verify loop above,
+not a replacement for it.
+
 ## The four verification layers
 
 Cheap to costly. Each layer catches a defect class the one above cannot.
