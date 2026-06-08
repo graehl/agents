@@ -18,6 +18,8 @@ A name should carry a known domain concept, so the reader navigates the code wit
 
 Write none by default. Add one only for a *why* the code cannot show on its own — a hidden constraint, a subtle invariant, a workaround for a specific bug. Never restate what the code does; the names already say it. One line; no docstring essays.
 
+In C++, prefer `//` for short, one-line comments because they are easy to grep and scan inline. Do not write complex sentences that wrap across several `//` lines; if the explanation is useful at that length, use a C-style block comment so the prose reads as one paragraph to a human reader.
+
 ## Structure
 
 - Delete complexity instead of relocating it. A reframing that makes the conditionals vanish beats one that gathers them somewhere tidier — and usually that means fixing the model, not the branches (*code judo*; see [design-thinking](design-thinking.md)).
