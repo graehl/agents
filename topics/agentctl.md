@@ -12,6 +12,12 @@ process-group lifecycle, GPU/CPU resource gating, and on-disk run state under
 `.agentctl/`. Project-specific concerns (run-record export, experiment
 tracking, domain verbs) live in optional plugins under `agentctl_plugins/`.
 
+Read this topic before changing active-session semantics, diagnosing
+`.agentctl` run state, modifying `agentctl`, or relying on details of the
+`agentctl active` verb, staleness window, launch-depth guard, or plugin
+contract. `AGENTS.md` keeps only the first-turn obligations needed to enter
+a shared workdir safely.
+
 Scope boundary: this topic owns the launcher, state files, and plugin hook
 contract. `topics/provenance-tracking.md` owns the run graph implemented by
 the `aim` plugin: `runs/aim/` dump schema, declared inputs/outputs,

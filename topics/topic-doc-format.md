@@ -7,6 +7,10 @@
 
 Topic: `topic-doc-format`
 
+Read this topic before creating or normalizing topic docs, using companion
+suffixes (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`),
+maintaining bearings outlines, or applying epistemic labels.
+
 ## Main topic doc
 
 H1 stating the topic, then a `> ` blockquote lede (one or more `> `

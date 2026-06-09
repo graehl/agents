@@ -6,10 +6,66 @@
 
 Topic: `commits`
 
-The umbrella rules — subject ≤65 chars, manual 71-col body wrap,
-narrative synthesis, topic trailers — live in `AGENTS.md §
-Commits`. This doc carries the procedure that fires on a specific
-action: amending.
+`AGENTS.md` carries the compact first-load rules: subject ≤65 chars,
+manual 71-col body wrap, narrative synthesis, and topic trailers. This
+doc carries the full standard and the procedure that fires on specific
+actions such as amending.
+
+Read this doc before writing a non-trivial commit message, amending,
+deciding correction commit vs. amend, or relying on topic-trailer,
+Gerrit, coverage-gap, or message-preservation mechanics.
+
+## Commit messages
+
+Trivial commits get a short, possibly subject-only message.
+
+Non-trivial messages are a narrative synthesis of motivation and
+decision => change:
+
+- Exclude credentials/secrets from contents and message.
+- Include the main user decision points from the session.
+- Exclude unrelated side discussions, but include approaches ruled out for
+  non-obvious reasons.
+- Flag known uncovered areas or risks. Default presumption: work
+  is at least manually smoke-tested; automated coverage is evident
+  from the diff. Do not enumerate which tests were run or passed —
+  that is busywork; the diff and CI carry it.
+- Use a `Known coverage gaps:` labeled section near the end of
+  the body (before trailers) when there are gaps worth flagging.
+  Prose or short bulleted list, whichever fits. Be specific about
+  the structural gap; omit the section entirely when empty.
+- Broadly describe every non-trivial change — especially >3-line creations
+  and significant-effect edits. Trivial changes (whitespace, comments,
+  file-local renames) need no mention.
+
+The message has two usually-aligned purposes: orienting a reviewer now, and
+letting a later reader (`git blame`, a `bisect` bug-hunt) validate a diff
+hunk against the stated intent and result. Both are served by describing
+purpose and outcome — enough that an agent told to achieve this message would
+produce a similar diff, and that every group of files in the diff is
+explained by something in the text. Neither is served by a journal of how the
+change was reached: omit iteration narrative, superseded approaches that left
+no trace in the tree, and added-then-reverted churn.
+
+Consider splitting unrelated changes into independent commits (e.g.
+implementation vs. research finding). When a directive grants
+open-ended commit latitude — "make as many commits as you want",
+"commit at your own pace", "split however you like" — read it as a
+preference for thematically-unrelated large items landing in separate
+commits, not licence to batch them together for convenience. Closely
+related changes still belong in one commit; the split is by theme, not
+by count.
+
+## Topic trailers
+
+A commit in a related series gets one or more `Topic: <string>` trailers.
+The string is the basename of the relevant `topics/<topic>.md` (`ls
+topics/*.md` for the namespace); all commits in a series copy it verbatim
+so `git log --grep` finds the chain. Use multiple `Topic:` lines for a
+commit spanning topics. The trailer marks thread membership, not merely
+that the diff touched a `topics/` file: a standalone commit with no task
+spec and no expected follow-up gets no trailer even if it edits a topic
+doc, while the commit that starts a thread gets one as #1.
 
 ## Amends
 

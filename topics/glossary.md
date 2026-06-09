@@ -21,6 +21,10 @@ Topic: `glossary`
   `GLOSSARY.md` itself stays free of build instructions for readers
   who only look up terms.
 
+Read this topic before adding, regenerating, sorting, or promoting
+glossary rows, creating scoped sub-glossaries, resolving ambiguous terms,
+or deciding whether a vernacular row should become a topic doc.
+
 ## Scoped sub-glossaries
 
 Beyond the root `GLOSSARY.md`, a project may carry per-subtree

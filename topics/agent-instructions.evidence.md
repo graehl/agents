@@ -18,6 +18,29 @@ Append new entries at the top; do not rewrite prior ones. Agents are
 licensed to append trace findings, incident reports, and clarifying
 examples encountered while consulting this file.
 
+## 2026-06-09 — AGENTS.md topic-trigger compression
+
+- **Decision** — shortened long `AGENTS.md` procedure blocks by keeping
+  first-turn safety obligations inline and moving slower mechanics behind
+  explicit topic-read triggers. Active-session implementation details point
+  to `agentctl`; full commit-message and topic-trailer rationale moved to
+  `commits`; topic-doc format and glossary regeneration/sub-glossary
+  mechanics point to their existing topics.
+- **Trace** — no-`.agentctl/` shared repo: the compressed active-session
+  rule still requires creating `.agentctl/active/<session-id>`, discovering
+  the provider id first, checking fresh non-DONE peers, and marking `DONE`;
+  deeper `agentctl active` behavior is correctly deferred to `agentctl`.
+  Local correction after a commit: the compressed commit section still
+  routes non-trivial messages and all amends to `commits`, and the shared
+  worktree amend ban remains inline. New topic/glossary maintenance:
+  creation, normalization, regeneration, promotion, and ambiguity resolution
+  now have explicit read triggers, while ordinary first-repo-use glossary
+  lookup remains inline.
+- **Residual** — effect on outcome is still assumed. The compression reduces
+  first-load size but intentionally leaves big-effect gates, discard bans,
+  edit-mechanism discipline, and symptom-vs-invariant examples inline
+  because a missed trigger there would be costlier than the saved tokens.
+
 ## 2026-06-04 — provider mechanics split from shared policy
 
 - **Decision** — introduced `AGENTS.codex.md` and `AGENTS.claude.md` for

@@ -33,67 +33,25 @@ files should cross-reference relevant `topics/*.md`.
 
 On the first planning-to-act step in a shared workdir, write
 `.agentctl/active/<session-id>` with a short present-tense status line.
-Create `.agentctl/active/` if missing — autocreate is mandatory, not
-optional courtesy. Update at each milestone, after 10+ min of
-continuous work, or at the 60-min heartbeat cap — whichever comes
-first. On completion start the file with `DONE`, preferably
-`DONE: <one-line summary>`. Readers must treat files starting with `DONE`
-(`DONE*`) as complete. Pure read-only or interview sessions: skip.
+Create `.agentctl/active/` if missing. Discover the provider's real
+resumable session id first (the provider supplement names the mechanism);
+a personal tag is a last resort and must be reused across compaction or
+resume. Line 1 is the gist; line 2 may be `scope: <paths>`, with plain
+paths or trailing-`**` prefixes. Update at milestones, after 10+ min of
+continuous work, or at the 60-min heartbeat cap. On completion start line
+1 with `DONE`, preferably `DONE: <one-line summary>`. Pure read-only or
+interview sessions may skip this.
 
-File schema: line 1 is the present-tense gist (self-contained,
-readable on its own). Line 2 may declare scope as `scope: <paths>` —
-a space- or comma-separated list of project-root-relative paths,
-each either a plain path or a path with a trailing `**` (e.g.
-`packages/client/**`), for tool-detected overlap with peers. Glob
-patterns beyond trailing-`**` need a glob-aware consumer and are
-noise to prefix-match readers; reach for them only when narrowing
-by suffix or pattern is genuinely the point. Anything beyond line
-2 is free content at agent discretion (plan notes, considered
-approaches, longer status). Brief readers stop after line 2.
+Check for active peers with `find .agentctl/active -maxdepth 1 -type f
+-mmin -70`, ignoring entries whose line 1 starts with `DONE`. Task notes,
+run logs, and commit status do not satisfy active sessions. `agentctl
+active "<banner>" [paths...]` is the run-free convenience for writing your
+own entry; `agentctl active` lists fresh non-DONE entries.
 
-Active sessions are a separate artifact — task-file status, run logs,
-and commit status do not satisfy this. Always attempt to discover
-the provider's real resumable session id before falling back to a
-personal tag — the provider supplement carries the discovery
-snippet for each harness. A personal tag is a last resort; do not
-skip the discovery attempt for convenience. Once chosen, reuse
-the same id or tag across compaction or resume.
-
-Check for active peers with `find .agentctl/active -maxdepth 1
--type f -mmin -70`. Older files that do not start with `DONE` are
-stale/crashed. As a convenience, `agentctl active` with no banner
-lists exactly those fresh non-DONE entries (each with its status
-line, `scope:` line, and `(self)` marker); `agentctl active -m 0`
-drops the freshness window to show stale ones too, and `--done`
-adds completed entries. The plain `find` stays the dependency-free
-definition of the convention.
-
-`agentctl` maintains your entry automatically. It adopts your
-session id from `AGENTCTL_SESSION_ID`, else a harness-provided var
-your supplement names (Claude: `CLAUDE_CODE_SESSION_ID`), so no
-manual step is needed. On `start`/`smoke`/`restart` it refreshes
-mtime and appends a free-text launch note, creating the entry with
-a placeholder line 1 if absent (overwrite it). It never rewrites
-your line 1 or `scope:` line 2, never touches a `DONE`-prefixed
-entry, and never lets a launched job adopt your identity (an
-internal launch-depth counter, so jobs cannot masquerade as your
-session).
-
-To author or re-scope your entry without launching a job, use the
-run-free `agentctl active` verb (no job, dump, or log) — e.g. to
-declare intended-edit scope for peer overlap detection:
-
-    agentctl active "wiring the active verb" agentctl.py topics/agentctl.md
-
-This sets line 1 to the banner and line 2 to `scope: agentctl.py
-topics/agentctl.md`, preserving any free content below; with no
-path args it leaves an existing `scope:` line in place. A leading
-`DONE` in the banner marks completion. The launch-depth guard still
-applies, so a launched job cannot author your entry. This is a
-convenience over hand-writing the file, not a new requirement — the
-file remains an ordinary text artifact you may edit directly. The
-same verb with no banner is its read counterpart (the peer listing
-above); a banner means write, no banner means list.
+Read `topics/agentctl.md` before changing active-session semantics,
+diagnosing `.agentctl` run state, modifying `agentctl`, or relying on
+details of the `agentctl active` verb, staleness window, launch-depth
+guard, or plugin contract.
 
 ## Resume source priority
 
@@ -366,77 +324,40 @@ short. No `Co-Authored-By`; no links to git-ignored content (e.g.
 
 ## Commit messages
 
-Trivial commits get a short, possibly subject-only message.
+Trivial commits can be subject-only. Non-trivial messages are a narrative
+synthesis of motivation and decision => change: describe purpose and
+outcome, cover every non-trivial file group, include main user decision
+points and non-obvious rejected approaches, exclude secrets and unrelated
+iteration churn, and use `Known coverage gaps:` for meaningful uncovered
+risks. Do not enumerate tests run; the diff and CI carry that.
 
-Non-trivial messages are a narrative synthesis of motivation and
-decision => change:
-- Exclude credentials/secrets from contents and message.
-- Include the main user decision points from the session.
-- Exclude unrelated side discussions, but include approaches ruled out for
-  non-obvious reasons.
-- Flag known uncovered areas or risks. Default presumption: work
-  is at least manually smoke-tested; automated coverage is evident
-  from the diff. Do not enumerate which tests were run or passed —
-  that is busywork; the diff and CI carry it.
-- Use a `Known coverage gaps:` labeled section near the end of
-  the body (before trailers) when there are gaps worth flagging.
-  Prose or short bulleted list, whichever fits. Be specific about
-  the structural gap; omit the section entirely when empty.
-- Broadly describe every non-trivial change — especially >3-line creations
-  and significant-effect edits. Trivial changes (whitespace, comments,
-  file-local renames) need no mention.
+Split thematically unrelated changes into independent commits. Open-ended
+commit latitude ("make as many commits as you want", "commit at your own
+pace", "split however you like") means unrelated large themes should land
+separately; closely related changes still belong together.
 
-The message has two usually-aligned purposes: orienting a reviewer now, and
-letting a later reader (`git blame`, a `bisect` bug-hunt) validate a diff
-hunk against the stated intent and result. Both are served by describing
-purpose and outcome — enough that an agent told to achieve this message would
-produce a similar diff, and that every group of files in the diff is
-explained by something in the text. Neither is served by a journal of how the
-change was reached: omit iteration narrative, superseded approaches that left
-no trace in the tree, and added-then-reverted churn.
-
-Consider splitting unrelated changes into independent commits (e.g.
-implementation vs. research finding). When a directive grants
-open-ended commit latitude — "make as many commits as you want",
-"commit at your own pace", "split however you like" — read it as a
-preference for thematically-unrelated large items landing in separate
-commits, not licence to batch them together for convenience. Closely
-related changes still belong in one commit; the split is by theme, not
-by count.
+Read `topics/commits.md` before writing a non-trivial commit message,
+amending, deciding correction commit vs. amend, or relying on topic-trailer,
+Gerrit, coverage-gap, or message-preservation mechanics.
 
 ### Amends
 
-When amending: keep the subject; treat the message as additive or
-corrective (do not erase prior content); describe only what changed
-relative to `HEAD~1`. Prefer amend over a correction commit while
-local; never amend after a PR has been opened elsewhere. Full
-procedure in `topics/commits.md`.
-
-In a shared worktree, check for active peers first (`find .agentctl/active
--maxdepth 1 -type f -mmin -70`; entries not starting with `DONE`). With any
-active peer, do not amend or rebase — a history rewrite races their in-flight
-commits and unstaged edits, and the urge to "line it up against the right
-commit" is what leads to a worktree-destroying `git reset --hard`. Make a
-follow-up commit instead, or do history surgery in a separate worktree.
-
-With no active peer you may amend: take the project's commit lock if one
-exists or is required, then verify `HEAD` is the commit you intend and is
-your own current-session work — at least subject, files changed, and
-authorship/session context. If another session has committed on top, stop
-and report the mismatch rather than amend. Recovery from a bad amend follows
-the shared-workdir discard ban: never `git reset --hard` in a dirty shared
-worktree; revert with a new commit or move your work to a separate worktree.
+When amending, keep the subject, preserve existing message content except
+deliberate corrections, and prefer amend over a local correction commit;
+never amend after a PR has opened. In a shared worktree, first check active
+peers; with any active peer, do not amend or rebase. With no active peer,
+verify `HEAD` is the intended commit and is your own current-session work.
+Repair bad history without discarding the worktree. Full procedure,
+including Gerrit `Change-Id` and message-preservation mechanics, lives in
+`topics/commits.md`.
 
 ### Topic trailers
 
 A commit in a related series gets one or more `Topic: <string>` trailers.
-The string is the basename of the relevant `topics/<topic>.md` (`ls
-topics/*.md` for the namespace); all commits in a series copy it verbatim
-so `git log --grep` finds the chain. Use multiple `Topic:` lines for a
-commit spanning topics. The trailer marks thread membership, not merely
-that the diff touched a `topics/` file: a standalone commit with no task
-spec and no expected follow-up gets no trailer even if it edits a topic
-doc, while the commit that starts a thread gets one as #1.
+Use the basename of the relevant `topics/<topic>.md`, copy it verbatim
+across the series, and use multiple trailers when a commit spans topics.
+The trailer marks thread membership, not merely that the diff touched a
+topic doc; details live in `topics/commits.md`.
 
 # Code quality
 
@@ -502,39 +423,18 @@ points below are either not in that doc or are worth repeating here:
 
 ## Project topics
 
-For git projects, maintain committed `topics/*.md` docs explaining
-cross-cutting concerns that must hold relative to the whole
-system. Basenames are the `Topic:` trailer namespace (`ls
-topics/*.md`). Create `topics/` when first needed, not
-proactively.
+For git projects, maintain committed `topics/*.md` docs for cross-cutting
+contracts: shared invariants, integration boundaries, and system-level
+concerns, not module notes or changelogs. Create `topics/` when first
+needed, not proactively. Basenames are the `Topic:` trailer namespace; read
+`~/agents/TOPICS.md` when creating or assessing a topic's granularity.
 
-Topics map to *concerns* — cross-cutting contracts, shared
-invariants, integration boundaries, security/performance
-properties — not to modules or directories. A doc describing one
-module with no external consumer is a README section. A topic doc
-names contracts, invariants, assumptions, dependencies, and edge
-cases; it is not a changelog. For granularity calibration and a
-topic-name vocabulary, read `~/agents/TOPICS.md` when creating or
-assessing a topic.
-
-Format of a topic doc (H1 + `> ` lede + `Topic:` trailer + body),
-companion-suffix vocabulary (`.evidence.md`, `.runs/`,
-`.bearings.md`, `.testing.md`), bearings-outline glyphs, and
-epistemic-labeling markers all live in
-`topics/topic-doc-format.md`.
-
-**Active use**: before touching code for a bug, before committing
-to a significant plan, or when entering a topic's area for the
-first time in a session (including on resume), read the relevant
-topic doc and its `.bearings.md` companion if present. The topic
-doc's contracts tell you what must be true and therefore where a
-violation must live — form a hypothesis that satisfies the
-invariants, then check it against the trace, not the reverse.
-Synthesize bearings against recent live evidence (dirty files,
-recent topic edits, task files, run records, git history, live
-`.agentctl` state) — the bearings file is not the whole state.
-Additional read triggers: user says `bearings`, `orient`, `lost`,
-or states a recollection of where work stands.
+Read the relevant topic doc and its `.bearings.md` companion if present
+before touching code for a bug, committing to a significant plan, entering
+a topic's area for the first time in a session, resuming, or responding to
+user words like `bearings`, `orient`, or `lost`. Use the topic contracts to
+form the hypothesis, then check it against the trace. Bearings are
+orientation, not complete state; synthesize them with live evidence.
 
 Some `topics/` entries are method/discipline docs (e.g.
 `debugging.md`, `testing.md`, `prototyping.md`); load them at the
@@ -550,35 +450,25 @@ topic over a new file). Check whether the diff falsifies or
 weakens any claim it touches, and design boundary tests around the
 contract it could violate.
 
+Read `topics/topic-doc-format.md` when creating or normalizing topic docs,
+using companion suffixes (`.evidence.md`, `.runs/`, `.bearings.md`,
+`.testing.md`), maintaining bearings outlines, or applying epistemic
+labels.
+
 ## Project glossary
 
 `GLOSSARY.md` is the project's shared, prescriptive vocabulary
-for talk, planning, code, UI copy, and commits. Read on first
-repo use alongside `AGENTS.md`. When naming a code symbol, UI
-element, doc heading, or commit topic — or when prose starts
-spelling out in several words what one term could carry — check
-the glossary first and reuse an existing term rather than
-introduce a synonym or paraphrase. When a user phrase or pasted
-log drifts from a glossary term, prefer the glossary's wording.
-If `GLOSSARY.md` has fallen out of context (deep session,
-post-compaction), `rg` it before proposing a new row.
+for talk, planning, code, UI copy, and commits. Read it on first repo use
+alongside `AGENTS.md`; if it has fallen out of context, `rg` it before
+proposing a new row. When naming a symbol, UI element, doc heading, or
+commit topic, reuse glossary terms instead of introducing synonyms. When a
+user phrase or pasted log drifts from a glossary term, prefer the glossary's
+wording.
 
-In any new-reader-accessible doc, briefly spell out a glossary
-term at first use when the term is project-specific or could be
-mistaken for ordinary English. Do not expand obvious general-
-domain terms or terms whose definition is supplied by adjacent
-context.
-
-Most glossary rows are vernacular forever; a row becomes a
-`topics/<name>.md` only when it meets the cross-cutting-concern
-bar in `~/agents/TOPICS.md`.
-
-**Scoped sub-glossaries**: a term lives in the `GLOSSARY.md` at
-the narrowest enclosing directory; create the file if missing.
-Promote a row to a parent's `GLOSSARY.md` as the term's scope
-widens; the root is the terminal scope. Before naming or
-paraphrasing in a subtree, consult the nearest-enclosing
-`GLOSSARY.md`.
+In new-reader-accessible docs, briefly spell out project-specific terms at
+first use when they could be mistaken for ordinary English. A term lives in
+the `GLOSSARY.md` at the narrowest enclosing directory; consult that file
+before naming or paraphrasing in a subtree.
 
 When a user phrase is ambiguous and the resolution would change
 action, emit an interruptible checkpoint with the inferred meaning
@@ -590,10 +480,11 @@ recognizable outside this project — surface it once as a
 candidate for `~/agents/topic-definitions.md` or
 `~/agents/TOPICS.md`; do not edit those global files autonomously.
 
-Format, regeneration, and the design rationale for these
-conventions live in `topics/glossary.md`. Create `GLOSSARY.md`
-when the project has more than one topic doc or when project
-jargon starts recurring; not proactively.
+Read `topics/glossary.md` before adding, regenerating, sorting, or
+promoting glossary rows, creating scoped sub-glossaries, resolving
+ambiguous terms, or deciding whether a vernacular row should become a
+topic doc. Create `GLOSSARY.md` when the project has more than one topic
+doc or when project jargon starts recurring; not proactively.
 
 # Language tooling
 
