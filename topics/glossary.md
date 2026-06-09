@@ -53,7 +53,7 @@ no `topic / refs` rows by default.
 
 H1 stating the topic, blank line, `> ` blockquote lede (one or more
 `> ` lines, nothing else between H1 and lede), blank line, optional
-`Topic: <name>` trailer, then body. See `AGENTS.md § Project topics`
+`Topic: <name>` trailer, then body. See `topics/topic-doc-format.md`
 for the auto-fix license that lets the agent normalize existing
 docs into this format.
 
@@ -85,7 +85,7 @@ Link form is `[<name>](topics/<name>.md)`: link text is the
 basename, URL is the relative path.
 When a topic doc lacks a `> ` lede, synthesize one from its first
 body paragraph and apply the fix as part of regeneration (per the
-topic-doc auto-fix license in `AGENTS.md § Project topics`).
+topic-doc auto-fix license in `topics/topic-doc-format.md`).
 
 Vernacular rows (no `topic / refs` link) are preserved verbatim on
 regeneration, including `<!-- unconfirmed -->` markers. Do not pull
