@@ -1,6 +1,7 @@
 ---
 name: review
 description: Review the current branch diff for issues before merging
+disable-model-invocation: true
 allowed-tools: Bash(git:*), Bash(cat:*)
 argument-hint: <task-number, e.g. 017>
 ---

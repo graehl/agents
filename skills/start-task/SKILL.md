@@ -1,6 +1,6 @@
 ---
 name: start-task
-description: Scaffold a new root task — create the task file and point tasks/ROOT at it.
+description: Scaffold a new root task — create the task file and point tasks/ROOT at it. Use when the user explicitly asks to start, create, or scaffold a root task, or invokes /start-task.
 argument-hint: "<short-description, e.g. auth-refactor>"
 ---
 

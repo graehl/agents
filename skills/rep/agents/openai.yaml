@@ -1,4 +1,4 @@
 interface:
   display_name: "Rep"
-  short_description: "Repeat a prompt until it is done"
+  short_description: "Repeat or self-pace prompts across wakeups"
   default_prompt: "Use $rep to keep checking a task until it completes."
