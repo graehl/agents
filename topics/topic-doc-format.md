@@ -65,6 +65,10 @@ Status markers per node:
 The active backtrace is the chain of `[*]` from root to deepest
 active leaf — a single highlighted spine through the tree.
 
+Bearings are orientation, not complete state: synthesize them
+against recent live evidence — dirty files, recent topic edits,
+task files, run records, git history, live `.agentctl` state.
+
 ## Epistemic labeling
 
 An unlabeled claim means "plausible, not verified". Add an inline

@@ -70,6 +70,10 @@ ambiguity, flag with `<!-- unconfirmed: YYYY-mm-dd -->`. The user
 confirms by removing the marker or prunes the row; either way the
 marker survives regeneration until acted on.
 
+Most glossary rows are vernacular forever; a row becomes a
+`topics/<name>.md` only when it meets the cross-cutting-concern bar
+in `~/agents/TOPICS.md`.
+
 ## Regeneration
 
 Scan `topics/*.md` from repo root, excluding `*.evidence.md`

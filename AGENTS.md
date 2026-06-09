@@ -37,7 +37,8 @@ Create `.agentctl/active/` if missing. Discover the provider's real
 resumable session id first (the provider supplement names the mechanism);
 a personal tag is a last resort and must be reused across compaction or
 resume. Line 1 is the gist; line 2 may be `scope: <paths>`, with plain
-paths or trailing-`**` prefixes. Update at milestones, after 10+ min of
+paths or trailing-`**` prefixes (full file schema in
+`topics/agentctl.md`). Update at milestones, after 10+ min of
 continuous work, or at the 60-min heartbeat cap. On completion start line
 1 with `DONE`, preferably `DONE: <one-line summary>`. Pure read-only or
 interview sessions may skip this.
@@ -432,7 +433,8 @@ needed, not proactively. Basenames are the `Topic:` trailer namespace; read
 Read the relevant topic doc and its `.bearings.md` companion if present
 before touching code for a bug, committing to a significant plan, entering
 a topic's area for the first time in a session, resuming, or responding to
-user words like `bearings`, `orient`, or `lost`. Use the topic contracts to
+user words like `bearings`, `orient`, `lost`, or a stated recollection of
+where work stands. Use the topic contracts to
 form the hypothesis, then check it against the trace. Bearings are
 orientation, not complete state; synthesize them with live evidence.
 
@@ -461,7 +463,8 @@ labels.
 for talk, planning, code, UI copy, and commits. Read it on first repo use
 alongside `AGENTS.md`; if it has fallen out of context, `rg` it before
 proposing a new row. When naming a symbol, UI element, doc heading, or
-commit topic, reuse glossary terms instead of introducing synonyms. When a
+commit topic — or when prose starts spelling out what one term could
+carry — reuse glossary terms instead of introducing synonyms. When a
 user phrase or pasted log drifts from a glossary term, prefer the glossary's
 wording.
 

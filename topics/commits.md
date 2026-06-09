@@ -107,3 +107,23 @@ already pushed to the user's personal GitHub is found wrong within
 days and has no downstream forks/consumers, prefer amend +
 force-push over accumulating fix history — but not once it has
 been submitted as a PR elsewhere; then repair forward.
+
+## Amending in a shared worktree
+
+Check for active peers first (`find .agentctl/active -maxdepth 1
+-type f -mmin -70`; entries not starting with `DONE`). With any
+active peer, do not amend or rebase — a history rewrite races their
+in-flight commits and unstaged edits, and the urge to "line it up
+against the right commit" is what leads to a worktree-destroying
+`git reset --hard`. Make a follow-up commit instead, or do history
+surgery in a separate worktree.
+
+With no active peer you may amend: take the project's commit lock
+if one exists or is required, then verify `HEAD` is the commit you
+intend and is your own current-session work — at least subject,
+files changed, and authorship/session context. If another session
+has committed on top, stop and report the mismatch rather than
+amend. Recovery from a bad amend follows the shared-workdir discard
+ban (`AGENTS.md § Shared-workdir discard ban`): never `git reset
+--hard` in a dirty shared worktree; revert with a new commit or
+move your work to a separate worktree.

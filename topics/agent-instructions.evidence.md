@@ -18,6 +18,26 @@ Append new entries at the top; do not rewrite prior ones. Agents are
 licensed to append trace findings, incident reports, and clarifying
 examples encountered while consulting this file.
 
+## 2026-06-09 — harsh review of the topic-trigger compression
+
+- **Finding** — three blocks were deleted rather than moved, leaving
+  new read triggers pointing at docs that lacked the promised detail:
+  the active-sessions file schema (`AGENTS.md` routed "active-session
+  semantics" to `agentctl`, which disclaimed the convention while
+  `/others` still parses "the schema-defined scope declaration"); the
+  shared-worktree amend procedure (`AGENTS.md` claimed the full
+  procedure lives in `commits`, which carried only message mechanics);
+  and the vernacular-row → topic-doc bar (the trigger names that
+  decision; `glossary` did not answer it).
+- **Repair** — restored each block into the doc its trigger names, and
+  re-inlined two write-time triggers that fire when no topic doc is
+  open (glossary check when prose spells out what one term could
+  carry; bearings read on a stated recollection of where work stands).
+- **Lesson** — compression review must verify the pointer target
+  actually contains the displaced content, block by block; "the
+  owning topic has it" is a per-block claim to check, not a per-file
+  one.
+
 ## 2026-06-09 — AGENTS.md topic-trigger compression
 
 - **Decision** — shortened long `AGENTS.md` procedure blocks by keeping

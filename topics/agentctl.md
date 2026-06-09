@@ -26,6 +26,29 @@ Provenance tracking is therefore an `agentctl` concern, but separated because
 its invariants are shared by `artifact_meta.py`, downstream Aim import/export
 tooling, the cooperative declaration helper, and project migration docs.
 
+## Active-sessions file schema
+
+`.agentctl/active/<session-id>` files are agent-authored coordination
+state, not job state. `AGENTS.md § Active sessions` carries the
+first-turn obligations (create, update, peer-check, `DONE`); this
+section is the normative file format. The file is an ordinary text
+artifact: `agentctl active` is a convenience for writing it, never a
+requirement, and agents in projects without `agentctl` hand-write it —
+the plain `find .agentctl/active -maxdepth 1 -type f -mmin -70` peer
+check stays the dependency-free definition of the convention.
+
+Line 1 is the present-tense gist — self-contained, readable on its
+own. Line 2 may declare scope as `scope: <paths>`: a space- or
+comma-separated list of project-root-relative paths, each either a
+plain path or a path with a trailing `**` (e.g. `packages/client/**`),
+for tool-detected overlap with peers. Glob patterns beyond
+trailing-`**` need a glob-aware consumer and are noise to prefix-match
+readers; reach for them only when narrowing by suffix or pattern is
+genuinely the point. Anything beyond line 2 is free content at agent
+discretion (plan notes, considered approaches, longer status); brief
+readers stop after line 2. Readers treat files whose line 1 starts
+with `DONE` (`DONE*`) as complete.
+
 ## Contracts
 
 - The base writes canonical run state to
@@ -45,8 +68,8 @@ tooling, the cooperative declaration helper, and project migration docs.
   troubleshooting view. `wait --target not-running` prints the final return
   code and log path, and exits nonzero for failed `finished` jobs.
 - Active-sessions participation: the `.agentctl/active/<session-id>` files are
-  an AGENTS.md convention owned by agents and read by the `/others` skill, not
-  job state. `agent_session_id()` resolves the launching agent's id from
+  an agent-owned convention (§ Active-sessions file schema above) read by the
+  `/others` skill, not job state. `agent_session_id()` resolves the launching agent's id from
   `AGENTCTL_SESSION_ID`, else a known harness var (`SESSION_ID_ENVS`, e.g.
   `CLAUDE_CODE_SESSION_ID`), so plain `./agentctl` participates with no per-call
   setup. When no env var carries an id — a resumed session that exports none,
