@@ -1,5 +1,6 @@
 AGENTS.user.md
 AGENTS.local.md
+user/
 tasks/
 .agentctl/
 runs/
