@@ -310,6 +310,35 @@ kept case set, with metamorphic relations (paraphrase / terminology
 invariance) the native form for translation. See `topics/soft-checks.md`
 for the oracle-choice and no-leak-to-generator rules.
 
+### Build the strongest cheap baseline early
+
+In every experiment arm, build and tune the strongest cheap/simple baseline
+*before* judging an elaborate approach — not as a checkbox row but as the
+first real effort. The search pays out two ways regardless of how the arm
+breaks, so a "we lost to baseline" result is information, not a setback:
+
+- The baseline may simply be the win — a cheap, reliable technique that
+  already matches or beats the elaborate method is worth shipping precisely
+  because it is cheap and reliable, and it advances the deployable curve now
+  while the fancy method is still speculative.
+- A strong baseline debugs the elaborate method. If you only compare against
+  a *weak* baseline you mis-read a small positive delta as success and never
+  diagnose. A strong one forces the diagnosis and names the fix: "losing to
+  baseline → need more data," or "→ need at least the smoothing/regular-
+  ization that lets us match baseline before any added mechanism can show
+  through."
+
+Recurring corollary: across arms, a cheap calibrated/external component
+(a selector, a fixed routing recipe, a direct first pass) often beats a
+cleverer model-internal mechanism at deployable scale. Expect it; do not
+treat each instance as a surprise.
+
+Triage guardrail when this becomes a named theme in a report or paper:
+over-claiming a unifying theme is harmless *only as long as it does not
+color per-thread triage*. Triage each arm on its own cost and likelihood;
+a repeated theme is a story for the reader, not extra evidence, and earns
+an arm no triage weight.
+
 ### Reporting eval conditions precisely
 
 When summarizing a research run, eval result, or claimed "gate", report the
