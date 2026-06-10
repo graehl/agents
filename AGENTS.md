@@ -313,6 +313,21 @@ codemods. The line is intent — a bulk transform that is awkward as
 hand-edits is fine; a single targeted edit re-expressed as a shell
 substitution to avoid a prompt is not.
 
+# Reader-facing summaries
+
+In any summary written for a reader — commit subjects and bodies, status
+lines, run-log headlines, notes, and prose — do not import tool-internal
+jargon as if it were shared vocabulary. A term that names a library's
+internal mode, a flag, or an implementation detail raises a question the
+rest of the sentence has usually already answered; either drop it or define
+it in-line, and prefer the phrase the reader already understands over the
+one that is precise only to whoever wrote the code. Worked instance: a
+commit subject "consensus (pairwise) not paired self-chrF" — here "paired"
+named a scoring library's element-wise mode and only prompted "what is
+paired?"; "self-chrF (vs all-pairs consensus)" carried the whole point.
+This is reader-facing wording discipline, not a ban on precision: define the
+internal term when the reader needs it, just do not assume it.
+
 # Commits
 
 Subject <=65 chars and scannable for `git log --oneline`. Wrap body prose
