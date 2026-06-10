@@ -58,6 +58,7 @@ regeneration rules.
 | skin | The purely cosmetic end of theming (color, texture, imagery) with no structural or behavioral effect; a constrained kind of theme. | |
 | source (MT) | The input text segment to be translated in a machine-translation eval. | |
 | spaghetti | Ad-hoc conditionals, mode flags, or special-case branches scattered across unrelated flows rather than contained in a dedicated abstraction | [harsh-review](skills/harsh-review/SKILL.md) |
+| subagent-agnostic | Taking no position on whether tasks are completed by a single agent, delegated subagents, or autonomous swarms, while staying best-effort safe under multiple concurrent agents in one worktree; not a claim of harness independence | |
 | target size | The clickable/tappable area of a control; WCAG 2.5.8 ≥ 24×24 CSS px or 24 px spacing (AA, new in 2.2), 2.5.5 ≥ 44×44 (AAA). Testable. | |
 | task file | Private git-ignored `tasks/NNN-<name>.md` tracking per-feature direction, coordination, acceptance notes, and unfinished session state; a resume aid after recovery from live worktree state, not the durable home for project-facing conclusions | |
 | `testing` | Vertical-slice TDD: one test → minimal code to pass → next test. Tests verify behavior through public interfaces and survive internal refactor; mocking is for system boundaries, not internal collaborators | [testing](topics/testing.md) |
