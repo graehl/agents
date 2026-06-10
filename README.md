@@ -22,7 +22,10 @@ opencode, and Grok Build harnesses. The
 shared-worktree
 accommodations are plain filesystem conventions: active-session files for
 awareness of other agents, pre-edit rereads and path-limited edits for edit
-safety, and gates around operations that can affect shared state. Skills are
+safety, and gates around operations that can affect shared state. The shared
+worktree is a deliberate trade of isolation for observability — interrupted
+work stays visible, integration is continuous, and the whole state is readable
+in one place — with the conventions buying the safety back. Skills are
 optional automation on top; the framework still stands with zero skills
 installed.
 

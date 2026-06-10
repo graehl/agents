@@ -46,6 +46,55 @@ projects without relying on stale chat state.
   and theory docs because all three determine how future agents recover the
   intended policy from repository state.
 
+## Shared worktree: isolation traded for observability
+
+The ecosystem's standard answer to concurrent coding agents is
+worktree-per-agent isolation: it converts silent concurrent clobbering
+into deferred, visible merge conflicts, and it presumes high fan-out of
+independent tasks. <!-- verified: web search 2026-06-10 --> This repo
+deliberately occupies a different operating point — a few deliberate,
+overlapping sessions in one shared dirty worktree; high fan-out has
+never been the workload here.
+
+The trade is isolation for observability:
+
+- interrupted or quota'd-out efforts stay visible in `git status`,
+  where the user or the next session trips over them, rather than
+  orphaned in a forgotten worktree — resume-from-live-state works
+  *because* the live state contains everything;
+- integration is continuous, and a collision is resolved at edit time
+  by the second writer with both contexts warm, not at merge time by
+  someone with neither;
+- the human can read the entire world state in one place;
+- agents can work with the user's uncommitted WIP, which a fresh
+  worktree definitionally cannot see — though this cuts both ways:
+  the user's manual work is thereby foisted on agents too, and every
+  session inherits half-done human state it did not create and must
+  preserve and work around;
+- a plain filesystem convention stays uniform across harnesses, which
+  keeps the subagent-agnostic stance cheap.
+
+The shared-workdir conventions buy back the safety isolation would
+have provided: active-session files with scope declarations supply the
+peer awareness isolation substitutes for; pre-edit rereads,
+path-limited edits and commits, and the discard/amend bans target the
+silent-clobber risk that motivates isolation in the first place.
+
+Known residuals the conventions only shrink, not remove: an agent may
+read a peer's mid-edit state and reason from it as settled
+(mental-model contamination); shared runtime state — a dev server,
+database, or watcher — collides independently of file discipline; and
+the approach has a write-concurrency ceiling. For genuinely
+independent batch fan-out, ancillary worktrees remain the right tool
+and are already permitted.
+
+The conventions also charge their own pace tax: active-session
+writes, peer checks, and heartbeats are per-session overhead paid
+even when no peer is present, and peer-aware caution (amend bans,
+scope negotiation) slows work further when peers do appear. Whether
+the awareness is worth that tax is untested — an ablation-shaped
+question like the rest of this file (see *Limits of these methods*).
+
 ## Section extraction
 
 When a topic doc would benefit from referencing a specific AGENTS.md
