@@ -494,7 +494,7 @@ doc or when project jargon starts recurring; not proactively.
 ## C++
 
 Reformat only modified lines, never whole files:
-`git diff -U0 HEAD -- '*.c*' '*.h*' | clang-format-diff -p1 -i`. Use
+`git --no-pager diff --no-ext-diff --no-color -U0 HEAD -- '*.c*' '*.h*' | clang-format-diff -p1 -i`. Use
 `clangd` to check edits when a `.clangd` is present.
 
 ## Python
@@ -739,10 +739,19 @@ project's ML runtime: it brings its own multi-GB ML/OCR stack. Set a
 project-local model cache and temp dir when home or `/tmp` is
 space-constrained.
 
-## Diff presentation
+## Git patch output
 
-Default to a unified `+/-` diff via `git diff --no-ext-diff --no-color`
-(`--no-ext-diff` bypasses difftastic, which wraps badly in narrow panes).
-Use a `before | after` markdown table only when the content reads as prose
-and within-line changes matter enough to bold the differing spans. Avoid
-`--word-diff` unless the UI renders ANSI color.
+For any patch-producing Git read used by agents or in an instruction
+template, bypass human-facing diff config explicitly: start with
+`git --no-pager` and pass `--no-ext-diff --no-color` to the diff-producing
+subcommand, e.g. `git --no-pager diff --no-ext-diff --no-color`,
+`git --no-pager show --no-ext-diff --no-color <rev>`, or
+`git --no-pager log --no-ext-diff --no-color -p`. This covers
+`diff.external` tools such as difftastic and pagers such as delta; agents
+should not need to rerun a command because the first output was
+human-formatted.
+
+Default to a unified `+/-` diff. Use a `before | after` markdown table
+only when the content reads as prose and within-line changes matter enough
+to bold the differing spans. Avoid `--word-diff` unless the UI renders ANSI
+color.

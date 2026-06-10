@@ -18,6 +18,25 @@ Append new entries at the top; do not rewrite prior ones. Agents are
 licensed to append trace findings, incident reports, and clarifying
 examples encountered while consulting this file.
 
+## 2026-06-10 — Git patch output must bypass human diff config
+
+- **Incident** — agents still sometimes ran patch-producing Git commands
+  that inherited the user's human-facing `diff.external=difft` or
+  `core.pager=delta` config, then had to rerun because the first output was
+  difftastic/delta-formatted rather than plain unified text.
+- **Decision** — broadened `AGENTS.md` from a presentation-only
+  `git diff --no-ext-diff --no-color` preference to a patch-output rule:
+  patch-producing Git reads and instruction templates use `git --no-pager`
+  plus `--no-ext-diff --no-color`, and the C++ `clang-format-diff` template
+  includes the same flags.
+- **Trace** — agent reviews a diff in a user shell with `diff.external=difft`:
+  the literal rule yields a plain patch on the first command instead of
+  a human layout that must be rerun. Agent copies the C++ modified-lines
+  template into a pipe: `clang-format-diff` receives unified patch text, not
+  difftastic output. Agent retrieves commit-message text with
+  `git log --format=%B`: the rule does not add irrelevant diff flags because
+  that command is not patch-producing.
+
 ## 2026-06-09 — harsh review of the topic-trigger compression
 
 - **Finding** — three blocks were deleted rather than moved, leaving
