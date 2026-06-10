@@ -16,7 +16,9 @@ used.
 The core policy is subagent-agnostic: it takes no position on whether tasks
 are completed by a single agent, delegated subagents, or autonomous swarms,
 but it is best-effort safe when multiple agents operate concurrently. It does
-not depend on skills, provider supplements, or any particular launcher. The
+not depend on skills, provider supplements, or any particular launcher: the
+same instructions have been exercised in at least the Codex, Claude Code,
+opencode, and Grok Build harnesses. The
 shared-worktree
 accommodations are plain filesystem conventions: active-session files for
 awareness of other agents, pre-edit rereads and path-limited edits for edit
