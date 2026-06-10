@@ -112,6 +112,19 @@ companion notes, because `rg` over generated markdown/text only searches papers
 that have actually been extracted; expand the extraction tier before claiming
 coverage across the whole bibliography.
 
+### Progress reports
+
+Projects with sizable research scope should periodically emit a dated
+`research/progress-YYYY-MM-DD.md` instalment — a plan-change and triage
+report written for a manager or peer research org consuming the stream of
+reports without delving into the repo. Spec and rationale:
+`topics/progress-report.md` ("progress report" / "research progress
+report"). Key contract: each instalment implicitly contains its
+predecessors (brief restatement for a new reader, details by reference to
+older reports/topics), states conditions in newcomer-legible expanded
+form, ends every thread with an explicit pursue/hold/park triage verdict,
+and is frozen once disseminated (corrections go in the next instalment).
+
 ### Field surveys and frontier mapping
 
 Two companion templates cover field-survey work:
