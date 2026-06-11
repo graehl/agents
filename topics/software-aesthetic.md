@@ -22,7 +22,7 @@ In C++, prefer `//` for short, one-line comments because they are easy to grep a
 
 ## Structure
 
-- Delete complexity instead of relocating it. A reframing that makes the conditionals vanish beats one that gathers them somewhere tidier — and usually that means fixing the model, not the branches (*code judo*; see [design-thinking](design-thinking.md)).
+- Delete complexity instead of relocating it. A reframing that makes the conditionals vanish beats one that gathers them somewhere tidier — and usually that means fixing the model, not the branches (a *deleting reframe*; see [design-thinking](design-thinking.md)).
 - Decompose at *seams* — natural boundaries where behavior can change without editing the surrounding code.
 - Put *spaghetti* — ad-hoc conditionals, mode flags, special cases threaded through unrelated flows — behind one abstraction, state machine, or module.
 - Keep feature logic out of shared paths, and single-use helpers next to their use.
@@ -37,6 +37,14 @@ Duplication is correct at *divergence points* — copies you expect to evolve ap
 ## Input boundaries
 
 Guard at the top and assume valid below: prefer early-exit validation where input enters. (The output side — normalizing on the way in, repairing on the way out — is a project-wide commitment; see [coordinated](software-aesthetic.coordinated.md).)
+
+## Sequencing and partial state
+
+Do not impose order on work that is independent: false sequencing hides
+available parallelism and misleads the reader about real dependencies. A
+multi-step update that can be interrupted or observed half-applied is a
+design bug — order the writes so every intermediate state is valid, or
+make the whole update atomic.
 
 ## Size and performance
 

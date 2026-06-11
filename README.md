@@ -78,7 +78,7 @@ without relying on those files.
 | Skill | Why it is interesting |
 | --- | --- |
 | `skills/wish/` | Pursues an unattended goal against an explicit done-condition and quoted evidence, while refusing verifier-gaming shortcuts. |
-| `skills/harsh-review/` | Runs a deliberately strict structural and correctness audit: code judo, spaghetti, leaky abstractions, and concrete breakage cases. |
+| `skills/harsh-review/` | Runs a deliberately strict structural and correctness audit: deleting reframes, spaghetti, leaky abstractions, and logic that breaks on a concrete input. |
 | `skills/code-map/` | Produces a regenerable developer map of modules, flow slices, contracts, seams, blind spots, and refresh commands. |
 | `skills/doubt/` | Re-solves a disputed conclusion independently before comparing with the earlier answer to find the first consequential divergence. |
 | `skills/dream/` | Consolidates a doc project by pruning contradiction/staleness and distilling facts established in recent sessions but never written down. |

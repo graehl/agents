@@ -433,9 +433,15 @@ it (*Anti-slop implementation* above).
 ## Ideal coding
 
 See `~/agents/topics/software-aesthetic.md` for the full shared aesthetic —
-naming, comments, structure, abstraction, and input/output contracts. The
-points below are either not in that doc or are worth repeating here:
+naming, comments, structure, abstraction, and input/output contracts — and
+`~/agents/topics/design-thinking.md` for how to approach a change (reframe
+before patching, map before drilling, caller sweeps, scope discipline). The
+points below are either not in those docs or are worth repeating here:
 
+- When a change moves a shared facility's contract (signature, semantics,
+  errors, performance), sweep call sites beyond the diff and confirm each
+  caller's assumptions still hold. Same duty for prose: a section other
+  docs cite or a read-trigger points at is a shared facility.
 - Before introducing a new general facility, consult
   `GLOSSARY.md` (contribution rules in `~/agents/topics/glossary.md`);
   keep single-use facilities close to their use.

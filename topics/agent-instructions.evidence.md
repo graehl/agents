@@ -260,3 +260,34 @@ pass missed this one.
   branch, and the Claude floor is name-based ("haiku-class"), which
   needs updating if small-tier naming changes. Launcher-surfaced
   `AGENTS.weak.md` remains the primary mechanism.
+
+## 2026-06-11 — harsh-review: promote review-only duties to write time
+
+- **Decision** — audited the skill for desiderata that are good general
+  practice but lived only in the review checklist. Promoted two:
+  caller sweep on contract moves (design-thinking § Sweep callers when a
+  contract moves, plus an AGENTS.md Ideal-coding bullet — it fires on
+  every shared-facility change, so boot-level; the boot also gained its
+  first pointer to design-thinking) and sequencing/partial-state
+  (software-aesthetic § Sequencing and partial state — coding-only,
+  reachable via the boot's existing aesthetic pointer). Deliberately not
+  promoted: execution simulation and test demands (default frontier
+  behavior; promoting is prompt debt), blocker/advisory taxonomy and
+  approval bar (review-specific).
+- **Discord noted** — scope discipline ("add no refactor unasked") vs.
+  harsh-review's restructure demands is a deliberate counterweight, not
+  a conflict to dissolve; reconciliation recorded in design-thinking §
+  Scope discipline: a seam the change already opens puts the restructure
+  in scope, otherwise recommend rather than do.
+- **Non-code pass** — user intends harsh-review as a habitual
+  invocation, including on doc artifacts in code projects. Classification
+  is per artifact, not per diff; the prose checklist is self-contained so
+  a prose review never reads or translates the code items; criteria are
+  role-aware (agent instructions vs. README vs. tutorial vs. plan;
+  generated docs reviewed at their source); software-aesthetic reads are
+  conditional on code being touched.
+- **Rename** — `code judo` -> `deleting reframe`, on per-token grounds:
+  the old term never traveled without a definition rider and "judo"
+  misreads as cleverness; the new name self-defines at equal length.
+  User: per-token effectiveness is the paramount criterion for
+  quirky-vs-plain instruction wording — quirky stays when it works.
