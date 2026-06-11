@@ -291,3 +291,25 @@ pass missed this one.
   misreads as cleverness; the new name self-defines at equal length.
   User: per-token effectiveness is the paramount criterion for
   quirky-vs-plain instruction wording — quirky stays when it works.
+
+## 2026-06-11 — frontier authorship-latitude: rationale
+
+Captured for `AGENTS.frontier.md` § Latitude scales with the user's
+authorship (the rule keeps its inline rationale; this is the fuller
+why):
+
+- Early own-commit landing moves the accept/reject point to the front:
+  the refactor is cheap to reject only in the window before the
+  requested change starts building on it; after that, revert means
+  unwinding both or repairing forward. User noted this entanglement
+  and chose not to spell it out in the instruction.
+- The early commit gives the requested change a behavior-preserving
+  base, keeping the feature diff clean to review.
+- Placement in the frontier supplement gates competence structurally:
+  weak-tier agents never load the file, so no self-assessed
+  "if competent" clause is needed.
+- Authorship/blame-density scoping was chosen over a hardcoded
+  own-repo list: self-maintaining, and local — even in the user's
+  repo, code that blame says is mostly someone else's gets the
+  polite-guest treatment. Origin: user observed agents already doing
+  sensible auto-cleanup in `~/ya` near his own blame.
