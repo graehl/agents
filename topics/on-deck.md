@@ -42,10 +42,15 @@ Division of labor:
 
 ## Five requirements (these make or break it)
 
-1. **Each entry carries a mechanical eligibility guard and an invalidation
-   (skip-if) condition**, both decidable by the steward without judgment
-   (input file present; predecessor returncode 0; "skip if run Z already
-   showed effect < ε"). Soft dependencies must compile down to such checks.
+1. **Each entry carries an executable eligibility guard and an invalidation
+   (skip-if) condition**: bash commands run from the project root whose exit
+   status decides (guard exit 0 = preconditions met; skip-if exit 0 = the
+   entry is already satisfied or moot). `on_deck.py eligible` evaluates them,
+   so "mechanical" is machine-checked rather than exhorted — prose guards
+   fail loudly as commands. Guard and skip-if answer different questions
+   (can it run now / is it still worth running); do not restate one as the
+   negation of the other. Soft dependencies must compile down to such
+   commands.
 2. **On-deck is the executable projection of the program's triage** (the
    progress-report triage table, topic next-steps, `--depends-on`), not a
    parallel plan store — entries link back to those rows, or it drifts.
@@ -85,8 +90,8 @@ status: "pending"
 runtime_estimate: "45m"
 size_class: "small"
 cheap_reversible: true
-guard: "input file X exists and predecessor job Y returncode is 0"
-skip_if: "output Z already exists with metric >= baseline"
+guard: "test -f data/X && test -f runs/Y/returncode && test $(cat runs/Y/returncode) = 0"
+skip_if: "test -f out/Z.md && grep -q 'metric:' out/Z.md"
 provenance: "tasks/123.md; research/foo.log.md"
 created_at: "2026-06-11T00:00:00Z"
 ---
@@ -115,7 +120,17 @@ What this unlocks or what the director should inspect.
 ````
 
 `by` is `director` or `steward`. `status` is one of `pending`,
-`launched`, `done`, `skipped`, `blocked`, or `retired`.
+`launched`, `done`, `skipped`, `blocked`, or `retired`. A `blocked` entry is
+the durable home for a high-priority triage item whose launch cannot be
+written yet (missing script, undecided design): it keeps the "what is next"
+state visible to director and steward instead of evaporating into chat.
+
+The launch command parameterizes committed, tested scripts. If the step
+needs more than a few lines of new logic, land the script in the repo first
+or file the entry as `blocked` — never inline a program in the entry. An
+inline program is untested code frozen into a director-owned field: the
+steward may not repair it when it surprises, while a script bug is fixable
+by any agent without touching the entry.
 
 Runs launched from on-deck inherit the entry's provenance: the authoring skill
 adds a `--context-note` carrying `what/why`, declares known inputs/outputs, and
@@ -140,11 +155,11 @@ One `/steward` invocation fills idle resources until GPU or other declared
 resources are full, no eligible entry remains, or the next entry needs director
 judgment. `/rep steward` is the looped form; there is no resident scheduler.
 
-GPU-idle heartbeat → regenerate/read `INDEX.md` → first pending entry whose
-guard passes, whose skip-if does not fire, and whose cost is within steward
-autonomy → `agentctl` wait-gpu/start/watch → on completion run `check`, record
-numbers, set status, flag director if interpretation is needed → return to
-watch/idle.
+GPU-idle heartbeat → regenerate/read `INDEX.md` → `on_deck.py eligible
+[--steward]` runs each pending entry's skip-if and guard commands in priority
+order and names the first launchable entry → `agentctl` wait-gpu/start/watch
+→ on completion run `check`, record numbers, set status, flag director if
+interpretation is needed → return to watch/idle.
 
 Stewards do not wait for confirmation to fill idle GPU. If a higher-priority
 eligible entry appears while a steward job is running, the steward uses
@@ -164,6 +179,8 @@ still resolved from `agentctl`.
 Value lives almost entirely in guard/skip-if quality. Wrong guards make this
 an efficient way to burn the GPU on stale runs. The director's real per-cycle
 job is maintaining guards as results land — the ordering is the easy part.
+Executable guards keep the *form* honest but not the *content*: a guard that
+checks the wrong file still passes.
 
 ## Adoption
 

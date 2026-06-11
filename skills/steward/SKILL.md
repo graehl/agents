@@ -30,8 +30,12 @@ considered.
 
 1. Inspect `agentctl list`, current `on-deck/*.md`, and GPU state
    (`nvidia-smi` when available).
-2. Select the highest-priority pending entry whose guard passes, whose
-   `skip_if` does not fire, and whose cost is within steward autonomy.
+2. Run `python3 ~/agents/scripts/on_deck.py eligible --steward --root
+   <project-root>`: it evaluates each pending entry's `skip_if` and `guard`
+   commands in priority order and names the first launchable entry. Drop
+   `--steward` only when the director has granted launch on a gated entry.
+   Confirm the named entry's cost is within steward autonomy before
+   launching.
 3. Launch with `agentctl` exactly as the entry says, preserving its
    `--context-note`, provenance, declared inputs/outputs, and runtime estimate.
    Prefer `agentctl start ... --watch-notify-gpu-idle` when the entry does not
@@ -44,11 +48,13 @@ considered.
    research conclusion.
 6. If RUNS parallelism says more independent work fits, continue selecting and
    launching entries. Stop when resources are full, no eligible entry remains,
-   or the next entry requires director judgment.
+   or the next entry requires director judgment. In the final report, list
+   any `blocked` or guard-failing entries that need director work — they are
+   the queue's open questions, not noise.
 
 ## Autonomy Bounds
 
-- Director-authored entries may use priority 4-10. Launch them only when
+- Director-authored entries may carry any priority 0-10. Launch one only when
   `cheap_reversible: true` or the entry explicitly grants steward launch.
 - Steward-authored entries must stay in priority 0-3 and
   `cheap_reversible: true`; they can run without retroactive director review.
@@ -69,7 +75,7 @@ Create it with:
 python3 ~/agents/scripts/on_deck.py add <slug> --root <project-root> \
   --priority 0 --by steward --runtime-estimate <time> \
   --size-class <small|medium> --cheap-reversible true \
-  --guard "<mechanical precondition>" --skip-if "<mechanical invalidation>" \
+  --guard "<bash precondition command>" --skip-if "<bash invalidation command>" \
   --what "<one sentence>" --why "<one sentence>" \
   --provenance <task/topic path> --on-success "<director review target>" \
   --check "<result-sanity checklist>" -- <agentctl start ...>

@@ -7,6 +7,7 @@ import json
 import re
 import shlex
 import shutil
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +15,8 @@ from pathlib import Path
 STEWARD_PRIORITY_MAX = 3
 STATUSES = {"pending", "launched", "done", "skipped", "blocked", "retired"}
 AUTHORS = {"director", "steward"}
+SIZE_CLASSES = {"small", "medium", "large"}
+INDEX_CELL_MAX = 60
 FRONTMATTER_ORDER = (
     "slug",
     "priority",
@@ -88,8 +91,7 @@ def parse_fm_value(raw: str) -> object:
     return text
 
 
-def read_entry(path: Path) -> tuple[dict[str, object], str]:
-    text = path.read_text()
+def parse_entry(text: str) -> tuple[dict[str, object], str]:
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         raise ValueError("missing frontmatter fence")
@@ -110,19 +112,37 @@ def read_entry(path: Path) -> tuple[dict[str, object], str]:
     return fields, "\n".join(lines[end + 1 :])
 
 
+def read_entry(path: Path) -> tuple[dict[str, object], str]:
+    return parse_entry(path.read_text())
+
+
 def section(body: str, heading: str) -> str:
-    pattern = re.compile(rf"^## {re.escape(heading)}\s*$", re.MULTILINE)
-    match = pattern.search(body)
-    if not match:
-        return ""
-    next_heading = re.search(r"^## ", body[match.end() :], re.MULTILINE)
-    end = match.end() + next_heading.start() if next_heading else len(body)
-    return body[match.end() : end].strip()
+    # Headings inside fenced launch blocks must not start or end a section.
+    in_fence = False
+    collecting = False
+    out: list[str] = []
+    for line in body.splitlines():
+        if not in_fence and line.rstrip() == f"## {heading}":
+            collecting = True
+        elif collecting and not in_fence and line.startswith("## "):
+            break
+        elif collecting:
+            out.append(line)
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+    return "\n".join(out).strip()
 
 
 def markdown_escape(value: object) -> str:
     text = str(value or "").replace("\n", " ")
     return text.replace("|", r"\|")
+
+
+def index_cell(value: object) -> str:
+    text = markdown_escape(value)
+    if len(text) > INDEX_CELL_MAX:
+        return text[: INDEX_CELL_MAX - 1] + "…"
+    return text
 
 
 def cost_text(entry: dict[str, object]) -> str:
@@ -149,7 +169,7 @@ def iter_entries(root: Path) -> list[tuple[Path, dict[str, object], str]]:
         try:
             fields, body = read_entry(path)
         except ValueError as exc:
-            fields, body = {"slug": path.stem, "status": "blocked", "error": str(exc)}, path.read_text()
+            fields, body = {"slug": path.stem, "status": "invalid", "error": str(exc)}, path.read_text()
         entries.append((path, fields, body))
     return entries
 
@@ -164,6 +184,8 @@ def sorted_entries(root: Path) -> list[tuple[Path, dict[str, object], str]]:
 
 
 def validate_entry(path: Path, fields: dict[str, object], body: str) -> list[str]:
+    if "error" in fields:
+        return [f"{path}: {fields['error']}"]
     errors: list[str] = []
     required = (
         "slug",
@@ -188,6 +210,9 @@ def validate_entry(path: Path, fields: dict[str, object], body: str) -> list[str
     status = fields.get("status")
     if status not in STATUSES:
         errors.append(f"status must be one of {', '.join(sorted(STATUSES))}")
+    size = fields.get("size_class")
+    if size not in {None, ""} and size not in SIZE_CLASSES:
+        errors.append(f"size_class must be one of {', '.join(sorted(SIZE_CLASSES))}")
     if by == "steward":
         if isinstance(priority, int) and priority > STEWARD_PRIORITY_MAX:
             errors.append(f"steward-authored entries must use priority <= {STEWARD_PRIORITY_MAX}")
@@ -202,11 +227,21 @@ def validate_entry(path: Path, fields: dict[str, object], body: str) -> list[str
     return [f"{path}: {error}" for error in errors]
 
 
+def entry_warnings(path: Path, fields: dict[str, object], body: str) -> list[str]:
+    warnings: list[str] = []
+    launch = section(body, "Launch")
+    if re.search(r"agentctl\s+start", launch) and "--context-note" not in launch:
+        warnings.append("agentctl launch lacks --context-note (see the on-deck skill)")
+    return [f"{path}: warning: {warning}" for warning in warnings]
+
+
 def validate(root: Path) -> int:
     entries = iter_entries(root)
     errors: list[str] = []
     for path, fields, body in entries:
         errors.extend(validate_entry(path, fields, body))
+        for warning in entry_warnings(path, fields, body):
+            print(warning, file=sys.stderr)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
@@ -232,7 +267,7 @@ def render_entry(args: argparse.Namespace, launch: str) -> str:
         "slug": args.slug,
         "priority": args.priority,
         "by": args.by,
-        "status": "pending",
+        "status": args.status,
         "runtime_estimate": args.runtime_estimate,
         "size_class": args.size_class,
         "cheap_reversible": args.cheap_reversible,
@@ -263,7 +298,7 @@ def render_entry(args: argparse.Namespace, launch: str) -> str:
 {args.on_success}
 
 ## Status Log
-- {utc_now()} {args.by}: created pending entry
+- {utc_now()} {args.by}: created {args.status} entry
 """
 
 
@@ -286,14 +321,14 @@ def write_index(root: Path) -> Path | None:
         rel = path.relative_to(root)
         rows.append(
             "| {priority} | {slug} | {by} | {status} | {cost} | {guard} | {skip_if} | {provenance} | [{file}]({file}) |".format(
-                priority=markdown_escape(fields.get("priority", "")),
-                slug=markdown_escape(fields.get("slug") or path.stem),
-                by=markdown_escape(fields.get("by", "")),
-                status=markdown_escape(fields.get("status", "")),
-                cost=markdown_escape(cost_text(fields)),
-                guard=markdown_escape(fields.get("guard", "")),
-                skip_if=markdown_escape(fields.get("skip_if", "")),
-                provenance=markdown_escape(fields.get("provenance", "")),
+                priority=index_cell(fields.get("priority", "")),
+                slug=index_cell(fields.get("slug") or path.stem),
+                by=index_cell(fields.get("by", "")),
+                status=index_cell(fields.get("status", "")),
+                cost=index_cell(cost_text(fields)),
+                guard=index_cell(fields.get("error") or fields.get("guard", "")),
+                skip_if=index_cell(fields.get("skip_if", "")),
+                provenance=index_cell(fields.get("provenance", "")),
                 file=markdown_escape(rel),
             )
         )
@@ -305,12 +340,6 @@ def write_index(root: Path) -> Path | None:
 def add(args: argparse.Namespace) -> int:
     args.root = args.root.resolve()
     args.slug = slugify(args.slug)
-    if args.by == "steward" and args.priority > STEWARD_PRIORITY_MAX:
-        print(f"steward-authored entries must use priority <= {STEWARD_PRIORITY_MAX}", file=sys.stderr)
-        return 2
-    if args.by == "steward" and not args.cheap_reversible:
-        print("steward-authored entries must be cheap_reversible=true", file=sys.stderr)
-        return 2
     if not args.launch:
         print("missing launch command after --", file=sys.stderr)
         return 2
@@ -319,10 +348,18 @@ def add(args: argparse.Namespace) -> int:
     if path.exists() or done_path.exists():
         print(f"on-deck entry already exists for slug {args.slug!r}", file=sys.stderr)
         return 1
+    text = render_entry(args, shlex.join(args.launch))
+    fields, body = parse_entry(text)
+    errors = validate_entry(path, fields, body)
+    if errors:
+        for error in errors:
+            print(error, file=sys.stderr)
+        return 2
+    for warning in entry_warnings(path, fields, body):
+        print(warning, file=sys.stderr)
     path.parent.mkdir(parents=True, exist_ok=True)
     (path.parent / "done").mkdir(exist_ok=True)
-    launch = shlex.join(args.launch)
-    path.write_text(render_entry(args, launch))
+    path.write_text(text)
     index = write_index(args.root)
     if index is None:
         raise RuntimeError("internal error: add created entry without an on-deck directory")
@@ -342,7 +379,10 @@ def index_cmd(args: argparse.Namespace) -> int:
 
 
 def replace_status(text: str, status: str) -> str:
-    return re.sub(r"(?m)^status: .*$", f"status: {fm_value_text(status)}", text, count=1)
+    new_text, count = re.subn(r"(?m)^status: .*$", f"status: {fm_value_text(status)}", text, count=1)
+    if count == 0:
+        raise ValueError("no status: frontmatter line to update")
+    return new_text
 
 
 def log_cmd(args: argparse.Namespace) -> int:
@@ -354,11 +394,15 @@ def log_cmd(args: argparse.Namespace) -> int:
         return 1
     text = path.read_text()
     if args.status:
-        text = replace_status(text, args.status)
+        try:
+            text = replace_status(text, args.status)
+        except ValueError as exc:
+            print(f"{path}: {exc}", file=sys.stderr)
+            return 1
     if "\n## Status Log\n" not in text:
         print(f"{path}: missing ## Status Log", file=sys.stderr)
         return 1
-    line = f"- {utc_now()} steward: {' '.join(args.message)}"
+    line = f"- {utc_now()} {args.by}: {' '.join(args.message)}"
     path.write_text(text.rstrip() + f"\n{line}\n")
     write_index(root)
     print(path.relative_to(root))
@@ -377,14 +421,83 @@ def retire(args: argparse.Namespace) -> int:
     if dest.exists():
         print(f"done entry already exists: {dest.relative_to(root)}", file=sys.stderr)
         return 1
-    text = replace_status(path.read_text().rstrip() + "\n", "retired")
+    try:
+        text = replace_status(path.read_text().rstrip() + "\n", "retired")
+    except ValueError as exc:
+        print(f"{path}: {exc}", file=sys.stderr)
+        return 1
     reason = args.reason or "retired"
-    text += f"- {utc_now()} steward: retired - {reason}\n"
+    text += f"- {utc_now()} {args.by}: retired - {reason}\n"
     shutil.move(str(path), str(dest))
     dest.write_text(text)
     write_index(root)
     print(dest.relative_to(root))
     return 0
+
+
+CONDITION_TIMEOUT = 120
+
+
+def run_condition(root: Path, command: str) -> tuple[bool, str]:
+    try:
+        proc = subprocess.run(
+            ["bash", "-c", command],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=CONDITION_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return False, f"timed out after {CONDITION_TIMEOUT}s"
+    detail = (proc.stdout + proc.stderr).strip()
+    return proc.returncode == 0, detail
+
+
+def condition_note(detail: str) -> str:
+    if not detail:
+        return ""
+    first = detail.splitlines()[0]
+    return f" — {first[:120]}"
+
+
+def eligible_cmd(args: argparse.Namespace) -> int:
+    root = args.root.resolve()
+    entries = sorted_entries(root)
+    if args.slug:
+        slug = slugify(args.slug)
+        entries = [item for item in entries if (item[1].get("slug") or item[0].stem) == slug]
+        if not entries:
+            print(f"unknown on-deck entry: {slug}", file=sys.stderr)
+            return 1
+    for path, fields, _body in entries:
+        slug = str(fields.get("slug") or path.stem)
+        status = fields.get("status")
+        if status != "pending":
+            if args.slug:
+                print(f"{slug}: not pending (status: {status})")
+                return 1
+            continue
+        if args.steward and fields.get("cheap_reversible") is not True:
+            if args.slug:
+                print(f"{slug}: outside steward autonomy (cheap_reversible is not true)")
+                return 1
+            continue
+        skip_fired, detail = run_condition(root, str(fields.get("skip_if") or "false"))
+        if skip_fired:
+            print(f"{slug}: skip_if fired{condition_note(detail)}")
+            if args.slug:
+                return 1
+            continue
+        guard_ok, detail = run_condition(root, str(fields.get("guard") or "false"))
+        if not guard_ok:
+            print(f"{slug}: guard failed{condition_note(detail)}")
+            if args.slug:
+                return 1
+            continue
+        print(f"eligible: {slug} ({path.relative_to(root)})")
+        return 0
+    print("no eligible entry")
+    return 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -401,6 +514,12 @@ def build_parser() -> argparse.ArgumentParser:
     add_p.add_argument("--root", type=Path, default=Path.cwd())
     add_p.add_argument("--priority", type=int, required=True)
     add_p.add_argument("--by", choices=sorted(AUTHORS), default="director")
+    add_p.add_argument(
+        "--status",
+        choices=["pending", "blocked"],
+        default="pending",
+        help="blocked records a triage item whose launch needs director/implementation work first",
+    )
     add_p.add_argument("--runtime-estimate", required=True)
     add_p.add_argument("--size-class", required=True)
     add_p.add_argument("--cheap-reversible", type=parse_bool, required=True)
@@ -421,18 +540,35 @@ def build_parser() -> argparse.ArgumentParser:
     validate_p.add_argument("--root", type=Path, default=Path.cwd())
     validate_p.set_defaults(func=lambda args: validate(args.root.resolve()))
 
-    log_p = sub.add_parser("log", help="Append a steward status log line.")
+    log_p = sub.add_parser("log", help="Append a status log line.")
     log_p.add_argument("slug")
     log_p.add_argument("message", nargs="+")
     log_p.add_argument("--root", type=Path, default=Path.cwd())
     log_p.add_argument("--status", choices=sorted(STATUSES))
+    log_p.add_argument("--by", choices=sorted(AUTHORS), default="steward")
     log_p.set_defaults(func=log_cmd)
 
     retire_p = sub.add_parser("retire", help="Move an entry to on-deck/done/.")
     retire_p.add_argument("slug")
     retire_p.add_argument("--root", type=Path, default=Path.cwd())
     retire_p.add_argument("--reason", default="")
+    retire_p.add_argument("--by", choices=sorted(AUTHORS), default="steward")
     retire_p.set_defaults(func=retire)
+
+    eligible_p = sub.add_parser(
+        "eligible",
+        help="Run guard/skip_if commands; report the first launchable entry.",
+        description="Evaluate skip_if then guard as bash commands from the project root "
+        "(exit 0 = skip fires / guard passes). With a slug, report that entry only.",
+    )
+    eligible_p.add_argument("slug", nargs="?")
+    eligible_p.add_argument("--root", type=Path, default=Path.cwd())
+    eligible_p.add_argument(
+        "--steward",
+        action="store_true",
+        help="only consider entries a steward may launch unaided (cheap_reversible true)",
+    )
+    eligible_p.set_defaults(func=eligible_cmd)
 
     return parser
 
@@ -451,9 +587,6 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
     if args.cmd == "add":
         args.launch = launch or []
-    if getattr(args, "priority", 0) < 0 or getattr(args, "priority", 0) > 10:
-        print("priority must be an integer from 0 to 10", file=sys.stderr)
-        return 2
     return args.func(args)
 
 
