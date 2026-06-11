@@ -26,6 +26,12 @@ projects without relying on stale chat state.
   a capable agent would otherwise plausibly get wrong.
 - A rule that introduces process cost should identify the failure mode it
   prevents.
+- Procedural rules should name the end state their steps serve, so a
+  capable reader can judge when a step's purpose is already met
+  (`AGENTS.frontier.md` grants that step-skipping latitude explicitly,
+  priced at a stated one-line deduction). When the observable step
+  itself is the contract — a gate record, a stop, a coordination
+  write — the rule should say so rather than leave it to inference.
 - Topic and theory names should stay searchable from commits, tasks, and
   instruction text.
 - Theory docs should explain why contracts are believed, not accumulate a
@@ -215,3 +221,15 @@ Edit policy: `AGENTS.weak.md` is for restatements of frontier defaults
 only. Anything load-bearing — a rule a capable agent would otherwise
 plausibly get wrong — belongs in `AGENTS.md` itself, so every model
 loading the main file gets it.
+
+`AGENTS.frontier.md` is the dual of `AGENTS.weak.md`: latitude
+grants — currently end-state-over-checklist step skipping — that a
+weaker model would read as a rationalization license. The Claude and
+Codex supplements route to it; the Grok supplement does not, and both
+the pointer and the file itself disclaim the file when
+`AGENTS.weak.md` was also surfaced (a frontier-provider harness can
+still be running a small model).
+
+Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
+rule an agent must follow, since weaker-model launches never load it.
+Anything binding belongs in `AGENTS.md`.

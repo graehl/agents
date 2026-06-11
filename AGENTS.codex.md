@@ -1,8 +1,10 @@
 # Codex Supplement
 
 Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
-running in Codex / OpenAI Codex. This file contains Codex harness mechanics
-only; shared policy stays in `AGENTS.md`.
+running in Codex / OpenAI Codex. This file contains Codex harness
+mechanics; shared policy stays in `AGENTS.md`. Unless this launch also
+surfaced `AGENTS.weak.md` (smaller model), read
+`~/agents/AGENTS.frontier.md` next — frontier-tier latitude.
 
 ## Session Identity
 

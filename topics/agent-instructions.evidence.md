@@ -188,3 +188,38 @@ pass missed this one.
   deliberately keeps weak-agent redundancy (worked examples, rationale
   for counterintuitive rules), so "zero waste" means
   non-steering text, not all redundancy.
+
+## 2026-06-11 — frontier latitude: end-state over checklist
+
+- **Motivating observation** — a mid-capability agent (GPT-5.5 Codex,
+  below Fable-class) correctly exercised *unstated* latitude: the only
+  change since the HEAD commit was a topic-doc note about future
+  possibilities, the commit message already told reviewers to read
+  that topic, so it pushed without amending the message. Sound
+  deduction; the checklist step's purpose was already met. User
+  framing: most projects assume autonomous "implement this considering
+  global implications, intended contract, and existing UX
+  expectations" — that is a *floor* on instruction-following
+  capability, so instructions may spec checklists as a default path
+  with the end state as the contract.
+- **Change** — added `AGENTS.frontier.md` (end-state-over-checklist
+  latitude, stated-deduction requirement, gate/ban carve-out), routed
+  from the Claude and Codex supplements only; author-side invariant
+  (procedural rules name the end state they serve) added to
+  `agent-instructions.md`. Dual of `AGENTS.weak.md`, which adds
+  scaffolding downward where this relaxes upward.
+- **Trace-sim catches while drafting** —
+  (a) "I generally know what `topics/commits.md` says" must not
+  satisfy a read-before trigger, so the rule requires the deduction to
+  cite session-local evidence, not general confidence;
+  (b) a frontier-provider harness can still run a small model (Haiku
+  via the Claude supplement), so the weak-guard lives both at the
+  supplement pointer and in the frontier file's header;
+  (c) gates whose observable step is the contract (gate record,
+  discard ban, edit-mechanism discipline, `.agentctl/active/` writes)
+  are exactly defenses against "the end state is fine anyway"
+  reasoning, so they are excluded by name.
+- **Status** — `assumed`, per the 2026-05-29 posture. The latitude was
+  already being taken by capable models; the rule's marginal effect is
+  making the skip legitimate and auditable (the stated one-line
+  deduction) rather than enabling it.

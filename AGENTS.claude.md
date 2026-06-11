@@ -1,8 +1,10 @@
 # Claude Supplement
 
 Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
-running in Claude. This file contains Claude harness mechanics only; shared
-policy stays in `AGENTS.md`.
+running in Claude. This file contains Claude harness mechanics; shared
+policy stays in `AGENTS.md`. Unless this launch also surfaced
+`AGENTS.weak.md` (smaller model), read `~/agents/AGENTS.frontier.md`
+next — frontier-tier latitude.
 
 ## Session Identity And Logs
 

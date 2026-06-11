@@ -103,8 +103,9 @@ supplement for your harness when present:
 - Claude: `~/agents/AGENTS.claude.md`
 - Grok / xAI: `~/agents/AGENTS.grok.md`
 
-Provider supplements carry harness mechanics only: session-log locations,
-provider resume identifiers, provider skill paths, and launcher quirks.
+Provider supplements carry harness mechanics — session-log locations,
+provider resume identifiers, provider skill paths, launcher quirks —
+and may route frontier-capability launches to `AGENTS.frontier.md`.
 Cross-provider policy stays here. If the relevant supplement is missing or
 unreadable, report once and continue.
 
