@@ -4,12 +4,19 @@ Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
 running in Codex / OpenAI Codex. This file contains Codex harness
 mechanics; shared policy stays in `AGENTS.md`.
 
-Model tier: any Codex model below GPT-5.5 (e.g. Codex 5.3 Spark)
-counts as weak — read `~/agents/AGENTS.weak.md` in addition and do
-not read `AGENTS.frontier.md`, even when the launcher did not surface
-the weak supplement. At GPT-5.5 or above, unless this launch surfaced
-`AGENTS.weak.md`, read `~/agents/AGENTS.frontier.md` next —
-frontier-tier latitude.
+Model tier: do not trust self-knowledge of your model name — models
+misreport it. Read the harness-recorded id from your own rollout
+file:
+
+```bash
+tac "$(find ~/.codex/sessions -name "*$AGENTCTL_SESSION_ID*.jsonl" |
+  head -1)" | rg -m1 -o '"model":"[^"]*"'
+```
+
+Below GPT-5.5 (e.g. Codex 5.3 Spark), or with `AGENTS.weak.md`
+surfaced, you are weak tier: read `~/agents/AGENTS.weak.md` and do
+not read `AGENTS.frontier.md`. At GPT-5.5 or above, read
+`~/agents/AGENTS.frontier.md` next — frontier-tier latitude.
 
 ## Session Identity
 

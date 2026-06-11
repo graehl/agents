@@ -2,8 +2,19 @@
 
 Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
 running in Claude. This file contains Claude harness mechanics; shared
-policy stays in `AGENTS.md`. Unless this launch also surfaced
-`AGENTS.weak.md` (smaller model), read `~/agents/AGENTS.frontier.md`
+policy stays in `AGENTS.md`.
+
+Model tier: do not trust self-knowledge of your model name — models
+misreport it. Read the harness-recorded id from your own transcript:
+
+```bash
+tac "$HOME/.claude/projects/${PWD//\//-}/$CLAUDE_CODE_SESSION_ID.jsonl" |
+  rg -m1 -o '"model":"[^"]*"'
+```
+
+A haiku-class (small-tier) id, or a surfaced `AGENTS.weak.md`, means
+weak tier: read `~/agents/AGENTS.weak.md` and do not read
+`AGENTS.frontier.md`. Otherwise read `~/agents/AGENTS.frontier.md`
 next — frontier-tier latitude.
 
 ## Session Identity And Logs

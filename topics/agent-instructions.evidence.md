@@ -242,3 +242,21 @@ pass missed this one.
   exactly that. Defense in depth, not a guarantee; the
   launcher-surfaced `AGENTS.weak.md` path remains the primary
   mechanism.
+
+## 2026-06-11 — model tier from transcript, not self-knowledge
+
+- Supersedes the "read your own model name" basis of the entry above.
+  User observation: most agents do not reliably know their own model
+  name — Fable 5 once answered "Opus" when asked directly. So both
+  supplements now read the harness-recorded id from the session's own
+  transcript instead: every Claude assistant entry carries a `model`
+  field in `~/.claude/projects/<hash>/<session-id>.jsonl`, and Codex
+  rollout files under `~/.codex/sessions/` carry the same field.
+- Verified live before landing: the Claude snippet returned
+  `claude-fable-5` from this session's transcript; the Codex snippet
+  pattern returned `gpt-5.4` from the newest rollout file on this
+  machine.
+- Residual: a weak model must still run the snippet and follow the
+  branch, and the Claude floor is name-based ("haiku-class"), which
+  needs updating if small-tier naming changes. Launcher-surfaced
+  `AGENTS.weak.md` remains the primary mechanism.
