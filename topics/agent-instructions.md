@@ -39,14 +39,10 @@ projects without relying on stale chat state.
 - Boot-loaded text (`AGENTS.md`, supplements, anything read every
   session) budgets every token: a sentence earns its place only by
   steering behavior. Worked examples and rationale that stop a weaker
-  agent reasoning around a rule qualify; text added because the user
-  agreed with something does not. In particular, when the user endorses
-  a rule's rationale, do not offer to write the endorsement back into
-  the rule — that is validating commentary, not steering. Searching the
-  discussion for worth-the-cost additions remains good practice; the
-  test for each candidate is steering merit, never that the user agreed.
-  Commentary and rationale development go to the unloaded riders
-  (`.evidence.md`).
+  agent reasoning around a rule qualify. When the user endorses a
+  rule's rationale, do not offer to write the endorsement back into
+  the rule — that is validating commentary, not steering; it belongs
+  in the unloaded riders (`.evidence.md`).
 - Instructions should steer behavior, not flatter the reader. Prefer
   phrasing that changes what an agent does over wit that evokes several
   related-but-non-instrumental meanings: an aphorism or clever reversal

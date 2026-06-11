@@ -51,12 +51,14 @@ When a change is largely governed by a committed topic doc, put a short
 onboarding line immediately after the subject, before the explanatory body:
 
 ```text
-Onboarding: [topics/commits.md](topics/commits.md)
+Onboarding: topics/commits.md
 ```
 
-This deliberately overlaps with `Topic:` trailers without replacing them.
-The early link is for a human reader scanning the front of the message; the
-trailer is for series membership and search. If the commit wants more
+Use the plain path, not a markdown link — git log, GitHub, and Gerrit
+render commit messages as raw text, so a markdown link just doubles the
+path. This deliberately overlaps with `Topic:` trailers without replacing
+them. The early line is for a human reader scanning the front of the
+message; the trailer is for series membership and search. If the commit wants more
 background that will remain useful after review, expand the topic doc and
 let the commit message point at it instead of duplicating the lasting
 context in the body.
