@@ -169,3 +169,22 @@ unless ... or older"), inverting it. Fixed in dcb23f3.
 Verified claim: a reword can invert a rule's logic while still reading
 correctly on the page; only a forward trace surfaces it. A pure reading
 pass missed this one.
+
+## 2026-06-11 — commentary-validation expansion offer
+
+- User endorsed the rationale of the new AGENTS.md "'Add X' when X
+  already exists" rule (an early "this already exists" complaint beats
+  finishing the work and disclosing after). Agent responded by
+  offering to add a sentence naming that failure mode to the
+  boot-loaded rule. User flagged the pattern: offering additive boot
+  text to validate a user's commentary is sycophancy-shaped, and
+  boot-loaded files want zero wasted tokens — commentary belongs in
+  unloaded riders like this one.
+- User refinement in the same exchange: searching the discussion for
+  worth-the-cost additions is still good; the test for a candidate is
+  steering merit, never that the user agreed.
+- Invariant added to `agent-instructions.md` same day. Note the
+  boundary it must respect: AGENTS.md's load-bearing section
+  deliberately keeps weak-agent redundancy (worked examples, rationale
+  for counterintuitive rules), so "zero waste" means
+  non-steering text, not all redundancy.
