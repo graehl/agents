@@ -3,16 +3,30 @@
 
 Spec: topics/helper-scripts.md (commit-msg-lint entry) in the
 agents-instructions repo.
-Reads draft on stdin. Echoes draft to stdout on success (exit 0).
-On violation, lists issues on stderr (exit 1). Empty input exits 2.
+Reads draft on stdin, or HEAD's commit message when stdin is empty.
+Echoes the checked message to stdout on success (exit 0). On violation,
+lists issues on stderr (exit 1). Missing input and unreadable HEAD exit 2.
 """
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 
 SUBJECT_MAX = 65
 BODY_MAX = 71
+
+
+def head_message() -> str | None:
+    res = subprocess.run(
+        ["git", "log", "-1", "--format=%B"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if res.returncode != 0 or not res.stdout.strip():
+        return None
+    return res.stdout
 
 
 def lint(text: str) -> list[str]:
@@ -48,10 +62,12 @@ def lint(text: str) -> list[str]:
 
 
 def main() -> int:
-    text = sys.stdin.read()
+    text = "" if sys.stdin.isatty() else sys.stdin.read()
     if not text.strip():
-        print("commit-msg-lint: empty input", file=sys.stderr)
-        return 2
+        text = head_message() or ""
+        if not text.strip():
+            print("commit-msg-lint: empty input and no HEAD commit message", file=sys.stderr)
+            return 2
     issues = lint(text)
     if issues:
         for issue in issues:

@@ -46,9 +46,11 @@ all or do not ship the rebuild. Do not invent a different UI.
 
 ### commit-msg-lint
 
-**CLI**: reads draft on stdin. On success echoes draft verbatim to
-stdout, exits 0. On violation lists issues on stderr (one per line,
-prefixed `commit-msg-lint:`), exits 1. Empty input exits 2.
+**CLI**: reads draft on stdin. If stdin is empty, reads the current
+`HEAD` commit message via `git log -1 --format=%B`. On success
+echoes the checked message verbatim to stdout, exits 0. On violation
+lists issues on stderr (one per line, prefixed `commit-msg-lint:`),
+exits 1. Empty input with no readable `HEAD` message exits 2.
 
 **Post-conditions** (derived from `AGENTS.md` Commits section):
 - subject ≤65 chars
@@ -74,6 +76,8 @@ section structure.
    exit 1, `line 3: 85 > 71 cols`.
 5. Clean subject, blank line, body line containing a single
    90-char URL with no spaces → exit 0 (long-token carve-out).
+6. No stdin in a Git checkout with `HEAD` → lints `HEAD` and echoes
+   the commit message on success.
 
 **Canonical source**: `scripts/commit-msg-lint` (in this repo).
 **Install target**: `~/bin/commit-msg-lint` (symlink by default).
@@ -83,6 +87,8 @@ section structure.
 git commit -F <(commit-msg-lint < draft.txt) && rm draft.txt
 # or, fail fast before committing:
 commit-msg-lint < draft.txt && git commit -F draft.txt
+# or, check the current commit:
+commit-msg-lint
 ```
 
 ### commit-msg-fmt
