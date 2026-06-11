@@ -47,6 +47,20 @@ explained by something in the text. Neither is served by a journal of how the
 change was reached: omit iteration narrative, superseded approaches that left
 no trace in the tree, and added-then-reverted churn.
 
+When a change is largely governed by a committed topic doc, put a short
+onboarding line immediately after the subject, before the explanatory body:
+
+```text
+Onboarding: [topics/commits.md](topics/commits.md)
+```
+
+This deliberately overlaps with `Topic:` trailers without replacing them.
+The early link is for a human reader scanning the front of the message; the
+trailer is for series membership and search. If the commit wants more
+background that will remain useful after review, expand the topic doc and
+let the commit message point at it instead of duplicating the lasting
+context in the body.
+
 Consider splitting unrelated changes into independent commits (e.g.
 implementation vs. research finding). When a directive grants
 open-ended commit latitude — "make as many commits as you want",

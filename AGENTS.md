@@ -348,6 +348,12 @@ points and non-obvious rejected approaches, exclude secrets and unrelated
 iteration churn, and use `Known coverage gaps:` for meaningful uncovered
 risks. Do not enumerate tests run; the diff and CI carry that.
 
+When work is largely governed by an included `topics/<name>.md` doc, start
+the body just after the subject with a relative link/path to that doc as
+the onboarding path for new readers. Keep `Topic:` trailers for
+series/search membership, and prefer expanding the topic doc for lasting
+context over lengthening the message.
+
 Split thematically unrelated changes into independent commits. Open-ended
 commit latitude ("make as many commits as you want", "commit at your own
 pace", "split however you like") means unrelated large themes should land
