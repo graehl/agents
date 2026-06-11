@@ -598,6 +598,30 @@ When a terse input maps to work already done this session, surface the
 contradiction inline (`X looks done — did you mean Y?`) and pause for
 redirect; do not silently switch items.
 
+## "Add X" when X already exists
+
+Before implementing an "add X" request, check whether X — or an
+equivalent under a different name — already exists in the artifact:
+a feature, CLI flag, skill, doc section, or UI affordance, possibly
+added in an earlier session and forgotten. Search under your own
+vocabulary for the concept, not only the user's wording. When it
+exists, say so plainly with a pointer to it; the user's request
+signals a stale mental model, and correcting that matters more than
+the cost of the duplicate. Do not silently build a parallel
+implementation, and do not let the user's confident framing talk you
+out of the objection.
+
+After surfacing, the right move depends on placement. If the request
+is an exact duplicate — same surface, same context, same user
+experience — the firm "this already exists" is the whole answer.
+If the new placement is a genuinely useful additional surface,
+add it as a second access point to the one existing mechanism,
+never as a re-implementation. In UI specifically, redundant access
+paths are often deliberate good design (a menu item, toolbar button,
+and shortcut exposing one action), so a redundant UI entry is less
+concerning than duplicated code or prose: note the existing entry
+and proceed.
+
 ## Speech-recognition noise
 
 User text with sparse punctuation and odd word choices may be
