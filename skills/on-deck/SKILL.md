@@ -1,12 +1,12 @@
 ---
 name: on-deck
-description: Add guarded single-step research/run jobs to a project's on-deck queue. Use when the user invokes /on-deck, asks to on-deck or queue one or more runs, asks to turn a triage/progress-report next step into steward-runnable work, or asks to prepare a series of runs for later steward launch.
+description: Add guarded single-step research/run jobs to a project's on-deck queue. Use when the user invokes /on-deck, asks to on-deck or queue one or more runs, asks to on-deck and go, asks to turn a triage/progress-report next step into steward-runnable work, or asks to prepare a series of runs for later steward launch.
 ---
 
 # On-Deck
 
-Author `on-deck/<slug>.md` entries. Do not launch jobs unless the user also
-asks to steward or run them.
+Author `on-deck/<slug>.md` entries, creating `on-deck/` when absent. Do not
+launch jobs unless the user also asks to steward, run, or "and go" them.
 
 ## Load
 
@@ -29,6 +29,12 @@ asks to steward or run them.
   must stay 0-3 and `cheap_reversible: true`.
 - Do not encode "think about whether X is good" as a guard/check. Convert it
   to a file/job/metric condition, or leave the entry blocked for director work.
+- For `agentctl` launches, make the launch self-explaining: include a
+  `--context-note` carrying the entry's what/why/provenance/on-success, and
+  declare obvious known paths with `--input`, `--input-raw`, or `--output`.
+  If the user supplies an `agentctl` launch without that context, rewrite the
+  launch before adding the entry; the helper intentionally does not reject
+  legacy or hand-written entries that lack it.
 
 ## Add Entries
 
@@ -41,7 +47,9 @@ python3 ~/agents/scripts/on_deck.py add <slug> --root <project-root> \
   --guard "<mechanical precondition>" --skip-if "<mechanical invalidation>" \
   --what "<one sentence>" --why "<one sentence>" \
   --provenance <task/topic/research path> --on-success "<what this unlocks>" \
-  --check "<result-sanity + comparison checklist>" -- <agentctl start ...>
+  --check "<result-sanity + comparison checklist>" -- \
+  agentctl start <job> --context-note "<what; why; provenance; on success>" \
+    --input <key=path> --output <key=path> -- <command>
 ```
 
 For a series, create one entry per run. Use guards and skip-if clauses to
@@ -57,3 +65,11 @@ python3 ~/agents/scripts/on_deck.py index --root <project-root>
 
 Report the entries added and any guard/check that is still too interpretive
 for a steward.
+
+## And Go
+
+When the user asks to "on-deck and go" or otherwise asks to run immediately,
+first create, validate, and index the entries above. Then run one steward pass
+in the same session: load the `steward` skill when available and follow its
+steward loop without asking for another confirmation. Report both the entries
+created and any launch/skipped/blocked status facts from that steward pass.

@@ -117,9 +117,11 @@ What this unlocks or what the director should inspect.
 `by` is `director` or `steward`. `status` is one of `pending`,
 `launched`, `done`, `skipped`, `blocked`, or `retired`.
 
-Runs launched from on-deck inherit the entry's provenance: pass `what/why` as
-`--context-note`, declare inputs/outputs, and carry provenance and `on-success`
-into the run note / metadata so the run record self-explains.
+Runs launched from on-deck inherit the entry's provenance: the authoring skill
+adds a `--context-note` carrying `what/why`, declares known inputs/outputs, and
+carries provenance and `on-success` into the run note / metadata so the run
+record self-explains. The helper remains schema-level plumbing and does not
+reject legacy or hand-written launches that lack this context.
 
 Priority is numeric, highest first. Coarse bands are enough:
 
@@ -131,14 +133,18 @@ Ties break by slug for deterministic steward selection.
 
 ## Steward loop
 
+If `on-deck/` is absent, stewardship is a no-op; do not create files. `$on-deck`
+is the opt-in initializer that creates the queue directory.
+
 One `/steward` invocation fills idle resources until GPU or other declared
 resources are full, no eligible entry remains, or the next entry needs director
 judgment. `/rep steward` is the looped form; there is no resident scheduler.
 
-GPU-idle heartbeat → regenerate/read `INDEX.md` → first entry whose guard
-passes, whose skip-if does not fire, and whose cost is within steward autonomy
-→ `agentctl` wait-gpu/start/watch → on completion run `check`, record numbers,
-set status, flag director if interpretation is needed → return to watch/idle.
+GPU-idle heartbeat → regenerate/read `INDEX.md` → first pending entry whose
+guard passes, whose skip-if does not fire, and whose cost is within steward
+autonomy → `agentctl` wait-gpu/start/watch → on completion run `check`, record
+numbers, set status, flag director if interpretation is needed → return to
+watch/idle.
 
 Stewards do not wait for confirmation to fill idle GPU. If a higher-priority
 eligible entry appears while a steward job is running, the steward uses
@@ -161,6 +167,6 @@ job is maintaining guards as results land — the ordering is the easy part.
 
 ## Adoption
 
-Per-project opt-in; `on-deck/` is live working state (gitignored unless a
-project tracks its plans). First used for research programs where idle GPU
-time is valuable but full autonomy would burn compute on stale priorities.
+Per-project opt-in via `$on-deck`; `on-deck/` is live working state (gitignored
+unless a project tracks its plans). First used for research programs where idle
+GPU time is valuable but full autonomy would burn compute on stale priorities.

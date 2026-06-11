@@ -267,9 +267,10 @@ def render_entry(args: argparse.Namespace, launch: str) -> str:
 """
 
 
-def write_index(root: Path) -> Path:
+def write_index(root: Path) -> Path | None:
     deck = deck_dir(root)
-    deck.mkdir(parents=True, exist_ok=True)
+    if not deck.exists():
+        return None
     index = deck / "INDEX.md"
     rows = [
         "# On-deck Index",
@@ -280,6 +281,8 @@ def write_index(root: Path) -> Path:
         "|---:|---|---|---|---|---|---|---|---|",
     ]
     for path, fields, _body in sorted_entries(root):
+        if fields.get("status") == "retired":
+            continue
         rel = path.relative_to(root)
         rows.append(
             "| {priority} | {slug} | {by} | {status} | {cost} | {guard} | {skip_if} | {provenance} | [{file}]({file}) |".format(
@@ -321,6 +324,8 @@ def add(args: argparse.Namespace) -> int:
     launch = shlex.join(args.launch)
     path.write_text(render_entry(args, launch))
     index = write_index(args.root)
+    if index is None:
+        raise RuntimeError("internal error: add created entry without an on-deck directory")
     print(path.relative_to(args.root))
     print(f"index: {index.relative_to(args.root)}")
     return 0
@@ -329,6 +334,9 @@ def add(args: argparse.Namespace) -> int:
 def index_cmd(args: argparse.Namespace) -> int:
     root = args.root.resolve()
     index = write_index(root)
+    if index is None:
+        print("no on-deck directory")
+        return 0
     print(index.relative_to(root))
     return 0
 
@@ -372,8 +380,8 @@ def retire(args: argparse.Namespace) -> int:
     text = replace_status(path.read_text().rstrip() + "\n", "retired")
     reason = args.reason or "retired"
     text += f"- {utc_now()} steward: retired - {reason}\n"
-    path.write_text(text)
     shutil.move(str(path), str(dest))
+    dest.write_text(text)
     write_index(root)
     print(dest.relative_to(root))
     return 0

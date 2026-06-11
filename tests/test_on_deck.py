@@ -91,6 +91,17 @@ def test_add_index_and_validate():
         ws.cleanup()
 
 
+def test_index_without_queue_is_noop():
+    ws = Workspace()
+    try:
+        res = ws.run("index")
+        _assert(res.returncode == 0, res.stderr)
+        _assert("no on-deck directory" in res.stdout, res.stdout)
+        _assert(not (ws.root / "on-deck").exists(), "index created an unopted queue")
+    finally:
+        ws.cleanup()
+
+
 def test_steward_priority_cap():
     ws = Workspace()
     try:
@@ -111,9 +122,23 @@ def test_index_sort_and_retire():
         res = ws.run("retire", "high", "--reason", "covered by newer run")
         _assert(res.returncode == 0, res.stderr)
         _assert(not (ws.root / "on-deck" / "high.md").exists(), "retired entry stayed live")
-        _assert((ws.root / "on-deck" / "done" / "high.md").exists(), "retired entry was not moved")
+        done = ws.root / "on-deck" / "done" / "high.md"
+        _assert(done.exists(), "retired entry was not moved")
+        _assert("status: \"retired\"" in done.read_text(), "retired status was not written to done entry")
         index = (ws.root / "on-deck" / "INDEX.md").read_text()
         _assert("high" not in index, "retired entry remained in live index")
+    finally:
+        ws.cleanup()
+
+
+def test_retired_live_entry_is_not_indexed():
+    ws = Workspace()
+    try:
+        _assert(ws.run(*add_args("stale-retired", priority="9")).returncode == 0)
+        res = ws.run("log", "stale-retired", "--status", "retired", "left retired in live queue")
+        _assert(res.returncode == 0, res.stderr)
+        index = (ws.root / "on-deck" / "INDEX.md").read_text()
+        _assert("stale-retired" not in index, "live retired entry remained in index")
     finally:
         ws.cleanup()
 

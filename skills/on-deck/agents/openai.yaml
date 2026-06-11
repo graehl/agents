@@ -1,4 +1,4 @@
 interface:
   display_name: "On-Deck"
   short_description: "Add guarded runs to on-deck queues"
-  default_prompt: "Use $on-deck to add a guarded series of runs to the project on-deck queue."
+  default_prompt: "Use $on-deck to add guarded runs to the project on-deck queue, and go if they should launch now."

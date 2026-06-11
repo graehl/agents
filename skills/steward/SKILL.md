@@ -15,8 +15,10 @@ not a daemon; `/rep steward` can repeat it.
 2. Read `RUNS.md` and `RESEARCH.md` when present.
 3. Read `topics/on-deck.md` in the project; if absent, read
    `~/agents/topics/on-deck.md`.
-4. If `~/agents/scripts/on_deck.py` exists, regenerate `on-deck/INDEX.md`
-   before selecting entries:
+4. If `on-deck/` is absent, report that there is no on-deck queue and stop
+   without creating files. `$on-deck` is the opt-in initializer.
+5. If `~/agents/scripts/on_deck.py` exists and `on-deck/` is present,
+   regenerate `on-deck/INDEX.md` before selecting entries:
    `python3 ~/agents/scripts/on_deck.py index --root <project-root>`.
 
 ## Steward Loop
@@ -28,8 +30,8 @@ considered.
 
 1. Inspect `agentctl list`, current `on-deck/*.md`, and GPU state
    (`nvidia-smi` when available).
-2. Select the highest-priority live entry whose guard passes, whose `skip_if`
-   does not fire, and whose cost is within steward autonomy.
+2. Select the highest-priority pending entry whose guard passes, whose
+   `skip_if` does not fire, and whose cost is within steward autonomy.
 3. Launch with `agentctl` exactly as the entry says, preserving its
    `--context-note`, provenance, declared inputs/outputs, and runtime estimate.
    Prefer `agentctl start ... --watch-notify-gpu-idle` when the entry does not

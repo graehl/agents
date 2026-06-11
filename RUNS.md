@@ -74,9 +74,10 @@ the trigger zone: find and launch a second job from the plan without asking.
 ### On-deck GPU fillers
 
 Projects may opt into `on-deck/` as a guarded queue of single-step GPU fillers;
-see `topics/on-deck.md`. A steward agent may fill idle GPU without waiting for
-confirmation when an entry's guard passes, its skip-if does not fire, and its
-cost is within steward autonomy. Use `/steward` for one fill-until-full pass
+see `topics/on-deck.md`. `$on-deck` creates the queue. A steward agent may fill
+idle GPU without waiting for confirmation when an entry's guard passes, its
+skip-if does not fire, and its cost is within steward autonomy. If `on-deck/`
+is absent, `/steward` is a no-op. Use `/steward` for one fill-until-full pass
 and `/rep steward` when repeated servicing is desired.
 
 On-deck does not replace `agentctl` run state. The queue answers "what should
