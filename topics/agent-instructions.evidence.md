@@ -223,3 +223,22 @@ pass missed this one.
   already being taken by capable models; the rule's marginal effect is
   making the skip legitimate and auditable (the stated one-line
   deduction) rather than enabling it.
+
+## 2026-06-11 — Codex model floor: below GPT-5.5 is weak
+
+- Same-day follow-up to the frontier-latitude entry above. The
+  Haiku-via-Claude guard keyed only on the launcher having surfaced
+  `AGENTS.weak.md`; user pointed out Codex 5.3 Spark may run under the
+  Codex supplement the same way, so the guard must not depend on the
+  launcher. `AGENTS.codex.md` now names an explicit floor: below
+  GPT-5.5 counts as weak — self-serve `AGENTS.weak.md`, skip
+  `AGENTS.frontier.md`.
+- User assessment worth keeping (their direct observation): Spark is
+  sloppy enough to be a high-supervision / likely-not-worth-it model
+  for this setup, hence floor-by-name rather than trusting a Spark
+  launch to self-assess capability.
+- Known limit: the floor asks the model to read its own model name
+  from harness context and follow a branch — a weak model can fail
+  exactly that. Defense in depth, not a guarantee; the
+  launcher-surfaced `AGENTS.weak.md` path remains the primary
+  mechanism.

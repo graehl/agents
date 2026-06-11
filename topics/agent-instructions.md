@@ -228,7 +228,10 @@ weaker model would read as a rationalization license. The Claude and
 Codex supplements route to it; the Grok supplement does not, and both
 the pointer and the file itself disclaim the file when
 `AGENTS.weak.md` was also surfaced (a frontier-provider harness can
-still be running a small model).
+still be running a small model). The Codex supplement also names an
+explicit model floor — below GPT-5.5 (Spark-class) is weak — that
+self-serves `AGENTS.weak.md` without depending on the launcher having
+surfaced it.
 
 Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.

@@ -2,9 +2,14 @@
 
 Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
 running in Codex / OpenAI Codex. This file contains Codex harness
-mechanics; shared policy stays in `AGENTS.md`. Unless this launch also
-surfaced `AGENTS.weak.md` (smaller model), read
-`~/agents/AGENTS.frontier.md` next — frontier-tier latitude.
+mechanics; shared policy stays in `AGENTS.md`.
+
+Model tier: any Codex model below GPT-5.5 (e.g. Codex 5.3 Spark)
+counts as weak — read `~/agents/AGENTS.weak.md` in addition and do
+not read `AGENTS.frontier.md`, even when the launcher did not surface
+the weak supplement. At GPT-5.5 or above, unless this launch surfaced
+`AGENTS.weak.md`, read `~/agents/AGENTS.frontier.md` next —
+frontier-tier latitude.
 
 ## Session Identity
 
