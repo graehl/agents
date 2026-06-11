@@ -461,7 +461,8 @@ For git projects, maintain committed `topics/*.md` docs for cross-cutting
 contracts: shared invariants, integration boundaries, and system-level
 concerns, not module notes or changelogs. Create `topics/` when first
 needed, not proactively. Basenames are the `Topic:` trailer namespace; read
-`~/agents/TOPICS.md` when creating or assessing a topic's granularity.
+`~/agents/TOPICS.md` when creating or assessing a topic's granularity
+or choosing a landing site for a durable note.
 
 Read the relevant topic doc and its `.bearings.md` companion if present
 before touching code for a bug, committing to a significant plan, entering

@@ -15,6 +15,20 @@ of every term listed here, plus additional field jargon. That file is a
 human reference — regenerate it on demand rather than maintaining it
 incrementally.
 
+## Landing-site principles
+
+Where a durable note lands — which doc, which section:
+
+- Name the retrieval trigger first: who needs this fact, and what
+  sends them looking? Land where that reader will look; if no
+  trigger is nameable, reconsider landing it at all.
+- Match the file's loading regime: decision surface in rule files
+  (boot or topic), rationale and mental models in `.evidence.md`,
+  private working state in `tasks/`.
+- One home plus pointers, never two homes for the same claim.
+- Narrowest scope that contains the fact's users (project over
+  global, subtree over root); promote when scope provably widens.
+
 ## By domain
 
 *Code conventions (cross-cutting)*:

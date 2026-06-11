@@ -313,3 +313,32 @@ why):
   repo, code that blame says is mostly someone else's gets the
   polite-guest treatment. Origin: user observed agents already doing
   sensible auto-cleanup in `~/ya` near his own blame.
+
+## 2026-06-11 — landing-site principles: worth-the-cost split
+
+User asked which of five landing-site principles (where durable notes
+land) belong in rules vs. here. Landed in `TOPICS.md` § Landing-site
+principles (trigger-loaded, cheap): retrieval-trigger test,
+loading-regime match, one-home-plus-pointers, narrowest-scope clause;
+the boot's TOPICS.md trigger gained "or choosing a landing site for a
+durable note" so the section loads at the routine moment. User
+singled out the retrieval-trigger thought ("consider the reader using
+our instructions") as non-default and likely to pay off.
+
+Kept out of the rule surface:
+- Visible/atomic landing: already mandated by separable commits and
+  the agent-chosen-path callout; restating is prompt debt. Its
+  rationale: the user's cheap-redirect loop — they re-aim a landing
+  site on seeing the edit — only works when each note is a separable,
+  named edit; principles raise the first-guess hit rate, visibility
+  keeps redirects one move.
+- "Prefer a section over a new file": already in AGENTS.md verbatim.
+
+Mental model behind loading-regime (mnemonic, not decider): the doc
+system is a cache hierarchy — boot always loaded (zero waste), topics
+on trigger, evidence rarely (capture over brevity), tasks private and
+ephemeral; decision surface moves up the hierarchy, rationale down.
+
+One-home justification: a claim duplicated across docs creates citers
+the caller-sweep duty must then cover; one home plus pointers keeps
+the sweep single-target.
