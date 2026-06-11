@@ -134,6 +134,10 @@ load-bearing; restatements of standard tool mechanics or defaults are not.
 Add explicit rules to prevent known project-specific failures; avoid
 prompt debt that just replaces ordinary engineering judgment.
 
+The same bar applies to rationale: "good because" prose that doesn't
+sharpen the decision surface moves to the relevant `.evidence.md` ledger
+(create one if needed) rather than padding the rule or being deleted.
+
 Non-frontier agents occasionally edit these projects, so keep redundancy —
 worked examples, and the rationale behind counterintuitive rules — that
 stops a weaker agent reasoning its way around a rule, even where a frontier
