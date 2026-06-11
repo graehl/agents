@@ -65,7 +65,7 @@ branches, commits, shared workdirs, or private notes.
 | `topics/` | Committed cross-cutting contracts and rationale: debugging, testing, agent instructions, run provenance, UI verification, and more. |
 | `skills/` | Optional workflows layered on the core policy; highlights below. |
 | `agentctl`, `agentctl.py`, `agentctl_plugins/` | A dependency-free local process manager with active-session participation, run state, and optional plugins. |
-| `scripts/` | Small helper scripts, including guarded git launchers and commit-message formatting checks. |
+| `scripts/` | Small helper scripts, including guarded git launchers, on-deck queue scaffolding, and commit-message formatting checks. |
 | `code-map/` | Developer-facing maps of this repo and selected related repos. |
 | `tests/` | Regression coverage for `agentctl` behavior. |
 
@@ -84,6 +84,8 @@ without relying on those files.
 | `skills/dream/` | Consolidates a doc project by pruning contradiction/staleness and distilling facts established in recent sessions but never written down. |
 | `skills/others/` | Reports the active-agent state in the current project: self entry, active peers, recently DONE work, and stale sessions. |
 | `skills/rep/` | Repeats or self-paces a prompt across wakeups; useful as a workaround when an agent harness lacks built-in loop capability. |
+| `skills/on-deck/` | Adds guarded single-step research/run jobs to a project's `on-deck/` queue. |
+| `skills/steward/` | Fills idle GPU capacity from eligible on-deck entries, with `/rep steward` as the repeated form. |
 
 ## What the Rules Preserve
 
@@ -122,8 +124,9 @@ debt is treated as a maintenance cost.
   pre-edit reread rule, path-limited edit habit, and big-effect gate. Those are
   the high-value safety pieces.
 - **Research or eval repo:** add `RESEARCH.md`, `RUNS.md`,
-  `topics/provenance-tracking.md`, and `agentctl` so experiments, claims, and
-  artifacts have a recoverable record.
+  `topics/provenance-tracking.md`, `topics/on-deck.md`, and `agentctl` so
+  experiments, queued GPU fillers, claims, and artifacts have a recoverable
+  record.
 - **Instruction-design work:** read `topics/agent-instructions.md` and
   `topics/instruction-ablation.md`. This repo treats instruction quality as a
   hypothesis to test, not as a belief proven by sounding careful.

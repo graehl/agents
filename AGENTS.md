@@ -65,7 +65,8 @@ When resuming after a disconnect, crash, restart, or compaction,
 recover from live state first: worktree, the active root task
 (`tasks/ROOT` names it if present, else newest `tasks/*.md` by
 mtime, even if git-ignored), `.agentctl/active/`, run metadata,
-artifacts, then provider session logs. With no `tasks/ROOT`, a
+`on-deck/` queue state when present, artifacts, then provider
+session logs. With no `tasks/ROOT`, a
 recently modified `*.bearings.md` is a useful "what is this even
 doing" orientation fallback. A `last-session.md` newer than that
 live evidence may be offered as an optional restore step; never

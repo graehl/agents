@@ -71,6 +71,19 @@ the trigger zone: find and launch a second job from the plan without asking.
    Fixed sleeps are unreliable because child/worker processes can hold GPU
    memory well past the parent's exit.
 
+### On-deck GPU fillers
+
+Projects may opt into `on-deck/` as a guarded queue of single-step GPU fillers;
+see `topics/on-deck.md`. A steward agent may fill idle GPU without waiting for
+confirmation when an entry's guard passes, its skip-if does not fire, and its
+cost is within steward autonomy. Use `/steward` for one fill-until-full pass
+and `/rep steward` when repeated servicing is desired.
+
+On-deck does not replace `agentctl` run state. The queue answers "what should
+run next"; `.agentctl/` answers "what is running now." If a higher-priority
+eligible entry appears while a steward filler is running, pause/kill only as a
+judgment call when the saved time is worth the lost work and the stop is safe.
+
 ### Implicitly authorized routine operations and return-from-sidebar liveness
 
 After a sidebar, immediately resume with the previously agreed next step (or its

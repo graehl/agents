@@ -1,0 +1,4 @@
+interface:
+  display_name: "Steward"
+  short_description: "Fill idle GPUs from on-deck queues"
+  default_prompt: "Use $steward to fill idle GPU capacity from the project on-deck queue."

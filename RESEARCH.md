@@ -441,6 +441,15 @@ subtask is newly identified, or a significant finding is recorded. These commits
 require explicit permission; use judgment and proceed if confident. It is polite to note
 "committing now" or ask first when the scope is ambiguous.
 
+### On-deck research runs
+
+For GPU-heavy research programs, `on-deck/` is the executable projection of
+research triage into guarded single-step runs, not a replacement for the
+research log or task file. Each entry should point back to the governing task,
+research log, progress-report triage row, or topic next-step; the steward runs
+checks and records raw facts, while research interpretation still lands in the
+paper/log/task as appropriate. See `topics/on-deck.md`.
+
 **What to commit**:
 - `research/<branchname>.md` and `research/<branchname>.log.md` — always commit when
   updated; these are the persistent record of the work.
