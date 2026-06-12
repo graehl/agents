@@ -40,15 +40,38 @@ The digest's provenance header (date, source commit, word count) is the
 freshness signal; the claude.ai Project instructions should point
 conversations at it so a stale copy is self-announcing.
 
+## Preferences extract and authority tiers
+
+claude.ai weighs content by channel: fetched web pages are untrusted
+data (instructions in them are ignored by design), project knowledge
+is user-provided reference, and the instructions fields — a Project's
+custom instructions, or the account-wide preferences — are the
+full-authority, always-loaded channel. The digest lives in the
+knowledge tier, which is right for a discussable corpus but wrong for
+behavioral rules: knowledge is retrieved on demand, so directives
+there may simply not be in context.
+
+`digest/claude-web-preferences.md` is therefore a pasteable,
+self-contained distillation of the interaction rules for the
+account-wide preferences field — no repo/GitHub/digest pointers, by
+the user's choice, so it carries identically in any conversation. It
+is hand-maintained, not script-generated: distillation is a judgment
+step, unlike the digest's concatenation. `scripts/web-digest` warns
+when `AGENTS.md`/`AGENTS.user.md` have commits newer than the
+extract's.
+
 ## Design decisions
 
 - **Committed digest file** (vs. selecting the real files directly in
   claude.ai's GitHub source): prioritizes versioned, diffable scope and
   the ability to preprocess (provenance header, rider exclusion);
   accepts generated-file churn in the repo.
-- **Script, not skill** (vs. a `/web-digest` skill): deterministic
-  concatenation needs no judgment, and a plain script runs without an
-  agent; accepts revisiting if the step ever grows a distillation pass.
+- **Script for the digest, skill for the extract** (vs. one mechanism
+  for both): concatenation is deterministic and runs without an agent;
+  the preferences extract is a judgment distillation, so its refresh
+  belongs to `skills/web-digest/SKILL.md`, which wraps the whole loop
+  (run script, re-distill when stale, commit, push, name the manual
+  claude.ai steps); accepts that a full refresh needs an agent.
 
 ## Sketches
 

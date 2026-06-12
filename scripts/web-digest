@@ -55,3 +55,13 @@ mkdir -p "$(dirname "$out")"
 } >"$out"
 
 echo "web-digest: wrote $out (${#selected[@]} files, $(wc -w <"$out") words)"
+
+# digest/claude-web-preferences.md is a hand-maintained distillation of
+# the interaction rules (topics/web-digest.md § Preferences extract);
+# nudge when its sources have outpaced it.
+extract=digest/claude-web-preferences.md
+src_t=$(git log -1 --format=%ct -- AGENTS.md AGENTS.user.md)
+ext_t=$(git log -1 --format=%ct -- "$extract")
+if [[ -n $src_t && -n $ext_t && $src_t -gt $ext_t ]]; then
+  echo "web-digest: $extract may be stale — AGENTS.md/AGENTS.user.md have newer commits; re-check the distillation" >&2
+fi
