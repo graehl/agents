@@ -1,19 +1,30 @@
 ---
 name: steward
-description: Fill idle GPU/resource capacity from a project's on-deck queue; one round by default, looping under /steward forever. Use when the user invokes /steward or /steward forever, asks to steward or tend on-deck jobs, asks to fill idle GPU with research/runs work, asks to run eligible on-deck entries, or uses /rep steward for repeated on-deck service.
+description: Fill idle GPU/resource capacity from a project's on-deck queue; one wired round by default, looping under a duration argument (/steward 8h, /steward forever), with any further argument text read as director guidance. Use when the user invokes /steward (with or without duration/guidance), asks to steward or tend on-deck jobs, asks to fill idle GPU with research/runs work, asks to run eligible on-deck entries, or uses /rep steward for repeated on-deck service.
 ---
 
 # Steward
 
 Steward the current project by launching eligible `on-deck/` entries until GPU
-or other declared resources are full. Three modes:
+or other declared resources are full.
 
-- **once** — one round, nothing armed afterward (say `once` or `no watch`
-  when attending interactively and no later wake is wanted);
-- **once+chained** — the default: one round that leaves its work wired
-  (*Completion triggers* below), so chained follow-ons and one completion
-  wake happen without polling;
-- **forever** — `/steward forever` re-arms each wake.
+**Arguments**: `/steward [duration] [guidance...]`. A leading `Nm`/`Nh`/`Nd`
+or `forever` token sets the loop window; everything else is read as director
+guidance for the round(s) — reprioritizations, exclusions, or new work
+("front-load X", which routes through the on-deck authoring flow as
+ratified director input before the first pass). Carry guidance verbatim in
+re-arm prompts so later wakes still honor it; convert a duration to an
+absolute UTC deadline in the re-arm prompt (`/steward until <ISO> ...`).
+
+Modes by duration:
+
+- **once** — say `once` or `no watch`: one round, nothing armed afterward
+  (attended use, no later wake wanted);
+- **once+chained** — the default (no duration): one round that leaves its
+  work wired (*Completion triggers* below), so chained follow-ons and one
+  completion wake happen without polling;
+- **duration / forever** — re-arms each wake until the deadline (or, for
+  `forever`, until told to stop).
 
 This is pull-based agent work, not a daemon.
 
@@ -73,14 +84,15 @@ A round never ends with unwired work; polling is not the mechanism:
    bare `/steward` or `/rep steward` event-driven for free: the wake
    services results and selects next work as one follow-up round.
 
-## `/steward forever`
+## Looping (`/steward <duration>` / `/steward forever`)
 
 Each wake runs a round, re-arms the idle watch, and re-arms one *long*
 `ScheduleWakeup` fallback heartbeat (3600s) whose only purpose is safety —
 agentctl malfunction, miswiring, or an unexpectedly missed event — not
-cadence. When the queue is terminal (no eligible entries, no running jobs,
-remainder blocked on director judgment), keep idling at heartbeat cadence,
-since new entries may arrive. Stop only when told.
+cadence. Past the deadline, write the final report and stop. When the queue
+is terminal (no eligible entries, no running jobs, remainder blocked on
+director judgment), report and stop early — except `forever`, which keeps
+idling at heartbeat cadence since new entries may arrive.
 
 ## Autonomy Bounds
 
