@@ -1,7 +1,7 @@
 # agents repo — web digest
 
-Generated 2026-06-12 from github.com/graehl/agents commit cd2e957.
-Scope: scripts/web-digest.manifest (63 files, 79012 words).
+Generated 2026-06-12 from github.com/graehl/agents commit 737d591.
+Scope: scripts/web-digest.manifest (63 files, 79071 words).
 
 One source file per section; each `## FILE:` header carries the repo path.
 
@@ -3841,7 +3841,7 @@ description: Refresh the claude.ai web context — regenerate digest/claude-web.
 
 Contract: `topics/web-digest.md`. Two artifacts with different update
 mechanics: `digest/claude-web.md` is deterministic concatenation (the
-script's job, never hand-edited), and `digest/claude-web-preferences.md`
+script's job, never hand-edited), and `digest/paste-into-claude.ai-preferences.md`
 is a judgment distillation (this skill's job, never script-generated).
 
 ## Workflow
@@ -3853,8 +3853,10 @@ is a judgment distillation (this skill's job, never script-generated).
 2. **Re-distill the extract when stale.** On that warning, or when the
    user asks: re-read `AGENTS.md` § Interaction style and
    `AGENTS.user.md` § Disposition and § Writing and summary style, then
-   update the bulleted block in `digest/claude-web-preferences.md` to
+   update the bulleted block in `digest/paste-into-claude.ai-preferences.md` to
    match current policy. Preserve its contract:
+   - verbatim paste payload — bullets only, no title, framing, or
+     maintenance notes; select-all → paste is the whole operation;
    - self-contained — no repo, GitHub, or digest pointers;
    - preferences-field sized — roughly the current length, a handful of
      bullets, not a corpus mirror;
@@ -10192,14 +10194,17 @@ knowledge tier, which is right for a discussable corpus but wrong for
 behavioral rules: knowledge is retrieved on demand, so directives
 there may simply not be in context.
 
-`digest/claude-web-preferences.md` is therefore a pasteable,
+`digest/paste-into-claude.ai-preferences.md` is therefore a pasteable,
 self-contained distillation of the interaction rules for the
 account-wide preferences field — no repo/GitHub/digest pointers, by
-the user's choice, so it carries identically in any conversation. It
-is hand-maintained, not script-generated: distillation is a judgment
-step, unlike the digest's concatenation. `scripts/web-digest` warns
-when `AGENTS.md`/`AGENTS.user.md` have commits newer than the
-extract's.
+the user's choice, so it carries identically in any conversation. The
+file is the verbatim paste payload: bullets only, no title, framing,
+or maintenance notes, so select-all → paste is the whole operation.
+It is hand-maintained (distilled from `AGENTS.md` § Interaction style
+and `AGENTS.user.md` § Disposition / Writing and summary style), not
+script-generated: distillation is a judgment step, unlike the
+digest's concatenation. `scripts/web-digest` warns when those sources
+have commits newer than the extract's.
 
 ## Design decisions
 
