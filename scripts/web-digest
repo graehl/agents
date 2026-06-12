@@ -56,10 +56,10 @@ mkdir -p "$(dirname "$out")"
 
 echo "web-digest: wrote $out (${#selected[@]} files, $(wc -w <"$out") words)"
 
-# digest/claude-web-preferences.md is a hand-maintained distillation of
+# digest/paste-into-claude.ai-preferences.md is a hand-maintained distillation of
 # the interaction rules (topics/web-digest.md § Preferences extract);
 # nudge when its sources have outpaced it.
-extract=digest/claude-web-preferences.md
+extract=digest/paste-into-claude.ai-preferences.md
 src_t=$(git log -1 --format=%ct -- AGENTS.md AGENTS.user.md)
 ext_t=$(git log -1 --format=%ct -- "$extract")
 if [[ -n $src_t && -n $ext_t && $src_t -gt $ext_t ]]; then

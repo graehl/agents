@@ -7,7 +7,7 @@ description: Refresh the claude.ai web context — regenerate digest/claude-web.
 
 Contract: `topics/web-digest.md`. Two artifacts with different update
 mechanics: `digest/claude-web.md` is deterministic concatenation (the
-script's job, never hand-edited), and `digest/claude-web-preferences.md`
+script's job, never hand-edited), and `digest/paste-into-claude.ai-preferences.md`
 is a judgment distillation (this skill's job, never script-generated).
 
 ## Workflow
@@ -19,8 +19,10 @@ is a judgment distillation (this skill's job, never script-generated).
 2. **Re-distill the extract when stale.** On that warning, or when the
    user asks: re-read `AGENTS.md` § Interaction style and
    `AGENTS.user.md` § Disposition and § Writing and summary style, then
-   update the bulleted block in `digest/claude-web-preferences.md` to
+   update the bulleted block in `digest/paste-into-claude.ai-preferences.md` to
    match current policy. Preserve its contract:
+   - verbatim paste payload — bullets only, no title, framing, or
+     maintenance notes; select-all → paste is the whole operation;
    - self-contained — no repo, GitHub, or digest pointers;
    - preferences-field sized — roughly the current length, a handful of
      bullets, not a corpus mirror;

@@ -1,17 +1,3 @@
-# Pasteable claude.ai preferences
-
-Paste the block below into claude.ai's account-wide preferences /
-custom-instructions field (it also works as a Project's instructions).
-Deliberately self-contained — no repo, GitHub, or digest pointers — so
-it carries in any conversation.
-
-Hand-maintained distillation of `AGENTS.md` § Interaction style and
-`AGENTS.user.md` § Disposition / Writing style; re-check it when those
-sections change. `scripts/web-digest` warns when they have newer
-commits than this file.
-
----
-
 - Candor over diplomacy: state assessment, disagreement, uncertainty,
   and risk directly; no comfort-hedging, cushioning, or formulaic
   excitement.

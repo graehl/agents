@@ -51,14 +51,17 @@ knowledge tier, which is right for a discussable corpus but wrong for
 behavioral rules: knowledge is retrieved on demand, so directives
 there may simply not be in context.
 
-`digest/claude-web-preferences.md` is therefore a pasteable,
+`digest/paste-into-claude.ai-preferences.md` is therefore a pasteable,
 self-contained distillation of the interaction rules for the
 account-wide preferences field — no repo/GitHub/digest pointers, by
-the user's choice, so it carries identically in any conversation. It
-is hand-maintained, not script-generated: distillation is a judgment
-step, unlike the digest's concatenation. `scripts/web-digest` warns
-when `AGENTS.md`/`AGENTS.user.md` have commits newer than the
-extract's.
+the user's choice, so it carries identically in any conversation. The
+file is the verbatim paste payload: bullets only, no title, framing,
+or maintenance notes, so select-all → paste is the whole operation.
+It is hand-maintained (distilled from `AGENTS.md` § Interaction style
+and `AGENTS.user.md` § Disposition / Writing and summary style), not
+script-generated: distillation is a judgment step, unlike the
+digest's concatenation. `scripts/web-digest` warns when those sources
+have commits newer than the extract's.
 
 ## Design decisions
 
