@@ -1,0 +1,30 @@
+# Scope for digest/claude-web.md — the repo subset synced into claude.ai
+# project knowledge for web/assistant conversations (the non-coding
+# surface; coding sessions run in a local harness that reads the repo
+# directly and never need the digest).
+#
+# Globs match against `git ls-files` output, so only tracked files can
+# ever be included — gitignored private state (AGENTS.local.md, tasks/,
+# user/) is excluded by construction. Lines starting with `!` exclude.
+# Contract: topics/web-digest.md
+
+README.md
+AGENTS.md
+AGENTS.user.md
+AGENTS.claude.md
+AGENTS.codex.md
+AGENTS.grok.md
+AGENTS.frontier.md
+AGENTS.weak.md
+RESEARCH.md
+RUNS.md
+feature-branch.md
+survey-field.md
+research-frontier.md
+GLOSSARY.md
+TOPICS.md
+topic-definitions.md
+topics/*.md
+!topics/*.evidence.md
+!topics/*.bearings.md
+skills/*/SKILL.md
