@@ -138,10 +138,10 @@ successful functional run at smoke scale before its entry goes `pending`,
 and beyond that, do not chase completeness — environment surprises (a
 dtype/attention/loader interaction) hit even proven scripts, and the
 status-log → flag-director → repair-and-relaunch loop absorbs them more
-cheaply than pre-specification ever could. A chained `--after` launch fires
-when its predecessor *finishes*, not when it succeeds, so a failed step
-cascades fail-fast noise through its chain; keep chained payloads cheap to
-fail and let the relaunch carry the fix.
+cheaply than pre-specification ever could. agentctl `--after` chains are
+success-conditional: a failed predecessor fails the waiting job with
+`wait-after failed` *without running its payload*, so a chain fail-fasts
+cleanly and the whole chain is relaunched after the fix.
 
 Runs launched from on-deck inherit the entry's provenance: the authoring skill
 adds a `--context-note` carrying `what/why`, declares known inputs/outputs, and
