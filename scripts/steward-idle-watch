@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Exit when the project's GPU is freed: the newest running agentctl job
+# ends AND VRAM/power drain to idle (agentctl watch --notify-gpu-idle).
+# Exits immediately when nothing is running. A looped steward arms this
+# in the background so a freed resource re-invokes the agent; the exit
+# is the wake event, the streamed log goes to the background-task file.
+set -euo pipefail
+
+root="${1:-.}"
+cd "$root"
+if [ ! -x ./agentctl ]; then
+    echo "no ./agentctl at $PWD; nothing to watch" >&2
+    exit 0
+fi
+job=$(./agentctl list 2>/dev/null | awk '/ running /{print $1; exit}')
+if [ -z "$job" ]; then
+    echo "no running agentctl job; resource treated as free"
+    exit 0
+fi
+echo "watching job=$job until it ends and GPU drains to idle"
+exec ./agentctl watch "$job" --notify-gpu-idle

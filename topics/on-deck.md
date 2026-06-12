@@ -164,7 +164,12 @@ is the opt-in initializer that creates the queue directory.
 
 One `/steward` invocation fills idle resources until GPU or other declared
 resources are full, no eligible entry remains, or the next entry needs director
-judgment. `/rep steward` is the looped form; there is no resident scheduler.
+judgment. `/steward <duration>` (`8h`, `forever`) is the looped form: `--after`
+chains carry mechanical follow-ons, a background
+`scripts/steward-idle-watch` (agentctl `--notify-gpu-idle`) re-invokes the
+steward when a resource is actually freed, and scheduled wakeups serve only
+as the fallback heartbeat. `/rep steward` remains a working alias. There is
+no resident scheduler.
 
 GPU-idle heartbeat → regenerate/read `INDEX.md` → `on_deck.py eligible
 [--steward]` runs each pending entry's skip-if and guard commands in priority

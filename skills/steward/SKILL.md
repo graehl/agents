@@ -1,13 +1,14 @@
 ---
 name: steward
-description: Fill idle GPU/resource capacity from a project's on-deck queue. Use when the user invokes /steward, asks to steward or tend on-deck jobs, asks to fill idle GPU with research/runs work, asks to run eligible on-deck entries, or uses /rep steward for repeated on-deck service.
+description: Fill idle GPU/resource capacity from a project's on-deck queue, optionally looping for a duration. Use when the user invokes /steward (optionally with a duration argument like 30m, 8h, or forever), asks to steward or tend on-deck jobs, asks to fill idle GPU with research/runs work, asks to run eligible on-deck entries, or uses /rep steward for repeated on-deck service.
 ---
 
 # Steward
 
 Steward the current project by launching eligible `on-deck/` entries until GPU
-or other declared resources are full, then stop. This is pull-based agent work,
-not a daemon; `/rep steward` can repeat it.
+or other declared resources are full. Without a duration argument, one pass,
+then stop. With a duration (`/steward 8h`, `/steward forever`), loop per
+*Looped stewarding* below. This is pull-based agent work, not a daemon.
 
 ## Load
 
@@ -51,13 +52,28 @@ considered.
    or the next entry requires director judgment. In the final report, list
    any `blocked` or guard-failing entries that need director work — they are
    the queue's open questions, not noise.
-7. When leaving jobs running (a looped steward, `/rep steward`), arm one
-   background `agentctl watch <job> --notify-gpu-idle` per long-running job
-   so a freed GPU re-invokes the steward immediately — it exits only when
-   the job ends *and* VRAM/power drop to idle, covering allocator drain.
-   Scheduled wakeups are the fallback heartbeat, not the primary wake
-   signal; chains (`--after`) cover mechanically-determined follow-ons, the
-   idle watch covers judgment points.
+## Looped Stewarding (duration argument)
+
+`/steward <duration>` accepts `Nm`/`Nh`/`Nd` or `forever`. On first
+invocation convert the duration to an absolute UTC deadline and carry it in
+the re-arm prompt (`/steward until <ISO-time>`; `forever` stays literal) so
+each wakeup knows the deadline without filesystem state. Each cycle:
+
+1. Run one steward pass (above).
+2. Wire mechanically-determined follow-ons with `agentctl --after` chains
+   (success-conditional) at launch time — they need no agent wake at all.
+3. Arm `~/agents/scripts/steward-idle-watch <project-root>` as a background
+   task: it exits when the newest running job ends *and* VRAM/power drain
+   to idle (covering allocator drain), re-invoking the steward at exactly
+   the judgment points. It exits immediately if nothing is running.
+4. Arm a `ScheduleWakeup` fallback heartbeat (<=3600s, duration-informed)
+   with the `until`-form prompt. Events wake the loop; the heartbeat only
+   catches hangs.
+5. On each wake: if past the deadline, write the final report and stop
+   without re-arming. If the queue is terminal (no eligible entries, no
+   running jobs, remaining entries all blocked on director judgment),
+   report and stop early — `forever` loops idle at heartbeat cadence
+   instead of stopping, since new entries may arrive.
 
 ## Autonomy Bounds
 
