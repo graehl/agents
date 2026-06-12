@@ -51,6 +51,13 @@ considered.
    or the next entry requires director judgment. In the final report, list
    any `blocked` or guard-failing entries that need director work — they are
    the queue's open questions, not noise.
+7. When leaving jobs running (a looped steward, `/rep steward`), arm one
+   background `agentctl watch <job> --notify-gpu-idle` per long-running job
+   so a freed GPU re-invokes the steward immediately — it exits only when
+   the job ends *and* VRAM/power drop to idle, covering allocator drain.
+   Scheduled wakeups are the fallback heartbeat, not the primary wake
+   signal; chains (`--after`) cover mechanically-determined follow-ons, the
+   idle watch covers judgment points.
 
 ## Autonomy Bounds
 
