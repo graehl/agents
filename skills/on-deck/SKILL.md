@@ -43,6 +43,10 @@ queued) get one line each in the report.
 - The launch parameterizes committed, tested scripts. If the step needs more
   than a few lines of new logic, write the script into the repo first (or
   file the entry `--status blocked`); never inline a program in the entry.
+- Quality bar: reasonably likely to succeed straightforwardly, not fully
+  specified. A new script needs one successful smoke-scale functional run
+  before its entry is `pending`; beyond that, leave residual surprise to the
+  steward's status-log/flag-director loop rather than longer specification.
 - Use `by: director` for user/director-authored work. Use `by: steward` only
   for speculative filler the steward invents.
 - Director-authored entries may use any priority (8-10 urgent, 4-7 normal,

@@ -132,6 +132,17 @@ inline program is untested code frozen into a director-owned field: the
 steward may not repair it when it surprises, while a script bug is fixable
 by any agent without touching the entry.
 
+The quality bar for an entry is *reasonably likely to succeed in a
+straightforward way*, not fully specified: any new script has at least one
+successful functional run at smoke scale before its entry goes `pending`,
+and beyond that, do not chase completeness — environment surprises (a
+dtype/attention/loader interaction) hit even proven scripts, and the
+status-log → flag-director → repair-and-relaunch loop absorbs them more
+cheaply than pre-specification ever could. A chained `--after` launch fires
+when its predecessor *finishes*, not when it succeeds, so a failed step
+cascades fail-fast noise through its chain; keep chained payloads cheap to
+fail and let the relaunch carry the fix.
+
 Runs launched from on-deck inherit the entry's provenance: the authoring skill
 adds a `--context-note` carrying `what/why`, declares known inputs/outputs, and
 carries provenance and `on-success` into the run note / metadata so the run
