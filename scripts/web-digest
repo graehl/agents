@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Build digest/claude-web.md — the scoped repo subset loaded into
-# claude.ai project knowledge for web/assistant (non-coding)
-# conversations. Scope lives in scripts/web-digest.manifest.
-# Refresh loop: run this, commit, push, re-sync in claude.ai.
+# Build digest/claude-web.md — a local, gitignored concatenation of
+# the repo subset scoped by scripts/web-digest.manifest, for ad-hoc
+# manual upload to a claude.ai conversation. Not committed: a claude.ai
+# Project that wants the whole repo adds it as a GitHub source directly.
 # Contract: topics/web-digest.md
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"

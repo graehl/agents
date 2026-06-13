@@ -1,7 +1,7 @@
-# Scope for digest/claude-web.md — the repo subset synced into claude.ai
-# project knowledge for web/assistant conversations (the non-coding
-# surface; coding sessions run in a local harness that reads the repo
-# directly and never need the digest).
+# Scope for digest/claude-web.md — a local, gitignored single-file
+# build for ad-hoc manual upload to a claude.ai conversation (the
+# non-coding surface; coding sessions run in a local harness that reads
+# the repo directly and never need the digest).
 #
 # Globs match against `git ls-files` output, so only tracked files can
 # ever be included — gitignored private state (AGENTS.local.md, tasks/,
@@ -10,7 +10,8 @@
 
 README.md
 AGENTS.md
-AGENTS.user.md
+# AGENTS.user.md is untracked, so it can never match — private state
+# stays out by construction; do not "fix" by re-adding it here.
 AGENTS.claude.md
 AGENTS.codex.md
 AGENTS.grok.md

@@ -10,3 +10,4 @@ __pycache__/
 .snapshots/
 .codex
 last-session.md
+digest/claude-web.md

@@ -1,10 +1,12 @@
 # Web digest
 
-> A committed single-file concatenation (`digest/claude-web.md`) of this
-> repo's instruction/policy corpus, scoped by `scripts/web-digest.manifest`
-> and rebuilt by `scripts/web-digest`, synced into claude.ai project
-> knowledge so web/assistant (non-coding) conversations can see the repo;
-> refresh is a manual run → commit → push → re-sync step.
+> The claude.ai web-context artifacts: a committed, hand-distilled
+> preferences paste (`digest/paste-into-claude.ai-preferences.md`) for
+> the account-wide preferences field, plus an optional local,
+> gitignored single-file concatenation (`digest/claude-web.md`) of the
+> repo's instruction/policy corpus, scoped by
+> `scripts/web-digest.manifest` and built on demand by
+> `scripts/web-digest` for ad-hoc manual upload.
 
 Topic: `web-digest`
 
@@ -13,8 +15,15 @@ Topic: `web-digest`
 Web/assistant conversations (claude.ai default chat, in a Project) are
 the non-coding surface: discussing instruction design, policy, and the
 repo's ideas. Coding always happens in a local harness (Claude Code or
-similar) that reads the repo directly, so the digest serves only the
-web surface and nothing in a coding session should depend on it.
+similar) that reads the repo directly, so these artifacts serve only
+the web surface and nothing in a coding session should depend on them.
+
+The primary artifact is the preferences extract (below) — the
+behavioral rules that ride every web conversation. The digest file is
+secondary and optional: when a claude.ai Project should see the whole
+corpus, the simpler route is adding the repo as a GitHub source
+directly; the local digest build exists for the ad-hoc case (a single
+file to drop into one conversation, with riders pre-excluded).
 
 ## Scope contract
 
@@ -29,16 +38,15 @@ web surface and nothing in a coding session should depend on it.
 
 ## Refresh loop
 
-Manual and periodic by intent (no always-on GitHub reading):
+The digest is a local, gitignored build artifact — never committed
+(2026-06-13 reversal; see Design decisions). Refresh is simply: run
+`scripts/web-digest`, then upload `digest/claude-web.md` wherever it is
+wanted. The provenance header (date, source commit, word count) is the
+freshness signal for any copy that was uploaded earlier.
 
-1. `scripts/web-digest`
-2. commit `digest/claude-web.md` (subject-only is fine)
-3. push
-4. re-sync the GitHub source in the claude.ai Project
-
-The digest's provenance header (date, source commit, word count) is the
-freshness signal; the claude.ai Project instructions should point
-conversations at it so a stale copy is self-announcing.
+The preferences extract refreshes by hand-redistillation when its
+sources move (the script warns); landing that change is an ordinary
+commit, and the user re-pastes into claude.ai settings.
 
 ## Preferences extract and authority tiers
 
@@ -65,15 +73,17 @@ have commits newer than the extract's.
 
 ## Design decisions
 
-- **Committed digest file** (vs. selecting the real files directly in
-  claude.ai's GitHub source): prioritizes versioned, diffable scope and
-  the ability to preprocess (provenance header, rider exclusion);
-  accepts generated-file churn in the repo.
+- **Local digest file, not committed** (2026-06-13, reversing the
+  original committed-file design): the committed copy was generated
+  churn with no real margin over claude.ai's direct GitHub-source
+  ingestion — a Project that wants the repo adds the repo. The script
+  and manifest stay for the ad-hoc single-file build (provenance
+  header, rider exclusion); the output is gitignored.
 - **Script for the digest, skill for the extract** (vs. one mechanism
   for both): concatenation is deterministic and runs without an agent;
   the preferences extract is a judgment distillation, so its refresh
   belongs to `skills/web-digest/SKILL.md`, which wraps the whole loop
-  (run script, re-distill when stale, commit, push, name the manual
+  (run script, re-distill when stale, commit, name the manual
   claude.ai steps); accepts that a full refresh needs an agent.
 
 ## Sketches
