@@ -339,6 +339,63 @@ color per-thread triage*. Triage each arm on its own cost and likelihood;
 a repeated theme is a story for the reader, not extra evidence, and earns
 an arm no triage weight.
 
+### Attributing a surprising change across multiple differences
+
+When a surprising (usually bad) result follows a departure from baseline that
+changed several things at once and you have no one-at-a-time ablation: first
+resort is to **just run the one-thing-at-a-time ablation, or a progression from
+baseline** — if the runs are cheap or the effect is large enough to measure
+quickly, do not spend tokens reasoning about attribution you could cheaply
+measure. The rest of this applies only when the controls are expensive enough
+that careful between-run thought earns its tokens. There, "underperformance
+usually has one main cause" is a useful *prior for where to probe first* — not a
+conclusion; it is Bayes-valid only under two structural conditions, so step away
+from it when either cracks:
+
+- separability — the causes' effects on the metric are ~additive (no
+  interaction): `delta = delta_A + delta_B + delta_AB` with `delta_AB ~ 0`.
+- skew — effect sizes are unequal, so one term usually dominates.
+
+Distrust the single-cause story when any of these hold (signature in parens):
+
+- Interaction / synergy — metric moves only with both present, AND-gate; neither
+  alone is "the" cause (joint != sum of singles).
+- Saturation — a cause near a floor/ceiling caps and hides another's real
+  marginal effect until it is relieved (metric pinned at an extreme).
+- Comparable magnitudes or many simultaneous changes — no reason one dwarfs the
+  rest; with many similar-scope changes a lone dominator is unlikely (order
+  statistics).
+- Sign cancellation — one change helps while another hurts, so the net
+  understates two large opposing effects; "one main cause of the net" is then a
+  category error (net smaller than the changes' scope implies).
+- Regime dependence — a cause helps in one slice and hurts in another; the
+  aggregate is a blend with no context-free main cause (subgroup numbers
+  disagree).
+
+Scope note: a *limiting factor / binding constraint* (one stage binds, so
+changing others does nothing) is deliberately absent — it explains a *missing*
+expected difference (the dual problem), and when it does yield an observed one
+the per-cause harms are usually additive, so it is not a separability failure
+here.
+
+Operational rule: use the prior to aim the *first* control (one leave-one-out,
+or add-one-to-baseline, for the suspected dominant cause), then let the residual
+adjudicate. If that cause explains most of the gap, the prior earned it; if a
+large residual remains — or the residual flips sign — finish the factorial
+before attributing. Two binary factors are four cells; additivity lets three
+determine the fourth, but a confounded pair (baseline + full departure only)
+never identifies the parts, however separable the truth is. One clean
+leave-one-out earns its keep even when the observed gap looks modest: checking A
+alone can reveal B is opposite-signed — a help masking a larger hurt — which the
+net hid.
+
+Two discipline riders. Keep straight *what* you are attributing: one cause can be
+the main driver of the harmful component while the net is a two-effect story (a
+help plus a larger hurt) — "usually one cause" can be true for one and false for
+the other. And until the deciding cell is run, treat any interaction as an open
+question, not a risk: an imagined failure mode is not evidence, and uncertainty
+about an untested interaction is symmetric.
+
 ### Reporting eval conditions precisely
 
 When summarizing a research run, eval result, or claimed "gate", report the
