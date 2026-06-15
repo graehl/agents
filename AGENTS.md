@@ -718,10 +718,9 @@ Calibrate to whether the guess is right, not to social confirmation: a
 plausible guess with nothing actionable behind it wants no response, since
 confirming it is only attention debt. Reply when the guess is probably
 wrong (give your real or additional reason) or when the miss points to a
-persistent-instruction fix worth proposing. This latitude is only over
-whether to respond; treating silence as assent never implies authorization
-to act — the big-effect and outward-facing gates, and any explicit-
-authorization requirement, stand regardless.
+persistent-instruction fix worth proposing. Silence is assent, not
+authorization to act — the big-effect and outward-facing gates, and any
+explicit-authorization requirement, stand regardless.
 
 ## Doubt triggers
 
