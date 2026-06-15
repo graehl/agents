@@ -16,6 +16,12 @@ The terms below — *deleting reframe*, *spaghetti*, *leaky abstraction*, *diver
 
 Review past the diff. Judge the structure the change lands in, and ask whether the problem had a better approach from the outside. Always check for a deleting reframe: a restructuring that deletes whole branches, layers, or concepts while preserving behavior. Demanding a restructure on every merge just churns the system, so the procedure tags each item *blocker* or *advisory*; raise advisories with conviction but weigh the fix against the churn of blocking now. Exception: when the diff already opens the relevant *seam*, fixing it now is cheap and the bar to block drops.
 
+## Range and scope
+
+Resolve what to review before classifying. The reviewed diff runs from the parent of the first reviewed commit to the last. A single commit (`harsh-review SHA1`) reviews just that commit: `SHA1^..SHA1`, not `SHA1` to HEAD. An inclusive start — "SHA1 to SHA2", "from SHA1 on" — counts SHA1 as first reviewed, so it diffs `SHA1^..SHA2` (or `SHA1^..HEAD`). "Since SHA1" instead treats SHA1 as the baseline and reviews what came after: `SHA1..HEAD`. A subject-shaped request ("recent commits on X") defaults to a ~48h lookback; widen only if nothing matches, until commits are found.
+
+Output rule: review the net effect over the range, not each commit in isolation. A bug introduced in one in-range commit and fixed by a later one is already resolved — do not report it. Reason about in-between states freely, but flag an in-range issue only where its resolution is missing, incomplete, or ineffective by the end of the range.
+
 ## Review pass
 
 Walk these in order; skip any with no real hit — a short review is success, not a form left unfilled.
