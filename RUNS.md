@@ -364,6 +364,33 @@ be consumed immediately in the same turn.
 See `~/agents/yepanywhere.md` for heartbeat turn handling and the `PULSE:`
 observability convention.
 
+### Blanket wait cap (55 min)
+
+All agents here bound a foreground `agentctl wait` at **55 min**: pass
+`--timeout 3300` and re-issue on its timeout exit (exit 1 with `timeout
+waiting for <job> to reach <target>` on stderr). Treat any terminal status as
+done, a finished `unknown`/nonzero returncode as failure. 55 sits under both
+the 59-min harness ceiling and the 1h extended-cache TTL, so one block stays a
+cache hit while waking the model only ~once an hour. Do not re-poll under 5
+min for genuinely long jobs — that churns context and degrades reasoning for
+no cache gain; the sub-TTL re-poll only helps under the 5-min standard cache,
+which is not in use here.
+
+The agent must pass an explicit ~59-min `timeout` on the Bash call that runs
+the wait; the 2-min default (`BASH_DEFAULT_TIMEOUT_MS`, deliberately left
+unset) otherwise kills any call that does not opt in — wanted for silent
+hangs.
+
+- **Claude:** the ceiling is `BASH_MAX_TIMEOUT_MS=3540000` (ms = 59 min), set
+  before launch (`~/keys.sh`) and kept on yepanywhere's claude-provider env
+  allowlist so the session env scrub does not strip it. Some versions ignore
+  the var, so validate once per build with a wait that should return "still
+  running" at 55 min; if it is killed earlier the cap is not honored and the
+  scheme silently fails.
+- **Codex:** no such env var or `config.toml` key; `agentctl --timeout`
+  carries the cap by itself (Codex has no default shell timeout). Confirm the
+  internal `bash -lc` wrapper timeout does not cut a 55-min foreground short.
+
 ### Natural pause run status
 
 When reaching a natural pause in any project that has run operations,
