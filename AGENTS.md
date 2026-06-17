@@ -250,7 +250,7 @@ and deployment: `topics/agent-guard.md`.
 # Never reach system-wide
 
 No operation that takes `/` as its scope/root (`find /`, `grep -r /`, `du
-/`, …) without a stated reason and asking first — scope every action to the
+/`, …) without explicit user permission — scope every action to the
 task's real paths. A specific absolute path (`/home/…`, `/tmp/…`) is fine:
 this bans `/` as an operation's root, not the leading slash of normal paths.
 Unprompted whole-system reach is a judgment failure even when read-only and
