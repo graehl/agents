@@ -366,15 +366,26 @@ observability convention.
 
 ### Blanket wait cap (55 min)
 
-All agents here bound a foreground `agentctl wait` at **55 min**: pass
-`--timeout 3300` and re-issue on its timeout exit (exit 1 with `timeout
-waiting for <job> to reach <target>` on stderr). Treat any terminal status as
-done, a finished `unknown`/nonzero returncode as failure. 55 sits under both
-the 59-min harness ceiling and the 1h extended-cache TTL, so one block stays a
-cache hit while waking the model only ~once an hour. Do not re-poll under 5
-min for genuinely long jobs — that churns context and degrades reasoning for
-no cache gain; the sub-TTL re-poll only helps under the 5-min standard cache,
-which is not in use here.
+All agents here bound a foreground `agentctl wait` at **55 min**
+(`--timeout 3300`). The cap segments one logical wait, so **re-wait is
+mandatory**: on a still-running return (timeout exit 1, `timeout waiting for
+<job> to reach <target>` on stderr) start another 55-min wait; only a terminal
+status ends the loop (a finished `unknown`/nonzero returncode is failure — the
+still-running case that *Early failure is a terminal result* leaves open).
+Best-effort in practice: an agent mid-analysis may instead pause to confirm
+with the user, which is fine.
+
+The dual when nothing is waiting: in GPU-fill / steward mode idling is the
+failure — the default, even absent user feedback, is to launch a useful or
+speculative job at **low recorded priority** (an explicit interrupt/abandon
+candidate), not to wait. Slot it via *On-deck GPU fillers* and the
+on-deck/steward instructions.
+
+55 sits under both the 59-min harness ceiling and the 1h extended-cache TTL,
+so one block stays a cache hit while waking the model only ~once an hour. Do
+not re-poll under 5 min for genuinely long jobs — that churns context and
+degrades reasoning for no cache gain; the sub-TTL re-poll only helps under the
+5-min standard cache, which is not in use here.
 
 The agent must pass an explicit ~59-min `timeout` on the Bash call that runs
 the wait; the 2-min default (`BASH_DEFAULT_TIMEOUT_MS`, deliberately left
