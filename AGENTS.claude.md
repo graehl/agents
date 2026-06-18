@@ -62,3 +62,34 @@ ls -t "$project_dir"/*.jsonl 2>/dev/null |
 When `AGENTS.md` says to search provider session logs, search
 `~/.claude/projects/**/*.jsonl`, excluding the current session
 file.
+
+## Pause-then-default flows ("wait for steer, else proceed")
+
+The harness gives you a turn from exactly three things: a user message, a
+*tracked background job* finishing (an `agentctl wait …` or other command
+launched in the background re-invokes you on completion), or a *scheduled
+wakeup* (`ScheduleWakeup`, verified this session; `CronCreate` for a native
+cron schedule). Ending a turn with **no running job and no wakeup** is a
+dead-stop — nothing fires, so an announced "proceed if no steer" never happens
+and you sit idle until the user types. This has bitten a real session: the
+agent said it would proceed, then stalled.
+
+Pick by weight of the fork:
+
+- **Light / interruptible step** (the next run in an interruptible research
+  campaign, cheap and reversible): just proceed this turn and say what you did.
+  Accept that the proposal scrolls off-screen — fine when the step is cheap.
+- **Weighty fork** (expensive, hard to reverse, or the user clearly wants a
+  say): do **not** silently proceed and do **not** dismiss the wait. State an
+  **absolute wall-clock deadline** the user can act on — "answer before
+  5:45 PST or I begin as proposed" — and schedule a wakeup to fire then
+  (`ScheduleWakeup` with `delaySeconds` = seconds-to-deadline, capped at 3600;
+  `CronCreate` for a true absolute-time/cron firing). When it fires, check for
+  an intervening user message; if none, proceed exactly as proposed and say so.
+  The absolute time keeps the commitment legible as the chat scrolls, which a
+  bare "5 minutes" does not.
+
+During an autonomous campaign keep at least one tracked job running so
+completion-notifications self-sustain the loop; the wakeup/cron is the fallback
+for gaps. **Invariant:** never end an autonomous-work turn with no job running
+and no wakeup scheduled — verify before yielding.
