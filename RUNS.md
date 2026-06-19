@@ -306,10 +306,19 @@ process is not a sufficient wait primitive by itself. Likewise, a tmux pane
 that merely prints status to the screen is useful for the human operator but
 does not by itself create a fresh user-input event for the local CLI.
 
-When work is gated on a long-running job, the default wait primitive is:
-- the built-in `agentctl wait/watch --heartbeat ...` path first; prefer this
-  over ad hoc shell sleep loops when all you need is bounded-latency liveness
-  output
+When work is gated on a long-running job, run the wait **in the foreground** and
+stay blocked in it until it terminates. A single foreground `agentctl
+wait`/`watch` Bash call (bounded per *Blanket wait cap* below) is the intended
+liveness/progress reaction: the harness hands control back at the exact moment
+the wait condition is met, so the returning block *is* the re-invocation, and one
+bounded block stays a cache hit. Do **not** push the wait into the background
+(`run_in_background`, a detached `&`, a fire-and-forget watchdog) when you must
+react to its completion — a backgrounded wait forfeits that turn continuation,
+falls out of cache, and degrades into ad hoc polling. The default wait primitive
+is:
+- the built-in `agentctl wait/watch --heartbeat ...` path first, run foreground;
+  prefer this over ad hoc shell sleep loops when all you need is bounded-latency
+  liveness output
 - a foreground watchdog process that emits a timestamped poll at least every
   300 seconds and includes `agentctl status`/`list` plus `nvidia-smi`
 - explicit PTY polling by the agent at least every 300 seconds while the wait
@@ -328,9 +337,12 @@ needs a successor decision.
 User heartbeat or activity turns are wake-up points, not a request to stay in
 high-token log-following mode forever. At minimum, check current run and GPU
 state, give a concise status, and briefly engage with steering, planning, or
-pre-finish interpretation when useful while the wait/watch keeps running in the
-background. If practical after roughly five minutes without more user activity,
-return to the low-token heartbeat posture.
+pre-finish interpretation when useful, then re-enter the foreground wait in the
+same turn. That blocking call *is* the low-token posture and the way you stay
+available — the user interrupts it to interject again. Do not idle for ~N minutes
+of possible input first: this harness has no such timed stay-open state, since
+yielding the turn forfeits any auto-resume of the wait while blocking is itself
+interruptible rest. Resume the block immediately.
 
 Use the helper `~/agents/agent-wait-watchdog` (mirrored as
 `~/bin/agent-wait-watchdog`) when you need an external poll block that combines

@@ -76,17 +76,22 @@ A round never ends with unwired work; polling is not the mechanism:
 
 1. Wire mechanically-determined follow-ons with `agentctl --after` chains
    (success-conditional) at launch time — they need no agent wake at all.
-2. If jobs are still running at round end, arm
-   `~/agents/scripts/steward-idle-watch <project-root>` as a background
-   task: it exits when the newest running job ends *and* VRAM/power drain
-   to idle (covering allocator drain), re-invoking the agent at exactly the
-   judgment point. It exits immediately if nothing is running. This makes a
-   bare `/steward` or `/rep steward` event-driven for free: the wake
-   services results and selects next work as one follow-up round.
+2. If jobs are still running at round end, **wait in the foreground**: sit in a
+   single bounded, blocking `agentctl wait`/`watch` (or
+   `~/agents/scripts/steward-idle-watch <project-root>` run in the foreground),
+   re-waiting per the *Blanket wait cap* in RUNS.md until it terminates. The
+   foreground block returning *is* the re-invocation — the harness hands control
+   back at the exact judgment point (newest job ended *and* VRAM/power drained to
+   idle, covering allocator drain), and one bounded block stays a cache hit. Do
+   **not** background this wait expecting a wake: a detached watchdog forfeits the
+   turn continuation and can fall out of cache, degrading into polling.
+   (`steward-idle-watch` exits immediately if nothing is running.) This keeps a
+   bare `/steward` or `/rep steward` event-driven: the returning wake services
+   results and selects next work as one follow-up round.
 
 ## Looping (`/steward <duration>` / `/steward forever`)
 
-Each wake runs a round, re-arms the idle watch, and re-arms one *long*
+Each wake runs a round, re-enters the foreground wait, and re-arms one *long*
 `ScheduleWakeup` fallback heartbeat (3600s) whose only purpose is safety —
 agentctl malfunction, miswiring, or an unexpectedly missed event — not
 cadence. Past the deadline, write the final report and stop. When the queue
