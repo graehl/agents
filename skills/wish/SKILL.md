@@ -1,5 +1,6 @@
 ---
 name: wish
+disable-model-invocation: true
 description: Pursue a goal X across unattended cycles until verifiably done (by quoted test). Use when the user invokes /wish or $wish, or asks the agent to keep working toward a goal until a demonstrated done-condition is met. Establishes a testable done-condition, infers intent behind terse X, refuses to game the verifier.
 ---
 

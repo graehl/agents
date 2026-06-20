@@ -1,5 +1,6 @@
 ---
 name: web-digest
+disable-model-invocation: true
 description: Refresh the claude.ai web context — rebuild the local, gitignored digest/claude-web.md via scripts/web-digest and, when its sources have moved, re-distill the committed pasteable preferences extract. Use when the user invokes /web-digest or asks to refresh the web digest, the claude.ai project knowledge, or the preferences paste.
 ---
 

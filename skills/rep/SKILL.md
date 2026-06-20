@@ -1,5 +1,6 @@
 ---
 name: rep
+disable-model-invocation: true
 description: Repeat or self-pace a prompt across wakeups. Use when the user invokes /rep, asks for repeated or periodic checks, or needs a loop workaround in a harness without built-in loop capability; supports optional fixed intervals via /chron when available.
 ---
 

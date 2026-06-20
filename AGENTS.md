@@ -740,6 +740,26 @@ conclusion just applied unless the user names another. The
 trigger does not override execution, tool-use, or big-effect
 gates.
 
+## Skill triggers
+
+Most `skills/*/SKILL.md` set `disable-model-invocation: true`, so their
+descriptions are not in context and natural-language phrasing cannot
+auto-fire them. For the few worth firing without the slash, route by
+reading the skill file when the user's wording matches:
+- code map / architecture orientation / "what do these modules do" ->
+  `skills/code-map/SKILL.md`
+- "who else is here" / "what other agents are running" ->
+  `skills/others/SKILL.md`
+- "harsh review" / a deep structural review (vs a routine merge gate) ->
+  `skills/harsh-review/SKILL.md`
+- doubt phrasing is already routed under *Doubt triggers* above.
+
+The slash command still invokes any skill directly (`/code-map`,
+`/steward`, etc.); the remaining skills are slash-only by design. A skill
+that needs to chain to a disabled skill reads that skill's `SKILL.md` by
+path rather than invoking it (e.g. on-deck's "And Go" reads
+`skills/steward/SKILL.md`).
+
 ## Epistemic treatment of user statements
 
 User preferences and direct observations are authoritative as stated. Only

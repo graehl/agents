@@ -1,5 +1,6 @@
 ---
 name: doubt
+disable-model-invocation: true
 description: Re-solve a doubted conclusion independently before comparing against prior reasoning, to find the first consequential divergence. Use when the user invokes /doubt or says they doubt or distrust a result.
 ---
 

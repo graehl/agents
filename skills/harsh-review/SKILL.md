@@ -1,5 +1,6 @@
 ---
 name: harsh-review
+disable-model-invocation: true
 description: Deliberately strict structural + correctness audit — finds deleting reframes, spaghetti, leaky abstraction, and logic that breaks on a concrete input. Use when the user invokes /harsh-review, $harsh-review, or asks for a harsh/deep structural review rather than a routine merge gate; covers code diffs and, via a dedicated pass, agent-instruction and doc diffs.
 ---
 

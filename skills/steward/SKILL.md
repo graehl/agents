@@ -1,5 +1,6 @@
 ---
 name: steward
+disable-model-invocation: true
 description: Fill idle GPU/resource capacity from a project's on-deck queue; one wired round by default, looping under a duration argument (/steward 8h, /steward forever), with any further argument text read as director guidance. Use when the user invokes /steward (with or without duration/guidance), asks to steward or tend on-deck jobs, asks to fill idle GPU with research/runs work, asks to run eligible on-deck entries, or uses /rep steward for repeated on-deck service.
 ---
 

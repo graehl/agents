@@ -1,5 +1,6 @@
 ---
 name: code-map
+disable-model-invocation: true
 description: Produce a developer-facing codebase map report by traversing implementation structure. Use when the user asks for a code map, developer map, architecture orientation, module/control-flow map, or a regenerable report explaining what files/modules do and how key flows move through the code.
 ---
 

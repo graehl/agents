@@ -1,5 +1,6 @@
 ---
 name: others
+disable-model-invocation: true
 description: Show what other agents are doing in this project — own .agentctl/active status (or that the agent is lurking), peers currently active, recently DONE work, and stale entries that may be orphaned. Use when the user invokes /others, asks "who else is here", "what other agents are running", or similar.
 ---
 

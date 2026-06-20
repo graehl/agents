@@ -1,5 +1,6 @@
 ---
 name: dream
+disable-model-invocation: true
 description: Consolidate a doc project — dedupe and de-conflict glossary/topics, distill facts established in recent session history but never written down, and propose (never auto-apply) fixes, extending with diminishing license to other docs and, least of all, code. Use when the user invokes /dream or asks for a consistency/redundancy/consolidation pass over docs.
 ---
 
