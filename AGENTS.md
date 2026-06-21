@@ -353,21 +353,39 @@ those reads.
 
 # Pre-edit re-Read and parallel-worker noticing
 
-Re-Read a file before the next Edit when enough time has passed
-since your last Read of it for a parallel worker to plausibly have
-intervened — across a context compaction, a multi-turn user
-exchange, or when returning to a file you Read earlier in the
-session. One Read followed by several rapid Edits to the same file
-is fine and efficient; this rule covers the slower gaps.
+Re-Read a file before the next Edit when, since your last Read, a peer
+agent or a direct user edit could plausibly have intervened — across a
+context compaction, a multi-turn exchange, or returning to a file you
+Read earlier. One Read then several rapid Edits is fine; this covers the
+slower gaps. (Re-reading because compaction dropped the content from your
+window is a separate, unconditional need — you can't edit text you can't
+see.)
 
-Detecting peer-agent intervention is cheap now that
-`.agentctl/active/` is the agreed convention: `find
-.agentctl/active -mmin -70` answers "any peers in this tree?" in
-one call. The remaining intervention path is a direct user edit,
-which the re-Read itself surfaces. On detected divergence, pause
-and report what you were about to change; do not revert, overwrite,
-or auto-reconcile. Same goal as a peer: leave the worktree intact.
-Different goal: retry the Edit against the new content.
+Branch on peer presence — `find .agentctl/active -maxdepth 1 -type f
+-mmin -70` answers "any peers here?" in one call (or the user just says a
+peer joined):
+- Solo (no fresh non-self entry, none announced): the only path left is a
+  direct user edit, covered by the reciprocal convention (AGENTS.user.md
+  — the user announces joins and mid-impl hand-edits). Skip the slow-gap
+  re-Read; re-Read only on an announcement or post-compaction content
+  loss.
+- Peers present: re-Read the specific file just before editing it. That
+  is the fast, file-specific, up-to-date overlap check — cheaper and more
+  current than a lock, and it surfaces a peer's change directly. Narrow
+  by the peer's `scope:` line when present: only files within their claim
+  need it.
+
+Surprise is itself a trigger. An edit op failing unexpectedly (an
+`old_string` that no longer matches), or git dirty / staged / commit
+content you did not produce, means your model of the tree is stale — run
+the peer-check before proceeding, even when you believed you were solo.
+This catches a peer, or your own drift, without an announcement, so the
+solo skip never rests on memory alone.
+
+On detected divergence, pause and report what you were about to change;
+do not revert, overwrite, or auto-reconcile. Same goal as a peer: leave
+the worktree intact. Different goal: retry the Edit against the new
+content.
 
 # Edit mechanism discipline
 
