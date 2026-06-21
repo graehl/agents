@@ -428,6 +428,26 @@ behavior. If the outcome needs a missing precondition, establish it
 explicitly or fail with a clear, actionable error — do not silently
 reinterpret bad input or bypass checks.
 
+## Backward compatibility
+
+Default to preserving observable contracts — exported/public APIs, CLI
+flags, wire and serialization formats, persisted schemas, anything an
+out-of-repo caller depends on. Drop a compatibility shim without asking
+only when the surface is internal and you have swept and updated all
+in-repo callers; otherwise ask. Don't add new back-compat scaffolding
+speculatively.
+
+Record a consequential or non-obvious decision — a deliberate break of
+an observable contract, or a shim kept because a specific consumer
+needs it — in the project's `topics/backward-compat.md` (create on
+first need), one entry per decision:
+`YYYY-MM-DD <surface> — <decision>; <why>`. Routine internal removals
+with all callers swept need no entry. No SHA in the entry: commit it
+with the change it records, and `git blame`/`git log` on the ledger
+recovers the exact commit when you need provenance. Grep the ledger for
+the surface before asking a compat question you may have already
+answered; append when you take a new one.
+
 ## Feature validation
 
 When adding or enabling a feature that affects runtime, memory, model
