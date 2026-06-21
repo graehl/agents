@@ -248,6 +248,14 @@ suitable interpreter is found.
   policy is project-specific: commit `runs/aim/` when a project declares text
   run dumps to be reviewable branch authority; otherwise ignore it as runtime
   provenance.
+- Every `agentctl` invocation calls `ensure_state_ignored()` (in `main()`),
+  which adds an *uncommitted* `/<path>/.agentctl/` rule to the repo's
+  `$GIT_DIR/info/exclude` when git does not already ignore the dir — so the
+  state dir stays untracked without editing the project's committed
+  `.gitignore`. No-op when `ROOT` is not under git control, when the dir is
+  already ignored (probed via a path under it so directory-only patterns like
+  `.agentctl/` match before the dir exists), or on any git/fs error
+  (best-effort, never the caller's task).
 
 ## Catch-up notes
 

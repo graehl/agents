@@ -221,6 +221,62 @@ def state_failed(state: dict) -> bool:
     return state.get("status") == "finished" and status_returncode_exit_code(state) != 0
 
 
+def ensure_state_ignored() -> None:
+    """Make git ignore the `.agentctl/` state dir without touching `.gitignore`.
+
+    Runtime state under `.agentctl/` should not be committed (see
+    topics/agentctl.md). Rather than edit the project's tracked `.gitignore`,
+    add an *uncommitted*, repo-local rule to `$GIT_DIR/info/exclude` — visible
+    only to this checkout, never staged. No-op when ROOT is not under git
+    control, or when `.agentctl` is already ignored (via `.gitignore`,
+    `info/exclude`, or any other source git recognizes). Best-effort: any git
+    or filesystem failure is swallowed, since this is a convenience and never
+    the caller's actual task.
+    """
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            ["git", "-C", str(ROOT), *args],
+            capture_output=True, text=True, check=False,
+        )
+    try:
+        # Not a git repo (or git unavailable): do nothing, do not freak out.
+        if git("rev-parse", "--is-inside-work-tree").returncode != 0:
+            return
+        # Already ignored by some source git honors: nothing to add. Probe a
+        # path *under* the dir, not the bare dir, so directory-only patterns
+        # (`.agentctl/`) are recognized even before the dir exists on disk —
+        # git's check-ignore only matches a trailing-slash pattern against a
+        # known directory otherwise.
+        if git("check-ignore", "-q", str(STATE / "_")).returncode == 0:
+            return
+        top = git("rev-parse", "--show-toplevel").stdout.strip()
+        common = git("rev-parse", "--git-common-dir").stdout.strip()
+        if not top or not common:
+            return
+        common_path = Path(common)
+        if not common_path.is_absolute():
+            common_path = (ROOT / common_path).resolve()
+        # Anchor the pattern to the repo root so it matches only this dir,
+        # even when ROOT is a subdirectory of the worktree.
+        try:
+            rel = STATE.relative_to(Path(top).resolve())
+        except ValueError:
+            return
+        pattern = "/" + rel.as_posix() + "/"
+        exclude = common_path / "info" / "exclude"
+        existing = ""
+        if exclude.exists():
+            existing = exclude.read_text(encoding="utf-8", errors="replace")
+            if pattern in existing.splitlines():
+                return
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        prefix = "" if existing == "" or existing.endswith("\n") else "\n"
+        with exclude.open("a", encoding="utf-8") as fh:
+            fh.write(f"{prefix}{pattern}\n")
+    except Exception:
+        return
+
+
 def slug(text: str) -> str:
     out = "".join(ch if ch.isalnum() or ch in "._-" else "-" for ch in text.strip())
     while "--" in out:
@@ -3333,6 +3389,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     _load_plugins()
+    ensure_state_ignored()
     raw = sys.argv[1:]
     if raw[:1] == ["start"]:
         args = parse_start_command("start", "start", raw[1:])
