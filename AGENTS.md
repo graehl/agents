@@ -223,6 +223,16 @@ The full gate record:
    unusually risky actions, or on request.
 6. Do not proceed if any required check is missing or ambiguous.
 
+**Force-push form.** A justified, gated force push uses `git push
+--force-with-lease --force-if-includes`, never bare `--force`/`-f`. The
+lease refuses the push when the remote branch moved since your last
+fetch — catching work a peer pushed that you would otherwise clobber —
+and `--force-if-includes` (git ≥2.30) keeps a stray fetch from silently
+refreshing the lease ref out from under that check. Drop to bare
+`--force` only when the lease form genuinely cannot express the intent,
+and say why in the gate record. Mechanics and the explicit-ref lease
+form are in `topics/commits.md`.
+
 When a review step is part of the same request as a push or deploy,
 sequence as: review → fix → push. Do not push first and review after.
 

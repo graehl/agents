@@ -124,6 +124,16 @@ days and has no downstream forks/consumers, prefer amend +
 force-push over accumulating fix history — but not once it has
 been submitted as a PR elsewhere; then repair forward.
 
+That force-push — and any other — uses `git push --force-with-lease
+--force-if-includes` (`AGENTS.md § Big-effect command gate`), never
+bare `--force`. Bare `--force-with-lease` leases against your local
+remote-tracking ref, so a background `git fetch` can refresh that ref
+and let the push clobber after all; `--force-if-includes` (git ≥2.30)
+closes that gap by also requiring your local history to include the
+remote tip. For a rewrite computed against a specific base, pin the
+expectation explicitly with `--force-with-lease=<ref>:<expected-sha>`
+captured before the rewrite, rather than relying on the implicit lease.
+
 ## Amending in a shared worktree
 
 Check for active peers first (`find .agentctl/active -maxdepth 1
