@@ -359,7 +359,7 @@ def test_sandbox_liveness_visible_pid_mismatch_finishes_unknown():
     try:
         module_name = "agentctl_under_test_liveness"
         spec = importlib.util.spec_from_file_location(module_name, ws.tmp / "agentctl.py")
-        _assert(spec is not None and spec.loader is not None, "could not load agentctl spec")
+        assert spec is not None and spec.loader is not None, "could not load agentctl spec"
         mod = importlib.util.module_from_spec(spec)
         old_root = os.environ.get("AGENTCTL_ROOT")
         os.environ["AGENTCTL_ROOT"] = str(ws.tmp)
@@ -371,7 +371,7 @@ def test_sandbox_liveness_visible_pid_mismatch_finishes_unknown():
             else:
                 os.environ["AGENTCTL_ROOT"] = old_root
 
-        mod.process_visibility_limited = lambda: True
+        mod.process_visibility_limited = lambda: True  # pyright: ignore[reportAttributeAccessIssue]
         state_path = ws.tmp / ".agentctl/runs/stale/r1/state.json"
         state_path.parent.mkdir(parents=True)
         state = {
