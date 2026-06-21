@@ -29,6 +29,32 @@ For implementation or bugfix work, search `tasks/*.md` when that directory
 exists, and cite the relevant file(s) in planning and conclusion. Task
 files should cross-reference relevant `topics/*.md`.
 
+## Handoff audience
+
+A handoff or persistent plan — `last-session.md`, a `tasks/*.md` file, a
+`.bearings.md`, or any ad-hoc "write me a handoff/plan" doc — has exactly
+two readers: the user, and a fresh agent of similar capability. Never
+write down to a lesser reader. "Similar capability" means peer skill with
+zero shared context: the receiver can re-derive reasoning from the same
+artifacts but was not in the room, so it carries none of this session's
+working memory.
+
+Both halves of that cut against the default tendency to flatten a handoff
+into basic narration:
+
+- Preserve the compiled understanding the session paid for — ruled-out
+  hypotheses, the load-bearing constraint, "don't try X, it dead-ends at
+  Y," the actual crux. It is the highest-value, least-recoverable content
+  and the first thing a flattened handoff drops.
+- Restate context by default. Omit it only to the extent it lives in
+  specific pointed-to material the receiver will actually open (a named
+  doc, a cited code section, a linked prior report) — not merely because
+  a peer could in principle reconstruct it from the repo.
+
+This governs resume/handoff artifacts. Outward-facing reports keep their
+own reader model — e.g. `topics/progress-report.md` writes for a
+non-delving manager or peer org — so do not apply this pin to them.
+
 ## Active sessions
 
 On the first planning-to-act step in a shared workdir, write

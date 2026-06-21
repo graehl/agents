@@ -12,6 +12,12 @@ allowed-tools: Bash(cat:*), Bash(find:*), Bash(ls:*), Bash(git:*), Write, Read
 
 # Instructions
 
+Audience: write `last-session.md` for the user or a fresh peer-capability
+agent with no shared context (AGENTS.md § Handoff audience) — never a lesser
+reader. Preserve the session's compiled understanding (ruled-out paths, the
+load-bearing constraint, the crux), and restate context unless it already
+lives in pointed-to material the resumed agent will open.
+
 1. Interpret arguments:
    - Default (`/bye`, `bye`, or no explicit argument): overwrite
      `last-session.md` with the current work segment only. If a prior `/bye`
