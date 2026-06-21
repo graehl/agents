@@ -137,6 +137,14 @@ Violate one and the run is void, not merely noisy.
 The whole point is a clean contrast, so hold everything fixed except the
 instruction corpus.
 
+The contrast runs two directions, and the inward one is the cheaper win.
+*Gating* asks whether a proposed addition earns its tokens (Arm A = with
+it, Arm B = without). *Culling* runs leave-one-out over rules already in
+the corpus to find the inert ones to delete — the check that pasting a
+rule in because it sounded convincing never performs on itself. Culling
+needs no new rule to justify it and targets the rules most suspected of
+being ritual, so it is usually where the first real sweep belongs.
+
 - **Paired arms.** Arm A = corpus *with* the change (e.g. the new topic
   doc loaded), Arm B = corpus *without*. Same model, same scaffold, same
   instance set, same decoding params. Because the outcome is paired
@@ -165,6 +173,33 @@ instruction corpus.
   grading suite twice on a sample; treat instances whose own grade is
   unstable as noise to exclude or flag, not signal.
 
+## Condition on the governed situation
+
+Most single rules fire rarely. force-with-lease only matters on a force
+push; the comment rule only when the agent would write a comment;
+"verify before voicing" only when it is about to assert a checkable
+fact. Average such a rule's effect over a 500-instance suite where its
+situation arises in fifteen, and the conditional signal is diluted
+against the ~485 irrelevant instances — pushed below the noise floor by
+construction, however load-bearing the rule is.
+
+So a flat aggregate-resolution delta is the wrong estimator for a narrow
+rule, and a null from it is ambiguous between two opposite findings: the
+rule had no effect, or the benchmark never triggered it. Resolve the
+ambiguity by conditioning on the governed situation — detect the
+instances where the rule's trigger arose and measure the paired outcome
+on that subset, where the per-instance effect is undiluted. The suite
+size that gives only marginal aggregate power often gives ample power on
+the triggering subset.
+
+One statistical caution: condition on the *opportunity* — the situation
+occurred, detected independently of the rule's own behavior — not on the
+rule *firing*, its response. A rule that changes how often its own
+trigger arises makes firing a post-treatment collider, and conditioning
+on it induces selection bias. Detect the situation from the task or
+transcript (a force-push step was reached, a comment site was edited)
+under both arms, then compare outcomes within that matched set.
+
 ## Smallest first experiment
 
 Do not open with the full sweep. The first run's job is to prove the
@@ -179,9 +214,12 @@ That variance is the bar any real effect must clear.
    paraphrase sweep.
 
 If step 2 shows the noise floor already swamps plausible instruction
-effects on this benchmark, that is itself the finding: record it and
-either pick a more sensitive task distribution or accept that this
-particular rule cannot be validated at affordable scale.
+effects on this benchmark, that is itself the finding — but read it
+correctly: for a narrow rule it usually means the suite rarely triggers
+the rule, not that the rule is inert. Before concluding "unvalidatable,"
+condition on the governed situation (above) or pick a more sensitive
+task distribution; only a null on the *triggering* subset is evidence
+the rule does nothing.
 
 ## "And similar": don't overfit to one benchmark
 
@@ -209,6 +247,13 @@ global one — and the ablation is how you would find that out.
   pass/fail and stay, for now, intuition-grade. Honesty about that gap is
   the point: the ablation raises a few rules from `assumed` to measured;
   it does not retire the disclaimer in `agent-instructions.md`.
+- Do not close that gap with an LLM judge. The binary `resolved` metric
+  is trustworthy precisely because it is judge-free; scoring "comment
+  quality" or "clearer communication" with a model reintroduces a grader
+  selected by the same human-approval pressure the corpus's weakest rules
+  are optimized for, so it would reward persuasive wording over effect —
+  the exact bias this harness exists to escape. Leave those qualities
+  intuition-grade rather than measure them with a biased ruler.
 
 ## Relation to other topics
 
