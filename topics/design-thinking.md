@@ -27,6 +27,31 @@ prose: a doc section that other docs cite or a read-trigger points at is a
 shared facility, and compressing or moving it obliges checking, block by
 block, that every pointer still lands on the content it promises.
 
+## Weigh alternatives where effects are distant
+
+Lay out 2–3 real alternatives — and record the choice — when a decision's
+effects reach beyond the local edit: a contract callers cross, a persisted or
+wire format, a choice that constrains work not yet written, or one that is hard
+to undo. A surface reviewer reads the local diff and so inherently misses
+effects at distance; the recorded decision is the only channel that carries
+them to a reader the diff cannot reach, which is why the record matters as much
+as the choice itself.
+
+For such a fork, name what each alternative trades off *before* picking. If the
+work is significant and the fork is live, surface them as an interruptible
+checkpoint — the recommended pick in **bold**, its reason inline, no tacked-on
+invitation to override (the checkpoint is interruptible by nature); otherwise
+decide internally. Either way, record the outcome as a `## Design decisions`
+bullet in the relevant topic doc (or the commit body when no topic doc fits):
+`**<decision>** (vs. <rejected alternative>): <rationale>`, naming the trade-off
+accepted and the priorities the chosen path serves.
+
+Lean toward firing this, not against it. When unsure whether an effect is
+local, treat it as distant: a three-line record that turns out unnecessary
+costs little, whereas a missed distant effect is exactly what surface review
+cannot recover. Only a purely local, cheaply reversible decision needs none of
+it — there Scope discipline governs: pick and move.
+
 ## Hypotheses over traces
 
 Treat every assumption as a hypothesis until you check it. Form one that fits the known invariants, then test it against the trace — not the reverse. Replaying the trace with no hypothesis in hand produces patches, not understanding.
