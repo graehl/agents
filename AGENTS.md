@@ -83,6 +83,14 @@ first — relevant modules and callers in the project's glossary
 vocabulary — before drilling into a specific function. Deep
 inspection follows the map, not the other way around.
 
+Before wide-ranging changes, before editing a file you have not fully
+inspected, and when investigating or auditing, read the file in full —
+for a very large file, the full relevant module or section, not the
+scattered snippets that hide callers, guard clauses, and existing
+helpers. This is per file you are about to touch, on demand — not an
+up-front sweep of the repo, and not a license to read a million-token
+file end to end.
+
 # Authority and instruction files
 
 `~/agents/AGENTS.md` is the authoritative global instructions file;
@@ -232,9 +240,21 @@ commit, amend, merge, rebase, cherry-pick, pull, or push-prep step — "so I
 can land my amend against the right commit" is exactly how a peer's
 unsaved hour gets destroyed.
 
+Beyond discarding, the same ban covers shared-worktree git moves that
+capture or disrupt others' work, absent an explicit user request:
+staging others' changes into your commit (`git add -A`/`git add .`, and
+bare `git stash` — both sweep up everyone's dirty files; scope with a
+pathspec), bypassing hooks (`git commit --no-verify`), moving the
+worktree's HEAD out from under peers (`git switch`, `gh pr checkout`),
+and force-pushing a shared or default branch. Reviewing or inspecting
+a branch or PR never requires moving HEAD — use `gh pr diff`, `git
+--no-pager diff main...BRANCH`, or a dedicated `git worktree add`, not
+a checkout.
+
 To repair history or index state, preserve the worktree and take a
-non-discarding path: inspect status/reflog, stash or make a temporary commit
-of your own changes, use a separate worktree, or revert with a new commit.
+non-discarding path: inspect status/reflog, make a temporary commit of
+your own changes (or a pathspec-scoped stash, never bare `git stash`),
+use a separate worktree, or revert with a new commit.
 Run a discard command only when the user explicitly requests that exact
 operation after being told it can delete uncommitted shared work, and even
 then narrow it to named paths.
@@ -534,18 +554,14 @@ doc or when project jargon starts recurring; not proactively.
 
 # Language tooling
 
-## C++
+Language-specific tooling is loaded on demand, not inline here. Before
+editing a file in one of these languages, or when first working in a
+project that uses it, read the matching doc if present — repo-local
+`topics/<lang>.md` first, else `~/agents/topics/<lang>.md`:
 
-Reformat only modified lines, never whole files:
-`git --no-pager diff --no-ext-diff --no-color -U0 HEAD -- '*.c*' '*.h*' | clang-format-diff -p1 -i`. Use
-`clangd` to check edits when a `.clangd` is present.
-
-## Python
-
-Use `ruff check --fix` and `ruff format` (not black/isort/flake8). Add type
-hints to signatures. Prefer `uv` or `pixi` for environments. Avoid
-`shell=True` with user-influenced content. Make device placement explicit
-in ML code.
+- C / C++ — `cpp.md`
+- Python — `python.md`
+- TypeScript / JavaScript — `typescript.md`
 
 # Interaction style
 
@@ -576,6 +592,10 @@ A question is a real gate only when the answer would change the action.
 not a gate — it creates attention debt without giving the user meaningful
 control. State what you are doing instead; reserve the question form for
 genuine branch points where a wrong assumption would waste significant work.
+
+When a single turn both asks a question and implies edits, answer the
+question first; do not lead with implementation and leave the answer
+implicit or skipped.
 
 ## Plan-boundary checkpoints
 
@@ -702,7 +722,9 @@ user made salient, not every routine decision.
 
 On substantive technical or research claims — including wording the user
 asks to record in docs, commits, or task artifacts — do not merely
-acknowledge or execute. Give the shortest useful crux-level feedback:
+acknowledge or execute; when you act on it in the same turn, lead with
+the verdict rather than the change report. Give the shortest useful
+crux-level feedback:
 agreement, disagreement, or uncertainty; whether you checked it; and, when
 following a direction anyway, whether that is because instructed or because
 it independently seems right. Do not pad alignment with unverified
@@ -820,6 +842,14 @@ expansion on first use, named prior art, no historical lead-in.
 
 Use `rg` for text search and `rg --files` for file discovery; add type
 filters when they narrow the question (e.g. `rg -t md "pattern"`).
+
+## Ad-hoc scripts
+
+For a multi-line or expected-to-iterate ad-hoc script, write it to a
+scratch file and run that, rather than embedding it in a bash command:
+edit-and-rerun beats re-typing, and it sidesteps shell-quoting fragility.
+Remove it when done; for anything you may re-run after a gap, prefer a
+durable scratch dir to reboot-cleared `/tmp`.
 
 ## Agent-facing CLI help
 
