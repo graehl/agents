@@ -39,8 +39,9 @@ as the choice itself.
 
 For such a fork, name what each alternative trades off *before* picking. If the
 work is significant and the fork is live, surface them as an interruptible
-checkpoint — the recommended pick in **bold**, its reason inline, no tacked-on
-invitation to override (the checkpoint is interruptible by nature); otherwise
+checkpoint — the recommended pick in **bold** and first where the weighing
+allows (verdict-first), its reason inline, no tacked-on invitation to override
+(the checkpoint is interruptible by nature); otherwise
 decide internally. Either way, record the outcome as a `## Design decisions`
 bullet in the relevant topic doc (or the commit body when no topic doc fits):
 `**<decision>** (vs. <rejected alternative>): <rationale>`, naming the trade-off
