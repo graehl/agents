@@ -63,7 +63,7 @@ Create `.agentctl/active/` if missing. Discover the provider's real
 resumable session id first (the provider supplement names the mechanism);
 a personal tag is a last resort and must be reused across compaction or
 resume. Line 1 is the gist; line 2 may be `scope: <paths>`, with plain
-paths or trailing-`**` prefixes (full file schema in
+paths or separator-anchored globs (`/**` subtree, `*.ext`; full schema in
 `topics/agentctl.md`). Update at milestones, after 10+ min of
 continuous work, or at the 60-min heartbeat cap. On completion start line
 1 with `DONE`, preferably `DONE: <one-line summary>`. Pure read-only or

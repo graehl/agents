@@ -472,9 +472,11 @@ def active_scope_path(raw: str) -> str:
     Scope paths are project-root-relative so the prefix-match overlap check
     (AGENTS.md § Active sessions) lines up across peers regardless of each
     agent's cwd. An absolute path under ROOT is made relative; a leading
-    `./` is stripped; a trailing `**` is kept. Everything else is preserved
-    verbatim, and existence is not required — the path may name a file the
-    agent is about to create.
+    `./` is stripped; wildcards are kept verbatim. Callers should use the
+    separator-anchored glob grammar (topics/agentctl.md § Active-sessions
+    file schema: trailing `/**` or `.`-anchored extension globs); this
+    normalizer keeps but does not enforce it. Existence is not required —
+    the path may name a file the agent is about to create.
     """
     p = raw.strip()
     if not p:

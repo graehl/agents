@@ -39,12 +39,19 @@ check stays the dependency-free definition of the convention.
 
 Line 1 is the present-tense gist — self-contained, readable on its
 own. Line 2 may declare scope as `scope: <paths>`: a space- or
-comma-separated list of project-root-relative paths, each either a
-plain path or a path with a trailing `**` (e.g. `packages/client/**`),
-for tool-detected overlap with peers. Glob patterns beyond
-trailing-`**` need a glob-aware consumer and are noise to prefix-match
-readers; reach for them only when narrowing by suffix or pattern is
-genuinely the point. Anything beyond line 2 is free content at agent
+comma-separated list of project-root-relative paths for tool-detected
+overlap with peers. A path is literal, or carries a wildcard only at a
+separator boundary — at the start of a segment (right after `/`, or the
+string start) or right after a `.`:
+- `dir/**` — the whole subtree, any depth. `**` is the only form that
+  spans `/`; a lone `*` stops at the next `/`, so `dir/*` is one level
+  and `*.py` is one segment.
+- `*.py`, `config.*` — extension/suffix narrowing.
+Interior wildcards (`pkg*/cli`, `src/foo_*.ts`) are barred: they force
+a glob-aware consumer. Every blessed form instead reduces to an
+anchored match — a concrete path overlaps a claim when the claim's
+literal anchor prefixes it (segment/subtree forms) or it ends in the
+claimed extension — so one grep tests overlap with no glob engine. Anything beyond line 2 is free content at agent
 discretion (plan notes, considered approaches, longer status); brief
 readers stop after line 2. Readers treat files whose line 1 starts
 with `DONE` (`DONE*`) as complete.
