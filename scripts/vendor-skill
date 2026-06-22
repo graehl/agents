@@ -1,0 +1,271 @@
+#!/usr/bin/env python3
+"""Vendor a subdirectory of a remote git repo into this tree, pinned to an
+exact upstream commit, with a VENDORED.md provenance record.
+
+Spec/contract: topics/helper-scripts.md (entry: vendor-skill).
+Convention it implements: topics/vendoring.md.
+
+  vendor-skill <repo> <subpath> [dest]   # copy + write/update VENDORED.md
+  vendor-skill --check <dest>            # report drift vs current upstream
+
+<repo>     full URL, git@host:org/repo, host/org/repo, or org/repo
+           (org/repo defaults to github.com).
+<subpath>  path within the repo to vendor (e.g. skills/librarian).
+dest       destination dir (default: ./<basename(subpath)>).
+
+A re-vendor over an existing dest preserves the hand-written "## Local
+changes" body of VENDORED.md; everything else is regenerated from the
+pinned clone. --check never modifies anything: exit 0 == in sync,
+exit 3 == drift (prints the diff), exit 2 == usage/error.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from datetime import date
+from pathlib import Path
+
+
+def die(msg: str, code: int = 2):
+    print(f"vendor-skill: {msg}", file=sys.stderr)
+    raise SystemExit(code)
+
+
+def git(*args: str, cwd: str | None = None) -> str:
+    r = subprocess.run(
+        ["git", *args], cwd=cwd, capture_output=True, text=True
+    )
+    if r.returncode != 0:
+        die(f"git {' '.join(args)} failed: {r.stderr.strip()}")
+    return r.stdout.strip()
+
+
+def repo_to_url(repo: str) -> str:
+    if repo.startswith(("http://", "https://", "git@", "ssh://")):
+        return repo
+    first = repo.split("/", 1)[0]
+    if "." in first or first == "localhost":  # host/org/repo
+        return f"https://{repo}"
+    return f"https://github.com/{repo}"  # org/repo
+
+
+def sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def sparse_clone(url: str, subpath: str) -> str:
+    """Clone url sparsely with only subpath checked out; return scratch dir."""
+    scratch = tempfile.mkdtemp(prefix="vendor-skill-", dir=Path.home() / ".cache")
+    git("clone", "--depth", "1", "--filter=blob:none", "--sparse", url, scratch)
+    git("sparse-checkout", "set", subpath, cwd=scratch)
+    if not (Path(scratch) / subpath).is_dir():
+        shutil.rmtree(scratch, ignore_errors=True)
+        die(f"subpath not found in {url}: {subpath}")
+    return scratch
+
+
+def detect_license(scratch: str, subpath: str) -> str:
+    pats = re.compile(r"^(LICEN[CS]E|COPYING|UNLICENSE)", re.I)
+    found = []
+    for base in (scratch, str(Path(scratch) / subpath)):
+        for name in sorted(os.listdir(base)):
+            if pats.match(name):
+                found.append(os.path.relpath(os.path.join(base, name), scratch))
+    if found:
+        return f"upstream license file(s): {', '.join(found)} — preserve them"
+    return (
+        "NO LICENSE/COPYING file upstream at the pinned commit. "
+        "Treat as all-rights-reserved-by-default; re-check the repo's terms "
+        "before redistributing or relicensing."
+    )
+
+
+def copy_tree(scratch: str, subpath: str, dest: Path):
+    src = Path(scratch) / subpath
+    dest.mkdir(parents=True, exist_ok=True)
+    # Copy upstream files, preserving mode; never touch VENDORED.md (dest-only).
+    shutil.copytree(
+        src, dest, dirs_exist_ok=True, ignore=shutil.ignore_patterns("VENDORED.md")
+    )
+
+
+def vendored_files(scratch: str, subpath: str, dest: Path) -> list[tuple[str, str]]:
+    src = Path(scratch) / subpath
+    rows = []
+    for p in sorted(src.rglob("*")):
+        if p.is_file():
+            rel = p.relative_to(src).as_posix()
+            rows.append((rel, sha256(dest / rel)))
+    return rows
+
+
+LOCAL_CHANGES_DEFAULT = (
+    "None — verbatim copy of the upstream subpath. Record every later local\n"
+    "edit here (what changed and why) so the next re-sync can re-apply it\n"
+    "against new upstream."
+)
+
+
+def extract_local_changes(vendored_md: Path) -> str:
+    if not vendored_md.exists():
+        return LOCAL_CHANGES_DEFAULT
+    text = vendored_md.read_text()
+    m = re.search(r"## Local changes\n+(.*?)(?=\n## |\Z)", text, re.S)
+    body = m.group(1).strip() if m else ""
+    return body or LOCAL_CHANGES_DEFAULT
+
+
+def write_vendored_md(dest: Path, url: str, subpath: str, sha: str,
+                      commit_line: str, license_note: str,
+                      files: list[tuple[str, str]]):
+    name = subpath.rstrip("/").split("/")[-1]
+    local_changes = extract_local_changes(dest / "VENDORED.md")
+    table = "\n".join(f"| `{f}` | `{h}` |" for f, h in files)
+    web = url
+    if web.startswith("git@") and ":" in web:
+        host, path = web[len("git@"):].split(":", 1)
+        web = f"https://{host}/{path}"
+    web = web.removesuffix(".git")
+    md = f"""# Vendored: {name}
+
+Third-party code copied into this repo, pinned to an exact upstream commit.
+Do not edit casually: log every change under "Local changes" so a re-sync
+can re-apply it. Convention: `topics/vendoring.md`. Regenerate/verify with
+`vendor-skill` (see `topics/helper-scripts.md`).
+
+## Upstream
+
+- **Repo:** {web}
+- **Subpath:** `{subpath}`
+- **Commit:** `{sha}`
+  ({commit_line})
+- **Vendored:** {date.today().isoformat()}
+
+## License
+
+{license_note}
+
+## Vendored files
+
+| file | sha256 (at vendor time) |
+|------|-------------------------|
+{table}
+
+## Local changes
+
+{local_changes}
+
+## Re-sync from upstream
+
+```bash
+vendor-skill --check {dest}        # report drift vs current upstream HEAD
+vendor-skill {url.removesuffix('.git') if not url.startswith('http') else url} {subpath} {dest}  # re-pin to a new commit
+```
+
+After re-pinning, re-apply anything listed under "Local changes" and update
+that section.
+"""
+    (dest / "VENDORED.md").write_text(md)
+
+
+def cmd_vendor(repo: str, subpath: str, dest_arg: str | None):
+    subpath = subpath.strip("/")
+    dest = Path(dest_arg) if dest_arg else Path.cwd() / subpath.split("/")[-1]
+    dest = dest.resolve()
+    url = repo_to_url(repo)
+    scratch = sparse_clone(url, subpath)
+    try:
+        sha = git("rev-parse", "HEAD", cwd=scratch)
+        commit_line = git(
+            "log", "-1", "--format=%s, %cs", cwd=scratch
+        )
+        license_note = detect_license(scratch, subpath)
+        copy_tree(scratch, subpath, dest)
+        files = vendored_files(scratch, subpath, dest)
+        write_vendored_md(dest, url, subpath, sha, commit_line, license_note, files)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    print(f"vendored {url}/{subpath} @ {sha[:12]} -> {dest}")
+    print(f"  {len(files)} file(s); wrote {dest / 'VENDORED.md'}")
+    if license_note.startswith("NO LICENSE"):
+        print("  WARNING: no upstream license — see VENDORED.md ## License")
+
+
+def parse_vendored_md(dest: Path) -> dict[str, str]:
+    md = dest / "VENDORED.md"
+    if not md.exists():
+        die(f"no VENDORED.md in {dest}", 2)
+    text = md.read_text()
+    out = {}
+    for key, pat in (
+        ("repo", r"\*\*Repo:\*\*\s*(\S+)"),
+        ("subpath", r"\*\*Subpath:\*\*\s*`([^`]+)`"),
+        ("commit", r"\*\*Commit:\*\*\s*`([0-9a-f]+)`"),
+    ):
+        m = re.search(pat, text)
+        if not m:
+            die(f"VENDORED.md missing {key}", 2)
+        out[key] = m.group(1)
+    return out
+
+
+def cmd_check(dest_arg: str):
+    dest = Path(dest_arg).resolve()
+    meta = parse_vendored_md(dest)
+    url = repo_to_url(meta["repo"])
+    subpath = meta["subpath"]
+    pinned = meta["commit"]
+    scratch = sparse_clone(url, subpath)
+    try:
+        head = git("rev-parse", "HEAD", cwd=scratch)
+        src = Path(scratch) / subpath
+        # Compare vendored files (minus VENDORED.md) to current upstream tree.
+        r = subprocess.run(
+            ["diff", "-ru", "--exclude=VENDORED.md", str(dest), str(src)],
+            capture_output=True, text=True,
+        )
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    if r.returncode == 0 and head == pinned:
+        print(f"up to date: {pinned[:12]} (upstream HEAD unchanged)")
+        return 0
+    if r.returncode == 0:
+        print(f"content matches, but upstream HEAD moved {pinned[:12]} -> "
+              f"{head[:12]} (re-pin to refresh the commit record)")
+        return 0
+    print(f"DRIFT: pinned {pinned[:12]}, upstream HEAD {head[:12]}")
+    print(r.stdout)
+    return 3
+
+
+def main():
+    ap = argparse.ArgumentParser(add_help=True, description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--check", metavar="DEST",
+                    help="report drift of an existing vendored dir vs upstream")
+    ap.add_argument("repo", nargs="?", help="repo URL or org/repo")
+    ap.add_argument("subpath", nargs="?", help="path within repo to vendor")
+    ap.add_argument("dest", nargs="?", help="destination dir")
+    args = ap.parse_args()
+
+    if args.check:
+        raise SystemExit(cmd_check(args.check))
+    if not args.repo or not args.subpath:
+        ap.print_usage(sys.stderr)
+        die("need <repo> <subpath> (or --check DEST)", 2)
+    cmd_vendor(args.repo, args.subpath, args.dest)
+
+
+if __name__ == "__main__":
+    main()

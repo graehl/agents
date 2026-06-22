@@ -516,6 +516,20 @@ recovers the exact commit when you need provenance. Grep the ledger for
 the surface before asking a compat question you may have already
 answered; append when you take a new one.
 
+## Vendoring third-party code
+
+When copying someone else's skill/script/subtree into a repo to keep
+(rather than co-develop), **vendor** it — copy the files in and commit
+them — over a submodule or a symlink to an external clone; the latter is
+machine-local state that breaks a plain clone and dodges review of code an
+agent executes. Pin to the **exact upstream commit SHA** (not a branch or
+tag) and write a `<dest>/VENDORED.md` recording upstream URL/subpath/SHA,
+license (or that none exists), per-file hashes, and a **Local changes**
+section documenting every divergence from upstream — that section is the
+only record a re-sync won't overwrite. Use `vendor-skill` (`~/bin`, spec
+in `topics/helper-scripts.md`) so the SHA-pin and provenance are
+automatic. Full rationale and procedure: `topics/vendoring.md`.
+
 ## Feature validation
 
 When adding or enabling a feature that affects runtime, memory, model

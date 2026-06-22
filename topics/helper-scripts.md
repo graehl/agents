@@ -135,3 +135,45 @@ when wrapping.
 commit-msg-fmt -m "feat: do thing" -m '' -m "Body paragraph." \
   | commit-msg-lint && git commit -F -
 ```
+
+### vendor-skill
+
+Copies a subdirectory of a remote git repo into this tree, pinned to an
+exact upstream commit, and writes/refreshes a `VENDORED.md` provenance
+record. Implements the convention in `topics/vendoring.md`.
+
+**CLI**:
+- `vendor-skill <repo> <subpath> [dest]` — sparse-clone `<repo>` at HEAD,
+  copy `<subpath>` into `dest` (default `./<basename(subpath)>`), write
+  `dest/VENDORED.md`. `<repo>` accepts a full URL, `git@host:org/repo`,
+  `host/org/repo`, or `org/repo` (defaulting host `github.com`). Exit 0 on
+  success.
+- `vendor-skill --check <dest>` — re-read `dest/VENDORED.md`, sparse-clone
+  upstream at HEAD, diff the vendored files against current upstream.
+  Exit 0 = in sync (prints `up to date: <sha>`), exit 3 = drift (prints a
+  unified diff). Modifies nothing.
+- Usage/parse errors and a missing/incomplete `VENDORED.md` exit 2.
+
+**Post-conditions**:
+- After a vendor: `dest` contains the upstream subpath files (exec bits
+  preserved); `dest/VENDORED.md` exists with an Upstream **Commit** equal
+  to the clone's `git rev-parse HEAD` (full 40-char SHA), a per-file
+  sha256 table matching `sha256sum` of the copied files, and a License
+  section (an explicit "no upstream license" note when none is found).
+- A re-vendor over an existing `dest` preserves the hand-written body of
+  the `## Local changes` section verbatim; all other sections regenerate.
+- `--check` never writes; its temp clone is removed regardless of outcome.
+
+**Examples**:
+1. `cd skills && vendor-skill xl0/agent-files skills/librarian` → vendors
+   into `skills/librarian/`, prints `vendored …@ <sha12> -> …` and (since
+   that repo has no LICENSE) a no-license warning.
+2. `vendor-skill --check skills/librarian` with upstream unchanged → exit
+   0, `up to date: <sha12>`.
+3. Edit a vendored file locally, then `vendor-skill --check skills/librarian`
+   → exit 3 and a unified diff of the local edit.
+4. Put a note under `## Local changes`, re-vendor the same subpath → exit
+   0, files re-pinned to upstream, the note still present.
+
+**Canonical source**: `scripts/vendor-skill` (in this repo).
+**Install target**: `~/bin/vendor-skill` (symlink by default).
