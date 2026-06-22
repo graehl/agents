@@ -127,7 +127,11 @@ and is frozen once disseminated (corrections go in the next instalment).
 
 ### Field surveys and frontier mapping
 
-Two companion templates cover field-survey work:
+Three companion files cover field-survey work, in pipeline order:
+- `literature-search.md` — the **retrieval method**: citation snowballing from
+  trusted anchors (paper-DB relevance/citation scores), with keyword search
+  filtered by a known-labs/authors prior for the freshest, not-yet-cited work.
+  Finds the papers the other two organize and rank.
 - `survey-field.md` — building and maintaining a field map for a survey
   paper/presentation, or prior-art reconnaissance on a subtopic.
 - `research-frontier.md` — void-mapping and capstone-question suggestion

@@ -6,7 +6,11 @@ survey paper/presentation, or answer "what is known about subtopic X"
 
 This template builds one artifact — a **field map** — and reads it at two
 zoom levels. Frontier/void-mapping work that consumes the same map is a
-separate task; see `research-frontier.md`.
+separate task; see `research-frontier.md`. The retrieval method that *finds*
+the papers this map organizes — citation snowballing from anchors, paper-DB
+queries, keyword search filtered by a known-labs/authors prior — is
+`literature-search.md`; the "light search for recent releases" below means
+that method run in `recall` mode.
 
 ## Survey modes — `recall` vs `grounded`
 
