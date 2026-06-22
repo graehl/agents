@@ -21,17 +21,23 @@ by construction, the newer papers that build on it.
 
 Needs a paper DB exposing citation/relevance scores. Use these (free, no key):
 - **OpenAlex** — forward citations + counts.
-  - resolve an anchor: `https://api.openalex.org/works?search=<title words>` →
-    take the `id` (a `W…` work id).
+  - resolve an anchor: use `filter=title.search:<exact title words>`, **not**
+    the plain `?search=` (which mixes title/abstract/fulltext and returns noise
+    — in testing it surfaced unrelated papers for a known title). Add
+    `,publication_year:>2019` to drop stale namesakes. Take the `id` (a `W…`).
   - forward-cite (the bridge across the cutoff):
-    `https://api.openalex.org/works?filter=cites:W<id>&sort=publication_date:desc&per-page=25`
-    (use `&sort=cited_by_count:desc` for impact-ranked instead of recent).
+    `https://api.openalex.org/works?filter=cites:W<id>&sort=publication_date:desc&per-page=25`.
+    **Run both sorts** — `publication_date:desc` for the freshest work (skews
+    toward applied/peripheral citers) and `cited_by_count:desc` for the
+    high-impact *method* papers; they surface different strata.
   - backward-cite: the work's `referenced_works`.
 - **Semantic Scholar Graph API** —
   `https://api.semanticscholar.org/graph/v1/paper/<id>/citations?fields=title,year,authors,citationCount,intents,isInfluential&limit=100`.
   `intents` (background / methodology / result) and `isInfluential` are
   relevance signals: a *methodology* or *result* citation is far more on-topic
-  than a background mention — rank by them.
+  than a background mention — rank by them. `<id>` accepts external ids
+  directly (`arXiv:2310.10482`, `DOI:10.x/y`, `CorpusID:n`), so a known
+  arXiv/DOI forward-cites in one hop, skipping the resolve step.
 - **Connected Papers** (co-citation / bibliographic-coupling neighborhood),
   **Papers with Code** (benchmark + SOTA leaderboards), Google Scholar
   "Cited by" (manual fallback, no clean API).
@@ -41,7 +47,10 @@ Fetch the JSON endpoints with the web tool; record the retrieval date.
 **Procedure.**
 1. **Anchors** — pick 2–5 papers you are confident are seminal in the *exact*
    subarea (not an adjacent one). Pre-cutoff and well-cited makes them reliable
-   bridge points. Name the anchor set explicitly in the output.
+   bridge points. Name the anchor set explicitly in the output. A **recent
+   survey** of the subarea is a high-value meta-anchor: a ready-made field map
+   — fetch it, mine its taxonomy and reference list, and forward-cite it for
+   what came after.
 2. **Forward snowball** — pull each anchor's citers; rank by recency × DB
    relevance (cited_by_count, citation intent, influential flag). This is the
    step that catches post-cutoff work.
@@ -52,6 +61,13 @@ Fetch the JSON endpoints with the web tool; record the retrieval date.
    relevant work (state that you reached it, or that you did not).
 5. **Disconfirm** — also chase citers that *refute or bound* an anchor's claim,
    not just descendants that extend it (per `survey-field.md`).
+
+**Absence under one query term is not absence.** A subfield can go dormant
+under its classical name yet continue under a reframing — e.g. MT "system
+combination" is dead post-2022, but the work migrated to MBR decoding,
+LLM refinement/post-editing, and candidate reranking. Probe 2–3 reframings
+(and forward-cite a live anchor) before reporting a gap; a true gap is only
+established after that, and is itself a finding.
 
 ## Secondary: keyword/phrase search — only for the freshest work
 
