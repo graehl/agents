@@ -153,6 +153,24 @@ overlap tier (suspected proposal-overlap papers) that does not belong in a
 general field survey. A paper that draws on a survey should cite the
 `surveys/<field-slug>/` path so a future agent can find the shared map.
 
+### Reproduce before comparing (the overselling prior)
+
+Treat a published effectiveness claim as **unverified until you reproduce it
+yourself**, especially on competitive benchmarks. A large fraction of influential
+results (graehl's estimate: **≥2/3**) carry significant *effective* overselling
+through standard multi-hypothesis / peeking malpractice — metric circularity
+(select and evaluate with the same metric family), test/oracle peeking, best-of-many
+seeds or decoding configs reported as "the method", under-tuned or cherry-picked
+baselines, and rerank/MBR that leaks the evaluation metric. The cost asymmetry
+settles the policy even if the true fraction is lower: reproduction is cheap
+insurance against building a new contribution on a false baseline. So **always
+reproduce the known methods you will compare against** before claiming a new method
+beats them, and onboard the strongest existing variant per aspect so the comparison
+is correct. Report **with-vs-without** each technique under controls that block the
+peeking paths: leave-one-out metric families, frozen non-selection splits, and
+per-compute cost. Worked instance: a MetricX-QE selector scored by MetricX-reference
+manufactured a 2–8× "cross-family win" that vanished under an independent metric.
+
 Results tables in `research/<branchname>.md` **must** include:
 - The **split** (dev / test / dev-subset) and **N** (number of examples) used for scoring.
   A table row without these is uninterpretable after time passes.
