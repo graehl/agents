@@ -16,7 +16,7 @@ A name should carry a known domain concept, so the reader navigates the code wit
 
 ## Comments
 
-Write none by default. Add one only for a *why* the code cannot show on its own — a hidden constraint, a subtle invariant, a workaround for a specific bug. Never restate what the code does; the names already say it — and don't encode transient authoring context ("added for the Y flow", "used by X"): state the constraint that stays true, not the task that prompted the edit. One line; no docstring essays.
+Write none by default. Add one only for a *why* the code cannot show on its own — a hidden constraint, a subtle invariant, a workaround for a specific bug. Never restate what the code does; the names already say it — and don't encode transient authoring context ("added for the Y flow", "used by X"): state the constraint that stays true, not the task that prompted the edit. Sharper still: never narrate the diff or the discussion that produced the code ("with X removed", "now using Y instead", "as we discussed") — that comment describes a before/after the committed source doesn't contain, so the next reader asks "why mention X when no X is here?". Such change-narrating comments are legitimate only in code shown for discussion, planning, or alignment — a chat reply, a plan, a review snippet — never in committed source. One line; no docstring essays.
 
 In C++, prefer `//` for short, one-line comments because they are easy to grep and scan inline. Do not write complex sentences that wrap across several `//` lines; if the explanation is useful at that length, use a C-style block comment so the prose reads as one paragraph to a human reader.
 
