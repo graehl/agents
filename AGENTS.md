@@ -139,8 +139,8 @@ global policy changes belong here first, even when a repo-local
 scripts under `~/agents/` and `~/bin/` in sync. When global instructions
 or those scripts change, make a brief commit on `~/agents` `master`.
 
-`~/agents` in these instructions means this checkout's root;
-substitute the actual path if loaded from elsewhere.
+`~/agents` in these instructions means this checkout's real root after
+following symlinks; substitute that resolved path if loaded from elsewhere.
 
 `~/agents/AGENTS.user.md` is a personal supplement — read it alongside
 this file every session.
