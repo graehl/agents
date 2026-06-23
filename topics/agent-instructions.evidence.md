@@ -344,28 +344,25 @@ One-home justification: a claim duplicated across docs creates citers
 the caller-sweep duty must then cover; one home plus pointers keeps
 the sweep single-target.
 
-## 2026-06-23 — instruction-root lookup before personal supplement
+## 2026-06-23 — Pi parent-walk symlink bug; no instruction fix
 
 - **Incident** — user reported Pi looking under `/home/graehl` for
-  instruction content such as `AGENTS.user.md`. Verified local loader
-  shape: `/home/graehl/.pi/agent` is a symlink farm whose
-  `AGENTS.user.md` target is `/home/graehl/agents/AGENTS.user.md`.
-  The only explicit Pi symlink clarification lived in `AGENTS.user.md`,
-  which cannot help an agent that has already failed to locate that file.
-- **Decision** — promote the checkout/sibling-resolution rule into
-  boot-loaded `AGENTS.md`: `~/agents` means the canonical checkout,
-  `~/agents` is the first concrete place to look, symlinked loaders
-  resolve sibling instruction files through the symlink target, copied
-  instructions still treat literal `~/agents/...` paths as naming the
-  canonical checkout, and agents must not try `$HOME/AGENTS.user.md`
-  unless `$HOME` is the resolved checkout root.
-- **Trace** — Pi loads `/home/graehl/.pi/agent/AGENTS.md`: following
-  the rule resolves the target to `/home/graehl/agents/AGENTS.md` and
-  then reads `/home/graehl/agents/AGENTS.user.md`, not
-  `/home/graehl/AGENTS.user.md`. A project-local copied `AGENTS.md`
-  still routes absolute `~/agents/...` references to
-  `/home/graehl/agents/...`, so the clarification does not make copied
-  instructions search their own project root for private supplements.
-  A non-graehl adopter changing the canonical checkout must update the
-  literal `~/agents` path or provide that alias; otherwise the failure
-  is visible rather than silently falling back to `$HOME`.
+  instruction content such as `AGENTS.user.md`. Root cause (user-
+  identified): Pi walks parent dirs collecting every `AGENTS.md` and
+  does not resolve symlinks. It grabbed a lone `~/AGENTS.md` symlink
+  (target `~/agents/AGENTS.md`), treated its dir as `$HOME`, then a
+  relative sibling lookup landed in `$HOME` and missed. `~/.pi/agent`
+  is a *complete* symlink farm, so loads through it resolve siblings by
+  accident of completeness and never hit this.
+- **Mitigation** — user removed the `~/AGENTS.md` symlink. The trigger
+  is gone; `$HOME` is no longer a partial mirror of the checkout.
+- **Rejected** — an earlier pass (e72b30b, 77b6524) added boot-file
+  prose telling agents that `~/agents` is the canonical checkout, to
+  follow symlink targets, and not to look in `$HOME`/project root.
+  Reverted as wrong-layer: a loader bug has no agent-instruction fix —
+  an agent handed pre-loaded content can't introspect the symlink the
+  loader already dereferenced — and the negative "don't look in `$HOME`"
+  framing anticipates a failure that is the loader's, not the agent's.
+  GPT produced it even after the user had named the cause a harness bug.
+  Retained only the plain hygiene of referencing siblings by absolute
+  `~/agents/...` path, already shown by the surrounding boot lines.

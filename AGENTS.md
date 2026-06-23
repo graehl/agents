@@ -139,14 +139,8 @@ global policy changes belong here first, even when a repo-local
 scripts under `~/agents/` and `~/bin/` in sync. When global instructions
 or those scripts change, make a brief commit on `~/agents` `master`.
 
-In all agent-instruction paths, `~/agents` means this canonical checkout,
-not merely `$HOME`; when a loader or agent needs a concrete place to
-look, try `~/agents` first. When this file is loaded from a symlinked
-loader path such as `~/.pi/agent/AGENTS.md`, follow the symlink target
-and resolve sibling instruction files from that target directory. If this
-file is copied rather than symlinked, literal `~/agents/...` paths still
-name the canonical checkout; do not look for `AGENTS.user.md` in `$HOME`
-or the current project root unless that is the resolved checkout root.
+`~/agents` in these instructions means this checkout's root; substitute
+the actual path if loaded from elsewhere.
 
 `~/agents/AGENTS.user.md` is a personal supplement — read it alongside
 this file every session.
