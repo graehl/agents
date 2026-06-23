@@ -17,6 +17,13 @@ point has arisen.
 User statements such as "I'm comfortable with X" or "just do Y" are
 standing authorizations; act on them, do not reconfirm.
 
+## Confirm before hard-to-reverse or outward-facing actions
+
+The exception to the section above: for actions that are hard to
+reverse or outward-facing, confirm first unless durably authorized or
+explicitly told to proceed without asking; approval in one context
+doesn't extend to the next.
+
 ## Do not narrate or restate tool output
 
 Do not announce each tool call before making it ("I will now read the

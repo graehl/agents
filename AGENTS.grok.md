@@ -1,8 +1,10 @@
 # Grok Supplement
 
 Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
-running in Grok / xAI. This file contains harness mechanics only; shared
-policy stays in `AGENTS.md`.
+running in Grok / xAI. This file contains harness mechanics; broad
+shared policy stays in `AGENTS.md`. The one carve-out is the
+confirm-before-acting rule below, which the Claude harness injects
+automatically but Grok does not.
 
 This is a stub: Grok is not yet a harness used in earnest here, so the
 specifics below are deliberately thin. Fill them in from observed runtime
@@ -39,3 +41,9 @@ The on-disk location of Grok transcripts (if any) is not documented here
 yet. When `AGENTS.md` says to search provider session logs, discover the
 transcript directory from the running harness and record it in this file
 once known; do not assume a path from training data.
+
+## Confirm before hard-to-reverse or outward-facing actions
+
+For actions that are hard to reverse or outward-facing, confirm first
+unless durably authorized or explicitly told to proceed without
+asking; approval in one context doesn't extend to the next.

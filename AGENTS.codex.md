@@ -2,7 +2,9 @@
 
 Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
 running in Codex / OpenAI Codex. This file contains Codex harness
-mechanics; shared policy stays in `AGENTS.md`.
+mechanics; broad shared policy stays in `AGENTS.md`. The one carve-out
+is the confirm-before-acting rule below, which the Claude harness
+injects automatically but Codex does not.
 
 Model tier: do not trust self-knowledge of your model name — models
 misreport it. Read the harness-recorded id from your own rollout
@@ -46,3 +48,9 @@ Follow symlinks when checking identity:
 ```bash
 stat -Lc '%d:%i %n' ~/agents/skills ~/.codex/skills/user
 ```
+
+## Confirm before hard-to-reverse or outward-facing actions
+
+For actions that are hard to reverse or outward-facing, confirm first
+unless durably authorized or explicitly told to proceed without
+asking; approval in one context doesn't extend to the next.
