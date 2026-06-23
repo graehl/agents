@@ -47,10 +47,10 @@ whole tree. Use it to extract, then copy in and commit. Drop the symlink.
   precise upstream git ref — full 40-char SHA, not a branch or tag name,
   which move). Include the commit subject + date for human context.
 - **Vendored** — the date we copied it.
-- **License** — the upstream license, or an explicit note that none
-  exists (then it is all-rights-reserved-by-default; flag before
-  redistributing). Copy any upstream `LICENSE`/`COPYING` in alongside the
-  code.
+- **License** — license status at the pinned commit: detected upstream
+  license files, or an explicit note that none were found. Do not assume
+  the vendored subpath carries a redistributable license; consult upstream
+  before redistributing or relicensing.
 - **Vendored files** — each file with its sha256 at vendor time, so drift
   or local edits are detectable.
 - **Local changes** — **document every divergence from upstream here**

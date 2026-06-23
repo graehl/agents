@@ -159,7 +159,7 @@ record. Implements the convention in `topics/vendoring.md`.
   preserved); `dest/VENDORED.md` exists with an Upstream **Commit** equal
   to the clone's `git rev-parse HEAD` (full 40-char SHA), a per-file
   sha256 table matching `sha256sum` of the copied files, and a License
-  section (an explicit "no upstream license" note when none is found).
+  section describing detected upstream license files or their absence.
 - A re-vendor over an existing `dest` preserves the hand-written body of
   the `## Local changes` section verbatim; all other sections regenerate.
 - `--check` never writes; its temp clone is removed regardless of outcome.

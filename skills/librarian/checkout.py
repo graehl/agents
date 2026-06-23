@@ -39,8 +39,28 @@ def parse_repo(repo_input: str) -> tuple[str, str, str]:
     path = path.strip("/")
     parts = [part for part in path.split("/") if part]
 
-    # For GitHub-like deep links, cache the repository, not the page path.
-    if len(parts) >= 3 and parts[2] in (
+    # For provider deep links, cache the repository, not the page path.
+    if "-" in parts:
+        dash = parts.index("-")
+        if dash >= 2 and len(parts) > dash + 1 and parts[dash + 1] in (
+            "tree",
+            "blob",
+            "merge_requests",
+            "issues",
+            "commit",
+            "commits",
+        ):
+            parts = parts[:dash]
+    elif host.endswith("bitbucket.org") and len(parts) >= 3 and parts[2] in (
+        "src",
+        "branch",
+        "commits",
+        "pull-requests",
+        "issues",
+        "downloads",
+    ):
+        parts = parts[:2]
+    elif len(parts) >= 3 and parts[2] in (
         "tree",
         "blob",
         "pull",
@@ -153,7 +173,12 @@ def main() -> int:
         ).strip()
 
         if branch and upstream and not dirty:
-            git("merge", "--ff-only", upstream, cwd=checkout_path, check=False)
+            merge = git("merge", "--ff-only", upstream, cwd=checkout_path, check=False)
+            if merge.returncode != 0:
+                print(
+                    f"warning: could not fast-forward {checkout_path}; using existing checkout",
+                    file=sys.stderr,
+                )
 
     print(checkout_path)
 

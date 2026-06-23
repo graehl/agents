@@ -83,7 +83,11 @@ def detect_license(scratch: str, subpath: str) -> str:
             if pats.match(name):
                 found.append(os.path.relpath(os.path.join(base, name), scratch))
     if found:
-        return f"upstream license file(s): {', '.join(found)} — preserve them"
+        return (
+            f"upstream license file(s) detected: {', '.join(found)}. "
+            "vendor-skill does not copy root-level license files automatically; "
+            "consult upstream before redistributing or relicensing."
+        )
     return (
         "NO LICENSE/COPYING file upstream at the pinned commit. "
         "Treat as all-rights-reserved-by-default; re-check the repo's terms "
@@ -94,6 +98,13 @@ def detect_license(scratch: str, subpath: str) -> str:
 def copy_tree(scratch: str, subpath: str, dest: Path):
     src = Path(scratch) / subpath
     dest.mkdir(parents=True, exist_ok=True)
+    for child in dest.iterdir():
+        if child.name == "VENDORED.md":
+            continue
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
     # Copy upstream files, preserving mode; never touch VENDORED.md (dest-only).
     shutil.copytree(
         src, dest, dirs_exist_ok=True, ignore=shutil.ignore_patterns("VENDORED.md")
@@ -126,7 +137,7 @@ def extract_local_changes(vendored_md: Path) -> str:
     return body or LOCAL_CHANGES_DEFAULT
 
 
-def write_vendored_md(dest: Path, url: str, subpath: str, sha: str,
+def write_vendored_md(dest: Path, dest_display: str, url: str, subpath: str, sha: str,
                       commit_line: str, license_note: str,
                       files: list[tuple[str, str]]):
     name = subpath.rstrip("/").split("/")[-1]
@@ -169,8 +180,8 @@ can re-apply it. Convention: `topics/vendoring.md`. Regenerate/verify with
 ## Re-sync from upstream
 
 ```bash
-vendor-skill --check {dest}        # report drift vs current upstream HEAD
-vendor-skill {url.removesuffix('.git') if not url.startswith('http') else url} {subpath} {dest}  # re-pin to a new commit
+vendor-skill --check {dest_display}        # report drift vs current upstream HEAD
+vendor-skill {url.removesuffix('.git') if not url.startswith('http') else url} {subpath} {dest_display}  # re-pin to a new commit
 ```
 
 After re-pinning, re-apply anything listed under "Local changes" and update
@@ -181,8 +192,13 @@ that section.
 
 def cmd_vendor(repo: str, subpath: str, dest_arg: str | None):
     subpath = subpath.strip("/")
-    dest = Path(dest_arg) if dest_arg else Path.cwd() / subpath.split("/")[-1]
+    dest_display = dest_arg or subpath.split("/")[-1]
+    dest = Path(dest_display)
     dest = dest.resolve()
+    if Path(dest_display).is_absolute():
+        rel = os.path.relpath(dest, Path.cwd())
+        if rel != ".." and not rel.startswith(f"..{os.sep}"):
+            dest_display = rel
     url = repo_to_url(repo)
     scratch = sparse_clone(url, subpath)
     try:
@@ -193,7 +209,7 @@ def cmd_vendor(repo: str, subpath: str, dest_arg: str | None):
         license_note = detect_license(scratch, subpath)
         copy_tree(scratch, subpath, dest)
         files = vendored_files(scratch, subpath, dest)
-        write_vendored_md(dest, url, subpath, sha, commit_line, license_note, files)
+        write_vendored_md(dest, dest_display, url, subpath, sha, commit_line, license_note, files)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     print(f"vendored {url}/{subpath} @ {sha[:12]} -> {dest}")

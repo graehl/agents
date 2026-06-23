@@ -67,7 +67,7 @@ session — not all at session start.
 | Before building a prototype | `topics/prototyping.md` |
 | Before research or experimentation work | `RESEARCH.md` |
 | Before launching or monitoring long-running jobs | `RUNS.md` |
-| Before surveying a field or gathering prior art | `survey-field.md`, `research-frontier.md` |
+| Before surveying a field or gathering prior art | `literature-search.md`, `survey-field.md`, `research-frontier.md` |
 | Entering a topic area for the first time in session | that topic's `.md` and `.bearings.md` |
 | User says `bearings`, `orient`, or `lost` | relevant topic `.md`/`.bearings.md`, plus recent dirty files, topic/task edits, git history, run records, and live job state |
 | User invokes `/doubt` or says they doubt/distrust/want a re-check | `skills/doubt/SKILL.md` |

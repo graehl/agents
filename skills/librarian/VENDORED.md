@@ -26,15 +26,15 @@ NO LICENSE/COPYING file upstream at the pinned commit. Treat as all-rights-reser
 
 ## Local changes
 
-None — verbatim copy of the upstream subpath. Record every later local
-edit here (what changed and why) so the next re-sync can re-apply it
-against new upstream.
+- `checkout.py`: strip GitLab (`/-/tree`, `/-/blob`, etc.) and Bitbucket
+  deep-link suffixes to the repository path; warn when a fetched checkout
+  cannot fast-forward.
 
 ## Re-sync from upstream
 
 ```bash
-vendor-skill --check /home/graehl/agents/skills/librarian        # report drift vs current upstream HEAD
-vendor-skill https://github.com/xl0/agent-files skills/librarian /home/graehl/agents/skills/librarian  # re-pin to a new commit
+vendor-skill --check skills/librarian        # report drift vs current upstream HEAD
+vendor-skill https://github.com/xl0/agent-files skills/librarian skills/librarian  # re-pin to a new commit
 ```
 
 After re-pinning, re-apply anything listed under "Local changes" and update
