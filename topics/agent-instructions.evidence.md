@@ -343,3 +343,29 @@ ephemeral; decision surface moves up the hierarchy, rationale down.
 One-home justification: a claim duplicated across docs creates citers
 the caller-sweep duty must then cover; one home plus pointers keeps
 the sweep single-target.
+
+## 2026-06-23 — instruction-root lookup before personal supplement
+
+- **Incident** — user reported Pi looking under `/home/graehl` for
+  instruction content such as `AGENTS.user.md`. Verified local loader
+  shape: `/home/graehl/.pi/agent` is a symlink farm whose
+  `AGENTS.user.md` target is `/home/graehl/agents/AGENTS.user.md`.
+  The only explicit Pi symlink clarification lived in `AGENTS.user.md`,
+  which cannot help an agent that has already failed to locate that file.
+- **Decision** — promote the checkout/sibling-resolution rule into
+  boot-loaded `AGENTS.md`: `~/agents` means the canonical checkout,
+  `~/agents` is the first concrete place to look, symlinked loaders
+  resolve sibling instruction files through the symlink target, copied
+  instructions still treat literal `~/agents/...` paths as naming the
+  canonical checkout, and agents must not try `$HOME/AGENTS.user.md`
+  unless `$HOME` is the resolved checkout root.
+- **Trace** — Pi loads `/home/graehl/.pi/agent/AGENTS.md`: following
+  the rule resolves the target to `/home/graehl/agents/AGENTS.md` and
+  then reads `/home/graehl/agents/AGENTS.user.md`, not
+  `/home/graehl/AGENTS.user.md`. A project-local copied `AGENTS.md`
+  still routes absolute `~/agents/...` references to
+  `/home/graehl/agents/...`, so the clarification does not make copied
+  instructions search their own project root for private supplements.
+  A non-graehl adopter changing the canonical checkout must update the
+  literal `~/agents` path or provide that alias; otherwise the failure
+  is visible rather than silently falling back to `$HOME`.
