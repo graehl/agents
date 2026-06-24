@@ -37,7 +37,10 @@ two readers: the user, and a fresh agent of similar capability. Never
 write down to a lesser reader. "Similar capability" means peer skill with
 zero shared context: the receiver can re-derive reasoning from the same
 artifacts but was not in the room, so it carries none of this session's
-working memory.
+working memory. Use this model to decide what the handoff contains; do
+not recite it inside one — an `Audience:` line that names these readers
+recites the rule instead of applying it, wasting the opening on meta the
+readers don't need.
 
 Both halves of that cut against the default tendency to flatten a handoff
 into basic narration:
