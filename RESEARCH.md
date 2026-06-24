@@ -88,6 +88,39 @@ do not migrate durable mechanism/contract content *out* of `topics/` into
 `topics/` even if a paper later cites it" convention; the paper references the
 topic, it does not replace it.
 
+#### Speculative drafts (vision-first, evidence-pending)
+
+A `research/<paper>.md` draft **may be written ahead of its evidence**. Writing the
+intended paper first — claims, framing, and result tables as scaffolds — is a
+legitimate way to form an ambition, force coherent framing, and serve as a
+vision-refresher; the implicit goal of such a draft is the set of measurements that
+*would* turn its placeholders into evidence. This generalizes the "materialize the
+plan as a skeleton/TBD scaffold" habit into a writing *mode*.
+
+Discipline that keeps this honest rather than self-deceiving:
+
+- **Default epistemic status is speculative.** Mark it unmissably: a status banner at
+  the top of the draft (e.g. `Status: SPECULATIVE — claims unverified, evidence pending`)
+  plus a per-claim marker on any assertion not yet backed by a result. Never let
+  vision-first prose be mined later as an established finding. This is the *inverse* of
+  the overselling prior in *Reproduce before comparing*: there the risk is overstating a
+  real number; here it is mistaking an aspiration for a number at all.
+- **Evidence placeholders double as experiment specs — but the spec lives in the topic.** A
+  `TBD`/`TODO` table cell, figure slot, or result sentence should *name* what would be measured,
+  on what data, and the outcome that would **confirm or falsify** the surrounding claim. Keep the
+  paper's placeholder concise (a claim + speculative marker + pointer); the full spec, the run
+  queue, and the falsifier live in the companion `topics/` doc. The topic, not the paper, is the
+  generator of the experiment queue.
+- **Keep tactical content out of the paper — it is not a diary.** The draft carries vision,
+  framing, and (eventually) settled evidence; the tactical layer — detailed experiment specs,
+  intermediate and negative results, debugging, run mechanics — belongs in the companion
+  `topics/` doc and the timestamped `research/<branch>.log.md` running log, not the paper. Push
+  it there as it accrues so the draft stays a coherent narrative rather than a work journal.
+- **Settle placeholders explicitly.** When a measurement lands, replace the placeholder and
+  adjust the marker (confirmed / partial / refuted) — including downgrading or cutting
+  framing the evidence killed. A speculative draft is a hypothesis to be disproved, not a
+  press release to defend.
+
 #### First-contact public-facing sections
 
 For the first public-facing section of a research paper, report, or
