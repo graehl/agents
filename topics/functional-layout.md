@@ -168,6 +168,38 @@ overlap, opening the overflow exposes exactly the hidden set — and it
 reappears in [`ui-verification`](ui-verification.md) as the invariant to
 assert *instead of* patching width-by-width.
 
+**Tier the response, and cross from CSS to JS deliberately.** Intrinsic
+sizing (above) is Tier 1 — continuous, content-aware, free — so use it
+until it *structurally* cannot decide: conditional visibility (dropping a
+control when even its min will not fit makes hiding-changes-the-budget a
+feedback loop CSS will not close) or picking a discrete mode by measuring
+siblings. Only then go to Tier 2, the measured allocator. The allocator is
+one mechanism at two grains: a single toolbar row, and a **monotone ladder
+of hand-authored modes** (mobile → collapsed-drawer → wide) where you
+enumerate a few whole-layout modes and pick the richest that fits.
+Monotone-in-width means the transitions are single and *placed by you*,
+FLIP-animatable, not scattered by a solver. One Tier-1 caution: `flex-wrap`
+is itself a *discontinuous* primitive — a wrap is a jump — so when you want
+continuity under resize, shrink a track (`minmax(min, 1fr)`) before you
+wrap, and make wrapping an explicit mode rather than an accident.
+
+**Budget recomputation by which parameter changed.** The constrained axis
+is almost always horizontal (vertical is a scroll affordance), so each
+region is a ~1-D allocation — which is why intrinsic sizing plus a
+width-sorted ladder suffice and no 2-D constraint solver is warranted.
+Split the work by event frequency: *window/container resize* is frequent
+and live, so its response must be cheap and continuous — no per-frame
+re-measure or re-solve (CSS reflows; a JS allocator only compares the
+current width against cached mode thresholds). *Font, size, and spacing
+preferences* change rarely and deliberately, so a full re-measure and even
+a discontinuous re-layout is acceptable there. Put the expensive work on
+the rare event; the failure mode is a **stale threshold** — a cached width
+cutoff not invalidated when metrics change, i.e. the fixed-px breakpoint
+anti-pattern returning. This is also why a general constraint solver
+(Cassowary; its JS port kiwi.js) is the wrong default: its optimum jumps
+when the active constraint set flips — jitter on the frequent axis. Confine
+any solver to the rare path, where a one-time reflow is fine.
+
 **Fluid type and space with `clamp()`.** `clamp(min, preferred, max)` ties
 a value to the viewport between two bounds — `font-size: clamp(1rem, 0.9rem
 + 0.5vw, 1.25rem)` scales body type smoothly without step changes. Use the
