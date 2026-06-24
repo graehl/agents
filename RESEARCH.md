@@ -55,6 +55,39 @@ without scanning prose blocks.
 
 ### Research paper conventions
 
+#### `topics/` vs `research/` placement, and the stub-topic rule
+
+`topics/` vs `research/` is fundamentally an **audience/plan axis, not a rigor
+axis**: `research/` means the work is on a path toward external publication;
+`topics/` means not yet (internal cross-cutting contract, buildable-mechanism,
+or system documentation). The same discipline — honest controls, recorded
+provenance, sanity checks — applies either way. A clean finding can graduate
+from a `topics/` thread into a standalone `research/<paper>.md` when it earns a
+publication path.
+
+But `topics/` carries **machinery that `research/` does not**: the
+"search/read `topics/*.md`" read-triggers, the `Topic:` commit-trailer namespace
+(keyed to topic *basenames*), and the read-before-touching-an-area rule (see
+`AGENTS.md`). Content that lives only in `research/` is invisible to all of it.
+
+Rule: **every active thread keeps a `topics/<name>.md`, even when the narrative
+moves to `research/`** — create it if it does not exist yet. At minimum a stub
+that points at the `research/<paper>.md` path; usually the topic doc remains the
+home for the cross-cutting mechanism/contract + live status. The link is
+**bidirectional**: the `research/` draft links to its companion topic, and the
+topic links to the draft. The topic basename stays the `Topic:` trailer
+namespace regardless.
+
+The companion topic is also the **holding area for material not (yet) suitable
+for the draft paper** — exploratory findings, parked variants, mechanism detail,
+negative results, and caveats that the external-facing narrative should not carry
+yet. Promote into the paper when a piece earns its place; until then it stays
+discoverable in the topic rather than lost in chat or a task file. Correspondingly,
+do not migrate durable mechanism/contract content *out* of `topics/` into
+`research/` — consistent with the per-repo "a code/system proposal goes in
+`topics/` even if a paper later cites it" convention; the paper references the
+topic, it does not replace it.
+
 #### First-contact public-facing sections
 
 For the first public-facing section of a research paper, report, or
