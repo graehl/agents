@@ -366,3 +366,99 @@ the sweep single-target.
   GPT produced it even after the user had named the cause a harness bug.
   Retained only the plain hygiene of referencing siblings by absolute
   `~/agents/...` path, already shown by the surrounding boot lines.
+
+## 2026-06-25 — external measurement: AGENTS.md net-negative (Gloaguen et al.)
+
+- **Citation** — Gloaguen, Mündler, Müller, Raychev, Vechev, "Evaluating
+  AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?"
+  arXiv:2602.11988. First external study bearing on the premise the
+  2026-05-29 entry flagged as unmeasured ("agents read meaningful text and
+  act on it to better outcomes"). Read via WebFetch summarizer, not the PDF
+  directly — see the number caveat below.
+- **Top-line** (abstract, verbatim-sourced) — across multiple agents/LLMs,
+  context files "tend to reduce task success rates compared to providing no
+  repository context, while also increasing inference cost by over 20%."
+  Recommendation: "human-written context files should describe only minimal
+  requirements"; "unnecessary requirements from context files make tasks
+  harder." Reported mechanism: context files induce broader exploration
+  (more testing, more file traversal) and agents do follow the instructions.
+- **Answer to the question that prompted this read** — *no*, they do not
+  identify which content characteristics help. No taxonomy of instruction
+  types (style vs build vs test vs architecture), no per-instruction
+  ablation, no analysis of what separates a helpful file from a harmful one.
+  The finest cuts they make are (a) two *provenance* buckets — LLM-generated
+  vs developer-committed — and (b) the behavioral mechanism above. The "real
+  contribution" worth wanting — which characteristics steer well per token —
+  is exactly their stated gap (future work).
+- **The one sub-analysis that exists — provenance** — developer-written
+  files fare better than LLM-generated; in the closer-read pass the
+  developer arm looked roughly neutral-to-slightly-positive while the
+  LLM-generated arm is the clear net-negative that drives the headline.
+  This is the nearest the paper comes to "what makes a good one," and it
+  points the same way as our minimality discipline (hand-curated beats
+  auto-generated bloat). *Caveat:* exact per-condition deltas came back
+  inconsistent across summarizer passes (≈−0.5% / −2% LLM-gen vs ≈+4% dev
+  in one pass; both-hurt in another). Direction is solid; confirm numbers
+  against the PDF before quoting any of them.
+- **Methodology (fetch-sourced, unverified)** — ~4 agents (Claude Code,
+  Codex, Qwen Code) × models (Sonnet-4.5, GPT-5.2, GPT-5.1-mini,
+  Qwen3-coder); SWE-bench Lite (300 tasks, 11 repos) as the LLM-generated
+  arm; a novel ~138-issue collection from repos that ship committed context
+  files as the developer arm. Dataset name unconfirmed (summarizer said
+  "AGENTbench" — likely a confabulation or collision with the existing
+  AgentBench).
+- **Bearing on our corpus — not a clean indictment** — disconfirming pass:
+  their metric is SWE-bench single-issue pass-rate, largely orthogonal to
+  what most of this corpus is *for* (not destroying a peer's uncommitted
+  work, not inverting a rule under compression, resumability, design
+  quality). A pass-rate study cannot see those. Their harmful case is
+  dominated by *auto-generated* context following vendor "tailor your repo"
+  advice — the same thing our load-bearing / "cut non-steering text" /
+  zero-waste-boot rules already push against, so it corroborates the
+  *minimality* discipline. Honest counter: developer-written files in their
+  data still raised cost and were not a clear win, so "ours is hand-written,
+  therefore fine" is *not* supported. What it sharpens for us: whether this
+  corpus is actually minimal — every boot-loaded line load-bearing — which
+  is the bar `agent-instructions.md` already sets; the paper is external
+  pressure to keep enforcing it.
+- **Relation to instruction-ablation.md** — their with/without-context
+  paired SWE-bench design is roughly the cheap tier of the A/B that doc
+  proposes, but run on generic/auto context rather than a curated
+  load-bearing corpus, so it does not close our specific question. It does
+  validate the method and give a noise-floor reference: effects are
+  single-digit percent, so the pilot's power estimate is the load-bearing
+  part of any run we do.
+- **Cost is tautological; success is the real signal** (graehl) — the
+  >20% cost line is near-circular: the paper's own mechanism is that
+  context files make the agent test/explore/respect-conventions more (=
+  project hygiene), and a benchmark scored on the minimal hidden-test diff
+  books every such token as overhead. "Cheaper without it" holds by
+  construction whenever the instruction's payoff lands outside the metric;
+  the benchmark cannot separate *wasted* effort from *invested* effort
+  because it never prices hygiene. What is *not* tautological is the
+  success-rate move, and it splits by arm: LLM-generated context made the
+  agent *worse* at the narrow task (over-specified requirements actively
+  misdirect — miscalibration, not unrewarded hygiene), while
+  developer-written context left success ≈flat and only raised cost (the
+  pure tautology case, and the better analog for a curated corpus). Useful
+  one-line reading of the paper, the one the authors could have led with:
+  auto-generated over-specification misdirects on a narrow objective;
+  curated minimal instruction buys hygiene the benchmark doesn't price, at
+  a real token cost.
+- **The LLM-generated arm tests a generator, not instructions** (graehl) —
+  auto-generating context "following agent-developer recommendations" and
+  finding it unhelpful is mostly a verdict on *that generator*, not on
+  whether instructions help; the null confounds instruction-value with
+  generator-quality. Near-frivolous, because no serious project ships a
+  vendor-default auto-generated context file as a considered artifact. The
+  only result that would make the arm interesting is the inverse — a
+  meta-prompt that reliably generates *useful* instructions — in which case
+  the meta-prompt is the contribution and the paper is about that recipe,
+  not about "context files." So of the two arms only the developer-written
+  one carries signal about curated human instruction, and that one is
+  measured on the wrong axis (see the cost-tautology bullet). Note the
+  paper's own behavioral finding — instructions *are* followed, they induce
+  broader exploration — localizes the fault to instruction *content*, not
+  to agents ignoring instructions; "followed but net-harmful" is exactly
+  consistent with "instructions work, these were bad / on the wrong
+  metric," and none of the three legs supports "instructions don't help."

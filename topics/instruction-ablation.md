@@ -234,6 +234,97 @@ of this repo's own `tasks/*.md` as held-out scenarios. A rule that helps
 on SWE-bench and hurts on terminal/ops tasks is a scoped rule, not a
 global one — and the ablation is how you would find that out.
 
+## What `resolved` stands in for
+
+The developer-facing question is the valid one: how much *human* effort —
+wall-clock, correction and review rounds — does it take to land a change
+that both passes the tests *and* meets project requirements (a maintainer
+would merge it), with the corpus versus without? SWE-bench `resolved` is
+the automatable proxy for that gold standard, and it differs on two axes
+that govern how to read any benchmark verdict (Gloaguen et al. included):
+
+- **Cost unit is flipped.** The benchmark prices *agent tokens* — cheap and
+  abundant; the objective prices *developer time* — scarce and expensive.
+  Instructions trade the former to cut the latter (front-loaded convention
+  knowledge buys fewer review-rework loops), so a token-cost metric books
+  that trade as pure loss. A "+20% token cost" can be a net win in hours.
+- **Outcome gate is lowered.** `resolved` = hidden tests green; "meets
+  project requirements" = a human merges. The binary metric never checks
+  the second half — the half most of this corpus is *for*.
+
+Why not just run the gold standard: it is a within-subject HCI study, not a
+benchmark — confounded by developer skill and agent-fluency, needing
+counterbalancing and matched task pairs (you cannot reuse one issue
+with-and-without), human-judged per instance, hence small-N and costly.
+That cost is exactly why the proxy exists: the proxy's job is to be cheap
+enough to sweep, the gold standard's is to be valid. The merge decision is
+a *human* judge, not the LLM judge rejected below — unbiased-but-expensive,
+where the LLM judge is cheap-but-biased.
+
+Even the gold standard under-prices the tail-risk rules (the discard ban,
+"don't invert a rule under compression"): their payoff is a rare
+catastrophe *avoided* — a destroyed afternoon that never enters median
+time-to-land. For those the estimator is the *tail* of human cost (rate of
+unrecoverable rework or work-destroying events), not the median; a
+median-time metric is blind to a variance-reducer.
+
+## Simulating the merge bar: the calibrated-judge carve-out
+
+The gold standard above needs a developer and a maintainer; both can be
+*personas* of a SOTA agent — a developer-persona does the work, a
+maintainer-persona gates on "tests pass **and** I would merge this" —
+turning an expensive within-subject HCI study into something sweepable.
+This deliberately admits the LLM judge the next section otherwise bans, so
+it is valid only under conditions that convert "trust the judge" into "the
+judge is checked":
+
+- **The reviewer is a hybrid; only one half is a judge.** Running the test
+  suite and checking for regressions is judge-free — keep it. Only the
+  "meets requirements / mergeable" verdict is the LLM judge, and it is
+  admissible *because it has ground truth*: SWE-bench ships `gold_patch`
+  and the real PR was actually merged, so the persona's merge decision can
+  be **calibrated against the human's**. Abstract "communication quality"
+  has no such anchor and stays banned — the carve-out is for mergeability,
+  not for prose scoring.
+- **Calibrate on the adversarial slice.** The calibration set must include
+  good-looking-but-wrong changes humans *rejected*; agreement on easy
+  accepts flatters the judge, only the rejects test whether it is fooled.
+- **Decontaminate the rubric — this is the dangerous bias.** "Meets project
+  requirements" presupposes a rubric, and the obvious source is the project
+  context file, which *is the treatment*. A reviewer reading the AGENTS.md
+  under test grades the treated arm against its own rules → a manufactured
+  false positive. Source the review standard from outside the treatment
+  (the real PR's review-comment history, or a held-out human rubric), never
+  the file being ablated. This is the multi-agent analog of the
+  contamination invariants.
+- **Two judge-biases, opposite signs.** Rubric-circularity inflates the
+  *treatment* (false positive — kill it, per the bullet above).
+  Gameability-by-emulation — the persona accepting persuasive compliance
+  over real adherence — inflates the *baseline*: the no-instructions arm
+  can reach "merged" by gaming the same as the treatment, erasing the
+  treatment's adherence edge. Once circularity is removed, the only
+  residual judge-bias is the benign one — it costs power, never a false
+  positive — so an instructions-**win survives it (trustworthy)** while a
+  **loss or tie stays ambiguous** (the judge may simply not see real
+  adherence).
+- **Cost-to-converge is judge-gaming-robust.** Gameability attacks the
+  binary merged-or-not and the final-quality verdict, but not *rounds to
+  converge*: a no-instructions agent ships a first draft violating
+  conventions it was never told, eats more review feedback, and iterates
+  more before it lands — more developer-time, the metric "What `resolved`
+  stands in for" already elevated. Measure on cost-to-merge and the
+  instructions advantage relocates to the axis the gameable judge cannot
+  reach.
+- **Judge-independence.** A maintainer-persona from the developer's own
+  model family shares its exploits, so it is more gameable in the
+  correlated direction; use a cross-family reviewer, ideally an ensemble.
+
+This reframes the baseline itself. The honest "no-instructions" arm is not
+the paper's *no context file at all* — it is *requirements delivered via
+review rounds instead of front-loaded*. That is a fairer and harder
+baseline, and it turns the question into "front-load the rules vs. learn
+them from the reviewer," whose only clean scoreboard is cost-to-converge.
+
 ## Limits and cost
 
 - The full SWE-bench image set is hundreds of GB; cache base images and
@@ -247,13 +338,16 @@ global one — and the ablation is how you would find that out.
   pass/fail and stay, for now, intuition-grade. Honesty about that gap is
   the point: the ablation raises a few rules from `assumed` to measured;
   it does not retire the disclaimer in `agent-instructions.md`.
-- Do not close that gap with an LLM judge. The binary `resolved` metric
-  is trustworthy precisely because it is judge-free; scoring "comment
-  quality" or "clearer communication" with a model reintroduces a grader
-  selected by the same human-approval pressure the corpus's weakest rules
-  are optimized for, so it would reward persuasive wording over effect —
-  the exact bias this harness exists to escape. Leave those qualities
-  intuition-grade rather than measure them with a biased ruler.
+- Do not close that gap with an *uncalibrated* LLM judge. The binary
+  `resolved` metric is trustworthy precisely because it is judge-free;
+  scoring "comment quality" or "clearer communication" with a model
+  reintroduces a grader selected by the same human-approval pressure the
+  corpus's weakest rules are optimized for, so it would reward persuasive
+  wording over effect — the exact bias this harness exists to escape.
+  Those qualities have no ground truth to calibrate against, so they stay
+  intuition-grade. The one admissible exception is the *mergeability* judge
+  of the carve-out above, which earns its place only by calibration against
+  real merge decisions; a quality-scoring judge has no such anchor.
 
 ## Relation to other topics
 
