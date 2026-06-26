@@ -639,6 +639,20 @@ Rules for maintaining this section:
 - To find all subtask files for a branch:
   `rg -t md -l "Branch: <branchname>" tasks/`
 
+### Research direction root (`research/ROOT.md`)
+
+`research/ROOT.md` (when present) records the **current user direction** on
+which project(s) are fruitful — the standing triage that governs autonomous
+research and tending work (the "autoresearch" / "tend" context). It is a
+recommended resume-context read: skim it before starting or continuing that
+work so effort lands on a project the user still considers worth pursuing.
+
+Create or edit it as the record evolves, but it encodes an **established**
+direction: routine updates (adding detail, recording progress against the
+existing priorities) need no permission, while reversing or replacing which
+projects count as fruitful requires explicit user consent — not a unilateral
+agent edit.
+
 ### Research document paths (derive from git branch name)
 
 The git branch name IS the key. Given branch `logit-vs-merge-lora`:
@@ -654,6 +668,8 @@ it should run `git branch --show-current` to get the branch name, then write to
 `research/<branchname>.log.md` or `research/<branchname>.md` respectively.
 
 When resuming a session with `/hi`:
+0. If `research/ROOT.md` exists, skim it for the current fruitful-project
+   direction (see above) before choosing what to resume.
 1. Recover the active root task and live state per `AGENTS.md` § Resume
    source priority (`tasks/ROOT`, `.agentctl/active/`, run metadata) — not a
    session summary.
