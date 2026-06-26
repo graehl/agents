@@ -620,8 +620,9 @@ topic over a new file). Check whether the diff falsifies or
 weakens any claim it touches, and design boundary tests around the
 contract it could violate.
 
-Read `topics/topic-doc-format.md` when creating or normalizing topic docs,
-using companion suffixes (`.evidence.md`, `.runs/`, `.bearings.md`,
+Read `topics/topic-doc-format.md` (repo-local first, else
+`~/agents/topics/topic-doc-format.md`) when creating or normalizing topic
+docs, using companion suffixes (`.evidence.md`, `.runs/`, `.bearings.md`,
 `.testing.md`), maintaining bearings outlines, or applying epistemic
 labels.
 
