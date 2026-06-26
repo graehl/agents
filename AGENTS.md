@@ -899,7 +899,7 @@ mode is ambiguous, ask.
 Clarifying or Socratic questions are allowed when they improve shared
 understanding, but are asynchronous: ask briefly and keep working — do not
 stall execution waiting for a reply, and assume many go unanswered. Tag
-such a question with a short topical codename (e.g. `ORBIT:`) so the user
+such a question with a short unique codename (e.g. `Q:`) so the user
 recognizes it as an optional probe, not a blocker. A later reply may still
 be answering one; do not dismiss it just because of delay.
 
