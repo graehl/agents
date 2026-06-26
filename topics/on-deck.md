@@ -25,7 +25,8 @@ Division of labor:
   prespecified check, record facts, and flag the director for interpretation.
 - **Steward may author filler entries**: only in the capped priority band
   0-3, only when cheap/reversible, and only with mechanical guards and checks.
-  Director review is retroactive: ratify/reprioritize, edit, or retire.
+  Director review is retroactive: ratify/reprioritize, edit, or retire. When
+  no director is in the loop this widens — see *Research-driver autonomy*.
 
 ## Why, vs. the alternatives
 
@@ -35,7 +36,9 @@ Division of labor:
   convention plus pull-based agent behavior, not a daemon.
 - vs. a fully-autonomous cheap agent: a limited agent next-stepping on stale
   priority burns GPU on pointless runs. Guards plus bounded autonomy contain
-  that.
+  that. (When no director is in the loop there is no fresher priority to
+  defer to; containment then shifts to preemptibility — *Research-driver
+  autonomy* — since a wrong speculative run is cheap to cancel.)
 - Bonus: the on-deck directory plus per-entry status logs are durable "what is
   next" state — continuity and resumability if other measures fail. Live "what
   is running now" remains `agentctl` run metadata.
@@ -54,9 +57,12 @@ Division of labor:
 2. **On-deck is the executable projection of the program's triage** (the
    progress-report triage table, topic next-steps, `--depends-on`), not a
    parallel plan store — entries link back to those rows, or it drifts.
-3. **Steward autonomy is bounded to cheap/reversible entries** (runtime
-   estimate + size class present); expensive or irreversible runs stay
-   director-gated even when on-deck.
+3. **Steward autonomy is bounded to reversible entries** (runtime estimate +
+   size class present). By default it also stays in the cheap 0-3 filler
+   band; that cost cap lifts when stewarding is the research driver (see
+   *Research-driver autonomy*), but **irreversible** runs stay director-gated
+   even then — preemptibility, not low cost, is what makes speculative
+   steward work safe.
 4. **The result step is a prespecified check** (result-sanity preview +
    expected baseline comparison) executed as a checklist; the steward records
    raw numbers and flags interpretation up, never concludes.
@@ -182,6 +188,25 @@ eligible entry appears while a steward job is running, the steward uses
 judgment: pause/kill only when the saved time is worth the lost work and the
 stop is safe; otherwise finish the current cheap run and launch the higher
 priority job next.
+
+## Research-driver autonomy
+
+When no director is in the loop — the steward was launched `… and go`, or no
+higher-tier peer is active — or the GPU is simply sitting idle, the steward
+may choose and launch *additional* research-value runs of its own, above the
+0-3 filler band and at any compute cost, not just service ratified entries.
+The safety mechanism shifts from *pre-ratification* to *preemptibility*: such
+runs are speculative and cancelable by any interactive or higher-tier
+session, or the researcher, the instant a better direction is ready to
+on-deck or run directly — and the researcher may declare standing that a
+steward runs low-value interruptible jobs, so peers know to cancel them. The
+steward records each as a `by: steward` entry stating what it chose and why,
+keeps it mechanically guarded and checkable, and yields at once to ratified
+or higher-value work. Only irreversible side effects stay director-gated:
+spending GPU and writing *new* outputs are reversible, while deleting or
+overwriting existing artifacts and external publishing are not. Full
+operating rules: `~/agents/skills/steward/SKILL.md` § Research-context
+autonomy.
 
 ## Continuity
 

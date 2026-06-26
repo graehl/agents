@@ -106,12 +106,54 @@ idling at heartbeat cadence since new entries may arrive.
   `cheap_reversible: true` or the entry explicitly grants steward launch.
 - Steward-authored entries must stay in priority 0-3 and
   `cheap_reversible: true`; they can run without retroactive director review.
+  The *Research-context autonomy* section below lifts this cap when
+  stewarding is the de facto research driver.
 - Never edit director-owned fields (`priority`, `guard`, `skip_if`, cost,
   launch, check) while stewarding. Append status/log facts only.
 - If higher-priority eligible work appears while a steward job is running,
   use judgment: pause/stop the steward job only when the saved time is worth
   the lost work and the stop is safe. Otherwise let it finish and launch the
   higher-priority job next.
+
+## Research-context autonomy
+
+Default stewarding only services the ratified queue. In a research program
+the steward may go further — choose and launch *additional* research-value
+runs of its own, from the recorded direction (`research/ROOT.md`,
+progress-report triage, topic next-steps, the research log), above the 0-3
+filler band and at any compute cost — whenever stewarding is the de facto
+research driver (launched `… and go`, or no higher-tier / director peer is
+active) or the GPU is otherwise sitting idle. Compute cost is not a gate:
+GPU/time is itself reversible (stop the run), so "expensive" alone never
+makes a run off-limits.
+
+The license is **preemptibility**, not pre-blessing: such a run is
+speculative and cancelable any time by an interactive or higher-tier session,
+or the researcher, the moment a better direction is ready to on-deck or run
+directly. The researcher may also tell peers — standing or per-session — that
+a steward may be running low-value interruptible jobs, so they are understood
+to be fair game to cancel. That expected cancellation is what permits the
+launch.
+
+Duties that come with it:
+
+- Make each speculative run obvious and cheap to abandon — a `by: steward`
+  on-deck entry (filler-band priority even when the run itself is large)
+  naming what you chose and why it was the best available bet, plus the
+  provenance `--context-note` — so a returning researcher can judge and kill
+  low-value runs at a glance.
+- Still require a mechanical guard/skip-if and a prespecified check;
+  preemptibility caps wasted compute, it does not excuse a run that is broken
+  on arrival or whose result you cannot sanity-check.
+- Yield at once to a director arriving or higher-value eligible work. If a
+  peer might still mean to claim the GPU, leaving it idle a few minutes first
+  is courteous — but that is all it is, not a gate to enforce.
+
+Only genuinely **irreversible** side effects stay director-gated — external
+publishing, deleting or overwriting existing shared/tracked artifacts,
+mutating committed state — because cancellation cannot undo them. Spending
+GPU and writing *new* outputs are reversible (stop the run, delete the
+outputs) and need no gate.
 
 ## Steward-Authored Fillers
 
