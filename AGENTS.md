@@ -86,7 +86,12 @@ alone <session-id>` blocks until every other peer is gone, for an
 intentionally project-serial step (e.g. a whole-project amend/rebase).
 Both treat all peers alike — no narrowing to `scope:` overlap — and
 passing your id registers your own claim once you are alone, so the
-observe-then-act race is mostly closed.
+observe-then-act race is mostly closed (`alone <id> -b "<status>"
+[scope...]` folds the `active` registration into the wait — register your
+status and wait in one go). While waiting, `alone` posts a non-blocking
+`awaiting` status: visible in `agentctl active` (tagged `(awaiting,
+non-blocking)`) but outside the `active/` peer scan, so a queued wait is
+noticed without making peers pay re-Read ceremony for it.
 
 Read `topics/agentctl.md` before changing active-session semantics,
 diagnosing `.agentctl` run state, modifying `agentctl`, or relying on

@@ -33,14 +33,14 @@ project to check it.
    this turn and no prior entry — there is no self entry.
    Reporting will say so.
 
-3. **Scan**. Both `$root/.agentctl/active/` and (if present)
-   `$root/.agentctl/done/` are inspected. For each file, capture
-   relative path, mtime, line 1 (`head -n1`), line 2 if it
-   matches `^scope:` (the schema-defined scope declaration), and
-   total line count (so a `+N more lines` indicator can hint at
-   free-content prose below the schema). If both subdirs are
-   missing, every bucket is `none` and the report says
-   `no .agentctl/active/ here yet`.
+3. **Scan**. `$root/.agentctl/active/`, and (if present)
+   `$root/.agentctl/done/` and `$root/.agentctl/awaiting/`, are
+   inspected. For each file, capture relative path, mtime, line 1
+   (`head -n1`), line 2 if it matches `^scope:` (the schema-defined
+   scope declaration), and total line count (so a `+N more lines`
+   indicator can hint at free-content prose below the schema). If
+   the subdirs are missing, every bucket is `none` and the report
+   says `no .agentctl/active/ here yet`.
 
    A file is DONE when it starts with `DONE` (`DONE*`). Do not
    require exactly `DONE` or exactly `DONE:`; examples include
@@ -59,6 +59,11 @@ project to check it.
      judge.)
    - **done in last 24h**: any file (in `active/` or `done/`)
      that starts with `DONE` and mtime is within 24 hours.
+   - **awaiting**: any file in `awaiting/`, mtime <70 min. These
+     are sessions blocked in `agentctl alone` (line 1 begins
+     `awaiting alone`). They are **non-blocking** — report them so
+     a queued wait is noticed, but never count them as active
+     peers (they are outside the `active/` peer scan by design).
 
 5. **Emit the report** (see *Output format*). Buckets with zero
    entries still print a header so the user can see the bucket
@@ -86,6 +91,11 @@ follows when the file has free content beyond the schema.
 
 **done in last 24h** (n):
   1. <relpath>  (<delta> ago)  → "<line 1, including DONE prefix>"  [(+N more lines)]
+  ...
+
+**awaiting** (n, non-blocking):
+  1. <relpath>  (<delta> ago)  → "<line 1, e.g. awaiting alone then: X>"  [(+N more lines)]
+                                  [scope: <globs from line 2>]
   ...
 ```
 

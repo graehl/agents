@@ -70,6 +70,15 @@ sweep. `--dry-run` reports without moving. `active/`/`stale/`/`done/` thus
 partition entries by liveness, and the default-window list and the raw `find`
 both touch only `active/`.
 
+`awaiting/` is a fourth, orthogonal dir: the non-blocking "awaiting alone"
+queue written by `agentctl alone` while it waits (§ Contracts). It is
+intentionally outside the `active/` peer scan, so a queued wait is visible to
+browsers (`agentctl active` lists it tagged `(awaiting, non-blocking)`; the
+`/others` skill shows it) without ever counting as a present peer — the wait is
+noticed but imposes no re-Read ceremony. `alone` refreshes its own entry each
+poll and removes it on exit; a crashed waiter's entry simply ages out of the
+window.
+
 ## Contracts
 
 - The base writes canonical run state to
@@ -157,7 +166,9 @@ both touch only `active/`.
   so observe-no-peers and claim-the-floor are near-atomic (the residual
   simultaneous-clearance race is why the claim is atomic-*ish*, not a lock);
   with the id only resolved (no positional) the verb stays read-only and
-  creates no dir. It is the agentctl-backed counterpart to the dependency-free
+  creates no dir. A freshly created claim is a placeholder line 1, and the
+  verdict prints how to set a real status (`agentctl active "<status>"`). It is
+  the agentctl-backed counterpart to the dependency-free
   `/others` skill's peer bucket — pass your *real* session id, since a wrong id
   would count your own entry as a peer and re-manufacture the stale belief.
 - `alone [<session-id>]` is the waiting form of `others`: the same
@@ -171,7 +182,25 @@ both touch only `active/`.
   foreground caller consumes the stream so ticks are unguarded. Like `others`,
   a **provided** id is registered as a claim — but only on the became-alone
   return, never mid-wait: two mutual `alone` callers that registered up front
-  would each see the other and deadlock.
+  would each see the other and deadlock. `--banner` (with optional `scope`
+  positionals) folds `agentctl active` into the wait — register your real
+  status + scope and wait in one go, written authoritatively via
+  `write_active_entry` on success; bare, the claim is a placeholder and the
+  line prints how to set a real status. The on-success timing of the *active*
+  claim is deliberate: it lands when you take the floor, not while waiting, so
+  you never advertise a blocking claim you have not secured, and two mutual
+  `alone` callers cannot deadlock.
+
+  Visibility while waiting is handled separately, so a wait is noticed without
+  imposing cost: once peers are present, `alone` writes a **non-blocking**
+  `awaiting/<id>` status (`awaiting alone`, plus `then: <banner>` when given,
+  with the scope), refreshes it every poll, and removes it on exit. It lives in
+  `awaiting/`, not `active/`, so the edit-check peer scan (`find
+  .agentctl/active`, `_scan_active`) never counts it — `agentctl active` lists
+  it tagged `(awaiting, non-blocking)` and `/others` shows it, but no peer pays
+  re-Read ceremony for a session that is only queued. (Announcing the wait as a
+  blocking `active/` entry is the rejected alternative — it reintroduces the
+  mutual-`alone` deadlock.)
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.

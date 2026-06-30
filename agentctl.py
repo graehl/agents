@@ -36,6 +36,13 @@ ACTIVE_STALE_MINUTES = 70
 # stale/ (which is then exactly the neglected-session list to audit later).
 DONE_DIR = STATE / "done"
 STALE = STATE / "stale"
+# A session blocking in `agentctl alone` announces a non-blocking "awaiting
+# alone" status here, NOT in active/. The edit-check peer scan (`find
+# .agentctl/active -mmin -70`, and `_scan_active`) only reads active/, so a
+# waiter is visible to browsers (`agentctl active`, the `/others` skill)
+# without counting as a present peer that would impose re-Read ceremony on
+# others. `alone` refreshes its entry while waiting and removes it on exit.
+AWAITING = STATE / "awaiting"
 # Env vars carrying the launching agent's session id, in priority order: an
 # explicit override first, then known harness-provided ids. agentctl adopts the
 # first value set, so plain `./agentctl` maintains the entry with no per-call
@@ -475,21 +482,74 @@ def refresh_active_register(summary: str, note: str) -> None:
 ACTIVE_CLAIM_PLACEHOLDER = "active (placeholder status — set via agentctl active)"
 
 
-def ensure_active_registered(sid: str) -> None:
+def write_active_entry(
+    sid: str, banner: str | None = None, scope_paths: list[str] | None = None
+) -> tuple[str, str]:
+    """Author `.agentctl/active/<sid>` (line 1, optional `scope:` line 2), body kept.
+
+    The authoritative write shared by the `active` verb and `alone`'s
+    register-on-success. Returns the `(line1, scope_line)` actually written
+    (`scope_line` is "" when there is none). Semantics:
+
+      - line 1 := `banner` when given (a leading DONE marks completion, exactly
+        as a hand-written entry); when `banner is None` the existing line 1 is
+        preserved, or the placeholder is used for a new entry;
+      - the `scope:` line := `scope_paths` when given, else the prior scope is
+        kept;
+      - any free-content lines below the header are preserved.
+
+    May raise OSError; callers decide whether that is fatal (the `active` verb)
+    or best-effort (claim registration).
+    """
+    path = ACTIVE / sid
+    old_line1: str | None = None
+    old_scope: str | None = None
+    body: list[str] = []
+    if path.exists():
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        old_line1 = lines[0] if lines else None
+        rest = lines[1:]
+        if rest and rest[0].startswith("scope:"):
+            old_scope = rest[0]
+            rest = rest[1:]
+        body = rest
+    if banner is not None:
+        line1 = banner
+    elif old_line1:
+        line1 = old_line1
+    else:
+        line1 = normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
+    scope_line = ("scope: " + " ".join(scope_paths)) if scope_paths else (old_scope or "")
+    out = [line1] + ([scope_line] if scope_line else []) + body
+    ACTIVE.mkdir(parents=True, exist_ok=True)
+    tmp = path.parent / (path.name + ".tmp")
+    tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
+    tmp.replace(path)
+    return line1, scope_line
+
+
+def ensure_active_registered(
+    sid: str, banner: str | None = None, scope_paths: list[str] | None = None
+) -> str:
     """Register/refresh `.agentctl/active/<sid>` as a presence claim.
 
     Passing your own id to `others`/`alone` declares this session wishes to be
-    active, so on the path where the verb concludes you are alone it asserts
-    that presence before returning — making "observed no peers" and "claimed
-    the floor" near-atomic (the residual simultaneous-clearance race is why the
-    verbs are only atomic-*ish*; this is not a lock). It:
+    active, so on the became-alone path the verb asserts that presence before
+    returning — making "observed no peers" and "claimed the floor" near-atomic
+    (the residual simultaneous-clearance race is why it is atomic-*ish*, not a
+    lock). `alone` may also pass a `banner` (+ `scope_paths`) to fold the usual
+    `agentctl active` registration into the same call — register your real
+    status and wait in one go — written authoritatively on success. Returns a
+    status word for the caller's message:
 
-      - creates the entry with a placeholder line 1 when absent (the session is
-        expected to author a real status later via `agentctl active`);
-      - else refreshes mtime only (os.utime), leaving an agent-authored line 1
-        / `scope:` intact and not growing the file on repeat calls;
-      - leaves a DONE-prefixed entry untouched (a completed session stays
-        completed; revive it deliberately with `agentctl active`).
+      - `authored` — a real banner/scope was written;
+      - `created`  — a placeholder line 1 was written (caller nudges the agent
+        to set a real status via `agentctl active`);
+      - `refreshed`— an existing non-DONE entry's mtime was bumped, content
+        intact (no file growth on repeat calls);
+      - `done`     — a completed (DONE) entry was left untouched (revive it
+        deliberately with `agentctl active`);
+      - `noop`     — no id, or a write error.
 
     Registration happens only at the became-alone return, never while an
     `alone` loop is still waiting: two mutual `alone` callers that registered
@@ -497,19 +557,33 @@ def ensure_active_registered(sid: str) -> None:
     here must not fail the verb (you still observed you were alone).
     """
     if not sid:
-        return
+        return "noop"
+    scope_paths = scope_paths or []
+    placeholder = normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
     path = ACTIVE / sid
     try:
+        if banner or scope_paths:
+            # Authoring status and/or scope. A bare scope update must not revive
+            # a completed entry; an explicit banner may deliberately re-author.
+            if banner is None and path.exists():
+                first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+                if first and first[0].startswith("DONE"):
+                    return "done"
+            line1, _ = write_active_entry(sid, banner, scope_paths)
+            return "created" if line1 == placeholder else "authored"
+        # Pure claim: ensure an entry exists and is fresh, without clobbering.
         if not path.exists():
             ACTIVE.mkdir(parents=True, exist_ok=True)
-            path.write_text(normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER) + "\n", encoding="utf-8")
-            return
+            path.write_text(placeholder + "\n", encoding="utf-8")
+            return "created"
         first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
         if first and first[0].startswith("DONE"):
-            return
+            return "done"
         os.utime(path, None)  # refresh mtime to now, leaving content intact
+        return "refreshed"
     except OSError as exc:
         print(f"warning: could not register active session {path}: {exc}", file=sys.stderr)
+        return "noop"
 
 
 def active_scope_path(raw: str) -> str:
@@ -585,26 +659,8 @@ def active_register(args) -> int:
     scope_paths = [s for s in (active_scope_path(p) for p in args.paths) if s]
 
     path = ACTIVE / sid
-    old_scope: str | None = None
-    body: list[str] = []
-    if path.exists():
-        rest = path.read_text(encoding="utf-8", errors="replace").splitlines()[1:]
-        if rest and rest[0].startswith("scope:"):
-            old_scope = rest[0]
-            rest = rest[1:]
-        body = rest
-
-    out = [banner]
-    scope_line = ("scope: " + " ".join(scope_paths)) if scope_paths else old_scope
-    if scope_line:
-        out.append(scope_line)
-    out.extend(body)
-
     try:
-        ACTIVE.mkdir(parents=True, exist_ok=True)
-        tmp = path.parent / (path.name + ".tmp")
-        tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
-        tmp.replace(path)
+        _, scope_line = write_active_entry(sid, banner, scope_paths)
     except OSError as exc:
         print(f"agentctl active: could not write {path}: {exc}", file=sys.stderr)
         return 1
@@ -666,6 +722,54 @@ def _scan_active(minutes: int, include_done: bool, self_id: str):
     return now, rows
 
 
+def _scan_awaiting(minutes: int) -> list[tuple[float, str, str, str]]:
+    """Scan the non-blocking `awaiting/` queue: rows `(mtime, relpath, line1, scope)`.
+
+    Read only for display (`agentctl active`); awaiting entries never enter the
+    peer/aloneness computation, so a waiting session is noticed without
+    imposing edit-check ceremony. Windowed like active/ (a waiter refreshes its
+    entry every poll, so a live one is always fresh; a crashed waiter ages out).
+    """
+    if not AWAITING.is_dir():
+        return []
+    now = time.time()
+    rows: list[tuple[float, str, str, str]] = []
+    for path in AWAITING.iterdir():
+        if not path.is_file():
+            continue
+        try:
+            mtime = path.stat().st_mtime
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if minutes and now - mtime > minutes * 60:
+            continue
+        lines = text.splitlines()
+        line1 = lines[0].strip() if lines else ""
+        scope = lines[1].strip() if len(lines) > 1 and lines[1].startswith("scope:") else ""
+        rows.append((mtime, f".agentctl/awaiting/{path.name}", line1, scope))
+    rows.sort(key=lambda r: r[0], reverse=True)
+    return rows
+
+
+def write_awaiting(path: Path, status: str, scope_paths: list[str]) -> bool:
+    """Best-effort write of a non-blocking `awaiting/` entry. Returns success.
+
+    line 1 is the `awaiting alone[ then: <X>]` status; line 2 is the optional
+    `scope:`. Never raises — a failure here must not break the wait loop.
+    """
+    out = [status] + ([f"scope: {' '.join(scope_paths)}"] if scope_paths else [])
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.parent / (path.name + ".tmp")
+        tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
+        tmp.replace(path)
+        return True
+    except OSError as exc:
+        print(f"warning: could not write awaiting entry {path}: {exc}", file=sys.stderr)
+        return False
+
+
 def active_list(args) -> int:
     """`active` with no banner: list active-sessions entries + status lines.
 
@@ -686,19 +790,27 @@ def active_list(args) -> int:
     minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
     include_done = bool(getattr(args, "done", False))
     now, rows = _scan_active(minutes, include_done, agent_session_id())
-    if rows is None:
+    awaiting = _scan_awaiting(minutes)
+    if rows is None and not awaiting:
         print("no active sessions (.agentctl/active/ does not exist)")
         return 0
-    if not rows:
+    if not rows and not awaiting:
         window = "any age" if not minutes else f"last {minutes}m"
         kind = "sessions" if include_done else "non-DONE sessions"
         print(f"no active {kind} ({window})")
         return 0
 
-    for mtime, rel, line1, scope, is_self in rows:
+    for mtime, rel, line1, scope, is_self in (rows or []):
         age = format_duration(now - mtime)
         marker = "  (self)" if is_self else ""
         print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{marker}")
+        if scope:
+            print(f"    {scope}")
+    # Awaiting peers are listed after working ones, tagged so a browser sees
+    # the queued wait without mistaking it for a blocking (edit-check) peer.
+    for mtime, rel, line1, scope in awaiting:
+        age = format_duration(now - mtime)
+        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}  (awaiting, non-blocking)")
         if scope:
             print(f"    {scope}")
     return 0
@@ -735,8 +847,11 @@ def others_cmd(args) -> int:
     peers = [r for r in rows if not r[4]] if rows else []
     if not peers:
         if provided:
-            ensure_active_registered(provided)
-            print(f"no other active sessions ({window}); registered {provided}")
+            status = ensure_active_registered(provided)
+            msg = f"no other active sessions ({window}); registered {provided}"
+            if status == "created":
+                msg += ' (placeholder — set a real status: agentctl active "<status>" [<scope>...])'
+            print(msg)
         else:
             note = "; .agentctl/active/ does not exist" if rows is None else ""
             print(f"no other active sessions ({window}{note})")
@@ -767,7 +882,16 @@ def alone_cmd(args) -> int:
 
     Passing your id claims the floor: on the became-alone return (only there,
     so two mutual callers do not deadlock) it registers your `active/<id>`
-    entry before returning, near-atomically with observing no peers.
+    entry before returning, near-atomically with observing no peers. With
+    `--banner`/scope it folds `agentctl active` into the wait — register your
+    real status and scope and wait in one go, written on success; bare, the
+    claim is a placeholder and the verb prints how to set a real status.
+
+    While actually waiting, it announces a non-blocking `awaiting/<id>` status
+    (`awaiting alone`, plus `then: <banner>` when one is given), refreshed each
+    poll and removed on exit. That entry lives outside active/, so a browser
+    (`agentctl active`, `/others`) notices the queued wait but no peer's
+    edit-check counts it — the wait is seen without imposing re-Read ceremony.
 
     Output: one line naming who is blocking, then a `.` tick per --poll for
     compact liveness, with a fresh naming line every --heartbeat seconds
@@ -778,6 +902,8 @@ def alone_cmd(args) -> int:
     include_done = bool(getattr(args, "done", False))
     provided = getattr(args, "uuid", None)
     self_id = provided or agent_session_id()
+    banner = normalize_headline_text(getattr(args, "banner", None) or "") or None
+    scope_paths = [s for s in (active_scope_path(p) for p in (getattr(args, "scope", None) or [])) if s]
     poll = max(0.5, float(getattr(args, "poll", 5.0)))
     heartbeat_interval = max(0.0, float(getattr(args, "heartbeat", 30.0) or 0.0))
     timeout = float(getattr(args, "timeout", 0.0) or 0.0)
@@ -787,45 +913,75 @@ def alone_cmd(args) -> int:
     ticking = False          # mid-dot-line, so a newline must close it first
     next_report = 0.0
 
+    # A non-blocking "awaiting alone" announcement, written only once we are
+    # actually waiting (peers present) and removed on exit. "then: <X>" is
+    # appended when a banner names what the wait is for. It lives in awaiting/,
+    # not active/, so a browser notices the wait but the edit-check peer scan
+    # never counts it.
+    await_path = (AWAITING / provided) if provided else None
+    await_status = "awaiting alone" + (f" then: {banner}" if banner else "")
+    await_written = False
+
     def close_ticks() -> None:
         nonlocal ticking
         if ticking:
             print()          # end the `....` line before any full line
             ticking = False
 
-    while True:
-        _, rows = _scan_active(minutes, include_done, self_id)
-        peers = [r for r in rows if not r[4]] if rows else []
-        if not peers:
-            close_ticks()
-            if provided:
-                ensure_active_registered(provided)
-                print(f"alone: no other active sessions; registered {provided}")
-            else:
-                print("alone: no other active sessions")
-            return 0
+    try:
+        while True:
+            _, rows = _scan_active(minutes, include_done, self_id)
+            peers = [r for r in rows if not r[4]] if rows else []
+            if not peers:
+                close_ticks()
+                if provided:
+                    status = ensure_active_registered(provided, banner, scope_paths)
+                    msg = f"alone: no other active sessions; registered {provided}"
+                    if status == "created":
+                        msg += ' (placeholder — set a real status: agentctl active "<status>" [<scope>...])'
+                    print(msg)
+                else:
+                    print("alone: no other active sessions")
+                return 0
 
-        now = time.time()
-        names = ", ".join(Path(r[1]).name for r in peers)
-        if not announced:
-            print(f"alone: waiting on {len(peers)} peer(s): {names}", flush=True)
-            announced = True
-            next_report = now + heartbeat_interval
-        elif heartbeat_interval > 0 and now >= next_report:
-            close_ticks()
-            print(f"alone: still waiting on {len(peers)} peer(s): {names}", flush=True)
-            next_report = now + heartbeat_interval
+            # Waiting: announce the non-blocking awaiting status once, then keep
+            # it fresh each poll so a long wait stays inside the staleness window.
+            if await_path is not None:
+                if not await_written:
+                    await_written = write_awaiting(await_path, await_status, scope_paths)
+                else:
+                    try:
+                        os.utime(await_path, None)
+                    except OSError:
+                        pass
 
-        if deadline is not None and time.time() >= deadline:
-            close_ticks()
-            print(f"alone: timeout after {format_duration(timeout)} with "
-                  f"{len(peers)} peer(s) still active: {names}", file=sys.stderr)
-            return 1
+            now = time.time()
+            names = ", ".join(Path(r[1]).name for r in peers)
+            if not announced:
+                print(f"alone: waiting on {len(peers)} peer(s): {names}", flush=True)
+                announced = True
+                next_report = now + heartbeat_interval
+            elif heartbeat_interval > 0 and now >= next_report:
+                close_ticks()
+                print(f"alone: still waiting on {len(peers)} peer(s): {names}", flush=True)
+                next_report = now + heartbeat_interval
 
-        time.sleep(poll)
-        sys.stdout.write(".")
-        sys.stdout.flush()
-        ticking = True
+            if deadline is not None and time.time() >= deadline:
+                close_ticks()
+                print(f"alone: timeout after {format_duration(timeout)} with "
+                      f"{len(peers)} peer(s) still active: {names}", file=sys.stderr)
+                return 1
+
+            time.sleep(poll)
+            sys.stdout.write(".")
+            sys.stdout.flush()
+            ticking = True
+    finally:
+        if await_written and await_path is not None:
+            try:
+                await_path.unlink()
+            except OSError:
+                pass
 
 
 def active_sweep(args) -> int:
@@ -3686,6 +3842,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Your own session id, excluded from the wait and registered as an "
              "active claim once you are alone. Omit to resolve from the env "
              "(then nothing is excluded or claimed).",
+    )
+    s.add_argument(
+        "scope",
+        nargs="*",
+        help="Optional intend-to-edit paths -> the `scope:` line of the entry "
+             "registered when you become alone (pairs with --banner).",
+    )
+    s.add_argument(
+        "-b", "--banner",
+        help="Status line to register on success, folding `agentctl active` "
+             "into the wait (register your real status + scope and wait in one "
+             "go). Without it the success claim is a placeholder.",
     )
     s.add_argument(
         "-m", "--minutes", type=int, default=ACTIVE_STALE_MINUTES,

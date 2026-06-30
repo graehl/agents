@@ -1213,6 +1213,8 @@ def test_others_provided_uuid_registers_when_alone():
         entry = ws.tmp / ".agentctl/active" / sid
         _assert(entry.exists(), f"provided id should be registered when alone: {res.stdout!r}")
         _assert("registered" in res.stdout, f"verdict should note the claim: {res.stdout!r}")
+        _assert("agentctl active" in res.stdout,
+                f"placeholder claim should hint how to set a real status: {res.stdout!r}")
     finally:
         ws.cleanup()
 
@@ -1267,6 +1269,107 @@ def test_alone_times_out_with_peer_present():
         _assert("timeout" in res.stderr, f"timeout should be reported: {res.stderr!r}")
         _assert(not (ws.tmp / ".agentctl/active" / sid).exists(),
                 "alone must not register on the timeout path")
+    finally:
+        ws.cleanup()
+
+
+def test_alone_registers_banner_and_scope_on_success():
+    # alone -b "<status>" <scope> folds the active registration into the wait.
+    ws = Workspace()
+    sid = "sess-go"
+    try:
+        res = ws.run("alone", sid, "pkg/a", "-b", "doing the rebase", "--timeout", "5")
+        _assert(res.returncode == 0, f"alone should exit 0 when solo: {res.stderr}")
+        entry = ws.tmp / ".agentctl/active" / sid
+        _assert(entry.exists(), "alone should register the entry on success")
+        lines = entry.read_text().splitlines()
+        _assert(lines[0] == "doing the rebase", f"line 1 should be the banner: {lines!r}")
+        _assert(lines[1] == "scope: pkg/a", f"line 2 should be the scope: {lines!r}")
+        _assert("placeholder" not in res.stdout, f"a real banner means no placeholder hint: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_alone_placeholder_hint_when_no_banner():
+    # Bare alone registers a placeholder and prints how to set a real status.
+    ws = Workspace()
+    sid = "sess-ph"
+    try:
+        res = ws.run("alone", sid, "--timeout", "5")
+        _assert(res.returncode == 0, f"alone should exit 0 when solo: {res.stderr}")
+        _assert("placeholder" in res.stdout and "agentctl active" in res.stdout,
+                f"placeholder claim should hint how to set status: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def _seed_awaiting(ws, name: str, text: str, age_minutes: float = 0.0) -> Path:
+    """Write a .agentctl/awaiting/<name> entry with an mtime age_minutes ago."""
+    awaiting = ws.tmp / ".agentctl/awaiting"
+    awaiting.mkdir(parents=True, exist_ok=True)
+    path = awaiting / name
+    path.write_text(text if text.endswith("\n") else text + "\n")
+    if age_minutes:
+        old = time.time() - age_minutes * 60
+        os.utime(path, (old, old))
+    return path
+
+
+def test_awaiting_does_not_block_others():
+    # An awaiting/ entry is non-blocking: it must not count as a peer.
+    ws = Workspace()
+    try:
+        _seed_awaiting(ws, "sess-wait", "awaiting alone then: rebase main")
+        res = ws.run("others", "sess-x")
+        _assert(res.returncode == 0,
+                f"awaiting entry must not make others see a peer: {res.stdout!r} {res.stderr}")
+        _assert("no other active sessions" in res.stdout,
+                f"awaiting entry must not be reported as a peer: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_awaiting_shown_in_active_list():
+    # `agentctl active` surfaces awaiting entries (tagged, non-blocking).
+    ws = Workspace()
+    try:
+        _seed_awaiting(ws, "sess-wait", "awaiting alone then: rebase main\nscope: pkg/a")
+        res = ws.run("active")
+        _assert(res.returncode == 0, f"active list failed: {res.stderr}")
+        _assert("awaiting alone then: rebase main" in res.stdout,
+                f"awaiting status should be shown: {res.stdout!r}")
+        _assert("awaiting" in res.stdout and "non-blocking" in res.stdout,
+                f"awaiting entry should be tagged: {res.stdout!r}")
+        _assert("scope: pkg/a" in res.stdout, f"awaiting scope should be shown: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_alone_cleans_up_awaiting_on_timeout():
+    # The awaiting announcement is removed when the wait ends (here: timeout).
+    ws = Workspace()
+    sid = "sess-me"
+    try:
+        _seed_active(ws, "sess-peer", "peer busy")
+        res = ws.run("alone", sid, "-b", "rebase", "--timeout", "1", "--poll", "0.5", "--heartbeat", "0")
+        _assert(res.returncode != 0, f"alone should time out with a peer present: {res.stdout!r}")
+        _assert(not (ws.tmp / ".agentctl/awaiting" / sid).exists(),
+                "awaiting entry must be cleaned up after the wait ends")
+    finally:
+        ws.cleanup()
+
+
+def test_alone_no_awaiting_when_immediately_alone():
+    # No wait -> no awaiting announcement; the real claim lands in active/.
+    ws = Workspace()
+    sid = "sess-go"
+    try:
+        res = ws.run("alone", sid, "-b", "rebase", "--timeout", "5")
+        _assert(res.returncode == 0, f"alone should exit 0 when solo: {res.stderr}")
+        _assert((ws.tmp / ".agentctl/active" / sid).exists(),
+                "the real claim should be registered in active/")
+        _assert(not (ws.tmp / ".agentctl/awaiting" / sid).exists(),
+                "no awaiting entry should remain when there was no wait")
     finally:
         ws.cleanup()
 
