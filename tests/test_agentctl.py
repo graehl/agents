@@ -1151,6 +1151,126 @@ def test_active_list_empty_is_clean_exit():
         ws.cleanup()
 
 
+def test_others_excludes_self_and_counts_peers():
+    # `others <id>` drops the caller's own entry and leads with a peer count.
+    ws = Workspace()
+    sid = "sess-me"
+    try:
+        _seed_active(ws, sid, "my own work")
+        _seed_active(ws, "sess-peer1", "peer one\nscope: pkg/a/**")
+        _seed_active(ws, "sess-peer2", "peer two")
+        res = ws.run("others", sid)
+        _assert(res.returncode == 1,
+                f"others should exit nonzero with peers present: {res.stdout!r} {res.stderr}")
+        out = res.stdout
+        _assert(sid not in out, f"own entry must be excluded: {out!r}")
+        _assert("sess-peer1" in out and "sess-peer2" in out,
+                f"both peers should be listed: {out!r}")
+        _assert(out.startswith("2 other active session"),
+                f"verdict should lead with the peer count: {out!r}")
+        _assert("scope: pkg/a/**" in out, f"peer scope line should show: {out!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_others_reports_none_when_only_self():
+    # With self the only entry, the verdict is a single no-parse line, exit 0.
+    ws = Workspace()
+    sid = "sess-solo"
+    try:
+        _seed_active(ws, sid, "working alone")
+        res = ws.run("others", sid)
+        _assert(res.returncode == 0, f"others failed: {res.stderr}")
+        _assert(res.stdout.strip().startswith("no other active sessions"),
+                f"should report no other sessions: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_others_resolves_self_from_env_when_id_omitted():
+    # No positional id -> fall back to the resolved session id for exclusion.
+    ws = Workspace()
+    sid = "sess-env"
+    try:
+        _seed_active(ws, sid, "my own work")
+        _seed_active(ws, "sess-peer", "peer work")
+        res = ws.run("others", env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 1,
+                f"others should exit nonzero with a peer present: {res.stdout!r} {res.stderr}")
+        _assert(sid not in res.stdout, f"resolved self must be excluded: {res.stdout!r}")
+        _assert("sess-peer" in res.stdout, f"peer should be listed: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_others_provided_uuid_registers_when_alone():
+    # A provided id is a claim: on the alone path it registers active/<id>.
+    ws = Workspace()
+    sid = "sess-claim"
+    try:
+        res = ws.run("others", sid)
+        _assert(res.returncode == 0, f"others alone should exit 0: {res.stderr}")
+        entry = ws.tmp / ".agentctl/active" / sid
+        _assert(entry.exists(), f"provided id should be registered when alone: {res.stdout!r}")
+        _assert("registered" in res.stdout, f"verdict should note the claim: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_others_no_uuid_stays_read_only():
+    # With no id provided or resolvable, listing creates no active/ dir.
+    ws = Workspace()
+    try:
+        res = ws.run("others")
+        _assert(res.returncode == 0, f"empty others should exit 0: {res.stderr}")
+        _assert("no other active sessions" in res.stdout,
+                f"should report no other sessions: {res.stdout!r}")
+        _assert(not (ws.tmp / ".agentctl/active").exists(),
+                "read-only others must not create the active/ dir")
+    finally:
+        ws.cleanup()
+
+
+def test_alone_returns_immediately_when_no_peers():
+    # No peers -> exit 0 at once, and the provided id is registered as a claim.
+    ws = Workspace()
+    sid = "sess-first"
+    try:
+        res = ws.run("alone", sid, "--timeout", "5")
+        _assert(res.returncode == 0, f"alone should exit 0 when solo: {res.stderr}")
+        _assert((ws.tmp / ".agentctl/active" / sid).exists(),
+                "alone should register the provided id on success")
+    finally:
+        ws.cleanup()
+
+
+def test_alone_ignores_only_self():
+    # An existing self entry does not count as a peer; alone returns 0.
+    ws = Workspace()
+    sid = "sess-me"
+    try:
+        _seed_active(ws, sid, "working alone")
+        res = ws.run("alone", sid, "--timeout", "5")
+        _assert(res.returncode == 0, f"alone should ignore own entry: {res.stderr}")
+    finally:
+        ws.cleanup()
+
+
+def test_alone_times_out_with_peer_present():
+    # A live peer blocks; alone exits nonzero on --timeout and makes no claim.
+    ws = Workspace()
+    sid = "sess-me"
+    try:
+        _seed_active(ws, "sess-peer", "peer busy")
+        res = ws.run("alone", sid, "--timeout", "1", "--poll", "0.5", "--heartbeat", "0")
+        _assert(res.returncode != 0, f"alone should time out with a peer present: {res.stdout!r}")
+        _assert("timeout" in res.stderr, f"timeout should be reported: {res.stderr!r}")
+        _assert(not (ws.tmp / ".agentctl/active" / sid).exists(),
+                "alone must not register on the timeout path")
+    finally:
+        ws.cleanup()
+
+
 def test_active_sweep_archives_done_and_stale():
     # --sweep moves stale entries out of active/: DONE -> done/, others -> stale/,
     # leaving fresh entries (live peers, just-finished sessions) in place.

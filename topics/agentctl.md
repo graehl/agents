@@ -90,7 +90,7 @@ both touch only `active/`.
   code and log path, and exits nonzero for failed `finished` jobs.
 - Active-sessions participation: the `.agentctl/active/<session-id>` files are
   an agent-owned convention (§ Active-sessions file schema above) read by the
-  `/others` skill, not job state. `agent_session_id()` resolves the launching agent's id from
+  `/others` skill and the `others` verb (below), not job state. `agent_session_id()` resolves the launching agent's id from
   `AGENTCTL_SESSION_ID`, else a known harness var (`SESSION_ID_ENVS`, e.g.
   `CLAUDE_CODE_SESSION_ID`), so plain `./agentctl` participates with no per-call
   setup. When no env var carries an id — a resumed session that exports none,
@@ -136,6 +136,42 @@ both touch only `active/`.
   to the default window rather than emptying `active/`), `--dry-run` reports
   without moving, and banner/paths are ignored. Reversible by design; the list
   views above read the archive dirs back.
+- `others [<session-id>]` is the peer-check specialization of `active` (list):
+  same window scan (shared `_scan_active` helper, same `--minutes`/`--done`),
+  but it drops the caller's own entry and leads with a count — `N other active
+  session(s) (last 70m):` or `no other active sessions (...)`. The motivation
+  is behavioral, not cosmetic: a session that formed a "peers present" belief
+  early keeps paying the per-file re-Read ceremony (`AGENTS.md § Pre-edit
+  re-Read`) after the peers have finished. `others` makes the re-confirming
+  check cheap to re-run at the point of caution instead of trusting the stale
+  belief. The **exit code is the signal** — 0 when you are alone, nonzero when
+  peers are present — so it composes as `agentctl others <id> && <solo-only
+  step>` without parsing stdout. The explicit `<session-id>` argument is the
+  exclusion key *and* a deliberate nudge for a session to know its own id; omit
+  it to fall back to `agent_session_id()`, and with no id resolvable nothing is
+  excluded (it degrades to `active`-style output). All peers count: there is
+  deliberately **no narrowing to `scope:` overlap** — `others`/`alone` are the
+  intentionally project-serial verbs, distinct from the per-path re-Read+scope
+  coordination. A **provided** id is also a claim: on the alone path it calls
+  `ensure_active_registered` to create/refresh `active/<id>` before returning,
+  so observe-no-peers and claim-the-floor are near-atomic (the residual
+  simultaneous-clearance race is why the claim is atomic-*ish*, not a lock);
+  with the id only resolved (no positional) the verb stays read-only and
+  creates no dir. It is the agentctl-backed counterpart to the dependency-free
+  `/others` skill's peer bucket — pass your *real* session id, since a wrong id
+  would count your own entry as a peer and re-manufacture the stale belief.
+- `alone [<session-id>]` is the waiting form of `others`: the same
+  self-excluded, all-peers (no `scope:` narrowing) computation, polled until
+  the peer set is empty, then exit 0; exit nonzero only on `--timeout` (0 =
+  forever). For an intentionally project-serial step — `agentctl alone <id> &&
+  <whole-project amend/rebase>`. A peer leaves the set on its DONE write or
+  when it ages past `--minutes`, so a crashed peer clears on going stale, not
+  instantly. `--poll` sets the check cadence (one `.` tick each), `--heartbeat`
+  the cadence of fresh naming lines while waiting (0 = ticks only); a
+  foreground caller consumes the stream so ticks are unguarded. Like `others`,
+  a **provided** id is registered as a claim — but only on the became-alone
+  return, never mid-wait: two mutual `alone` callers that registered up front
+  would each see the other and deadlock.
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.

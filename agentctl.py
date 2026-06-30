@@ -472,6 +472,46 @@ def refresh_active_register(summary: str, note: str) -> None:
         print(f"warning: could not update active session {path}: {exc}", file=sys.stderr)
 
 
+ACTIVE_CLAIM_PLACEHOLDER = "active (placeholder status — set via agentctl active)"
+
+
+def ensure_active_registered(sid: str) -> None:
+    """Register/refresh `.agentctl/active/<sid>` as a presence claim.
+
+    Passing your own id to `others`/`alone` declares this session wishes to be
+    active, so on the path where the verb concludes you are alone it asserts
+    that presence before returning — making "observed no peers" and "claimed
+    the floor" near-atomic (the residual simultaneous-clearance race is why the
+    verbs are only atomic-*ish*; this is not a lock). It:
+
+      - creates the entry with a placeholder line 1 when absent (the session is
+        expected to author a real status later via `agentctl active`);
+      - else refreshes mtime only (os.utime), leaving an agent-authored line 1
+        / `scope:` intact and not growing the file on repeat calls;
+      - leaves a DONE-prefixed entry untouched (a completed session stays
+        completed; revive it deliberately with `agentctl active`).
+
+    Registration happens only at the became-alone return, never while an
+    `alone` loop is still waiting: two mutual `alone` callers that registered
+    up front would each see the other and deadlock. Best-effort — a failure
+    here must not fail the verb (you still observed you were alone).
+    """
+    if not sid:
+        return
+    path = ACTIVE / sid
+    try:
+        if not path.exists():
+            ACTIVE.mkdir(parents=True, exist_ok=True)
+            path.write_text(normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER) + "\n", encoding="utf-8")
+            return
+        first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        if first and first[0].startswith("DONE"):
+            return
+        os.utime(path, None)  # refresh mtime to now, leaving content intact
+    except OSError as exc:
+        print(f"warning: could not register active session {path}: {exc}", file=sys.stderr)
+
+
 def active_scope_path(raw: str) -> str:
     """Normalize one intend-to-edit path for an active-session `scope:` line.
 
@@ -579,6 +619,53 @@ def active_register(args) -> int:
     return 0
 
 
+def _scan_active(minutes: int, include_done: bool, self_id: str):
+    """Scan active-sessions entries; return (now, rows), or (now, None) when no
+    active-state dir exists at all.
+
+    rows are newest-first tuples `(mtime, relpath, line1, scope, is_self)`,
+    shared by the `active` (list) and `others` verbs so both read the same
+    window. The performance-critical peer check is the raw
+    `find .agentctl/active -maxdepth 1 -type f -mmin -70`; these verbs are the
+    richer convenience. active/ holds within-window entries; the sweep archives
+    older ones to stale/ (crashed/quiet) and done/ (completed), so a window
+    reaching past the stale threshold must read those dirs too. The default
+    window touches only active/, keeping the common call cheap.
+    """
+    now = time.time()
+    dirs = [ACTIVE]
+    if minutes == 0 or minutes > ACTIVE_STALE_MINUTES:
+        dirs += [STALE, DONE_DIR]
+    dirs = [d for d in dirs if d.is_dir()]
+    if not dirs:
+        return now, None
+
+    rows: list[tuple[float, str, str, str, bool]] = []
+    seen: set[str] = set()  # a re-authored id can sit in both active/ and an archive
+    for d in dirs:
+        for path in d.iterdir():
+            if not path.is_file() or path.name in seen:
+                continue
+            seen.add(path.name)
+            try:
+                mtime = path.stat().st_mtime
+                text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            lines = text.splitlines()
+            line1 = lines[0].strip() if lines else ""
+            is_done = line1.startswith("DONE")
+            if is_done and not include_done:
+                continue
+            if minutes and now - mtime > minutes * 60:
+                continue
+            scope = lines[1].strip() if len(lines) > 1 and lines[1].startswith("scope:") else ""
+            rows.append((mtime, f".agentctl/{d.name}/{path.name}", line1, scope, path.name == self_id))
+
+    rows.sort(key=lambda r: r[0], reverse=True)
+    return now, rows
+
+
 def active_list(args) -> int:
     """`active` with no banner: list active-sessions entries + status lines.
 
@@ -598,53 +685,16 @@ def active_list(args) -> int:
     """
     minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
     include_done = bool(getattr(args, "done", False))
-    self_id = agent_session_id()
-    now = time.time()
-
-    # The performance-critical peer check is the raw
-    # `find .agentctl/active -maxdepth 1 -type f -mmin -70`; this verb is the
-    # richer audit convenience. active/ holds within-window entries; the sweep
-    # archives older ones to stale/ (crashed/quiet) and done/ (completed), so a
-    # window reaching past the stale threshold must read those dirs too. The
-    # default window touches only active/, keeping the common call cheap.
-    dirs = [ACTIVE]
-    if minutes == 0 or minutes > ACTIVE_STALE_MINUTES:
-        dirs += [STALE, DONE_DIR]
-    dirs = [d for d in dirs if d.is_dir()]
-    if not dirs:
+    now, rows = _scan_active(minutes, include_done, agent_session_id())
+    if rows is None:
         print("no active sessions (.agentctl/active/ does not exist)")
         return 0
-
-    rows: list[tuple[float, str, str, str, bool]] = []
-    seen: set[str] = set()  # a re-authored id can sit in both active/ and an archive
-    for d in dirs:
-        for path in d.iterdir():
-            if not path.is_file() or path.name in seen:
-                continue
-            seen.add(path.name)
-            try:
-                mtime = path.stat().st_mtime
-                text = path.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
-            lines = text.splitlines()
-            line1 = lines[0].strip() if lines else ""
-            is_done = line1.startswith("DONE")
-            if is_done and not include_done:
-                continue
-            age = now - mtime
-            if minutes and age > minutes * 60:
-                continue
-            scope = lines[1].strip() if len(lines) > 1 and lines[1].startswith("scope:") else ""
-            rows.append((mtime, f".agentctl/{d.name}/{path.name}", line1, scope, path.name == self_id))
-
     if not rows:
         window = "any age" if not minutes else f"last {minutes}m"
         kind = "sessions" if include_done else "non-DONE sessions"
         print(f"no active {kind} ({window})")
         return 0
 
-    rows.sort(key=lambda r: r[0], reverse=True)
     for mtime, rel, line1, scope, is_self in rows:
         age = format_duration(now - mtime)
         marker = "  (self)" if is_self else ""
@@ -652,6 +702,130 @@ def active_list(args) -> int:
         if scope:
             print(f"    {scope}")
     return 0
+
+
+def others_cmd(args) -> int:
+    """`others [session-id]`: the peer-check with self excluded and a verdict.
+
+    Why carry your own id: `active` lists everyone and leaves you to subtract
+    yourself, so a session re-confirming a "peers present" belief still has to
+    parse rows. `others <id>` drops your entry and leads with a count, so the
+    answer is one line — `no other active sessions (last 70m)` — and needs no
+    parsing. Passing the id is also the nudge for a session to know it; with no
+    id given it falls back to agent_session_id(), and excludes nothing if that
+    is empty too (so it degrades to `active`-style output rather than failing).
+
+    The exit code is the peer signal: 0 when you are alone (no other peers in
+    the window), nonzero when peers are present, so `agentctl others <id> &&
+    <solo-only step>` gates work on actually being solo. Passing your id is
+    also a claim: on the alone path it registers your `active/<id>` entry
+    (ensure_active_registered) before returning, so the observe-then-proceed
+    race is mostly closed; with the id only resolved (no positional) the verb
+    stays read-only. All peers count — there is deliberately no narrowing to
+    `scope:`-overlapping peers (these are the project-serial verbs). Same
+    window semantics: default fresh non-DONE; --minutes 0 widens to any age
+    (stale/crashed), --done adds completed peers.
+    """
+    minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
+    include_done = bool(getattr(args, "done", False))
+    provided = getattr(args, "uuid", None)
+    now, rows = _scan_active(minutes, include_done, provided or agent_session_id())
+    window = "any age" if not minutes else f"last {minutes}m"
+
+    peers = [r for r in rows if not r[4]] if rows else []
+    if not peers:
+        if provided:
+            ensure_active_registered(provided)
+            print(f"no other active sessions ({window}); registered {provided}")
+        else:
+            note = "; .agentctl/active/ does not exist" if rows is None else ""
+            print(f"no other active sessions ({window}{note})")
+        return 0
+
+    print(f"{len(peers)} other active session{'s' if len(peers) != 1 else ''} ({window}):")
+    for mtime, rel, line1, scope, _ in peers:
+        age = format_duration(now - mtime)
+        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}")
+        if scope:
+            print(f"    {scope}")
+    return 1
+
+
+def alone_cmd(args) -> int:
+    """`alone [<session-id>]`: block until no other active peer remains.
+
+    The waiting counterpart to `others`: the same self-excluded peer set, but
+    instead of a one-shot verdict it polls until the set is empty and then
+    returns 0 — so `agentctl alone <id> && <solo-only step>` blocks the step
+    until you are actually alone (e.g. before an amend/rebase in a shared
+    worktree). All peers count — there is deliberately no narrowing to
+    `scope:`-overlapping peers; this is whole-project serialization, not the
+    finer per-path coordination handled by the re-Read + scope check. A peer
+    leaves the set when it writes DONE or ages past the --minutes window, so a
+    crashed peer clears when it goes stale, not the instant it dies. Returns
+    nonzero only on --timeout (0 = wait forever).
+
+    Passing your id claims the floor: on the became-alone return (only there,
+    so two mutual callers do not deadlock) it registers your `active/<id>`
+    entry before returning, near-atomically with observing no peers.
+
+    Output: one line naming who is blocking, then a `.` tick per --poll for
+    compact liveness, with a fresh naming line every --heartbeat seconds
+    (0 disables the re-statements, leaving only ticks). A foreground caller
+    consumes this stream, so the ticks are written plainly (no EPIPE guard).
+    """
+    minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
+    include_done = bool(getattr(args, "done", False))
+    provided = getattr(args, "uuid", None)
+    self_id = provided or agent_session_id()
+    poll = max(0.5, float(getattr(args, "poll", 5.0)))
+    heartbeat_interval = max(0.0, float(getattr(args, "heartbeat", 30.0) or 0.0))
+    timeout = float(getattr(args, "timeout", 0.0) or 0.0)
+    deadline = time.time() + timeout if timeout > 0 else None
+
+    announced = False        # printed the initial naming line yet
+    ticking = False          # mid-dot-line, so a newline must close it first
+    next_report = 0.0
+
+    def close_ticks() -> None:
+        nonlocal ticking
+        if ticking:
+            print()          # end the `....` line before any full line
+            ticking = False
+
+    while True:
+        _, rows = _scan_active(minutes, include_done, self_id)
+        peers = [r for r in rows if not r[4]] if rows else []
+        if not peers:
+            close_ticks()
+            if provided:
+                ensure_active_registered(provided)
+                print(f"alone: no other active sessions; registered {provided}")
+            else:
+                print("alone: no other active sessions")
+            return 0
+
+        now = time.time()
+        names = ", ".join(Path(r[1]).name for r in peers)
+        if not announced:
+            print(f"alone: waiting on {len(peers)} peer(s): {names}", flush=True)
+            announced = True
+            next_report = now + heartbeat_interval
+        elif heartbeat_interval > 0 and now >= next_report:
+            close_ticks()
+            print(f"alone: still waiting on {len(peers)} peer(s): {names}", flush=True)
+            next_report = now + heartbeat_interval
+
+        if deadline is not None and time.time() >= deadline:
+            close_ticks()
+            print(f"alone: timeout after {format_duration(timeout)} with "
+                  f"{len(peers)} peer(s) still active: {names}", file=sys.stderr)
+            return 1
+
+        time.sleep(poll)
+        sys.stdout.write(".")
+        sys.stdout.flush()
+        ticking = True
 
 
 def active_sweep(args) -> int:
@@ -3475,6 +3649,60 @@ def build_parser() -> argparse.ArgumentParser:
         help="Sweep mode: report what would move without moving.",
     )
     s.set_defaults(func=active_cmd)
+
+    s = sub.add_parser(
+        "others",
+        help="List only your peers (your own active/<id> entry excluded) and "
+             "lead with a count, so a stale 'peers present' belief is refuted "
+             "in one line with nothing to parse. Pass your own session id.",
+    )
+    s.add_argument(
+        "uuid",
+        nargs="?",
+        help="Your own session id, excluded from the list. Omit to resolve it "
+             "from the environment; if none resolves, nothing is excluded.",
+    )
+    s.add_argument(
+        "-m", "--minutes", type=int, default=ACTIVE_STALE_MINUTES,
+        help="Freshness window in minutes (default %(default)s, the AGENTS.md "
+             "stale threshold). 0 includes stale/crashed peers of any age.",
+    )
+    s.add_argument(
+        "--done", action="store_true",
+        help="Also include DONE-prefixed (completed) peers.",
+    )
+    s.set_defaults(func=others_cmd)
+
+    s = sub.add_parser(
+        "alone",
+        help="Block until no other active peer remains (the waiting form of "
+             "`others`), then exit 0; exit nonzero on --timeout. For "
+             "intentionally project-serial steps. Pass your own session id; "
+             "on success it registers your entry to claim the floor.",
+    )
+    s.add_argument(
+        "uuid",
+        nargs="?",
+        help="Your own session id, excluded from the wait and registered as an "
+             "active claim once you are alone. Omit to resolve from the env "
+             "(then nothing is excluded or claimed).",
+    )
+    s.add_argument(
+        "-m", "--minutes", type=int, default=ACTIVE_STALE_MINUTES,
+        help="Freshness window in minutes (default %(default)s). A crashed peer "
+             "clears when it ages past this; 0 waits on peers of any age.",
+    )
+    s.add_argument(
+        "--done", action="store_true",
+        help="Count DONE-prefixed (completed) entries as peers to wait on.",
+    )
+    s.add_argument("--poll", type=float, default=5.0, help="Seconds between peer checks (one `.` tick each).")
+    s.add_argument(
+        "--heartbeat", type=float, default=30.0,
+        help="Seconds between fresh naming lines while waiting (0 = ticks only).",
+    )
+    s.add_argument("--timeout", type=float, default=0.0, help="Maximum seconds to wait; 0 means wait forever.")
+    s.set_defaults(func=alone_cmd)
 
     _call_hook("register_verbs", sub)
 

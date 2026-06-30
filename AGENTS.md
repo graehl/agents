@@ -76,7 +76,17 @@ Check for active peers with `find .agentctl/active -maxdepth 1 -type f
 -mmin -70`, ignoring entries whose line 1 starts with `DONE`. Task notes,
 run logs, and commit status do not satisfy active sessions. `agentctl
 active "<banner>" [paths...]` is the run-free convenience for writing your
-own entry; `agentctl active` lists fresh non-DONE entries.
+own entry; `agentctl active` lists fresh non-DONE entries. Prefer two
+verbs over carrying a peer belief: `agentctl others <session-id>` answers
+"am I alone?" by exit code (0 alone, nonzero peers present) with your own
+entry excluded — use it as `agentctl others <id> && <solo-only step>`,
+and re-run it to re-confirm rather than trust a reading that has gone
+stale (see *Pre-edit re-Read and parallel-worker noticing*); `agentctl
+alone <session-id>` blocks until every other peer is gone, for an
+intentionally project-serial step (e.g. a whole-project amend/rebase).
+Both treat all peers alike — no narrowing to `scope:` overlap — and
+passing your id registers your own claim once you are alone, so the
+observe-then-act race is mostly closed.
 
 Read `topics/agentctl.md` before changing active-session semantics,
 diagnosing `.agentctl` run state, modifying `agentctl`, or relying on
@@ -364,9 +374,15 @@ slower gaps. (Re-reading because compaction dropped the content from your
 window is a separate, unconditional need — you can't edit text you can't
 see.)
 
-Branch on peer presence — `find .agentctl/active -maxdepth 1 -type f
--mmin -70` answers "any peers here?" in one call (or the user just says a
-peer joined):
+Branch on peer presence, re-checked at the point of caution — not on a
+belief formed earlier in the session. Peers finish, so a "peers present"
+reading goes stale, and the per-file re-Read ceremony below keeps being
+charged long after you are actually solo. The check is one cheap command,
+not a fact to carry: `find .agentctl/active -maxdepth 1 -type f -mmin -70`
+answers "any peers here?" in one call, and `agentctl others <session-id>`
+answers it by exit code (0 alone, nonzero peers present) with your own
+entry excluded, so the re-check needs no parsing — prefer it. (Or the
+user just says a peer joined.)
 - Solo (no fresh non-self entry, none announced): the only path left is a
   direct user edit, covered by the reciprocal convention (AGENTS.user.md
   — the user announces joins and mid-impl hand-edits). Skip the slow-gap
