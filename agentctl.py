@@ -30,6 +30,12 @@ ACTIVE = STATE / "active"
 # (`find .agentctl/active -mmin -70`). The `active` list view uses it as the
 # default freshness window.
 ACTIVE_STALE_MINUTES = 70
+# Sweep destinations (`agentctl active --sweep`). Entries older than the stale
+# window are archived out of active/ so the hot peer-check find never stats a
+# corpse: completed (DONE-prefixed) entries go to done/, crashed/quiet ones to
+# stale/ (which is then exactly the neglected-session list to audit later).
+DONE_DIR = STATE / "done"
+STALE = STATE / "stale"
 # Env vars carrying the launching agent's session id, in priority order: an
 # explicit override first, then known harness-provided ids. agentctl adopts the
 # first value set, so plain `./agentctl` maintains the entry with no per-call
@@ -595,29 +601,42 @@ def active_list(args) -> int:
     self_id = agent_session_id()
     now = time.time()
 
-    if not ACTIVE.is_dir():
+    # The performance-critical peer check is the raw
+    # `find .agentctl/active -maxdepth 1 -type f -mmin -70`; this verb is the
+    # richer audit convenience. active/ holds within-window entries; the sweep
+    # archives older ones to stale/ (crashed/quiet) and done/ (completed), so a
+    # window reaching past the stale threshold must read those dirs too. The
+    # default window touches only active/, keeping the common call cheap.
+    dirs = [ACTIVE]
+    if minutes == 0 or minutes > ACTIVE_STALE_MINUTES:
+        dirs += [STALE, DONE_DIR]
+    dirs = [d for d in dirs if d.is_dir()]
+    if not dirs:
         print("no active sessions (.agentctl/active/ does not exist)")
         return 0
 
     rows: list[tuple[float, str, str, str, bool]] = []
-    for path in ACTIVE.iterdir():
-        if not path.is_file():
-            continue
-        try:
-            mtime = path.stat().st_mtime
-            text = path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        lines = text.splitlines()
-        line1 = lines[0].strip() if lines else ""
-        is_done = line1.startswith("DONE")
-        if is_done and not include_done:
-            continue
-        age = now - mtime
-        if minutes and age > minutes * 60:
-            continue
-        scope = lines[1].strip() if len(lines) > 1 and lines[1].startswith("scope:") else ""
-        rows.append((mtime, path.name, line1, scope, path.name == self_id))
+    seen: set[str] = set()  # a re-authored id can sit in both active/ and an archive
+    for d in dirs:
+        for path in d.iterdir():
+            if not path.is_file() or path.name in seen:
+                continue
+            seen.add(path.name)
+            try:
+                mtime = path.stat().st_mtime
+                text = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            lines = text.splitlines()
+            line1 = lines[0].strip() if lines else ""
+            is_done = line1.startswith("DONE")
+            if is_done and not include_done:
+                continue
+            age = now - mtime
+            if minutes and age > minutes * 60:
+                continue
+            scope = lines[1].strip() if len(lines) > 1 and lines[1].startswith("scope:") else ""
+            rows.append((mtime, f".agentctl/{d.name}/{path.name}", line1, scope, path.name == self_id))
 
     if not rows:
         window = "any age" if not minutes else f"last {minutes}m"
@@ -626,8 +645,7 @@ def active_list(args) -> int:
         return 0
 
     rows.sort(key=lambda r: r[0], reverse=True)
-    for mtime, name, line1, scope, is_self in rows:
-        rel = f".agentctl/active/{name}"
+    for mtime, rel, line1, scope, is_self in rows:
         age = format_duration(now - mtime)
         marker = "  (self)" if is_self else ""
         print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{marker}")
@@ -636,8 +654,71 @@ def active_list(args) -> int:
     return 0
 
 
+def active_sweep(args) -> int:
+    """`active --sweep`: archive stale active-sessions entries out of active/.
+
+    Keeps the hot peer-check dir — scanned by the AGENTS.md idiom
+    `find .agentctl/active -maxdepth 1 -type f -mmin -70` — holding only
+    within-window entries, so the common "no peers" check never stats a
+    completed or crashed corpse. Entries older than --minutes (default
+    ACTIVE_STALE_MINUTES) are moved out of active/:
+
+      - a DONE-prefixed (completed) entry -> .agentctl/done/
+      - any other (crashed / quiet) entry -> .agentctl/stale/, which is then
+        exactly the neglected-session list to audit later
+
+    Fresh entries (live peers, just-finished sessions still inside the window)
+    are left in place. Moves are reversible — entries are relocated, not
+    deleted, and `active --minutes 0` / `--done` list them back from the
+    archive dirs. --dry-run reports without moving.
+    """
+    minutes = int(getattr(args, "minutes", ACTIVE_STALE_MINUTES))
+    # A sweep with minutes <= 0 would treat every entry as stale and empty
+    # active/ wholesale; that is never the intent, so fall back to the window.
+    if minutes <= 0:
+        minutes = ACTIVE_STALE_MINUTES
+    dry_run = bool(getattr(args, "dry_run", False))
+    now = time.time()
+    threshold = minutes * 60
+
+    if not ACTIVE.is_dir():
+        print("no active sessions (.agentctl/active/ does not exist)")
+        return 0
+
+    moved = {"done": 0, "stale": 0}
+    for path in sorted(ACTIVE.iterdir()):
+        if not path.is_file():
+            continue
+        try:
+            mtime = path.stat().st_mtime
+            first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        except OSError:
+            continue
+        if now - mtime <= threshold:
+            continue  # fresh: live peer or just-finished session
+        kind = "done" if (first and first[0].startswith("DONE")) else "stale"
+        dest_dir = DONE_DIR if kind == "done" else STALE
+        if dry_run:
+            print(f"would move {path.name} -> {kind}/")
+        else:
+            try:
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                path.replace(dest_dir / path.name)  # atomic within .agentctl; overwrites
+            except OSError as exc:
+                print(f"agentctl active --sweep: could not move {path}: {exc}", file=sys.stderr)
+                continue
+            print(f"moved {path.name} -> {kind}/")
+        moved[kind] += 1
+
+    verb = "would archive" if dry_run else "archived"
+    print(f"{verb} {moved['done']} done, {moved['stale']} stale (stale threshold {minutes}m)")
+    return 0
+
+
 def active_cmd(args) -> int:
-    """Dispatch the `active` verb: list with no banner, author with one."""
+    """Dispatch the `active` verb: sweep, list (no banner), or author (banner)."""
+    if getattr(args, "sweep", False):
+        return active_sweep(args)
     if getattr(args, "banner", None) is None:
         return active_list(args)
     return active_register(args)
@@ -3381,6 +3462,17 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument(
         "--done", action="store_true",
         help="List mode: also include DONE-prefixed (completed) sessions.",
+    )
+    s.add_argument(
+        "--sweep", action="store_true",
+        help="Archive stale entries out of active/: DONE-prefixed -> "
+             ".agentctl/done/, others -> .agentctl/stale/, leaving only "
+             "within-window entries so the peer-check find stays fast. Uses "
+             "--minutes as the stale threshold; ignores banner/paths.",
+    )
+    s.add_argument(
+        "-n", "--dry-run", action="store_true",
+        help="Sweep mode: report what would move without moving.",
     )
     s.set_defaults(func=active_cmd)
 

@@ -56,6 +56,20 @@ discretion (plan notes, considered approaches, longer status); brief
 readers stop after line 2. Readers treat files whose line 1 starts
 with `DONE` (`DONE*`) as complete.
 
+`agentctl active --sweep` archives entries older than the stale window
+(`ACTIVE_STALE_MINUTES`, default 70) out of `active/`, so the hot peer-check
+`find .agentctl/active -maxdepth 1 -type f -mmin -70` only ever stats
+within-window entries instead of an unbounded pile of corpses. A
+`DONE`-prefixed (completed) entry moves to `.agentctl/done/`; any other
+(crashed/quiet) entry moves to `.agentctl/stale/`, which is then exactly the
+neglected-session list to audit. Fresh entries — live peers and just-finished
+sessions still inside the window — stay put. The move is reversible (entries
+are relocated, not deleted), and the list views read them back: `--minutes 0`
+also scans `stale/`, and `--done` also scans `done/`, so the audit survives a
+sweep. `--dry-run` reports without moving. `active/`/`stale/`/`done/` thus
+partition entries by liveness, and the default-window list and the raw `find`
+both touch only `active/`.
+
 ## Contracts
 
 - The base writes canonical run state to
@@ -110,11 +124,18 @@ with `DONE` (`DONE*`) as complete.
   the `find .agentctl/active -mmin -70` peer-check idiom as a verb. Default
   shows only fresh (mtime within `--minutes`, default `ACTIVE_STALE_MINUTES`
   = 70) non-DONE entries; `--minutes 0` drops the window to include
-  stale/crashed entries, `--done` adds DONE-prefixed (completed) ones, and
-  the caller's own entry (by resolved session id) is tagged `(self)`.
-  Listing is read-only: no session id is required, no `active/` dir is
-  created, and it exits 0 even when empty (unlike the write path, it never
-  errors on missing identity — there is nothing to key).
+  stale/crashed entries (and reads back `stale/`), `--done` adds DONE-prefixed
+  (completed) ones (and reads back `done/`), and the caller's own entry (by
+  resolved session id) is tagged `(self)`. Listing is read-only: no session id
+  is required, no `active/` dir is created, and it exits 0 even when empty
+  (unlike the write path, it never errors on missing identity — there is
+  nothing to key).
+- `active --sweep` is the maintenance counterpart: it archives stale entries
+  out of `active/` (DONE → `done/`, others → `stale/`) so the peer-check `find`
+  stays bounded; `--minutes` sets the stale threshold (a value ≤ 0 falls back
+  to the default window rather than emptying `active/`), `--dry-run` reports
+  without moving, and banner/paths are ignored. Reversible by design; the list
+  views above read the archive dirs back.
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.

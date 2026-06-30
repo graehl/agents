@@ -1151,6 +1151,68 @@ def test_active_list_empty_is_clean_exit():
         ws.cleanup()
 
 
+def test_active_sweep_archives_done_and_stale():
+    # --sweep moves stale entries out of active/: DONE -> done/, others -> stale/,
+    # leaving fresh entries (live peers, just-finished sessions) in place.
+    ws = Workspace()
+    try:
+        _seed_active(ws, "sess-live", "still editing")                        # fresh non-DONE
+        _seed_active(ws, "sess-fresh-done", "DONE: just landed")              # fresh DONE
+        _seed_active(ws, "sess-crashed", "went quiet", age_minutes=200)       # stale non-DONE
+        _seed_active(ws, "sess-old-done", "DONE: last week", age_minutes=200)  # stale DONE
+        res = ws.run("active", "--sweep")
+        _assert(res.returncode == 0, f"sweep failed: {res.stderr}")
+        active = ws.tmp / ".agentctl/active"
+        stale = ws.tmp / ".agentctl/stale"
+        done = ws.tmp / ".agentctl/done"
+        _assert((active / "sess-live").exists(), "fresh non-DONE must stay in active/")
+        _assert((active / "sess-fresh-done").exists(), "fresh DONE must stay in active/")
+        _assert(not (active / "sess-crashed").exists(), "stale non-DONE must leave active/")
+        _assert(not (active / "sess-old-done").exists(), "stale DONE must leave active/")
+        _assert((stale / "sess-crashed").exists(), "stale non-DONE must land in stale/")
+        _assert((done / "sess-old-done").exists(), "stale DONE must land in done/")
+    finally:
+        ws.cleanup()
+
+
+def test_active_sweep_dry_run_moves_nothing():
+    # --sweep --dry-run reports what would move but leaves every file in place.
+    ws = Workspace()
+    try:
+        _seed_active(ws, "sess-crashed", "went quiet", age_minutes=200)
+        res = ws.run("active", "--sweep", "--dry-run")
+        _assert(res.returncode == 0, f"dry-run sweep failed: {res.stderr}")
+        _assert("sess-crashed" in res.stdout, f"dry-run should name the entry: {res.stdout!r}")
+        _assert((ws.tmp / ".agentctl/active/sess-crashed").exists(),
+                "dry-run must not move anything")
+        _assert(not (ws.tmp / ".agentctl/stale").exists(),
+                "dry-run must not create stale/")
+    finally:
+        ws.cleanup()
+
+
+def test_active_list_reads_archives_after_sweep():
+    # After a sweep the audit views still find archived entries: -m 0 surfaces
+    # the crashed entry from stale/, and -m 0 --done also surfaces done/.
+    ws = Workspace()
+    try:
+        _seed_active(ws, "sess-crashed", "went quiet", age_minutes=200)
+        _seed_active(ws, "sess-old-done", "DONE: last week", age_minutes=200)
+        ws.run("active", "--sweep")
+        res_stale = ws.run("active", "-m", "0")
+        _assert("sess-crashed" in res_stale.stdout,
+                f"swept stale entry should list with -m 0: {res_stale.stdout!r}")
+        _assert(".agentctl/stale/sess-crashed" in res_stale.stdout,
+                f"listing should show the archive path: {res_stale.stdout!r}")
+        _assert("sess-old-done" not in res_stale.stdout,
+                f"DONE archive must stay hidden without --done: {res_stale.stdout!r}")
+        res_done = ws.run("active", "-m", "0", "--done")
+        _assert("sess-old-done" in res_done.stdout,
+                f"swept DONE entry should list with -m 0 --done: {res_done.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
 def test_resume_id_from_argv_parsing():
     # Unit: pull a resume session id out of a launcher argv, Codex and Claude forms.
     sys.path.insert(0, str(REPO_ROOT))
