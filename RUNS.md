@@ -298,6 +298,30 @@ relevant idle condition is met, immediately consume that completion and launch
 or attach the next already-approved successor in the same turn before giving a
 status update.
 
+### Detach long runs from the session (teardown immunity)
+
+Any run that may exceed ~15 min must **launch detached and be monitored
+separately** — it must not stay a child of the agent process. When the agent
+session is torn down or restarted (UI stop, crash, Monitor timeout, process
+exit), the harness SIGKILLs its **whole descendant process tree**; a job still in
+that tree dies mid-run, a job that has left it survives.
+
+With `agentctl`: `agentctl start … -- <cmd>` **without** `--watch` forks the
+payload under `setsid` (`start_new_session=True`) and the launcher exits, so the
+job reparents to **init (PPID 1)** and leaves the descendant tree — teardown-immune.
+What defeats this is keeping a session-tied parent alive on top of the detached
+job: `agentctl start --watch` (the watcher blocks in the launching shell, re-
+anchoring the job as a descendant) or wrapping the launch in a backgrounded shell
+the harness still owns. Either way the teardown SIGKILL reaches the job. `agentctl`
+itself documents the split ("start queued work detached, then watch the job").
+Verify once if unsure: `ps -o ppid= -p <job-pid>` should print `1`.
+
+Monitor the now-detached job with a **separate** `agentctl watch`/`status`/`wait`
+(foreground or backgrounded per the harness — see *Wait watchdog discipline*). That
+monitor process is disposable: its death (turn boundary, teardown) does not touch
+the reparented job, so re-attach freely. Short jobs (≲15 min, smokes, janitorial)
+can stay attached under `--watch`; the detach rule is for the runs whose loss hurts.
+
 ### Wait watchdog discipline
 
 In this Codex environment, a live PTY does **not** automatically create a new
