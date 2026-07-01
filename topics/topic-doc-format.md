@@ -25,6 +25,18 @@ this format without separate confirmation — synthesizing a missing
 lede from the first body paragraph, moving stray trailers — as
 long as the edit preserves body content faithfully.
 
+## Referencing code
+
+Point at code by a stable handle the reader can grep — a symbol name
+(`createApp`, `SupervisorOptions`) or a path
+(`packages/server/src/app.ts`) — never a bare line number
+(`app.ts:205`). A committed doc outlives the line it names: the number
+rots on the next edit to that file and then silently mis-points at
+unrelated code, with nothing to flag the drift. A symbol stays valid and
+greppable, and doubles as the term a reader searches for. Ephemeral chat
+and review output may still use `file:line` — the harness renders it
+clickable and it is discarded — but a committed doc must not.
+
 ## Companions
 
 Structured ancillaries ride alongside the main topic doc as
