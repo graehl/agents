@@ -675,6 +675,38 @@ def active_register(args) -> int:
     return 0
 
 
+_SESSION_ID_RE = re.compile(
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\Z"
+)
+
+
+def _looks_like_session_id(name: str) -> bool:
+    """True for a UUID-shaped id (Codex rollout id, Claude session id).
+
+    A conservative smell test: real provider session ids are UUIDs, so a
+    non-UUID active/ filename (e.g. `codex-recap-quote-reply`) is almost
+    certainly an agent-invented "tasteful" tag. Kept loose on purpose (any
+    UUID shape, no version-nibble check) to avoid false-flagging a provider
+    that mints a differently-versioned uuid.
+    """
+    return bool(_SESSION_ID_RE.match(name))
+
+
+def _id_name_warning(rel: str) -> str:
+    """A loud suffix for an entry whose filename is not a plausible session id.
+
+    A hand-invented tag is never DONE-marked by the session it names — a
+    fabricated id is not carried in env across calls, and on resume the real
+    id reappears — so it lingers as a false live peer until it ages out. We
+    flag it rather than filter it: it still counts as a peer, and the reader
+    needs to see (and retire) it.
+    """
+    name = rel.rsplit("/", 1)[-1]
+    if _looks_like_session_id(name):
+        return ""
+    return "  (WARN: not a session-id filename — likely a hand-invented tag)"
+
+
 def _scan_active(minutes: int, include_done: bool, self_id: str):
     """Scan active-sessions entries; return (now, rows), or (now, None) when no
     active-state dir exists at all.
@@ -803,6 +835,7 @@ def active_list(args) -> int:
     for mtime, rel, line1, scope, is_self in (rows or []):
         age = format_duration(now - mtime)
         marker = "  (self)" if is_self else ""
+        marker += _id_name_warning(rel)
         print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{marker}")
         if scope:
             print(f"    {scope}")
@@ -810,7 +843,7 @@ def active_list(args) -> int:
     # the queued wait without mistaking it for a blocking (edit-check) peer.
     for mtime, rel, line1, scope in awaiting:
         age = format_duration(now - mtime)
-        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}  (awaiting, non-blocking)")
+        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}  (awaiting, non-blocking){_id_name_warning(rel)}")
         if scope:
             print(f"    {scope}")
     return 0
@@ -860,7 +893,7 @@ def others_cmd(args) -> int:
     print(f"{len(peers)} other active session{'s' if len(peers) != 1 else ''} ({window}):")
     for mtime, rel, line1, scope, _ in peers:
         age = format_duration(now - mtime)
-        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}")
+        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{_id_name_warning(rel)}")
         if scope:
             print(f"    {scope}")
     return 1

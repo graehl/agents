@@ -62,10 +62,14 @@ non-delving manager or peer org — so do not apply this pin to them.
 
 On the first planning-to-act step in a shared workdir, write
 `.agentctl/active/<session-id>` with a short present-tense status line.
-Create `.agentctl/active/` if missing. Discover the provider's real
-resumable session id first (the provider supplement names the mechanism);
-a personal tag is a last resort and must be reused across compaction or
-resume. Line 1 is the gist; line 2 may be `scope: <paths>`, with plain
+Create `.agentctl/active/` if missing. Recover the provider's real
+resumable session id and key the entry by it — the provider supplement
+names the mechanism (env var, else this session's transcript). Do that
+work: a hand-picked personal tag is a last resort only where the
+provider exports no id *and* has no recoverable transcript. A fabricated
+id is not carried in env across calls and diverges from the real id a
+resume or sibling shell uses, so it is never DONE-marked and lingers as
+a false live peer. Line 1 is the gist; line 2 may be `scope: <paths>`, with plain
 paths or separator-anchored globs (`/**` subtree, `*.ext`; full schema in
 `topics/agentctl.md`). Update at milestones, after 10+ min of
 continuous work, or at the 60-min heartbeat cap. On completion start line

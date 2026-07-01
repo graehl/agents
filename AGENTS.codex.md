@@ -22,15 +22,49 @@ not read `AGENTS.frontier.md`. At GPT-5.5 or above, read
 
 ## Session Identity
 
-No manual discovery: read `$AGENTCTL_SESSION_ID` for your own id. The
-`~/bin/codex` wrapper exports it from a `codex resume <id>` invocation
-(positional `resume`, not `--resume`), and `agentctl` recovers it from a
-`resume <id>` ancestor in the process tree when the wrapper was bypassed, so
-`agentctl` keeps the matching `.agentctl/active/<id>` entry with no per-call
-setup. `AGENTCTL_NO_PROC_SESSION_ID` disables the process-tree fallback; full
-mechanics in `topics/agentctl.md`. If you ever need the raw resumable id and
-the env var is empty, it is the first-line `session_meta.payload.id` of this
-cwd's transcript under `~/.codex/sessions/`.
+**Never fabricate a session id — recover the real one.** Your
+active-session entry (`.agentctl/active/<id>`) must be keyed by the
+resumable id you would `codex resume`, never a hand-picked personal
+tag. This overrides the AGENTS.md "a personal tag is a last resort"
+clause: in Codex a real id is *always* recoverable, so the last resort
+never applies here. A tasteful invented id (`codex-recap-quote-reply`)
+is worse than useless. Agent-set env does not survive a bash call, so
+you cannot even keep the invented id stable across your own turns;
+meanwhile on resume the wrapper or process tree hands back the *real*
+id, orphaning the invented entry so nothing ever DONE-marks it. It then
+reads as a live peer for the full 70-minute window and stalls other
+agents over work already finished — and a sibling `~/ya` shell, which
+exports the real uuid, keys a different entry for the same session. That
+is unintentional-fork territory.
+
+**Normal path — let `agentctl` resolve it.** `agentctl active
+"<banner>" [scope...]` (and `others` / `alone`) key the entry from
+`$AGENTCTL_SESSION_ID`, else a `resume <id>` ancestor in the process
+tree — pass no id, and never hand-write `.agentctl/active/<name>`
+yourself. The `~/bin/codex` wrapper exports `AGENTCTL_SESSION_ID` from a
+positional `codex resume <id>` (not `--resume`); when it was bypassed,
+`agentctl` walks the process tree for the id.
+`AGENTCTL_NO_PROC_SESSION_ID` disables that fallback; full mechanics in
+`topics/agentctl.md`.
+
+**If `agentctl active` refuses with "no session id"** — a fresh session
+with empty env and no resume ancestor — that is the cue to do the work,
+not to invent a tag. The real id is the first-line
+`session_meta.payload.id` of this cwd's transcript under
+`~/.codex/sessions/` (also embedded in the filename,
+`rollout-<ts>-<id>.jsonl`). One command prints it:
+
+```bash
+find ~/.codex/sessions -name '*.jsonl' -printf '%T@ %p\n' | sort -rn |
+while read -r _ f; do
+  head -1 "$f" | grep -qF "\"cwd\":\"$PWD\"" &&
+    { basename "$f" | grep -oE '[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}'; break; }
+done
+```
+
+Then, in a single bash call (env does not persist between calls),
+`export AGENTCTL_SESSION_ID=<id>` before the `agentctl active` you
+retry.
 
 ## Session Logs
 
