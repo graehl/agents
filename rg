@@ -183,7 +183,7 @@ while (($#)); do
 	esac
 done
 
+# ripgrep has no builtin `tsx` type (its `ts` type already matches *.tsx).
 exec "$REAL_RG" \
 	--type-add 'tsx:*.tsx' \
-	--type-add 'ts:*.tsx' \
 	"${args[@]}"
