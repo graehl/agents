@@ -34,8 +34,8 @@ project to check it.
    Reporting will say so.
 
 3. **Scan**. `$root/.agentctl/active/`, and (if present)
-   `$root/.agentctl/done/` and `$root/.agentctl/awaiting/`, are
-   inspected. For each file, capture relative path, mtime, line 1
+   `$root/.agentctl/done/`, `$root/.agentctl/stale/`, and
+   `$root/.agentctl/awaiting/`, are inspected. For each file, capture relative path, mtime, line 1
    (`head -n1`), line 2 if it matches `^scope:` (the schema-defined
    scope declaration), and total line count (so a `+N more lines`
    indicator can hint at free-content prose below the schema). If
@@ -52,7 +52,8 @@ project to check it.
      present; else the agent declares lurking.
    - **active peers**: in `active/`, mtime <70 min, file does
      not start with `DONE`, not self.
-   - **stale**: in `active/`, mtime ≥70 min, file does not
+   - **stale**: in `active/` with mtime ≥70 min, or any non-DONE
+     file in `stale/` (where the sweep archives them); does not
      start with `DONE`, not self. ("Stale" is the category
      label; the cause may be a crash, a forgotten DONE write, or
      an in-progress session that has just been quiet — do not
@@ -123,11 +124,13 @@ schema-conforming lines, or ≤1 line total).
 - First line: `head -n1 FILE`.
 - The 70-min active threshold matches
   `AGENTS.md § Active sessions`.
-- The `done/` subdir is optional. The base convention writes
-  `DONE: <summary>` into the same file at its `active/` path; a
-  future maintenance step may move files older than 24h to
-  `done/`. The skill handles either location and does not
-  itself move files.
+- The `done/`, `stale/`, and `awaiting/` subdirs are optional.
+  The base convention writes `DONE: <summary>` into the same
+  file at its `active/` path; `agentctl active --sweep` (also
+  run silently by foreground launches) archives entries older
+  than the 70-min window out of `active/` — DONE-prefixed to
+  `done/`, others to `stale/`. The skill handles either
+  location and does not itself move files.
 - A shell implementation can use `[[ $line1 == DONE* ]]`.
 - The skill does NOT create `.agentctl/active/`. Creation
   happens via the normal register-on-first-act rule, not as a
