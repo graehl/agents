@@ -69,7 +69,9 @@ work: a hand-picked personal tag is a last resort only where the
 provider exports no id *and* has no recoverable transcript. A fabricated
 id is not carried in env across calls and diverges from the real id a
 resume or sibling shell uses, so it is never DONE-marked and lingers as
-a false live peer. Line 1 is the gist; line 2 may be `scope: <paths>`, with plain
+a false live peer.
+
+Line 1 is the gist; line 2 may be `scope: <paths>`, with plain
 paths or separator-anchored globs (`/**` subtree, `*.ext`; full schema in
 `topics/agentctl.md`). Update at milestones, after 10+ min of
 continuous work, or at the 60-min heartbeat cap. On completion start line
@@ -82,25 +84,19 @@ run logs, and commit status do not satisfy active sessions. `agentctl
 active "<banner>" [paths...]` is the run-free convenience for writing your
 own entry; `agentctl active` lists fresh non-DONE entries. Prefer two
 verbs over carrying a peer belief: `agentctl others <session-id>` answers
-"am I alone?" by exit code (0 alone, nonzero peers present) with your own
-entry excluded — use it as `agentctl others <id> && <solo-only step>`,
-and re-run it to re-confirm rather than trust a reading that has gone
-stale (see *Pre-edit re-Read and parallel-worker noticing*); `agentctl
-alone <session-id>` blocks until every other peer is gone, for an
-intentionally project-serial step (e.g. a whole-project amend/rebase).
-Both treat all peers alike — no narrowing to `scope:` overlap — and
-passing your id registers your own claim once you are alone, so the
-observe-then-act race is mostly closed (`alone <id> -b "<status>"
-[scope...]` folds the `active` registration into the wait — register your
-status and wait in one go). While waiting, `alone` posts a non-blocking
-`awaiting` status: visible in `agentctl active` (tagged `(awaiting,
-non-blocking)`) but outside the `active/` peer scan, so a queued wait is
-noticed without making peers pay re-Read ceremony for it.
+"am I alone?" by exit code (0 alone, nonzero peers) with your own entry
+excluded — use it as `agentctl others <id> && <solo-only step>`, re-run
+at the point of caution rather than trusting a stale reading (see
+*Pre-edit re-Read and parallel-worker noticing*); `agentctl alone <id>
+-b "<status>" [scope...]` blocks until every other peer is gone (for an
+intentionally project-serial step, e.g. a whole-project amend/rebase),
+then registers your entry. Neither verb narrows to `scope:` overlap; a
+waiting `alone` is visible to browsers but never counts as a peer.
 
 Read `topics/agentctl.md` before changing active-session semantics,
 diagnosing `.agentctl` run state, modifying `agentctl`, or relying on
-details of the `agentctl active` verb, staleness window, launch-depth
-guard, or plugin contract.
+details of the `active`/`others`/`alone` verbs, staleness window, sweep,
+launch-depth guard, or plugin contract.
 
 ## Resume source priority
 
