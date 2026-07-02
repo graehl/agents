@@ -1436,6 +1436,47 @@ def test_active_list_reads_archives_after_sweep():
         ws.cleanup()
 
 
+def test_alone_awaiting_from_resolved_id():
+    # The awaiting announcement keys off the resolved id (env fallback), not
+    # only a positional one; the active/ claim still requires the positional.
+    ws = Workspace()
+    sid = "sess-envwait"
+    try:
+        _seed_active(ws, "sess-peer", "peer busy")
+        res = ws.run("alone", "--timeout", "1", "--poll", "0.5", "--heartbeat", "0",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode != 0, f"alone should time out with a peer present: {res.stdout!r}")
+        _assert((ws.tmp / ".agentctl/awaiting").exists(),
+                "an env-resolved id should still announce the wait in awaiting/")
+        _assert(not (ws.tmp / ".agentctl/awaiting" / sid).exists(),
+                "awaiting entry must be cleaned up after the wait ends")
+        _assert(not (ws.tmp / ".agentctl/active" / sid).exists(),
+                "a merely-resolved id must not register an active/ claim")
+    finally:
+        ws.cleanup()
+
+
+def test_start_sweeps_stale_entries():
+    # A foreground launch opportunistically archives stale active/ entries,
+    # silently, so the peer-check dir stays bounded without a manual sweep.
+    ws = Workspace()
+    try:
+        _seed_active(ws, "sess-live", "still editing")
+        _seed_active(ws, "sess-old-done", "DONE: last week", age_minutes=200)
+        _seed_active(ws, "sess-crashed", "went quiet", age_minutes=200)
+        res = _start(ws, "--no-aim", "sweepjob", "--", "true")
+        _assert("moved" not in res.stdout and "archived" not in res.stdout,
+                f"launch-path sweep must be silent: {res.stdout!r}")
+        active = ws.tmp / ".agentctl/active"
+        _assert((active / "sess-live").exists(), "fresh entry must survive the launch sweep")
+        _assert((ws.tmp / ".agentctl/done/sess-old-done").exists(),
+                "stale DONE entry should be archived to done/ on launch")
+        _assert((ws.tmp / ".agentctl/stale/sess-crashed").exists(),
+                "stale non-DONE entry should be archived to stale/ on launch")
+    finally:
+        ws.cleanup()
+
+
 def test_resume_id_from_argv_parsing():
     # Unit: pull a resume session id out of a launcher argv, Codex and Claude forms.
     sys.path.insert(0, str(REPO_ROOT))

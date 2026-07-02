@@ -950,8 +950,9 @@ def alone_cmd(args) -> int:
     # actually waiting (peers present) and removed on exit. "then: <X>" is
     # appended when a banner names what the wait is for. It lives in awaiting/,
     # not active/, so a browser notices the wait but the edit-check peer scan
-    # never counts it.
-    await_path = (AWAITING / provided) if provided else None
+    # never counts it. Keyed by the resolved id (positional or env) — only the
+    # active/ *claim* requires the deliberate positional id.
+    await_path = (AWAITING / self_id) if self_id else None
     await_status = "awaiting alone" + (f" then: {banner}" if banner else "")
     await_written = False
 
@@ -1041,14 +1042,30 @@ def active_sweep(args) -> int:
     if minutes <= 0:
         minutes = ACTIVE_STALE_MINUTES
     dry_run = bool(getattr(args, "dry_run", False))
-    now = time.time()
-    threshold = minutes * 60
 
     if not ACTIVE.is_dir():
         print("no active sessions (.agentctl/active/ does not exist)")
         return 0
 
+    moved = sweep_stale_entries(minutes, dry_run=dry_run)
+    verb = "would archive" if dry_run else "archived"
+    print(f"{verb} {moved['done']} done, {moved['stale']} stale (stale threshold {minutes}m)")
+    return 0
+
+
+def sweep_stale_entries(minutes: int, dry_run: bool = False, quiet: bool = False) -> dict:
+    """Archive active/ entries older than `minutes`: DONE -> done/, else stale/.
+
+    The shared core of `active --sweep` and the opportunistic sweep on
+    foreground launches (which passes quiet=True so launch output stays
+    clean). Returns the moved counts {"done": n, "stale": n}; per-entry
+    failures warn and continue, so a best-effort caller needs no guard.
+    """
+    now = time.time()
+    threshold = minutes * 60
     moved = {"done": 0, "stale": 0}
+    if not ACTIVE.is_dir():
+        return moved
     for path in sorted(ACTIVE.iterdir()):
         if not path.is_file():
             continue
@@ -1062,20 +1079,19 @@ def active_sweep(args) -> int:
         kind = "done" if (first and first[0].startswith("DONE")) else "stale"
         dest_dir = DONE_DIR if kind == "done" else STALE
         if dry_run:
-            print(f"would move {path.name} -> {kind}/")
+            if not quiet:
+                print(f"would move {path.name} -> {kind}/")
         else:
             try:
                 dest_dir.mkdir(parents=True, exist_ok=True)
                 path.replace(dest_dir / path.name)  # atomic within .agentctl; overwrites
             except OSError as exc:
-                print(f"agentctl active --sweep: could not move {path}: {exc}", file=sys.stderr)
+                print(f"agentctl active sweep: could not move {path}: {exc}", file=sys.stderr)
                 continue
-            print(f"moved {path.name} -> {kind}/")
+            if not quiet:
+                print(f"moved {path.name} -> {kind}/")
         moved[kind] += 1
-
-    verb = "would archive" if dry_run else "archived"
-    print(f"{verb} {moved['done']} done, {moved['stale']} stale (stale threshold {minutes}m)")
-    return 0
+    return moved
 
 
 def active_cmd(args) -> int:
@@ -2453,6 +2469,10 @@ def start(args: argparse.Namespace) -> int:
         summary=f"agentctl {args.mode} {launch_name}: {command_string(final_argv)}",
         note=f"agentctl: started {launch_name} run={rid}",
     )
+    # Piggybacked on this write-path verb (listing stays read-only): archive
+    # stale active/ entries so the hot peer-check `find` never scans an
+    # unbounded corpse pile in a project that launches jobs.
+    sweep_stale_entries(ACTIVE_STALE_MINUTES, quiet=True)
     if args.watch:
         try:
             return watch(
@@ -3831,7 +3851,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Archive stale entries out of active/: DONE-prefixed -> "
              ".agentctl/done/, others -> .agentctl/stale/, leaving only "
              "within-window entries so the peer-check find stays fast. Uses "
-             "--minutes as the stale threshold; ignores banner/paths.",
+             "--minutes as the stale threshold; ignores banner/paths. Also "
+             "runs silently on each foreground launch (start/smoke/restart).",
     )
     s.add_argument(
         "-n", "--dry-run", action="store_true",

@@ -68,7 +68,10 @@ are relocated, not deleted), and the list views read them back: `--minutes 0`
 also scans `stale/`, and `--done` also scans `done/`, so the audit survives a
 sweep. `--dry-run` reports without moving. `active/`/`stale/`/`done/` thus
 partition entries by liveness, and the default-window list and the raw `find`
-both touch only `active/`.
+both touch only `active/`. Foreground launches (`start`/`smoke`/`restart`)
+run the same sweep silently, so a project that launches jobs stays bounded
+with nobody remembering the verb; `--sweep` remains for by-hand runs and
+`--dry-run` audits.
 
 `awaiting/` is a fourth, orthogonal dir: the non-blocking "awaiting alone"
 queue written by `agentctl alone` while it waits (§ Contracts). It is
@@ -144,7 +147,9 @@ window.
   stays bounded; `--minutes` sets the stale threshold (a value ≤ 0 falls back
   to the default window rather than emptying `active/`), `--dry-run` reports
   without moving, and banner/paths are ignored. Reversible by design; the list
-  views above read the archive dirs back.
+  views above read the archive dirs back. The same sweep runs silently on each
+  foreground launch — piggybacked on that write path so listing stays
+  read-only.
 - `others [<session-id>]` is the peer-check specialization of `active` (list):
   same window scan (shared `_scan_active` helper, same `--minutes`/`--done`),
   but it drops the caller's own entry and leads with a count — `N other active
@@ -194,7 +199,9 @@ window.
   Visibility while waiting is handled separately, so a wait is noticed without
   imposing cost: once peers are present, `alone` writes a **non-blocking**
   `awaiting/<id>` status (`awaiting alone`, plus `then: <banner>` when given,
-  with the scope), refreshes it every poll, and removes it on exit. It lives in
+  with the scope) keyed by the resolved id — env fallback included, unlike
+  the positional-only `active/` claim — refreshed every poll and removed on
+  exit. It lives in
   `awaiting/`, not `active/`, so the edit-check peer scan (`find
   .agentctl/active`, `_scan_active`) never counts it — `agentctl active` lists
   it tagged `(awaiting, non-blocking)` and `/others` shows it, but no peer pays
