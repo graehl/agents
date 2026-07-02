@@ -205,7 +205,7 @@ keeps it mechanically guarded and checkable, and yields at once to ratified
 or higher-value work. Only irreversible side effects stay director-gated:
 spending GPU and writing *new* outputs are reversible, while deleting or
 overwriting existing artifacts and external publishing are not. Full
-operating rules: `~/agents/skills/steward/SKILL.md` § Research-context
+operating rules: `~/agents/skills/steward/SKILL.md` § Research-driver
 autonomy.
 
 ## Continuity

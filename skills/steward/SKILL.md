@@ -106,7 +106,7 @@ idling at heartbeat cadence since new entries may arrive.
   `cheap_reversible: true` or the entry explicitly grants steward launch.
 - Steward-authored entries must stay in priority 0-3 and
   `cheap_reversible: true`; they can run without retroactive director review.
-  The *Research-context autonomy* section below lifts this cap when
+  The *Research-driver autonomy* section below lifts this cap when
   stewarding is the de facto research driver.
 - Never edit director-owned fields (`priority`, `guard`, `skip_if`, cost,
   launch, check) while stewarding. Append status/log facts only.
@@ -115,7 +115,7 @@ idling at heartbeat cadence since new entries may arrive.
   the lost work and the stop is safe. Otherwise let it finish and launch the
   higher-priority job next.
 
-## Research-context autonomy
+## Research-driver autonomy
 
 Default stewarding only services the ratified queue. In a research program
 the steward may go further — choose and launch *additional* research-value
