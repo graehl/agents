@@ -168,6 +168,16 @@ Ties break by slug for deterministic steward selection.
 If `on-deck/` is absent, stewardship is a no-op; do not create files. `$on-deck`
 is the opt-in initializer that creates the queue directory.
 
+Stewarding — formal `/steward` or any informal queue-clearing — claims
+presence first: `agentctl tending <session-id>`. Exit 0 claims a
+`tending:` line on your active entry (the durable "an agent will launch
+more queued work when it wakes" signal, visible across the hourly wake
+gaps); nonzero names a session already tending, so stand down rather
+than race the same queue (`on_deck.py eligible` also warns on stderr as
+the backstop). Clear the line (`agentctl active "<status>"
+--no-tending`, or `DONE`) when a round ends with nothing armed. Schema
+and verb details: `topics/agentctl.md`.
+
 One `/steward` invocation fills idle resources until GPU or other declared
 resources are full, no eligible entry remains, or the next entry needs director
 judgment. `/steward <duration>` (`8h`, `forever`) is the looped form: `--after`

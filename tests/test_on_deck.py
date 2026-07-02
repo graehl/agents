@@ -2,6 +2,7 @@
 """End-to-end tests for scripts/on_deck.py."""
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -19,13 +20,22 @@ class Workspace:
     def cleanup(self) -> None:
         shutil.rmtree(self.root, ignore_errors=True)
 
-    def run(self, *args: str) -> subprocess.CompletedProcess:
+    def run(self, *args: str, env_extra: dict[str, str] | None = None) -> subprocess.CompletedProcess:
+        env = os.environ.copy()
+        # Hermetic: the test runner may itself be under an agent whose ambient
+        # session id would make the tending-warning check treat seeded
+        # .agentctl/active entries as self.
+        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID"):
+            env.pop(var, None)
+        if env_extra:
+            env.update(env_extra)
         return subprocess.run(
             [sys.executable, str(SCRIPT), *args],
             cwd=self.root,
             capture_output=True,
             text=True,
             timeout=10,
+            env=env,
         )
 
 
@@ -280,6 +290,55 @@ def test_eligible_steward_excludes_gated_entries():
         _assert("no eligible entry" in res.stdout, res.stdout)
         res = ws.run("eligible")
         _assert(res.returncode == 0, "director eligibility should still see the entry")
+    finally:
+        ws.cleanup()
+
+
+def _seed_active_entry(ws: Workspace, name: str, text: str, age_minutes: float = 0.0) -> Path:
+    """Write a .agentctl/active/<name> entry, optionally backdating its mtime."""
+    active = ws.root / ".agentctl" / "active"
+    active.mkdir(parents=True, exist_ok=True)
+    path = active / name
+    path.write_text(text if text.endswith("\n") else text + "\n")
+    if age_minutes:
+        import time
+
+        old = time.time() - age_minutes * 60
+        os.utime(path, (old, old))
+    return path
+
+
+def test_eligible_warns_when_another_session_is_tending():
+    # The steward-presence backstop: eligible warns (never refuses) when a
+    # fresh, non-self .agentctl/active entry carries a tending: header.
+    ws = Workspace()
+    try:
+        _assert(ws.run(*add_args("ready", priority="2", guard="true")).returncode == 0)
+        _seed_active_entry(ws, "sess-steward",
+                           "stewarding on-deck\nscope: on-deck/**\ntending: on-deck")
+        res = ws.run("eligible")
+        _assert(res.returncode == 0, f"warning must not block eligibility: {res.stderr}")
+        _assert("eligible: ready" in res.stdout, res.stdout)
+        _assert("another session is tending this queue" in res.stderr
+                and "sess-steward" in res.stderr,
+                f"tending warning should name the session: {res.stderr!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_eligible_tending_warning_skips_self_done_stale_and_plain():
+    ws = Workspace()
+    try:
+        _assert(ws.run(*add_args("ready", priority="2", guard="true")).returncode == 0)
+        _seed_active_entry(ws, "sess-self", "stewarding on-deck\ntending: on-deck")
+        _seed_active_entry(ws, "sess-done", "DONE: stewarded out\ntending: on-deck")
+        _seed_active_entry(ws, "sess-crashed", "stewarding\ntending: on-deck",
+                           age_minutes=120)
+        _seed_active_entry(ws, "sess-editor", "editing the parser\nscope: pkg/**")
+        res = ws.run("eligible", env_extra={"AGENTCTL_SESSION_ID": "sess-self"})
+        _assert(res.returncode == 0, res.stderr)
+        _assert("tending this queue" not in res.stderr,
+                f"self/DONE/stale/plain entries must not warn: {res.stderr!r}")
     finally:
         ws.cleanup()
 

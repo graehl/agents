@@ -93,10 +93,17 @@ intentionally project-serial step, e.g. a whole-project amend/rebase),
 then registers your entry. Neither verb narrows to `scope:` overlap; a
 waiting `alone` is visible to browsers but never counts as a peer.
 
+A steward-type session — one that will keep launching queued work when
+it wakes (e.g. `/steward` between hourly rounds) — adds a `tending:`
+line to its entry while such launches stay armed, and checks `agentctl
+tending <session-id>` before clearing a queue: exit 0 also claims
+tending, nonzero names the session already tending it, so two stewards
+never race one queue (schema and mechanics in `topics/agentctl.md`).
+
 Read `topics/agentctl.md` before changing active-session semantics,
 diagnosing `.agentctl` run state, modifying `agentctl`, or relying on
-details of the `active`/`others`/`alone` verbs, staleness window, sweep,
-launch-depth guard, or plugin contract.
+details of the `active`/`others`/`tending`/`alone` verbs, staleness
+window, sweep, launch-depth guard, or plugin contract.
 
 ## Resume source priority
 

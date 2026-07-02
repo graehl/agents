@@ -4,15 +4,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shlex
 import shutil
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 STEWARD_PRIORITY_MAX = 3
+# Mirrors agentctl's ACTIVE_STALE_MINUTES / SESSION_ID_ENVS; kept in sync by
+# hand because this script deliberately does not depend on agentctl — the
+# active-sessions files are a plain-text convention (topics/agentctl.md).
+TENDING_STALE_MINUTES = 70
+SESSION_ID_ENVS = ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID")
 STATUSES = {"pending", "launched", "done", "skipped", "blocked", "retired"}
 AUTHORS = {"director", "steward"}
 SIZE_CLASSES = {"small", "medium", "large"}
@@ -460,8 +467,50 @@ def condition_note(detail: str) -> str:
     return f" — {first[:120]}"
 
 
+def tending_warnings(root: Path) -> list[str]:
+    """Warn when another session already claims tending of this project.
+
+    The steward-presence backstop: any flow that asks "what should I launch
+    next?" is stewarding-shaped, so `eligible` surfaces a fresh, non-DONE
+    `.agentctl/active/<id>` entry carrying a `tending:` header line
+    (schema: topics/agentctl.md) that is not this session's own. A warning,
+    never a refusal — a legitimate takeover of a crashed-but-not-yet-stale
+    steward must stay possible, and the launched-status flip on entries
+    bounds the double-launch race anyway.
+    """
+    active = root / ".agentctl" / "active"
+    if not active.is_dir():
+        return []
+    self_id = next((os.environ[v].strip() for v in SESSION_ID_ENVS if os.environ.get(v, "").strip()), "")
+    now = time.time()
+    warnings: list[str] = []
+    for path in sorted(active.iterdir()):
+        if not path.is_file() or path.name == self_id:
+            continue
+        try:
+            age_minutes = (now - path.stat().st_mtime) / 60
+            if age_minutes > TENDING_STALE_MINUTES:
+                continue
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        line1 = lines[0].strip() if lines else ""
+        if line1.startswith("DONE"):
+            continue
+        tending = next((ln.strip() for ln in lines[1:3] if ln.startswith("tending:")), "")
+        if not tending:
+            continue
+        warnings.append(
+            f"warning: another session is tending this queue — "
+            f".agentctl/active/{path.name} ({age_minutes:.0f}m ago): {line1} [{tending}]"
+        )
+    return warnings
+
+
 def eligible_cmd(args: argparse.Namespace) -> int:
     root = args.root.resolve()
+    for warning in tending_warnings(root):
+        print(warning, file=sys.stderr)
     entries = sorted_entries(root)
     if args.slug:
         slug = slugify(args.slug)

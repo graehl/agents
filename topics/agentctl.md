@@ -14,9 +14,9 @@ tracking, domain verbs) live in optional plugins under `agentctl_plugins/`.
 
 Read this topic before changing active-session semantics, diagnosing
 `.agentctl` run state, modifying `agentctl`, or relying on details of the
-`agentctl active` verb, staleness window, launch-depth guard, or plugin
-contract. `AGENTS.md` keeps only the first-turn obligations needed to enter
-a shared workdir safely.
+`active`/`others`/`tending`/`alone` verbs, staleness window, launch-depth
+guard, or plugin contract. `AGENTS.md` keeps only the first-turn obligations
+needed to enter a shared workdir safely.
 
 Scope boundary: this topic owns the launcher, state files, and plugin hook
 contract. `topics/provenance-tracking.md` owns the run graph implemented by
@@ -51,10 +51,30 @@ Interior wildcards (`pkg*/cli`, `src/foo_*.ts`) are barred: they force
 a glob-aware consumer. Every blessed form instead reduces to an
 anchored match — a concrete path overlaps a claim when the claim's
 literal anchor prefixes it (segment/subtree forms) or it ends in the
-claimed extension — so one grep tests overlap with no glob engine. Anything beyond line 2 is free content at agent
-discretion (plan notes, considered approaches, longer status); brief
-readers stop after line 2. Readers treat files whose line 1 starts
-with `DONE` (`DONE*`) as complete.
+claimed extension — so one grep tests overlap with no glob engine.
+
+A `tending:` header line (below line 1, beside `scope:`, either order
+accepted; canonical writes put scope first) declares steward presence:
+the forward-looking claim that this session will launch more queued
+work when it next wakes — a different question from "is anyone here
+now", because a steward between hourly wakes has no running process
+and possibly no running job. The value names what is tended (normally
+`on-deck`), optionally qualified ` until <deadline>` (absolute UTC, or
+`forever`). The deadline is informative for readers, not enforced —
+entry freshness is the enforcement, so a crashed steward stops
+counting within the stale window. Keep the line exactly while future
+launches are armed (a wired `--after` chain, a foreground wait that
+triggers a follow-up round, a loop or fallback heartbeat); drop it
+(`agentctl active "<status>" --no-tending`) when a round ends with
+nothing armed, or end the session with `DONE`. The dependency-free
+check is `find .agentctl/active -maxdepth 1 -type f -mmin -70 -exec
+grep -l '^tending:' {} +`, minus DONE and self entries; `agentctl
+tending` is the verb form (§ Contracts).
+
+Anything beyond the header (line 1, `scope:`, `tending:`) is free
+content at agent discretion (plan notes, considered approaches, longer
+status); brief readers stop after the header. Readers treat files
+whose line 1 starts with `DONE` (`DONE*`) as complete.
 
 `agentctl active --sweep` archives entries older than the stale window
 (`ACTIVE_STALE_MINUTES`, default 70) out of `active/`, so the hot peer-check
@@ -122,6 +142,15 @@ window.
   refresh or masquerade as the agent — a count-down-once guard that needs no
   env stripping and leaves the harness's own session var intact. With no
   session id resolvable, the launcher does not touch `active/` at all.
+- The long-blocking verbs (`wait`, `watch`, `wait-gpu`) keep the agent's entry
+  *fresh* without writing content: each poll loop runs a self-throttled mtime
+  touch (`touch_active_entry`, at most every 300s — never creating an entry,
+  never reviving a DONE one, launch-depth-guarded). Without it, a session
+  obeying the RUNS.md 55-min blanket wait cap that launches nothing between
+  waits crosses the 70-min window while demonstrably alive and blocked — the
+  false absence that would defeat both the peer check and the tending check.
+  This touch is what lets one stale window double as liveness enforcement for
+  steward presence.
 - The `active` verb is the explicit, run-free counterpart to that passive
   refresh: `agentctl active "<banner>" [paths...]` authors the agent's own
   line 1 and (from the path args) `scope:` line 2 directly — no job, no dump,
@@ -176,6 +205,31 @@ window.
   the agentctl-backed counterpart to the dependency-free
   `/others` skill's peer bucket — pass your *real* session id, since a wrong id
   would count your own entry as a peer and re-manufacture the stale belief.
+- `tending [<session-id>]` is the steward-presence specialization of `others`:
+  the same window scan and self-exclusion, but only entries carrying a
+  `tending:` header line count (§ Active-sessions file schema). It answers
+  "will an agent launch more queued work when it wakes?" rather than "is
+  anyone here now" — what a steward round, an on-deck author wondering
+  whether entries will get picked up, or an interactive session eyeing idle
+  GPU each actually need. The exit code is the signal, as with `others`: 0 =
+  no other tending session, nonzero = tending session(s) listed, so a steward
+  round gates itself with `agentctl tending <id> && <round>` and two stewards
+  do not race one queue. A **provided** id is also a claim on the clear path
+  (same near-atomic observe-then-claim as `others`, via
+  `ensure_active_registered`): it writes `tending: on-deck` (plus
+  `until <deadline>` from `--until`) onto your entry, creating a placeholder
+  entry when you have none. A bare re-claim rewrites the existing tending
+  value verbatim, so an `until` qualifier survives hourly re-claims; passing
+  `--until` re-authors it. The `active` verb's `--tending`/`--until`/
+  `--no-tending` flags author the same line together with a real banner, and
+  a banner-only `active` update preserves an existing tending line, so a
+  steward's routine status rewrites never silently shed the claim.
+  `scripts/on_deck.py eligible` is the mechanical backstop for informal
+  stewarding: it warns on stderr when another fresh session is tending —
+  a warning, never a refusal, so taking over from a crashed-but-not-yet-stale
+  steward stays possible, and it does not auto-register the caller (authoring
+  flows run `eligible` for validation; misregistering them would poison the
+  signal).
 - `alone [<session-id>]` is the waiting form of `others`: the same
   self-excluded, all-peers (no `scope:` narrowing) computation, polled until
   the peer set is empty, then exit 0; exit nonzero only on `--timeout` (0 =

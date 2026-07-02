@@ -36,8 +36,10 @@ project to check it.
 3. **Scan**. `$root/.agentctl/active/`, and (if present)
    `$root/.agentctl/done/`, `$root/.agentctl/stale/`, and
    `$root/.agentctl/awaiting/`, are inspected. For each file, capture relative path, mtime, line 1
-   (`head -n1`), line 2 if it matches `^scope:` (the schema-defined
-   scope declaration), and total line count (so a `+N more lines`
+   (`head -n1`), any header lines among lines 2-3 matching `^scope:`
+   or `^tending:` (the schema-defined scope and steward-presence
+   declarations; a tending session will launch more queued work when
+   it wakes), and total line count (so a `+N more lines`
    indicator can hint at free-content prose below the schema). If
    the subdirs are missing, every bucket is `none` and the report
    says `no .agentctl/active/ here yet`.
@@ -73,9 +75,10 @@ project to check it.
 ## Output format
 
 Number every row so the user can reference by row number. Each
-row shows line 1; if line 2 matches `^scope:` it appears on the
-next line aligned under the gist; a `(+N more lines)` indicator
-follows when the file has free content beyond the schema.
+row shows line 1; captured `scope:` / `tending:` header lines
+appear on following lines aligned under the gist; a `(+N more
+lines)` indicator follows when the file has free content beyond
+the schema.
 
 ```
 **self**: <state>
@@ -83,6 +86,7 @@ follows when the file has free content beyond the schema.
 **active peers** (n):
   1. <relpath>  (<delta> ago)  → "<line 1>"  [(+N more lines)]
                                   scope: <globs from line 2>
+                                  [tending: <what the session keeps launching>]
   2. ...
 
 **stale** (n):
@@ -111,9 +115,9 @@ Self states:
 Empty buckets:
 `**<bucket>**: none`
 
-Omit the `scope:` row when line 2 does not match the schema.
-Omit `(+N more lines)` when the file has no free content (≤2
-schema-conforming lines, or ≤1 line total).
+Omit the `scope:` / `tending:` rows when no header line matches
+the schema. Omit `(+N more lines)` when the file has no free
+content beyond line 1 and its schema-conforming header lines.
 
 ## Implementation hints
 

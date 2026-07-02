@@ -482,21 +482,55 @@ def refresh_active_register(summary: str, note: str) -> None:
 ACTIVE_CLAIM_PLACEHOLDER = "active (placeholder status — set via agentctl active)"
 
 
-def write_active_entry(
-    sid: str, banner: str | None = None, scope_paths: list[str] | None = None
-) -> tuple[str, str]:
-    """Author `.agentctl/active/<sid>` (line 1, optional `scope:` line 2), body kept.
+def _split_active_header(lines: list[str]) -> tuple[str | None, str | None, str | None, list[str]]:
+    """Split an active entry into (line1, scope_line, tending_line, body).
 
-    The authoritative write shared by the `active` verb and `alone`'s
-    register-on-success. Returns the `(line1, scope_line)` actually written
-    (`scope_line` is "" when there is none). Semantics:
+    The header is line 1 plus at most one `scope:` and one `tending:` line
+    immediately below it, accepted in either order (hand-written entries
+    vary); the first line matching neither ends the header and starts the
+    free-content body.
+    """
+    if not lines:
+        return None, None, None, []
+    scope: str | None = None
+    tending: str | None = None
+    idx = 1
+    while idx < len(lines):
+        line = lines[idx]
+        if scope is None and line.startswith("scope:"):
+            scope = line
+        elif tending is None and line.startswith("tending:"):
+            tending = line
+        else:
+            break
+        idx += 1
+    return lines[0], scope, tending, lines[idx:]
+
+
+def write_active_entry(
+    sid: str,
+    banner: str | None = None,
+    scope_paths: list[str] | None = None,
+    tending: str | None = None,
+    clear_tending: bool = False,
+) -> tuple[str, str, str]:
+    """Author `.agentctl/active/<sid>` header (line 1, `scope:`, `tending:`), body kept.
+
+    The authoritative write shared by the `active`/`tending` verbs and
+    `alone`'s register-on-success. Returns the `(line1, scope_line,
+    tending_line)` actually written ("" for an absent line). Semantics:
 
       - line 1 := `banner` when given (a leading DONE marks completion, exactly
         as a hand-written entry); when `banner is None` the existing line 1 is
         preserved, or the placeholder is used for a new entry;
       - the `scope:` line := `scope_paths` when given, else the prior scope is
         kept;
-      - any free-content lines below the header are preserved.
+      - the `tending:` line := `tending` when given (the value after the
+        colon), dropped when `clear_tending`, else the prior line is kept —
+        so a routine banner/scope update never silently sheds a steward's
+        tending claim;
+      - any free-content lines below the header are preserved, and the header
+        is rewritten in canonical order (scope before tending).
 
     May raise OSError; callers decide whether that is fatal (the `active` verb)
     or best-effort (claim registration).
@@ -504,15 +538,11 @@ def write_active_entry(
     path = ACTIVE / sid
     old_line1: str | None = None
     old_scope: str | None = None
+    old_tending: str | None = None
     body: list[str] = []
     if path.exists():
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-        old_line1 = lines[0] if lines else None
-        rest = lines[1:]
-        if rest and rest[0].startswith("scope:"):
-            old_scope = rest[0]
-            rest = rest[1:]
-        body = rest
+        old_line1, old_scope, old_tending, body = _split_active_header(lines)
     if banner is not None:
         line1 = banner
     elif old_line1:
@@ -520,16 +550,25 @@ def write_active_entry(
     else:
         line1 = normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
     scope_line = ("scope: " + " ".join(scope_paths)) if scope_paths else (old_scope or "")
-    out = [line1] + ([scope_line] if scope_line else []) + body
+    if clear_tending:
+        tending_line = ""
+    elif tending is not None:
+        tending_line = "tending: " + tending
+    else:
+        tending_line = old_tending or ""
+    out = [line1] + [ln for ln in (scope_line, tending_line) if ln] + body
     ACTIVE.mkdir(parents=True, exist_ok=True)
     tmp = path.parent / (path.name + ".tmp")
     tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
     tmp.replace(path)
-    return line1, scope_line
+    return line1, scope_line, tending_line
 
 
 def ensure_active_registered(
-    sid: str, banner: str | None = None, scope_paths: list[str] | None = None
+    sid: str,
+    banner: str | None = None,
+    scope_paths: list[str] | None = None,
+    tending: str | None = None,
 ) -> str:
     """Register/refresh `.agentctl/active/<sid>` as a presence claim.
 
@@ -539,8 +578,10 @@ def ensure_active_registered(
     (the residual simultaneous-clearance race is why it is atomic-*ish*, not a
     lock). `alone` may also pass a `banner` (+ `scope_paths`) to fold the usual
     `agentctl active` registration into the same call — register your real
-    status and wait in one go — written authoritatively on success. Returns a
-    status word for the caller's message:
+    status and wait in one go — written authoritatively on success. The
+    `tending` verb passes `tending` the same way to claim steward presence on
+    its observed-no-other-tending path. Returns a status word for the
+    caller's message:
 
       - `authored` — a real banner/scope was written;
       - `created`  — a placeholder line 1 was written (caller nudges the agent
@@ -562,14 +603,15 @@ def ensure_active_registered(
     placeholder = normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
     path = ACTIVE / sid
     try:
-        if banner or scope_paths:
-            # Authoring status and/or scope. A bare scope update must not revive
-            # a completed entry; an explicit banner may deliberately re-author.
+        if banner or scope_paths or tending:
+            # Authoring status, scope, and/or a tending claim. A bare scope or
+            # tending update must not revive a completed entry; an explicit
+            # banner may deliberately re-author.
             if banner is None and path.exists():
                 first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
                 if first and first[0].startswith("DONE"):
                     return "done"
-            line1, _ = write_active_entry(sid, banner, scope_paths)
+            line1, _, _ = write_active_entry(sid, banner, scope_paths, tending=tending)
             return "created" if line1 == placeholder else "authored"
         # Pure claim: ensure an entry exists and is fresh, without clobbering.
         if not path.exists():
@@ -584,6 +626,40 @@ def ensure_active_registered(
     except OSError as exc:
         print(f"warning: could not register active session {path}: {exc}", file=sys.stderr)
         return "noop"
+
+
+_ACTIVE_TOUCH_INTERVAL = 300.0
+_last_active_touch = 0.0
+
+
+def touch_active_entry() -> None:
+    """Refresh this agent's active-entry mtime during a long foreground block.
+
+    The `wait`/`watch`/`wait-gpu` loops call this each poll so a session
+    obeying the ~55-min blanket wait cap (RUNS.md) stays inside the
+    ACTIVE_STALE_MINUTES window even when it launches nothing between waits —
+    otherwise a genuinely present session (e.g. an on-deck steward between
+    hourly wakes) ages out and reads as absent to peer and tending checks.
+    Self-throttled to one touch per _ACTIVE_TOUCH_INTERVAL. Content is never
+    written: no growth, no DONE revival, and no entry is manufactured for a
+    session that never registered one.
+    """
+    global _last_active_touch
+    now = time.monotonic()
+    if now - _last_active_touch < _ACTIVE_TOUCH_INTERVAL:
+        return
+    _last_active_touch = now
+    sid = agent_session_id()
+    if not sid:
+        return
+    path = ACTIVE / sid
+    try:
+        first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+        if first and first[0].startswith("DONE"):
+            return
+        os.utime(path, None)
+    except OSError:
+        return
 
 
 def active_scope_path(raw: str) -> str:
@@ -658,9 +734,22 @@ def active_register(args) -> int:
         return 2
     scope_paths = [s for s in (active_scope_path(p) for p in args.paths) if s]
 
+    claim_tending = bool(getattr(args, "tending", False))
+    clear_tending = bool(getattr(args, "no_tending", False))
+    until = getattr(args, "until", None)
+    if claim_tending and clear_tending:
+        print("agentctl active: --tending and --no-tending conflict", file=sys.stderr)
+        return 2
+    if until and not claim_tending:
+        print("agentctl active: --until requires --tending", file=sys.stderr)
+        return 2
+    tending = ("on-deck" + (f" until {until}" if until else "")) if claim_tending else None
+
     path = ACTIVE / sid
     try:
-        _, scope_line = write_active_entry(sid, banner, scope_paths)
+        _, scope_line, tending_line = write_active_entry(
+            sid, banner, scope_paths, tending=tending, clear_tending=clear_tending
+        )
     except OSError as exc:
         print(f"agentctl active: could not write {path}: {exc}", file=sys.stderr)
         return 1
@@ -672,6 +761,8 @@ def active_register(args) -> int:
     print(f"active {shown}: {banner}")
     if scope_line:
         print(f"  {scope_line}")
+    if tending_line:
+        print(f"  {tending_line}")
     return 0
 
 
@@ -711,9 +802,9 @@ def _scan_active(minutes: int, include_done: bool, self_id: str):
     """Scan active-sessions entries; return (now, rows), or (now, None) when no
     active-state dir exists at all.
 
-    rows are newest-first tuples `(mtime, relpath, line1, scope, is_self)`,
-    shared by the `active` (list) and `others` verbs so both read the same
-    window. The performance-critical peer check is the raw
+    rows are newest-first tuples `(mtime, relpath, line1, scope, tending,
+    is_self)`, shared by the `active` (list), `others`, and `tending` verbs
+    so all read the same window. The performance-critical peer check is the raw
     `find .agentctl/active -maxdepth 1 -type f -mmin -70`; these verbs are the
     richer convenience. active/ holds within-window entries; the sweep archives
     older ones to stale/ (crashed/quiet) and done/ (completed), so a window
@@ -728,7 +819,7 @@ def _scan_active(minutes: int, include_done: bool, self_id: str):
     if not dirs:
         return now, None
 
-    rows: list[tuple[float, str, str, str, bool]] = []
+    rows: list[tuple[float, str, str, str, str, bool]] = []
     seen: set[str] = set()  # a re-authored id can sit in both active/ and an archive
     for d in dirs:
         for path in d.iterdir():
@@ -740,15 +831,16 @@ def _scan_active(minutes: int, include_done: bool, self_id: str):
                 text = path.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            lines = text.splitlines()
-            line1 = lines[0].strip() if lines else ""
+            raw_line1, raw_scope, raw_tending, _ = _split_active_header(text.splitlines())
+            line1 = (raw_line1 or "").strip()
             is_done = line1.startswith("DONE")
             if is_done and not include_done:
                 continue
             if minutes and now - mtime > minutes * 60:
                 continue
-            scope = lines[1].strip() if len(lines) > 1 and lines[1].startswith("scope:") else ""
-            rows.append((mtime, f".agentctl/{d.name}/{path.name}", line1, scope, path.name == self_id))
+            scope = (raw_scope or "").strip()
+            tending = (raw_tending or "").strip()
+            rows.append((mtime, f".agentctl/{d.name}/{path.name}", line1, scope, tending, path.name == self_id))
 
     rows.sort(key=lambda r: r[0], reverse=True)
     return now, rows
@@ -832,13 +924,15 @@ def active_list(args) -> int:
         print(f"no active {kind} ({window})")
         return 0
 
-    for mtime, rel, line1, scope, is_self in (rows or []):
+    for mtime, rel, line1, scope, tending, is_self in (rows or []):
         age = format_duration(now - mtime)
         marker = "  (self)" if is_self else ""
         marker += _id_name_warning(rel)
         print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{marker}")
         if scope:
             print(f"    {scope}")
+        if tending:
+            print(f"    {tending}")
     # Awaiting peers are listed after working ones, tagged so a browser sees
     # the queued wait without mistaking it for a blocking (edit-check) peer.
     for mtime, rel, line1, scope in awaiting:
@@ -877,7 +971,7 @@ def others_cmd(args) -> int:
     now, rows = _scan_active(minutes, include_done, provided or agent_session_id())
     window = "any age" if not minutes else f"last {minutes}m"
 
-    peers = [r for r in rows if not r[4]] if rows else []
+    peers = [r for r in rows if not r[5]] if rows else []
     if not peers:
         if provided:
             status = ensure_active_registered(provided)
@@ -891,9 +985,77 @@ def others_cmd(args) -> int:
         return 0
 
     print(f"{len(peers)} other active session{'s' if len(peers) != 1 else ''} ({window}):")
-    for mtime, rel, line1, scope, _ in peers:
+    for mtime, rel, line1, scope, tending, _ in peers:
         age = format_duration(now - mtime)
         print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{_id_name_warning(rel)}")
+        if scope:
+            print(f"    {scope}")
+        if tending:
+            print(f"    {tending}")
+    return 1
+
+
+def tending_cmd(args) -> int:
+    """`tending [<session-id>]`: is any other session tending this project?
+
+    The steward-presence specialization of `others`. `others` answers "is
+    anyone here?"; this answers the forward-looking question "will an agent
+    launch more queued work when it wakes?" — the difference matters because
+    a steward between hourly wakes has no running process and may have no
+    running job, yet is still committed to filling the queue. A session
+    declares that commitment with a `tending:` header line in its own
+    `.agentctl/active/<id>` entry (schema: topics/agentctl.md), and this verb
+    counts exactly the fresh, non-DONE entries carrying one, self excluded.
+
+    The exit code is the signal, mirroring `others`: 0 = no other tending
+    session, nonzero = one or more (listed). A steward round gates itself
+    with `agentctl tending <id> && <round>` so two stewards do not race the
+    same queue. Passing your id on the clear path is also the claim: the verb
+    writes your entry's `tending:` line (creating a placeholder entry when
+    you have none), so observe-nobody-tending and claim-tending are
+    near-atomic — the same atomic-ish race window as `others`. The claim
+    value is `on-deck`, plus `until <deadline>` from --until; the deadline is
+    informative for readers, not enforced — staleness (the --minutes window)
+    is the enforcement, so a crashed steward stops counting within ~70m.
+    """
+    minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
+    include_done = bool(getattr(args, "done", False))
+    provided = getattr(args, "uuid", None)
+    now, rows = _scan_active(minutes, include_done, provided or agent_session_id())
+    window = "any age" if not minutes else f"last {minutes}m"
+
+    tenders = [r for r in (rows or []) if r[4] and not r[5]]
+    if not tenders:
+        if provided:
+            until = getattr(args, "until", None)
+            own_tending = next((r[4] for r in (rows or []) if r[5] and r[4]), "")
+            if own_tending and not until:
+                # Re-claim of an existing line: rewrite the same value, so an
+                # `until` qualifier authored earlier survives the hourly wake.
+                value = own_tending.partition(":")[2].strip()
+                claim_note = f"refreshed {own_tending} on {provided}"
+            else:
+                value = "on-deck" + (f" until {until}" if until else "")
+                claim_note = f"registered tending: {value} on {provided}"
+            status = ensure_active_registered(provided, tending=value)
+            if status == "done":
+                print(f"no other tending session ({window}); own entry is DONE — "
+                      f'revive it first: agentctl active "<status>"')
+            else:
+                msg = f"no other tending session ({window}); {claim_note}"
+                if status == "created":
+                    msg += ' (placeholder — set a real status: agentctl active "<status>" [<scope>...])'
+                print(msg)
+        else:
+            note = "; .agentctl/active/ does not exist" if rows is None else ""
+            print(f"no other tending session ({window}{note})")
+        return 0
+
+    print(f"{len(tenders)} other tending session{'s' if len(tenders) != 1 else ''} ({window}):")
+    for mtime, rel, line1, scope, tending, _ in tenders:
+        age = format_duration(now - mtime)
+        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{_id_name_warning(rel)}")
+        print(f"    {tending}")
         if scope:
             print(f"    {scope}")
     return 1
@@ -965,7 +1127,7 @@ def alone_cmd(args) -> int:
     try:
         while True:
             _, rows = _scan_active(minutes, include_done, self_id)
-            peers = [r for r in rows if not r[4]] if rows else []
+            peers = [r for r in rows if not r[5]] if rows else []
             if not peers:
                 close_ticks()
                 if provided:
@@ -2815,6 +2977,7 @@ def wait_job(args: argparse.Namespace) -> int:
     next_report = 0.0
     heartbeat_interval = max(0.0, float(getattr(args, "heartbeat", 30.0) or 0.0))
     while True:
+        touch_active_entry()
         state = load_job(args.job)
         status = state.get("status", "")
         if args.target == "not-running":
@@ -2925,6 +3088,7 @@ def wait_for_gpu_memory(
     heartbeat_interval = max(0.0, float(max(10.0, poll) if heartbeat is None else heartbeat))
     last_report = 0.0
     while True:
+        touch_active_entry()
         try:
             stats = query_gpu_stats(gpu)
         except Exception as exc:
@@ -3116,6 +3280,7 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
             flush=True,
         )
     while True:
+        touch_active_entry()
         if proc_returncode is None:
             proc_returncode = reap_proc(proc)
         state = load_job(args.job)
@@ -3858,6 +4023,24 @@ def build_parser() -> argparse.ArgumentParser:
         "-n", "--dry-run", action="store_true",
         help="Sweep mode: report what would move without moving.",
     )
+    s.add_argument(
+        "--tending", action="store_true",
+        help="Author mode: add a `tending: on-deck` header line — this session "
+             "will keep launching queued work when it wakes (steward "
+             "presence, read by `agentctl tending`). Without this flag an "
+             "existing tending line is preserved.",
+    )
+    s.add_argument(
+        "--until",
+        help="Qualify --tending with a deadline, e.g. an absolute UTC time or "
+             "'forever'. Informative for readers; not enforced — entry "
+             "staleness is the enforcement.",
+    )
+    s.add_argument(
+        "--no-tending", action="store_true",
+        help="Author mode: drop the `tending:` line — this session no longer "
+             "arms future launches (round ended with nothing wired).",
+    )
     s.set_defaults(func=active_cmd)
 
     s = sub.add_parser(
@@ -3882,6 +4065,39 @@ def build_parser() -> argparse.ArgumentParser:
         help="Also include DONE-prefixed (completed) peers.",
     )
     s.set_defaults(func=others_cmd)
+
+    s = sub.add_parser(
+        "tending",
+        help="Is any other session tending this project — a `tending:` header "
+             "in its active entry, meaning it will launch more queued work "
+             "when it wakes (e.g. an on-deck steward between hourly wakes)? "
+             "Exit 0 = no other tending session; nonzero = listed. Pass your "
+             "own session id to claim tending when the answer is no.",
+    )
+    s.add_argument(
+        "uuid",
+        nargs="?",
+        help="Your own session id, excluded from the scan and — when no other "
+             "session is tending — registered as your tending claim "
+             "(`tending: on-deck` on your active entry, created placeholder "
+             "if absent). Omit to resolve from the env (then nothing is "
+             "claimed).",
+    )
+    s.add_argument(
+        "--until",
+        help="Deadline text for the registered claim, e.g. an absolute UTC "
+             "time or 'forever'. Informative; staleness is the enforcement.",
+    )
+    s.add_argument(
+        "-m", "--minutes", type=int, default=ACTIVE_STALE_MINUTES,
+        help="Freshness window in minutes (default %(default)s, the AGENTS.md "
+             "stale threshold). 0 includes stale/crashed entries of any age.",
+    )
+    s.add_argument(
+        "--done", action="store_true",
+        help="Also count DONE-prefixed (completed) entries.",
+    )
+    s.set_defaults(func=tending_cmd)
 
     s = sub.add_parser(
         "alone",

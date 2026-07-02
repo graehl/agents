@@ -1233,6 +1233,155 @@ def test_others_no_uuid_stays_read_only():
         ws.cleanup()
 
 
+def test_active_verb_tending_flag_and_preservation():
+    # --tending authors the header line; a later banner-only update keeps it;
+    # --no-tending drops it.
+    ws = Workspace()
+    sid = "sess-tend1"
+    active = ws.tmp / ".agentctl/active" / sid
+    try:
+        res = ws.run("active", "stewarding the queue", "on-deck/**",
+                     "--tending", "--until", "2026-07-03T02:00Z",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"active --tending failed: {res.stderr}")
+        lines = active.read_text().splitlines()
+        _assert(lines == ["stewarding the queue", "scope: on-deck/**",
+                          "tending: on-deck until 2026-07-03T02:00Z"],
+                f"header should carry scope then tending: {lines!r}")
+
+        res = ws.run("active", "new round: launched pilot-a",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"active update failed: {res.stderr}")
+        lines = active.read_text().splitlines()
+        _assert(lines[0] == "new round: launched pilot-a" and
+                lines[2] == "tending: on-deck until 2026-07-03T02:00Z",
+                f"banner update must not shed the tending line: {lines!r}")
+
+        res = ws.run("active", "round done, nothing armed", "--no-tending",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"active --no-tending failed: {res.stderr}")
+        lines = active.read_text().splitlines()
+        _assert(lines == ["round done, nothing armed", "scope: on-deck/**"],
+                f"--no-tending should drop the tending line only: {lines!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_active_verb_until_requires_tending():
+    ws = Workspace()
+    try:
+        res = ws.run("active", "banner", "--until", "forever",
+                     env_extra={"AGENTCTL_SESSION_ID": "sess-tend2"})
+        _assert(res.returncode != 0, "--until without --tending should fail")
+    finally:
+        ws.cleanup()
+
+
+def test_tending_counts_only_tending_peers():
+    # Only entries with a tending: header count; plain active peers do not.
+    ws = Workspace()
+    sid = "sess-me"
+    try:
+        _seed_active(ws, sid, "my own work")
+        _seed_active(ws, "sess-editor", "editing the parser\nscope: agentctl.py")
+        res = ws.run("tending", sid)
+        _assert(res.returncode == 0,
+                f"a non-tending peer must not count: {res.stdout!r} {res.stderr}")
+
+        _seed_active(ws, "sess-steward",
+                     "stewarding on-deck\nscope: on-deck/**\ntending: on-deck until forever")
+        res = ws.run("tending", sid)
+        _assert(res.returncode == 1,
+                f"a tending peer should flip the verdict: {res.stdout!r} {res.stderr}")
+        _assert("sess-steward" in res.stdout and "tending: on-deck until forever" in res.stdout,
+                f"the tending session and its claim should be listed: {res.stdout!r}")
+        _assert("sess-editor" not in res.stdout,
+                f"non-tending peers stay out of the tending list: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_tending_ignores_done_stale_and_self():
+    ws = Workspace()
+    sid = "sess-me"
+    try:
+        _seed_active(ws, sid, "stewarding here myself\ntending: on-deck")
+        _seed_active(ws, "sess-done", "DONE: stewarded out\ntending: on-deck")
+        _seed_active(ws, "sess-crashed", "stewarding\ntending: on-deck", age_minutes=120)
+        res = ws.run("tending", sid)
+        _assert(res.returncode == 0,
+                f"self, DONE, and stale tending entries must not count: {res.stdout!r} {res.stderr}")
+    finally:
+        ws.cleanup()
+
+
+def test_tending_claim_registers_and_refresh_keeps_until():
+    # A provided id claims tending on the clear path; a bare re-claim must not
+    # clobber an `until` qualifier authored earlier.
+    ws = Workspace()
+    sid = "sess-claim"
+    entry = ws.tmp / ".agentctl/active" / sid
+    try:
+        res = ws.run("tending", sid, "--until", "2026-07-03T02:00Z")
+        _assert(res.returncode == 0, f"tending claim failed: {res.stderr}")
+        _assert("tending: on-deck until 2026-07-03T02:00Z" in entry.read_text(),
+                f"claim should write the tending line: {entry.read_text()!r}")
+
+        res = ws.run("tending", sid)
+        _assert(res.returncode == 0, f"tending re-claim failed: {res.stderr}")
+        _assert("tending: on-deck until 2026-07-03T02:00Z" in entry.read_text(),
+                f"bare re-claim must keep the until qualifier: {entry.read_text()!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_wait_touches_active_entry():
+    # A foreground wait refreshes the caller's active-entry mtime, so a session
+    # sitting in back-to-back 55-min waits (RUNS.md cap) never ages out of the
+    # staleness window while it is demonstrably alive.
+    ws = Workspace()
+    sid = "sess-waiter"
+    try:
+        res = ws.run("start", "--no-aim", "quick", "--", "true",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"start failed: {res.stderr}")
+        ws.wait_finished("quick")
+        entry = _seed_active(ws, sid, "between wakes", age_minutes=60)
+        res = ws.run("wait", "quick", "--target", "not-running",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"wait failed: {res.stdout!r} {res.stderr}")
+        age = time.time() - entry.stat().st_mtime
+        _assert(age < 60, f"wait should refresh the entry mtime, age={age:.0f}s")
+        _assert(entry.read_text() == "between wakes\n",
+                "touch must not change entry content")
+    finally:
+        ws.cleanup()
+
+
+def test_wait_touch_skips_depth_guard_and_done():
+    # A launched job's internal wait is not the agent; a DONE entry stays done.
+    ws = Workspace()
+    sid = "sess-waiter"
+    try:
+        res = ws.run("start", "--no-aim", "quick", "--", "true",
+                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"start failed: {res.stderr}")
+        ws.wait_finished("quick")
+
+        entry = _seed_active(ws, sid, "between wakes", age_minutes=60)
+        ws.run("wait", "quick", env_extra={"AGENTCTL_SESSION_ID": sid,
+                                           "AGENTCTL_LAUNCH_DEPTH": "1"})
+        age = time.time() - entry.stat().st_mtime
+        _assert(age > 3000, f"depth-guarded wait must not touch the entry, age={age:.0f}s")
+
+        entry = _seed_active(ws, sid, "DONE: wrapped up", age_minutes=60)
+        ws.run("wait", "quick", env_extra={"AGENTCTL_SESSION_ID": sid})
+        age = time.time() - entry.stat().st_mtime
+        _assert(age > 3000, f"a DONE entry must not be revived by wait, age={age:.0f}s")
+    finally:
+        ws.cleanup()
+
+
 def test_alone_returns_immediately_when_no_peers():
     # No peers -> exit 0 at once, and the provided id is registered as a claim.
     ws = Workspace()

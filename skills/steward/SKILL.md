@@ -48,32 +48,46 @@ only when a required guard cannot be mechanically checked, the launch would
 exceed the entry's autonomy bound, or stopping an unrelated/user job is being
 considered.
 
-1. Inspect `agentctl list`, current `on-deck/*.md`, and GPU state
+1. Claim stewardship: `agentctl tending <session-id>` (add `--until <ISO-UTC>`
+   or `--until forever` when looping). Exit 0 claims a `tending:` line on your
+   active entry; nonzero names another session already tending this queue —
+   then stand down and report it instead of running a round (its next wake
+   picks up queue changes). Take over only when the user says so or the named
+   entry is a known-dead remnant of your own earlier session.
+2. Inspect `agentctl list`, current `on-deck/*.md`, and GPU state
    (`nvidia-smi` when available).
-2. Run `python3 ~/agents/scripts/on_deck.py eligible --steward --root
+3. Run `python3 ~/agents/scripts/on_deck.py eligible --steward --root
    <project-root>`: it evaluates each pending entry's `skip_if` and `guard`
    commands in priority order and names the first launchable entry. Drop
    `--steward` only when the director has granted launch on a gated entry.
    Confirm the named entry's cost is within steward autonomy before
-   launching.
-3. Launch with `agentctl` exactly as the entry says, preserving its
+   launching. (Its stderr repeats the tending warning if another steward
+   appeared since step 1.)
+4. Launch with `agentctl` exactly as the entry says, preserving its
    `--context-note`, provenance, declared inputs/outputs, and runtime estimate.
    Prefer `agentctl start ... --watch-notify-gpu-idle` when the entry does not
    already choose watch behavior.
-4. Append a status-log line to that entry: launched job/run id, skipped reason,
+5. Append a status-log line to that entry: launched job/run id, skipped reason,
    blocked guard, done check, or director-needed note. Re-read the entry before
    each delayed status edit.
-5. When a job completes, run the entry's `## Check` exactly as a checklist.
+6. When a job completes, run the entry's `## Check` exactly as a checklist.
    Record raw numbers and sample paths; do not interpret the result as a
    research conclusion.
-6. If RUNS parallelism says more independent work fits, continue selecting and
+7. If RUNS parallelism says more independent work fits, continue selecting and
    launching entries. Stop when resources are full, no eligible entry remains,
    or the next entry requires director judgment. In the final report, list
    any `blocked` or guard-failing entries that need director work — they are
    the queue's open questions, not noise.
 ## Completion Triggers (every round, including the default single round)
 
-A round never ends with unwired work; polling is not the mechanism:
+A round never ends with unwired work; polling is not the mechanism.
+The `tending:` line claimed in step 1 tracks arming exactly: it stays
+while chains, foreground waits, or the loop keep future launches armed,
+and is cleared — `agentctl active "<final status>" --no-tending`, or a
+`DONE` line 1 when the session is ending — the moment a round ends with
+nothing armed (`once` mode, terminal queue, past deadline). A stale
+tending claim is only a 70-minute lie, but an accurate one costs one
+command.
 
 1. Wire mechanically-determined follow-ons with `agentctl --after` chains
    (success-conditional) at launch time — they need no agent wake at all.
