@@ -19,9 +19,13 @@ Review past the diff. Judge the structure the change lands in, and ask whether t
 
 ## Range and scope
 
-Resolve what to review before classifying. The reviewed diff runs from the parent of the first reviewed commit to the last. A single commit (`harsh-review SHA1`) reviews just that commit: `SHA1^..SHA1`, not `SHA1` to HEAD. An inclusive start — "SHA1 to SHA2", "from SHA1 on" — counts SHA1 as first reviewed, so it diffs `SHA1^..SHA2` (or `SHA1^..HEAD`). "Since SHA1" instead treats SHA1 as the baseline and reviews what came after: `SHA1..HEAD`. A subject-shaped request ("recent commits on X") defaults to a ~48h lookback; widen only if nothing matches, until commits are found.
+Resolve what to review before classifying. The reviewed diff runs from the parent of the first reviewed commit to the last. No argument reviews HEAD alone: `HEAD^..HEAD`. A single commit (`harsh-review SHA1`) reviews just that commit: `SHA1^..SHA1`, not `SHA1` to HEAD. An inclusive start — "SHA1 to SHA2", "from SHA1 on" — counts SHA1 as first reviewed, so it diffs `SHA1^..SHA2` (or `SHA1^..HEAD`). "Since SHA1" instead treats SHA1 as the baseline and reviews what came after: `SHA1..HEAD`. A bare `since` — nothing after it — takes that baseline from the marker left by the previous review (§ Review marker): `<its line 1>..HEAD`. When the marker is missing, or its commit no longer exists in this repo (rebased or gc'd away), say so and ask for a baseline rather than substituting one; when the range is empty, report that nothing has landed since the last review and stop. A subject-shaped request ("recent commits on X") defaults to a ~48h lookback; widen only if nothing matches, until commits are found.
 
 Output rule: review the net effect over the range, not each commit in isolation. A bug introduced in one in-range commit and fixed by a later one is already resolved — do not report it. Reason about in-between states freely, but flag an in-range issue only where its resolution is missing, incomplete, or ineffective by the end of the range.
+
+## Review marker
+
+After delivering a review, record where it ended: write the range's end commit as a full SHA (`git rev-parse`) on line 1 of `.harsh-review` at the repo root; later lines are free-form context (date, range reviewed) — `since` reads only line 1. Keep it untracked: if `git check-ignore -q .harsh-review` fails, append `.harsh-review` to `$(git rev-parse --git-common-dir)/info/exclude` — the per-clone exclude, not the committed `.gitignore`. Every review overwrites the marker, even one over an older range: it records the last review, not the furthest.
 
 ## Review pass
 
