@@ -110,11 +110,24 @@ question like the rest of this file (see *Limits of these methods*).
 
 ## Section extraction
 
-When a topic doc would benefit from referencing a specific AGENTS.md
-section, prefer extracting that section to a dedicated file so
-AGENTS.md keeps a pointer and the file carries the full content.
-Avoids restatement and lets topic docs link the dedicated file rather
-than a deep AGENTS.md section.
+The instruction surface is every file reachable at its trigger moment
+(before committing, before testing, on a named verb or situation), not
+only the always-read root. When adding or growing instruction content,
+prefer a short trigger paragraph in the boot-loaded file — "when
+<situation>, read <doc> and follow it" — with the detail in the
+dedicated file, once the content exceeds a short paragraph. Inline
+boot-loaded text is for rules that must fire unconditionally. Two
+conditions make the pattern safe: the trigger is concrete
+(verb/situation-anchored — a rule behind a missed trigger never
+fires), and the trigger sentence itself carries the immediate steer (the
+command to run, the stop to make) so an agent that defers the read
+still acts safely.
+
+The original narrower case: when a topic doc would benefit from
+referencing a specific AGENTS.md section, prefer extracting that
+section to a dedicated file so AGENTS.md keeps a pointer and the file
+carries the full content. Avoids restatement and lets topic docs link
+the dedicated file rather than a deep AGENTS.md section.
 
 ## Verifying instruction changes
 
