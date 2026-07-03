@@ -186,11 +186,14 @@ Symlinks and hardlinks to the same target are the same loaded
 source for provider-supplement routing.
 
 `~/agents/topics/agent-instructions.md` (and its `.evidence.md`
-ledger) carry the reasoning behind these instructions. Read on
-demand — when unsure how to safely follow a rule, or when
-proposing an improvement (welcome from work in any project, not
-only inside `~/agents`). Evidence-ledger conventions are in
-`~/agents/topics/evidence-ledger.md`.
+ledger) carry the reasoning behind these instructions and the
+rules for writing new ones. Read it before writing or editing any
+agent instruction in any project — whenever the user asks for an
+"AGENTS instruction/note/advice/rule", a "global rule", or a
+"project(-level) rule" — and on demand when unsure how to safely
+follow a rule or when proposing an improvement (welcome from work
+in any project, not only inside `~/agents`). Evidence-ledger
+conventions are in `~/agents/topics/evidence-ledger.md`.
 
 ## Instruction routing
 
