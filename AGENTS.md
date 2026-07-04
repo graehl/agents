@@ -475,6 +475,19 @@ tokens. Use body bullets when items are numerous or complex, prose when
 short. No `Co-Authored-By`; no links to git-ignored content (e.g.
 `tasks/`).
 
+## Commit proactively
+
+Checkpoint your own finished work in a local commit rather than leaving
+it uncommitted and waiting for permission — local commits are
+light-check, reversible, and strengthen resume-from-live-state. Push
+stays gated; in a shared worktree, pathspec-scope every commit (never
+`git add -A`) so you capture only your own work, not peer or user WIP.
+Whether to amend the previous commit or add a new one is a judgment
+call — permitted either way while unpushed, mandated in neither
+direction. A project may narrow this: a single-commit-per-ticket review
+workflow can require amend and gate any additional commit on explicit
+permission, and that project rule governs there.
+
 ## Commit messages
 
 Trivial commits can be subject-only. Non-trivial messages are a narrative
