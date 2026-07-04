@@ -734,6 +734,15 @@ When a single turn both asks a question and implies edits, answer the
 question first; do not lead with implementation and leave the answer
 implicit or skipped.
 
+**A plan/task/handoff doc is not a go-ahead.** Writing, revising,
+reviewing, or appending to an explicit plan — a `tasks/*.md`, a review's
+checklist, a handoff — records intended work; it does not authorize
+starting it. Do not pull its items into action without a separate,
+explicit go, even when reading the request as go-ahead is defensible:
+after a revision the user calls more or less done, "do another review and
+append it to the task" asks for the review and the append, not for
+implementing the earlier findings.
+
 ## Plan-boundary checkpoints
 
 A *plan boundary* is a plan node designated as a momentum checkpoint:
