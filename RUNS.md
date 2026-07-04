@@ -342,7 +342,10 @@ falls out of cache, and degrades into ad hoc polling. The default wait primitive
 is:
 - the built-in `agentctl wait/watch --heartbeat ...` path first, run foreground;
   prefer this over ad hoc shell sleep loops when all you need is bounded-latency
-  liveness output
+  liveness output. When the thing awaited is new work rather than a known
+  job — a fresh launch to watch, or a new `on-deck/` entry to tend —
+  `agentctl wait-work` is the same foreground-block primitive
+  (`topics/agentctl.md`)
 - a foreground watchdog process that emits a timestamped poll at least every
   300 seconds and includes `agentctl status`/`list` plus `nvidia-smi`
 - explicit PTY polling by the agent at least every 300 seconds while the wait

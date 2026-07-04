@@ -114,12 +114,37 @@ window.
   each named artifact's `.running.md` marker resolves cleanly. If the
   follow-on decision depends on reading completed outputs or `.meta.md`
   contents, do not prequeue it with `--after`.
+- Queued (`waiting`) is a live, pending state everywhere: a `--after` job
+  target blocks while the dependency is `waiting` or `running`; an artifact
+  target with no marker follows the job that declares it via `--output`
+  (a queued/running producer blocks — a stale completion sidecar from an
+  earlier run does not release the dependent — and a producer that ends
+  without a clean finish fails the chain). An output path with a
+  queued/running producer also *resolves* as a `--after` target, so a
+  dependent can queue before its producer starts. `wait --target
+  not-running` keeps blocking through `waiting`; `watch` stays attached
+  through the queued phase; `stop` cancels a queued run (kills the wrapper,
+  marks it `stopped`); `restart` stops a queued wrapper and requeues behind
+  the same `--after` chain. A `stopped` or otherwise unclean-terminal
+  dependency fails `--after` dependents rather than releasing them, and a
+  `waiting` run whose wrapper process is gone is marked `finished
+  returncode=unknown` on the next status refresh, so dependents fail fast
+  instead of blocking forever.
 - A finished run with nonzero or `unknown` return code is an early-failure
   result, not a still-running wait state. `status` and `list` print `FAILED`
   for these runs, `list` includes them even when `--completed-min-elapsed`
   would hide short successful runs, and `status/list --failed` exists as a
   troubleshooting view. `wait --target not-running` prints the final return
   code and log path, and exits nonzero for failed `finished` jobs.
+- `wait-work` is the new-work counterpart to the status waits: it blocks
+  until a new agentctl run appears (`--runs`: any run id not present at
+  launch, restarts included) and/or a new or modified `on-deck/*.md` queue
+  entry lands (`--on-deck`; derived `INDEX.md` ignored), defaulting to both
+  sources, then prints what appeared and exits 0 (1 on `--timeout`).
+  Baselines snapshot at entry, so already-present work never fires it, and
+  it works from an empty queue or a project with no runs yet. The watch-only
+  use wakes on a fresh launch; the tending use wakes on newly queued work
+  (`topics/on-deck.md`).
 - Active-sessions participation: the `.agentctl/active/<session-id>` files are
   an agent-owned convention (§ Active-sessions file schema above) read by the
   `/others` skill and the `others` verb (below), not job state. `agent_session_id()` resolves the launching agent's id from
@@ -142,7 +167,8 @@ window.
   refresh or masquerade as the agent — a count-down-once guard that needs no
   env stripping and leaves the harness's own session var intact. With no
   session id resolvable, the launcher does not touch `active/` at all.
-- The long-blocking verbs (`wait`, `watch`, `wait-gpu`) keep the agent's entry
+- The long-blocking verbs (`wait`, `watch`, `wait-gpu`, `wait-work`) keep
+  the agent's entry
   *fresh* without writing content: each poll loop runs a self-throttled mtime
   touch (`touch_active_entry`, at most every 300s — never creating an entry,
   never reviving a DONE one, launch-depth-guarded). Without it, a session

@@ -76,6 +76,24 @@ class Workspace:
             timeout=timeout,
         )
 
+    def popen(self, *args, env_extra=None) -> subprocess.Popen:
+        """run()'s env hygiene, for blocking verbs (watch, wait, wait-work)."""
+        env = os.environ.copy()
+        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID",
+                    "AGENTCTL_LAUNCH_DEPTH", "BASH_ENV"):
+            env.pop(var, None)
+        env["AGENTCTL_NO_PROC_SESSION_ID"] = "1"
+        if env_extra:
+            env.update(env_extra)
+        return subprocess.Popen(
+            [str(self.tmp / "agentctl"), *map(str, args)],
+            cwd=self.tmp,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+        )
+
     def state(self, job: str, run_id: str | None = None) -> dict:
         if run_id is None:
             return json.loads((self.tmp / ".agentctl/jobs" / job / "current.json").read_text())
@@ -110,6 +128,22 @@ def _start(ws: Workspace, *args) -> subprocess.CompletedProcess:
     res = ws.run("start", *args)
     _assert(res.returncode == 0, f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}")
     return res
+
+
+def _wait_status(ws: Workspace, job: str, status: str, timeout: float = 5.0) -> dict:
+    """Poll until `job`'s current state reports `status`; assert on timeout."""
+    deadline = time.time() + timeout
+    last = None
+    while time.time() < deadline:
+        try:
+            last = ws.state(job)
+        except (FileNotFoundError, json.JSONDecodeError):
+            time.sleep(0.02)
+            continue
+        if last.get("status") == status:
+            return last
+        time.sleep(0.02)
+    raise AssertionError(f"job {job!r} never reached {status!r}; last state: {last!r}")
 
 
 # ---- Tests -----------------------------------------------------------------
@@ -704,6 +738,240 @@ def test_start_after_marker_without_sidecar_does_not_launch_payload():
     finally:
         if proc is not None and proc.poll() is None:
             proc.terminate()
+            proc.wait(timeout=5)
+        ws.cleanup()
+
+
+def test_wait_not_running_blocks_on_queued_job():
+    # A queued (waiting) --after run is pending, not terminal: `wait --target
+    # not-running` must keep blocking through the queued phase.
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 1.2")
+        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
+               "--after-heartbeat", "0", "follower", "--", "bash", "-c", "true")
+        _wait_status(ws, "follower", "waiting")
+        res = ws.run("wait", "follower", "--target", "not-running",
+                     "--poll", "0.1", "--heartbeat", "0", "--timeout", "0.4")
+        _assert(res.returncode != 0, f"wait released on a queued run: {res.stdout!r}")
+        res = ws.run("wait", "follower", "--target", "not-running",
+                     "--poll", "0.1", "--heartbeat", "0", "--timeout", "10")
+        _assert(res.returncode == 0, f"wait should succeed once the chain completes: {res.stdout!r} {res.stderr!r}")
+        _assert("finished" in res.stdout, f"wait should report the terminal status: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_after_output_of_queued_producer_blocks_then_releases():
+    # --after <output> where the producer job is still queued: the target
+    # resolves through the producer's declared --output, and a stale completion
+    # sidecar from an earlier run must not release the dependent early.
+    ws = Workspace()
+    try:
+        out = ws.scratch / "artifact.txt"
+        Path(f"{out}.meta.md").write_text("# stale\n")
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.8")
+        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
+               "--after-heartbeat", "0", "--output", str(out), "producer",
+               "--", "bash", "-c", f"echo fresh > {out}; echo '# fresh' > {out}.meta.md")
+        _start(ws, "--no-aim", "--after", str(out), "--after-poll", "0.05",
+               "--after-heartbeat", "0", "follower",
+               "--", "bash", "-c", f"grep -q fresh {out}.meta.md")
+        _wait_status(ws, "follower", "waiting")
+        s = ws.wait_finished("follower")
+        # The payload greps for the fresh sidecar: an early release off the
+        # stale one would have failed it.
+        _assert(s["returncode"] == 0, f"follower should succeed after the producer completes: {s!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_after_output_producer_failure_fails_dependent():
+    # A producer that ends without a clean finish fails the artifact wait;
+    # the dependent's payload must not run.
+    ws = Workspace()
+    try:
+        out = ws.scratch / "never-made.txt"
+        flag = ws.scratch / "should-not-exist.txt"
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.5")
+        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
+               "--after-heartbeat", "0", "--output", str(out), "producer",
+               "--", "bash", "-c", "exit 3")
+        _start(ws, "--no-aim", "--after", str(out), "--after-poll", "0.05",
+               "--after-heartbeat", "0", "follower",
+               "--", "bash", "-c", f"echo bad > {flag}")
+        _wait_status(ws, "follower", "waiting")
+        s = ws.wait_finished("follower")
+        _assert(s["returncode"] != 0, f"failed producer should fail the dependent: {s!r}")
+        _assert(not flag.exists(), "payload must not launch when the producer failed")
+    finally:
+        ws.cleanup()
+
+
+def test_stop_cancels_queued_run_and_fails_dependent():
+    # stop on a waiting run kills the wrapper before the payload ever launches,
+    # and the stopped dependency fails --after dependents instead of releasing them.
+    ws = Workspace()
+    try:
+        flag = ws.scratch / "follower-ran.txt"
+        flag2 = ws.scratch / "grandchild-ran.txt"
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 5")
+        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
+               "--after-heartbeat", "0", "follower", "--", "bash", "-c", f"echo ran > {flag}")
+        _start(ws, "--no-aim", "--after", "follower", "--after-poll", "0.05",
+               "--after-heartbeat", "0", "grandchild", "--", "bash", "-c", f"echo ran > {flag2}")
+        _wait_status(ws, "follower", "waiting")
+        res = ws.run("stop", "follower")
+        _assert(res.returncode == 0 and "stopped" in res.stdout,
+                f"stop should cancel a queued run: rc={res.returncode} {res.stdout!r}")
+        _assert(ws.state("follower").get("status") == "stopped",
+                f"canceled run should be marked stopped: {ws.state('follower')!r}")
+        s = ws.wait_finished("grandchild")
+        _assert(s["returncode"] != 0, f"stopped dependency should fail the dependent: {s!r}")
+        _assert(not flag.exists() and not flag2.exists(),
+                "neither canceled nor dependent payload may run")
+    finally:
+        ws.run("stop", "slowdep")
+        ws.cleanup()
+
+
+def test_watch_attaches_through_queued_phase():
+    # watch on a queued run stays attached through the waiting phase and ends
+    # at the terminal state instead of reporting done at status=waiting.
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.8")
+        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
+               "--after-heartbeat", "0", "follower", "--", "bash", "-c", "true")
+        _wait_status(ws, "follower", "waiting")
+        proc = ws.popen("watch", "follower", "--poll", "0.1", "--heartbeat", "0")
+        out, err = proc.communicate(timeout=15)
+        _assert(proc.returncode == 0, f"watch failed: rc={proc.returncode} {err!r}")
+        _assert("done: follower" in out and "status=finished" in out,
+                f"watch should end at the terminal state, not status=waiting: {out!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_refresh_marks_dead_queued_wrapper_failed():
+    # A waiting run whose wrapper process died will never launch its payload:
+    # liveness refresh must mark it finished returncode=unknown so dependents
+    # and waits fail fast instead of blocking forever.
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 5")
+        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
+               "--after-heartbeat", "0", "follower", "--", "bash", "-c", "true")
+        s = _wait_status(ws, "follower", "waiting")
+        os.kill(int(s["pid"]), 9)
+        time.sleep(0.2)
+        res = ws.run("wait", "follower", "--target", "not-running",
+                     "--poll", "0.1", "--heartbeat", "0", "--timeout", "5")
+        _assert(res.returncode != 0, f"dead queued wrapper should surface as failed: {res.stdout!r}")
+        s = ws.state("follower")
+        _assert(s.get("status") == "finished" and s.get("returncode") == "unknown",
+                f"dead queued wrapper should be finished/unknown: {s!r}")
+    finally:
+        ws.run("stop", "slowdep")
+        ws.cleanup()
+
+
+def test_restart_requeues_behind_same_after_chain():
+    # restart preserves the --after chain instead of relaunching unguarded.
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "true")
+        ws.wait_finished("slowdep")
+        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
+               "--after-heartbeat", "0", "follower", "--", "bash", "-c", "true")
+        first = ws.wait_finished("follower")
+        res = ws.run("restart", "follower")
+        _assert(res.returncode == 0, f"restart failed: {res.stderr}")
+        s = ws.wait_finished("follower", since_run_id=first["run_id"])
+        _assert(s.get("wait_after_specs") == ["slowdep"],
+                f"restart should requeue behind the same --after chain: {s!r}")
+        _assert(s["returncode"] == 0, f"restarted follower failed: {s!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_wait_work_times_out_when_nothing_new():
+    ws = Workspace()
+    try:
+        res = ws.run("wait-work", "--timeout", "0.5", "--poll", "0.1", "--heartbeat", "0")
+        _assert(res.returncode == 1, f"wait-work should exit 1 on timeout: rc={res.returncode}")
+        _assert("timeout" in res.stderr, f"timeout should be reported: {res.stderr!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_wait_work_wakes_on_new_run():
+    # Baselines snapshot at entry: a preexisting run never fires; a fresh
+    # launch (new run id) does.
+    ws = Workspace()
+    proc = None
+    try:
+        _start(ws, "--no-aim", "preexisting", "--", "bash", "-c", "true")
+        ws.wait_finished("preexisting")
+        proc = ws.popen("wait-work", "--runs", "--poll", "0.1", "--heartbeat", "0")
+        time.sleep(0.4)
+        _assert(proc.poll() is None, "wait-work must not fire on preexisting runs")
+        _start(ws, "--no-aim", "newjob", "--", "bash", "-c", "true")
+        out, err = proc.communicate(timeout=10)
+        _assert(proc.returncode == 0, f"wait-work should wake on a new run: rc={proc.returncode} {err!r}")
+        _assert("new run: job=newjob" in out, f"the new run should be named: {out!r}")
+        _assert("preexisting" not in out, f"baseline runs must not be reported: {out!r}")
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=5)
+        ws.cleanup()
+
+
+def test_wait_work_wakes_on_new_on_deck_entry():
+    # Works from an empty queue (no on-deck/ dir yet); derived INDEX.md never
+    # counts as work.
+    ws = Workspace()
+    proc = None
+    try:
+        proc = ws.popen("wait-work", "--on-deck", "--poll", "0.1", "--heartbeat", "0")
+        time.sleep(0.3)
+        _assert(proc.poll() is None, "wait-work must keep waiting on an empty queue")
+        deck = ws.tmp / "on-deck"
+        deck.mkdir()
+        (deck / "INDEX.md").write_text("| derived |\n")
+        (deck / "pilot-a.md").write_text("---\nslug: pilot-a\nstatus: pending\n---\n")
+        out, err = proc.communicate(timeout=10)
+        _assert(proc.returncode == 0, f"wait-work should wake on a new entry: rc={proc.returncode} {err!r}")
+        _assert("new on-deck entry: on-deck/pilot-a.md" in out, f"the new entry should be named: {out!r}")
+        _assert("INDEX.md" not in out, f"derived INDEX.md must not be reported: {out!r}")
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=5)
+        ws.cleanup()
+
+
+def test_wait_work_wakes_on_updated_on_deck_entry():
+    # An existing entry is baseline; rewriting it (e.g. blocked -> pending)
+    # counts as newly queued work.
+    ws = Workspace()
+    proc = None
+    try:
+        deck = ws.tmp / "on-deck"
+        deck.mkdir()
+        entry = deck / "pilot-a.md"
+        entry.write_text("---\nslug: pilot-a\nstatus: blocked\n---\n")
+        proc = ws.popen("wait-work", "--on-deck", "--poll", "0.1", "--heartbeat", "0")
+        time.sleep(0.3)
+        _assert(proc.poll() is None, "wait-work must not fire on a preexisting entry")
+        entry.write_text("---\nslug: pilot-a\nstatus: pending\n---\n")
+        out, err = proc.communicate(timeout=10)
+        _assert(proc.returncode == 0, f"wait-work should wake on an updated entry: rc={proc.returncode} {err!r}")
+        _assert("updated on-deck entry: on-deck/pilot-a.md" in out, f"the updated entry should be named: {out!r}")
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.kill()
             proc.wait(timeout=5)
         ws.cleanup()
 

@@ -111,8 +111,11 @@ Each wake runs a round, re-enters the foreground wait, and re-arms one *long*
 agentctl malfunction, miswiring, or an unexpectedly missed event — not
 cadence. Past the deadline, write the final report and stop. When the queue
 is terminal (no eligible entries, no running jobs, remainder blocked on
-director judgment), report and stop early — except `forever`, which keeps
-idling at heartbeat cadence since new entries may arrive.
+director judgment), report and stop early — except `forever`, which sits in
+a foreground `agentctl wait-work --on-deck` block (bounded per the RUNS.md
+wait cap, re-entered on each return) so a newly queued or edited entry
+wakes it immediately; the heartbeat stays the safety fallback, not the
+arrival mechanism.
 
 ## Autonomy Bounds
 

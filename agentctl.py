@@ -1616,14 +1616,30 @@ def refresh_state(state: dict) -> dict:
         and state.get("returncode") == "unknown"
         and state_alive(state)
     ):
-        state["status"] = "running"
+        # started_at is set only when the payload launches, so its absence
+        # means the run was still queued behind --after.
+        state["status"] = "running" if state.get("started_at") else "waiting"
         state.pop("finished_at", None)
         state.pop("returncode", None)
         update_state_files(state)
-    if state.get("status") == "running" and not state_alive(state):
+    # A queued (waiting) run's liveness is its _run-child wrapper: a dead
+    # wrapper means the payload will never launch, so mark it finished rather
+    # than leaving --after dependents blocked on it forever.
+    if state.get("status") in ("running", "waiting") and not state_alive(state):
         if process_visibility_limited() and not state_liveness_refuted_by_visible_process(state):
             state["_liveness_note"] = "process visibility limited; not marking finished"
             return state
+        # Re-read before writing: `stop` may have just marked this run
+        # stopped, and the derived liveness verdict must not clobber that
+        # authoritative terminal state with finished/unknown.
+        try:
+            ondisk = read_json(Path(str(state.get("state_path") or "")))
+        except Exception:
+            ondisk = None
+        if ondisk is not None:
+            if ondisk.get("status") not in ("running", "waiting"):
+                return apply_exit_status_record(ondisk)
+            state = ondisk
         state["status"] = "finished"
         state["finished_at"] = utc_now()
         state["returncode"] = "unknown"
@@ -2237,6 +2253,48 @@ def write_meta(state: dict) -> dict:
     return state
 
 
+def latest_producer_for_output(output: Path) -> dict | None:
+    """The latest-run state among jobs declaring `output` as a declared output.
+
+    Scans jobs/*/current.json (each job's latest run). A queued or running
+    producer wins over terminal ones; ties break to the most recent
+    queued_at/started_at. Returns the raw state (caller refreshes if needed).
+    """
+    target = Path(output).resolve(strict=False)
+    if not JOBS.is_dir():
+        return None
+    live: list[dict] = []
+    terminal: list[dict] = []
+    for current in JOBS.glob("*/current.json"):
+        try:
+            state = read_json(current)
+        except Exception:
+            continue
+        declared = [state.get("output_path") or ""]
+        outputs = state.get("outputs")
+        if isinstance(outputs, dict):
+            declared.extend(
+                rec.get("path", "") for rec in outputs.values() if isinstance(rec, dict)
+            )
+        if any(raw and Path(raw).resolve(strict=False) == target for raw in declared):
+            bucket = live if state.get("status") in ("waiting", "running") else terminal
+            bucket.append(state)
+    for bucket in (live, terminal):
+        if bucket:
+            bucket.sort(key=lambda s: str(s.get("queued_at") or s.get("started_at") or ""))
+            return bucket[-1]
+    return None
+
+
+def live_producer_for_output(output: Path) -> dict | None:
+    """The queued/running producer of `output`, liveness-refreshed, if any."""
+    state = latest_producer_for_output(output)
+    if state is None or state.get("status") not in ("waiting", "running"):
+        return None
+    state = refresh_state(state)
+    return state if state.get("status") in ("waiting", "running") else None
+
+
 def resolve_after_target(spec: str) -> dict:
     job_path = current_path(spec)
     if job_path.exists():
@@ -2258,7 +2316,13 @@ def resolve_after_target(spec: str) -> dict:
         seen.add(candidate)
         marker = candidate if str(candidate).endswith(".running.md") else running_marker_path(candidate)
         output = Path(str(marker)[: -len(".running.md")]) if str(marker).endswith(".running.md") else candidate
-        if marker.exists() or completion_sidecar(output) is not None:
+        # A queued producer job (no marker until its payload launches, e.g.
+        # itself waiting behind --after) also makes an artifact target real.
+        if (
+            marker.exists()
+            or completion_sidecar(output) is not None
+            or live_producer_for_output(output) is not None
+        ):
             return {
                 "kind": "running_marker",
                 "spec": spec,
@@ -2267,7 +2331,8 @@ def resolve_after_target(spec: str) -> dict:
             }
 
     raise SystemExit(
-        f"--after target not found as an agentctl job or .running.md artifact: {spec}"
+        f"--after target not found as an agentctl job, .running.md artifact, "
+        f"or declared output of a queued/running job: {spec}"
     )
 
 
@@ -2291,6 +2356,11 @@ def after_target_done(target: dict) -> tuple[bool, int, str]:
                     f"job={dep_state['job']} status=finished returncode=unknown settling",
                 )
         rc = status_returncode_exit_code(dep_state)
+        if status != "finished":
+            # stopped (or an unrecognized terminal state) is not a clean exit:
+            # fail the chain rather than launching a payload whose
+            # precondition never completed.
+            rc = rc or 1
         if rc != 0:
             return True, rc, f"job={dep_state['job']} ended status={status} returncode={dep_state.get('returncode')}"
         return True, 0, f"job={dep_state['job']} ended status={status} returncode={dep_state.get('returncode', '')}"
@@ -2299,6 +2369,38 @@ def after_target_done(target: dict) -> tuple[bool, int, str]:
         marker = Path(str(target["marker_path"]))
         output = Path(str(target["output_path"]))
         if not marker.exists():
+            # No live marker: defer to the producing job when one is known.
+            # A queued/running producer blocks (a stale completion sidecar
+            # from an earlier run must not release the dependent); a producer
+            # that ended without a clean finish fails the chain.
+            producer = latest_producer_for_output(output)
+            if producer is not None:
+                producer = refresh_state(producer)
+                status = producer.get("status", "")
+                if status in ("waiting", "running"):
+                    return (
+                        False,
+                        0,
+                        f"output={output} producer job={producer['job']} status={status} "
+                        f"elapsed={elapsed_estimate_text(producer)}",
+                    )
+                rc = status_returncode_exit_code(producer)
+                if status != "finished":
+                    rc = rc or 1
+                if rc != 0:
+                    return (
+                        True,
+                        rc,
+                        f"producer job={producer['job']} ended status={status} "
+                        f"returncode={producer.get('returncode')} out={output}",
+                    )
+                sidecar = completion_sidecar(output)
+                return (
+                    True,
+                    0,
+                    f"producer job={producer['job']} finished returncode=0 "
+                    f"sidecar={sidecar or 'none'} out={output}",
+                )
             sidecar = completion_sidecar(output)
             if sidecar is not None:
                 return True, 0, f"marker gone: {marker} sidecar={sidecar}"
@@ -2981,7 +3083,9 @@ def wait_job(args: argparse.Namespace) -> int:
         state = load_job(args.job)
         status = state.get("status", "")
         if args.target == "not-running":
-            done = status != "running"
+            # A queued (waiting) run is pending, not terminal: its payload has
+            # not run yet, so releasing on it defeats the wait.
+            done = status not in ("running", "waiting")
         else:
             done = status == args.target
         if done:
@@ -3226,6 +3330,101 @@ def wait_gpu(args: argparse.Namespace) -> int:
     )
 
 
+ON_DECK_DIRNAME = "on-deck"
+
+
+def snapshot_job_runs() -> dict[tuple[str, str], str]:
+    """Each job's latest run identity: {(job, run_id): status} from jobs/*/current.json."""
+    seen: dict[tuple[str, str], str] = {}
+    if not JOBS.is_dir():
+        return seen
+    for current in JOBS.glob("*/current.json"):
+        try:
+            state = read_json(current)
+        except Exception:
+            continue
+        rid = str(state.get("run_id") or "")
+        if rid:
+            job = str(state.get("job") or current.parent.name)
+            seen[(job, rid)] = str(state.get("status") or "")
+    return seen
+
+
+def snapshot_on_deck() -> dict[str, float]:
+    """mtime by entry name for on-deck/*.md (INDEX.md is derived and ignored;
+    done/ is a subdir and out of the top-level glob)."""
+    entries: dict[str, float] = {}
+    deck = ROOT / ON_DECK_DIRNAME
+    if not deck.is_dir():
+        return entries
+    for path in deck.glob("*.md"):
+        if path.name == "INDEX.md":
+            continue
+        try:
+            entries[path.name] = path.stat().st_mtime
+        except OSError:
+            continue
+    return entries
+
+
+def wait_work(args: argparse.Namespace) -> int:
+    """Block until new work appears: a new run id and/or a new on-deck entry.
+
+    Baselines are snapshotted at entry, so work already present never fires;
+    the verb works from an empty queue and an idle project. Prints what
+    appeared and exits 0; exits 1 on --timeout.
+    """
+    watch_runs = args.runs or not args.on_deck
+    watch_deck = args.on_deck or not args.runs
+    sources = " or ".join(
+        name
+        for name, on in (
+            ("new agentctl run", watch_runs),
+            (f"new/updated {ON_DECK_DIRNAME}/ entry", watch_deck),
+        )
+        if on
+    )
+    base_runs = snapshot_job_runs() if watch_runs else {}
+    base_deck = snapshot_on_deck() if watch_deck else {}
+    deadline = time.time() + args.timeout if args.timeout > 0 else None
+    started = time.time()
+    heartbeat = max(0.0, float(args.heartbeat or 0.0))
+    next_report = 0.0
+    while True:
+        touch_active_entry()
+        news: list[str] = []
+        if watch_runs:
+            runs = snapshot_job_runs()
+            for job, rid in sorted(set(runs) - set(base_runs)):
+                status = runs[(job, rid)]
+                news.append(
+                    f"new run: job={job} run={rid}" + (f" status={status}" if status else "")
+                )
+        if watch_deck:
+            deck = snapshot_on_deck()
+            for name in sorted(deck):
+                if name not in base_deck:
+                    news.append(f"new {ON_DECK_DIRNAME} entry: {ON_DECK_DIRNAME}/{name}")
+                elif deck[name] != base_deck[name]:
+                    news.append(f"updated {ON_DECK_DIRNAME} entry: {ON_DECK_DIRNAME}/{name}")
+        if news:
+            for line in news:
+                print(line)
+            return 0
+        now = time.time()
+        if heartbeat > 0 and (next_report == 0.0 or now >= next_report):
+            print(
+                f"[wait-work] waiting for {sources} "
+                f"({format_duration(int(now - started))} elapsed)",
+                flush=True,
+            )
+            next_report = now + heartbeat
+        if deadline is not None and now >= deadline:
+            print(f"timeout waiting for {sources}", file=sys.stderr)
+            return 1
+        time.sleep(args.poll)
+
+
 def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int:
     """Stream new log lines until the job is no longer running, then print final status."""
     if getattr(args, "notify_gpu_idle", False):
@@ -3392,7 +3591,9 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
             print(heartbeat_line, flush=True)
             next_heartbeat_at = now + heartbeat_interval
         current_status = state.get("status", "")
-        if current_status != "running":
+        # waiting (queued behind --after) is a live state: stay attached
+        # through the queued phase and the run itself.
+        if current_status not in ("running", "waiting"):
             if watching_gpu:
                 last_gpu_below, last_gpu_error, gpu_activity_seen, gpu_polled, last_gpu_stats = poll_watch_gpu_state(
                     gpu=args.gpu,
@@ -3432,7 +3633,9 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
 
 def stop(args: argparse.Namespace) -> int:
     state = load_job(args.job)
-    if state.get("status") != "running":
+    # A waiting (queued behind --after) run has a live wrapper process to
+    # kill: stopping it cancels the queued payload before it ever launches.
+    if state.get("status") not in ("running", "waiting"):
         print(f"{state['job']} is {state['status']}")
         return 0
     pgid = int(state.get("pgid") or state["pid"])
@@ -3450,16 +3653,20 @@ def stop(args: argparse.Namespace) -> int:
 
 def restart(args: argparse.Namespace) -> int:
     state = load_job(args.job)
-    if state.get("status") == "running":
+    # Stop a waiting (queued) run too, or the old wrapper would launch the
+    # payload a second time when its --after dependencies clear.
+    if state.get("status") in ("running", "waiting"):
         stop(argparse.Namespace(job=args.job, grace=args.grace))
     start_args = argparse.Namespace(
         argv=state["argv"],
         context_note=state.get("context_note", ""),
         depends_on=state.get("depends_on", []),
-        after=[],
-        after_poll=10.0,
-        after_heartbeat=30.0,
-        after_timeout=0.0,
+        # Requeue behind the same --after dependencies; a clean-finished
+        # dependency releases the new wait immediately.
+        after=list(state.get("wait_after_specs") or []),
+        after_poll=float(state.get("wait_after_poll") or 10.0),
+        after_heartbeat=float(state.get("wait_after_heartbeat") or 30.0),
+        after_timeout=float(state.get("wait_after_timeout") or 0.0),
         env=[],
         gpus="",
         input_file="",
@@ -3518,6 +3725,8 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         default=[],
         help=(
             "Queue this launch until an agentctl job or <output>.running.md artifact is done. "
+            "An output path also resolves through a queued or running job that declares it "
+            "via --output, so a dependent can queue before its producer starts. "
             "Use only for mechanical dependencies; inspect results manually when follow-on "
             "choice depends on completed content."
         ),
@@ -3942,7 +4151,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--target",
         choices=["finished", "stopped", "running", "not-running"],
         default="not-running",
-        help="Status to wait for. 'not-running' means any terminal/non-running status.",
+        help="Status to wait for. 'not-running' means any terminal status; a "
+             "queued (waiting) --after run is still pending and keeps blocking.",
     )
     s.add_argument("--poll", type=float, default=30.0, help="Seconds between status checks.")
     s.add_argument(
@@ -3972,6 +4182,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument("--timeout", type=float, default=0.0, help="Maximum seconds to wait; 0 means no timeout.")
     s.set_defaults(func=wait_gpu)
+
+    s = sub.add_parser(
+        "wait-work",
+        help="Wait until new work appears: a new agentctl run and/or a new or "
+             "updated on-deck/ queue entry. Works from an empty queue; prints "
+             "what appeared and exits 0 (1 on --timeout).",
+    )
+    s.add_argument(
+        "--runs",
+        action="store_true",
+        help="Wake on a new agentctl run: any run id not present at wait-work "
+             "launch, restarts included (the watch-only wake: something new to watch).",
+    )
+    s.add_argument(
+        "--on-deck",
+        dest="on_deck",
+        action="store_true",
+        help="Wake on a new or modified on-deck/*.md queue entry; INDEX.md is "
+             "derived and ignored (the tending wake: newly queued work). "
+             "With neither --runs nor --on-deck, both sources wake.",
+    )
+    s.add_argument("--poll", type=float, default=10.0, help="Seconds between checks.")
+    s.add_argument(
+        "--heartbeat",
+        type=float,
+        default=60.0,
+        help="Seconds between wait-work heartbeat lines (0 disables the periodic heartbeat).",
+    )
+    s.add_argument("--timeout", type=float, default=0.0, help="Maximum seconds to wait; 0 means no timeout.")
+    s.set_defaults(func=wait_work)
 
     s = sub.add_parser("stop", help="Stop a running job process group.")
     s.add_argument("job")

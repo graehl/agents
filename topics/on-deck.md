@@ -187,6 +187,14 @@ steward when a resource is actually freed, and scheduled wakeups serve only
 as the fallback heartbeat. `/rep steward` remains a working alias. There is
 no resident scheduler.
 
+An *empty* queue is not a reason to end a tending round: `agentctl
+wait-work --on-deck` blocks until a new or modified entry lands (derived
+`INDEX.md` ignored), so a steward can sleep on an empty queue and wake
+when work is queued — the arrival-side complement to the resource-side
+`steward-idle-watch` wake. Watch-only sessions use `wait-work --runs` to
+wake when anything new is launched. Like the other long-blocking agentctl
+verbs it refreshes the caller's active-sessions entry while waiting.
+
 GPU-idle heartbeat → regenerate/read `INDEX.md` → `on_deck.py eligible
 [--steward]` runs each pending entry's skip-if and guard commands in priority
 order and names the first launchable entry → `agentctl` wait-gpu/start/watch
