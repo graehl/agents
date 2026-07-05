@@ -3,8 +3,8 @@
 > An ACLI (Agent CLI) is a command-line tool built agent-first: compact
 > structured output by default, named composite verbs over agent-glued
 > round-trips, structured errors and exit codes, and no interactive
-> prompts — while protecting interactive human users by *detecting* them
-> rather than making agent-friendliness opt-in.
+> prompts that block agent callers — while protecting interactive human users
+> by *detecting* them rather than making agent-friendliness opt-in.
 
 Topic: `agent-cli`
 

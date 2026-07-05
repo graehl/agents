@@ -15,6 +15,9 @@ import subprocess
 import sys
 import time
 
+import acli
+import acli.args as acli_args
+
 
 CODE_ROOT = Path(__file__).resolve().parent
 ROOT = Path(os.environ.get("AGENTCTL_ROOT") or os.getcwd()).expanduser().resolve()
@@ -152,7 +155,9 @@ def instance_name(job: str, serial: int) -> str:
 
 
 def parse_utc(ts: str) -> dt.datetime:
-    return dt.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=dt.timezone.utc)
+    return dt.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=dt.timezone.utc
+    )
 
 
 def parse_duration_seconds(text: str) -> int:
@@ -252,11 +257,15 @@ def ensure_state_ignored() -> None:
     or filesystem failure is swallowed, since this is a convenience and never
     the caller's actual task.
     """
+
     def git(*args: str) -> subprocess.CompletedProcess:
         return subprocess.run(
             ["git", "-C", str(ROOT), *args],
-            capture_output=True, text=True, check=False,
+            capture_output=True,
+            text=True,
+            check=False,
         )
+
     try:
         # Not a git repo (or git unavailable): do nothing, do not freak out.
         if git("rev-parse", "--is-inside-work-tree").returncode != 0:
@@ -345,9 +354,11 @@ def _proc_ppid(pid: int) -> int | None:
     whitespace-splitting of stat returns the wrong field.
     """
     try:
-        for line in Path(f"/proc/{pid}/status").read_text(
-            encoding="utf-8", errors="replace"
-        ).splitlines():
+        for line in (
+            Path(f"/proc/{pid}/status")
+            .read_text(encoding="utf-8", errors="replace")
+            .splitlines()
+        ):
             if line.startswith("PPid:"):
                 return int(line.split()[1])
     except (OSError, ValueError, IndexError):
@@ -376,7 +387,7 @@ def _resume_id_from_argv(argv: list[str]) -> str:
             if i + 1 < len(argv) and _UUID_RE.match(argv[i + 1]):
                 return argv[i + 1]
         elif tok.startswith("--resume="):
-            val = tok[len("--resume="):]
+            val = tok[len("--resume=") :]
             if _UUID_RE.match(val):
                 return val
     return ""
@@ -482,13 +493,17 @@ def refresh_active_register(summary: str, note: str) -> None:
             with path.open("a", encoding="utf-8") as fh:
                 fh.write(line + "\n")
     except OSError as exc:
-        print(f"warning: could not update active session {path}: {exc}", file=sys.stderr)
+        print(
+            f"warning: could not update active session {path}: {exc}", file=sys.stderr
+        )
 
 
 ACTIVE_CLAIM_PLACEHOLDER = "active (placeholder status — set via agentctl active)"
 
 
-def _split_active_header(lines: list[str]) -> tuple[str | None, str | None, str | None, list[str]]:
+def _split_active_header(
+    lines: list[str],
+) -> tuple[str | None, str | None, str | None, list[str]]:
     """Split an active entry into (line1, scope_line, tending_line, body).
 
     The header is line 1 plus at most one `scope:` and one `tending:` line
@@ -555,7 +570,9 @@ def write_active_entry(
         line1 = old_line1
     else:
         line1 = normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
-    scope_line = ("scope: " + " ".join(scope_paths)) if scope_paths else (old_scope or "")
+    scope_line = (
+        ("scope: " + " ".join(scope_paths)) if scope_paths else (old_scope or "")
+    )
     if clear_tending:
         tending_line = ""
     elif tending is not None:
@@ -614,7 +631,9 @@ def ensure_active_registered(
             # tending update must not revive a completed entry; an explicit
             # banner may deliberately re-author.
             if banner is None and path.exists():
-                first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+                first = path.read_text(encoding="utf-8", errors="replace").splitlines()[
+                    :1
+                ]
                 if first and first[0].startswith("DONE"):
                     return "done"
             line1, _, _ = write_active_entry(sid, banner, scope_paths, tending=tending)
@@ -630,7 +649,9 @@ def ensure_active_registered(
         os.utime(path, None)  # refresh mtime to now, leaving content intact
         return "refreshed"
     except OSError as exc:
-        print(f"warning: could not register active session {path}: {exc}", file=sys.stderr)
+        print(
+            f"warning: could not register active session {path}: {exc}", file=sys.stderr
+        )
         return "noop"
 
 
@@ -749,7 +770,10 @@ def active_register(args) -> int:
     if until and not claim_tending:
         print("agentctl active: --until requires --tending", file=sys.stderr)
         return 2
-    tending = ("on-deck" + (f" until {until}" if until else "")) if claim_tending else None
+    tending = (
+        ("on-deck" + (f" until {until}" if until else "")) if claim_tending else None
+    )
+    fmt = _resolve_acli_format(args)
 
     path = ACTIVE / sid
     try:
@@ -764,11 +788,23 @@ def active_register(args) -> int:
         shown: Path | str = path.relative_to(ROOT)
     except ValueError:
         shown = path
-    print(f"active {shown}: {banner}")
-    if scope_line:
-        print(f"  {scope_line}")
-    if tending_line:
-        print(f"  {tending_line}")
+    payload = {
+        "kind": "active_register",
+        "ok": True,
+        "path": str(shown),
+        "id": sid,
+        "banner": banner,
+    }
+    scope_value = _header_value(scope_line)
+    tending_value = _header_value(tending_line)
+    if scope_value:
+        payload["scope"] = scope_value
+    if tending_value:
+        payload["tending"] = tending_value
+    if bool(getattr(args, "full", False)):
+        payload["scope_line"] = scope_line
+        payload["tending_line"] = tending_line
+    _emit_acli_with_format(fmt, payload)
     return 0
 
 
@@ -837,7 +873,9 @@ def _scan_active(minutes: int, include_done: bool, self_id: str):
                 text = path.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
-            raw_line1, raw_scope, raw_tending, _ = _split_active_header(text.splitlines())
+            raw_line1, raw_scope, raw_tending, _ = _split_active_header(
+                text.splitlines()
+            )
             line1 = (raw_line1 or "").strip()
             is_done = line1.startswith("DONE")
             if is_done and not include_done:
@@ -846,7 +884,16 @@ def _scan_active(minutes: int, include_done: bool, self_id: str):
                 continue
             scope = (raw_scope or "").strip()
             tending = (raw_tending or "").strip()
-            rows.append((mtime, f".agentctl/{d.name}/{path.name}", line1, scope, tending, path.name == self_id))
+            rows.append(
+                (
+                    mtime,
+                    f".agentctl/{d.name}/{path.name}",
+                    line1,
+                    scope,
+                    tending,
+                    path.name == self_id,
+                )
+            )
 
     rows.sort(key=lambda r: r[0], reverse=True)
     return now, rows
@@ -876,10 +923,108 @@ def _scan_awaiting(minutes: int) -> list[tuple[float, str, str, str]]:
             continue
         lines = text.splitlines()
         line1 = lines[0].strip() if lines else ""
-        scope = lines[1].strip() if len(lines) > 1 and lines[1].startswith("scope:") else ""
+        scope = (
+            lines[1].strip() if len(lines) > 1 and lines[1].startswith("scope:") else ""
+        )
         rows.append((mtime, f".agentctl/awaiting/{path.name}", line1, scope))
     rows.sort(key=lambda r: r[0], reverse=True)
     return rows
+
+
+def _window_label(minutes: int) -> str:
+    return "any age" if not minutes else f"last {minutes}m"
+
+
+def _header_value(line: str) -> str:
+    return line.partition(":")[2].strip() if line else ""
+
+
+def _active_row_payload(
+    now: float,
+    mtime: float,
+    rel: str,
+    line1: str,
+    scope: str,
+    tending: str,
+    is_self: bool = False,
+    *,
+    full: bool = False,
+) -> dict:
+    row = {
+        "id": Path(rel).name,
+        "status": line1 or "",
+        "age_seconds": int(max(0, now - mtime)),
+    }
+    scope_value = _header_value(scope)
+    tending_value = _header_value(tending)
+    if scope_value:
+        row["scope"] = scope_value
+    if tending_value:
+        row["tending"] = tending_value
+    if is_self:
+        row["self"] = True
+    warning = _id_name_warning(rel).strip()
+    if warning:
+        row["warning"] = warning
+    if full:
+        row.update(
+            {
+                "path": rel,
+                "mtime": mtime,
+                "age": format_duration(now - mtime),
+                "scope_line": scope,
+                "tending_line": tending,
+            }
+        )
+    return row
+
+
+def _awaiting_row_payload(
+    now: float,
+    mtime: float,
+    rel: str,
+    line1: str,
+    scope: str,
+    *,
+    full: bool = False,
+) -> dict:
+    row = {
+        "id": Path(rel).name,
+        "status": line1 or "",
+        "age_seconds": int(max(0, now - mtime)),
+        "awaiting": True,
+    }
+    scope_value = _header_value(scope)
+    if scope_value:
+        row["scope"] = scope_value
+    warning = _id_name_warning(rel).strip()
+    if warning:
+        row["warning"] = warning
+    if full:
+        row.update(
+            {
+                "path": rel,
+                "mtime": mtime,
+                "age": format_duration(now - mtime),
+                "scope_line": scope,
+            }
+        )
+    return row
+
+
+def _resolve_acli_format(args) -> acli.Format:
+    try:
+        return acli.resolve_format(args)
+    except ValueError as exc:
+        acli.die(str(exc), acli.ExitCode.USAGE)
+
+
+def _emit_acli(args, payload: dict) -> None:
+    acli.emit(payload, _resolve_acli_format(args))
+
+
+def _emit_acli_with_format(fmt: acli.Format, payload: dict) -> None:
+    acli.emit(payload, fmt)
 
 
 def write_awaiting(path: Path, status: str, scope_paths: list[str]) -> bool:
@@ -912,40 +1057,39 @@ def active_list(args) -> int:
     drops the freshness window so stale/crashed entries show too, and --done
     also includes DONE-prefixed (completed) entries.
 
-    Output is to stdout, newest first, one entry per block:
-
-        .agentctl/active/<id>  (12m34s ago)  status line one  (self)
-            scope: pkg/a/** pkg/b
+    Output is an ACLI payload with `sessions` and `awaiting` arrays, newest
+    first, defaulting to compact JSONL for agents and pipes.
     """
     minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
     include_done = bool(getattr(args, "done", False))
+    fmt = _resolve_acli_format(args)
     now, rows = _scan_active(minutes, include_done, agent_session_id())
     awaiting = _scan_awaiting(minutes)
-    if rows is None and not awaiting:
-        print("no active sessions (.agentctl/active/ does not exist)")
-        return 0
-    if not rows and not awaiting:
-        window = "any age" if not minutes else f"last {minutes}m"
-        kind = "sessions" if include_done else "non-DONE sessions"
-        print(f"no active {kind} ({window})")
-        return 0
-
-    for mtime, rel, line1, scope, tending, is_self in (rows or []):
-        age = format_duration(now - mtime)
-        marker = "  (self)" if is_self else ""
-        marker += _id_name_warning(rel)
-        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{marker}")
-        if scope:
-            print(f"    {scope}")
-        if tending:
-            print(f"    {tending}")
+    full = bool(getattr(args, "full", False))
+    sessions = [
+        _active_row_payload(now, mtime, rel, line1, scope, tending, is_self, full=full)
+        for mtime, rel, line1, scope, tending, is_self in (rows or [])
+    ]
     # Awaiting peers are listed after working ones, tagged so a browser sees
     # the queued wait without mistaking it for a blocking (edit-check) peer.
-    for mtime, rel, line1, scope in awaiting:
-        age = format_duration(now - mtime)
-        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}  (awaiting, non-blocking){_id_name_warning(rel)}")
-        if scope:
-            print(f"    {scope}")
+    awaiting_rows = [
+        _awaiting_row_payload(now, mtime, rel, line1, scope, full=full)
+        for mtime, rel, line1, scope in awaiting
+    ]
+    _emit_acli_with_format(
+        fmt,
+        {
+            "kind": "active_sessions",
+            "window": _window_label(minutes),
+            "minutes": minutes,
+            "include_done": include_done,
+            "count": len(sessions),
+            "awaiting_count": len(awaiting_rows),
+            "missing_active_dir": rows is None,
+            "sessions": sessions,
+            "awaiting": awaiting_rows,
+        },
+    )
     return 0
 
 
@@ -954,9 +1098,9 @@ def others_cmd(args) -> int:
 
     Why carry your own id: `active` lists everyone and leaves you to subtract
     yourself, so a session re-confirming a "peers present" belief still has to
-    parse rows. `others <id>` drops your entry and leads with a count, so the
-    answer is one line — `no other active sessions (last 70m)` — and needs no
-    parsing. Passing the id is also the nudge for a session to know it; with no
+    parse rows. `others <id>` drops your entry and emits a structured verdict
+    with `other_count` and `has_peers`. Passing the id is also the nudge for a
+    session to know it; with no
     id given it falls back to agent_session_id(), and excludes nothing if that
     is empty too (so it degrades to `active`-style output rather than failing).
 
@@ -974,30 +1118,43 @@ def others_cmd(args) -> int:
     minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
     include_done = bool(getattr(args, "done", False))
     provided = getattr(args, "uuid", None)
+    fmt = _resolve_acli_format(args)
     now, rows = _scan_active(minutes, include_done, provided or agent_session_id())
-    window = "any age" if not minutes else f"last {minutes}m"
+    window = _window_label(minutes)
+    full = bool(getattr(args, "full", False))
 
     peers = [r for r in rows if not r[5]] if rows else []
     if not peers:
+        payload = {
+            "kind": "active_peers",
+            "window": window,
+            "other_count": 0,
+            "has_peers": False,
+            "peers": [],
+            "missing_active_dir": rows is None,
+        }
         if provided:
             status = ensure_active_registered(provided)
-            msg = f"no other active sessions ({window}); registered {provided}"
+            payload["registered"] = {"id": provided, "status": status}
             if status == "created":
-                msg += ' (placeholder — set a real status: agentctl active "<status>" [<scope>...])'
-            print(msg)
-        else:
-            note = "; .agentctl/active/ does not exist" if rows is None else ""
-            print(f"no other active sessions ({window}{note})")
+                payload["next_command"] = 'agentctl active "<status>" [<scope>...]'
+        _emit_acli_with_format(fmt, payload)
         return 0
 
-    print(f"{len(peers)} other active session{'s' if len(peers) != 1 else ''} ({window}):")
-    for mtime, rel, line1, scope, tending, _ in peers:
-        age = format_duration(now - mtime)
-        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{_id_name_warning(rel)}")
-        if scope:
-            print(f"    {scope}")
-        if tending:
-            print(f"    {tending}")
+    _emit_acli_with_format(
+        fmt,
+        {
+            "kind": "active_peers",
+            "window": window,
+            "other_count": len(peers),
+            "has_peers": True,
+            "peers": [
+                _active_row_payload(now, mtime, rel, line1, scope, tending, full=full)
+                for mtime, rel, line1, scope, tending, _ in peers
+            ],
+            "missing_active_dir": rows is None,
+        },
+    )
     return 1
 
 
@@ -1027,11 +1184,21 @@ def tending_cmd(args) -> int:
     minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
     include_done = bool(getattr(args, "done", False))
     provided = getattr(args, "uuid", None)
+    fmt = _resolve_acli_format(args)
     now, rows = _scan_active(minutes, include_done, provided or agent_session_id())
-    window = "any age" if not minutes else f"last {minutes}m"
+    window = _window_label(minutes)
+    full = bool(getattr(args, "full", False))
 
     tenders = [r for r in (rows or []) if r[4] and not r[5]]
     if not tenders:
+        payload = {
+            "kind": "tending_sessions",
+            "window": window,
+            "other_count": 0,
+            "has_tending_peer": False,
+            "tenders": [],
+            "missing_active_dir": rows is None,
+        }
         if provided:
             until = getattr(args, "until", None)
             own_tending = next((r[4] for r in (rows or []) if r[5] and r[4]), "")
@@ -1039,31 +1206,38 @@ def tending_cmd(args) -> int:
                 # Re-claim of an existing line: rewrite the same value, so an
                 # `until` qualifier authored earlier survives the hourly wake.
                 value = own_tending.partition(":")[2].strip()
-                claim_note = f"refreshed {own_tending} on {provided}"
+                claim_action = "refreshed"
             else:
                 value = "on-deck" + (f" until {until}" if until else "")
-                claim_note = f"registered tending: {value} on {provided}"
+                claim_action = "registered"
             status = ensure_active_registered(provided, tending=value)
+            payload["registered"] = {
+                "id": provided,
+                "status": status,
+                "tending": value,
+                "action": claim_action,
+            }
             if status == "done":
-                print(f"no other tending session ({window}); own entry is DONE — "
-                      f'revive it first: agentctl active "<status>"')
-            else:
-                msg = f"no other tending session ({window}); {claim_note}"
-                if status == "created":
-                    msg += ' (placeholder — set a real status: agentctl active "<status>" [<scope>...])'
-                print(msg)
-        else:
-            note = "; .agentctl/active/ does not exist" if rows is None else ""
-            print(f"no other tending session ({window}{note})")
+                payload["next_command"] = 'agentctl active "<status>"'
+            elif status == "created":
+                payload["next_command"] = 'agentctl active "<status>" [<scope>...]'
+        _emit_acli_with_format(fmt, payload)
         return 0
 
-    print(f"{len(tenders)} other tending session{'s' if len(tenders) != 1 else ''} ({window}):")
-    for mtime, rel, line1, scope, tending, _ in tenders:
-        age = format_duration(now - mtime)
-        print(f"{rel}  ({age} ago)  {line1 or '(empty)'}{_id_name_warning(rel)}")
-        print(f"    {tending}")
-        if scope:
-            print(f"    {scope}")
+    _emit_acli_with_format(
+        fmt,
+        {
+            "kind": "tending_sessions",
+            "window": window,
+            "other_count": len(tenders),
+            "has_tending_peer": True,
+            "tenders": [
+                _active_row_payload(now, mtime, rel, line1, scope, tending, full=full)
+                for mtime, rel, line1, scope, tending, _ in tenders
+            ],
+            "missing_active_dir": rows is None,
+        },
+    )
     return 1
 
 
@@ -1086,7 +1260,7 @@ def alone_cmd(args) -> int:
     entry before returning, near-atomically with observing no peers. With
     `--banner`/scope it folds `agentctl active` into the wait — register your
     real status and scope and wait in one go, written on success; bare, the
-    claim is a placeholder and the verb prints how to set a real status.
+    claim is a placeholder and the payload names the follow-up command.
 
     While actually waiting, it announces a non-blocking `awaiting/<id>` status
     (`awaiting alone`, plus `then: <banner>` when one is given), refreshed each
@@ -1094,24 +1268,27 @@ def alone_cmd(args) -> int:
     (`agentctl active`, `/others`) notices the queued wait but no peer's
     edit-check counts it — the wait is seen without imposing re-Read ceremony.
 
-    Output: one line naming who is blocking, then a `.` tick per --poll for
-    compact liveness, with a fresh naming line every --heartbeat seconds
-    (0 disables the re-statements, leaving only ticks). A foreground caller
-    consumes this stream, so the ticks are written plainly (no EPIPE guard).
+    Output is a JSONL event stream by default: one `alone_wait` event when
+    peers block progress, heartbeat `alone_wait` events when --heartbeat asks
+    for re-statements, and a final `alone` or `alone_timeout` event.
     """
     minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
     include_done = bool(getattr(args, "done", False))
     provided = getattr(args, "uuid", None)
     self_id = provided or agent_session_id()
     banner = normalize_headline_text(getattr(args, "banner", None) or "") or None
-    scope_paths = [s for s in (active_scope_path(p) for p in (getattr(args, "scope", None) or [])) if s]
+    scope_paths = [
+        s
+        for s in (active_scope_path(p) for p in (getattr(args, "scope", None) or []))
+        if s
+    ]
     poll = max(0.5, float(getattr(args, "poll", 5.0)))
     heartbeat_interval = max(0.0, float(getattr(args, "heartbeat", 30.0) or 0.0))
     timeout = float(getattr(args, "timeout", 0.0) or 0.0)
     deadline = time.time() + timeout if timeout > 0 else None
+    fmt = _resolve_acli_format(args)
 
-    announced = False        # printed the initial naming line yet
-    ticking = False          # mid-dot-line, so a newline must close it first
+    announced = False  # printed the initial naming line yet
     next_report = 0.0
 
     # A non-blocking "awaiting alone" announcement, written only once we are
@@ -1124,33 +1301,40 @@ def alone_cmd(args) -> int:
     await_status = "awaiting alone" + (f" then: {banner}" if banner else "")
     await_written = False
 
-    def close_ticks() -> None:
-        nonlocal ticking
-        if ticking:
-            print()          # end the `....` line before any full line
-            ticking = False
-
     try:
         while True:
-            _, rows = _scan_active(minutes, include_done, self_id)
+            now, rows = _scan_active(minutes, include_done, self_id)
             peers = [r for r in rows if not r[5]] if rows else []
             if not peers:
-                close_ticks()
+                payload = {
+                    "kind": "alone",
+                    "window": _window_label(minutes),
+                    "alone": True,
+                    "other_count": 0,
+                    "peers": [],
+                    "missing_active_dir": rows is None,
+                }
                 if provided:
                     status = ensure_active_registered(provided, banner, scope_paths)
-                    msg = f"alone: no other active sessions; registered {provided}"
+                    payload["registered"] = {"id": provided, "status": status}
+                    if banner:
+                        payload["registered"]["banner"] = banner
+                    if scope_paths:
+                        payload["registered"]["scope"] = scope_paths
                     if status == "created":
-                        msg += ' (placeholder — set a real status: agentctl active "<status>" [<scope>...])'
-                    print(msg)
-                else:
-                    print("alone: no other active sessions")
+                        payload["next_command"] = (
+                            'agentctl active "<status>" [<scope>...]'
+                        )
+                _emit_acli_with_format(fmt, payload)
                 return 0
 
             # Waiting: announce the non-blocking awaiting status once, then keep
             # it fresh each poll so a long wait stays inside the staleness window.
             if await_path is not None:
                 if not await_written:
-                    await_written = write_awaiting(await_path, await_status, scope_paths)
+                    await_written = write_awaiting(
+                        await_path, await_status, scope_paths
+                    )
                 else:
                     try:
                         os.utime(await_path, None)
@@ -1158,26 +1342,49 @@ def alone_cmd(args) -> int:
                         pass
 
             now = time.time()
-            names = ", ".join(Path(r[1]).name for r in peers)
+            peer_rows = [
+                _active_row_payload(now, mtime, rel, line1, scope, tending, full=True)
+                for mtime, rel, line1, scope, tending, _ in peers
+            ]
             if not announced:
-                print(f"alone: waiting on {len(peers)} peer(s): {names}", flush=True)
+                _emit_acli_with_format(
+                    fmt,
+                    {
+                        "kind": "alone_wait",
+                        "window": _window_label(minutes),
+                        "other_count": len(peers),
+                        "peers": peer_rows,
+                    },
+                )
                 announced = True
                 next_report = now + heartbeat_interval
             elif heartbeat_interval > 0 and now >= next_report:
-                close_ticks()
-                print(f"alone: still waiting on {len(peers)} peer(s): {names}", flush=True)
+                _emit_acli_with_format(
+                    fmt,
+                    {
+                        "kind": "alone_wait",
+                        "window": _window_label(minutes),
+                        "other_count": len(peers),
+                        "peers": peer_rows,
+                        "heartbeat": True,
+                    },
+                )
                 next_report = now + heartbeat_interval
 
             if deadline is not None and time.time() >= deadline:
-                close_ticks()
-                print(f"alone: timeout after {format_duration(timeout)} with "
-                      f"{len(peers)} peer(s) still active: {names}", file=sys.stderr)
+                _emit_acli_with_format(
+                    fmt,
+                    {
+                        "kind": "alone_timeout",
+                        "window": _window_label(minutes),
+                        "timeout_seconds": timeout,
+                        "other_count": len(peers),
+                        "peers": peer_rows,
+                    },
+                )
                 return 1
 
             time.sleep(poll)
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            ticking = True
     finally:
         if await_written and await_path is not None:
             try:
@@ -1210,18 +1417,41 @@ def active_sweep(args) -> int:
     if minutes <= 0:
         minutes = ACTIVE_STALE_MINUTES
     dry_run = bool(getattr(args, "dry_run", False))
+    fmt = _resolve_acli_format(args)
 
     if not ACTIVE.is_dir():
-        print("no active sessions (.agentctl/active/ does not exist)")
+        _emit_acli_with_format(
+            fmt,
+            {
+                "kind": "active_sweep",
+                "missing_active_dir": True,
+                "done": 0,
+                "stale": 0,
+                "dry_run": dry_run,
+                "threshold_minutes": minutes,
+            },
+        )
         return 0
 
-    moved = sweep_stale_entries(minutes, dry_run=dry_run)
-    verb = "would archive" if dry_run else "archived"
-    print(f"{verb} {moved['done']} done, {moved['stale']} stale (stale threshold {minutes}m)")
+    moved = sweep_stale_entries(minutes, dry_run=dry_run, quiet=True)
+    _emit_acli_with_format(
+        fmt,
+        {
+            "kind": "active_sweep",
+            "missing_active_dir": False,
+            "done": moved["done"],
+            "stale": moved["stale"],
+            "entries": moved["entries"],
+            "dry_run": dry_run,
+            "threshold_minutes": minutes,
+        },
+    )
     return 0
 
 
-def sweep_stale_entries(minutes: int, dry_run: bool = False, quiet: bool = False) -> dict:
+def sweep_stale_entries(
+    minutes: int, dry_run: bool = False, quiet: bool = False
+) -> dict:
     """Archive active/ entries older than `minutes`: DONE -> done/, else stale/.
 
     The shared core of `active --sweep` and the opportunistic sweep on
@@ -1231,7 +1461,7 @@ def sweep_stale_entries(minutes: int, dry_run: bool = False, quiet: bool = False
     """
     now = time.time()
     threshold = minutes * 60
-    moved = {"done": 0, "stale": 0}
+    moved = {"done": 0, "stale": 0, "entries": []}
     if not ACTIVE.is_dir():
         return moved
     for path in sorted(ACTIVE.iterdir()):
@@ -1247,15 +1477,26 @@ def sweep_stale_entries(minutes: int, dry_run: bool = False, quiet: bool = False
         kind = "done" if (first and first[0].startswith("DONE")) else "stale"
         dest_dir = DONE_DIR if kind == "done" else STALE
         if dry_run:
+            moved["entries"].append(
+                {"id": path.name, "target": kind, "action": "would_archive"}
+            )
             if not quiet:
                 print(f"would move {path.name} -> {kind}/")
         else:
             try:
                 dest_dir.mkdir(parents=True, exist_ok=True)
-                path.replace(dest_dir / path.name)  # atomic within .agentctl; overwrites
+                path.replace(
+                    dest_dir / path.name
+                )  # atomic within .agentctl; overwrites
             except OSError as exc:
-                print(f"agentctl active sweep: could not move {path}: {exc}", file=sys.stderr)
+                print(
+                    f"agentctl active sweep: could not move {path}: {exc}",
+                    file=sys.stderr,
+                )
                 continue
+            moved["entries"].append(
+                {"id": path.name, "target": kind, "action": "archived"}
+            )
             if not quiet:
                 print(f"moved {path.name} -> {kind}/")
         moved[kind] += 1
@@ -1431,7 +1672,9 @@ def proc_cmdline(pid: int) -> str | None:
         return None
     if not raw:
         return ""
-    parts = [part.decode("utf-8", errors="replace") for part in raw.split(b"\0") if part]
+    parts = [
+        part.decode("utf-8", errors="replace") for part in raw.split(b"\0") if part
+    ]
     return "\0".join(parts)
 
 
@@ -1505,7 +1748,11 @@ def pid_matches_state(pid: int, state: dict) -> bool:
             proc_epoch = proc_start_epoch(pid)
             # Older states lack launch-time pid identity. In that case, reject
             # obviously unrelated host processes that predate the recorded job.
-            if started_epoch is not None and proc_epoch is not None and proc_epoch + 60 < started_epoch:
+            if (
+                started_epoch is not None
+                and proc_epoch is not None
+                and proc_epoch + 60 < started_epoch
+            ):
                 return False
     recorded_cmdline = state.get("pid_cmdline")
     if recorded_cmdline not in (None, ""):
@@ -1552,7 +1799,11 @@ def process_group_matches_state(pgid: int, state: dict) -> bool:
         leader_pid = int(state.get("pid", 0) or 0)
     except (TypeError, ValueError):
         leader_pid = 0
-    if leader_pid > 0 and leader_pid in members and pid_matches_state(leader_pid, state):
+    if (
+        leader_pid > 0
+        and leader_pid in members
+        and pid_matches_state(leader_pid, state)
+    ):
         return True
     started_at = state.get("started_at")
     if not started_at:
@@ -1573,7 +1824,9 @@ def state_alive(state: dict) -> bool:
     if pgid:
         try:
             pgid_int = int(pgid)
-            if process_group_alive(pgid_int) and process_group_matches_state(pgid_int, state):
+            if process_group_alive(pgid_int) and process_group_matches_state(
+                pgid_int, state
+            ):
                 return True
         except (TypeError, ValueError):
             pass
@@ -1610,7 +1863,9 @@ def state_liveness_refuted_by_visible_process(state: dict) -> bool:
             pgid_int = int(pgid)
         except (TypeError, ValueError):
             return False
-        if process_group_members(pgid_int) and not process_group_matches_state(pgid_int, state):
+        if process_group_members(pgid_int) and not process_group_matches_state(
+            pgid_int, state
+        ):
             return True
     return False
 
@@ -1632,7 +1887,10 @@ def refresh_state(state: dict) -> dict:
     # wrapper means the payload will never launch, so mark it finished rather
     # than leaving --after dependents blocked on it forever.
     if state.get("status") in ("running", "waiting") and not state_alive(state):
-        if process_visibility_limited() and not state_liveness_refuted_by_visible_process(state):
+        if (
+            process_visibility_limited()
+            and not state_liveness_refuted_by_visible_process(state)
+        ):
             state["_liveness_note"] = "process visibility limited; not marking finished"
             return state
         # Re-read before writing: `stop` may have just marked this run
@@ -1669,7 +1927,9 @@ def apply_exit_status_record(state: dict) -> dict:
     if payload_pid not in (None, "") and state.get("payload_pid") != payload_pid:
         state["payload_pid"] = payload_pid
         changed = True
-    finished_at = str(record.get("finished_at") or state.get("finished_at") or utc_now())
+    finished_at = str(
+        record.get("finished_at") or state.get("finished_at") or utc_now()
+    )
     if state.get("status") != "finished":
         state["status"] = "finished"
         changed = True
@@ -1704,7 +1964,9 @@ def source_env_script(env: dict[str, str], script: str | Path) -> dict[str, str]
             env=env,
         )
     except subprocess.CalledProcessError as exc:
-        raise SystemExit(f"failed to source env script {script_path}: exit {exc.returncode}") from exc
+        raise SystemExit(
+            f"failed to source env script {script_path}: exit {exc.returncode}"
+        ) from exc
     updated = env.copy()
     for entry in out.split(b"\0"):
         if not entry:
@@ -1712,7 +1974,9 @@ def source_env_script(env: dict[str, str], script: str | Path) -> dict[str, str]
         key, sep, value = entry.partition(b"=")
         if not sep:
             continue
-        updated[key.decode("utf-8", errors="replace")] = value.decode("utf-8", errors="replace")
+        updated[key.decode("utf-8", errors="replace")] = value.decode(
+            "utf-8", errors="replace"
+        )
     return updated
 
 
@@ -1760,7 +2024,9 @@ def reap_proc(proc: subprocess.Popen | None) -> int | None:
 
 def git_value(args: list[str]) -> str:
     try:
-        out = subprocess.check_output(["git", *args], cwd=ROOT, text=True, stderr=subprocess.DEVNULL)
+        out = subprocess.check_output(
+            ["git", *args], cwd=ROOT, text=True, stderr=subprocess.DEVNULL
+        )
     except Exception:
         return ""
     return out.strip()
@@ -1768,7 +2034,9 @@ def git_value(args: list[str]) -> str:
 
 # ---- Input/output declaration helpers ----
 
-_INTERPRETERS = frozenset({"bash", "sh", "zsh", "python", "python3", "perl", "node", "ruby", "Rscript"})
+_INTERPRETERS = frozenset(
+    {"bash", "sh", "zsh", "python", "python3", "perl", "node", "ruby", "Rscript"}
+)
 
 
 def compute_sha256(path: str | Path) -> str:
@@ -1859,12 +2127,14 @@ def stat_artifact(path: str | Path, *, missing_ok: bool = False) -> dict:
             if cst.st_mtime > newest:
                 newest = cst.st_mtime
         rec["size"] = total
-        rec["mtime"] = dt.datetime.fromtimestamp(newest, tz=dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    else:
-        rec["size"] = st.st_size
-        rec["mtime"] = dt.datetime.fromtimestamp(st.st_mtime, tz=dt.timezone.utc).strftime(
+        rec["mtime"] = dt.datetime.fromtimestamp(newest, tz=dt.timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )
+    else:
+        rec["size"] = st.st_size
+        rec["mtime"] = dt.datetime.fromtimestamp(
+            st.st_mtime, tz=dt.timezone.utc
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
     return rec
 
 
@@ -1886,7 +2156,9 @@ def input_record(
         try:
             rec["sha256"] = compute_sha256(rec["path"])
         except OSError as exc:
-            print(f"warning: sha256 failed for input {key}={path}: {exc}", file=sys.stderr)
+            print(
+                f"warning: sha256 failed for input {key}={path}: {exc}", file=sys.stderr
+            )
     src = resolve_input_source(rec["path"])
     if src:
         rec.update(src)
@@ -1908,17 +2180,15 @@ def _write_declared_io_at_exit() -> None:
     path = _declared_io_path()
     if path is None:
         return
-    payload = {
-        kind: dict(values)
-        for kind, values in _DECLARED_IO.items()
-        if values
-    }
+    payload = {kind: dict(values) for kind, values in _DECLARED_IO.items() if values}
     if not payload:
         return
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(f"{path.suffix}.tmp")
-        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        tmp.write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         tmp.replace(path)
     except Exception as exc:
         print(f"warning: failed to write {path}: {exc!r}", file=sys.stderr)
@@ -1962,7 +2232,9 @@ def declare_output(key: str, path: str | Path) -> None:
     _declare_artifact("outputs", key, path)
 
 
-def _declared_io_items(declared_file: Path, kind: str, payload: dict) -> list[tuple[str, str]]:
+def _declared_io_items(
+    declared_file: Path, kind: str, payload: dict
+) -> list[tuple[str, str]]:
     value = payload.get(kind, {})
     if value in ({}, None):
         return []
@@ -1973,7 +2245,9 @@ def _declared_io_items(declared_file: Path, kind: str, payload: dict) -> list[tu
         if not isinstance(key, str) or not key:
             raise ValueError(f"{declared_file}: {kind} key must be a non-empty string")
         if not isinstance(path, str) or not path:
-            raise ValueError(f"{declared_file}: {kind}.{key} must be a non-empty path string")
+            raise ValueError(
+                f"{declared_file}: {kind}.{key} must be a non-empty path string"
+            )
         out.append((key, path))
     return out
 
@@ -2055,7 +2329,9 @@ def finalize_finished_state(state: dict) -> dict:
             try:
                 info["sha256"] = compute_sha256(info["path"])
             except OSError as exc:
-                print(f"warning: sha256 failed for output {key}: {exc}", file=sys.stderr)
+                print(
+                    f"warning: sha256 failed for output {key}: {exc}", file=sys.stderr
+                )
     # Cooperative propagation: program may have written facts to
     # $AGENTCTL_RUN_DIR/propagate.json during the run. Merge into the static
     # facts from --propagate-json (if any) — runtime values override static.
@@ -2198,7 +2474,9 @@ def write_meta(state: dict) -> dict:
     if state.get("runtime_estimate"):
         setup.append(("runtime_estimate", str(state["runtime_estimate"])))
     if state.get("source_env"):
-        setup.append(("source_env", ",".join(str(item) for item in state["source_env"])))
+        setup.append(
+            ("source_env", ",".join(str(item) for item in state["source_env"]))
+        )
     if depends_on:
         setup.append(("depends_on_jobs", ",".join(depends_on)))
     if state.get("aim_run_hash"):
@@ -2248,9 +2526,18 @@ def write_meta(state: dict) -> dict:
         if fn is None:
             continue
         try:
-            new = fn(state, meta, output_path=output, log_path=state["log_path"], build_meta=_build)
+            new = fn(
+                state,
+                meta,
+                output_path=output,
+                log_path=state["log_path"],
+                build_meta=_build,
+            )
         except Exception as exc:
-            print(f"warning: plugin {p.__name__} on_meta_built failed: {exc}", file=sys.stderr)
+            print(
+                f"warning: plugin {p.__name__} on_meta_built failed: {exc}",
+                file=sys.stderr,
+            )
             continue
         if new is not None:
             meta = new
@@ -2287,7 +2574,9 @@ def latest_producer_for_output(output: Path) -> dict | None:
             bucket.append(state)
     for bucket in (live, terminal):
         if bucket:
-            bucket.sort(key=lambda s: str(s.get("queued_at") or s.get("started_at") or ""))
+            bucket.sort(
+                key=lambda s: str(s.get("queued_at") or s.get("started_at") or "")
+            )
             return bucket[-1]
     return None
 
@@ -2320,8 +2609,16 @@ def resolve_after_target(spec: str) -> dict:
         if candidate in seen:
             continue
         seen.add(candidate)
-        marker = candidate if str(candidate).endswith(".running.md") else running_marker_path(candidate)
-        output = Path(str(marker)[: -len(".running.md")]) if str(marker).endswith(".running.md") else candidate
+        marker = (
+            candidate
+            if str(candidate).endswith(".running.md")
+            else running_marker_path(candidate)
+        )
+        output = (
+            Path(str(marker)[: -len(".running.md")])
+            if str(marker).endswith(".running.md")
+            else candidate
+        )
         # A queued producer job (no marker until its payload launches, e.g.
         # itself waiting behind --after) also makes an artifact target real.
         if (
@@ -2348,8 +2645,16 @@ def after_target_done(target: dict) -> tuple[bool, int, str]:
         dep_state = load_job(str(target["job"]))
         status = dep_state.get("status", "")
         if status in {"running", "waiting"}:
-            return False, 0, f"job={dep_state['job']} status={status} elapsed={elapsed_estimate_text(dep_state)}"
-        if status == "finished" and dep_state.get("returncode") in (None, "", "unknown"):
+            return (
+                False,
+                0,
+                f"job={dep_state['job']} status={status} elapsed={elapsed_estimate_text(dep_state)}",
+            )
+        if status == "finished" and dep_state.get("returncode") in (
+            None,
+            "",
+            "unknown",
+        ):
             finished_at = dep_state.get("finished_at")
             try:
                 finished_age = time.time() - parse_utc(str(finished_at)).timestamp()
@@ -2368,8 +2673,16 @@ def after_target_done(target: dict) -> tuple[bool, int, str]:
             # precondition never completed.
             rc = rc or 1
         if rc != 0:
-            return True, rc, f"job={dep_state['job']} ended status={status} returncode={dep_state.get('returncode')}"
-        return True, 0, f"job={dep_state['job']} ended status={status} returncode={dep_state.get('returncode', '')}"
+            return (
+                True,
+                rc,
+                f"job={dep_state['job']} ended status={status} returncode={dep_state.get('returncode')}",
+            )
+        return (
+            True,
+            0,
+            f"job={dep_state['job']} ended status={status} returncode={dep_state.get('returncode', '')}",
+        )
 
     if kind == "running_marker":
         marker = Path(str(target["marker_path"]))
@@ -2410,7 +2723,11 @@ def after_target_done(target: dict) -> tuple[bool, int, str]:
             sidecar = completion_sidecar(output)
             if sidecar is not None:
                 return True, 0, f"marker gone: {marker} sidecar={sidecar}"
-            return True, 1, f"marker gone without completion sidecar: {marker} out={output}"
+            return (
+                True,
+                1,
+                f"marker gone without completion sidecar: {marker} out={output}",
+            )
         fields = marker_fields(marker)
         output = output_for_marker(marker, fields)
         sidecar = completion_sidecar(output)
@@ -2418,8 +2735,16 @@ def after_target_done(target: dict) -> tuple[bool, int, str]:
         if sidecar is not None and pid_state != "running":
             return True, 0, f"marker completed: {marker} sidecar={sidecar}"
         if pid_state == "running":
-            return False, 0, f"marker={marker} pid={fields.get('pid', '') or '?'} running"
-        return True, 1, f"marker interrupted: {marker} pid={fields.get('pid', '') or '?'} out={output}"
+            return (
+                False,
+                0,
+                f"marker={marker} pid={fields.get('pid', '') or '?'} running",
+            )
+        return (
+            True,
+            1,
+            f"marker interrupted: {marker} pid={fields.get('pid', '') or '?'} out={output}",
+        )
 
     return True, 1, f"unknown --after target kind: {kind!r}"
 
@@ -2452,12 +2777,17 @@ def wait_for_after_targets(state: dict) -> int:
             print(f"[wait-after] {headline}", flush=True)
             next_report = now + heartbeat
         if deadline is not None and now >= deadline:
-            print(f"timeout waiting for --after targets: {'; '.join(pending)}", file=sys.stderr)
+            print(
+                f"timeout waiting for --after targets: {'; '.join(pending)}",
+                file=sys.stderr,
+            )
             return 1
         time.sleep(poll)
 
 
-def mark_wait_failed(state_path: Path, current: Path, exit_status_path: Path, rc: int) -> None:
+def mark_wait_failed(
+    state_path: Path, current: Path, exit_status_path: Path, rc: int
+) -> None:
     finished_at = utc_now()
     record = {"finished_at": finished_at, "returncode": rc}
     write_json(exit_status_path, record)
@@ -2469,14 +2799,18 @@ def mark_wait_failed(state_path: Path, current: Path, exit_status_path: Path, rc
         update_state_files(state)
         write_json(current, state)
     except Exception as exc:
-        print(f"warning: wait-after failure state update failed: {exc!r}", file=sys.stderr)
+        print(
+            f"warning: wait-after failure state update failed: {exc!r}", file=sys.stderr
+        )
 
 
 def start(args: argparse.Namespace) -> int:
     if not args.argv:
         raise SystemExit("missing command after --")
     if args.watch and args.after:
-        raise SystemExit("--after is not supported with --watch; start queued work detached, then watch the job")
+        raise SystemExit(
+            "--after is not supported with --watch; start queued work detached, then watch the job"
+        )
     runtime_estimate = ""
     runtime_estimate_seconds = 0
     if args.runtime_estimate:
@@ -2516,7 +2850,7 @@ def start(args: argparse.Namespace) -> int:
     # --output-hash KEY=PATH also declares an output and flags it for sha256 at completion.
     declared_outputs: dict = {}
     primary_output_path: Path | None = None
-    for spec in (args.output or []):
+    for spec in args.output or []:
         key, path = parse_keypath(spec, default_key="primary")
         p = Path(path).expanduser()
         if not p.is_absolute():
@@ -2524,7 +2858,7 @@ def start(args: argparse.Namespace) -> int:
         declared_outputs[key] = {"path": str(p)}
         if primary_output_path is None:
             primary_output_path = p
-    for spec in (args.output_hash or []):
+    for spec in args.output_hash or []:
         key, path = parse_keypath(spec, default_key="primary")
         p = Path(path).expanduser()
         if not p.is_absolute():
@@ -2552,13 +2886,13 @@ def start(args: argparse.Namespace) -> int:
         if not raw:
             input_translations.append((key, rec["path"]))
 
-    for spec in (args.input or []):
+    for spec in args.input or []:
         key, path = parse_keypath(spec)
         _record_input(key, path, raw=False, do_hash=False)
-    for spec in (args.input_raw or []):
+    for spec in args.input_raw or []:
         key, path = parse_keypath(spec)
         _record_input(key, path, raw=True, do_hash=False)
-    for spec in (args.input_hash or []):
+    for spec in args.input_hash or []:
         key, path = parse_keypath(spec)
         _record_input(key, path, raw=False, do_hash=True)
 
@@ -2569,7 +2903,10 @@ def start(args: argparse.Namespace) -> int:
         try:
             launch_gpu_stats = query_gpu_stats(args.watch_gpu)
         except Exception as exc:
-            print(f"warning: failed to snapshot launch gpu stats for gpu={args.watch_gpu}: {exc}", file=sys.stderr)
+            print(
+                f"warning: failed to snapshot launch gpu stats for gpu={args.watch_gpu}: {exc}",
+                file=sys.stderr,
+            )
 
     env = os.environ.copy()
     for script in args.source_env:
@@ -2624,7 +2961,9 @@ def start(args: argparse.Namespace) -> int:
         try:
             parsed = json.loads(args.propagate_json)
             if not isinstance(parsed, dict):
-                raise SystemExit(f"--propagate-json must be a JSON object, got {type(parsed).__name__}")
+                raise SystemExit(
+                    f"--propagate-json must be a JSON object, got {type(parsed).__name__}"
+                )
             propagate = parsed
         except (json.JSONDecodeError, ValueError) as exc:
             raise SystemExit(f"--propagate-json failed to parse: {exc}")
@@ -2650,7 +2989,9 @@ def start(args: argparse.Namespace) -> int:
         "job": job,
         "launch_name": launch_name,
         "log_path": str(log_path),
-        "meta_path": str(Path(f"{output_path}.meta.md")) if output_path is not None else "",
+        "meta_path": str(Path(f"{output_path}.meta.md"))
+        if output_path is not None
+        else "",
         "mode": args.mode,
         "output_path": str(output_path) if output_path is not None else "",
         "outputs": declared_outputs,
@@ -2779,7 +3120,10 @@ def run_child(args: argparse.Namespace) -> int:
         state = read_json(state_path)
         wait_rc = wait_for_after_targets(state)
     except Exception as exc:
-        print(f"warning: wait-after failed before payload launch: {exc!r}", file=sys.stderr)
+        print(
+            f"warning: wait-after failed before payload launch: {exc!r}",
+            file=sys.stderr,
+        )
         wait_rc = 1
     if wait_rc != 0:
         mark_wait_failed(state_path, current, exit_status_path, wait_rc)
@@ -2798,7 +3142,10 @@ def run_child(args: argparse.Namespace) -> int:
                 mark_wait_failed(state_path, current, exit_status_path, wait_rc)
                 return wait_rc
     except Exception as exc:
-        print(f"warning: deferred wait-gpu failed before payload launch: {exc!r}", file=sys.stderr)
+        print(
+            f"warning: deferred wait-gpu failed before payload launch: {exc!r}",
+            file=sys.stderr,
+        )
         mark_wait_failed(state_path, current, exit_status_path, 1)
         return 1
     # Pre-launch: write meta + dump record now (serialized inside the child so
@@ -2881,7 +3228,9 @@ def status(args: argparse.Namespace) -> int:
                 state
                 for state in states
                 if state.get("status") == "finished"
-                and ((elapsed_seconds(state) or 0) >= min_elapsed or state_failed(state))
+                and (
+                    (elapsed_seconds(state) or 0) >= min_elapsed or state_failed(state)
+                )
             ]
             if args.recent and args.recent > 0:
                 completed_n = args.recent
@@ -2991,7 +3340,9 @@ def note_job(args: argparse.Namespace) -> int:
     state["post_run_note"] = note
     state["post_run_noted_at"] = stamp
 
-    headline_path = Path(state.get("headline_path", "")) if state.get("headline_path") else None
+    headline_path = (
+        Path(state.get("headline_path", "")) if state.get("headline_path") else None
+    )
     if headline_path is not None:
         write_headline(headline_path, f"analysis: {note}")
 
@@ -3022,7 +3373,15 @@ def cleanup_running(args: argparse.Namespace) -> int:
     import artifact_meta
 
     def _scan_markers() -> list[Path]:
-        skip = {".git", ".agentctl", "runs", "__pycache__", ".venv", ".pixi", "node_modules"}
+        skip = {
+            ".git",
+            ".agentctl",
+            "runs",
+            "__pycache__",
+            ".venv",
+            ".pixi",
+            "node_modules",
+        }
         found: list[Path] = []
         for dirpath, dirnames, filenames in os.walk(ROOT):
             dirnames[:] = [name for name in dirnames if name not in skip]
@@ -3047,7 +3406,9 @@ def cleanup_running(args: argparse.Namespace) -> int:
                 if not args.quiet:
                     print(f"removed {path}")
             elif not args.quiet:
-                print(f"{'would-remove' if path.exists() and args.dry_run else 'missing'} {path}")
+                print(
+                    f"{'would-remove' if path.exists() and args.dry_run else 'missing'} {path}"
+                )
         if not args.quiet:
             suffix = f", {would_remove} would-remove" if args.dry_run else ""
             print(f"{removed} removed{suffix}")
@@ -3078,7 +3439,9 @@ def cleanup_running(args: argparse.Namespace) -> int:
         kept += 1
         if not args.quiet:
             state = "running" if pid_state == "running" else "interrupted"
-            print(f"{state} kept {path} pid={fields.get('pid', '') or '?'} out={output}")
+            print(
+                f"{state} kept {path} pid={fields.get('pid', '') or '?'} out={output}"
+            )
     if not args.quiet:
         dry_run_part = f", {would_remove} would-remove" if args.dry_run else ""
         print(f"{removed} removed{dry_run_part}, {kept} kept")
@@ -3152,7 +3515,9 @@ def query_gpu_stats(gpu_index: int) -> dict[str, float | int | None]:
     line = out.strip().splitlines()[0]
     fields = [field.strip() for field in line.split(",")]
     if len(fields) != 4:
-        raise RuntimeError(f"unexpected nvidia-smi output for gpu {gpu_index}: {line!r}")
+        raise RuntimeError(
+            f"unexpected nvidia-smi output for gpu {gpu_index}: {line!r}"
+        )
     return {
         "gpu": int(fields[0]),
         "memory_used_mib": int(fields[1]),
@@ -3175,8 +3540,16 @@ def query_gpu_stats_smoothed(
             time.sleep(sleep_interval)
         stats_list.append(query_gpu_stats(gpu_index))
     merged = dict(stats_list[-1])
-    utils = [float(s["utilization_gpu_pct"]) for s in stats_list if s.get("utilization_gpu_pct") is not None]
-    powers = [float(s["power_draw_w"]) for s in stats_list if s.get("power_draw_w") is not None]
+    utils = [
+        float(s["utilization_gpu_pct"])
+        for s in stats_list
+        if s.get("utilization_gpu_pct") is not None
+    ]
+    powers = [
+        float(s["power_draw_w"])
+        for s in stats_list
+        if s.get("power_draw_w") is not None
+    ]
     if utils:
         merged["utilization_gpu_pct_avg"] = sum(utils) / len(utils)
         merged["utilization_gpu_pct_max"] = max(utils)
@@ -3200,7 +3573,9 @@ def wait_for_gpu_memory(
     heartbeat: float | None = None,
 ) -> int:
     deadline = time.time() + timeout if timeout > 0 else None
-    heartbeat_interval = max(0.0, float(max(10.0, poll) if heartbeat is None else heartbeat))
+    heartbeat_interval = max(
+        0.0, float(max(10.0, poll) if heartbeat is None else heartbeat)
+    )
     last_report = 0.0
     while True:
         touch_active_entry()
@@ -3214,8 +3589,13 @@ def wait_for_gpu_memory(
         if used <= max_memory_used:
             print(f"gpu={gpu} VRAM={used}MiB <= {max_memory_used}MiB")
             return 0
-        if heartbeat_interval > 0 and (last_report == 0.0 or now - last_report >= heartbeat_interval):
-            print(f"[wait-gpu] {format_gpu_stats(stats)} target<={max_memory_used}MiB", flush=True)
+        if heartbeat_interval > 0 and (
+            last_report == 0.0 or now - last_report >= heartbeat_interval
+        ):
+            print(
+                f"[wait-gpu] {format_gpu_stats(stats)} target<={max_memory_used}MiB",
+                flush=True,
+            )
             last_report = now
         if deadline is not None and now >= deadline:
             print(
@@ -3228,11 +3608,19 @@ def wait_for_gpu_memory(
 
 
 def gpu_watch_thresholds_requested(args: argparse.Namespace) -> bool:
-    return args.notify_max_memory_used is not None or args.notify_max_power_draw is not None
+    return (
+        args.notify_max_memory_used is not None
+        or args.notify_max_power_draw is not None
+    )
 
 
-def gpu_below_watch_thresholds(stats: dict[str, float | int | None], args: argparse.Namespace) -> bool:
-    memory_ok = args.notify_max_memory_used is None or int(stats["memory_used_mib"]) <= args.notify_max_memory_used
+def gpu_below_watch_thresholds(
+    stats: dict[str, float | int | None], args: argparse.Namespace
+) -> bool:
+    memory_ok = (
+        args.notify_max_memory_used is None
+        or int(stats["memory_used_mib"]) <= args.notify_max_memory_used
+    )
     power_draw = stats.get("power_draw_w")
     power_ok = args.notify_max_power_draw is None or (
         power_draw is not None and float(power_draw) <= args.notify_max_power_draw
@@ -3245,7 +3633,9 @@ def format_gpu_stats(stats: dict[str, float | int | None]) -> str:
     power_draw = stats.get("power_draw_w_avg", stats.get("power_draw_w"))
     util = stats.get("utilization_gpu_pct_avg", stats.get("utilization_gpu_pct"))
     util_peak = stats.get("utilization_gpu_pct_max")
-    bits.append(f"power={power_draw:.1f}W" if power_draw is not None else "power=unavailable")
+    bits.append(
+        f"power={power_draw:.1f}W" if power_draw is not None else "power=unavailable"
+    )
     if util is None:
         bits.append("compute=unavailable")
     elif util_peak is not None and abs(float(util_peak) - float(util)) >= 1.0:
@@ -3276,7 +3666,11 @@ def gpu_activity_seen_since_launch(
         return True
     launch_power = launch_stats.get("power_draw_w")
     current_power = stats.get("power_draw_w")
-    if launch_power is not None and current_power is not None and float(current_power) >= float(launch_power) + 15.0:
+    if (
+        launch_power is not None
+        and current_power is not None
+        and float(current_power) >= float(launch_power) + 15.0
+    ):
         return True
     launch_util = launch_stats.get("utilization_gpu_pct")
     current_util = stats.get("utilization_gpu_pct")
@@ -3326,7 +3720,11 @@ def poll_watch_gpu_state(
     except Exception as exc:
         message = str(exc)
         if message != last_gpu_error:
-            print(f"[watch] gpu query failed for gpu={gpu}: {message}", file=sys.stderr, flush=True)
+            print(
+                f"[watch] gpu query failed for gpu={gpu}: {message}",
+                file=sys.stderr,
+                flush=True,
+            )
             last_gpu_error = message
         return last_gpu_below, last_gpu_error, gpu_activity_seen, False, None
 
@@ -3409,15 +3807,20 @@ def wait_work(args: argparse.Namespace) -> int:
             for job, rid in sorted(set(runs) - set(base_runs)):
                 status = runs[(job, rid)]
                 news.append(
-                    f"new run: job={job} run={rid}" + (f" status={status}" if status else "")
+                    f"new run: job={job} run={rid}"
+                    + (f" status={status}" if status else "")
                 )
         if watch_deck:
             deck = snapshot_on_deck()
             for name in sorted(deck):
                 if name not in base_deck:
-                    news.append(f"new {ON_DECK_DIRNAME} entry: {ON_DECK_DIRNAME}/{name}")
+                    news.append(
+                        f"new {ON_DECK_DIRNAME} entry: {ON_DECK_DIRNAME}/{name}"
+                    )
                 elif deck[name] != base_deck[name]:
-                    news.append(f"updated {ON_DECK_DIRNAME} entry: {ON_DECK_DIRNAME}/{name}")
+                    news.append(
+                        f"updated {ON_DECK_DIRNAME} entry: {ON_DECK_DIRNAME}/{name}"
+                    )
         if news:
             for line in news:
                 print(line)
@@ -3476,7 +3879,10 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
             sys.stdout.buffer.flush()
         else:
             offset = len(data)
-    print(f"[watch] job={state['job']} run={state['run_id']} status={state.get('status','?')} log={log_path}", flush=True)
+    print(
+        f"[watch] job={state['job']} run={state['run_id']} status={state.get('status', '?')} log={log_path}",
+        flush=True,
+    )
     if watching_gpu:
         print(
             f"[watch] gpu watch enabled for gpu={args.gpu}: "
@@ -3514,7 +3920,13 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
         now = time.monotonic()
         if watching_gpu and now >= next_gpu_poll_at:
             next_gpu_poll_at = now + gpu_poll
-            last_gpu_below, last_gpu_error, gpu_activity_seen, gpu_polled, last_gpu_stats = poll_watch_gpu_state(
+            (
+                last_gpu_below,
+                last_gpu_error,
+                gpu_activity_seen,
+                gpu_polled,
+                last_gpu_stats,
+            ) = poll_watch_gpu_state(
                 gpu=args.gpu,
                 args=args,
                 launch_gpu_stats=launch_gpu_stats,
@@ -3524,16 +3936,26 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
             )
             if gpu_polled and waiting_for_gpu_thresholds:
                 gpu_done = bool(last_gpu_below)
-        if watching_gpu and state.get("status") == "running" and gpu_activity_seen and last_gpu_stats is not None:
+        if (
+            watching_gpu
+            and state.get("status") == "running"
+            and gpu_activity_seen
+            and last_gpu_stats is not None
+        ):
             util = last_gpu_stats.get("utilization_gpu_pct")
             used = int(last_gpu_stats["memory_used_mib"])
-            if util is not None and float(util) <= 0.0 and used > DEFAULT_ZERO_COMPUTE_MIN_VRAM_MIB:
+            if (
+                util is not None
+                and float(util) <= 0.0
+                and used > DEFAULT_ZERO_COMPUTE_MIN_VRAM_MIB
+            ):
                 if zero_compute_started_at == 0.0:
                     zero_compute_started_at = now
                     zero_compute_last_report_at = now
                 zero_elapsed = now - zero_compute_started_at
                 if zero_elapsed >= DEFAULT_ZERO_COMPUTE_REPORT_INTERVAL_S and (
-                    now - zero_compute_last_report_at >= DEFAULT_ZERO_COMPUTE_REPORT_INTERVAL_S
+                    now - zero_compute_last_report_at
+                    >= DEFAULT_ZERO_COMPUTE_REPORT_INTERVAL_S
                 ):
                     print(
                         f"[watch] zero-compute persists: job={state['job']} "
@@ -3578,17 +4000,26 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                 flush=True,
             )
             if launch_gpu_stats is not None:
-                print(f"[watch] launch gpu baseline: {format_gpu_stats(launch_gpu_stats)}", flush=True)
+                print(
+                    f"[watch] launch gpu baseline: {format_gpu_stats(launch_gpu_stats)}",
+                    flush=True,
+                )
             gpu_patience_warned = True
-        if heartbeat_interval > 0 and (next_heartbeat_at == 0.0 or now >= next_heartbeat_at):
+        if heartbeat_interval > 0 and (
+            next_heartbeat_at == 0.0 or now >= next_heartbeat_at
+        ):
             heartbeat_line = (
                 f"[watch] heartbeat job={state['job']} status={state.get('status', '?')} "
                 f"elapsed={elapsed_estimate_text(state)}"
             )
             if watching_gpu and last_gpu_below is not None:
-                heartbeat_line += " gpu_threshold=" + ("met" if last_gpu_below else "pending")
+                heartbeat_line += " gpu_threshold=" + (
+                    "met" if last_gpu_below else "pending"
+                )
             if gpu_patience > 0:
-                heartbeat_line += " gpu_activity=" + ("seen" if gpu_activity_seen else "not-yet-seen")
+                heartbeat_line += " gpu_activity=" + (
+                    "seen" if gpu_activity_seen else "not-yet-seen"
+                )
             if getattr(args, "heartbeat_gpu", False):
                 gpu_stats = None
                 try:
@@ -3606,7 +4037,13 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
         # through the queued phase and the run itself.
         if current_status not in ("running", "waiting"):
             if watching_gpu:
-                last_gpu_below, last_gpu_error, gpu_activity_seen, gpu_polled, last_gpu_stats = poll_watch_gpu_state(
+                (
+                    last_gpu_below,
+                    last_gpu_error,
+                    gpu_activity_seen,
+                    gpu_polled,
+                    last_gpu_stats,
+                ) = poll_watch_gpu_state(
                     gpu=args.gpu,
                     args=args,
                     launch_gpu_stats=launch_gpu_stats,
@@ -3617,7 +4054,9 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                 if gpu_polled and waiting_for_gpu_thresholds:
                     gpu_done = bool(last_gpu_below)
             if not job_done_reported:
-                done_bits = [f"\n[watch] done: {state['job']} {state['run_id']} status={current_status}"]
+                done_bits = [
+                    f"\n[watch] done: {state['job']} {state['run_id']} status={current_status}"
+                ]
                 if status_returncode_text(state):
                     done_bits.append(f"returncode={status_returncode_text(state)}")
                 print(" ".join(done_bits), flush=True)
@@ -3629,7 +4068,11 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                     print(f"[watch] headline: {headline}", flush=True)
                     job_headline_reported = True
             if not waiting_for_gpu_thresholds or gpu_done:
-                return status_returncode_exit_code(state) if current_status == "finished" else 0
+                return (
+                    status_returncode_exit_code(state)
+                    if current_status == "finished"
+                    else 0
+                )
             if not waiting_for_gpu_reported:
                 rc_text = status_returncode_text(state)
                 suffix = f" returncode={rc_text}" if rc_text else ""
@@ -3742,7 +4185,12 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
             "choice depends on completed content."
         ),
     )
-    sp.add_argument("--after-poll", type=float, default=10.0, help="Seconds between --after dependency checks.")
+    sp.add_argument(
+        "--after-poll",
+        type=float,
+        default=10.0,
+        help="Seconds between --after dependency checks.",
+    )
     sp.add_argument(
         "--after-heartbeat",
         type=float,
@@ -3755,10 +4203,18 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         default=0.0,
         help="Maximum seconds to wait for --after dependencies; 0 means no timeout.",
     )
-    sp.add_argument("--env", action="append", default=[], help="Extra environment KEY=VALUE.")
+    sp.add_argument(
+        "--env", action="append", default=[], help="Extra environment KEY=VALUE."
+    )
     sp.add_argument("--gpus", default="", help="CUDA_VISIBLE_DEVICES value.")
-    sp.add_argument("--input-file", default="", help="Input file path exposed as AGENTCTL_INPUT_FILE.")
-    sp.add_argument("--log", default="", help="Log file path. Defaults under .agentctl/runs/.")
+    sp.add_argument(
+        "--input-file",
+        default="",
+        help="Input file path exposed as AGENTCTL_INPUT_FILE.",
+    )
+    sp.add_argument(
+        "--log", default="", help="Log file path. Defaults under .agentctl/runs/."
+    )
     sp.add_argument(
         "--no-meta",
         dest="meta",
@@ -3854,14 +4310,21 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
             "Default is intentionally generous for large-model download/load startup."
         ),
     )
-    sp.add_argument("--wait-gpu", type=int, default=0, help="GPU index to poll before launch.")
+    sp.add_argument(
+        "--wait-gpu", type=int, default=0, help="GPU index to poll before launch."
+    )
     sp.add_argument(
         "--wait-max-memory-used",
         type=int,
         default=None,
         help="Before launch, wait until this GPU VRAM threshold is met.",
     )
-    sp.add_argument("--wait-poll", type=float, default=10.0, help="Seconds between prelaunch GPU checks.")
+    sp.add_argument(
+        "--wait-poll",
+        type=float,
+        default=10.0,
+        help="Seconds between prelaunch GPU checks.",
+    )
     sp.add_argument(
         "--wait-heartbeat",
         type=float,
@@ -3879,8 +4342,18 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         action="store_true",
         help="After launch, immediately attach agentctl watch instead of returning.",
     )
-    sp.add_argument("--watch-tail", type=int, default=20, help="Tail lines to show when --watch is enabled.")
-    sp.add_argument("--watch-poll", type=float, default=5.0, help="Seconds between watch status checks.")
+    sp.add_argument(
+        "--watch-tail",
+        type=int,
+        default=20,
+        help="Tail lines to show when --watch is enabled.",
+    )
+    sp.add_argument(
+        "--watch-poll",
+        type=float,
+        default=5.0,
+        help="Seconds between watch status checks.",
+    )
     sp.add_argument(
         "--watch-heartbeat",
         type=float,
@@ -3892,7 +4365,12 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Include formatted GPU stats in watch heartbeat lines.",
     )
-    sp.add_argument("--watch-gpu", type=int, default=0, help="GPU index for watch threshold notifications.")
+    sp.add_argument(
+        "--watch-gpu",
+        type=int,
+        default=0,
+        help="GPU index for watch threshold notifications.",
+    )
     sp.add_argument(
         "--watch-gpu-poll",
         type=float,
@@ -3925,7 +4403,7 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
 
 
 def parse_start_command(name: str, mode: str, argv: list[str]) -> argparse.Namespace:
-    p = argparse.ArgumentParser(prog=f"agentctl {name}")
+    p = acli_args.ArgumentParser(prog=f"agentctl {name}")
     add_start_options(p)
     if "--" not in argv:
         if any(arg in {"-h", "--help"} for arg in argv):
@@ -3942,8 +4420,12 @@ def parse_start_command(name: str, mode: str, argv: list[str]) -> argparse.Names
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Small local job helper for agent-managed runs.")
-    sub = p.add_subparsers(dest="cmd", required=True)
+    p = acli_args.ArgumentParser(
+        description="Small local job helper for agent-managed runs."
+    )
+    sub = p.add_subparsers(
+        dest="cmd", required=True, parser_class=acli_args.ArgumentParser
+    )
 
     s = sub.add_parser("start", help="start a job.")
     add_start_options(s)
@@ -4000,8 +4482,14 @@ def build_parser() -> argparse.ArgumentParser:
         dest="recent",
         help="Show only the most recent N jobs after filtering (0 = all).",
     )
-    s.set_defaults(func=status, live_only=False, failed_only=False, all_jobs=True,
-                   where=False, completed_recent=0)
+    s.set_defaults(
+        func=status,
+        live_only=False,
+        failed_only=False,
+        all_jobs=True,
+        where=False,
+        completed_recent=0,
+    )
 
     s = sub.add_parser(
         "list",
@@ -4013,7 +4501,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.0,
         help="Wait this many seconds before checking.",
     )
-    s.add_argument("--tail", type=int, default=0, help="Also print last N log lines for each job.")
+    s.add_argument(
+        "--tail", type=int, default=0, help="Also print last N log lines for each job."
+    )
     s.add_argument(
         "--running-only",
         "--live",
@@ -4071,8 +4561,14 @@ def build_parser() -> argparse.ArgumentParser:
             "With --all: show only the most recent N jobs after filtering (0 = all)."
         ),
     )
-    s.set_defaults(func=status, job=None, live_only=False, failed_only=False,
-                   all_jobs=False, where=True)
+    s.set_defaults(
+        func=status,
+        job=None,
+        live_only=False,
+        failed_only=False,
+        all_jobs=False,
+        where=True,
+    )
 
     s = sub.add_parser("tail", help="Print last log lines for a job.")
     s.add_argument("job")
@@ -4096,8 +4592,14 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="*",
         help="Output path or the .running.md marker path itself. With none, scan the workspace.",
     )
-    s.add_argument("--dry-run", action="store_true", help="Report actions without deleting markers.")
-    s.add_argument("-q", "--quiet", action="store_true", help="Only set the exit status.")
+    s.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report actions without deleting markers.",
+    )
+    s.add_argument(
+        "-q", "--quiet", action="store_true", help="Only set the exit status."
+    )
     s.set_defaults(func=cleanup_running)
 
     s = sub.add_parser(
@@ -4105,7 +4607,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Stream log output until a job finishes, then print final status.",
     )
     s.add_argument("job")
-    s.add_argument("--poll", type=float, default=5.0, help="Seconds between log/status checks.")
+    s.add_argument(
+        "--poll", type=float, default=5.0, help="Seconds between log/status checks."
+    )
     s.add_argument(
         "--heartbeat",
         type=float,
@@ -4118,7 +4622,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=20,
         help="Print last N lines of existing log before streaming (0 = start from current end).",
     )
-    s.add_argument("--gpu", type=int, default=0, help="GPU index to poll for optional threshold notifications.")
+    s.add_argument(
+        "--gpu",
+        type=int,
+        default=0,
+        help="GPU index to poll for optional threshold notifications.",
+    )
     s.add_argument(
         "--heartbeat-gpu",
         action="store_true",
@@ -4175,27 +4684,43 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["finished", "stopped", "running", "not-running"],
         default="not-running",
         help="Status to wait for. 'not-running' means any terminal status; a "
-             "queued (waiting) --after run is still pending and keeps blocking.",
+        "queued (waiting) --after run is still pending and keeps blocking.",
     )
-    s.add_argument("--poll", type=float, default=30.0, help="Seconds between status checks.")
+    s.add_argument(
+        "--poll", type=float, default=30.0, help="Seconds between status checks."
+    )
     s.add_argument(
         "--heartbeat",
         type=float,
         default=30.0,
         help="Seconds between wait heartbeat lines (0 disables the periodic heartbeat).",
     )
-    s.add_argument("--gpu", type=int, default=0, help="GPU index used by --heartbeat-gpu.")
+    s.add_argument(
+        "--gpu", type=int, default=0, help="GPU index used by --heartbeat-gpu."
+    )
     s.add_argument(
         "--heartbeat-gpu",
         action="store_true",
         help="Include formatted GPU stats in wait heartbeat lines.",
     )
-    s.add_argument("--timeout", type=float, default=0.0, help="Maximum seconds to wait; 0 means no timeout.")
+    s.add_argument(
+        "--timeout",
+        type=float,
+        default=0.0,
+        help="Maximum seconds to wait; 0 means no timeout.",
+    )
     s.set_defaults(func=wait_job)
 
-    s = sub.add_parser("wait-gpu", help="Wait for GPU VRAM usage to fall below a threshold.")
+    s = sub.add_parser(
+        "wait-gpu", help="Wait for GPU VRAM usage to fall below a threshold."
+    )
     s.add_argument("--gpu", type=int, default=0, help="GPU index to poll.")
-    s.add_argument("--max-memory-used", type=int, default=3000, help="Required VRAM threshold in MiB.")
+    s.add_argument(
+        "--max-memory-used",
+        type=int,
+        default=3000,
+        help="Required VRAM threshold in MiB.",
+    )
     s.add_argument("--poll", type=float, default=15.0, help="Seconds between checks.")
     s.add_argument(
         "--heartbeat",
@@ -4203,28 +4728,33 @@ def build_parser() -> argparse.ArgumentParser:
         default=10.0,
         help="Seconds between wait-gpu heartbeat lines (0 disables the periodic heartbeat).",
     )
-    s.add_argument("--timeout", type=float, default=0.0, help="Maximum seconds to wait; 0 means no timeout.")
+    s.add_argument(
+        "--timeout",
+        type=float,
+        default=0.0,
+        help="Maximum seconds to wait; 0 means no timeout.",
+    )
     s.set_defaults(func=wait_gpu)
 
     s = sub.add_parser(
         "wait-work",
         help="Wait until new work appears: a new agentctl run and/or a new or "
-             "updated on-deck/ queue entry. Works from an empty queue; prints "
-             "what appeared and exits 0 (1 on --timeout).",
+        "updated on-deck/ queue entry. Works from an empty queue; prints "
+        "what appeared and exits 0 (1 on --timeout).",
     )
     s.add_argument(
         "--runs",
         action="store_true",
         help="Wake on a new agentctl run: any run id not present at wait-work "
-             "launch, restarts included (the watch-only wake: something new to watch).",
+        "launch, restarts included (the watch-only wake: something new to watch).",
     )
     s.add_argument(
         "--on-deck",
         dest="on_deck",
         action="store_true",
         help="Wake on a new or modified on-deck/*.md queue entry; INDEX.md is "
-             "derived and ignored (the tending wake: newly queued work). "
-             "With neither --runs nor --on-deck, both sources wake.",
+        "derived and ignored (the tending wake: newly queued work). "
+        "With neither --runs nor --on-deck, both sources wake.",
     )
     s.add_argument("--poll", type=float, default=10.0, help="Seconds between checks.")
     s.add_argument(
@@ -4233,7 +4763,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=60.0,
         help="Seconds between wait-work heartbeat lines (0 disables the periodic heartbeat).",
     )
-    s.add_argument("--timeout", type=float, default=0.0, help="Maximum seconds to wait; 0 means no timeout.")
+    s.add_argument(
+        "--timeout",
+        type=float,
+        default=0.0,
+        help="Maximum seconds to wait; 0 means no timeout.",
+    )
     s.set_defaults(func=wait_work)
 
     s = sub.add_parser("stop", help="Stop a running job process group.")
@@ -4249,160 +4784,195 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser(
         "active",
         help="With a banner: author this session's .agentctl/active/<id> entry "
-             "(banner + optional intend-to-edit scope) without launching a job. "
-             "With no banner: list active (non-DONE) sessions and their status.",
+        "(banner + optional intend-to-edit scope) without launching a job. "
+        "With no banner: list active (non-DONE) sessions and their status.",
     )
     s.add_argument(
         "banner",
         nargs="?",
         help="Line-1 present-tense status (quote it). A leading DONE marks the "
-             "session complete. Omit entirely to list active sessions instead.",
+        "session complete. Omit entirely to list active sessions instead.",
     )
     s.add_argument(
         "paths",
         nargs="*",
         help="Intended-edit paths -> a `scope:` line 2 for peer overlap detection. "
-             "Omit to leave any existing scope unchanged.",
+        "Omit to leave any existing scope unchanged.",
     )
     s.add_argument(
-        "-m", "--minutes", type=int, default=ACTIVE_STALE_MINUTES,
+        "-m",
+        "--minutes",
+        type=int,
+        default=ACTIVE_STALE_MINUTES,
         help="List mode: freshness window in minutes (default %(default)s, the "
-             "AGENTS.md stale threshold). 0 shows entries of any age, including "
-             "stale/crashed ones.",
+        "AGENTS.md stale threshold). 0 shows entries of any age, including "
+        "stale/crashed ones.",
     )
     s.add_argument(
-        "--done", action="store_true",
+        "--done",
+        action="store_true",
         help="List mode: also include DONE-prefixed (completed) sessions.",
     )
     s.add_argument(
-        "--sweep", action="store_true",
+        "--sweep",
+        action="store_true",
         help="Archive stale entries out of active/: DONE-prefixed -> "
-             ".agentctl/done/, others -> .agentctl/stale/, leaving only "
-             "within-window entries so the peer-check find stays fast. Uses "
-             "--minutes as the stale threshold; ignores banner/paths. Also "
-             "runs silently on each foreground launch (start/smoke/restart).",
+        ".agentctl/done/, others -> .agentctl/stale/, leaving only "
+        "within-window entries so the peer-check find stays fast. Uses "
+        "--minutes as the stale threshold; ignores banner/paths. Also "
+        "runs silently on each foreground launch (start/smoke/restart).",
     )
     s.add_argument(
-        "-n", "--dry-run", action="store_true",
+        "-n",
+        "--dry-run",
+        action="store_true",
         help="Sweep mode: report what would move without moving.",
     )
     s.add_argument(
-        "--tending", action="store_true",
+        "--tending",
+        action="store_true",
         help="Author mode: add a `tending: on-deck` header line — this session "
-             "will keep launching queued work when it wakes (steward "
-             "presence, read by `agentctl tending`). Without this flag an "
-             "existing tending line is preserved.",
+        "will keep launching queued work when it wakes (steward "
+        "presence, read by `agentctl tending`). Without this flag an "
+        "existing tending line is preserved.",
     )
     s.add_argument(
         "--until",
         help="Qualify --tending with a deadline, e.g. an absolute UTC time or "
-             "'forever'. Informative for readers; not enforced — entry "
-             "staleness is the enforcement.",
+        "'forever'. Informative for readers; not enforced — entry "
+        "staleness is the enforcement.",
     )
     s.add_argument(
-        "--no-tending", action="store_true",
+        "--no-tending",
+        action="store_true",
         help="Author mode: drop the `tending:` line — this session no longer "
-             "arms future launches (round ended with nothing wired).",
+        "arms future launches (round ended with nothing wired).",
     )
+    acli_args.add_standard_args(s)
     s.set_defaults(func=active_cmd)
 
     s = sub.add_parser(
         "others",
         help="List only your peers (your own active/<id> entry excluded) and "
-             "lead with a count, so a stale 'peers present' belief is refuted "
-             "in one line with nothing to parse. Pass your own session id.",
+        "lead with a count, so a stale 'peers present' belief is refuted "
+        "in one line with nothing to parse. Pass your own session id.",
     )
     s.add_argument(
         "uuid",
         nargs="?",
         help="Your own session id, excluded from the list. Omit to resolve it "
-             "from the environment; if none resolves, nothing is excluded.",
+        "from the environment; if none resolves, nothing is excluded.",
     )
     s.add_argument(
-        "-m", "--minutes", type=int, default=ACTIVE_STALE_MINUTES,
+        "-m",
+        "--minutes",
+        type=int,
+        default=ACTIVE_STALE_MINUTES,
         help="Freshness window in minutes (default %(default)s, the AGENTS.md "
-             "stale threshold). 0 includes stale/crashed peers of any age.",
+        "stale threshold). 0 includes stale/crashed peers of any age.",
     )
     s.add_argument(
-        "--done", action="store_true",
+        "--done",
+        action="store_true",
         help="Also include DONE-prefixed (completed) peers.",
     )
+    acli_args.add_standard_args(s)
     s.set_defaults(func=others_cmd)
 
     s = sub.add_parser(
         "tending",
         help="Is any other session tending this project — a `tending:` header "
-             "in its active entry, meaning it will launch more queued work "
-             "when it wakes (e.g. an on-deck steward between hourly wakes)? "
-             "Exit 0 = no other tending session; nonzero = listed. Pass your "
-             "own session id to claim tending when the answer is no.",
+        "in its active entry, meaning it will launch more queued work "
+        "when it wakes (e.g. an on-deck steward between hourly wakes)? "
+        "Exit 0 = no other tending session; nonzero = listed. Pass your "
+        "own session id to claim tending when the answer is no.",
     )
     s.add_argument(
         "uuid",
         nargs="?",
         help="Your own session id, excluded from the scan and — when no other "
-             "session is tending — registered as your tending claim "
-             "(`tending: on-deck` on your active entry, created placeholder "
-             "if absent). Omit to resolve from the env (then nothing is "
-             "claimed).",
+        "session is tending — registered as your tending claim "
+        "(`tending: on-deck` on your active entry, created placeholder "
+        "if absent). Omit to resolve from the env (then nothing is "
+        "claimed).",
     )
     s.add_argument(
         "--until",
         help="Deadline text for the registered claim, e.g. an absolute UTC "
-             "time or 'forever'. Informative; staleness is the enforcement.",
+        "time or 'forever'. Informative; staleness is the enforcement.",
     )
     s.add_argument(
-        "-m", "--minutes", type=int, default=ACTIVE_STALE_MINUTES,
+        "-m",
+        "--minutes",
+        type=int,
+        default=ACTIVE_STALE_MINUTES,
         help="Freshness window in minutes (default %(default)s, the AGENTS.md "
-             "stale threshold). 0 includes stale/crashed entries of any age.",
+        "stale threshold). 0 includes stale/crashed entries of any age.",
     )
     s.add_argument(
-        "--done", action="store_true",
+        "--done",
+        action="store_true",
         help="Also count DONE-prefixed (completed) entries.",
     )
+    acli_args.add_standard_args(s)
     s.set_defaults(func=tending_cmd)
 
     s = sub.add_parser(
         "alone",
         help="Block until no other active peer remains (the waiting form of "
-             "`others`), then exit 0; exit nonzero on --timeout. For "
-             "intentionally project-serial steps. Pass your own session id; "
-             "on success it registers your entry to claim the floor.",
+        "`others`), then exit 0; exit nonzero on --timeout. For "
+        "intentionally project-serial steps. Pass your own session id; "
+        "on success it registers your entry to claim the floor.",
     )
     s.add_argument(
         "uuid",
         nargs="?",
         help="Your own session id, excluded from the wait and registered as an "
-             "active claim once you are alone. Omit to resolve from the env "
-             "(then nothing is excluded or claimed).",
+        "active claim once you are alone. Omit to resolve from the env "
+        "(then nothing is excluded or claimed).",
     )
     s.add_argument(
         "scope",
         nargs="*",
         help="Optional intend-to-edit paths -> the `scope:` line of the entry "
-             "registered when you become alone (pairs with --banner).",
+        "registered when you become alone (pairs with --banner).",
     )
     s.add_argument(
-        "-b", "--banner",
+        "-b",
+        "--banner",
         help="Status line to register on success, folding `agentctl active` "
-             "into the wait (register your real status + scope and wait in one "
-             "go). Without it the success claim is a placeholder.",
+        "into the wait (register your real status + scope and wait in one "
+        "go). Without it the success claim is a placeholder.",
     )
     s.add_argument(
-        "-m", "--minutes", type=int, default=ACTIVE_STALE_MINUTES,
+        "-m",
+        "--minutes",
+        type=int,
+        default=ACTIVE_STALE_MINUTES,
         help="Freshness window in minutes (default %(default)s). A crashed peer "
-             "clears when it ages past this; 0 waits on peers of any age.",
+        "clears when it ages past this; 0 waits on peers of any age.",
     )
     s.add_argument(
-        "--done", action="store_true",
+        "--done",
+        action="store_true",
         help="Count DONE-prefixed (completed) entries as peers to wait on.",
     )
-    s.add_argument("--poll", type=float, default=5.0, help="Seconds between peer checks (one `.` tick each).")
     s.add_argument(
-        "--heartbeat", type=float, default=30.0,
+        "--poll", type=float, default=5.0, help="Seconds between peer checks."
+    )
+    s.add_argument(
+        "--heartbeat",
+        type=float,
+        default=30.0,
         help="Seconds between fresh naming lines while waiting (0 = ticks only).",
     )
-    s.add_argument("--timeout", type=float, default=0.0, help="Maximum seconds to wait; 0 means wait forever.")
+    s.add_argument(
+        "--timeout",
+        type=float,
+        default=0.0,
+        help="Maximum seconds to wait; 0 means wait forever.",
+    )
+    acli_args.add_standard_args(s)
     s.set_defaults(func=alone_cmd)
 
     _call_hook("register_verbs", sub)

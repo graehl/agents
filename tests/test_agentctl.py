@@ -10,6 +10,7 @@ with a fresh copy of agentctl; no shared state. Run directly:
 
 Exits non-zero on any failure.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -26,7 +27,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTCTL_FILES = ("agentctl", "agentctl.py", "artifact_meta.py")
-AGENTCTL_DIRS = ("agentctl_plugins",)
+AGENTCTL_DIRS = ("agentctl_plugins", "acli")
 
 
 # ---- Workspace fixture ----------------------------------------------------
@@ -57,8 +58,12 @@ class Workspace:
         # the agentctl wrapper is a bash script, and a launcher such as
         # yepanywhere re-exports AGENTCTL_SESSION_ID via a BASH_ENV bridge that
         # would otherwise defeat the pops below.
-        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID",
-                    "AGENTCTL_LAUNCH_DEPTH", "BASH_ENV"):
+        for var in (
+            "AGENTCTL_SESSION_ID",
+            "CLAUDE_CODE_SESSION_ID",
+            "AGENTCTL_LAUNCH_DEPTH",
+            "BASH_ENV",
+        ):
             env.pop(var, None)
         # Also disable parent-process-tree recovery by default: the test runner
         # is frequently under a `claude --resume <uuid>` / `codex resume <uuid>`
@@ -79,8 +84,12 @@ class Workspace:
     def popen(self, *args, env_extra=None) -> subprocess.Popen:
         """run()'s env hygiene, for blocking verbs (watch, wait, wait-work)."""
         env = os.environ.copy()
-        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID",
-                    "AGENTCTL_LAUNCH_DEPTH", "BASH_ENV"):
+        for var in (
+            "AGENTCTL_SESSION_ID",
+            "CLAUDE_CODE_SESSION_ID",
+            "AGENTCTL_LAUNCH_DEPTH",
+            "BASH_ENV",
+        ):
             env.pop(var, None)
         env["AGENTCTL_NO_PROC_SESSION_ID"] = "1"
         if env_extra:
@@ -96,10 +105,16 @@ class Workspace:
 
     def state(self, job: str, run_id: str | None = None) -> dict:
         if run_id is None:
-            return json.loads((self.tmp / ".agentctl/jobs" / job / "current.json").read_text())
-        return json.loads((self.tmp / ".agentctl/runs" / job / run_id / "state.json").read_text())
+            return json.loads(
+                (self.tmp / ".agentctl/jobs" / job / "current.json").read_text()
+            )
+        return json.loads(
+            (self.tmp / ".agentctl/runs" / job / run_id / "state.json").read_text()
+        )
 
-    def wait_finished(self, job: str, *, since_run_id: str | None = None, timeout: float = 10.0) -> dict:
+    def wait_finished(
+        self, job: str, *, since_run_id: str | None = None, timeout: float = 10.0
+    ) -> dict:
         deadline = time.time() + timeout
         while time.time() < deadline:
             try:
@@ -126,7 +141,10 @@ def _assert(cond, msg="assertion failed"):
 def _start(ws: Workspace, *args) -> subprocess.CompletedProcess:
     """Convenience wrapper for `agentctl start ...`. Asserts rc==0."""
     res = ws.run("start", *args)
-    _assert(res.returncode == 0, f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}")
+    _assert(
+        res.returncode == 0,
+        f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}",
+    )
     return res
 
 
@@ -147,7 +165,19 @@ def _wait_status(ws: Workspace, job: str, status: str, timeout: float = 5.0) -> 
 
 
 def _status_lines(output: str) -> list[str]:
-    return [line for line in output.splitlines() if " serial=" in line and " log=" in line]
+    return [
+        line for line in output.splitlines() if " serial=" in line and " log=" in line
+    ]
+
+
+def _json_record(output: str) -> dict:
+    lines = [line for line in output.splitlines() if line.strip()]
+    _assert(len(lines) == 1, f"expected one JSONL record, got {lines!r}")
+    return json.loads(lines[0])
+
+
+def _json_records(output: str) -> list[dict]:
+    return [json.loads(line) for line in output.splitlines() if line.strip()]
 
 
 # ---- Tests -----------------------------------------------------------------
@@ -175,7 +205,10 @@ def test_wrapper_uses_invocation_cwd_as_project_root():
             text=True,
             timeout=20,
         )
-        _assert(res.returncode == 0, f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}")
+        _assert(
+            res.returncode == 0,
+            f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}",
+        )
         deadline = time.time() + 10.0
         current = project / ".agentctl/jobs/outside/current.json"
         while time.time() < deadline:
@@ -186,9 +219,17 @@ def test_wrapper_uses_invocation_cwd_as_project_root():
             time.sleep(0.05)
         else:
             raise TimeoutError("outside job did not finish under invocation cwd")
-        _assert(state["cwd"] == str(project.resolve()), f"cwd mismatch: {state['cwd']!r}")
-        _assert(str(project / ".agentctl") in state["state_path"], f"state path used wrong root: {state['state_path']}")
-        _assert(not (ws.tmp / ".agentctl/jobs/outside").exists(), "wrapper wrote state under code root")
+        _assert(
+            state["cwd"] == str(project.resolve()), f"cwd mismatch: {state['cwd']!r}"
+        )
+        _assert(
+            str(project / ".agentctl") in state["state_path"],
+            f"state path used wrong root: {state['state_path']}",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/jobs/outside").exists(),
+            "wrapper wrote state under code root",
+        )
     finally:
         ws.cleanup()
 
@@ -197,8 +238,18 @@ def test_tracked_writes_dump_and_sidecar():
     ws = Workspace()
     try:
         out = ws.scratch / "out.bin"
-        _start(ws, "--experiment", "e1", "--output", f"result={out}",
-               "tracked", "--", "bash", "-c", f"echo hello > {out}")
+        _start(
+            ws,
+            "--experiment",
+            "e1",
+            "--output",
+            f"result={out}",
+            "tracked",
+            "--",
+            "bash",
+            "-c",
+            f"echo hello > {out}",
+        )
         s = ws.wait_finished("tracked")
         exp_dir = ws.tmp / "runs/aim/e1"
         _assert((exp_dir / "manifest.jsonl").exists(), "manifest.jsonl missing")
@@ -221,12 +272,33 @@ def test_chain_resolves_source():
     try:
         out1 = ws.scratch / "step1.txt"
         out2 = ws.scratch / "step2.txt"
-        _start(ws, "--experiment", "ch", "--output", f"r={out1}",
-               "step1", "--", "bash", "-c", f"echo hello > {out1}")
+        _start(
+            ws,
+            "--experiment",
+            "ch",
+            "--output",
+            f"r={out1}",
+            "step1",
+            "--",
+            "bash",
+            "-c",
+            f"echo hello > {out1}",
+        )
         s1 = ws.wait_finished("step1")
-        _start(ws, "--experiment", "ch",
-               "--input", f"prev={out1}", "--output", f"f={out2}",
-               "step2", "--", "bash", "-c", f"cat {out1} > {out2}")
+        _start(
+            ws,
+            "--experiment",
+            "ch",
+            "--input",
+            f"prev={out1}",
+            "--output",
+            f"f={out2}",
+            "step2",
+            "--",
+            "bash",
+            "-c",
+            f"cat {out1} > {out2}",
+        )
         s2 = ws.wait_finished("step2")
         inp = s2["inputs"]["prev"]
         _assert(inp["source_run_id"] == s1["run_id"], "source_run_id mismatch")
@@ -243,12 +315,15 @@ def test_input_raw_no_translation():
     try:
         f = ws.scratch / "f.txt"
         f.write_text("x")
-        _start(ws, "--experiment", "e", "--input-raw", f"data={f}",
-               "rawjob", "--", "true")
+        _start(
+            ws, "--experiment", "e", "--input-raw", f"data={f}", "rawjob", "--", "true"
+        )
         s = ws.wait_finished("rawjob")
         _assert(s["inputs"]["data"]["raw"] is True, "raw flag missing")
-        _assert(not any("--data=" in a for a in s["argv"]),
-                f"--data= should NOT be in argv, got {s['argv']!r}")
+        _assert(
+            not any("--data=" in a for a in s["argv"]),
+            f"--data= should NOT be in argv, got {s['argv']!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -258,13 +333,16 @@ def test_input_translation_appends_to_argv():
     try:
         f = ws.scratch / "f.txt"
         f.write_text("x")
-        _start(ws, "--experiment", "e", "--input", f"data={f}",
-               "trjob", "--", "true")
+        _start(ws, "--experiment", "e", "--input", f"data={f}", "trjob", "--", "true")
         s = ws.wait_finished("trjob")
-        _assert(any(a == f"--data={f}" for a in s["argv"]),
-                f"--data={f} expected in argv, got {s['argv']!r}")
-        _assert(s["inputs"]["data"].get("raw") is not True,
-                "non-raw input should not be marked raw")
+        _assert(
+            any(a == f"--data={f}" for a in s["argv"]),
+            f"--data={f} expected in argv, got {s['argv']!r}",
+        )
+        _assert(
+            s["inputs"]["data"].get("raw") is not True,
+            "non-raw input should not be marked raw",
+        )
     finally:
         ws.cleanup()
 
@@ -275,12 +353,15 @@ def test_input_hash_at_launch():
         f = ws.scratch / "in.bin"
         content = b"known content"
         f.write_bytes(content)
-        _start(ws, "--experiment", "e", "--input-hash", f"data={f}",
-               "ihash", "--", "true")
+        _start(
+            ws, "--experiment", "e", "--input-hash", f"data={f}", "ihash", "--", "true"
+        )
         s = ws.wait_finished("ihash")
         expected = hashlib.sha256(content).hexdigest()
-        _assert(s["inputs"]["data"]["sha256"] == expected,
-                f"sha256 mismatch: got {s['inputs']['data'].get('sha256')!r}")
+        _assert(
+            s["inputs"]["data"]["sha256"] == expected,
+            f"sha256 mismatch: got {s['inputs']['data'].get('sha256')!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -289,12 +370,24 @@ def test_output_hash_at_completion():
     ws = Workspace()
     try:
         out = ws.scratch / "out.bin"
-        _start(ws, "--experiment", "e", "--output-hash", f"r={out}",
-               "ohash", "--", "bash", "-c", f"printf 'content' > {out}")
+        _start(
+            ws,
+            "--experiment",
+            "e",
+            "--output-hash",
+            f"r={out}",
+            "ohash",
+            "--",
+            "bash",
+            "-c",
+            f"printf 'content' > {out}",
+        )
         s = ws.wait_finished("ohash")
         expected = hashlib.sha256(b"content").hexdigest()
-        _assert(s["outputs"]["r"]["sha256"] == expected,
-                f"output sha256 mismatch: got {s['outputs']['r'].get('sha256')!r}")
+        _assert(
+            s["outputs"]["r"]["sha256"] == expected,
+            f"output sha256 mismatch: got {s['outputs']['r'].get('sha256')!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -302,19 +395,39 @@ def test_output_hash_at_completion():
 def test_multiple_inputs_outputs():
     ws = Workspace()
     try:
-        a = ws.scratch / "a.txt"; a.write_text("a")
-        b = ws.scratch / "b.txt"; b.write_text("b")
+        a = ws.scratch / "a.txt"
+        a.write_text("a")
+        b = ws.scratch / "b.txt"
+        b.write_text("b")
         o1 = ws.scratch / "o1.txt"
         o2 = ws.scratch / "o2.txt"
-        _start(ws, "--experiment", "e",
-               "--input", f"first={a}", "--input", f"second={b}",
-               "--output", f"x={o1}", "--output", f"y={o2}",
-               "multi", "--", "bash", "-c", f"echo X > {o1}; echo Y > {o2}")
+        _start(
+            ws,
+            "--experiment",
+            "e",
+            "--input",
+            f"first={a}",
+            "--input",
+            f"second={b}",
+            "--output",
+            f"x={o1}",
+            "--output",
+            f"y={o2}",
+            "multi",
+            "--",
+            "bash",
+            "-c",
+            f"echo X > {o1}; echo Y > {o2}",
+        )
         s = ws.wait_finished("multi")
-        _assert(set(s["inputs"].keys()) == {"first", "second"},
-                f"inputs keys: {list(s['inputs'].keys())}")
-        _assert(set(s["outputs"].keys()) == {"x", "y"},
-                f"outputs keys: {list(s['outputs'].keys())}")
+        _assert(
+            set(s["inputs"].keys()) == {"first", "second"},
+            f"inputs keys: {list(s['inputs'].keys())}",
+        )
+        _assert(
+            set(s["outputs"].keys()) == {"x", "y"},
+            f"outputs keys: {list(s['outputs'].keys())}",
+        )
         _assert(Path(f"{o1}.meta.json").exists(), "o1 sidecar missing")
         _assert(Path(f"{o2}.meta.json").exists(), "o2 sidecar missing")
     finally:
@@ -330,15 +443,20 @@ def test_symlink_records_realpath():
         link.symlink_to(target)
         # Use absolute symlink path so stat_artifact records realpath when it
         # differs from path (relative paths get pre-resolved).
-        _start(ws, "--experiment", "e", "--input", f"data={link}",
-               "symjob", "--", "true")
+        _start(
+            ws, "--experiment", "e", "--input", f"data={link}", "symjob", "--", "true"
+        )
         s = ws.wait_finished("symjob")
         inp = s["inputs"]["data"]
         # When the user passed an absolute symlink, path is the link itself
         # and realpath is the target.
-        _assert(inp["path"] == str(link), f"path expected to be link, got {inp['path']!r}")
-        _assert(inp.get("realpath") == str(target.resolve()),
-                f"realpath expected {target.resolve()!r}, got {inp.get('realpath')!r}")
+        _assert(
+            inp["path"] == str(link), f"path expected to be link, got {inp['path']!r}"
+        )
+        _assert(
+            inp.get("realpath") == str(target.resolve()),
+            f"realpath expected {target.resolve()!r}, got {inp.get('realpath')!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -350,8 +468,7 @@ def test_directory_input():
         d.mkdir()
         (d / "a.txt").write_bytes(b"aaa")
         (d / "b.txt").write_bytes(b"bbbb")
-        _start(ws, "--experiment", "e", "--input", f"data={d}",
-               "dirjob", "--", "true")
+        _start(ws, "--experiment", "e", "--input", f"data={d}", "dirjob", "--", "true")
         s = ws.wait_finished("dirjob")
         inp = s["inputs"]["data"]
         _assert(inp.get("is_dir") is True, "is_dir not True")
@@ -365,11 +482,13 @@ def test_input_no_sidecar_omits_source():
     try:
         f = ws.scratch / "untracked.txt"
         f.write_text("preexisting")
-        _start(ws, "--experiment", "e", "--input", f"data={f}",
-               "leaf", "--", "true")
+        _start(ws, "--experiment", "e", "--input", f"data={f}", "leaf", "--", "true")
         s = ws.wait_finished("leaf")
         inp = s["inputs"]["data"]
-        _assert("source_run_id" not in inp, "source_run_id should be absent for untracked input")
+        _assert(
+            "source_run_id" not in inp,
+            "source_run_id should be absent for untracked input",
+        )
         _assert("source_dump" not in inp, "source_dump should be absent")
         _assert(inp["path"] == str(f))
     finally:
@@ -381,13 +500,16 @@ def test_missing_output_recorded():
     try:
         out = ws.scratch / "never_created.bin"
         # Command exits 0 without creating out.
-        _start(ws, "--experiment", "e", "--output", f"r={out}",
-               "missjob", "--", "true")
+        _start(ws, "--experiment", "e", "--output", f"r={out}", "missjob", "--", "true")
         s = ws.wait_finished("missjob")
-        _assert(s["outputs"]["r"].get("status") == "missing",
-                f"expected status=missing, got {s['outputs']['r']!r}")
-        _assert(not Path(f"{out}.meta.json").exists(),
-                "sidecar should NOT be written for missing output")
+        _assert(
+            s["outputs"]["r"].get("status") == "missing",
+            f"expected status=missing, got {s['outputs']['r']!r}",
+        )
+        _assert(
+            not Path(f"{out}.meta.json").exists(),
+            "sidecar should NOT be written for missing output",
+        )
     finally:
         ws.cleanup()
 
@@ -396,8 +518,12 @@ def test_sandbox_liveness_visible_pid_mismatch_finishes_unknown():
     ws = Workspace()
     try:
         module_name = "agentctl_under_test_liveness"
-        spec = importlib.util.spec_from_file_location(module_name, ws.tmp / "agentctl.py")
-        assert spec is not None and spec.loader is not None, "could not load agentctl spec"
+        spec = importlib.util.spec_from_file_location(
+            module_name, ws.tmp / "agentctl.py"
+        )
+        assert spec is not None and spec.loader is not None, (
+            "could not load agentctl spec"
+        )
         mod = importlib.util.module_from_spec(spec)
         old_root = os.environ.get("AGENTCTL_ROOT")
         os.environ["AGENTCTL_ROOT"] = str(ws.tmp)
@@ -424,7 +550,10 @@ def test_sandbox_liveness_visible_pid_mismatch_finishes_unknown():
         refreshed = mod.refresh_state(state)
         _assert(refreshed["status"] == "finished", f"status: {refreshed!r}")
         _assert(refreshed["returncode"] == "unknown", f"returncode: {refreshed!r}")
-        _assert("_liveness_note" not in refreshed, f"liveness note should be absent: {refreshed!r}")
+        _assert(
+            "_liveness_note" not in refreshed,
+            f"liveness note should be absent: {refreshed!r}",
+        )
         current = json.loads((ws.tmp / ".agentctl/jobs/stale/current.json").read_text())
         _assert(current["status"] == "finished", f"current status: {current!r}")
     finally:
@@ -435,14 +564,27 @@ def test_static_propagation():
     ws = Workspace()
     try:
         out = ws.scratch / "out.txt"
-        _start(ws, "--experiment", "e", "--output", f"r={out}",
-               "--propagate-json", '{"loss": 0.5}',
-               "prop", "--", "bash", "-c", f"echo x > {out}")
+        _start(
+            ws,
+            "--experiment",
+            "e",
+            "--output",
+            f"r={out}",
+            "--propagate-json",
+            '{"loss": 0.5}',
+            "prop",
+            "--",
+            "bash",
+            "-c",
+            f"echo x > {out}",
+        )
         s = ws.wait_finished("prop")
         _assert(s["propagate"] == {"loss": 0.5}, f"state.propagate: {s['propagate']!r}")
         sidecar = json.loads(Path(f"{out}.meta.json").read_text())
-        _assert(sidecar.get("propagate") == {"loss": 0.5},
-                f"sidecar.propagate: {sidecar.get('propagate')!r}")
+        _assert(
+            sidecar.get("propagate") == {"loss": 0.5},
+            f"sidecar.propagate: {sidecar.get('propagate')!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -451,12 +593,20 @@ def test_cooperative_propagation():
     ws = Workspace()
     try:
         out = ws.scratch / "out.txt"
-        _start(ws, "--experiment", "e", "--output", f"r={out}",
-               "coop", "--", "bash", "-c",
-               f'echo x > {out}; echo \'{{"acc": 0.9}}\' > "$AGENTCTL_RUN_DIR/propagate.json"')
+        _start(
+            ws,
+            "--experiment",
+            "e",
+            "--output",
+            f"r={out}",
+            "coop",
+            "--",
+            "bash",
+            "-c",
+            f'echo x > {out}; echo \'{{"acc": 0.9}}\' > "$AGENTCTL_RUN_DIR/propagate.json"',
+        )
         s = ws.wait_finished("coop")
-        _assert(s["propagate"] == {"acc": 0.9},
-                f"state.propagate: {s['propagate']!r}")
+        _assert(s["propagate"] == {"acc": 0.9}, f"state.propagate: {s['propagate']!r}")
     finally:
         ws.cleanup()
 
@@ -479,9 +629,17 @@ def test_cooperative_declared_json_inputs_outputs():
         _start(ws, "--experiment", "e", "declared", "--", sys.executable, "-c", code)
         s = ws.wait_finished("declared")
         _assert(s["inputs"]["data"]["path"] == str(inp), f"input path: {s['inputs']!r}")
-        _assert(s["inputs"]["data"]["size"] == len("declared"), f"input size: {s['inputs']!r}")
-        _assert(s["outputs"]["result"]["path"] == str(out), f"output path: {s['outputs']!r}")
-        _assert(s["outputs"]["result"]["size"] == len("declared"), f"output size: {s['outputs']!r}")
+        _assert(
+            s["inputs"]["data"]["size"] == len("declared"),
+            f"input size: {s['inputs']!r}",
+        )
+        _assert(
+            s["outputs"]["result"]["path"] == str(out), f"output path: {s['outputs']!r}"
+        )
+        _assert(
+            s["outputs"]["result"]["size"] == len("declared"),
+            f"output size: {s['outputs']!r}",
+        )
         _assert(Path(f"{out}.meta.json").exists(), "declared output sidecar missing")
     finally:
         ws.cleanup()
@@ -514,9 +672,15 @@ def test_watch_cooperative_declared_json_outputs():
             code,
         )
         s = ws.state("watchdecl")
-        _assert(s["outputs"]["result"]["path"] == str(out), f"outputs: {s['outputs']!r}")
-        _assert(s["outputs"]["result"]["size"] == len("watch"), f"outputs: {s['outputs']!r}")
-        _assert(Path(f"{out}.meta.json").exists(), "watch-declared output sidecar missing")
+        _assert(
+            s["outputs"]["result"]["path"] == str(out), f"outputs: {s['outputs']!r}"
+        )
+        _assert(
+            s["outputs"]["result"]["size"] == len("watch"), f"outputs: {s['outputs']!r}"
+        )
+        _assert(
+            Path(f"{out}.meta.json").exists(), "watch-declared output sidecar missing"
+        )
     finally:
         ws.cleanup()
 
@@ -546,14 +710,27 @@ def test_declare_helpers_import_from_external_project():
         ):
             env.pop(var, None)
         res = subprocess.run(
-            [str(ws.tmp / "agentctl"), "start", "--experiment", "e", "helper", "--", sys.executable, "-c", code],
+            [
+                str(ws.tmp / "agentctl"),
+                "start",
+                "--experiment",
+                "e",
+                "helper",
+                "--",
+                sys.executable,
+                "-c",
+                code,
+            ],
             cwd=project,
             capture_output=True,
             text=True,
             env=env,
             timeout=20,
         )
-        _assert(res.returncode == 0, f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}")
+        _assert(
+            res.returncode == 0,
+            f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}",
+        )
         deadline = time.time() + 10.0
         current = project / ".agentctl/jobs/helper/current.json"
         while time.time() < deadline:
@@ -564,9 +741,16 @@ def test_declare_helpers_import_from_external_project():
             time.sleep(0.05)
         else:
             raise TimeoutError("helper job did not finish under external project")
-        _assert(state["returncode"] == 0, f"helper returncode: {state.get('returncode')}")
-        _assert(state["inputs"]["data"]["path"] == str(inp), f"inputs: {state['inputs']!r}")
-        _assert(state["outputs"]["result"]["path"] == str(out), f"outputs: {state['outputs']!r}")
+        _assert(
+            state["returncode"] == 0, f"helper returncode: {state.get('returncode')}"
+        )
+        _assert(
+            state["inputs"]["data"]["path"] == str(inp), f"inputs: {state['inputs']!r}"
+        )
+        _assert(
+            state["outputs"]["result"]["path"] == str(out),
+            f"outputs: {state['outputs']!r}",
+        )
         _assert(Path(f"{out}.meta.json").exists(), "helper-declared sidecar missing")
     finally:
         ws.cleanup()
@@ -577,16 +761,40 @@ def test_propagation_chain():
     try:
         out1 = ws.scratch / "o1.txt"
         out2 = ws.scratch / "o2.txt"
-        _start(ws, "--experiment", "ch", "--output", f"r={out1}",
-               "--propagate-json", '{"k": "v"}',
-               "p1", "--", "bash", "-c", f"echo x > {out1}")
+        _start(
+            ws,
+            "--experiment",
+            "ch",
+            "--output",
+            f"r={out1}",
+            "--propagate-json",
+            '{"k": "v"}',
+            "p1",
+            "--",
+            "bash",
+            "-c",
+            f"echo x > {out1}",
+        )
         ws.wait_finished("p1")
-        _start(ws, "--experiment", "ch",
-               "--input", f"prev={out1}", "--output", f"f={out2}",
-               "p2", "--", "bash", "-c", f"cat {out1} > {out2}")
+        _start(
+            ws,
+            "--experiment",
+            "ch",
+            "--input",
+            f"prev={out1}",
+            "--output",
+            f"f={out2}",
+            "p2",
+            "--",
+            "bash",
+            "-c",
+            f"cat {out1} > {out2}",
+        )
         s = ws.wait_finished("p2")
-        _assert(s["inputs"]["prev"].get("source_facts") == {"k": "v"},
-                f"source_facts: {s['inputs']['prev'].get('source_facts')!r}")
+        _assert(
+            s["inputs"]["prev"].get("source_facts") == {"k": "v"},
+            f"source_facts: {s['inputs']['prev'].get('source_facts')!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -598,18 +806,22 @@ def test_nested_agentctl_parent_run():
         inner_script = ws.scratch / "inner.sh"
         inner_script.write_text(
             "#!/usr/bin/env bash\n"
-            f'{ws.tmp / "agentctl"} start --experiment nest --output r={inner_out} '
-            f'inner -- bash -c \'echo hi > {inner_out}\'\n'
+            f"{ws.tmp / 'agentctl'} start --experiment nest --output r={inner_out} "
+            f"inner -- bash -c 'echo hi > {inner_out}'\n"
             "sleep 1\n"
         )
         inner_script.chmod(0o755)
         _start(ws, "--experiment", "nest", "outer", "--", str(inner_script))
         outer = ws.wait_finished("outer")
         inner = ws.wait_finished("inner")
-        _assert(inner.get("parent_run") == outer["run_id"],
-                f"inner.parent_run: {inner.get('parent_run')!r} expected {outer['run_id']!r}")
-        _assert(outer.get("parent_run", "") == "",
-                f"outer.parent_run should be empty, got {outer.get('parent_run')!r}")
+        _assert(
+            inner.get("parent_run") == outer["run_id"],
+            f"inner.parent_run: {inner.get('parent_run')!r} expected {outer['run_id']!r}",
+        )
+        _assert(
+            outer.get("parent_run", "") == "",
+            f"outer.parent_run should be empty, got {outer.get('parent_run')!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -619,7 +831,15 @@ def test_start_after_agentctl_job_waits_before_payload():
     try:
         dep_out = ws.scratch / "dep.txt"
         follow_out = ws.scratch / "follow.txt"
-        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", f"sleep 0.4; echo dep > {dep_out}")
+        _start(
+            ws,
+            "--no-aim",
+            "slowdep",
+            "--",
+            "bash",
+            "-c",
+            f"sleep 0.4; echo dep > {dep_out}",
+        )
         _start(
             ws,
             "--no-aim",
@@ -645,13 +865,18 @@ def test_start_after_agentctl_job_waits_before_payload():
                 continue
             if s.get("status") == "waiting":
                 saw_waiting = True
-                _assert(s.get("wait_on") == "slowdep", f"wait_on mismatch: {s.get('wait_on')!r}")
+                _assert(
+                    s.get("wait_on") == "slowdep",
+                    f"wait_on mismatch: {s.get('wait_on')!r}",
+                )
                 break
             time.sleep(0.02)
         _assert(saw_waiting, "follower never reported waiting")
         s = ws.wait_finished("follower")
         _assert(s["returncode"] == 0, f"follower failed: {s!r}")
-        _assert(follow_out.read_text().strip() == "follower", "follower payload did not run")
+        _assert(
+            follow_out.read_text().strip() == "follower", "follower payload did not run"
+        )
         _assert(s.get("started_at"), "started_at should be set when payload launches")
     finally:
         ws.cleanup()
@@ -671,7 +896,9 @@ def test_start_after_running_marker_waits_before_payload():
             ],
             cwd=ws.tmp,
         )
-        marker.write_text(f"- status: running\n- pid: {proc.pid}\n- out: {external_out}\n")
+        marker.write_text(
+            f"- status: running\n- pid: {proc.pid}\n- out: {external_out}\n"
+        )
         follow_out = ws.scratch / "marker-follow.txt"
         _start(
             ws,
@@ -698,13 +925,19 @@ def test_start_after_running_marker_waits_before_payload():
                 continue
             if s.get("status") == "waiting":
                 saw_waiting = True
-                _assert(s.get("wait_on") == str(external_out), f"wait_on mismatch: {s.get('wait_on')!r}")
+                _assert(
+                    s.get("wait_on") == str(external_out),
+                    f"wait_on mismatch: {s.get('wait_on')!r}",
+                )
                 break
             time.sleep(0.02)
         _assert(saw_waiting, "marker follower never reported waiting")
         s = ws.wait_finished("markerfollower")
         _assert(s["returncode"] == 0, f"marker follower failed: {s!r}")
-        _assert(follow_out.read_text().strip() == "follower", "marker follower payload did not run")
+        _assert(
+            follow_out.read_text().strip() == "follower",
+            "marker follower payload did not run",
+        )
     finally:
         if proc is not None and proc.poll() is None:
             proc.terminate()
@@ -718,8 +951,12 @@ def test_start_after_marker_without_sidecar_does_not_launch_payload():
     try:
         external_out = ws.scratch / "external-no-meta.out"
         marker = Path(f"{external_out}.running.md")
-        proc = subprocess.Popen(["bash", "-c", f"sleep 0.2; rm -f {marker}"], cwd=ws.tmp)
-        marker.write_text(f"- status: running\n- pid: {proc.pid}\n- out: {external_out}\n")
+        proc = subprocess.Popen(
+            ["bash", "-c", f"sleep 0.2; rm -f {marker}"], cwd=ws.tmp
+        )
+        marker.write_text(
+            f"- status: running\n- pid: {proc.pid}\n- out: {external_out}\n"
+        )
         follow_out = ws.scratch / "should-not-exist.txt"
         _start(
             ws,
@@ -738,7 +975,10 @@ def test_start_after_marker_without_sidecar_does_not_launch_payload():
         )
         s = ws.wait_finished("markerfail")
         _assert(s["returncode"] != 0, f"markerfail should fail, got {s!r}")
-        _assert(not follow_out.exists(), "payload should not launch for unresolved marker dependency")
+        _assert(
+            not follow_out.exists(),
+            "payload should not launch for unresolved marker dependency",
+        )
     finally:
         if proc is not None and proc.poll() is None:
             proc.terminate()
@@ -752,16 +992,55 @@ def test_wait_not_running_blocks_on_queued_job():
     ws = Workspace()
     try:
         _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 1.2")
-        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
-               "--after-heartbeat", "0", "follower", "--", "bash", "-c", "true")
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "follower",
+            "--",
+            "bash",
+            "-c",
+            "true",
+        )
         _wait_status(ws, "follower", "waiting")
-        res = ws.run("wait", "follower", "--target", "not-running",
-                     "--poll", "0.1", "--heartbeat", "0", "--timeout", "0.4")
+        res = ws.run(
+            "wait",
+            "follower",
+            "--target",
+            "not-running",
+            "--poll",
+            "0.1",
+            "--heartbeat",
+            "0",
+            "--timeout",
+            "0.4",
+        )
         _assert(res.returncode != 0, f"wait released on a queued run: {res.stdout!r}")
-        res = ws.run("wait", "follower", "--target", "not-running",
-                     "--poll", "0.1", "--heartbeat", "0", "--timeout", "10")
-        _assert(res.returncode == 0, f"wait should succeed once the chain completes: {res.stdout!r} {res.stderr!r}")
-        _assert("finished" in res.stdout, f"wait should report the terminal status: {res.stdout!r}")
+        res = ws.run(
+            "wait",
+            "follower",
+            "--target",
+            "not-running",
+            "--poll",
+            "0.1",
+            "--heartbeat",
+            "0",
+            "--timeout",
+            "10",
+        )
+        _assert(
+            res.returncode == 0,
+            f"wait should succeed once the chain completes: {res.stdout!r} {res.stderr!r}",
+        )
+        _assert(
+            "finished" in res.stdout,
+            f"wait should report the terminal status: {res.stdout!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -775,17 +1054,46 @@ def test_after_output_of_queued_producer_blocks_then_releases():
         out = ws.scratch / "artifact.txt"
         Path(f"{out}.meta.md").write_text("# stale\n")
         _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.8")
-        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
-               "--after-heartbeat", "0", "--output", str(out), "producer",
-               "--", "bash", "-c", f"echo fresh > {out}; echo '# fresh' > {out}.meta.md")
-        _start(ws, "--no-aim", "--after", str(out), "--after-poll", "0.05",
-               "--after-heartbeat", "0", "follower",
-               "--", "bash", "-c", f"grep -q fresh {out}.meta.md")
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "--output",
+            str(out),
+            "producer",
+            "--",
+            "bash",
+            "-c",
+            f"echo fresh > {out}; echo '# fresh' > {out}.meta.md",
+        )
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            str(out),
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "follower",
+            "--",
+            "bash",
+            "-c",
+            f"grep -q fresh {out}.meta.md",
+        )
         _wait_status(ws, "follower", "waiting")
         s = ws.wait_finished("follower")
         # The payload greps for the fresh sidecar: an early release off the
         # stale one would have failed it.
-        _assert(s["returncode"] == 0, f"follower should succeed after the producer completes: {s!r}")
+        _assert(
+            s["returncode"] == 0,
+            f"follower should succeed after the producer completes: {s!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -798,15 +1106,43 @@ def test_after_output_producer_failure_fails_dependent():
         out = ws.scratch / "never-made.txt"
         flag = ws.scratch / "should-not-exist.txt"
         _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.5")
-        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
-               "--after-heartbeat", "0", "--output", str(out), "producer",
-               "--", "bash", "-c", "exit 3")
-        _start(ws, "--no-aim", "--after", str(out), "--after-poll", "0.05",
-               "--after-heartbeat", "0", "follower",
-               "--", "bash", "-c", f"echo bad > {flag}")
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "--output",
+            str(out),
+            "producer",
+            "--",
+            "bash",
+            "-c",
+            "exit 3",
+        )
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            str(out),
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "follower",
+            "--",
+            "bash",
+            "-c",
+            f"echo bad > {flag}",
+        )
         _wait_status(ws, "follower", "waiting")
         s = ws.wait_finished("follower")
-        _assert(s["returncode"] != 0, f"failed producer should fail the dependent: {s!r}")
+        _assert(
+            s["returncode"] != 0, f"failed producer should fail the dependent: {s!r}"
+        )
         _assert(not flag.exists(), "payload must not launch when the producer failed")
     finally:
         ws.cleanup()
@@ -820,20 +1156,54 @@ def test_stop_cancels_queued_run_and_fails_dependent():
         flag = ws.scratch / "follower-ran.txt"
         flag2 = ws.scratch / "grandchild-ran.txt"
         _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 5")
-        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
-               "--after-heartbeat", "0", "follower", "--", "bash", "-c", f"echo ran > {flag}")
-        _start(ws, "--no-aim", "--after", "follower", "--after-poll", "0.05",
-               "--after-heartbeat", "0", "grandchild", "--", "bash", "-c", f"echo ran > {flag2}")
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "follower",
+            "--",
+            "bash",
+            "-c",
+            f"echo ran > {flag}",
+        )
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "follower",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "grandchild",
+            "--",
+            "bash",
+            "-c",
+            f"echo ran > {flag2}",
+        )
         _wait_status(ws, "follower", "waiting")
         res = ws.run("stop", "follower")
-        _assert(res.returncode == 0 and "stopped" in res.stdout,
-                f"stop should cancel a queued run: rc={res.returncode} {res.stdout!r}")
-        _assert(ws.state("follower").get("status") == "stopped",
-                f"canceled run should be marked stopped: {ws.state('follower')!r}")
+        _assert(
+            res.returncode == 0 and "stopped" in res.stdout,
+            f"stop should cancel a queued run: rc={res.returncode} {res.stdout!r}",
+        )
+        _assert(
+            ws.state("follower").get("status") == "stopped",
+            f"canceled run should be marked stopped: {ws.state('follower')!r}",
+        )
         s = ws.wait_finished("grandchild")
-        _assert(s["returncode"] != 0, f"stopped dependency should fail the dependent: {s!r}")
-        _assert(not flag.exists() and not flag2.exists(),
-                "neither canceled nor dependent payload may run")
+        _assert(
+            s["returncode"] != 0, f"stopped dependency should fail the dependent: {s!r}"
+        )
+        _assert(
+            not flag.exists() and not flag2.exists(),
+            "neither canceled nor dependent payload may run",
+        )
     finally:
         ws.run("stop", "slowdep")
         ws.cleanup()
@@ -845,14 +1215,29 @@ def test_watch_attaches_through_queued_phase():
     ws = Workspace()
     try:
         _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.8")
-        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
-               "--after-heartbeat", "0", "follower", "--", "bash", "-c", "true")
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "follower",
+            "--",
+            "bash",
+            "-c",
+            "true",
+        )
         _wait_status(ws, "follower", "waiting")
         proc = ws.popen("watch", "follower", "--poll", "0.1", "--heartbeat", "0")
         out, err = proc.communicate(timeout=15)
         _assert(proc.returncode == 0, f"watch failed: rc={proc.returncode} {err!r}")
-        _assert("done: follower" in out and "status=finished" in out,
-                f"watch should end at the terminal state, not status=waiting: {out!r}")
+        _assert(
+            "done: follower" in out and "status=finished" in out,
+            f"watch should end at the terminal state, not status=waiting: {out!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -864,17 +1249,45 @@ def test_refresh_marks_dead_queued_wrapper_failed():
     ws = Workspace()
     try:
         _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 5")
-        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
-               "--after-heartbeat", "0", "follower", "--", "bash", "-c", "true")
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "follower",
+            "--",
+            "bash",
+            "-c",
+            "true",
+        )
         s = _wait_status(ws, "follower", "waiting")
         os.kill(int(s["pid"]), 9)
         time.sleep(0.2)
-        res = ws.run("wait", "follower", "--target", "not-running",
-                     "--poll", "0.1", "--heartbeat", "0", "--timeout", "5")
-        _assert(res.returncode != 0, f"dead queued wrapper should surface as failed: {res.stdout!r}")
+        res = ws.run(
+            "wait",
+            "follower",
+            "--target",
+            "not-running",
+            "--poll",
+            "0.1",
+            "--heartbeat",
+            "0",
+            "--timeout",
+            "5",
+        )
+        _assert(
+            res.returncode != 0,
+            f"dead queued wrapper should surface as failed: {res.stdout!r}",
+        )
         s = ws.state("follower")
-        _assert(s.get("status") == "finished" and s.get("returncode") == "unknown",
-                f"dead queued wrapper should be finished/unknown: {s!r}")
+        _assert(
+            s.get("status") == "finished" and s.get("returncode") == "unknown",
+            f"dead queued wrapper should be finished/unknown: {s!r}",
+        )
     finally:
         ws.run("stop", "slowdep")
         ws.cleanup()
@@ -886,14 +1299,29 @@ def test_restart_requeues_behind_same_after_chain():
     try:
         _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "true")
         ws.wait_finished("slowdep")
-        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
-               "--after-heartbeat", "0", "follower", "--", "bash", "-c", "true")
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "follower",
+            "--",
+            "bash",
+            "-c",
+            "true",
+        )
         first = ws.wait_finished("follower")
         res = ws.run("restart", "follower")
         _assert(res.returncode == 0, f"restart failed: {res.stderr}")
         s = ws.wait_finished("follower", since_run_id=first["run_id"])
-        _assert(s.get("wait_after_specs") == ["slowdep"],
-                f"restart should requeue behind the same --after chain: {s!r}")
+        _assert(
+            s.get("wait_after_specs") == ["slowdep"],
+            f"restart should requeue behind the same --after chain: {s!r}",
+        )
         _assert(s["returncode"] == 0, f"restarted follower failed: {s!r}")
     finally:
         ws.cleanup()
@@ -902,8 +1330,13 @@ def test_restart_requeues_behind_same_after_chain():
 def test_wait_work_times_out_when_nothing_new():
     ws = Workspace()
     try:
-        res = ws.run("wait-work", "--timeout", "0.5", "--poll", "0.1", "--heartbeat", "0")
-        _assert(res.returncode == 1, f"wait-work should exit 1 on timeout: rc={res.returncode}")
+        res = ws.run(
+            "wait-work", "--timeout", "0.5", "--poll", "0.1", "--heartbeat", "0"
+        )
+        _assert(
+            res.returncode == 1,
+            f"wait-work should exit 1 on timeout: rc={res.returncode}",
+        )
         _assert("timeout" in res.stderr, f"timeout should be reported: {res.stderr!r}")
     finally:
         ws.cleanup()
@@ -922,9 +1355,14 @@ def test_wait_work_wakes_on_new_run():
         _assert(proc.poll() is None, "wait-work must not fire on preexisting runs")
         _start(ws, "--no-aim", "newjob", "--", "bash", "-c", "true")
         out, err = proc.communicate(timeout=10)
-        _assert(proc.returncode == 0, f"wait-work should wake on a new run: rc={proc.returncode} {err!r}")
+        _assert(
+            proc.returncode == 0,
+            f"wait-work should wake on a new run: rc={proc.returncode} {err!r}",
+        )
         _assert("new run: job=newjob" in out, f"the new run should be named: {out!r}")
-        _assert("preexisting" not in out, f"baseline runs must not be reported: {out!r}")
+        _assert(
+            "preexisting" not in out, f"baseline runs must not be reported: {out!r}"
+        )
     finally:
         if proc is not None and proc.poll() is None:
             proc.kill()
@@ -946,9 +1384,17 @@ def test_wait_work_wakes_on_new_on_deck_entry():
         (deck / "INDEX.md").write_text("| derived |\n")
         (deck / "pilot-a.md").write_text("---\nslug: pilot-a\nstatus: pending\n---\n")
         out, err = proc.communicate(timeout=10)
-        _assert(proc.returncode == 0, f"wait-work should wake on a new entry: rc={proc.returncode} {err!r}")
-        _assert("new on-deck entry: on-deck/pilot-a.md" in out, f"the new entry should be named: {out!r}")
-        _assert("INDEX.md" not in out, f"derived INDEX.md must not be reported: {out!r}")
+        _assert(
+            proc.returncode == 0,
+            f"wait-work should wake on a new entry: rc={proc.returncode} {err!r}",
+        )
+        _assert(
+            "new on-deck entry: on-deck/pilot-a.md" in out,
+            f"the new entry should be named: {out!r}",
+        )
+        _assert(
+            "INDEX.md" not in out, f"derived INDEX.md must not be reported: {out!r}"
+        )
     finally:
         if proc is not None and proc.poll() is None:
             proc.kill()
@@ -971,8 +1417,14 @@ def test_wait_work_wakes_on_updated_on_deck_entry():
         _assert(proc.poll() is None, "wait-work must not fire on a preexisting entry")
         entry.write_text("---\nslug: pilot-a\nstatus: pending\n---\n")
         out, err = proc.communicate(timeout=10)
-        _assert(proc.returncode == 0, f"wait-work should wake on an updated entry: rc={proc.returncode} {err!r}")
-        _assert("updated on-deck entry: on-deck/pilot-a.md" in out, f"the updated entry should be named: {out!r}")
+        _assert(
+            proc.returncode == 0,
+            f"wait-work should wake on an updated entry: rc={proc.returncode} {err!r}",
+        )
+        _assert(
+            "updated on-deck entry: on-deck/pilot-a.md" in out,
+            f"the updated entry should be named: {out!r}",
+        )
     finally:
         if proc is not None and proc.poll() is None:
             proc.kill()
@@ -989,9 +1441,15 @@ def test_list_default_shows_six_recent_finished_jobs():
             ws.wait_finished(job)
         res = ws.run("list")
         _assert(res.returncode == 0, f"list failed: {res.stderr}")
-        _assert("Live Jobs:\n  none" in res.stdout, f"live section should be empty: {res.stdout!r}")
+        _assert(
+            "Live Jobs:\n  none" in res.stdout,
+            f"live section should be empty: {res.stdout!r}",
+        )
         finished = [line for line in _status_lines(res.stdout) if " finished " in line]
-        _assert(len(finished) == 6, f"default list should show six recent finished jobs: {res.stdout!r}")
+        _assert(
+            len(finished) == 6,
+            f"default list should show six recent finished jobs: {res.stdout!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1004,26 +1462,46 @@ def test_list_show_last_fills_after_running_and_waiting_jobs():
             _start(ws, "--no-aim", job, "--", "true")
             ws.wait_finished(job)
         _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 5")
-        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
-               "--after-heartbeat", "0", "blocked", "--", "true")
+        _start(
+            ws,
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "blocked",
+            "--",
+            "true",
+        )
         _wait_status(ws, "blocked", "waiting")
 
         res = ws.run("list", "--show-last", "4")
         _assert(res.returncode == 0, f"list failed: {res.stderr}")
         lines = _status_lines(res.stdout)
-        _assert(any(line.startswith("slowdep ") and " running " in line for line in lines),
-                f"running job should be listed as live: {res.stdout!r}")
-        _assert(any(line.startswith("blocked ") and " waiting " in line for line in lines),
-                f"waiting --after job should be listed as live: {res.stdout!r}")
+        _assert(
+            any(line.startswith("slowdep ") and " running " in line for line in lines),
+            f"running job should be listed as live: {res.stdout!r}",
+        )
+        _assert(
+            any(line.startswith("blocked ") and " waiting " in line for line in lines),
+            f"waiting --after job should be listed as live: {res.stdout!r}",
+        )
         finished = [line for line in lines if " finished " in line]
-        _assert(len(finished) == 2,
-                f"--show-last 4 should fill two recent rows after two live rows: {res.stdout!r}")
+        _assert(
+            len(finished) == 2,
+            f"--show-last 4 should fill two recent rows after two live rows: {res.stdout!r}",
+        )
 
         live_only = ws.run("list", "--running-only")
         _assert(live_only.returncode == 0, f"live-only list failed: {live_only.stderr}")
         live_lines = _status_lines(live_only.stdout)
-        _assert(len(live_lines) == 2 and all(" finished " not in line for line in live_lines),
-                f"--running-only should include running/waiting but no finished rows: {live_only.stdout!r}")
+        _assert(
+            len(live_lines) == 2
+            and all(" finished " not in line for line in live_lines),
+            f"--running-only should include running/waiting but no finished rows: {live_only.stdout!r}",
+        )
     finally:
         ws.run("stop", "blocked")
         ws.run("stop", "slowdep")
@@ -1035,11 +1513,23 @@ def test_script_override():
     try:
         sc = ws.scratch / "code.py"
         sc.write_bytes(b"# hello")
-        _start(ws, "--experiment", "e", "--script", str(sc),
-               "scov", "--", "bash", "-c", "true")
+        _start(
+            ws,
+            "--experiment",
+            "e",
+            "--script",
+            str(sc),
+            "scov",
+            "--",
+            "bash",
+            "-c",
+            "true",
+        )
         s = ws.wait_finished("scov")
-        _assert(s["script"]["path"] == str(sc.resolve()),
-                f"script.path: {s['script']['path']!r}")
+        _assert(
+            s["script"]["path"] == str(sc.resolve()),
+            f"script.path: {s['script']['path']!r}",
+        )
         expected = hashlib.sha256(b"# hello").hexdigest()
         _assert(s["script"]["sha256"] == expected, "script sha256 mismatch")
     finally:
@@ -1055,12 +1545,24 @@ def test_restart_preserves_declarations():
         sc = ws.scratch / "s.sh"
         sc.write_text("#!/bin/sh\nexit 0\n")
         sc.chmod(0o755)
-        _start(ws, "--experiment", "rs",
-               "--input-hash", f"data={f}",
-               "--output-hash", f"r={out}",
-               "--script", str(sc),
-               "--propagate-json", '{"k": "v"}',
-               "rsjob", "--", "bash", "-c", f"echo hi > {out}")
+        _start(
+            ws,
+            "--experiment",
+            "rs",
+            "--input-hash",
+            f"data={f}",
+            "--output-hash",
+            f"r={out}",
+            "--script",
+            str(sc),
+            "--propagate-json",
+            '{"k": "v"}',
+            "rsjob",
+            "--",
+            "bash",
+            "-c",
+            f"echo hi > {out}",
+        )
         s1 = ws.wait_finished("rsjob")
         # Restart: must preserve declarations.
         rc = ws.run("restart", "rsjob")
@@ -1068,7 +1570,9 @@ def test_restart_preserves_declarations():
         s2 = ws.wait_finished("rsjob", since_run_id=s1["run_id"])
         _assert(s2["inputs"]["data"].get("sha256"), "restart lost --input-hash sha256")
         _assert(s2["outputs"]["r"].get("sha256"), "restart lost --output-hash sha256")
-        _assert(s2["script"]["path"] == s1["script"]["path"], "script path drift on restart")
+        _assert(
+            s2["script"]["path"] == s1["script"]["path"], "script path drift on restart"
+        )
         _assert(s2["propagate"] == {"k": "v"}, f"propagate lost: {s2['propagate']!r}")
     finally:
         ws.cleanup()
@@ -1081,12 +1585,19 @@ def test_plugin_loader_skips_broken():
         broken.write_text("import this_module_definitely_does_not_exist_xyz123\n")
         # --help must still work (the aim plugin is loaded; broken one warns).
         rc = ws.run("--help")
-        _assert(rc.returncode == 0, f"--help failed with broken plugin: rc={rc.returncode}")
-        _assert("warning" in rc.stderr.lower() and "broken_zzz" in rc.stderr,
-                f"expected warning about broken_zzz, stderr={rc.stderr!r}")
+        _assert(
+            rc.returncode == 0, f"--help failed with broken plugin: rc={rc.returncode}"
+        )
+        _assert(
+            "warning" in rc.stderr.lower() and "broken_zzz" in rc.stderr,
+            f"expected warning about broken_zzz, stderr={rc.stderr!r}",
+        )
         # aim's own --no-aim should still appear in start --help
         rc2 = ws.run("start", "--help")
-        _assert("--no-aim" in rc2.stdout, "aim plugin failed to register despite broken sibling")
+        _assert(
+            "--no-aim" in rc2.stdout,
+            "aim plugin failed to register despite broken sibling",
+        )
     finally:
         ws.cleanup()
 
@@ -1101,9 +1612,7 @@ def test_aim_run_record_default_runs_root():
         meta_target = ws.scratch / "fake.meta.md"
         meta_target.write_text("# fake\n")
         record = {
-            "params": {
-                "output": {"meta_path": str(meta_target.resolve())}
-            },
+            "params": {"output": {"meta_path": str(meta_target.resolve())}},
             "source": {"aim_run_hash": "abc123def456"},
         }
         dump.write_text(json.dumps(record))
@@ -1111,17 +1620,21 @@ def test_aim_run_record_default_runs_root():
         # Find Python and call find_aim_run_record.
         py = sys.executable
         code = (
-            f'import sys; sys.path.insert(0, {str(ws.tmp)!r}); '
-            f'import artifact_meta; '
-            f'r = artifact_meta.find_aim_run_record('
-            f'meta_path={str(meta_target.resolve())!r}, '
+            f"import sys; sys.path.insert(0, {str(ws.tmp)!r}); "
+            f"import artifact_meta; "
+            f"r = artifact_meta.find_aim_run_record("
+            f"meta_path={str(meta_target.resolve())!r}, "
             f'setup=[("aim_run_hash","abc123def456")], '
-            f'repo_root={str(ws.tmp)!r}); '
+            f"repo_root={str(ws.tmp)!r}); "
             f'print("FOUND" if r else "NOT_FOUND")'
         )
-        result = subprocess.run([py, "-c", code], capture_output=True, text=True, cwd=ws.tmp)
-        _assert("FOUND" in result.stdout,
-                f"run-record lookup failed: stdout={result.stdout!r} stderr={result.stderr!r}")
+        result = subprocess.run(
+            [py, "-c", code], capture_output=True, text=True, cwd=ws.tmp
+        )
+        _assert(
+            "FOUND" in result.stdout,
+            f"run-record lookup failed: stdout={result.stdout!r} stderr={result.stderr!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1145,18 +1658,22 @@ def test_aim_read_roots_env_override():
 
         py = sys.executable
         code = (
-            f'import sys; sys.path.insert(0, {str(ws.tmp)!r}); '
-            f'import artifact_meta; '
-            f'r = artifact_meta.find_aim_run_record('
-            f'meta_path={str(meta_target.resolve())!r}, '
+            f"import sys; sys.path.insert(0, {str(ws.tmp)!r}); "
+            f"import artifact_meta; "
+            f"r = artifact_meta.find_aim_run_record("
+            f"meta_path={str(meta_target.resolve())!r}, "
             f'setup=[("aim_run_hash","abc123def456")], '
-            f'repo_root={str(ws.tmp)!r}); '
-            f'print(r)'
+            f"repo_root={str(ws.tmp)!r}); "
+            f"print(r)"
         )
         env = {**os.environ, "AGENTCTL_AIM_READ_ROOTS": "alt-runs/aim"}
-        result = subprocess.run([py, "-c", code], capture_output=True, text=True, cwd=ws.tmp, env=env)
-        _assert("alt-runs/aim/archive/runs/r1.json" in result.stdout,
-                f"env read-root search failed: stdout={result.stdout!r} stderr={result.stderr!r}")
+        result = subprocess.run(
+            [py, "-c", code], capture_output=True, text=True, cwd=ws.tmp, env=env
+        )
+        _assert(
+            "alt-runs/aim/archive/runs/r1.json" in result.stdout,
+            f"env read-root search failed: stdout={result.stdout!r} stderr={result.stderr!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1169,11 +1686,15 @@ def test_cleanup_running_accepts_output_or_marker_path():
         marker.write_text("- status: running\n")
         rc = ws.run("cleanup-running", str(out))
         _assert(rc.returncode == 0, f"cleanup-running failed: {rc.stderr}")
-        _assert(not marker.exists(), "cleanup-running did not remove marker via output path")
+        _assert(
+            not marker.exists(), "cleanup-running did not remove marker via output path"
+        )
         marker.write_text("- status: running\n")
         rc = ws.run("cleanup-running", str(marker))
         _assert(rc.returncode == 0, f"cleanup-running marker path failed: {rc.stderr}")
-        _assert(not marker.exists(), "cleanup-running did not remove marker path directly")
+        _assert(
+            not marker.exists(), "cleanup-running did not remove marker path directly"
+        )
     finally:
         ws.cleanup()
 
@@ -1185,23 +1706,34 @@ def test_cleanup_running_scan_reports_recovery_state():
         completed.write_text("done")
         Path(f"{completed}.meta.md").write_text("# done\n")
         completed_marker = Path(f"{completed}.running.md")
-        completed_marker.write_text(f"- status: running\n- pid: 99999999\n- out: {completed}\n")
+        completed_marker.write_text(
+            f"- status: running\n- pid: 99999999\n- out: {completed}\n"
+        )
 
         interrupted = ws.scratch / "interrupted.out"
         interrupted_marker = Path(f"{interrupted}.running.md")
-        interrupted_marker.write_text(f"- status: running\n- pid: 99999999\n- out: {interrupted}\n")
+        interrupted_marker.write_text(
+            f"- status: running\n- pid: 99999999\n- out: {interrupted}\n"
+        )
 
         live = ws.scratch / "live.out"
         live_marker = Path(f"{live}.running.md")
-        live_marker.write_text(f"- status: running\n- pid: {os.getpid()}\n- out: {live}\n")
+        live_marker.write_text(
+            f"- status: running\n- pid: {os.getpid()}\n- out: {live}\n"
+        )
 
         rc = ws.run("cleanup-running")
         _assert(rc.returncode == 0, f"cleanup-running scan failed: {rc.stderr}")
         _assert(not completed_marker.exists(), "completed marker should be removed")
         _assert(interrupted_marker.exists(), "interrupted marker should be kept")
         _assert(live_marker.exists(), "live marker should be kept")
-        _assert("completed removed" in rc.stdout, f"completed status missing: {rc.stdout!r}")
-        _assert("interrupted kept" in rc.stdout, f"interrupted status missing: {rc.stdout!r}")
+        _assert(
+            "completed removed" in rc.stdout, f"completed status missing: {rc.stdout!r}"
+        )
+        _assert(
+            "interrupted kept" in rc.stdout,
+            f"interrupted status missing: {rc.stdout!r}",
+        )
         _assert("running kept" in rc.stdout, f"running status missing: {rc.stdout!r}")
     finally:
         ws.cleanup()
@@ -1212,8 +1744,10 @@ def test_active_register_skipped_without_session_id():
     try:
         _start(ws, "--no-aim", "trivial", "--", "true")
         ws.wait_finished("trivial")
-        _assert(not (ws.tmp / ".agentctl/active").exists(),
-                "no active/ dir should be created without AGENTCTL_SESSION_ID")
+        _assert(
+            not (ws.tmp / ".agentctl/active").exists(),
+            "no active/ dir should be created without AGENTCTL_SESSION_ID",
+        )
     finally:
         ws.cleanup()
 
@@ -1224,38 +1758,68 @@ def test_active_register_create_append_and_done():
     active = ws.tmp / ".agentctl/active" / sid
     try:
         # No prior entry: agentctl authors a degraded line 1 from the launch.
-        res = ws.run("start", "--no-aim", "job1", "--", "true",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "job1",
+            "--",
+            "true",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"start failed: {res.stderr}")
         ws.wait_finished("job1")
-        _assert(active.exists(), "active entry should be created when session id is set")
+        _assert(
+            active.exists(), "active entry should be created when session id is set"
+        )
         lines = active.read_text().splitlines()
-        _assert(lines == [lines[0]] and "job1" in lines[0],
-                f"fresh entry should be a single summary line mentioning the launch: {lines!r}")
+        _assert(
+            lines == [lines[0]] and "job1" in lines[0],
+            f"fresh entry should be a single summary line mentioning the launch: {lines!r}",
+        )
 
         # Agent overwrites with its own authored summary + scope; agentctl must
         # preserve both and append only free text below them.
         active.write_text("Coordinating edits to pkg/foo\nscope: pkg/foo/**\n")
-        res = ws.run("start", "--no-aim", "job2", "--", "true",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "job2",
+            "--",
+            "true",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"start failed: {res.stderr}")
         ws.wait_finished("job2")
         lines = active.read_text().splitlines()
-        _assert(lines[0] == "Coordinating edits to pkg/foo",
-                f"agent line 1 must be preserved: {lines!r}")
-        _assert(lines[1] == "scope: pkg/foo/**",
-                f"scope line 2 must be preserved: {lines!r}")
-        _assert(any("job2" in ln for ln in lines[2:]),
-                f"a free-text note should be appended for job2: {lines!r}")
+        _assert(
+            lines[0] == "Coordinating edits to pkg/foo",
+            f"agent line 1 must be preserved: {lines!r}",
+        )
+        _assert(
+            lines[1] == "scope: pkg/foo/**",
+            f"scope line 2 must be preserved: {lines!r}",
+        )
+        _assert(
+            any("job2" in ln for ln in lines[2:]),
+            f"a free-text note should be appended for job2: {lines!r}",
+        )
 
         # DONE-prefixed entry: the session is complete; leave it untouched.
         active.write_text("DONE: wrapped up\n")
-        res = ws.run("start", "--no-aim", "job3", "--", "true",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "job3",
+            "--",
+            "true",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"start failed: {res.stderr}")
         ws.wait_finished("job3")
-        _assert(active.read_text() == "DONE: wrapped up\n",
-                f"DONE entry must be left untouched: {active.read_text()!r}")
+        _assert(
+            active.read_text() == "DONE: wrapped up\n",
+            f"DONE entry must be left untouched: {active.read_text()!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1267,11 +1831,20 @@ def test_active_register_adopts_harness_session_id():
     sid = "sess-harness"
     active = ws.tmp / ".agentctl/active" / sid
     try:
-        res = ws.run("start", "--no-aim", "adopted", "--", "true",
-                     env_extra={"CLAUDE_CODE_SESSION_ID": sid})
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "adopted",
+            "--",
+            "true",
+            env_extra={"CLAUDE_CODE_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"start failed: {res.stderr}")
         ws.wait_finished("adopted")
-        _assert(active.exists(), "entry should be created from the adopted harness session id")
+        _assert(
+            active.exists(),
+            "entry should be created from the adopted harness session id",
+        )
         _assert("adopted" in active.read_text(), "summary should mention the launch")
     finally:
         ws.cleanup()
@@ -1284,9 +1857,16 @@ def test_launched_job_gets_depth_guard():
     ws = Workspace()
     out = ws.scratch / "child_depth.txt"
     try:
-        res = ws.run("start", "--no-aim", "depthjob", "--",
-                     "sh", "-c", f'printf %s "${{AGENTCTL_LAUNCH_DEPTH-UNSET}}" > {out}',
-                     env_extra={"CLAUDE_CODE_SESSION_ID": "sess-harness"})
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "depthjob",
+            "--",
+            "sh",
+            "-c",
+            f'printf %s "${{AGENTCTL_LAUNCH_DEPTH-UNSET}}" > {out}',
+            env_extra={"CLAUDE_CODE_SESSION_ID": "sess-harness"},
+        )
         _assert(res.returncode == 0, f"start failed: {res.stderr}")
         ws.wait_finished("depthjob")
         got = out.read_text()
@@ -1301,20 +1881,30 @@ def test_active_verb_authors_banner_and_scope():
     sid = "sess-active1"
     active = ws.tmp / ".agentctl/active" / sid
     try:
-        res = ws.run("active", "refactoring the scope parser",
-                     "agentctl.py", "topics/agentctl.md",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "active",
+            "refactoring the scope parser",
+            "agentctl.py",
+            "topics/agentctl.md",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"active failed: {res.stderr}")
         lines = active.read_text().splitlines()
-        _assert(lines[0] == "refactoring the scope parser",
-                f"line 1 should be the banner: {lines!r}")
-        _assert(lines[1] == "scope: agentctl.py topics/agentctl.md",
-                f"line 2 should be the scope: {lines!r}")
+        _assert(
+            lines[0] == "refactoring the scope parser",
+            f"line 1 should be the banner: {lines!r}",
+        )
+        _assert(
+            lines[1] == "scope: agentctl.py topics/agentctl.md",
+            f"line 2 should be the scope: {lines!r}",
+        )
         # No run noise: the verb must not create job/run state.
-        _assert(not (ws.tmp / ".agentctl/jobs").exists(),
-                "active must not create job state")
-        _assert(not (ws.tmp / ".agentctl/runs").exists(),
-                "active must not create run state")
+        _assert(
+            not (ws.tmp / ".agentctl/jobs").exists(), "active must not create job state"
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/runs").exists(), "active must not create run state"
+        )
     finally:
         ws.cleanup()
 
@@ -1327,12 +1917,19 @@ def test_active_verb_replaces_header_preserves_body():
     try:
         active.parent.mkdir(parents=True)
         active.write_text("old banner\nscope: old/**\nfree note line\n")
-        res = ws.run("active", "new banner", "pkg/a", "pkg/b",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "active",
+            "new banner",
+            "pkg/a",
+            "pkg/b",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"active failed: {res.stderr}")
         lines = active.read_text().splitlines()
-        _assert(lines == ["new banner", "scope: pkg/a pkg/b", "free note line"],
-                f"header replaced, body preserved: {lines!r}")
+        _assert(
+            lines == ["new banner", "scope: pkg/a pkg/b", "free note line"],
+            f"header replaced, body preserved: {lines!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1345,12 +1942,13 @@ def test_active_verb_keeps_scope_when_no_paths():
     try:
         active.parent.mkdir(parents=True)
         active.write_text("old banner\nscope: keep/me/**\n")
-        res = ws.run("active", "status only",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run("active", "status only", env_extra={"AGENTCTL_SESSION_ID": sid})
         _assert(res.returncode == 0, f"active failed: {res.stderr}")
         lines = active.read_text().splitlines()
-        _assert(lines == ["status only", "scope: keep/me/**"],
-                f"scope should be preserved with no path args: {lines!r}")
+        _assert(
+            lines == ["status only", "scope: keep/me/**"],
+            f"scope should be preserved with no path args: {lines!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1361,8 +1959,10 @@ def test_active_verb_requires_session_id():
     try:
         res = ws.run("active", "no identity here")
         _assert(res.returncode != 0, "active should fail without a session id")
-        _assert(not (ws.tmp / ".agentctl/active").exists(),
-                "no active/ dir should be created without a session id")
+        _assert(
+            not (ws.tmp / ".agentctl/active").exists(),
+            "no active/ dir should be created without a session id",
+        )
     finally:
         ws.cleanup()
 
@@ -1372,12 +1972,16 @@ def test_active_verb_depth_guard():
     ws = Workspace()
     sid = "sess-active4"
     try:
-        res = ws.run("active", "from inside a job",
-                     env_extra={"AGENTCTL_SESSION_ID": sid,
-                                "AGENTCTL_LAUNCH_DEPTH": "1"})
+        res = ws.run(
+            "active",
+            "from inside a job",
+            env_extra={"AGENTCTL_SESSION_ID": sid, "AGENTCTL_LAUNCH_DEPTH": "1"},
+        )
         _assert(res.returncode != 0, "active should refuse at launch depth > 0")
-        _assert(not (ws.tmp / ".agentctl/active" / sid).exists(),
-                "no entry should be authored from a launched job")
+        _assert(
+            not (ws.tmp / ".agentctl/active" / sid).exists(),
+            "no entry should be authored from a launched job",
+        )
     finally:
         ws.cleanup()
 
@@ -1403,12 +2007,24 @@ def test_active_list_shows_fresh_non_done_with_status_and_scope():
         _seed_active(ws, "sess-stale", "long gone", age_minutes=120)
         res = ws.run("active")  # no banner -> list mode
         _assert(res.returncode == 0, f"active list failed: {res.stderr}")
-        out = res.stdout
-        _assert("sess-fresh" in out and "editing the parser" in out,
-                f"fresh non-DONE entry should be listed: {out!r}")
-        _assert("scope: agentctl.py" in out, f"scope line should be shown: {out!r}")
-        _assert("sess-done" not in out, f"DONE entry should be hidden by default: {out!r}")
-        _assert("sess-stale" not in out, f"stale entry should be hidden by default: {out!r}")
+        payload = _json_record(res.stdout)
+        rows = {row["id"]: row for row in payload["sessions"]}
+        _assert(
+            rows["sess-fresh"]["status"] == "editing the parser",
+            f"fresh non-DONE entry should be listed: {payload!r}",
+        )
+        _assert(
+            rows["sess-fresh"]["scope"] == "agentctl.py",
+            f"scope line should be structured: {payload!r}",
+        )
+        _assert(
+            "sess-done" not in rows,
+            f"DONE entry should be hidden by default: {payload!r}",
+        )
+        _assert(
+            "sess-stale" not in rows,
+            f"stale entry should be hidden by default: {payload!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1419,12 +2035,18 @@ def test_active_list_minutes_zero_includes_stale():
     try:
         _seed_active(ws, "sess-stale", "quiet since lunch", age_minutes=200)
         res_default = ws.run("active")
-        _assert("sess-stale" not in res_default.stdout,
-                f"stale should be hidden in the default window: {res_default.stdout!r}")
+        _assert(
+            "sess-stale"
+            not in {row["id"] for row in _json_record(res_default.stdout)["sessions"]},
+            f"stale should be hidden in the default window: {res_default.stdout!r}",
+        )
         res_all = ws.run("active", "-m", "0")
         _assert(res_all.returncode == 0, f"active -m 0 failed: {res_all.stderr}")
-        _assert("sess-stale" in res_all.stdout,
-                f"stale should appear with -m 0: {res_all.stdout!r}")
+        _assert(
+            "sess-stale"
+            in {row["id"] for row in _json_record(res_all.stdout)["sessions"]},
+            f"stale should appear with -m 0: {res_all.stdout!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1436,8 +2058,11 @@ def test_active_list_done_flag_includes_completed():
         _seed_active(ws, "sess-done", "DONE: shipped it")
         res = ws.run("active", "--done")
         _assert(res.returncode == 0, f"active --done failed: {res.stderr}")
-        _assert("sess-done" in res.stdout and "DONE: shipped it" in res.stdout,
-                f"DONE entry should appear with --done: {res.stdout!r}")
+        rows = {row["id"]: row for row in _json_record(res.stdout)["sessions"]}
+        _assert(
+            rows["sess-done"]["status"] == "DONE: shipped it",
+            f"DONE entry should appear with --done: {res.stdout!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1451,10 +2076,15 @@ def test_active_list_marks_self():
         _seed_active(ws, "sess-peer", "peer work")
         res = ws.run("active", env_extra={"AGENTCTL_SESSION_ID": sid})
         _assert(res.returncode == 0, f"active list failed: {res.stderr}")
-        self_line = next((ln for ln in res.stdout.splitlines() if sid in ln), "")
-        _assert("(self)" in self_line, f"own entry should be marked (self): {self_line!r}")
-        peer_line = next((ln for ln in res.stdout.splitlines() if "sess-peer" in ln), "")
-        _assert("(self)" not in peer_line, f"peer should not be marked self: {peer_line!r}")
+        rows = {row["id"]: row for row in _json_record(res.stdout)["sessions"]}
+        _assert(
+            rows[sid].get("self") is True,
+            f"own entry should be marked self: {rows[sid]!r}",
+        )
+        _assert(
+            "self" not in rows["sess-peer"],
+            f"peer should not be marked self: {rows['sess-peer']!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1465,10 +2095,50 @@ def test_active_list_empty_is_clean_exit():
     try:
         res = ws.run("active")
         _assert(res.returncode == 0, f"empty active list should exit 0: {res.stderr}")
-        _assert("no active" in res.stdout.lower(),
-                f"should report no active sessions: {res.stdout!r}")
-        _assert(not (ws.tmp / ".agentctl/active").exists(),
-                "listing must not create the active/ dir")
+        payload = _json_record(res.stdout)
+        _assert(
+            payload["count"] == 0 and payload["missing_active_dir"] is True,
+            f"should report no active sessions: {payload!r}",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/active").exists(),
+            "listing must not create the active/ dir",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_active_list_format_overrides_and_rejects_toon():
+    ws = Workspace()
+    try:
+        _seed_active(ws, "sess-fresh", "editing the parser")
+        pretty = ws.run("active", "--pretty")
+        _assert(pretty.returncode == 0, f"active --pretty failed: {pretty.stderr}")
+        _assert(
+            "\n  " in pretty.stdout,
+            f"--pretty should emit indented JSON: {pretty.stdout!r}",
+        )
+        _assert(json.loads(pretty.stdout)["sessions"][0]["id"] == "sess-fresh")
+
+        bad = ws.run("active", "--toon")
+        _assert(bad.returncode == 2, "--toon should fail for a non-table verb")
+        err = json.loads(bad.stderr)
+        _assert(
+            err["error"]["code"] == "usage",
+            f"expected structured usage error: {bad.stderr!r}",
+        )
+
+        bad_author = ws.run(
+            "active",
+            "new banner",
+            "--toon",
+            env_extra={"AGENTCTL_SESSION_ID": "sess-new"},
+        )
+        _assert(bad_author.returncode == 2, "--toon should fail before authoring")
+        _assert(
+            not (ws.tmp / ".agentctl/active/sess-new").exists(),
+            "format validation must happen before active-entry writes",
+        )
     finally:
         ws.cleanup()
 
@@ -1482,15 +2152,26 @@ def test_others_excludes_self_and_counts_peers():
         _seed_active(ws, "sess-peer1", "peer one\nscope: pkg/a/**")
         _seed_active(ws, "sess-peer2", "peer two")
         res = ws.run("others", sid)
-        _assert(res.returncode == 1,
-                f"others should exit nonzero with peers present: {res.stdout!r} {res.stderr}")
+        _assert(
+            res.returncode == 1,
+            f"others should exit nonzero with peers present: {res.stdout!r} {res.stderr}",
+        )
         out = res.stdout
-        _assert(sid not in out, f"own entry must be excluded: {out!r}")
-        _assert("sess-peer1" in out and "sess-peer2" in out,
-                f"both peers should be listed: {out!r}")
-        _assert(out.startswith("2 other active session"),
-                f"verdict should lead with the peer count: {out!r}")
-        _assert("scope: pkg/a/**" in out, f"peer scope line should show: {out!r}")
+        payload = _json_record(out)
+        rows = {row["id"]: row for row in payload["peers"]}
+        _assert(sid not in rows, f"own entry must be excluded: {payload!r}")
+        _assert(
+            {"sess-peer1", "sess-peer2"} <= set(rows),
+            f"both peers should be listed: {payload!r}",
+        )
+        _assert(
+            payload["other_count"] == 2 and payload["has_peers"] is True,
+            f"verdict should carry the peer count: {payload!r}",
+        )
+        _assert(
+            rows["sess-peer1"]["scope"] == "pkg/a/**",
+            f"peer scope line should be structured: {payload!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1503,8 +2184,11 @@ def test_others_reports_none_when_only_self():
         _seed_active(ws, sid, "working alone")
         res = ws.run("others", sid)
         _assert(res.returncode == 0, f"others failed: {res.stderr}")
-        _assert(res.stdout.strip().startswith("no other active sessions"),
-                f"should report no other sessions: {res.stdout!r}")
+        payload = _json_record(res.stdout)
+        _assert(
+            payload["other_count"] == 0 and payload["has_peers"] is False,
+            f"should report no other sessions: {payload!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1517,10 +2201,13 @@ def test_others_resolves_self_from_env_when_id_omitted():
         _seed_active(ws, sid, "my own work")
         _seed_active(ws, "sess-peer", "peer work")
         res = ws.run("others", env_extra={"AGENTCTL_SESSION_ID": sid})
-        _assert(res.returncode == 1,
-                f"others should exit nonzero with a peer present: {res.stdout!r} {res.stderr}")
-        _assert(sid not in res.stdout, f"resolved self must be excluded: {res.stdout!r}")
-        _assert("sess-peer" in res.stdout, f"peer should be listed: {res.stdout!r}")
+        _assert(
+            res.returncode == 1,
+            f"others should exit nonzero with a peer present: {res.stdout!r} {res.stderr}",
+        )
+        rows = {row["id"] for row in _json_record(res.stdout)["peers"]}
+        _assert(sid not in rows, f"resolved self must be excluded: {res.stdout!r}")
+        _assert("sess-peer" in rows, f"peer should be listed: {res.stdout!r}")
     finally:
         ws.cleanup()
 
@@ -1533,10 +2220,19 @@ def test_others_provided_uuid_registers_when_alone():
         res = ws.run("others", sid)
         _assert(res.returncode == 0, f"others alone should exit 0: {res.stderr}")
         entry = ws.tmp / ".agentctl/active" / sid
-        _assert(entry.exists(), f"provided id should be registered when alone: {res.stdout!r}")
-        _assert("registered" in res.stdout, f"verdict should note the claim: {res.stdout!r}")
-        _assert("agentctl active" in res.stdout,
-                f"placeholder claim should hint how to set a real status: {res.stdout!r}")
+        _assert(
+            entry.exists(),
+            f"provided id should be registered when alone: {res.stdout!r}",
+        )
+        payload = _json_record(res.stdout)
+        _assert(
+            payload["registered"]["id"] == sid,
+            f"verdict should note the claim: {payload!r}",
+        )
+        _assert(
+            "agentctl active" in payload["next_command"],
+            f"placeholder claim should hint how to set a real status: {payload!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1547,10 +2243,15 @@ def test_others_no_uuid_stays_read_only():
     try:
         res = ws.run("others")
         _assert(res.returncode == 0, f"empty others should exit 0: {res.stderr}")
-        _assert("no other active sessions" in res.stdout,
-                f"should report no other sessions: {res.stdout!r}")
-        _assert(not (ws.tmp / ".agentctl/active").exists(),
-                "read-only others must not create the active/ dir")
+        payload = _json_record(res.stdout)
+        _assert(
+            payload["other_count"] == 0 and payload["missing_active_dir"] is True,
+            f"should report no other sessions: {payload!r}",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/active").exists(),
+            "read-only others must not create the active/ dir",
+        )
     finally:
         ws.cleanup()
 
@@ -1562,29 +2263,52 @@ def test_active_verb_tending_flag_and_preservation():
     sid = "sess-tend1"
     active = ws.tmp / ".agentctl/active" / sid
     try:
-        res = ws.run("active", "stewarding the queue", "on-deck/**",
-                     "--tending", "--until", "2026-07-03T02:00Z",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "active",
+            "stewarding the queue",
+            "on-deck/**",
+            "--tending",
+            "--until",
+            "2026-07-03T02:00Z",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"active --tending failed: {res.stderr}")
         lines = active.read_text().splitlines()
-        _assert(lines == ["stewarding the queue", "scope: on-deck/**",
-                          "tending: on-deck until 2026-07-03T02:00Z"],
-                f"header should carry scope then tending: {lines!r}")
+        _assert(
+            lines
+            == [
+                "stewarding the queue",
+                "scope: on-deck/**",
+                "tending: on-deck until 2026-07-03T02:00Z",
+            ],
+            f"header should carry scope then tending: {lines!r}",
+        )
 
-        res = ws.run("active", "new round: launched pilot-a",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "active",
+            "new round: launched pilot-a",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"active update failed: {res.stderr}")
         lines = active.read_text().splitlines()
-        _assert(lines[0] == "new round: launched pilot-a" and
-                lines[2] == "tending: on-deck until 2026-07-03T02:00Z",
-                f"banner update must not shed the tending line: {lines!r}")
+        _assert(
+            lines[0] == "new round: launched pilot-a"
+            and lines[2] == "tending: on-deck until 2026-07-03T02:00Z",
+            f"banner update must not shed the tending line: {lines!r}",
+        )
 
-        res = ws.run("active", "round done, nothing armed", "--no-tending",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "active",
+            "round done, nothing armed",
+            "--no-tending",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"active --no-tending failed: {res.stderr}")
         lines = active.read_text().splitlines()
-        _assert(lines == ["round done, nothing armed", "scope: on-deck/**"],
-                f"--no-tending should drop the tending line only: {lines!r}")
+        _assert(
+            lines == ["round done, nothing armed", "scope: on-deck/**"],
+            f"--no-tending should drop the tending line only: {lines!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1592,8 +2316,13 @@ def test_active_verb_tending_flag_and_preservation():
 def test_active_verb_until_requires_tending():
     ws = Workspace()
     try:
-        res = ws.run("active", "banner", "--until", "forever",
-                     env_extra={"AGENTCTL_SESSION_ID": "sess-tend2"})
+        res = ws.run(
+            "active",
+            "banner",
+            "--until",
+            "forever",
+            env_extra={"AGENTCTL_SESSION_ID": "sess-tend2"},
+        )
         _assert(res.returncode != 0, "--until without --tending should fail")
     finally:
         ws.cleanup()
@@ -1607,18 +2336,31 @@ def test_tending_counts_only_tending_peers():
         _seed_active(ws, sid, "my own work")
         _seed_active(ws, "sess-editor", "editing the parser\nscope: agentctl.py")
         res = ws.run("tending", sid)
-        _assert(res.returncode == 0,
-                f"a non-tending peer must not count: {res.stdout!r} {res.stderr}")
+        _assert(
+            res.returncode == 0,
+            f"a non-tending peer must not count: {res.stdout!r} {res.stderr}",
+        )
 
-        _seed_active(ws, "sess-steward",
-                     "stewarding on-deck\nscope: on-deck/**\ntending: on-deck until forever")
+        _seed_active(
+            ws,
+            "sess-steward",
+            "stewarding on-deck\nscope: on-deck/**\ntending: on-deck until forever",
+        )
         res = ws.run("tending", sid)
-        _assert(res.returncode == 1,
-                f"a tending peer should flip the verdict: {res.stdout!r} {res.stderr}")
-        _assert("sess-steward" in res.stdout and "tending: on-deck until forever" in res.stdout,
-                f"the tending session and its claim should be listed: {res.stdout!r}")
-        _assert("sess-editor" not in res.stdout,
-                f"non-tending peers stay out of the tending list: {res.stdout!r}")
+        _assert(
+            res.returncode == 1,
+            f"a tending peer should flip the verdict: {res.stdout!r} {res.stderr}",
+        )
+        payload = _json_record(res.stdout)
+        rows = {row["id"]: row for row in payload["tenders"]}
+        _assert(
+            rows["sess-steward"]["tending"] == "on-deck until forever",
+            f"the tending session and its claim should be listed: {payload!r}",
+        )
+        _assert(
+            "sess-editor" not in rows,
+            f"non-tending peers stay out of the tending list: {payload!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1629,10 +2371,15 @@ def test_tending_ignores_done_stale_and_self():
     try:
         _seed_active(ws, sid, "stewarding here myself\ntending: on-deck")
         _seed_active(ws, "sess-done", "DONE: stewarded out\ntending: on-deck")
-        _seed_active(ws, "sess-crashed", "stewarding\ntending: on-deck", age_minutes=120)
+        _seed_active(
+            ws, "sess-crashed", "stewarding\ntending: on-deck", age_minutes=120
+        )
         res = ws.run("tending", sid)
-        _assert(res.returncode == 0,
-                f"self, DONE, and stale tending entries must not count: {res.stdout!r} {res.stderr}")
+        _assert(
+            res.returncode == 0,
+            f"self, DONE, and stale tending entries must not count: {res.stdout!r} {res.stderr}",
+        )
+        _assert(_json_record(res.stdout)["other_count"] == 0)
     finally:
         ws.cleanup()
 
@@ -1646,13 +2393,17 @@ def test_tending_claim_registers_and_refresh_keeps_until():
     try:
         res = ws.run("tending", sid, "--until", "2026-07-03T02:00Z")
         _assert(res.returncode == 0, f"tending claim failed: {res.stderr}")
-        _assert("tending: on-deck until 2026-07-03T02:00Z" in entry.read_text(),
-                f"claim should write the tending line: {entry.read_text()!r}")
+        _assert(
+            "tending: on-deck until 2026-07-03T02:00Z" in entry.read_text(),
+            f"claim should write the tending line: {entry.read_text()!r}",
+        )
 
         res = ws.run("tending", sid)
         _assert(res.returncode == 0, f"tending re-claim failed: {res.stderr}")
-        _assert("tending: on-deck until 2026-07-03T02:00Z" in entry.read_text(),
-                f"bare re-claim must keep the until qualifier: {entry.read_text()!r}")
+        _assert(
+            "tending: on-deck until 2026-07-03T02:00Z" in entry.read_text(),
+            f"bare re-claim must keep the until qualifier: {entry.read_text()!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1664,18 +2415,31 @@ def test_wait_touches_active_entry():
     ws = Workspace()
     sid = "sess-waiter"
     try:
-        res = ws.run("start", "--no-aim", "quick", "--", "true",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "quick",
+            "--",
+            "true",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"start failed: {res.stderr}")
         ws.wait_finished("quick")
         entry = _seed_active(ws, sid, "between wakes", age_minutes=60)
-        res = ws.run("wait", "quick", "--target", "not-running",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "wait",
+            "quick",
+            "--target",
+            "not-running",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"wait failed: {res.stdout!r} {res.stderr}")
         age = time.time() - entry.stat().st_mtime
         _assert(age < 60, f"wait should refresh the entry mtime, age={age:.0f}s")
-        _assert(entry.read_text() == "between wakes\n",
-                "touch must not change entry content")
+        _assert(
+            entry.read_text() == "between wakes\n",
+            "touch must not change entry content",
+        )
     finally:
         ws.cleanup()
 
@@ -1685,16 +2449,27 @@ def test_wait_touch_skips_depth_guard_and_done():
     ws = Workspace()
     sid = "sess-waiter"
     try:
-        res = ws.run("start", "--no-aim", "quick", "--", "true",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "quick",
+            "--",
+            "true",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
         _assert(res.returncode == 0, f"start failed: {res.stderr}")
         ws.wait_finished("quick")
 
         entry = _seed_active(ws, sid, "between wakes", age_minutes=60)
-        ws.run("wait", "quick", env_extra={"AGENTCTL_SESSION_ID": sid,
-                                           "AGENTCTL_LAUNCH_DEPTH": "1"})
+        ws.run(
+            "wait",
+            "quick",
+            env_extra={"AGENTCTL_SESSION_ID": sid, "AGENTCTL_LAUNCH_DEPTH": "1"},
+        )
         age = time.time() - entry.stat().st_mtime
-        _assert(age > 3000, f"depth-guarded wait must not touch the entry, age={age:.0f}s")
+        _assert(
+            age > 3000, f"depth-guarded wait must not touch the entry, age={age:.0f}s"
+        )
 
         entry = _seed_active(ws, sid, "DONE: wrapped up", age_minutes=60)
         ws.run("wait", "quick", env_extra={"AGENTCTL_SESSION_ID": sid})
@@ -1711,8 +2486,11 @@ def test_alone_returns_immediately_when_no_peers():
     try:
         res = ws.run("alone", sid, "--timeout", "5")
         _assert(res.returncode == 0, f"alone should exit 0 when solo: {res.stderr}")
-        _assert((ws.tmp / ".agentctl/active" / sid).exists(),
-                "alone should register the provided id on success")
+        _assert(_json_record(res.stdout)["alone"] is True)
+        _assert(
+            (ws.tmp / ".agentctl/active" / sid).exists(),
+            "alone should register the provided id on success",
+        )
     finally:
         ws.cleanup()
 
@@ -1735,11 +2513,22 @@ def test_alone_times_out_with_peer_present():
     sid = "sess-me"
     try:
         _seed_active(ws, "sess-peer", "peer busy")
-        res = ws.run("alone", sid, "--timeout", "1", "--poll", "0.5", "--heartbeat", "0")
-        _assert(res.returncode != 0, f"alone should time out with a peer present: {res.stdout!r}")
-        _assert("timeout" in res.stderr, f"timeout should be reported: {res.stderr!r}")
-        _assert(not (ws.tmp / ".agentctl/active" / sid).exists(),
-                "alone must not register on the timeout path")
+        res = ws.run(
+            "alone", sid, "--timeout", "1", "--poll", "0.5", "--heartbeat", "0"
+        )
+        _assert(
+            res.returncode != 0,
+            f"alone should time out with a peer present: {res.stdout!r}",
+        )
+        records = _json_records(res.stdout)
+        _assert(
+            records[-1]["kind"] == "alone_timeout",
+            f"timeout should be reported: {records!r}",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/active" / sid).exists(),
+            "alone must not register on the timeout path",
+        )
     finally:
         ws.cleanup()
 
@@ -1751,25 +2540,41 @@ def test_alone_registers_banner_and_scope_on_success():
     try:
         res = ws.run("alone", sid, "pkg/a", "-b", "doing the rebase", "--timeout", "5")
         _assert(res.returncode == 0, f"alone should exit 0 when solo: {res.stderr}")
+        payload = _json_record(res.stdout)
+        _assert(
+            payload["registered"]["banner"] == "doing the rebase",
+            f"banner missing: {payload!r}",
+        )
+        _assert(
+            payload["registered"]["scope"] == ["pkg/a"], f"scope missing: {payload!r}"
+        )
         entry = ws.tmp / ".agentctl/active" / sid
         _assert(entry.exists(), "alone should register the entry on success")
         lines = entry.read_text().splitlines()
-        _assert(lines[0] == "doing the rebase", f"line 1 should be the banner: {lines!r}")
+        _assert(
+            lines[0] == "doing the rebase", f"line 1 should be the banner: {lines!r}"
+        )
         _assert(lines[1] == "scope: pkg/a", f"line 2 should be the scope: {lines!r}")
-        _assert("placeholder" not in res.stdout, f"a real banner means no placeholder hint: {res.stdout!r}")
+        _assert(
+            "next_command" not in payload, f"a real banner needs no hint: {payload!r}"
+        )
     finally:
         ws.cleanup()
 
 
 def test_alone_placeholder_hint_when_no_banner():
-    # Bare alone registers a placeholder and prints how to set a real status.
+    # Bare alone registers a placeholder and returns how to set a real status.
     ws = Workspace()
     sid = "sess-ph"
     try:
         res = ws.run("alone", sid, "--timeout", "5")
         _assert(res.returncode == 0, f"alone should exit 0 when solo: {res.stderr}")
-        _assert("placeholder" in res.stdout and "agentctl active" in res.stdout,
-                f"placeholder claim should hint how to set status: {res.stdout!r}")
+        payload = _json_record(res.stdout)
+        _assert(
+            payload["registered"]["status"] == "created"
+            and "agentctl active" in payload["next_command"],
+            f"placeholder claim should hint how to set status: {payload!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1792,10 +2597,14 @@ def test_awaiting_does_not_block_others():
     try:
         _seed_awaiting(ws, "sess-wait", "awaiting alone then: rebase main")
         res = ws.run("others", "sess-x")
-        _assert(res.returncode == 0,
-                f"awaiting entry must not make others see a peer: {res.stdout!r} {res.stderr}")
-        _assert("no other active sessions" in res.stdout,
-                f"awaiting entry must not be reported as a peer: {res.stdout!r}")
+        _assert(
+            res.returncode == 0,
+            f"awaiting entry must not make others see a peer: {res.stdout!r} {res.stderr}",
+        )
+        _assert(
+            _json_record(res.stdout)["other_count"] == 0,
+            f"awaiting entry must not be reported as a peer: {res.stdout!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1804,14 +2613,24 @@ def test_awaiting_shown_in_active_list():
     # `agentctl active` surfaces awaiting entries (tagged, non-blocking).
     ws = Workspace()
     try:
-        _seed_awaiting(ws, "sess-wait", "awaiting alone then: rebase main\nscope: pkg/a")
+        _seed_awaiting(
+            ws, "sess-wait", "awaiting alone then: rebase main\nscope: pkg/a"
+        )
         res = ws.run("active")
         _assert(res.returncode == 0, f"active list failed: {res.stderr}")
-        _assert("awaiting alone then: rebase main" in res.stdout,
-                f"awaiting status should be shown: {res.stdout!r}")
-        _assert("awaiting" in res.stdout and "non-blocking" in res.stdout,
-                f"awaiting entry should be tagged: {res.stdout!r}")
-        _assert("scope: pkg/a" in res.stdout, f"awaiting scope should be shown: {res.stdout!r}")
+        awaiting = _json_record(res.stdout)["awaiting"]
+        _assert(
+            awaiting[0]["status"] == "awaiting alone then: rebase main",
+            f"awaiting status should be shown: {res.stdout!r}",
+        )
+        _assert(
+            awaiting[0]["awaiting"] is True,
+            f"awaiting entry should be tagged: {res.stdout!r}",
+        )
+        _assert(
+            awaiting[0]["scope"] == "pkg/a",
+            f"awaiting scope should be shown: {res.stdout!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1822,10 +2641,26 @@ def test_alone_cleans_up_awaiting_on_timeout():
     sid = "sess-me"
     try:
         _seed_active(ws, "sess-peer", "peer busy")
-        res = ws.run("alone", sid, "-b", "rebase", "--timeout", "1", "--poll", "0.5", "--heartbeat", "0")
-        _assert(res.returncode != 0, f"alone should time out with a peer present: {res.stdout!r}")
-        _assert(not (ws.tmp / ".agentctl/awaiting" / sid).exists(),
-                "awaiting entry must be cleaned up after the wait ends")
+        res = ws.run(
+            "alone",
+            sid,
+            "-b",
+            "rebase",
+            "--timeout",
+            "1",
+            "--poll",
+            "0.5",
+            "--heartbeat",
+            "0",
+        )
+        _assert(
+            res.returncode != 0,
+            f"alone should time out with a peer present: {res.stdout!r}",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/awaiting" / sid).exists(),
+            "awaiting entry must be cleaned up after the wait ends",
+        )
     finally:
         ws.cleanup()
 
@@ -1837,10 +2672,14 @@ def test_alone_no_awaiting_when_immediately_alone():
     try:
         res = ws.run("alone", sid, "-b", "rebase", "--timeout", "5")
         _assert(res.returncode == 0, f"alone should exit 0 when solo: {res.stderr}")
-        _assert((ws.tmp / ".agentctl/active" / sid).exists(),
-                "the real claim should be registered in active/")
-        _assert(not (ws.tmp / ".agentctl/awaiting" / sid).exists(),
-                "no awaiting entry should remain when there was no wait")
+        _assert(
+            (ws.tmp / ".agentctl/active" / sid).exists(),
+            "the real claim should be registered in active/",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/awaiting" / sid).exists(),
+            "no awaiting entry should remain when there was no wait",
+        )
     finally:
         ws.cleanup()
 
@@ -1850,19 +2689,29 @@ def test_active_sweep_archives_done_and_stale():
     # leaving fresh entries (live peers, just-finished sessions) in place.
     ws = Workspace()
     try:
-        _seed_active(ws, "sess-live", "still editing")                        # fresh non-DONE
-        _seed_active(ws, "sess-fresh-done", "DONE: just landed")              # fresh DONE
-        _seed_active(ws, "sess-crashed", "went quiet", age_minutes=200)       # stale non-DONE
-        _seed_active(ws, "sess-old-done", "DONE: last week", age_minutes=200)  # stale DONE
+        _seed_active(ws, "sess-live", "still editing")  # fresh non-DONE
+        _seed_active(ws, "sess-fresh-done", "DONE: just landed")  # fresh DONE
+        _seed_active(
+            ws, "sess-crashed", "went quiet", age_minutes=200
+        )  # stale non-DONE
+        _seed_active(
+            ws, "sess-old-done", "DONE: last week", age_minutes=200
+        )  # stale DONE
         res = ws.run("active", "--sweep")
         _assert(res.returncode == 0, f"sweep failed: {res.stderr}")
         active = ws.tmp / ".agentctl/active"
         stale = ws.tmp / ".agentctl/stale"
         done = ws.tmp / ".agentctl/done"
         _assert((active / "sess-live").exists(), "fresh non-DONE must stay in active/")
-        _assert((active / "sess-fresh-done").exists(), "fresh DONE must stay in active/")
-        _assert(not (active / "sess-crashed").exists(), "stale non-DONE must leave active/")
-        _assert(not (active / "sess-old-done").exists(), "stale DONE must leave active/")
+        _assert(
+            (active / "sess-fresh-done").exists(), "fresh DONE must stay in active/"
+        )
+        _assert(
+            not (active / "sess-crashed").exists(), "stale non-DONE must leave active/"
+        )
+        _assert(
+            not (active / "sess-old-done").exists(), "stale DONE must leave active/"
+        )
         _assert((stale / "sess-crashed").exists(), "stale non-DONE must land in stale/")
         _assert((done / "sess-old-done").exists(), "stale DONE must land in done/")
     finally:
@@ -1876,11 +2725,19 @@ def test_active_sweep_dry_run_moves_nothing():
         _seed_active(ws, "sess-crashed", "went quiet", age_minutes=200)
         res = ws.run("active", "--sweep", "--dry-run")
         _assert(res.returncode == 0, f"dry-run sweep failed: {res.stderr}")
-        _assert("sess-crashed" in res.stdout, f"dry-run should name the entry: {res.stdout!r}")
-        _assert((ws.tmp / ".agentctl/active/sess-crashed").exists(),
-                "dry-run must not move anything")
-        _assert(not (ws.tmp / ".agentctl/stale").exists(),
-                "dry-run must not create stale/")
+        payload = _json_record(res.stdout)
+        _assert(
+            payload["entries"]
+            == [{"id": "sess-crashed", "target": "stale", "action": "would_archive"}],
+            f"dry-run should name the entry: {payload!r}",
+        )
+        _assert(
+            (ws.tmp / ".agentctl/active/sess-crashed").exists(),
+            "dry-run must not move anything",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/stale").exists(), "dry-run must not create stale/"
+        )
     finally:
         ws.cleanup()
 
@@ -1893,16 +2750,26 @@ def test_active_list_reads_archives_after_sweep():
         _seed_active(ws, "sess-crashed", "went quiet", age_minutes=200)
         _seed_active(ws, "sess-old-done", "DONE: last week", age_minutes=200)
         ws.run("active", "--sweep")
-        res_stale = ws.run("active", "-m", "0")
-        _assert("sess-crashed" in res_stale.stdout,
-                f"swept stale entry should list with -m 0: {res_stale.stdout!r}")
-        _assert(".agentctl/stale/sess-crashed" in res_stale.stdout,
-                f"listing should show the archive path: {res_stale.stdout!r}")
-        _assert("sess-old-done" not in res_stale.stdout,
-                f"DONE archive must stay hidden without --done: {res_stale.stdout!r}")
+        res_stale = ws.run("active", "-m", "0", "--full")
+        rows = {row["id"]: row for row in _json_record(res_stale.stdout)["sessions"]}
+        _assert(
+            "sess-crashed" in rows,
+            f"swept stale entry should list with -m 0: {res_stale.stdout!r}",
+        )
+        _assert(
+            rows["sess-crashed"]["path"] == ".agentctl/stale/sess-crashed",
+            f"listing should show the archive path: {res_stale.stdout!r}",
+        )
+        _assert(
+            "sess-old-done" not in rows,
+            f"DONE archive must stay hidden without --done: {res_stale.stdout!r}",
+        )
         res_done = ws.run("active", "-m", "0", "--done")
-        _assert("sess-old-done" in res_done.stdout,
-                f"swept DONE entry should list with -m 0 --done: {res_done.stdout!r}")
+        _assert(
+            "sess-old-done"
+            in {row["id"] for row in _json_record(res_done.stdout)["sessions"]},
+            f"swept DONE entry should list with -m 0 --done: {res_done.stdout!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -1914,15 +2781,32 @@ def test_alone_awaiting_from_resolved_id():
     sid = "sess-envwait"
     try:
         _seed_active(ws, "sess-peer", "peer busy")
-        res = ws.run("alone", "--timeout", "1", "--poll", "0.5", "--heartbeat", "0",
-                     env_extra={"AGENTCTL_SESSION_ID": sid})
-        _assert(res.returncode != 0, f"alone should time out with a peer present: {res.stdout!r}")
-        _assert((ws.tmp / ".agentctl/awaiting").exists(),
-                "an env-resolved id should still announce the wait in awaiting/")
-        _assert(not (ws.tmp / ".agentctl/awaiting" / sid).exists(),
-                "awaiting entry must be cleaned up after the wait ends")
-        _assert(not (ws.tmp / ".agentctl/active" / sid).exists(),
-                "a merely-resolved id must not register an active/ claim")
+        res = ws.run(
+            "alone",
+            "--timeout",
+            "1",
+            "--poll",
+            "0.5",
+            "--heartbeat",
+            "0",
+            env_extra={"AGENTCTL_SESSION_ID": sid},
+        )
+        _assert(
+            res.returncode != 0,
+            f"alone should time out with a peer present: {res.stdout!r}",
+        )
+        _assert(
+            (ws.tmp / ".agentctl/awaiting").exists(),
+            "an env-resolved id should still announce the wait in awaiting/",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/awaiting" / sid).exists(),
+            "awaiting entry must be cleaned up after the wait ends",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/active" / sid).exists(),
+            "a merely-resolved id must not register an active/ claim",
+        )
     finally:
         ws.cleanup()
 
@@ -1936,14 +2820,22 @@ def test_start_sweeps_stale_entries():
         _seed_active(ws, "sess-old-done", "DONE: last week", age_minutes=200)
         _seed_active(ws, "sess-crashed", "went quiet", age_minutes=200)
         res = _start(ws, "--no-aim", "sweepjob", "--", "true")
-        _assert("moved" not in res.stdout and "archived" not in res.stdout,
-                f"launch-path sweep must be silent: {res.stdout!r}")
+        _assert(
+            "moved" not in res.stdout and "archived" not in res.stdout,
+            f"launch-path sweep must be silent: {res.stdout!r}",
+        )
         active = ws.tmp / ".agentctl/active"
-        _assert((active / "sess-live").exists(), "fresh entry must survive the launch sweep")
-        _assert((ws.tmp / ".agentctl/done/sess-old-done").exists(),
-                "stale DONE entry should be archived to done/ on launch")
-        _assert((ws.tmp / ".agentctl/stale/sess-crashed").exists(),
-                "stale non-DONE entry should be archived to stale/ on launch")
+        _assert(
+            (active / "sess-live").exists(), "fresh entry must survive the launch sweep"
+        )
+        _assert(
+            (ws.tmp / ".agentctl/done/sess-old-done").exists(),
+            "stale DONE entry should be archived to done/ on launch",
+        )
+        _assert(
+            (ws.tmp / ".agentctl/stale/sess-crashed").exists(),
+            "stale non-DONE entry should be archived to stale/ on launch",
+        )
     finally:
         ws.cleanup()
 
@@ -1952,6 +2844,7 @@ def test_resume_id_from_argv_parsing():
     # Unit: pull a resume session id out of a launcher argv, Codex and Claude forms.
     sys.path.insert(0, str(REPO_ROOT))
     import agentctl
+
     uid = "061e2fa8-da37-42d4-93b2-94351ebec717"
     cases = {
         "codex positional": (["codex", "resume", uid], uid),
@@ -1977,19 +2870,37 @@ def test_active_recovers_session_id_from_resume_ancestor():
     active = ws.tmp / ".agentctl/active" / uid
     try:
         env = os.environ.copy()
-        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID",
-                    "AGENTCTL_LAUNCH_DEPTH", "BASH_ENV"):
+        for var in (
+            "AGENTCTL_SESSION_ID",
+            "CLAUDE_CODE_SESSION_ID",
+            "AGENTCTL_LAUNCH_DEPTH",
+            "BASH_ENV",
+        ):
             env.pop(var, None)
         script = 'true; ./agentctl active "resumed via proc-tree recovery"'
         res = subprocess.run(
             ["bash", "-c", script, "codex", "resume", uid],
-            cwd=ws.tmp, capture_output=True, text=True, env=env, timeout=20,
+            cwd=ws.tmp,
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=20,
         )
-        _assert(res.returncode == 0, f"active failed: rc={res.returncode}\n{res.stderr}")
-        seen = sorted(p.name for p in active.parent.glob("*")) if active.parent.exists() else []
-        _assert(active.exists(), f"entry should be keyed by recovered resume id; saw {seen}")
-        _assert(active.read_text().splitlines()[0] == "resumed via proc-tree recovery",
-                f"banner should be written under the recovered id: {active.read_text()!r}")
+        _assert(
+            res.returncode == 0, f"active failed: rc={res.returncode}\n{res.stderr}"
+        )
+        seen = (
+            sorted(p.name for p in active.parent.glob("*"))
+            if active.parent.exists()
+            else []
+        )
+        _assert(
+            active.exists(), f"entry should be keyed by recovered resume id; saw {seen}"
+        )
+        _assert(
+            active.read_text().splitlines()[0] == "resumed via proc-tree recovery",
+            f"banner should be written under the recovered id: {active.read_text()!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -2008,10 +2919,16 @@ def test_launch_depth_blocks_resume_ancestor_recovery():
         script = 'true; ./agentctl active "should be refused" || true'
         subprocess.run(
             ["bash", "-c", script, "codex", "resume", uid],
-            cwd=ws.tmp, capture_output=True, text=True, env=env, timeout=20,
+            cwd=ws.tmp,
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=20,
         )
-        _assert(not (ws.tmp / ".agentctl/active" / uid).exists(),
-                "depth>0 must not author an entry even with a resume ancestor")
+        _assert(
+            not (ws.tmp / ".agentctl/active" / uid).exists(),
+            "depth>0 must not author an entry even with a resume ancestor",
+        )
     finally:
         ws.cleanup()
 
@@ -2020,8 +2937,11 @@ def test_launch_depth_blocks_resume_ancestor_recovery():
 
 
 def _collect_tests():
-    return [(name, fn) for name, fn in sorted(globals().items())
-            if name.startswith("test_") and callable(fn)]
+    return [
+        (name, fn)
+        for name, fn in sorted(globals().items())
+        if name.startswith("test_") and callable(fn)
+    ]
 
 
 def main(argv):

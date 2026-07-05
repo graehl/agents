@@ -96,9 +96,9 @@ with nobody remembering the verb; `--sweep` remains for by-hand runs and
 `awaiting/` is a fourth, orthogonal dir: the non-blocking "awaiting alone"
 queue written by `agentctl alone` while it waits (§ Contracts). It is
 intentionally outside the `active/` peer scan, so a queued wait is visible to
-browsers (`agentctl active` lists it tagged `(awaiting, non-blocking)`; the
-`/others` skill shows it) without ever counting as a present peer — the wait is
-noticed but imposes no re-Read ceremony. `alone` refreshes its own entry each
+browsers (`agentctl active` emits it in the `awaiting` array; the `/others`
+skill shows it) without ever counting as a present peer — the wait is noticed
+but imposes no re-Read ceremony. `alone` refreshes its own entry each
 poll and removes it on exit; a crashed waiter's entry simply ages out of the
 window.
 
@@ -192,49 +192,54 @@ window.
   free-content lines below the header. It shares the launch-depth guard
   (`active` from inside a job is refused) and the no-session-id behavior
   (refuses with a nonzero exit rather than writing an unkeyed entry).
-- `active` with no banner is the read counterpart: it lists active-sessions
-  entries (newest first) with each one's line-1 status and `scope:` line —
-  the `find .agentctl/active -mmin -70` peer-check idiom as a verb. Default
-  shows only fresh (mtime within `--minutes`, default `ACTIVE_STALE_MINUTES`
-  = 70) non-DONE entries; `--minutes 0` drops the window to include
-  stale/crashed entries (and reads back `stale/`), `--done` adds DONE-prefixed
-  (completed) ones (and reads back `done/`), and the caller's own entry (by
-  resolved session id) is tagged `(self)`. Listing is read-only: no session id
-  is required, no `active/` dir is created, and it exits 0 even when empty
-  (unlike the write path, it never errors on missing identity — there is
-  nothing to key).
+- `active` with no banner is the read counterpart: it emits an ACLI payload
+  listing active-sessions entries (newest first) with each entry's id, status,
+  age, optional `scope`/`tending`, and a `self` boolean for the resolved caller
+  id — the `find .agentctl/active -mmin -70` peer-check idiom as a structured
+  verb. Default shows only fresh (mtime within `--minutes`, default
+  `ACTIVE_STALE_MINUTES` = 70) non-DONE entries; `--minutes 0` drops the
+  window to include stale/crashed entries (and reads back `stale/`), `--done`
+  adds DONE-prefixed (completed) ones (and reads back `done/`), and `--full`
+  adds archive paths and raw mtimes. Listing is read-only: no session id is
+  required, no `active/` dir is created, and it exits 0 even when empty (unlike
+  the write path, it never errors on missing identity — there is nothing to
+  key).
 - `active --sweep` is the maintenance counterpart: it archives stale entries
   out of `active/` (DONE → `done/`, others → `stale/`) so the peer-check `find`
   stays bounded; `--minutes` sets the stale threshold (a value ≤ 0 falls back
-  to the default window rather than emptying `active/`), `--dry-run` reports
-  without moving, and banner/paths are ignored. Reversible by design; the list
-  views above read the archive dirs back. The same sweep runs silently on each
-  foreground launch — piggybacked on that write path so listing stays
-  read-only.
+  to the default window rather than emptying `active/`), `--dry-run` emits the
+  would-archive entries without moving, and banner/paths are ignored.
+  Reversible by design; the list views above read the archive dirs back. The
+  same sweep runs silently on each foreground launch — piggybacked on that
+  write path so listing stays read-only.
+- The active-session verbs (`active`, `others`, `tending`, `alone`) use the
+  shared `acli` output flags: compact JSONL by default for agents/pipes,
+  indented JSON under `--pretty`, `--full` for wider schemas, and `--toon`
+  rejected because these verbs are not table producers.
 - `others [<session-id>]` is the peer-check specialization of `active` (list):
   same window scan (shared `_scan_active` helper, same `--minutes`/`--done`),
-  but it drops the caller's own entry and leads with a count — `N other active
-  session(s) (last 70m):` or `no other active sessions (...)`. The motivation
-  is behavioral, not cosmetic: a session that formed a "peers present" belief
-  early keeps paying the per-file re-Read ceremony (`AGENTS.md § Pre-edit
-  re-Read`) after the peers have finished. `others` makes the re-confirming
-  check cheap to re-run at the point of caution instead of trusting the stale
-  belief. The **exit code is the signal** — 0 when you are alone, nonzero when
-  peers are present — so it composes as `agentctl others <id> && <solo-only
-  step>` without parsing stdout. The explicit `<session-id>` argument is the
-  exclusion key *and* a deliberate nudge for a session to know its own id; omit
-  it to fall back to `agent_session_id()`, and with no id resolvable nothing is
-  excluded (it degrades to `active`-style output). All peers count: there is
-  deliberately **no narrowing to `scope:` overlap** — `others`/`alone` are the
-  intentionally project-serial verbs, distinct from the per-path re-Read+scope
-  coordination. A **provided** id is also a claim: on the alone path it calls
+  but it drops the caller's own entry and emits `other_count`, `has_peers`, and
+  a `peers` array. The motivation is behavioral, not cosmetic: a session that
+  formed a "peers present" belief early keeps paying the per-file re-Read
+  ceremony (`AGENTS.md § Pre-edit re-Read`) after the peers have finished.
+  `others` makes the re-confirming check cheap to re-run at the point of
+  caution instead of trusting the stale belief. The **exit code is the
+  signal** — 0 when you are alone, nonzero when peers are present — so it
+  composes as `agentctl others <id> && <solo-only step>` without parsing
+  stdout. The explicit `<session-id>` argument is the exclusion key *and* a
+  deliberate nudge for a session to know its own id; omit it to fall back to
+  `agent_session_id()`, and with no id resolvable nothing is excluded (it
+  degrades to `active`-style output). All peers count: there is deliberately
+  **no narrowing to `scope:` overlap** — `others`/`alone` are the intentionally
+  project-serial verbs, distinct from the per-path re-Read+scope coordination.
+  A **provided** id is also a claim: on the alone path it calls
   `ensure_active_registered` to create/refresh `active/<id>` before returning,
   so observe-no-peers and claim-the-floor are near-atomic (the residual
   simultaneous-clearance race is why the claim is atomic-*ish*, not a lock);
   with the id only resolved (no positional) the verb stays read-only and
   creates no dir. A freshly created claim is a placeholder line 1, and the
-  verdict prints how to set a real status (`agentctl active "<status>"`). It is
-  the agentctl-backed counterpart to the dependency-free
+  payload carries `next_command: agentctl active "<status>"`. It is the
+  agentctl-backed counterpart to the dependency-free
   `/others` skill's peer bucket — pass your *real* session id, since a wrong id
   would count your own entry as a peer and re-manufacture the stale belief.
 - `tending [<session-id>]` is the steward-presence specialization of `others`:
@@ -246,7 +251,9 @@ window.
   GPU each actually need. The exit code is the signal, as with `others`: 0 =
   no other tending session, nonzero = tending session(s) listed, so a steward
   round gates itself with `agentctl tending <id> && <round>` and two stewards
-  do not race one queue. A **provided** id is also a claim on the clear path
+  do not race one queue; stdout carries `other_count`, `has_tending_peer`, and
+  a `tenders` array for readers that need details. A **provided** id is also a
+  claim on the clear path
   (same near-atomic observe-then-claim as `others`, via
   `ensure_active_registered`): it writes `tending: on-deck` (plus
   `until <deadline>` from `--until`) onto your entry, creating a placeholder
@@ -268,19 +275,18 @@ window.
   forever). For an intentionally project-serial step — `agentctl alone <id> &&
   <whole-project amend/rebase>`. A peer leaves the set on its DONE write or
   when it ages past `--minutes`, so a crashed peer clears on going stale, not
-  instantly. `--poll` sets the check cadence (one `.` tick each), `--heartbeat`
-  the cadence of fresh naming lines while waiting (0 = ticks only); a
-  foreground caller consumes the stream so ticks are unguarded. Like `others`,
-  a **provided** id is registered as a claim — but only on the became-alone
-  return, never mid-wait: two mutual `alone` callers that registered up front
-  would each see the other and deadlock. `--banner` (with optional `scope`
-  positionals) folds `agentctl active` into the wait — register your real
-  status + scope and wait in one go, written authoritatively via
-  `write_active_entry` on success; bare, the claim is a placeholder and the
-  line prints how to set a real status. The on-success timing of the *active*
-  claim is deliberate: it lands when you take the floor, not while waiting, so
-  you never advertise a blocking claim you have not secured, and two mutual
-  `alone` callers cannot deadlock.
+  instantly. `--poll` sets the check cadence; `--heartbeat` sets the cadence
+  for repeated `alone_wait` events while waiting (0 disables repeats). Like
+  `others`, a **provided** id is registered as a claim — but only on the
+  became-alone return, never mid-wait: two mutual `alone` callers that
+  registered up front would each see the other and deadlock. `--banner` (with
+  optional `scope` positionals) folds `agentctl active` into the wait —
+  register your real status + scope and wait in one go, written
+  authoritatively via `write_active_entry` on success; bare, the claim is a
+  placeholder and the payload carries `next_command`. The on-success timing of
+  the *active* claim is deliberate: it lands when you take the floor, not while
+  waiting, so you never advertise a blocking claim you have not secured, and
+  two mutual `alone` callers cannot deadlock.
 
   Visibility while waiting is handled separately, so a wait is noticed without
   imposing cost: once peers are present, `alone` writes a **non-blocking**
@@ -289,9 +295,9 @@ window.
   the positional-only `active/` claim — refreshed every poll and removed on
   exit. It lives in
   `awaiting/`, not `active/`, so the edit-check peer scan (`find
-  .agentctl/active`, `_scan_active`) never counts it — `agentctl active` lists
-  it tagged `(awaiting, non-blocking)` and `/others` shows it, but no peer pays
-  re-Read ceremony for a session that is only queued. (Announcing the wait as a
+  .agentctl/active`, `_scan_active`) never counts it — `agentctl active` emits
+  it in the `awaiting` array and `/others` shows it, but no peer pays re-Read
+  ceremony for a session that is only queued. (Announcing the wait as a
   blocking `active/` entry is the rejected alternative — it reintroduces the
   mutual-`alone` deadlock.)
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
