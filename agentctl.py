@@ -60,6 +60,8 @@ LAUNCH_DEPTH_ENV = "AGENTCTL_LAUNCH_DEPTH"
 NO_PROC_SESSION_ID_ENV = "AGENTCTL_NO_PROC_SESSION_ID"
 DECLARED_IO_FILENAME = "declared.json"
 PROPAGATE_FILENAME = "propagate.json"
+LIVE_JOB_STATUSES = {"running", "waiting"}
+DEFAULT_LIST_SHOW_LAST = 6
 
 
 # ---- Plugin loader ----
@@ -232,6 +234,10 @@ def status_returncode_exit_code(state: dict) -> int:
 
 def state_failed(state: dict) -> bool:
     return state.get("status") == "finished" and status_returncode_exit_code(state) != 0
+
+
+def state_live(state: dict) -> bool:
+    return state.get("status") in LIVE_JOB_STATUSES
 
 
 def ensure_state_ignored() -> None:
@@ -2867,9 +2873,9 @@ def status(args: argparse.Namespace) -> int:
             if args.recent and args.recent > 0:
                 states = states[: args.recent]
         elif getattr(args, "live_only", False):
-            states = [state for state in states if state.get("status") == "running"]
+            states = [state for state in states if state_live(state)]
         elif getattr(args, "where", False) and not getattr(args, "all_jobs", False):
-            running = [state for state in states if state.get("status") == "running"]
+            live = [state for state in states if state_live(state)]
             min_elapsed = max(0, getattr(args, "completed_min_elapsed", 0))
             completed = [
                 state
@@ -2877,10 +2883,15 @@ def status(args: argparse.Namespace) -> int:
                 if state.get("status") == "finished"
                 and ((elapsed_seconds(state) or 0) >= min_elapsed or state_failed(state))
             ]
-            completed_n = args.recent if args.recent and args.recent > 0 else args.completed_recent
+            if args.recent and args.recent > 0:
+                completed_n = args.recent
+            elif args.completed_recent is not None:
+                completed_n = args.completed_recent
+            else:
+                completed_n = args.show_last - len(live)
             completed = completed[: max(0, completed_n)]
-            groups = [("Running Jobs", running), ("Recent Finished Jobs", completed)]
-            states = [*running, *completed]
+            groups = [("Live Jobs", live), ("Recent Finished Jobs", completed)]
+            states = [*live, *completed]
         elif args.recent and args.recent > 0:
             states = states[: args.recent]
     if groups is not None:
@@ -3994,7 +4005,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser(
         "list",
-        help="List running jobs plus a small recent-completed tail by default; use --all for history.",
+        help="List live jobs plus enough recent finished jobs to fill the default view; use --all for history.",
     )
     s.add_argument(
         "--settle",
@@ -4009,7 +4020,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--active",
         action="store_true",
         dest="live_only",
-        help="Show only jobs currently marked running.",
+        help="Show only jobs currently marked running or waiting behind --after.",
     )
     s.add_argument(
         "--failed",
@@ -4024,16 +4035,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Show all current job records, including finished/stopped jobs.",
     )
     s.add_argument(
+        "--show-last",
+        type=int,
+        default=DEFAULT_LIST_SHOW_LAST,
+        help=(
+            "In default list mode, target this many total live + recent finished "
+            "jobs (default: %(default)s)."
+        ),
+    )
+    s.add_argument(
         "--completed",
         type=int,
-        default=2,
+        default=None,
         dest="completed_recent",
-        help="In default list mode, include this many recent non-running jobs (0 = live only).",
+        help=(
+            "In default list mode, include this many recent finished jobs, "
+            "overriding --show-last (0 = live only)."
+        ),
     )
     s.add_argument(
         "--completed-min-elapsed",
         type=int,
-        default=60,
+        default=0,
         help="In default list mode, only show recent finished jobs that ran at least this many seconds.",
     )
     s.add_argument(
@@ -4044,7 +4067,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
         dest="recent",
         help=(
-            "Default list mode: include the most recent N non-running jobs. "
+            "Default list mode: include the most recent N finished jobs, overriding --show-last. "
             "With --all: show only the most recent N jobs after filtering (0 = all)."
         ),
     )

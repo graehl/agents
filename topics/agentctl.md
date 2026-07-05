@@ -136,6 +136,12 @@ window.
   would hide short successful runs, and `status/list --failed` exists as a
   troubleshooting view. `wait --target not-running` prints the final return
   code and log path, and exits nonzero for failed `finished` jobs.
+- Default `list` is a catch-up view, not just a live-process view: it shows
+  live jobs (`running` and queued `waiting` behind `--after`) plus enough
+  recent finished jobs to reach `--show-last` rows total (default 6), when
+  that many finished jobs exist. `--completed N` and `--recent N` override
+  the recent-finished tail count directly; `--completed-min-elapsed` is an
+  opt-in threshold for hiding short successful runs.
 - `wait-work` is the new-work counterpart to the status waits: it blocks
   until a new agentctl run appears (`--runs`: any run id not present at
   launch, restarts included) and/or a new or modified `on-deck/*.md` queue
@@ -376,8 +382,8 @@ Operational consequences:
   a visible PID that fails the recorded launch identity (`pid_start_ticks` or
   `pid_cmdline`) is conclusive PID reuse; status refresh may mark that run
   `finished returncode=unknown` rather than keeping it `running`.
-- `agentctl list --failed` is the fastest catch-up view for short failed runs
-  that would otherwise be absent from "recent completed" lists.
+- `agentctl list --failed` is the fastest catch-up view for failed runs that
+  have aged out of the default recent tail or are hidden by explicit filters.
 - Default `list` includes failed finished runs regardless of
   `--completed-min-elapsed`, because a job that failed after 18 seconds is
   often more important than a job that succeeded after 18 seconds.

@@ -146,6 +146,10 @@ def _wait_status(ws: Workspace, job: str, status: str, timeout: float = 5.0) -> 
     raise AssertionError(f"job {job!r} never reached {status!r}; last state: {last!r}")
 
 
+def _status_lines(output: str) -> list[str]:
+    return [line for line in output.splitlines() if " serial=" in line and " log=" in line]
+
+
 # ---- Tests -----------------------------------------------------------------
 
 
@@ -973,6 +977,56 @@ def test_wait_work_wakes_on_updated_on_deck_entry():
         if proc is not None and proc.poll() is None:
             proc.kill()
             proc.wait(timeout=5)
+        ws.cleanup()
+
+
+def test_list_default_shows_six_recent_finished_jobs():
+    ws = Workspace()
+    try:
+        for idx in range(7):
+            job = f"done{idx}"
+            _start(ws, "--no-aim", job, "--", "true")
+            ws.wait_finished(job)
+        res = ws.run("list")
+        _assert(res.returncode == 0, f"list failed: {res.stderr}")
+        _assert("Live Jobs:\n  none" in res.stdout, f"live section should be empty: {res.stdout!r}")
+        finished = [line for line in _status_lines(res.stdout) if " finished " in line]
+        _assert(len(finished) == 6, f"default list should show six recent finished jobs: {res.stdout!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_list_show_last_fills_after_running_and_waiting_jobs():
+    ws = Workspace()
+    try:
+        for idx in range(5):
+            job = f"past{idx}"
+            _start(ws, "--no-aim", job, "--", "true")
+            ws.wait_finished(job)
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 5")
+        _start(ws, "--no-aim", "--after", "slowdep", "--after-poll", "0.05",
+               "--after-heartbeat", "0", "blocked", "--", "true")
+        _wait_status(ws, "blocked", "waiting")
+
+        res = ws.run("list", "--show-last", "4")
+        _assert(res.returncode == 0, f"list failed: {res.stderr}")
+        lines = _status_lines(res.stdout)
+        _assert(any(line.startswith("slowdep ") and " running " in line for line in lines),
+                f"running job should be listed as live: {res.stdout!r}")
+        _assert(any(line.startswith("blocked ") and " waiting " in line for line in lines),
+                f"waiting --after job should be listed as live: {res.stdout!r}")
+        finished = [line for line in lines if " finished " in line]
+        _assert(len(finished) == 2,
+                f"--show-last 4 should fill two recent rows after two live rows: {res.stdout!r}")
+
+        live_only = ws.run("list", "--running-only")
+        _assert(live_only.returncode == 0, f"live-only list failed: {live_only.stderr}")
+        live_lines = _status_lines(live_only.stdout)
+        _assert(len(live_lines) == 2 and all(" finished " not in line for line in live_lines),
+                f"--running-only should include running/waiting but no finished rows: {live_only.stdout!r}")
+    finally:
+        ws.run("stop", "blocked")
+        ws.run("stop", "slowdep")
         ws.cleanup()
 
 
