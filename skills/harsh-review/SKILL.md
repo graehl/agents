@@ -31,7 +31,7 @@ Output invariant: never propose a fix already present at the review's end state 
 
 Line 1 of `.harsh-review` at the repo root is a full SHA: the high-water-mark up to which review is *delivered and closed*, contiguously from history. Bare `since` reads only line 1 (`<it>..HEAD`); later lines are free-form context (date, range). Keep it untracked: if `git check-ignore -q .harsh-review` fails, append `.harsh-review` to `$(git rev-parse --git-common-dir)/info/exclude` — the per-clone exclude, not the committed `.gitignore`.
 
-On delivering a review, advance the marker to the end actually covered *iff* the review's base (its command's start commit) equals the current marker — i.e. it extends the reviewed prefix contiguously. A review of an older range, or one starting past an unreviewed gap, delivers (and archives — § Serial fold) but leaves the marker untouched: it must never jump commits no review has covered. A high-water-mark, not a cursor of the last review.
+On delivering a review, advance the marker to the end actually covered whenever the review closes the prefix contiguously — its reviewed range reaches back to the marker or earlier and runs unbroken to a new end past it. That is the clean extension (base equals the marker) and equally an overlap-and-extend re-review whose base precedes the marker (e.g. `last 5 commits` re-including the marker commit). Only a review starting *past* an unreviewed gap, or one wholly behind the marker, delivers (and archives — § Serial fold) while leaving the marker untouched: it must never jump commits no review has covered. A high-water-mark, not a cursor of the last review.
 
 ## Serial fold
 
