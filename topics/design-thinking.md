@@ -64,3 +64,15 @@ Build for the problem in front of you, not a hypothetical future. A bug fix need
 One reconciliation with the strict-review bar (harsh-review demands restructuring that scope discipline forbids volunteering): when your change already opens the relevant *seam*, the restructure is cheap and in scope — do it now. Otherwise stay minimal and surface the restructure as a recommendation rather than doing it unasked.
 
 One regime inverts the "no unasked-for flourish" default: a **brand surface** (landing/marketing/launch content) where being memorable *is* the requirement, so committing to a distinctive aesthetic direction is in scope rather than scope creep. See the functional ↔ distinctive split in [ui-quality.md](ui-quality.md) §1; it does not license skipping the verification thresholds.
+
+## An audit is scoped by its target
+
+The dual of Scope discipline. A review, audit, or sweep is defined by the
+scope it resolves to, and that resolved scope is the deliverable — not a
+self-chosen subset of it. When the scope is too large to cover in one pass,
+reduce coverage only *explicitly*: name what you left out and how it gets
+closed (resume, handoff, follow-up). Never silently narrow to the "high-risk"
+part and report the result as the review. That partial-pass-declared-done is
+the trap — it reads as diligence ("I focused on what matters") while quietly
+redefining the request. Reducing coverage honestly is fine; declaring reduced
+coverage complete is not.
