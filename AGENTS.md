@@ -612,6 +612,19 @@ fit/overlap layout is a measured allocator, not breakpoint tiers,
 establish the missing precondition or fail clearly, don't soften or swallow
 it (*Anti-slop implementation* above).
 
+## Adjacent gaps: capture, don't chase or drop
+
+A code-quality defect you notice adjacent to your work — a UI glitch,
+lint, a failing or flaky test, a small structural wart — but are not
+fixing now because it is out of scope must not evaporate into a chat
+comment that dies with the session. Record it as a committed
+`gaps/<slug>.md` entry (create `gaps/` when first needed), and remove that
+file in the commit that fixes the gap. Fix in place instead only when the
+fix is cheap *and* in scope — the seam is already open — and then as its
+own commit, not folded into unrelated work. Format, lifecycle, and the
+distinctions from `tasks/`, `topics/`, and `on-deck/` live in
+`gaps/README.md`.
+
 ## Ideal coding
 
 See `~/agents/topics/software-aesthetic.md` for the full shared aesthetic —
