@@ -804,7 +804,7 @@ def active_register(args) -> int:
     if bool(getattr(args, "full", False)):
         payload["scope_line"] = scope_line
         payload["tending_line"] = tending_line
-    _emit_acli_with_format(fmt, payload)
+    acli.emit(payload, fmt)
     return 0
 
 
@@ -1019,14 +1019,6 @@ def _resolve_acli_format(args) -> acli.Format:
         acli.die(str(exc), acli.ExitCode.USAGE)
 
 
-def _emit_acli(args, payload: dict) -> None:
-    acli.emit(payload, _resolve_acli_format(args))
-
-
-def _emit_acli_with_format(fmt: acli.Format, payload: dict) -> None:
-    acli.emit(payload, fmt)
-
-
 def write_awaiting(path: Path, status: str, scope_paths: list[str]) -> bool:
     """Best-effort write of a non-blocking `awaiting/` entry. Returns success.
 
@@ -1076,8 +1068,7 @@ def active_list(args) -> int:
         _awaiting_row_payload(now, mtime, rel, line1, scope, full=full)
         for mtime, rel, line1, scope in awaiting
     ]
-    _emit_acli_with_format(
-        fmt,
+    acli.emit(
         {
             "kind": "active_sessions",
             "window": _window_label(minutes),
@@ -1089,6 +1080,7 @@ def active_list(args) -> int:
             "sessions": sessions,
             "awaiting": awaiting_rows,
         },
+        fmt,
     )
     return 0
 
@@ -1138,11 +1130,10 @@ def others_cmd(args) -> int:
             payload["registered"] = {"id": provided, "status": status}
             if status == "created":
                 payload["next_command"] = 'agentctl active "<status>" [<scope>...]'
-        _emit_acli_with_format(fmt, payload)
+        acli.emit(payload, fmt)
         return 0
 
-    _emit_acli_with_format(
-        fmt,
+    acli.emit(
         {
             "kind": "active_peers",
             "window": window,
@@ -1154,6 +1145,7 @@ def others_cmd(args) -> int:
             ],
             "missing_active_dir": rows is None,
         },
+        fmt,
     )
     return 1
 
@@ -1221,11 +1213,10 @@ def tending_cmd(args) -> int:
                 payload["next_command"] = 'agentctl active "<status>"'
             elif status == "created":
                 payload["next_command"] = 'agentctl active "<status>" [<scope>...]'
-        _emit_acli_with_format(fmt, payload)
+        acli.emit(payload, fmt)
         return 0
 
-    _emit_acli_with_format(
-        fmt,
+    acli.emit(
         {
             "kind": "tending_sessions",
             "window": window,
@@ -1237,6 +1228,7 @@ def tending_cmd(args) -> int:
             ],
             "missing_active_dir": rows is None,
         },
+        fmt,
     )
     return 1
 
@@ -1325,7 +1317,7 @@ def alone_cmd(args) -> int:
                         payload["next_command"] = (
                             'agentctl active "<status>" [<scope>...]'
                         )
-                _emit_acli_with_format(fmt, payload)
+                acli.emit(payload, fmt)
                 return 0
 
             # Waiting: announce the non-blocking awaiting status once, then keep
@@ -1347,20 +1339,19 @@ def alone_cmd(args) -> int:
                 for mtime, rel, line1, scope, tending, _ in peers
             ]
             if not announced:
-                _emit_acli_with_format(
-                    fmt,
+                acli.emit(
                     {
                         "kind": "alone_wait",
                         "window": _window_label(minutes),
                         "other_count": len(peers),
                         "peers": peer_rows,
                     },
+                    fmt,
                 )
                 announced = True
                 next_report = now + heartbeat_interval
             elif heartbeat_interval > 0 and now >= next_report:
-                _emit_acli_with_format(
-                    fmt,
+                acli.emit(
                     {
                         "kind": "alone_wait",
                         "window": _window_label(minutes),
@@ -1368,12 +1359,12 @@ def alone_cmd(args) -> int:
                         "peers": peer_rows,
                         "heartbeat": True,
                     },
+                    fmt,
                 )
                 next_report = now + heartbeat_interval
 
             if deadline is not None and time.time() >= deadline:
-                _emit_acli_with_format(
-                    fmt,
+                acli.emit(
                     {
                         "kind": "alone_timeout",
                         "window": _window_label(minutes),
@@ -1381,6 +1372,7 @@ def alone_cmd(args) -> int:
                         "other_count": len(peers),
                         "peers": peer_rows,
                     },
+                    fmt,
                 )
                 return 1
 
@@ -1420,8 +1412,7 @@ def active_sweep(args) -> int:
     fmt = _resolve_acli_format(args)
 
     if not ACTIVE.is_dir():
-        _emit_acli_with_format(
-            fmt,
+        acli.emit(
             {
                 "kind": "active_sweep",
                 "missing_active_dir": True,
@@ -1430,12 +1421,12 @@ def active_sweep(args) -> int:
                 "dry_run": dry_run,
                 "threshold_minutes": minutes,
             },
+            fmt,
         )
         return 0
 
     moved = sweep_stale_entries(minutes, dry_run=dry_run, quiet=True)
-    _emit_acli_with_format(
-        fmt,
+    acli.emit(
         {
             "kind": "active_sweep",
             "missing_active_dir": False,
@@ -1445,6 +1436,7 @@ def active_sweep(args) -> int:
             "dry_run": dry_run,
             "threshold_minutes": minutes,
         },
+        fmt,
     )
     return 0
 
@@ -4964,7 +4956,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--heartbeat",
         type=float,
         default=30.0,
-        help="Seconds between fresh naming lines while waiting (0 = ticks only).",
+        help="Seconds between repeated alone_wait events while waiting (0 disables repeats).",
     )
     s.add_argument(
         "--timeout",
