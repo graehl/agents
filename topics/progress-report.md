@@ -25,6 +25,35 @@ into it. Consequences:
   report cites rather than reproduces.
 - Polish is unimportant; legibility is paramount.
 
+## Scanability and typography
+
+Assume the report is *scanned*, not read. Headings, tables, and bold
+carry the story; prose is the supporting layer a scanner drills into
+once or twice. Concretely:
+
+- Every major results claim appears in a **results table**, not only
+  in prose. Bold the runs/conditions that are **new since the previous
+  instalment** — the bolded cells are the stream's visual record of
+  exploration progress.
+- A scanner reading only headings, tables, and bolded text must still
+  come away with the correct conclusions and triage verdicts.
+
+## Self-contained terms (export targets)
+
+Reports get pasted into Confluence, emailed, and printed; repo-relative
+links do not resolve there. Anything load-bearing lives in the document
+itself:
+
+- A named enumeration referenced by number ("rung 4", "stage 2",
+  "tier 1") requires a defining table in an appendix of the same
+  document, with in-document anchor links from the references. A
+  `topics/` link may supplement the appendix, never substitute for it.
+- Project coinages ("the single-knob law", recipe or metric nicknames)
+  get a definition at first use: a clickable footnote or a brief
+  parenthetical. The first-use gloss rule above is the floor; coinages
+  recurring across sections deserve the footnote form so a scanner
+  landing mid-document is not stranded.
+
 ## Stream contract (cumulative context)
 
 Each report implicitly contains all prior reports in the project. That means:
