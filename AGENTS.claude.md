@@ -93,3 +93,18 @@ During an autonomous campaign keep at least one tracked job running so
 completion-notifications self-sustain the loop; the wakeup/cron is the fallback
 for gaps. **Invariant:** never end an autonomous-work turn with no job running
 and no wakeup scheduled — verify before yielding.
+
+## Persisting memories: promote cross-project ones to ~/agents
+
+The Claude file-memory system is per-project: it writes under
+`~/.claude/projects/<project-hash>/memory/`, and its `MEMORY.md` index
+loads per project. That is the right home only for project-specific
+facts. When a memory is *general* — a cross-project working preference,
+a behavioral correction, a reusable reference — also record it
+appropriately scoped in `~/agents`: a load-bearing rule in `AGENTS.md`,
+its rationale in a topic or `.evidence.md`, Claude-harness mechanics
+here. A general rule saved only under one project both misleads (reads
+as project-specific) and hides (sessions in other projects never load
+it). First check whether `AGENTS.md` or a topic already covers it —
+`AGENTS.md` is boot-loaded every session, so a memory restating it is
+pure redundancy; update the global home instead of duplicating.

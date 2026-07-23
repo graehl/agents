@@ -501,3 +501,28 @@ the sweep single-target.
   non-self-correcting cases (silent action on a false premise, confident
   "already done" that makes the user drop a real need); the openly voiced
   disagreement the user will catch anyway needs the rule least.
+
+## 2026-07-23 — fetch gate removed: a read-only lookup is thinking
+
+- **Change** — `AGENTS.md § Discussion vs. execution boundary` no longer
+  lists web fetches/searches among gated execution. Read-only lookups are
+  epistemic (part of thinking); only state-changing actions (writes, code,
+  commands) stay gated. Also deleted the yepanywhere memory
+  `feedback_research_vs_execute`, which duplicated that section — a
+  cross-project rule wrongly siloed per-project (motivated the new
+  `AGENTS.claude.md` promote-memories note).
+- **Caveats weighed and rejected as fetch gates** (user, this session) —
+  (a) *metadata*: showing up in a web-server log as having searched —
+  dismissed as paranoia outside this threat model; (b) *injection*:
+  fetched content driving a credentialed side-effecting request — left to
+  vendor model/harness hardening, since an instruction sentence can't
+  harden a tool boundary. The one surviving outbound concern — sending
+  secrets / unfixed sensitive content to an external service — is a
+  separate "what you send" rule, not a reason to ask before looking.
+- **Origin / lesson** — user: "fetching is nigh to thinking." This same
+  session had just *strengthened* the fetch gate (added a carve-out,
+  tightened the index line) instead of questioning whether it should
+  exist — and offered a Gloaguen lookup rather than running it. The gate
+  traced back to one past "thanks for asking," over-crystallized into a
+  standing constraint. Memory-formation failure mode: a one-time courtesy
+  is not a rule; a single appreciation should not mint a boot-loaded gate.
