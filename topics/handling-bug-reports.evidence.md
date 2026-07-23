@@ -44,3 +44,26 @@
   current HEAD but cannot claim “already fixed” versus “never present,”
   and states that historical limit rather than treating it as proof of
   either conclusion.
+
+## 2026-07-23 — causal adequacy without mandatory exposition
+
+- User accepted a default internal check linking the evidence-backed
+  root-cause hypothesis to the implicated family, fix mechanism, and a
+  falsifying regression signal. The argument is surfaced only when
+  non-obvious or explicitly requested, so obvious fixes do not acquire
+  a visible planning ritual.
+- **Mechanical fix trace:** a misspelled identifier has an immediate
+  cause, affected-use family, and compile/test falsifier; the agent
+  checks these without narrating them.
+- **Structural fix trace:** a shared-state bug requires the agent to
+  connect the proposed change to every caller in the implicated family
+  and choose a regression signal that would expose an incomplete
+  mechanism. Unsupported links send it back to investigation.
+- **Discussion trace:** an explicit request for pre-implementation
+  discussion surfaces the same causal chain for user engagement without
+  turning the default into an approval checkpoint.
+- **Wording correction:** “a regression signal that could falsify the
+  root-cause belief” conflated two checks. A regression signal
+  demonstrates the behavioral before/after claim; when the cause itself
+  remains uncertain, a separate discriminating probe must distinguish
+  that hypothesis from alternatives.

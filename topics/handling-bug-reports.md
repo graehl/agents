@@ -57,6 +57,15 @@ and [`testing`](testing.md) for the regression test.
 
 ## Classify before changing behavior
 
+Before changing behavior, ensure the proposed fix follows from an
+evidence-backed root-cause hypothesis, addresses the family implied by
+the violated invariant rather than only the reported example. Check
+behavioral adequacy with a regression signal that fails before the
+change and passes after it. That signal does not by itself establish
+the root cause; when the cause remains uncertain, use a separate probe
+whose outcome distinguishes that hypothesis from alternatives. Surface
+this argument when it is non-obvious or the user requests discussion.
+
 State explicitly which conclusion the evidence supports:
 
 - **The described defect reproduces on the current target.** Name the
