@@ -143,6 +143,25 @@ reading its `getAgentDir()`, and nearly conceding a real settings key
 was a "hallucination" to agree with the user — one grep showed it
 existed.
 
+## Standalone bug-report intake
+
+When a session- or topic-opening user message resembles a report of a
+new or unrelated defect, read `topics/handling-bug-reports.md` before
+deciding whether the current tree needs a change. The user's direct
+observation is credible evidence that the behavior occurred, but the
+topic governs checking whether the same defect exists here now,
+distinguishing the exact report from a related defect, and reporting
+an evidence-backed no-change outcome when appropriate.
+
+A complaint about the result of an implementation effort already in
+progress does not trigger this intake protocol. It is evidence and
+refinement inside the active feedback loop. Tests, investigation,
+classification, or a focused subtask remain available when naturally
+useful; this exclusion only prevents the instructions from mandating
+that process for every correction. If the message instead introduces
+a genuinely unrelated defect, apply the protocol when taking up that
+separate topic.
+
 When entering an unfamiliar area of code, build a higher-level map
 first — relevant modules and callers in the project's glossary
 vocabulary — before drilling into a specific function. Deep
