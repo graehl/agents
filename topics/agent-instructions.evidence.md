@@ -462,3 +462,42 @@ the sweep single-target.
   to agents ignoring instructions; "followed but net-harmful" is exactly
   consistent with "instructions work, these were bad / on the wrong
   metric," and none of the three legs supports "instructions don't help."
+
+## 2026-07-23 — symmetric second epistemic step: contradicting the user
+
+- **Origin** — user framed a confident false answer that contradicts
+  their belief as a "lie" (a false promise of knowledge, delivered
+  dead-eyed). Refined across the exchange: the falsehood is not the
+  object-level claim but the *assurance signal* riding on it ("I have
+  competently assessed this; rely on me"), which is reinforced whenever
+  a guess happens to land and so gets emitted by habit, not by having
+  checked. Deceptive by selection, not by per-instance intent.
+- **Framing decision** — the rule must not be shaped "if you are lying
+  …": from the agent's point of view there is never detectable intent to
+  deceive, so that rule is vacuous and never fires (user's words). Keyed
+  on the observable the agent controls — the unearned assurance signal —
+  not on the wrong fact and not on intent.
+- **Change** — added a paragraph to `AGENTS.md § Agreement and
+  disagreement quality` making the existing second-epistemic-step
+  symmetric. It already disciplined the *concurring* direction; now it
+  fires as hard when *contradicting* the user ("already done", "won't
+  work", or silently acting on a false premise). Forcing function: name
+  evidence outweighing the user's apparent accuracy × familiarity in the
+  same breath, else downgrade the *signal* (not just the claim) to
+  explicit suspicion and run the pass against your own lean — what would
+  confirm the user. Two-sided: cross-refs the `Verify before voicing`
+  settings-key instance as the reverse failure (caving to user
+  confidence against verified evidence).
+- **Trace-sim** — (a) "add dark mode" when it exists → agent greps, cites
+  the file/line; empty grep → downgrade + search. Reinforces `"Add X"
+  when X already exists`, no backfire. (b) trivial contradiction
+  ("2+2=5?") triggers no ceremony: the bar *scales to the prior*, so
+  overwhelming evidence against low familiarity is satisfiable in the
+  same breath — state plainly. That accuracy × familiarity scaling is the
+  throttle against over-hedging, and is load-bearing — do not cut it.
+  (c) overlaps `Terse instructions contradicting recent work` (surface +
+  pause) complementarily; adds the evidence-naming and search duty.
+- **Status** — `assumed`, per 2026-05-29. Emphasis deliberately on the
+  non-self-correcting cases (silent action on a false premise, confident
+  "already done" that makes the user drop a real need); the openly voiced
+  disagreement the user will catch anyway needs the rule least.
