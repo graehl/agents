@@ -100,6 +100,38 @@ Scope, enforced by the tooling rather than by prose:
   rule to remember. (Consult `toonformat.dev` for the exact delimiter and
   quoting/escaping rules at implementation time.)
 
+## Completion protocol
+
+Interactive consumers (YA's `!!` bang composer is the first) can offer
+per-tool argument completion by invoking the tool itself:
+
+```
+tool --acli-complete <argv-prefix...>
+```
+
+- `--acli-complete` must be argv[1]; everything after it is the partial
+  argv being completed. A trailing empty-string argument means "complete a
+  fresh token" — consumers spawn with an explicit argv array (no shell), so
+  an empty final arg is expressible.
+- Output is compact JSONL, one candidate per line:
+  `{"completion": "...", "kind": "flag|value|path|subcommand", "help": "..."}`
+  — `completion` required, the rest optional. No prompts, no TTY use.
+- Completion runs must be side-effect-free and fast (soft ~1s budget);
+  consumers enforce a timeout and treat nonzero exit as "no protocol".
+- Exit 0 with zero lines is the definitive "no completions" (per
+  *Definitive empty states*); consumers then fall back to generic path
+  completion.
+- **Consumers must gate invocation on an explicit compliant-tool registry**
+  (config/allowlist), never on trial invocation: fail-loud-on-unknown-flags
+  protects compliant tools, but a lax non-compliant tool could ignore the
+  flag and execute its default action — Tab must never run an arbitrary
+  program.
+- `acli.args` should wire the verb automatically from the argparse spec
+  (flag and subcommand names for free; per-arg value completers opt-in).
+  Worked example: `harness-check` in the yepanywhere repo
+  (`packages/server/test/bang/fixtures/harness-check`) implements the verb
+  by hand, including comma-list value completion for `--harnesses`.
+
 ## Kill round-trips without becoming a scripting language
 
 Round-trips (each a full agent turn: inference + latency + context growth)
@@ -214,3 +246,8 @@ concern, different namespace.
 - **Aggregates as named verbs, not default fields** (vs. bundling summaries
   into every output): reconciles round-trip elimination with minimal
   schemas — you opt into the aggregate when you want it.
+- **Completion by invoking the tool, registry-gated** (vs. per-shell
+  completion scripts): `--acli-complete` reuses the tool's own parser and
+  needs no bash/zsh/fish artifacts; the consumer-side allowlist carries the
+  safety burden, because probing an unknown tool with an unknown flag can
+  execute a lax tool's default action.
