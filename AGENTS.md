@@ -631,6 +631,14 @@ fit/overlap layout is a measured allocator, not breakpoint tiers,
 establish the missing precondition or fail clearly, don't soften or swallow
 it (*Anti-slop implementation* above).
 
+**Duplicate fixes.** Multi-author trees collect independent fixes for one
+defect, each author patching their own projection — a second guard on one
+invariant, a caller workaround shadowing a callee fix. In any review, a
+fix resembling one already in the tree is a finding, not a coincidence:
+usually neither sits at the owning invariant, or one is dead. Name the
+best fix site, keep that one fix (whichever author's), remove the rest;
+deliberate layered defense with per-layer contracts is not a duplicate.
+
 ## Adjacent gaps: capture, don't chase or drop
 
 A code-quality defect you notice adjacent to your work — a UI glitch,

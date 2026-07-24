@@ -30,8 +30,9 @@ Review the above changes for:
 2. Security vulnerabilities
 3. Missing test coverage
 4. Performance concerns
-5. Unnecessary (optional) tech-debt/refactoring changes (but not typo/doc/auto-format/whitespace); amend the commit message to characterize these in a single line at the end (but before any `Change-Id` line).
-6. Change-Id: there should be one Change-Id: line at most and it should be at the end. This is for gerrit; let our git hooks add the id if not already present. Never add text after a Change-Id line (add it before)
+5. Duplicate fixes: a change that re-fixes a defect the tree already handles elsewhere (a second guard on one invariant, a caller workaround shadowing a callee fix) — common with multiple authors; investigate and consolidate to one fix at the best site rather than landing both.
+6. Unnecessary (optional) tech-debt/refactoring changes (but not typo/doc/auto-format/whitespace); amend the commit message to characterize these in a single line at the end (but before any `Change-Id` line).
+7. Change-Id: there should be one Change-Id: line at most and it should be at the end. This is for gerrit; let our git hooks add the id if not already present. Never add text after a Change-Id line (add it before)
 
 Before reviewing, resolve the base branch and run:
 - `git --no-pager diff --no-color --no-ext-diff --name-only <base>...HEAD`
