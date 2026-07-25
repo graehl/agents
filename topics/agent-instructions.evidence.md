@@ -526,3 +526,49 @@ the sweep single-target.
   traced back to one past "thanks for asking," over-crystallized into a
   standing constraint. Memory-formation failure mode: a one-time courtesy
   is not a rule; a single appreciation should not mint a boot-loaded gate.
+
+## 2026-07-25 — AGENTS.opus.md: path-trace code claims
+
+- **Change** — added `AGENTS.opus.md`, a third supplement kind after
+  weak (restatements) and frontier (relaxations): a model-scoped
+  tightening, routed from the Claude supplement when the
+  harness-recorded transcript id contains `opus`. User-reported
+  failure mode: Opus 5 does competent engineering *given its beliefs*
+  about global code context but frequently overconfidently asserts
+  unverified untruths about unread code. The user's raw phrasing
+  "path trace any claim made about code" was self-admittedly
+  over-broad and recursive; softened to: a specific, checkable claim
+  about unread project code stated as fact must carry this-session
+  provenance (file:line or search+result) or an explicit unverified
+  label.
+- **Trace-sim catches that shaped the wording** —
+  - recursion needs an explicit ground-out: a claim supported by
+    quoted tool output needs nothing further;
+  - label-only compliance could gut the rule (hedge everything, keep
+    asserting): claims an edit or user decision rests on must be
+    verified; the label is for incidental claims;
+  - the fabricated citation (file:line from memory) is the failure
+    mode at its worst — named explicitly so citing reads as an
+    attestation, not a formatting habit;
+  - frontier end-state latitude could dissolve the ceremony, so the
+    file pins itself no-latitude, mirroring `AGENTS.frontier.md`'s
+    own carve-out list.
+- **Probe (n=1/arm, anecdote-grade)** — two opus subagents, same six
+  questions about a Django shallow clone (75M,
+  `~/.cache/checkouts/github.com/django/django`), one arm with the
+  patch text as project instructions. Both arms searched and cited
+  file:line well — direct Q&A mostly hits ceiling in an agent
+  harness. The planted universal-quantifier question (importers of
+  the migration autodetector outside `django/db/`) discriminated:
+  baseline named the two importers but appended a false universal
+  side-claim ("other hits are under tests/" — misses
+  `django/core/checks/commands.py`); the patched arm surfaced that
+  third file and correctly distinguished module import from
+  attribute reference. Cost was a wash (35.5k vs 35.9k subagent
+  tokens, 10 vs 9 tool calls); no hedge-fest in the patched arm — it
+  verified instead of labeling.
+- **Limitation** — the reported deficiency lives in long flows where
+  cross-file claims are incidental to a larger task; a direct Q&A
+  probe cannot show it. Real validation is an
+  `instruction-ablation`-shaped comparison on multi-step tasks in a
+  large repo.

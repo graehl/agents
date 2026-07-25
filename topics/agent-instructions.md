@@ -247,3 +247,15 @@ the model's self-knowledge of its name — models misreport that.
 Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.
 Anything binding belongs in `AGENTS.md`.
+
+`AGENTS.opus.md` is a model-scoped supplement — the third kind after
+weak (restatements) and frontier (relaxations): a behavior patch
+countering a failure mode observed in one model family. Currently it
+carries the path-trace rule against Opus-class overconfident
+assertions about unread code. The Claude supplement routes to it when
+the harness-recorded transcript id is opus-class, by the same
+grep-the-transcript mechanism as tier detection.
+
+Edit policy: `AGENTS.opus.md` carries model-specific tightenings
+only. A rule that would improve every model belongs in `AGENTS.md`;
+a relaxation belongs in `AGENTS.frontier.md`.

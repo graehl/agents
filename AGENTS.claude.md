@@ -15,7 +15,9 @@ tac "$HOME/.claude/projects/${PWD//\//-}/$CLAUDE_CODE_SESSION_ID.jsonl" |
 A haiku-class (small-tier) id, or a surfaced `AGENTS.weak.md`, means
 weak tier: read `~/agents/AGENTS.weak.md` and do not read
 `AGENTS.frontier.md`. Otherwise read `~/agents/AGENTS.frontier.md`
-next — frontier-tier latitude.
+next — frontier-tier latitude. An opus-class id (the recorded id
+contains `opus`) additionally reads `~/agents/AGENTS.opus.md` — a
+model-scoped behavior patch.
 
 ## Session Identity And Logs
 
