@@ -126,9 +126,14 @@ tool --acli-complete <argv-prefix...>
   protects compliant tools, but a lax non-compliant tool could ignore the
   flag and execute its default action — Tab must never run an arbitrary
   program.
-- `acli.args` should wire the verb automatically from the argparse spec
-  (flag and subcommand names for free; per-arg value completers opt-in).
-  Worked example: `harness-check` in the yepanywhere repo
+- `acli.args` wires the verb automatically from the argparse spec: call
+  `maybe_complete(parser)` before normal parsing (and before any side
+  effect) and flags, subcommands, and `choices` values complete for free;
+  `set_completer(action, fn)` adds opt-in value completion, where `fn`
+  takes `(prefix, tokens)` and yields strings or
+  `{"completion", "kind", "help"}` dicts. Worked examples: `almanac`
+  (`scripts/almanac`, dataset-name and record-key completers) uses the
+  wiring; `harness-check` in the yepanywhere repo
   (`packages/server/test/bang/fixtures/harness-check`) implements the verb
   by hand, including comma-list value completion for `--harnesses`.
 

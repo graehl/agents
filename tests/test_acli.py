@@ -139,6 +139,75 @@ def test_die_emits_structured_error_envelope():
     _assert(payload["error"]["message"] == "bad flag")
 
 
+def _demo_name_completer(prefix, tokens):
+    del tokens
+    entries = ["alpha", "beta", {"completion": "gamma"}]
+    return [
+        entry
+        for entry in entries
+        if (entry["completion"] if isinstance(entry, dict) else entry).startswith(prefix)
+    ]
+
+
+def _completion_parser():
+    args_mod = importlib.import_module("acli.args")
+    parser = args_mod.argument_parser(prog="demo")
+    args_mod.add_standard_args(parser)
+    sub = parser.add_subparsers(dest="verb")
+    show = sub.add_parser("show", help="Show one record.")
+    name_arg = show.add_argument("name", help="Dataset name.")
+    args_mod.set_completer(name_arg, _demo_name_completer)
+    show.add_argument("--mode", choices=["brief", "wide"], help="Detail level.")
+    sub.add_parser("list", help="List records.")
+    return args_mod, parser
+
+
+def _complete_lines(args_mod, parser, tokens):
+    out = io.StringIO()
+    args_mod.complete(parser, tokens, out)
+    return [json.loads(line) for line in out.getvalue().splitlines()]
+
+
+def test_complete_subcommands_flags_and_values():
+    args_mod, parser = _completion_parser()
+    rows = _complete_lines(args_mod, parser, [""])
+    _assert([r["completion"] for r in rows] == ["list", "show"], rows)
+    _assert(all(r["kind"] == "subcommand" for r in rows))
+
+    rows = _complete_lines(args_mod, parser, ["--f"])
+    _assert([r["completion"] for r in rows] == ["--format", "--full"], rows)
+
+    rows = _complete_lines(args_mod, parser, ["show", "a"])
+    _assert([r["completion"] for r in rows] == ["alpha"], rows)
+
+    rows = _complete_lines(args_mod, parser, ["show", "alpha", "--mode", ""])
+    _assert([r["completion"] for r in rows] == ["brief", "wide"], rows)
+
+    rows = _complete_lines(args_mod, parser, ["show", "alpha", "--mode=w"])
+    _assert([r["completion"] for r in rows] == ["--mode=wide"], rows)
+
+
+def test_complete_empty_is_definitive():
+    args_mod, parser = _completion_parser()
+    _assert(_complete_lines(args_mod, parser, ["show", "zzz"]) == [])
+    _assert(_complete_lines(args_mod, parser, ["nonsense", "x"]) == [])
+
+
+def test_maybe_complete_only_fires_on_argv1():
+    args_mod, parser = _completion_parser()
+    out = io.StringIO()
+    _assert(args_mod.maybe_complete(parser, ["demo", "list"], out) is None)
+    _assert(out.getvalue() == "")
+    try:
+        args_mod.maybe_complete(parser, ["demo", "--acli-complete", "sh"], out)
+    except SystemExit as exc:
+        _assert(exc.code == 0)
+    else:
+        raise AssertionError("maybe_complete should exit 0 after completing")
+    rows = [json.loads(line) for line in out.getvalue().splitlines()]
+    _assert([r["completion"] for r in rows] == ["show"], rows)
+
+
 def _collect_tests():
     return [
         (name, fn)

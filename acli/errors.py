@@ -12,6 +12,7 @@ class ExitCode(IntEnum):
     DATA = 3
     NOT_FOUND = 4
     CONFLICT = 5
+    UNAVAILABLE = 69
     SOFTWARE = 70
     TEMPORARY = 75
 
