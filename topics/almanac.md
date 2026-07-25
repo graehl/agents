@@ -124,11 +124,27 @@ the repair path named.
 `--pretty` human upgrade, `--toon` on the table verbs (`list`,
 `query`, `search`), structured errors, `--acli-complete` (dataset
 names, record keys, `field=`/`field=value` filters). Verbs: `list`,
-`query` (FIELD=VALUE / FIELD~TEXT filters), `show`, `search`, `info`,
-`check`, `update`, `register`. `register` validates a built dataset,
-wires the `by-url` symlink, commits, and writes a thin per-dataset
-launcher (`~/bin/<name>`: bare = info, filters = query, verbs pass
-through) plus the `~/bin/almanac` engine symlink if missing.
+`query`, `show`, `search`, `info`, `check`, `update`, `help`,
+`register`.
+
+`query` filter grammar: `FIELD=VALUE` (exact, comma = any-of),
+`FIELD~TEXT` (substring on one field), `~TEXT` (substring across the
+schema's search fields). Any other token is search text, not an
+error: a bare word extends the preceding `~` needle (or starts one),
+so `~flame strike` — and a launcher's bare `flame strike` — is the
+single needle `flame strike`. Multiple `~` tokens AND together.
+
+Help is example-driven: bare `almanac` (exit 0) and `-h` append a
+dataset overview plus example invocations built from real record
+values; `help <name>` prints that dataset's columns, key, filter
+grammar, sample rows, and examples (`--prog` renders them in
+launcher form).
+
+`register` validates a built dataset, wires the `by-url` symlink,
+commits, and writes a thin per-dataset launcher (`~/bin/<name>`:
+bare = info, `-h`/`--help`/`help` = `almanac help <name>`, verbs
+pass through, anything else = query filters/search) plus the
+`~/bin/almanac` engine symlink if missing.
 
 ## YA integration (sketch)
 

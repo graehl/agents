@@ -134,8 +134,17 @@ def test_list_query_show_search():
     full = jsonl(run(root, "query", "cards-test", "tier=b", "--full"))
     _assert("text" in full[0], full)
 
-    proc = run(root, "query", "cards-test", "bogus")
-    _assert(proc.returncode == 2, "malformed filter is a usage error")
+    # Unrecognized args are full-text needles over the search fields.
+    rows = jsonl(run(root, "query", "cards-test", "vulnerable"))
+    _assert([r["name"] for r in rows] == ["Bash"], rows)
+    rows = jsonl(run(root, "query", "cards-test", "~strike"))
+    _assert(len(rows) == 2, rows)
+    # Bare words extend the preceding ~needle: one 'deal 6' needle.
+    rows = jsonl(run(root, "query", "cards-test", "~deal", "6"))
+    _assert([r["name"] for r in rows] == ["Strike"], rows)
+    # Two ~needles AND together.
+    rows = jsonl(run(root, "query", "cards-test", "~strike", "~more"))
+    _assert([r["name"] for r in rows] == ["Perfected Strike"], rows)
 
     record = jsonl(run(root, "show", "cards-test", "bash"))[0]
     _assert(record["name"] == "Bash" and "text" in record)
@@ -149,6 +158,19 @@ def test_list_query_show_search():
 
     empty = jsonl(run(root, "query", "cards-test", "tier=z"))
     _assert(empty == [{"count": 0, "of": "records"}], "definitive empty state")
+
+
+def test_help_and_no_args():
+    root, _ = registered_root()
+    proc = run(root)
+    _assert(proc.returncode == 0, "no args prints help, not a usage error")
+    _assert("examples:" in proc.stdout and "cards-test" in proc.stdout, proc.stdout)
+    proc = run(root, "--help")
+    _assert("cards-test" in proc.stdout, "top-level --help lists datasets")
+    proc = run(root, "help", "cards-test")
+    _assert(proc.returncode == 0, proc.stderr)
+    _assert("sample rows:" in proc.stdout and "Strike" in proc.stdout, proc.stdout)
+    _assert("~needle" in proc.stdout, "filter syntax incl. needle grouping documented")
 
 
 def test_sequence_numbers_and_supersets():
@@ -249,6 +271,13 @@ def test_launcher_dispatch():
 
     proc = subprocess.run([launcher, "show", "bash"], capture_output=True, text=True, env=env)
     _assert(json.loads(proc.stdout.splitlines()[0])["cost"] == 2, proc.stdout)
+
+    proc = subprocess.run([launcher, "-h"], capture_output=True, text=True, env=env)
+    _assert(proc.returncode == 0, proc.stderr)
+    _assert("launcher bound to" in proc.stdout, "launcher -h explains the binding")
+
+    proc = subprocess.run([launcher, "vulnerable"], capture_output=True, text=True, env=env)
+    _assert(json.loads(proc.stdout.splitlines()[0])["name"] == "Bash", "bare word = search")
 
     proc = subprocess.run(
         [launcher, "--acli-complete", "show", "b"], capture_output=True, text=True, env=env

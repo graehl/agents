@@ -20,10 +20,12 @@ refresh mode, 70 = extractor output no longer matches the schema,
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
 import re
+import shlex
 import stat
 import subprocess
 import sys
@@ -300,28 +302,28 @@ def git_commit(paths: list[Path], message: str) -> str:
 # --- verbs ---
 
 
+def dataset_summary(name: str) -> dict:
+    manifest = read_json(root() / name / "manifest.json", f"{name}/manifest.json")
+    try:
+        data = json.loads((root() / name / "data.json").read_text())
+        path = manifest.get("schema", {}).get("records", "")
+        node = data
+        for part in path.split(".") if path else []:
+            node = node[part]
+        count = len(node) if isinstance(node, list) else None
+    except (OSError, ValueError, KeyError, TypeError):
+        count = None
+    return {
+        "name": name,
+        "url": manifest.get("url"),
+        "refresh": manifest.get("refresh"),
+        "fetched": manifest.get("fetched"),
+        "records": count,
+    }
+
+
 def cmd_list(args) -> int:
-    rows = []
-    for name in dataset_names():
-        manifest = read_json(root() / name / "manifest.json", f"{name}/manifest.json")
-        try:
-            data = json.loads((root() / name / "data.json").read_text())
-            path = manifest.get("schema", {}).get("records", "")
-            node = data
-            for part in path.split(".") if path else []:
-                node = node[part]
-            count = len(node) if isinstance(node, list) else None
-        except (OSError, ValueError, KeyError, TypeError):
-            count = None
-        rows.append(
-            {
-                "name": name,
-                "url": manifest.get("url"),
-                "refresh": manifest.get("refresh"),
-                "fetched": manifest.get("fetched"),
-                "records": count,
-            }
-        )
+    rows = [dataset_summary(name) for name in dataset_names()]
     emit_table(args, rows, ["name", "url", "refresh", "fetched", "records"], "datasets")
     return 0
 
@@ -329,34 +331,59 @@ def cmd_list(args) -> int:
 _FILTER_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_.-]*)([=~])(.*)$")
 
 
-def apply_filters(records: list[dict], filters: list[str]) -> list[dict]:
+FILTER_SYNTAX = (
+    "FIELD=VALUE (exact, comma = any-of), FIELD~TEXT (substring), "
+    "~TEXT (substring across the search fields). Anything else is search "
+    "text: a bare word extends the preceding ~needle (or starts one), so "
+    "`~flame strike` is the single needle 'flame strike'."
+)
+
+
+def apply_filters(
+    records: list[dict], filters: list[str], fields: list[str]
+) -> list[dict]:
+    """Narrow by formal filters; everything unrecognized becomes full-text
+    needles over `fields` (see FILTER_SYNTAX for the grouping rule)."""
+    needles: list[list[str]] = []
     for expr in filters:
         parsed = _FILTER_RE.match(expr)
-        if not parsed:
-            die(
-                f"bad filter {expr!r}: use FIELD=VALUE (exact, comma = any-of) "
-                "or FIELD~TEXT (substring)",
-                ExitCode.USAGE,
-            )
-        field, op, want = parsed.groups()
-        if op == "=":
-            wanted = [w.strip().lower() for w in want.split(",")]
-            records = [
-                r for r in records
-                if r.get(field) is not None and str(r[field]).lower() in wanted
-            ]
+        if parsed:
+            field, op, want = parsed.groups()
+            if op == "=":
+                wanted = [w.strip().lower() for w in want.split(",")]
+                records = [
+                    r for r in records
+                    if r.get(field) is not None and str(r[field]).lower() in wanted
+                ]
+            else:
+                needle = want.lower()
+                records = [
+                    r for r in records
+                    if r.get(field) is not None and needle in str(r[field]).lower()
+                ]
+        elif expr.startswith("~"):
+            needles.append([expr[1:]] if expr[1:] else [])
         else:
-            needle = want.lower()
-            records = [
-                r for r in records
-                if r.get(field) is not None and needle in str(r[field]).lower()
-            ]
+            if not needles:
+                needles.append([])
+            needles[-1].append(expr)
+    for words in needles:
+        needle = " ".join(words).strip().lower()
+        if not needle:
+            continue
+        records = [
+            r for r in records
+            if any(
+                r.get(f) is not None and needle in str(r[f]).lower()
+                for f in fields
+            )
+        ]
     return records
 
 
 def cmd_query(args) -> int:
     _, manifest, records = load_dataset(args.name)
-    records = apply_filters(records, args.filters)
+    records = apply_filters(records, args.filters, search_fields(manifest, records))
     if args.full:
         if resolve_format(args) is Format.TOON:
             die("--toon requires the default column projection, not --full",
@@ -453,6 +480,123 @@ def cmd_info(args) -> int:
     return 0
 
 
+def example_bits(manifest: dict, records: list[dict]):
+    """Real values from the first record for example command lines:
+    (filter_expr, needle_word, key_value) — any may be None."""
+    schema = manifest.get("schema", {})
+    first = records[0] if records else {}
+    filter_expr = None
+    for field in schema.get("filters", []):
+        value = first.get(field)
+        if value is not None and not isinstance(value, (dict, list)):
+            filter_expr = f"{field}={value}"
+            break
+    needle = None
+    for field in search_fields(manifest, records):
+        words = re.findall(r"[A-Za-z]{4,}", str(first.get(field, "")))
+        if words:
+            needle = words[0].lower()
+            break
+    key_value = str(first.get(schema.get("key"), "")) or None
+    return filter_expr, needle, key_value
+
+
+def example_commands(name: str, manifest: dict, records: list[dict],
+                     prog: str | None) -> list[str]:
+    """Example invocations with real values; launcher form when prog is set
+    (the launcher defaults to query, so its verb is omitted there)."""
+    filter_expr, needle, key_value = example_bits(manifest, records)
+
+    def ex(verb: str, rest: str, note: str) -> str:
+        if prog:
+            head = prog if verb == "query" else f"{prog} {verb}"
+        else:
+            head = f"almanac {verb} {name}"
+        return f"  {head} {rest}".ljust(44) + f"  # {note}"
+
+    lines = []
+    if filter_expr:
+        lines.append(ex("query", filter_expr, "exact filter (comma = any-of)"))
+    if needle:
+        lines.append(ex("query", f"~{needle}", "substring across text fields"))
+        lines.append(ex("query", f"~{needle} more words",
+                        "bare words extend the ~needle: one search for "
+                        f"'{needle} more words'"))
+    if key_value:
+        lines.append(ex("show", shlex.quote(key_value),
+                        f"one full record by {manifest.get('schema', {}).get('key')}"))
+    if needle:
+        lines.append(ex("search", needle, "like ~ but shows what matched where"))
+    return lines
+
+
+def cmd_help(args) -> int:
+    if not args.name:
+        args.parser.print_help()
+        return 0
+    directory, manifest, records = load_dataset(args.name)
+    prog = args.prog
+    columns = default_columns(manifest, records)
+    schema = manifest.get("schema", {})
+    lines = [
+        f"{args.name} — {len(records)} records extracted from {manifest.get('url')}",
+        f"  refresh: {manifest.get('refresh')}   fetched: {manifest.get('fetched')}"
+        f"   dir: {directory}",
+    ]
+    if prog:
+        lines += [
+            "",
+            f"`{prog}` is an almanac launcher bound to the {args.name!r} dataset:",
+            f"  {prog} VERB ARGS...  ==  almanac VERB {args.name} ARGS...",
+            "  verbs: query show search info check update help;"
+            " bare = info, anything else = query filters/search",
+        ]
+    lines += [
+        "",
+        f"columns: {', '.join(columns)}   key: {schema.get('key')}"
+        "   (all fields: show a record, or query --full)",
+        f"filters: {FILTER_SYNTAX}",
+        "",
+        "sample rows:",
+    ]
+    for row in project(records[:3], columns):
+        lines.append("  " + json.dumps(row, ensure_ascii=False))
+    examples = example_commands(args.name, manifest, records, prog)
+    if examples:
+        lines += ["", "examples:", *examples]
+    sys.stdout.write("\n".join(lines) + "\n")
+    return 0
+
+
+def help_epilog() -> str | None:
+    """Dataset overview + real examples for the top-level --help/no-args text.
+    Best-effort: a broken dataset must never break the parser."""
+    try:
+        names = dataset_names()
+        if not names:
+            return (f"no datasets yet under {root()}; "
+                    "the almanac skill builds one from a URL")
+        lines = ["datasets:"]
+        for name in names:
+            summary = dataset_summary(name)
+            lines.append(
+                f"  {name}  {summary['records']} records  {summary['url']}"
+            )
+        try:
+            _, manifest, records = load_dataset(names[0])
+            examples = example_commands(names[0], manifest, records, None)
+        except SystemExit:
+            examples = []
+        examples.append(
+            f"  almanac help {names[0]}".ljust(44)
+            + "  # dataset help: columns, filters, sample rows"
+        )
+        lines += ["", "examples:", *examples]
+        return "\n".join(lines)
+    except Exception:
+        return None
+
+
 def cmd_check(args) -> int:
     directory, manifest, _ = load_dataset(args.name)
     source = refresh_source(manifest, args)
@@ -523,11 +667,14 @@ set -euo pipefail
 if [ "${{1:-}}" = "--acli-complete" ]; then
   shift
   case "${{1:-}}" in
-    query|show|search|info|check|update)
+    query|show|search|info|check|update|help)
       v="$1"; shift; exec almanac --acli-complete "$v" {name} "$@";;
     *) exec almanac --acli-complete query {name} "$@";;
   esac
 fi
+case "${{1:-}}" in
+  -h|--help|help) exec almanac help {name} --prog "${{0##*/}}";;
+esac
 v="${{1:-info}}"
 case "$v" in
   query|show|search|info|check|update) [ "$#" -gt 0 ] && shift;;
@@ -700,11 +847,12 @@ def complete_filter(prefix, tokens):
 # --- parser ---
 
 
-def build_parser():
+def build_parser(epilog: str | None = None):
     parser = argument_parser(
         prog="almanac",
         description="Query and refresh local web-extracted datasets. "
         "Contract: topics/almanac.md; built by the almanac skill.",
+        epilog=epilog,
     )
     sub = parser.add_subparsers(dest="verb", required=True)
 
@@ -718,10 +866,10 @@ def build_parser():
     add_standard_args(p, allow_toon=True)
     p.set_defaults(func=cmd_list)
 
-    p = sub.add_parser("query", help="List records, optionally filtered by FIELD=VALUE or FIELD~TEXT.")
+    p = sub.add_parser("query", help="List records, filtered by FIELD=VALUE / FIELD~TEXT / ~TEXT or bare search words.")
     dataset_arg(p)
     set_completer(
-        p.add_argument("filters", nargs="*", help="FIELD=VALUE (exact, comma = any-of) or FIELD~TEXT (substring)."),
+        p.add_argument("filters", nargs="*", help=FILTER_SYNTAX),
         complete_filter,
     )
     add_standard_args(p, allow_toon=True)
@@ -760,6 +908,14 @@ def build_parser():
     add_standard_args(p)
     p.set_defaults(func=cmd_update)
 
+    p = sub.add_parser("help", help="Human help; with a dataset name, its columns, filters, sample rows, and examples.")
+    set_completer(
+        p.add_argument("name", nargs="?", help="Dataset name (omit for engine-wide help)."),
+        complete_dataset,
+    )
+    p.add_argument("--prog", help=argparse.SUPPRESS)  # launcher name, for example command lines
+    p.set_defaults(func=cmd_help, parser=parser)
+
     p = sub.add_parser("register", help="Validate a dataset dir, wire by-url symlink, git history, and ~/bin launcher.")
     dataset_arg(p)
     p.add_argument("--launcher-dir", default="~/bin", help="Where the per-dataset launcher is written (default ~/bin).")
@@ -771,8 +927,13 @@ def build_parser():
 
 
 def main() -> int:
-    parser = build_parser()
+    argv = sys.argv[1:]
+    wants_help = not argv or argv[0] in ("-h", "--help", "help")
+    parser = build_parser(epilog=help_epilog() if wants_help else None)
     maybe_complete(parser)
+    if not argv:
+        parser.print_help()
+        return 0
     args = parser.parse_args()
     return args.func(args)
 
