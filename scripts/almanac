@@ -1,0 +1,781 @@
+#!/usr/bin/env python3
+"""almanac — query and refresh local datasets extracted from web pages.
+
+Contract: topics/almanac.md in the ~/agents repo. Datasets are built by
+the almanac skill (skills/almanac/SKILL.md): each is a directory under
+$ALMANAC_ROOT (default ~/.cache/almanac) holding manifest.json, data.json,
+a fixed `extract` script (except frozen transcriptions), and optional
+attachment subdirs. This engine only reads, checks, and refreshes
+datasets; building or repairing one is agent work.
+
+Verbs: list, query, show, search, info, check, update, register.
+Output follows topics/agent-cli.md: compact JSONL by default, --pretty
+for humans, --toon on table verbs, --acli-complete for completion.
+
+Exit codes (beyond 0/2): 3 = check found changes, 4 = no such dataset or
+record, 5 = conflict (register), 69 = cannot refresh in this dataset's
+refresh mode, 70 = extractor output no longer matches the schema,
+75 = acquire/extract failed (network, timeout, nonzero exit).
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import stat
+import subprocess
+import sys
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import ExitCode, Format, die, emit, resolve_format, write_jsonl  # noqa: E402
+from acli.args import (  # noqa: E402
+    add_standard_args,
+    argument_parser,
+    maybe_complete,
+    set_completer,
+)
+
+REFRESH_MODES = ("auto", "headless", "remote", "manual", "frozen")
+NAME_RE = re.compile(r"^[a-z][a-z0-9-]{1,31}$")
+LAUNCHER_MARKER = "almanac launcher"
+EXTRACT_TIMEOUT = 600
+
+
+def root() -> Path:
+    return Path(os.environ.get("ALMANAC_ROOT", "~/.cache/almanac")).expanduser()
+
+
+def now_utc() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def content_hash(value) -> str:
+    text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return "sha256:" + hashlib.sha256(text.encode()).hexdigest()
+
+
+def dataset_names() -> list[str]:
+    base = root()
+    if not base.is_dir():
+        return []
+    return sorted(
+        entry.name
+        for entry in base.iterdir()
+        if entry.is_dir() and (entry / "manifest.json").is_file()
+    )
+
+
+def dataset_dir(name: str) -> Path:
+    directory = root() / name
+    if not (directory / "manifest.json").is_file():
+        die(
+            f"no dataset {name!r} under {root()}",
+            ExitCode.NOT_FOUND,
+            detail={"known": dataset_names()},
+        )
+    return directory
+
+
+def read_json(path: Path, what: str):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError) as exc:
+        die(f"cannot read {what}: {exc}", ExitCode.DATA, detail={"path": str(path)})
+
+
+def write_json_atomic(path: Path, value) -> None:
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".")
+    try:
+        with os.fdopen(fd, "w") as handle:
+            json.dump(value, handle, indent=1, sort_keys=True, ensure_ascii=False)
+            handle.write("\n")
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def records_of(manifest: dict, data, *, where: str) -> list[dict]:
+    path = manifest.get("schema", {}).get("records", "")
+    node = data
+    if path:
+        for part in path.split("."):
+            if not isinstance(node, dict) or part not in node:
+                die(
+                    f"records path {path!r} does not resolve in {where}; "
+                    "re-run the almanac skill to repair",
+                    ExitCode.SOFTWARE,
+                )
+            node = node[part]
+    if not isinstance(node, list) or not all(isinstance(r, dict) for r in node):
+        die(
+            f"records at {path!r} in {where} are not a list of objects; "
+            "re-run the almanac skill to repair",
+            ExitCode.SOFTWARE,
+        )
+    return node
+
+
+def ordinal_combos(manifest: dict) -> list[list[str]]:
+    """Field combos that get reading-order ordinals (schema.ordinals;
+    default: each filter field singly)."""
+    schema = manifest.get("schema", {})
+    combos = schema.get("ordinals")
+    if combos is None:
+        combos = [[field] for field in schema.get("filters", [])]
+    return [list(combo) for combo in combos if combo]
+
+
+def combo_column(combo: list[str]) -> str:
+    return "n_" + "_".join(combo)
+
+
+def load_dataset(name: str):
+    directory = dataset_dir(name)
+    manifest = read_json(directory / "manifest.json", f"{name}/manifest.json")
+    data = read_json(directory / "data.json", f"{name}/data.json")
+    records = records_of(manifest, data, where=f"{name}/data.json")
+    # In-memory only (never written back or hashed): reading-order position
+    # overall (seq) and within each declared selector group (n_<fields>).
+    for i, record in enumerate(records, 1):
+        record.setdefault("seq", i)
+    for combo in ordinal_combos(manifest):
+        column = combo_column(combo)
+        counters: dict[tuple, int] = {}
+        for record in records:
+            key = tuple(str(record.get(field)) for field in combo)
+            counters[key] = counters.get(key, 0) + 1
+            record.setdefault(column, counters[key])
+    return directory, manifest, records
+
+
+def cell(value):
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+    return value
+
+
+def project(records: list[dict], columns: list[str]) -> list[dict]:
+    return [{col: cell(record.get(col)) for col in columns} for record in records]
+
+
+def emit_table(args, rows: list[dict], columns: list[str], name: str) -> None:
+    fmt = resolve_format(args)
+    if fmt is Format.TOON:
+        emit({"rows": rows, "columns": columns, "name": name}, fmt)
+    elif not rows and fmt is Format.COMPACT:
+        # Definitive empty state (topics/agent-cli.md): zero lines is ambiguous.
+        write_jsonl({"count": 0, "of": name})
+    else:
+        emit(rows, fmt)
+
+
+def default_columns(manifest: dict, records: list[dict]) -> list[str]:
+    columns = manifest.get("schema", {}).get("columns")
+    if not columns:
+        columns = list(records[0].keys())[:4] if records else []
+    reserved = {"n", "seq"} | {
+        combo_column(combo) for combo in ordinal_combos(manifest)
+    }
+    return [col for col in columns if col not in reserved]
+
+
+def numbered_row(record: dict, i: int, columns: list[str], ordinal_cols: list[str]) -> dict:
+    """One output row: selection position (n), content, group ordinals, seq."""
+    row = {"n": i}
+    row.update({col: cell(record.get(col)) for col in columns})
+    row.update({col: record.get(col) for col in ordinal_cols})
+    row["seq"] = record.get("seq")
+    return row
+
+
+# --- refresh (check / update) ---
+
+
+def refresh_source(manifest: dict, args) -> str:
+    mode = manifest.get("refresh", "manual")
+    source = getattr(args, "source", None)
+    if mode == "frozen":
+        die(
+            "frozen (transcribed) dataset: no extractor exists; "
+            "re-run the almanac skill to re-transcribe",
+            ExitCode.UNAVAILABLE,
+        )
+    if mode == "manual" and not source:
+        die(
+            "manual-refresh dataset: pass --source <saved page, payload, or HAR>",
+            ExitCode.UNAVAILABLE,
+            detail={"url": manifest.get("url")},
+        )
+    return source or manifest["url"]
+
+
+def run_extract(directory: Path, source: str):
+    exe = directory / "extract"
+    if not exe.is_file() or not os.access(exe, os.X_OK):
+        die(
+            "extractor missing or not executable; re-run the almanac skill to repair",
+            ExitCode.UNAVAILABLE,
+            detail={"path": str(exe)},
+        )
+    try:
+        proc = subprocess.run(
+            [str(exe), source],
+            capture_output=True,
+            text=True,
+            timeout=EXTRACT_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        die(
+            f"extract timed out after {EXTRACT_TIMEOUT}s",
+            ExitCode.TEMPORARY,
+            detail={"source": source},
+        )
+    if proc.returncode != 0:
+        die(
+            "extract failed",
+            ExitCode.TEMPORARY,
+            detail={
+                "source": source,
+                "exit": proc.returncode,
+                "stderr": proc.stderr[-2000:],
+            },
+        )
+    try:
+        return json.loads(proc.stdout)
+    except ValueError as exc:
+        die(
+            f"extract emitted invalid JSON ({exc}); "
+            "re-run the almanac skill to repair",
+            ExitCode.SOFTWARE,
+            detail={"source": source},
+        )
+
+
+def git_commit(paths: list[Path], message: str) -> str:
+    """Best-effort history in the dataset root's local git repo."""
+    base = root()
+    rel = [str(p.relative_to(base)) for p in paths]
+    if not (base / ".git").exists():
+        init = subprocess.run(
+            ["git", "init", "-q"], cwd=base, capture_output=True, text=True
+        )
+        if init.returncode != 0:
+            return f"skipped: git init failed: {init.stderr.strip()[:200]}"
+    add = subprocess.run(
+        ["git", "add", "--", *rel], cwd=base, capture_output=True, text=True
+    )
+    if add.returncode != 0:
+        return f"skipped: git add failed: {add.stderr.strip()[:200]}"
+    commit = subprocess.run(
+        [
+            "git",
+            "-c", "user.name=almanac",
+            "-c", "user.email=almanac@localhost",
+            "commit", "-q", "-m", message, "--", *rel,
+        ],
+        cwd=base,
+        capture_output=True,
+        text=True,
+    )
+    if commit.returncode == 0:
+        return "committed"
+    output = (commit.stdout + commit.stderr).lower()
+    if "nothing to commit" in output or "nothing added" in output:
+        return "unchanged"
+    return f"skipped: git commit failed: {commit.stderr.strip()[:200]}"
+
+
+# --- verbs ---
+
+
+def cmd_list(args) -> int:
+    rows = []
+    for name in dataset_names():
+        manifest = read_json(root() / name / "manifest.json", f"{name}/manifest.json")
+        try:
+            data = json.loads((root() / name / "data.json").read_text())
+            path = manifest.get("schema", {}).get("records", "")
+            node = data
+            for part in path.split(".") if path else []:
+                node = node[part]
+            count = len(node) if isinstance(node, list) else None
+        except (OSError, ValueError, KeyError, TypeError):
+            count = None
+        rows.append(
+            {
+                "name": name,
+                "url": manifest.get("url"),
+                "refresh": manifest.get("refresh"),
+                "fetched": manifest.get("fetched"),
+                "records": count,
+            }
+        )
+    emit_table(args, rows, ["name", "url", "refresh", "fetched", "records"], "datasets")
+    return 0
+
+
+_FILTER_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_.-]*)([=~])(.*)$")
+
+
+def apply_filters(records: list[dict], filters: list[str]) -> list[dict]:
+    for expr in filters:
+        parsed = _FILTER_RE.match(expr)
+        if not parsed:
+            die(
+                f"bad filter {expr!r}: use FIELD=VALUE (exact, comma = any-of) "
+                "or FIELD~TEXT (substring)",
+                ExitCode.USAGE,
+            )
+        field, op, want = parsed.groups()
+        if op == "=":
+            wanted = [w.strip().lower() for w in want.split(",")]
+            records = [
+                r for r in records
+                if r.get(field) is not None and str(r[field]).lower() in wanted
+            ]
+        else:
+            needle = want.lower()
+            records = [
+                r for r in records
+                if r.get(field) is not None and needle in str(r[field]).lower()
+            ]
+    return records
+
+
+def cmd_query(args) -> int:
+    _, manifest, records = load_dataset(args.name)
+    records = apply_filters(records, args.filters)
+    if args.full:
+        if resolve_format(args) is Format.TOON:
+            die("--toon requires the default column projection, not --full",
+                ExitCode.USAGE)
+        emit(records, resolve_format(args))
+        return 0
+    columns = default_columns(manifest, records)
+    ordinal_cols = [combo_column(c) for c in ordinal_combos(manifest)]
+    rows = [
+        numbered_row(record, i, columns, ordinal_cols)
+        for i, record in enumerate(records, 1)
+    ]
+    emit_table(args, rows, ["n", *columns, *ordinal_cols, "seq"], "records")
+    return 0
+
+
+def find_record(manifest: dict, records: list[dict], key_value: str):
+    key = manifest.get("schema", {}).get("key")
+    if not key:
+        die("dataset schema declares no key field", ExitCode.SOFTWARE)
+    wanted = key_value.lower()
+    exact = [r for r in records if str(r.get(key, "")).lower() == wanted]
+    if exact:
+        return exact[0]
+    partial = [r for r in records if wanted in str(r.get(key, "")).lower()]
+    if len(partial) == 1:
+        return partial[0]
+    die(
+        f"no record with {key}={key_value!r}"
+        + (f" ({len(partial)} partial matches)" if partial else ""),
+        ExitCode.NOT_FOUND,
+        detail={"candidates": [str(r.get(key)) for r in partial[:5]]},
+    )
+
+
+def cmd_show(args) -> int:
+    _, manifest, records = load_dataset(args.name)
+    emit(find_record(manifest, records, args.key), resolve_format(args))
+    return 0
+
+
+def search_fields(manifest: dict, records: list[dict]) -> list[str]:
+    fields = manifest.get("schema", {}).get("search")
+    if fields:
+        return list(fields)
+    seen: dict[str, None] = {}
+    for record in records:
+        for field, value in record.items():
+            if isinstance(value, str):
+                seen.setdefault(field)
+    return list(seen)
+
+
+def snippet(text: str, needle: str, width: int = 60) -> str:
+    at = text.lower().find(needle)
+    start = max(0, at - width // 4)
+    piece = text[start : start + width]
+    return ("…" if start else "") + piece + ("…" if start + width < len(text) else "")
+
+
+def cmd_search(args) -> int:
+    _, manifest, records = load_dataset(args.name)
+    needle = args.text.lower()
+    columns = default_columns(manifest, records)
+    ordinal_cols = [combo_column(c) for c in ordinal_combos(manifest)]
+    rows = []
+    for record in records:
+        for field in search_fields(manifest, records):
+            value = record.get(field)
+            if value is None or needle not in str(value).lower():
+                continue
+            row = numbered_row(record, len(rows) + 1, columns, ordinal_cols)
+            row["matched"] = f"{field}: {snippet(str(value), needle)}"
+            rows.append(row)
+            break
+    emit_table(args, rows, ["n", *columns, *ordinal_cols, "matched", "seq"], "matches")
+    return 0
+
+
+def cmd_info(args) -> int:
+    directory, manifest, records = load_dataset(args.name)
+    attachments = sorted(
+        entry.name for entry in directory.iterdir() if entry.is_dir()
+    )
+    result = dict(manifest)
+    result.update(
+        {
+            "dir": str(directory),
+            "records": len(records),
+            "attachments": attachments,
+        }
+    )
+    emit(result, resolve_format(args))
+    return 0
+
+
+def cmd_check(args) -> int:
+    directory, manifest, _ = load_dataset(args.name)
+    source = refresh_source(manifest, args)
+    parsed = run_extract(directory, source)
+    changed = content_hash(parsed) != manifest.get("content_hash")
+    manifest["checked"] = now_utc()
+    write_json_atomic(directory / "manifest.json", manifest)
+    emit(
+        {"name": args.name, "changed": changed, "checked": manifest["checked"]},
+        resolve_format(args),
+    )
+    return int(ExitCode.DATA) if changed else 0
+
+
+def cmd_update(args) -> int:
+    directory, manifest, _ = load_dataset(args.name)
+    source = refresh_source(manifest, args)
+    parsed = run_extract(directory, source)
+    fresh = records_of(manifest, parsed, where="extractor output")
+    if not fresh and not args.allow_empty:
+        die(
+            "extractor returned zero records; refusing to replace data "
+            "(pass --allow-empty if the source is genuinely empty)",
+            ExitCode.SOFTWARE,
+        )
+    key = manifest.get("schema", {}).get("key")
+    if key and any(key not in record for record in fresh):
+        die(
+            f"extractor output is missing key field {key!r} on some records; "
+            "re-run the almanac skill to repair",
+            ExitCode.SOFTWARE,
+        )
+    new_hash = content_hash(parsed)
+    changed = new_hash != manifest.get("content_hash")
+    if changed:
+        write_json_atomic(directory / "data.json", parsed)
+        manifest["content_hash"] = new_hash
+        manifest["fetched"] = now_utc()
+    manifest["checked"] = now_utc()
+    write_json_atomic(directory / "manifest.json", manifest)
+    git = git_commit([directory], f"update {args.name}") if changed else "unchanged"
+    emit(
+        {
+            "name": args.name,
+            "changed": changed,
+            "records": len(fresh),
+            "fetched": manifest.get("fetched"),
+            "git": git,
+        },
+        resolve_format(args),
+    )
+    return 0
+
+
+# --- register ---
+
+
+def url_slug(url: str) -> str:
+    bare = re.sub(r"^[a-z]+://", "", url.strip().lower())
+    slug = re.sub(r"[^a-z0-9]+", "-", bare).strip("-")[:60]
+    return f"{slug}-{hashlib.sha256(url.encode()).hexdigest()[:8]}"
+
+
+def launcher_text(name: str) -> str:
+    return f"""#!/usr/bin/env bash
+# {LAUNCHER_MARKER} (generated by `almanac register`) -- dataset: {name}
+set -euo pipefail
+if [ "${{1:-}}" = "--acli-complete" ]; then
+  shift
+  case "${{1:-}}" in
+    query|show|search|info|check|update)
+      v="$1"; shift; exec almanac --acli-complete "$v" {name} "$@";;
+    *) exec almanac --acli-complete query {name} "$@";;
+  esac
+fi
+v="${{1:-info}}"
+case "$v" in
+  query|show|search|info|check|update) [ "$#" -gt 0 ] && shift;;
+  *) v=query;;
+esac
+exec almanac "$v" {name} "$@"
+"""
+
+
+def validate_manifest(name: str, manifest: dict, records: list[dict]) -> list[str]:
+    warnings: list[str] = []
+    if manifest.get("name") != name:
+        die(f"manifest name {manifest.get('name')!r} != dataset dir {name!r}",
+            ExitCode.DATA)
+    url = manifest.get("url", "")
+    if not re.match(r"^https?://", url):
+        die(f"manifest url {url!r} is not http(s)", ExitCode.DATA)
+    if manifest.get("refresh") not in REFRESH_MODES:
+        die(
+            f"manifest refresh {manifest.get('refresh')!r} not in {REFRESH_MODES}",
+            ExitCode.DATA,
+        )
+    schema = manifest.get("schema", {})
+    key = schema.get("key")
+    if not key:
+        die("manifest schema.key is required", ExitCode.DATA)
+    if not records:
+        die("data.json has zero records", ExitCode.DATA)
+    missing = sum(1 for record in records if key not in record)
+    if missing:
+        die(f"key field {key!r} missing from {missing} records", ExitCode.DATA)
+    fields = {field for record in records for field in record}
+    for kind in ("columns", "filters", "search"):
+        unknown = [f for f in schema.get(kind, []) if f not in fields]
+        if unknown:
+            warnings.append(f"schema.{kind} names absent fields: {unknown}")
+    if not schema.get("columns"):
+        die("manifest schema.columns is required", ExitCode.DATA)
+    return warnings
+
+
+def cmd_register(args) -> int:
+    name = args.name
+    if not NAME_RE.match(name):
+        die(f"dataset name {name!r} must match {NAME_RE.pattern}", ExitCode.USAGE)
+    directory, manifest, records = load_dataset(name)
+    warnings = validate_manifest(name, manifest, records)
+
+    mode = manifest["refresh"]
+    extract = directory / "extract"
+    if mode != "frozen":
+        if not extract.is_file() or not os.access(extract, os.X_OK):
+            die(
+                f"refresh mode {mode!r} requires an executable {name}/extract",
+                ExitCode.DATA,
+            )
+    elif extract.exists():
+        warnings.append("frozen dataset carries an extract script (unused)")
+
+    data = read_json(directory / "data.json", f"{name}/data.json")
+    manifest.setdefault("created", now_utc())
+    manifest.setdefault("fetched", now_utc())
+    manifest["content_hash"] = content_hash(data)
+    write_json_atomic(directory / "manifest.json", manifest)
+
+    by_url = root() / "by-url"
+    by_url.mkdir(parents=True, exist_ok=True)
+    link = by_url / url_slug(manifest["url"])
+    target = Path("..") / name
+    if link.is_symlink():
+        if os.readlink(link) != str(target):
+            die(
+                f"url already registered to dataset {os.readlink(link)!r}",
+                ExitCode.CONFLICT,
+                detail={"link": str(link)},
+            )
+    else:
+        link.symlink_to(target)
+
+    launcher = None
+    if not args.no_launcher:
+        launcher_dir = Path(args.launcher_dir).expanduser()
+        launcher_dir.mkdir(parents=True, exist_ok=True)
+        path = launcher_dir / name
+        if path.exists() and LAUNCHER_MARKER not in path.read_text()[:200]:
+            die(
+                f"{path} exists and is not an almanac launcher; refusing to overwrite",
+                ExitCode.CONFLICT,
+            )
+        path.write_text(launcher_text(name))
+        path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        launcher = str(path)
+        engine = launcher_dir / "almanac"
+        if not engine.exists():
+            engine.symlink_to(Path(__file__).resolve())
+
+    git = git_commit([directory, link], f"register {name}")
+    emit(
+        {
+            "name": name,
+            "dir": str(directory),
+            "refresh": mode,
+            "records": len(records),
+            "by_url": str(link),
+            "launcher": launcher,
+            "git": git,
+            "warnings": warnings,
+        },
+        resolve_format(args),
+    )
+    return 0
+
+
+# --- completion helpers ---
+
+
+def complete_dataset(prefix, tokens):
+    del tokens
+    return [name for name in dataset_names() if name.startswith(prefix)]
+
+
+def _dataset_in(tokens):
+    known = set(dataset_names())
+    for token in tokens[:-1]:
+        if token in known:
+            return token
+    return None
+
+
+def complete_key(prefix, tokens):
+    name = _dataset_in(tokens)
+    if not name:
+        return []
+    try:
+        _, manifest, records = load_dataset(name)
+    except SystemExit:
+        return []
+    key = manifest.get("schema", {}).get("key")
+    if not key:
+        return []
+    return sorted(
+        str(r[key]) for r in records
+        if key in r and str(r[key]).lower().startswith(prefix.lower())
+    )[:50]
+
+
+def complete_filter(prefix, tokens):
+    name = _dataset_in(tokens)
+    if not name:
+        return []
+    try:
+        _, manifest, records = load_dataset(name)
+    except SystemExit:
+        return []
+    schema = manifest.get("schema", {})
+    if "=" in prefix:
+        field, _, value = prefix.partition("=")
+        values = sorted(
+            {
+                str(r[field]) for r in records
+                if field in r and not isinstance(r[field], (dict, list))
+                and str(r[field]).lower().startswith(value.lower())
+            }
+        )[:50]
+        return [f"{field}={v}" for v in values]
+    fields = schema.get("filters") or list(schema.get("columns", []))
+    return [f"{f}=" for f in fields if f.startswith(prefix)]
+
+
+# --- parser ---
+
+
+def build_parser():
+    parser = argument_parser(
+        prog="almanac",
+        description="Query and refresh local web-extracted datasets. "
+        "Contract: topics/almanac.md; built by the almanac skill.",
+    )
+    sub = parser.add_subparsers(dest="verb", required=True)
+
+    def dataset_arg(p):
+        set_completer(
+            p.add_argument("name", help="Dataset name (a directory under the root)."),
+            complete_dataset,
+        )
+
+    p = sub.add_parser("list", help="List datasets: name, url, refresh, fetched, records.")
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=cmd_list)
+
+    p = sub.add_parser("query", help="List records, optionally filtered by FIELD=VALUE or FIELD~TEXT.")
+    dataset_arg(p)
+    set_completer(
+        p.add_argument("filters", nargs="*", help="FIELD=VALUE (exact, comma = any-of) or FIELD~TEXT (substring)."),
+        complete_filter,
+    )
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=cmd_query)
+
+    p = sub.add_parser("show", help="Show one full record by its key field.")
+    dataset_arg(p)
+    set_completer(
+        p.add_argument("key", help="Key value; exact match, unique-substring fallback."),
+        complete_key,
+    )
+    add_standard_args(p)
+    p.set_defaults(func=cmd_show)
+
+    p = sub.add_parser("search", help="Full-text substring search over the schema's search fields.")
+    dataset_arg(p)
+    p.add_argument("text", help="Text to search for (case-insensitive).")
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=cmd_search)
+
+    p = sub.add_parser("info", help="Show a dataset's manifest, record count, and attachments.")
+    dataset_arg(p)
+    add_standard_args(p)
+    p.set_defaults(func=cmd_info)
+
+    p = sub.add_parser("check", help="Re-extract and compare; exit 0 unchanged, 3 changed, 69 cannot-check.")
+    dataset_arg(p)
+    p.add_argument("--source", help="Local saved page/payload to extract from (required for refresh=manual).")
+    add_standard_args(p)
+    p.set_defaults(func=cmd_check)
+
+    p = sub.add_parser("update", help="Re-extract and replace data.json when changed; commits to the root git repo.")
+    dataset_arg(p)
+    p.add_argument("--source", help="Local saved page/payload to extract from (required for refresh=manual).")
+    p.add_argument("--allow-empty", action="store_true", help="Accept an extraction with zero records.")
+    add_standard_args(p)
+    p.set_defaults(func=cmd_update)
+
+    p = sub.add_parser("register", help="Validate a dataset dir, wire by-url symlink, git history, and ~/bin launcher.")
+    dataset_arg(p)
+    p.add_argument("--launcher-dir", default="~/bin", help="Where the per-dataset launcher is written (default ~/bin).")
+    p.add_argument("--no-launcher", action="store_true", help="Skip writing the per-dataset launcher.")
+    add_standard_args(p)
+    p.set_defaults(func=cmd_register)
+
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
+    maybe_complete(parser)
+    args = parser.parse_args()
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

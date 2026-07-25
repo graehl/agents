@@ -1,0 +1,171 @@
+# Almanac: web pages as queryable local datasets
+
+> An almanac dataset is a machine-local, queryable snapshot distilled
+> from a web page — structured `data.json` plus attachments and a fixed,
+> agent-authored `extract` script under `~/.cache/almanac/<name>/` —
+> served by the shared `almanac` ACLI viewer and refreshed per its
+> recorded mode (auto / headless / manual / frozen).
+
+Topic: `almanac`
+
+The skill's product is a dataset, not a program. A build session
+(`skills/almanac/SKILL.md`) spends agent judgment once — finding the
+data channel, designing the schema, writing the extractor — and
+captures it as deterministic artifacts a model-free CLI can serve and
+refresh. The engine (`scripts/almanac`, installed as `~/bin/almanac`)
+is one shared implementation of query/refresh over any manifest;
+per-site variation lives entirely in data, never in per-site viewer
+code.
+
+## Dataset layout
+
+```
+$ALMANAC_ROOT/                 # default ~/.cache/almanac, a local git repo
+  <name>/                      # short kebab name, e.g. sts2-cards
+    manifest.json              # provenance + schema mapping (below)
+    data.json                  # extractor output (or transcription)
+    extract                    # executable: argv[1] = URL or local file,
+                               #   normalized JSON on stdout (absent when frozen)
+    images/ …                  # optional attachment subdirs, referenced
+                               #   by relative path from data.json
+  by-url/<slug>-<sha8> -> ../<name>   # canonical URL -> dataset mapping
+```
+
+The root is a **local-only** git repo (`register`/`update` commit,
+best-effort): free diff history across refreshes and versioning of the
+agent-authored extractors. It is never pushed.
+
+`manifest.json` fields: `name`, `url`, `title`, `refresh`, `created`,
+`fetched`, `checked`, `content_hash` (sha256 of normalized data.json),
+and `schema`: `records` (dotted path to the record array; empty = data
+root), `key` (unique-ish display key field), `columns` (3–4 minimal
+default fields, per ACLI minimal-schemas), `filters` and `search`
+(completion/search hints). Free-form provenance prose (which channel
+the extractor reads, quirks) is welcome as extra keys.
+
+## Extractor contract
+
+`extract <source>` where `<source>` is the live URL or a local saved
+file — the same script serves both, so a saved page and the live page
+are interchangeable inputs. Emits the full normalized data JSON on
+stdout, diagnostics on stderr, nonzero exit on failure. Deterministic
+given identical source content. No arguments beyond the source; any
+needed configuration is baked in at authoring time.
+
+Record order is part of the contract: extractors emit records in the
+page's reading order, and the engine's `query`/`search` preserve input
+order — no re-sorting. For tier lists, within-tier position is the
+site's ranking.
+
+Position is carried in-band so a filtered or postprocessed subset never
+loses it. The engine injects, at load (in memory only — never written
+to `data.json` or included in `content_hash`):
+
+- `seq` — 1-based reading-order position in the whole dataset. An
+  extractor may emit its own `seq` (e.g. a real rank) and it wins.
+- `n` — 1-based position within the *returned* rows of a `query`/
+  `search` (the "order given the selectors" applied).
+- `n_<fields>` — 1-based reading-order position within each declared
+  selector group. Groups come from `schema.ordinals` (a list of
+  field-name lists); default is each `schema.filters` field singly.
+  `[["section"],["tier"],["section","tier"]]` gives a card its rank
+  within its section, within its tier, and within its section+tier
+  cell. Because these ride on the record, `show <one item>` reports
+  the item's position in every such superset without a query.
+
+## Refresh modes
+
+The acquire ladder is probed at build time and the rung reached is
+recorded as `refresh`:
+
+- `auto` — plain HTTP fetch works; `check`/`update` run unattended
+  against the manifest URL.
+- `headless` — needs a real browser engine (client-rendered or
+  interaction-gated content, or an interstitial JS check that clears
+  for an honest browser signature); extractor drives headless
+  Chromium itself. Still unattended.
+- `remote` — extractor connects over CDP to a real Chrome the user
+  runs (or this host's VPN origin), inheriting its fingerprint,
+  session, and vantage. Engine passes the URL like `auto`; refresh
+  needs that browser reachable, so it is user-assisted in practice.
+- `manual` — nothing automatable reaches the content; extraction is
+  still scripted but `check`/`update` require `--source <saved
+  page/HAR>` from the user's browser.
+
+Authorized-access framing (fuller wording in the skill): the user
+runs almanac as an alternate browser for a page they have confirmed
+they may access — the same content they could save by hand and attach
+as the `manual` rung. Automating that authorized view with a real
+browser signature or the user's own browser over CDP is ordinary
+retrieval, not botting; an interstitial that auto-clears for a normal
+browser is satisfied, not defeated, by presenting one. The honest
+limit: this automates access the user already has, not a way to reach
+resources they lack, and it does not call CAPTCHA-solver services or
+forge tokens/rotate proxies to manufacture access.
+- `frozen` — no machine-readable channel (text lives in images);
+  `data.json` is a one-time agent transcription, no `extract` exists,
+  and refresh means re-running the skill.
+
+Change detection always diffs the **normalized extracted JSON**
+(`content_hash`), never raw HTML — page chrome, ad slots, and build
+hashes churn on every fetch; the extracted content is what matters.
+
+Exit codes (`check`/`update`): 0 up-to-date or updated, 3 changes
+found (`check`), 4 unknown dataset, 69 cannot refresh in this mode
+(frozen; manual without `--source`), 70 extractor output no longer
+fits the schema (site redesign — re-run the skill to repair), 75
+acquire/extract failure. Stale data is never served silently: `info`
+carries `fetched`/`checked`, and a broken extractor fails loud with
+the repair path named.
+
+## Engine and launchers
+
+`almanac` follows `topics/agent-cli.md`: compact JSONL default,
+`--pretty` human upgrade, `--toon` on the table verbs (`list`,
+`query`, `search`), structured errors, `--acli-complete` (dataset
+names, record keys, `field=`/`field=value` filters). Verbs: `list`,
+`query` (FIELD=VALUE / FIELD~TEXT filters), `show`, `search`, `info`,
+`check`, `update`, `register`. `register` validates a built dataset,
+wires the `by-url` symlink, commits, and writes a thin per-dataset
+launcher (`~/bin/<name>`: bare = info, filters = query, verbs pass
+through) plus the `~/bin/almanac` engine symlink if missing.
+
+## YA integration (sketch)
+
+YA (yepanywhere, `~/ya`) can facilitate the user-assisted rungs by
+offering to open the target URL in a YA-directed frame or new
+tab/window — i.e. the user's *own* browser context, with their
+session and vantage — then hand the rendered result back to the skill.
+This plugs straight into the existing seam: the handed-back artifact
+(serialized DOM, or a HAR) is exactly an `almanac update <name>
+--source <file>` input, and a live YA-driven browser is the `remote`
+rung's CDP target. No new engine contract is needed — YA would supply
+acquisition, almanac keeps extraction/serving. Nothing here depends on
+it; it is an ergonomics upgrade over hand-saving a page. Not yet
+built; lives in the YA repo when it is.
+
+## Design decisions
+
+- **Dataset + shared engine, not generated per-site viewers** (vs.
+  emitting a standalone CLI per site): query code varies only by
+  manifest, so N generated viewers would be N diverging copies; the
+  skill's output stays reviewable data plus one small extractor.
+  Accepts a shared-engine version coupling across datasets.
+- **`~/.cache` placement** (vs. `~/.local/share`): matches the
+  `~/.cache/checkouts` precedent for machine-local web-derived state.
+  Accepts that `manual` and `frozen` datasets violate strict cache
+  regenerability — on this host `~/.cache` is scratch-backed, and a
+  purge re-costs a browser save or a re-transcription. Deliberate:
+  datasets are a few MB and rebuilding is cheap relative to split
+  storage roots.
+- **Refuse empty/keyless extractions on `update`** (vs. storing
+  whatever came back): a tier list extracting to zero records means
+  the extractor broke, not that the game lost all its cards;
+  `--allow-empty` is the explicit override.
+- **`by-url` symlinks beside name dirs** (vs. URL-keyed dirs): short
+  names are the ergonomic handle (launcher, verbs); the slug+hash
+  symlink answers "is this URL already built?" collision-free, which
+  is what makes the skill idempotent.
+- **Local git history in the root** (vs. dated snapshot copies):
+  diffs across refreshes and extractor versioning for free; never
+  pushed, so no remote coupling.

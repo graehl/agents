@@ -1,0 +1,309 @@
+#!/usr/bin/env python3
+"""End-to-end tests for scripts/almanac (topics/almanac.md).
+
+Stdlib only, no pytest. Each test builds a synthetic dataset in its own
+tmp ALMANAC_ROOT and drives the engine via subprocess. Run directly:
+
+    python3 tests/test_almanac.py            # run all
+    python3 tests/test_almanac.py -k query   # run tests matching 'query'
+    python3 tests/test_almanac.py -v         # verbose
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
+import traceback
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT = REPO_ROOT / "scripts" / "almanac"
+
+CARDS = {
+    "cards": [
+        {"name": "Strike", "tier": "C", "cost": 1, "text": "Deal 6 damage."},
+        {"name": "Bash", "tier": "B", "cost": 2, "text": "Deal 8. Vulnerable 2."},
+        {"name": "Perfected Strike", "tier": "A", "cost": 2, "text": "More per Strike."},
+    ]
+}
+
+EXTRACT = """#!/usr/bin/env python3
+import pathlib, sys
+sys.stdout.write(pathlib.Path(sys.argv[1]).read_text())
+"""
+
+
+def _assert(cond, msg="assertion failed"):
+    if not cond:
+        raise AssertionError(msg)
+
+
+def run(root, *args, source=None):
+    env = dict(os.environ, ALMANAC_ROOT=str(root))
+    argv = [sys.executable, str(SCRIPT), *args]
+    if source is not None:
+        argv += ["--source", str(source)]
+    return subprocess.run(argv, capture_output=True, text=True, env=env)
+
+
+def jsonl(proc):
+    return [json.loads(line) for line in proc.stdout.splitlines()]
+
+
+def make_dataset(root, name="cards-test", refresh="auto", data=CARDS, url=None):
+    directory = Path(root) / name
+    directory.mkdir(parents=True)
+    manifest = {
+        "name": name,
+        "url": url or f"https://example.test/{name}",
+        "title": "Test cards",
+        "refresh": refresh,
+        "schema": {
+            "records": "cards",
+            "key": "name",
+            "columns": ["name", "tier", "cost"],
+            "filters": ["tier", "cost"],
+            "search": ["name", "text"],
+            "ordinals": [["tier"]],
+        },
+    }
+    (directory / "manifest.json").write_text(json.dumps(manifest))
+    (directory / "data.json").write_text(json.dumps(data))
+    if refresh != "frozen":
+        extract = directory / "extract"
+        extract.write_text(EXTRACT)
+        extract.chmod(0o755)
+    return directory
+
+
+def registered_root():
+    tmp = tempfile.mkdtemp(prefix="almanac-test-")
+    make_dataset(tmp)
+    bin_dir = Path(tmp) / "bin"
+    proc = run(tmp, "register", "cards-test", "--launcher-dir", str(bin_dir))
+    _assert(proc.returncode == 0, proc.stderr)
+    return Path(tmp), bin_dir
+
+
+def test_register_wires_symlink_launcher_and_git():
+    root, bin_dir = registered_root()
+    result = jsonl(run(root, "register", "cards-test", "--launcher-dir", str(bin_dir)))[0]
+    _assert(result["warnings"] == [], result)
+    links = list((root / "by-url").iterdir())
+    _assert(len(links) == 1 and links[0].is_symlink(), links)
+    _assert((links[0] / "manifest.json").is_file(), "by-url symlink must resolve")
+    launcher = bin_dir / "cards-test"
+    _assert("almanac launcher" in launcher.read_text())
+    _assert((bin_dir / "almanac").exists(), "engine symlink installed")
+    log = subprocess.run(
+        ["git", "log", "--oneline"], cwd=root, capture_output=True, text=True
+    )
+    _assert("register cards-test" in log.stdout, log.stdout)
+
+
+def test_register_conflicts():
+    root, bin_dir = registered_root()
+    make_dataset(root, name="dupe", url="https://example.test/cards-test")
+    proc = run(root, "register", "dupe", "--no-launcher")
+    _assert(proc.returncode == 5, f"same url must conflict: {proc.stderr}")
+    (bin_dir / "other").write_text("#!/bin/sh\n")
+    make_dataset(root, name="other", url="https://example.test/other")
+    proc = run(root, "register", "other", "--launcher-dir", str(bin_dir))
+    _assert(proc.returncode == 5, "foreign launcher file must not be overwritten")
+
+
+def test_list_query_show_search():
+    root, _ = registered_root()
+    rows = jsonl(run(root, "list"))
+    _assert(rows[0]["name"] == "cards-test" and rows[0]["records"] == 3, rows)
+
+    rows = jsonl(run(root, "query", "cards-test", "tier=b"))
+    _assert([r["name"] for r in rows] == ["Bash"], rows)
+    _assert(
+        sorted(rows[0]) == ["cost", "n", "n_tier", "name", "seq", "tier"],
+        rows[0],
+    )
+
+    rows = jsonl(run(root, "query", "cards-test", "name~strike", "tier=a,c"))
+    _assert(len(rows) == 2, rows)
+
+    full = jsonl(run(root, "query", "cards-test", "tier=b", "--full"))
+    _assert("text" in full[0], full)
+
+    proc = run(root, "query", "cards-test", "bogus")
+    _assert(proc.returncode == 2, "malformed filter is a usage error")
+
+    record = jsonl(run(root, "show", "cards-test", "bash"))[0]
+    _assert(record["name"] == "Bash" and "text" in record)
+    proc = run(root, "show", "cards-test", "stri")
+    _assert(proc.returncode == 4, "ambiguous substring must not guess")
+    detail = json.loads(proc.stderr)["error"]["detail"]
+    _assert(len(detail["candidates"]) == 2, detail)
+
+    rows = jsonl(run(root, "search", "cards-test", "vulnerable"))
+    _assert(len(rows) == 1 and rows[0]["matched"].startswith("text:"), rows)
+
+    empty = jsonl(run(root, "query", "cards-test", "tier=z"))
+    _assert(empty == [{"count": 0, "of": "records"}], "definitive empty state")
+
+
+def test_sequence_numbers_and_supersets():
+    root = Path(tempfile.mkdtemp(prefix="almanac-test-"))
+    data = {
+        "cards": [
+            {"name": "A", "tier": "S", "cost": 1, "text": "a"},
+            {"name": "B", "tier": "S", "cost": 2, "text": "b"},
+            {"name": "C", "tier": "A", "cost": 1, "text": "c"},
+            {"name": "D", "tier": "S", "cost": 1, "text": "d"},
+        ],
+    }
+    directory = make_dataset(root, name="seqs", data=data)
+    manifest = json.loads((directory / "manifest.json").read_text())
+    manifest["schema"]["ordinals"] = [["tier"], ["tier", "cost"]]
+    (directory / "manifest.json").write_text(json.dumps(manifest))
+    _assert(run(root, "register", "seqs", "--no-launcher").returncode == 0)
+
+    rows = jsonl(run(root, "query", "seqs", "tier=S"))
+    # seq is dataset-wide reading order; n is position within this result;
+    # n_tier ranks within all tier=S; n_tier_cost within tier+cost cell.
+    _assert([r["seq"] for r in rows] == [1, 2, 4], rows)
+    _assert([r["n"] for r in rows] == [1, 2, 3], rows)
+    _assert([r["n_tier"] for r in rows] == [1, 2, 3], rows)
+    _assert([r["n_tier_cost"] for r in rows] == [1, 1, 2], rows)
+
+    # A single show carries the item's rank in every declared superset.
+    d = jsonl(run(root, "show", "seqs", "D"))[0]
+    _assert(d["seq"] == 4 and d["n_tier"] == 3 and d["n_tier_cost"] == 2, d)
+
+    # Ordinal columns are in-memory only: data.json is untouched.
+    stored = json.loads((directory / "data.json").read_text())["cards"][0]
+    _assert("seq" not in stored and "n_tier" not in stored, stored)
+
+
+def test_check_and_update_cycle():
+    root, _ = registered_root()
+    fixture = root / "fixture.json"
+    fixture.write_text(json.dumps(CARDS))
+
+    proc = run(root, "check", "cards-test", source=fixture)
+    _assert(proc.returncode == 0 and jsonl(proc)[0]["changed"] is False, proc.stdout)
+
+    changed = {"cards": CARDS["cards"] + [{"name": "Whirlwind", "tier": "S", "cost": 0, "text": "X hits."}]}
+    fixture.write_text(json.dumps(changed))
+    proc = run(root, "check", "cards-test", source=fixture)
+    _assert(proc.returncode == 3 and jsonl(proc)[0]["changed"] is True, proc.stdout)
+
+    result = jsonl(run(root, "update", "cards-test", source=fixture))[0]
+    _assert(result["changed"] is True and result["records"] == 4, result)
+    _assert(result["git"] == "committed", result)
+    _assert(run(root, "check", "cards-test", source=fixture).returncode == 0)
+
+    fixture.write_text(json.dumps({"cards": []}))
+    proc = run(root, "update", "cards-test", source=fixture)
+    _assert(proc.returncode == 70, "zero records must be refused by default")
+    proc = run(root, "update", "cards-test", "--allow-empty", source=fixture)
+    _assert(proc.returncode == 0 and jsonl(proc)[0]["records"] == 0, proc.stderr)
+
+
+def test_refresh_mode_gates():
+    root, _ = registered_root()
+    make_dataset(root, name="frozen-notes", refresh="frozen")
+    _assert(run(root, "register", "frozen-notes", "--no-launcher").returncode == 0)
+    proc = run(root, "check", "frozen-notes")
+    _assert(proc.returncode == 69, "frozen dataset cannot check")
+    make_dataset(root, name="saved-page", refresh="manual")
+    _assert(run(root, "register", "saved-page", "--no-launcher").returncode == 0)
+    proc = run(root, "update", "saved-page")
+    _assert(proc.returncode == 69, "manual without --source cannot refresh")
+    _assert("--source" in json.loads(proc.stderr)["error"]["message"])
+
+
+def test_completion():
+    root, _ = registered_root()
+    names = [r["completion"] for r in jsonl(run(root, "--acli-complete", "show", "car"))]
+    _assert(names == ["cards-test"], names)
+    keys = [r["completion"] for r in jsonl(run(root, "--acli-complete", "show", "cards-test", "b"))]
+    _assert(keys == ["Bash"], keys)
+    fields = [r["completion"] for r in jsonl(run(root, "--acli-complete", "query", "cards-test", "ti"))]
+    _assert(fields == ["tier="], fields)
+    values = [r["completion"] for r in jsonl(run(root, "--acli-complete", "query", "cards-test", "tier="))]
+    _assert(values == ["tier=A", "tier=B", "tier=C"], values)
+    verbs = [r["completion"] for r in jsonl(run(root, "--acli-complete", "che"))]
+    _assert(verbs == ["check"], verbs)
+
+
+def test_launcher_dispatch():
+    root, bin_dir = registered_root()
+    env = dict(os.environ, ALMANAC_ROOT=str(root), PATH=f"{bin_dir}:{os.environ['PATH']}")
+    launcher = str(bin_dir / "cards-test")
+
+    proc = subprocess.run([launcher], capture_output=True, text=True, env=env)
+    _assert(json.loads(proc.stdout.splitlines()[0])["records"] == 3, "bare launcher = info")
+
+    proc = subprocess.run([launcher, "tier=b"], capture_output=True, text=True, env=env)
+    _assert(json.loads(proc.stdout.splitlines()[0])["name"] == "Bash", "filters = query")
+
+    proc = subprocess.run([launcher, "show", "bash"], capture_output=True, text=True, env=env)
+    _assert(json.loads(proc.stdout.splitlines()[0])["cost"] == 2, proc.stdout)
+
+    proc = subprocess.run(
+        [launcher, "--acli-complete", "show", "b"], capture_output=True, text=True, env=env
+    )
+    _assert(proc.returncode == 0, proc.stderr)
+    _assert([json.loads(l)["completion"] for l in proc.stdout.splitlines()] == ["Bash"])
+
+
+def _collect_tests():
+    return [
+        (name, fn)
+        for name, fn in sorted(globals().items())
+        if name.startswith("test_") and callable(fn)
+    ]
+
+
+def main(argv):
+    verbose = "-v" in argv
+    pattern = None
+    if "-k" in argv:
+        pattern = argv[argv.index("-k") + 1]
+    tests = [(n, f) for n, f in _collect_tests() if pattern is None or pattern in n]
+    passed = failed = 0
+    failures = []
+    start_total = time.time()
+    for name, fn in tests:
+        t0 = time.time()
+        try:
+            fn()
+            passed += 1
+            if verbose:
+                print(f"PASS  {name}  ({time.time() - t0:.2f}s)")
+            else:
+                print(".", end="", flush=True)
+        except Exception:
+            failed += 1
+            tb = traceback.format_exc()
+            failures.append((name, tb))
+            if verbose:
+                print(f"FAIL  {name}  ({time.time() - t0:.2f}s)")
+                print(tb)
+            else:
+                print("F", end="", flush=True)
+    if not verbose:
+        print()
+    print()
+    if failures:
+        print("=" * 60)
+        print(f"{len(failures)} FAILURE(S):")
+        for name, tb in failures:
+            print(f"\n--- {name} ---")
+            print(tb)
+    print(f"\n{passed} passed, {failed} failed in {time.time() - start_total:.2f}s")
+    return 0 if failed == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
