@@ -93,6 +93,7 @@ def test_register_wires_symlink_launcher_and_git():
     root, bin_dir = registered_root()
     result = jsonl(run(root, "register", "cards-test", "--launcher-dir", str(bin_dir)))[0]
     _assert(result["warnings"] == [], result)
+    _assert(result["git"] == "unchanged", "re-register with no data change is a no-op")
     links = list((root / "by-url").iterdir())
     _assert(len(links) == 1 and links[0].is_symlink(), links)
     _assert((links[0] / "manifest.json").is_file(), "by-url symlink must resolve")

@@ -296,6 +296,17 @@ def git_commit(paths: list[Path], message: str) -> str:
     )
     if add.returncode != 0:
         return f"skipped: git add failed: {add.stderr.strip()[:200]}"
+    staged = subprocess.run(
+        ["git", "diff", "--cached", "--quiet", "--", *rel],
+        cwd=base,
+        capture_output=True,
+        text=True,
+    )
+    # Exit 0 = nothing staged for these paths: report "unchanged" without
+    # depending on commit-output parsing. A fatal (e.g. unborn HEAD on a
+    # fresh root) falls through to the commit, which then has real content.
+    if staged.returncode == 0:
+        return "unchanged"
     commit = subprocess.run(
         [
             "git",
