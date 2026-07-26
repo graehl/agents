@@ -4395,7 +4395,9 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
 
 
 def parse_start_command(name: str, mode: str, argv: list[str]) -> argparse.Namespace:
-    p = acli_args.ArgumentParser(prog=f"agentctl {name}")
+    # capabilities=(): agentctl does not wire maybe_complete yet, so its
+    # --help must not advertise `complete` (gaps/agentctl-acli-complete.md).
+    p = acli_args.ArgumentParser(prog=f"agentctl {name}", capabilities=())
     add_start_options(p)
     if "--" not in argv:
         if any(arg in {"-h", "--help"} for arg in argv):
@@ -4412,12 +4414,14 @@ def parse_start_command(name: str, mode: str, argv: list[str]) -> argparse.Names
 
 
 def build_parser() -> argparse.ArgumentParser:
+    # capabilities=(): agentctl does not wire maybe_complete yet, so its
+    # --help must not advertise `complete` (gaps/agentctl-acli-complete.md).
+    # Subparsers inherit the opt-out via acli's add_subparsers default.
     p = acli_args.ArgumentParser(
-        description="Small local job helper for agent-managed runs."
+        description="Small local job helper for agent-managed runs.",
+        capabilities=(),
     )
-    sub = p.add_subparsers(
-        dest="cmd", required=True, parser_class=acli_args.ArgumentParser
-    )
+    sub = p.add_subparsers(dest="cmd", required=True)
 
     s = sub.add_parser("start", help="start a job.")
     add_start_options(s)

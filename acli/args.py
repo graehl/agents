@@ -3,13 +3,64 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from typing import Any, Callable, Iterable, TextIO
+from typing import Any, Callable, Iterable, Mapping, TextIO
+
+# Protocol version advertised by the capability line
+# (topics/agent-cli.md § Capability line and help footer).
+ACLI_PROTOCOL_VERSION = 1
+
+
+def capability_line(capabilities: Iterable[str]) -> str:
+    """The `acli: <version> <capability>...` discovery line."""
+    return f"acli: {ACLI_PROTOCOL_VERSION} {' '.join(capabilities)}".rstrip()
 
 
 class ArgumentParser(argparse.ArgumentParser):
-    def __init__(self, *args, **kwargs):
+    """argparse.ArgumentParser plus the ACLI help footer.
+
+    `capabilities` renders the trailing `acli: <version> ...` discovery
+    line (default assumes the tool calls `maybe_complete`; advertise only
+    wired capabilities — pass `()` to opt out, add "repl"/"toon" as
+    earned). `exit_codes` maps code -> one-line meaning, rendered as an
+    `exit codes:` table above the capability line. Subparsers inherit the
+    parent's capability line so every help screen agrees.
+    """
+
+    def __init__(
+        self,
+        *args,
+        capabilities: Iterable[str] = ("complete",),
+        exit_codes: Mapping[int, str] | None = None,
+        **kwargs,
+    ):
         kwargs.setdefault("formatter_class", argparse.RawTextHelpFormatter)
+        self.acli_capabilities = tuple(capabilities)
+        self.acli_exit_codes = dict(exit_codes or {})
         super().__init__(*args, **kwargs)
+
+    def add_subparsers(self, **kwargs):
+        parent = self
+
+        class _SubParser(type(parent)):  # type: ignore[misc]
+            def __init__(self, *args, **sub_kwargs):
+                sub_kwargs.setdefault("capabilities", parent.acli_capabilities)
+                super().__init__(*args, **sub_kwargs)
+
+        kwargs.setdefault("parser_class", _SubParser)
+        return super().add_subparsers(**kwargs)
+
+    def format_help(self) -> str:
+        text = super().format_help().rstrip("\n")
+        if self.acli_exit_codes:
+            width = max(len(str(code)) for code in self.acli_exit_codes)
+            table = "\n".join(
+                f"  {str(code).rjust(width)}  {meaning}"
+                for code, meaning in sorted(self.acli_exit_codes.items())
+            )
+            text += "\n\nexit codes:\n" + table
+        if self.acli_capabilities:
+            text += "\n\n" + capability_line(self.acli_capabilities)
+        return text + "\n"
 
 
 def argument_parser(*args, **kwargs) -> ArgumentParser:
@@ -70,10 +121,21 @@ COMPLETE_FLAG = "--acli-complete"
 
 # A value completer takes (prefix, tokens) — the token under completion and
 # the full partial argv — and yields candidates: strings, or dicts with
-# "completion" and optional "kind"/"help" keys. A completer does its own
-# prefix filtering (case-insensitive if it likes); only the automatic
-# `choices` fallback is filtered centrally.
+# "completion" and optional "kind"/"help"/"nospace" keys (hint() builds
+# guidance rows). A completer does its own prefix filtering
+# (case-insensitive if it likes) and chooses candidate order — emission
+# order is preserved end to end; only the automatic `choices` fallback is
+# filtered centrally.
 Completer = Callable[[str, "list[str]"], Iterable[Any]]
+
+
+def hint(text: str) -> dict[str, Any]:
+    """A non-insertable guidance row for the current slot (kind="hint").
+
+    Consumers render it dimmed and never insert it; emitting one also
+    counts as answering, which suppresses the consumer's path fallback.
+    """
+    return {"completion": "", "kind": "hint", "help": text}
 
 
 def set_completer(action: argparse.Action, fn: Completer) -> argparse.Action:
@@ -146,6 +208,8 @@ def _candidate(entry: Any, kind: str, help_text: str | None = None) -> dict[str,
     if isinstance(entry, dict):
         row = {"completion": str(entry["completion"])}
         row["kind"] = str(entry.get("kind", kind))
+        if entry.get("nospace"):
+            row["nospace"] = True
         text = entry.get("help", help_text)
     else:
         row = {"completion": str(entry), "kind": kind}
@@ -158,27 +222,28 @@ def _candidate(entry: Any, kind: str, help_text: str | None = None) -> dict[str,
 def _value_candidates(
     action: argparse.Action, prefix: str, tokens: list[str]
 ) -> list[dict[str, Any]]:
+    # Value rows carry only completer-provided help: the action's own help
+    # describes the slot, not each value, and belongs in a hint row.
     completer = getattr(action, "acli_completer", None)
     if completer is not None:
-        return [
-            _candidate(entry, "value", action.help)
-            for entry in completer(prefix, tokens)
-        ]
+        return [_candidate(entry, "value") for entry in completer(prefix, tokens)]
     if action.choices:
         return [
-            _candidate(str(choice), "value", action.help)
+            _candidate(str(choice), "value")
             for choice in action.choices
             if str(choice).startswith(prefix)
         ]
     return []
 
 
-def complete(
-    parser: argparse.ArgumentParser,
-    tokens: list[str],
-    out: TextIO = sys.stdout,
-) -> None:
-    """Emit JSONL completion candidates for a partial argv (program name excluded)."""
+def candidates(
+    parser: argparse.ArgumentParser, tokens: list[str]
+) -> list[dict[str, Any]]:
+    """Completion rows for a partial argv (program name excluded).
+
+    Rows keep the order declarations and completers produce them — data
+    order is often meaningful — deduplicated on first occurrence.
+    """
     if not tokens:
         tokens = [""]
     current = tokens[-1]
@@ -191,17 +256,17 @@ def complete(
         action = target._option_string_actions.get(name)
         if action is not None and _takes_value(action):
             rows = [
-                {**row, "completion": f"{name}={row['completion']}"}
+                row
+                if row.get("kind") == "hint"
+                else {**row, "completion": f"{name}={row['completion']}"}
                 for row in _value_candidates(action, value, tokens)
             ]
     elif current.startswith("-"):
-        seen: set[str] = set()
         for action in target._actions:
             if action.help == argparse.SUPPRESS:
                 continue
             for opt in action.option_strings:
-                if opt.startswith(current) and opt not in seen:
-                    seen.add(opt)
+                if opt.startswith(current):
                     rows.append(_candidate(opt, "flag", action.help))
     else:
         sub = _subparsers_action(target)
@@ -217,11 +282,24 @@ def complete(
         action = _positional_action(target, positionals)
         if action is not None:
             rows.extend(_value_candidates(action, current, tokens))
-    emitted: set[str] = set()
-    for row in sorted(rows, key=lambda r: r["completion"]):
-        if row["completion"] in emitted:
-            continue
-        emitted.add(row["completion"])
+    unique: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        if row.get("kind") != "hint":
+            if row["completion"] in seen:
+                continue
+            seen.add(row["completion"])
+        unique.append(row)
+    return unique
+
+
+def complete(
+    parser: argparse.ArgumentParser,
+    tokens: list[str],
+    out: TextIO = sys.stdout,
+) -> None:
+    """Emit JSONL completion candidates for a partial argv (program name excluded)."""
+    for row in candidates(parser, tokens):
         out.write(json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n")
 
 
@@ -241,3 +319,23 @@ def maybe_complete(
         return
     complete(parser, list(argv[2:]), out)
     raise SystemExit(0)
+
+
+REPL_FLAG = "--repl"
+
+
+def maybe_repl(parser: argparse.ArgumentParser, argv: list[str] | None = None) -> None:
+    """Serve the reserved `--repl` verb when requested, else return.
+
+    Call beside `maybe_complete`, before normal parsing. When argv[1] is
+    --repl (no further arguments), runs the interactive shell over this
+    parser and exits with its status.
+    """
+    argv = sys.argv if argv is None else argv
+    if len(argv) < 2 or argv[1] != REPL_FLAG:
+        return
+    if len(argv) > 2:
+        parser.error(f"{REPL_FLAG} takes no arguments")
+    from . import shell  # lazy: the repl (and optional prompt_toolkit) load on use
+
+    raise SystemExit(shell.run(parser))

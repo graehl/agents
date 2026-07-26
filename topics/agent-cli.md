@@ -114,13 +114,29 @@ tool --acli-complete <argv-prefix...>
   fresh token" — consumers spawn with an explicit argv array (no shell), so
   an empty final arg is expressible.
 - Output is compact JSONL, one candidate per line:
-  `{"completion": "...", "kind": "flag|value|path|subcommand", "help": "..."}`
-  — `completion` required, the rest optional. No prompts, no TTY use.
+  `{"completion": "...", "kind": "flag|value|path|subcommand|hint",
+  "help": "...", "nospace": true}` — `completion` required (empty only
+  on `hint` rows), the rest optional. No prompts, no TTY use. `help` is
+  a one-line description (≲80 chars) rendered beside the candidate;
+  value completers should attach their own (a record summary, a match
+  count) — slot-level guidance belongs in a single `hint` row, never
+  repeated onto every candidate. `nospace: true` asks the consumer not
+  to append a space on acceptance (`field=`, `--flag=`).
+- A `hint` row (`kind:"hint"`, empty `completion`) is display-only
+  guidance for the current slot — zsh's `_message` analog — for
+  unbounded free-text slots, syntax reminders, and truncation notices
+  ("50 of 312 shown"). Consumers render it dimmed and never insert it;
+  naive consumers already drop empty completions safely.
+- Candidates arrive in tool-chosen order and consumers must preserve it
+  (dedupe is fine). Data order is often meaningful — a tier list's
+  S,A,B,… reading order would be destroyed by re-sorting.
 - Completion runs must be side-effect-free and fast (soft ~1s budget);
   consumers enforce a timeout and treat nonzero exit as "no protocol".
 - Exit 0 with zero lines is the definitive "no completions" (per
   *Definitive empty states*); consumers then fall back to generic path
-  completion.
+  completion. Any emitted line — including a lone `hint` — means the
+  protocol answered: no path fallback. A tool that wants path
+  completion for a slot simply emits nothing for it.
 - **Consumers must gate invocation on an explicit compliant-tool registry**
   (config/allowlist), never on trial invocation: fail-loud-on-unknown-flags
   protects compliant tools, but a lax non-compliant tool could ignore the
@@ -131,11 +147,64 @@ tool --acli-complete <argv-prefix...>
   effect) and flags, subcommands, and `choices` values complete for free;
   `set_completer(action, fn)` adds opt-in value completion, where `fn`
   takes `(prefix, tokens)` and yields strings or
-  `{"completion", "kind", "help"}` dicts. Worked examples: `almanac`
-  (`scripts/almanac`, dataset-name and record-key completers) uses the
-  wiring; `harness-check` in the yepanywhere repo
-  (`packages/server/test/bang/fixtures/harness-check`) implements the verb
-  by hand, including comma-list value completion for `--harnesses`.
+  `{"completion", "kind", "help", "nospace"}` dicts, with `hint(text)`
+  building guidance rows. `candidates(parser, tokens)` exposes the same
+  rows in-process (the repl's completer). Worked examples: `almanac`
+  (`scripts/almanac`, dataset/record-key/filter completers with
+  data-derived help) uses the wiring; `harness-check` in the yepanywhere
+  repo (`packages/server/test/bang/fixtures/harness-check`) implements
+  the verb by hand, including comma-list value completion for
+  `--harnesses`.
+
+Completion is also agent-facing introspection: `--acli-complete` is the
+cheapest way for an agent to enumerate valid values — datasets, fields,
+live data values — before composing a call, without a query round-trip
+or a docs read. Sanctioned, not just tolerated: keep completers useful
+to a blind caller (definitive hints, counts in `help`).
+
+## Capability line and help footer
+
+A compliant tool's `--help` ends with one line matching
+`acli: <version>( <capability>)*` — e.g. `acli: 1 complete repl toon` —
+where `<version>` is the protocol version (currently 1) and the tokens
+name wired capabilities: `complete` (`--acli-complete`), `repl`
+(`--repl`), `toon` (TOON table verbs). Advertise only what is actually
+wired. Testable: `tool --help | grep '^acli: '` — this is the hint an
+interactive consumer's *registration* step checks (run `--help` once,
+deliberately, timeout-capped; cache the result). Tab-time invocation
+stays registry-gated as above; YA's registration flow and UI live in
+its `topics/acli-ui.md`.
+
+Script tools mirror the line as a comment in their first 1 KiB
+(`# acli: 1 complete`), readable without executing anything — the
+zero-execution detection path for consumers scanning local bin dirs.
+
+`acli.args.argument_parser(capabilities=..., exit_codes=...)` emits the
+line automatically (default `("complete",)`, matching the
+`maybe_complete` contract) and renders an `exit codes:` table above it,
+so one `--help` serves humans, agents, and detection — the agent "man
+page" is the same help text, not a parallel surface.
+
+## REPL (`--repl`)
+
+The reserved `--repl` flag (argv[1], like `--acli-complete`; no further
+arguments) starts an interactive shell over the tool's own parser: each
+line is one invocation (argv without the program name), Tab completion
+reuses `candidates()` in-process — per-candidate help, hint rows, and
+data-peeking completers included — and the per-line output default
+flips to pretty (explicit format flags still win). `maybe_repl(parser)`
+beside `maybe_complete` wires it; `acli.shell.run(parser)` is the loop.
+A verb's `SystemExit` (argparse errors, `die()`) is caught per line and
+reported as `# exit N`, never ending the session; `exit`/`quit`/Ctrl-D
+end it. With a non-TTY stdin the repl reads lines without prompts, so a
+piped command script batches N invocations in one process.
+
+Rich menus (descriptions beside candidates, a bottom-toolbar hint) use
+`prompt_toolkit`, imported lazily so the package stays dependency-free.
+Without it, an interactive repl still completes via stdlib readline and
+its banner names the exact install command for the running interpreter
+(`<python> -m pip install --user prompt_toolkit`). History persists per
+tool under `$XDG_STATE_HOME/acli/` on the prompt_toolkit path.
 
 ## Kill round-trips without becoming a scripting language
 
@@ -220,8 +289,11 @@ small pure-function modules — a library, not a framework:
 - `acli.errors` — the structured error envelope, standard exit codes, and a
   `die()` that fails loud.
 - `acli.args` — an argparse factory pre-wiring the standard flags
-  (`--format`, `--full`, `--pretty`, `--toon`) and the agent-friendly help
-  conventions.
+  (`--format`, `--full`, `--pretty`, `--toon`), the agent-friendly help
+  conventions, the capability line / exit-code footer, and the
+  `--acli-complete` / `--repl` reserved verbs.
+- `acli.shell` — the `--repl` loop over a tool's parser; prompt_toolkit
+  optional, readline fallback, `candidates()`-driven completion.
 
 Distinct from the `agentctl` cooperative-declaration helpers
 (`declare_input` / `declare_output`, a provenance protocol) — different
@@ -256,3 +328,28 @@ concern, different namespace.
   needs no bash/zsh/fish artifacts; the consumer-side allowlist carries the
   safety burden, because probing an unknown tool with an unknown flag can
   execute a lax tool's default action.
+- **Capability line inside `--help`, not a dedicated manifest flag**
+  (vs. an `--acli` JSON manifest): one invocation serves humans,
+  agents, and consumer registration, and a second probe flag would be
+  one more thing a lax tool could misparse into its default action.
+  Accepts that machine consumers grep one anchored line out of human
+  help text.
+- **Any emitted line suppresses the consumer's path fallback** (vs. an
+  explicit no-files directive field): a lone `hint` row is the natural
+  "answered; paths are noise here" signal, and a tool that wants path
+  completion just stays silent for that slot. Accepts that one slot
+  cannot both hint and request path fallback.
+- **Per-candidate help from completers; slot guidance as one `hint`
+  row** (vs. inheriting the argparse action help onto every value):
+  inheritance repeated a whole syntax paragraph on every candidate in
+  practice (almanac filters). Accepts bare value rows when a completer
+  attaches nothing.
+- **Tool-chosen candidate order, preserved end to end** (vs. central
+  alphabetization): data order carries meaning (tier ranking, reading
+  order — the almanac order contract). Accepts inconsistent ordering
+  conventions across tools.
+- **REPL in the library behind a reserved flag, prompt_toolkit
+  optional** (vs. a hard dependency or per-tool shells): every ACLI
+  tool gets an interactive mode from the parser it already declares,
+  and the dependency-free core survives; readline mode plus an install
+  banner covers absence. Accepts two code paths in `acli.shell`.
