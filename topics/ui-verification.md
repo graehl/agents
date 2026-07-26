@@ -13,6 +13,10 @@ correct means* (the design contract), and [`theming`](theming.md) is held
 to the promise that it changes neither. Read this before approving any UI
 change.
 
+The completion-gate capture rule for UI tweak requests — required
+widths, when captures are mandatory, and the inspect-before-claiming
+step — is [`ui-testing`](ui-testing.md).
+
 The one correction this doc exists to install: **an agent must not approve
 how a screen looks or behaves from a representation that cannot see looks
 or behavior.** The cheap default path can't, so the agent has to leave it

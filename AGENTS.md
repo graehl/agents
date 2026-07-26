@@ -639,6 +639,19 @@ usually neither sits at the owning invariant, or one is dead. Name the
 best fix site, keep that one fix (whichever author's), remove the rest;
 deliberate layered defense with per-layer contracts is not a duplicate.
 
+## UI tweak result captures
+
+A request to tweak, fix, or restyle a web app's UI — layout, spacing,
+control/toolbar placement, flow — is confirmed only by rendered browser
+captures of the result: 1920×1080 desktop, plus a phone width when the
+project targets mobile. Capture after the change lands, actually look at
+each image, and check it against the request before claiming success —
+the capture exists to catch your own wrong spatial/aesthetic guess,
+which otherwise ships mis-spaced layouts as "done". Cite capture paths
+in the final response. Mid-implementation captures are optional.
+Protocol and mechanics: `topics/ui-testing.md`, repo-local first, else
+`~/agents/topics/ui-testing.md`.
+
 ## Adjacent gaps: capture, don't chase or drop
 
 A code-quality defect you notice adjacent to your work — a UI glitch,
