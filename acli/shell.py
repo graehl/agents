@@ -47,7 +47,42 @@ def _completion_tokens(text: str) -> list[str] | None:
     return tokens
 
 
-def execute(parser, line: str) -> int | None:
+# A rewrite hook maps one repl line's tokens into engine argv, giving a
+# bound "personality" (almanac's launcher grammar: bare filters = query on
+# the bound dataset, verbs pass through). Obligation: preserve the final
+# token, which is what completion is completing.
+Rewrite = Callable[[list[str]], list[str]]
+
+
+def _completion_rows(parser, tokens: list[str], rewrite: Rewrite | None):
+    """Candidates for a line, honoring a rewrite hook.
+
+    A bound repl accepts two spellings of a line — the personality's
+    shorthand and raw engine argv — so completion offers the union:
+    rewritten-grammar candidates first, raw-grammar next, deduped. Hint
+    rows survive only when nothing insertable matched (a shorthand miss
+    should not shout while the other grammar has answers).
+    """
+    if rewrite is None:
+        return candidates(parser, tokens)
+    rewritten = rewrite(list(tokens))
+    row_sets = [candidates(parser, rewritten)]
+    if rewritten != tokens:
+        row_sets.append(candidates(parser, tokens))
+    insertable: list[dict] = []
+    hints: list[dict] = []
+    seen: set[str] = set()
+    for rows in row_sets:
+        for row in rows:
+            if row.get("kind") == "hint":
+                hints.append(row)
+            elif row["completion"] not in seen:
+                seen.add(row["completion"])
+                insertable.append(row)
+    return insertable if insertable else hints[:1]
+
+
+def execute(parser, line: str, rewrite: Rewrite | None = None) -> int | None:
     """Run one repl line as an invocation; return its exit status (None: blank)."""
     try:
         tokens = shlex.split(line)
@@ -56,6 +91,8 @@ def execute(parser, line: str) -> int | None:
         return 2
     if not tokens:
         return None
+    if rewrite is not None:
+        tokens = rewrite(tokens)
     try:
         args = parser.parse_args(tokens)
         if getattr(args, "format", None) is None:
@@ -80,7 +117,9 @@ def _plain_reader(prompt: str) -> Callable[[], str]:
     return lambda: input(prompt)
 
 
-def _readline_reader(parser, prompt: str) -> Callable[[], str]:
+def _readline_reader(
+    parser, prompt: str, rewrite: Rewrite | None = None
+) -> Callable[[], str]:
     try:
         import readline
     except ImportError:
@@ -93,7 +132,7 @@ def _readline_reader(parser, prompt: str) -> Callable[[], str]:
             return None
         matches = [
             row["completion"]
-            for row in candidates(parser, tokens)
+            for row in _completion_rows(parser, tokens, rewrite)
             if row.get("kind") != "hint" and row["completion"].startswith(text)
         ]
         return matches[state] if state < len(matches) else None
@@ -104,7 +143,9 @@ def _readline_reader(parser, prompt: str) -> Callable[[], str]:
     return _plain_reader(prompt)
 
 
-def _prompt_toolkit_reader(parser, prompt: str) -> Callable[[], str] | None:
+def _prompt_toolkit_reader(
+    parser, prompt: str, history_name: str, rewrite: Rewrite | None = None
+) -> Callable[[], str] | None:
     try:
         from prompt_toolkit import PromptSession
         from prompt_toolkit.completion import Completer, Completion
@@ -122,7 +163,7 @@ def _prompt_toolkit_reader(parser, prompt: str) -> Callable[[], str] | None:
             if tokens is None:
                 return
             current = tokens[-1]
-            for row in candidates(parser, tokens):
+            for row in _completion_rows(parser, tokens, rewrite):
                 if row.get("kind") == "hint":
                     state["hint"] = row.get("help", "")
                     continue
@@ -133,7 +174,7 @@ def _prompt_toolkit_reader(parser, prompt: str) -> Callable[[], str] | None:
                 )
 
     session = PromptSession(
-        history=FileHistory(_history_path(parser.prog or "acli")),
+        history=FileHistory(_history_path(history_name)),
         completer=AcliCompleter(),
         complete_while_typing=True,
         bottom_toolbar=lambda: state["hint"] or None,
@@ -141,9 +182,21 @@ def _prompt_toolkit_reader(parser, prompt: str) -> Callable[[], str] | None:
     return lambda: session.prompt(prompt)
 
 
-def run(parser, *, input_lines: Iterable[str] | None = None) -> int:
-    """Serve the repl until EOF or exit/quit; returns the process exit status."""
-    prog = parser.prog or "acli"
+def run(
+    parser,
+    *,
+    input_lines: Iterable[str] | None = None,
+    rewrite: Rewrite | None = None,
+    prog: str | None = None,
+    intro: str | None = None,
+) -> int:
+    """Serve the repl until EOF or exit/quit; returns the process exit status.
+
+    `rewrite` gives the repl a bound personality (see `Rewrite`); `prog`
+    overrides the banner/prompt/history name; `intro` adds one banner
+    line describing the personality.
+    """
+    prog_name = prog or parser.prog or "acli"
     interactive = input_lines is None and sys.stdin.isatty() and sys.stdout.isatty()
     reader: Callable[[], str]
     if input_lines is not None:
@@ -159,20 +212,23 @@ def run(parser, *, input_lines: Iterable[str] | None = None) -> int:
     elif not interactive:
         reader = _plain_reader("")
     else:
-        prompt = f"{prog}> "
-        rich = _prompt_toolkit_reader(parser, prompt)
+        prompt = f"{prog_name}> "
+        rich = _prompt_toolkit_reader(parser, prompt, prog_name, rewrite)
         if rich is None:
             print(
                 "repl: prompt_toolkit not installed — plain tab completion only.\n"
                 f"repl: for menus with inline help, run: {install_advice()}",
                 file=sys.stderr,
             )
-            reader = _readline_reader(parser, prompt)
+            reader = _readline_reader(parser, prompt, rewrite)
         else:
             reader = rich
         print(
-            f"{prog} repl: one command per line (Tab completes); exit or Ctrl-D ends."
+            f"{prog_name} repl: one command per line (Tab completes); "
+            "exit or Ctrl-D ends."
         )
+        if intro:
+            print(intro)
     while True:
         try:
             line = reader()
@@ -183,6 +239,6 @@ def run(parser, *, input_lines: Iterable[str] | None = None) -> int:
             continue
         if line.strip() in {"exit", "quit"}:
             return 0
-        status = execute(parser, line)
+        status = execute(parser, line, rewrite)
         if status:
             print(f"# exit {status}", file=sys.stderr)

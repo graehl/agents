@@ -315,6 +315,34 @@ def test_repl_catches_die_and_reports_status():
     _assert("# exit 4" in err.getvalue(), err.getvalue())
 
 
+def test_repl_rewrite_binds_a_personality():
+    shell = importlib.import_module("acli.shell")
+    formats = []
+    parser = _repl_parser(formats)
+
+    def rewrite(tokens):
+        if tokens and tokens[0] == "go":
+            return ["run", *tokens[1:]]
+        return tokens
+
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        status = shell.run(parser, input_lines=["go", "exit"], rewrite=rewrite)
+    _assert(status == 0)
+    _assert(formats == ["pretty"], "rewritten line executes the bound verb")
+
+    def prefix_run(tokens):
+        if tokens and tokens[0] not in ("run", "boom"):
+            return ["run", *tokens]
+        return tokens
+
+    rows = shell._completion_rows(parser, [""], prefix_run)
+    _assert(
+        [r["completion"] for r in rows] == ["run", "boom"],
+        "bound completion falls back to the raw grammar's candidates",
+    )
+
+
 def test_repl_missing_dependency_advice_names_installer():
     shell = importlib.import_module("acli.shell")
     advice = shell.install_advice()

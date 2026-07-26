@@ -307,6 +307,10 @@ def test_repl_batch_lines():
     )
     _assert(proc.returncode == 0, proc.stderr)
     _assert('"name": "Bash"' in proc.stdout, "repl defaults to pretty output")
+    _assert(
+        run(root, "--repl", "nope").returncode == 4,
+        "a bad dataset binding fails loud before the loop",
+    )
 
 
 def test_launcher_dispatch():
@@ -342,14 +346,17 @@ def test_launcher_dispatch():
     )
     proc = subprocess.run(
         [launcher, "--repl"],
-        input="query cards-test tier=b\nexit\n",
+        input="tier=b\nshow bash\n~vulnerable\nexit\n",
         capture_output=True,
         text=True,
         env=env,
         check=False,
     )
     _assert(proc.returncode == 0, proc.stderr)
-    _assert('"name": "Bash"' in proc.stdout, "launcher --repl reaches the engine repl")
+    _assert(
+        proc.stdout.count('"name": "Bash"') == 3,
+        f"launcher --repl keeps the launcher grammar:\n{proc.stdout}\n{proc.stderr}",
+    )
 
 
 def _collect_tests():

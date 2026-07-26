@@ -46,7 +46,6 @@ from acli.args import (  # noqa: E402
     capability_line,
     hint,
     maybe_complete,
-    maybe_repl,
     set_completer,
 )
 
@@ -701,7 +700,7 @@ if [ "${{1:-}}" = "--acli-complete" ]; then
     *) exec almanac --acli-complete query {name} "$@";;
   esac
 fi
-if [ "${{1:-}}" = "--repl" ]; then exec almanac --repl; fi
+if [ "${{1:-}}" = "--repl" ]; then exec almanac --repl {name}; fi
 case "${{1:-}}" in
   -h|--help|help) exec almanac help {name} --prog "${{0##*/}}";;
 esac
@@ -957,6 +956,48 @@ def complete_filter(prefix, tokens):
     return rows
 
 
+# --- repl ---
+
+
+LAUNCHER_VERBS = ("query", "show", "search", "info", "check", "update", "help")
+
+
+def launcher_rewrite(name: str):
+    """Repl-line rewriter mirroring the launcher grammar: a leading verb
+    passes through with the dataset injected; anything else is query
+    filters/search. Keeps the final token in place (completion contract)."""
+
+    def rewrite(tokens: list[str]) -> list[str]:
+        if not tokens:
+            return tokens
+        head, *rest = tokens
+        if head in ("-h", "--help"):
+            return ["help", name, *rest]
+        if head in LAUNCHER_VERBS:
+            return [head, name, *rest]
+        return ["query", name, head, *rest]
+
+    return rewrite
+
+
+def run_repl(parser, rest: list[str]) -> int:
+    from acli import shell
+
+    if not rest:
+        return shell.run(parser)
+    if len(rest) > 1:
+        die("--repl takes at most a dataset binding", ExitCode.USAGE)
+    name = rest[0]
+    dataset_dir(name)  # fail loud (exit 4, known list) before the loop
+    return shell.run(
+        parser,
+        rewrite=launcher_rewrite(name),
+        prog=name,
+        intro=f"bound to dataset {name!r}: bare FIELD=VALUE / ~text lines query it; "
+        "verbs query/show/search/info/check/update/help also work",
+    )
+
+
 # --- parser ---
 
 
@@ -1046,7 +1087,8 @@ def main() -> int:
     wants_help = not argv or argv[0] in ("-h", "--help", "help")
     parser = build_parser(epilog=help_epilog() if wants_help else None)
     maybe_complete(parser)
-    maybe_repl(parser)
+    if argv[:1] == ["--repl"]:
+        return run_repl(parser, argv[1:])
     if not argv:
         parser.print_help()
         return 0

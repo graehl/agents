@@ -187,13 +187,24 @@ page" is the same help text, not a parallel surface.
 
 ## REPL (`--repl`)
 
-The reserved `--repl` flag (argv[1], like `--acli-complete`; no further
-arguments) starts an interactive shell over the tool's own parser: each
-line is one invocation (argv without the program name), Tab completion
-reuses `candidates()` in-process — per-candidate help, hint rows, and
+The reserved `--repl` flag (argv[1], like `--acli-complete`) starts an
+interactive shell over the tool's own parser: each line is one
+invocation (argv without the program name), Tab completion reuses
+`candidates()` in-process — per-candidate help, hint rows, and
 data-peeking completers included — and the per-line output default
 flips to pretty (explicit format flags still win). `maybe_repl(parser)`
-beside `maybe_complete` wires it; `acli.shell.run(parser)` is the loop.
+beside `maybe_complete` wires the bare form (it rejects further argv);
+`acli.shell.run(parser)` is the loop.
+
+Argv after `--repl` is tool-defined: a tool with a bound personality
+dispatches it itself and passes `shell.run(parser, rewrite=...,
+prog=..., intro=...)`. The `rewrite` hook maps each line's tokens into
+engine argv — preserving the final token, which is what completion is
+completing — so a launcher's grammar survives into its repl
+(`sts2-cards --repl` ≡ `almanac --repl sts2-cards`: bare
+`tier=S` / `~needle` lines query the bound dataset, verbs still pass
+through). Completion in a bound repl offers the union of the rewritten
+and raw grammars, so both spellings of a line complete.
 A verb's `SystemExit` (argparse errors, `die()`) is caught per line and
 reported as `# exit N`, never ending the session; `exit`/`quit`/Ctrl-D
 end it. With a non-TTY stdin the repl reads lines without prompts, so a

@@ -127,7 +127,10 @@ names with titles, record keys with column summaries, `field=` /
 `field=value` filters with counts — filter values in page order,
 hint rows for syntax, truncation, and no-match), and `--repl` (an
 interactive shell over the same completion; rich menus when
-prompt_toolkit is installed, install advice when not). `--help` and
+prompt_toolkit is installed, install advice when not). `almanac
+--repl <name>` — what launchers pass — binds the repl to a dataset:
+each line then uses the launcher grammar (bare filters/search query
+the bound dataset, verbs optional). `--help` and
 `help <name>` end with the `acli: 1 complete repl toon` capability
 line. Verbs: `list`, `query`, `show`, `search`, `info`, `check`,
 `update`, `help`, `register`.
@@ -148,8 +151,9 @@ launcher form).
 `register` validates a built dataset, wires the `by-url` symlink,
 commits, and writes a thin per-dataset launcher (`~/bin/<name>`:
 bare = info, `-h`/`--help`/`help` = `almanac help <name>`, `--repl`
-passes to the engine, verbs pass through, anything else = query
-filters/search) plus the `~/bin/almanac` engine symlink if missing.
+= the engine repl bound to this dataset, verbs pass through,
+anything else = query filters/search) plus the `~/bin/almanac`
+engine symlink if missing.
 The launcher head carries the zero-execution capability marker
 (`# acli: 1 complete repl toon`).
 
