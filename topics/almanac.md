@@ -123,9 +123,14 @@ the repair path named.
 `almanac` follows `topics/agent-cli.md`: compact JSONL default,
 `--pretty` human upgrade, `--toon` on the table verbs (`list`,
 `query`, `search`), structured errors, `--acli-complete` (dataset
-names, record keys, `field=`/`field=value` filters). Verbs: `list`,
-`query`, `show`, `search`, `info`, `check`, `update`, `help`,
-`register`.
+names with titles, record keys with column summaries, `field=` /
+`field=value` filters with counts — filter values in page order,
+hint rows for syntax, truncation, and no-match), and `--repl` (an
+interactive shell over the same completion; rich menus when
+prompt_toolkit is installed, install advice when not). `--help` and
+`help <name>` end with the `acli: 1 complete repl toon` capability
+line. Verbs: `list`, `query`, `show`, `search`, `info`, `check`,
+`update`, `help`, `register`.
 
 `query` filter grammar: `FIELD=VALUE` (exact, comma = any-of),
 `FIELD~TEXT` (substring on one field), `~TEXT` (substring across the
@@ -142,9 +147,11 @@ launcher form).
 
 `register` validates a built dataset, wires the `by-url` symlink,
 commits, and writes a thin per-dataset launcher (`~/bin/<name>`:
-bare = info, `-h`/`--help`/`help` = `almanac help <name>`, verbs
-pass through, anything else = query filters/search) plus the
-`~/bin/almanac` engine symlink if missing.
+bare = info, `-h`/`--help`/`help` = `almanac help <name>`, `--repl`
+passes to the engine, verbs pass through, anything else = query
+filters/search) plus the `~/bin/almanac` engine symlink if missing.
+The launcher head carries the zero-execution capability marker
+(`# acli: 1 complete repl toon`).
 
 ## YA integration (sketch)
 

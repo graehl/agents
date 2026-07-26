@@ -167,10 +167,19 @@ def test_help_and_no_args():
     _assert("examples:" in proc.stdout and "cards-test" in proc.stdout, proc.stdout)
     proc = run(root, "--help")
     _assert("cards-test" in proc.stdout, "top-level --help lists datasets")
+    _assert(
+        proc.stdout.rstrip().endswith("acli: 1 complete repl toon"),
+        "--help ends with the capability line",
+    )
+    _assert("exit codes:" in proc.stdout and "75" in proc.stdout, proc.stdout)
     proc = run(root, "help", "cards-test")
     _assert(proc.returncode == 0, proc.stderr)
     _assert("sample rows:" in proc.stdout and "Strike" in proc.stdout, proc.stdout)
     _assert("~needle" in proc.stdout, "filter syntax incl. needle grouping documented")
+    _assert(
+        proc.stdout.rstrip().endswith("acli: 1 complete repl toon"),
+        "dataset help also ends with the capability line",
+    )
 
 
 def test_sequence_numbers_and_supersets():
@@ -246,16 +255,57 @@ def test_refresh_mode_gates():
 
 def test_completion():
     root, _ = registered_root()
-    names = [r["completion"] for r in jsonl(run(root, "--acli-complete", "show", "car"))]
-    _assert(names == ["cards-test"], names)
-    keys = [r["completion"] for r in jsonl(run(root, "--acli-complete", "show", "cards-test", "b"))]
-    _assert(keys == ["Bash"], keys)
-    fields = [r["completion"] for r in jsonl(run(root, "--acli-complete", "query", "cards-test", "ti"))]
-    _assert(fields == ["tier="], fields)
-    values = [r["completion"] for r in jsonl(run(root, "--acli-complete", "query", "cards-test", "tier="))]
-    _assert(values == ["tier=A", "tier=B", "tier=C"], values)
+    names = jsonl(run(root, "--acli-complete", "show", "car"))
+    _assert([r["completion"] for r in names] == ["cards-test"], names)
+    _assert(names[0]["help"] == "Test cards", "dataset candidates carry the title")
+    keys = jsonl(run(root, "--acli-complete", "show", "cards-test", "b"))
+    _assert([r["completion"] for r in keys] == ["Bash"], keys)
+    _assert(keys[0]["help"] == "B · 2", "key candidates summarize the other columns")
+    fuzzy = jsonl(run(root, "--acli-complete", "show", "cards-test", "ash"))
+    _assert(
+        [r["completion"] for r in fuzzy] == ["Bash"],
+        "substring fallback mirrors show's own matching",
+    )
+    fields = jsonl(run(root, "--acli-complete", "query", "cards-test", "ti"))
+    _assert([r["completion"] for r in fields] == ["tier="], fields)
+    _assert(fields[0]["nospace"] is True, "field= must not get a space appended")
+    _assert("3 distinct" in fields[0]["help"], fields)
+    values = jsonl(run(root, "--acli-complete", "query", "cards-test", "tier="))
+    # Page order (C, B, A here), never alphabetized: order is the ranking.
+    _assert(
+        [r["completion"] for r in values] == ["tier=C", "tier=B", "tier=A"], values
+    )
+    _assert(values[0]["help"] == "1 records", values)
     verbs = [r["completion"] for r in jsonl(run(root, "--acli-complete", "che"))]
     _assert(verbs == ["check"], verbs)
+
+
+def test_completion_hint_rows():
+    root, _ = registered_root()
+    rows = jsonl(run(root, "--acli-complete", "query", "cards-test", ""))
+    _assert(rows[0]["kind"] == "hint" and rows[0]["completion"] == "", rows)
+    _assert("FIELD=VALUE" in rows[0]["help"], "empty filter slot leads with syntax")
+    _assert(
+        [r["completion"] for r in rows[1:]] == ["tier=", "cost="],
+        "filter fields follow in schema order",
+    )
+    misses = jsonl(run(root, "--acli-complete", "show", "cards-test", "zzz"))
+    _assert(misses[0]["kind"] == "hint" and "zzz" in misses[0]["help"], misses)
+
+
+def test_repl_batch_lines():
+    root, _ = registered_root()
+    env = dict(os.environ, ALMANAC_ROOT=str(root))
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), "--repl"],
+        input="query cards-test tier=b\nexit\n",
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    _assert(proc.returncode == 0, proc.stderr)
+    _assert('"name": "Bash"' in proc.stdout, "repl defaults to pretty output")
 
 
 def test_launcher_dispatch():
@@ -284,6 +334,21 @@ def test_launcher_dispatch():
     )
     _assert(proc.returncode == 0, proc.stderr)
     _assert([json.loads(l)["completion"] for l in proc.stdout.splitlines()] == ["Bash"])
+
+    _assert(
+        "# acli: 1 complete repl toon" in Path(launcher).read_text()[:200],
+        "launcher head carries the zero-execution capability marker",
+    )
+    proc = subprocess.run(
+        [launcher, "--repl"],
+        input="query cards-test tier=b\nexit\n",
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    _assert(proc.returncode == 0, proc.stderr)
+    _assert('"name": "Bash"' in proc.stdout, "launcher --repl reaches the engine repl")
 
 
 def _collect_tests():
