@@ -572,3 +572,24 @@ the sweep single-target.
   probe cannot show it. Real validation is an
   `instruction-ablation`-shaped comparison on multi-step tasks in a
   large repo.
+
+## 2026-07-27 — alternate directory layouts (docs/topics, docs/tactical)
+
+- **Provenance** — user request: his brother's repos keep committed
+  `docs/topics/` (topic docs) and `docs/tactical/` (task/gap-type
+  notes) instead of root `topics/`/`tasks/`/`gaps/`. Failure the rule
+  prevents: a session there creates a parallel root `topics/` or
+  `gaps/`, or leaves tactical notes uncommitted under the
+  ignored-`tasks/` default. Landed as `AGENTS.md` § Alternate
+  directory layouts.
+- **Trace-sim notes** — both forms present → root wins (phrased "when
+  the root form is absent"). False-positive risk: a `docs/topics/`
+  that is website nav content, not topic docs; guarded by
+  local-format deference plus the standing project-instructions
+  override rather than an extra hedge clause. Deliberately did not
+  couple `docs/tactical/` to the feature-branch workflow that
+  "tracked `tasks/`" implies in § Session management —
+  `feature-branch.md` loading keeps its own trigger.
+- **User judgment worth keeping** — the `tactical` name is "neither
+  better nor worse than tasks"; do not propose renaming it in his
+  repos.

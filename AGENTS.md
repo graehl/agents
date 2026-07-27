@@ -723,6 +723,18 @@ docs, using companion suffixes (`.evidence.md`, `.runs/`, `.bearings.md`,
 `.testing.md`), maintaining bearings outlines, or applying epistemic
 labels.
 
+## Alternate directory layouts
+
+A repo may keep these conventions under `docs/`: `docs/topics/` in
+place of root `topics/`, and `docs/tactical/` in place of `tasks/`
+and/or `gaps/`. When the root form is absent and the `docs/` form
+exists, use the `docs/` form wherever these instructions name the
+root one — same duties, read-triggers, and `Topic:` trailer
+namespace — rather than creating a parallel root directory. Content
+routed to `docs/tactical/` is committed (the tracked variant of
+`tasks/`) and follows the local files' format where it differs from
+the formats given here.
+
 ## Project glossary
 
 `GLOSSARY.md` is the project's shared, prescriptive vocabulary
