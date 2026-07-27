@@ -20,16 +20,34 @@ it as its own commit — no gap file needed.
 - **Not `topics/`.** A topic doc is a lasting cross-cutting contract; a gap
   is transient — it exists only until fixed, then it is removed.
 - **Not `on-deck/`.** On-deck entries are executable, guarded run-queue
-  items a steward launches. A gap has no launch command and no scheduler —
-  it is just a noted defect.
+  items a steward launches. A gap has no launch command and no
+  scheduler, and never grows one: gaps are addressed by a frontier
+  agent in active dialog — or a subsession it chooses and manages —
+  never by queueing or launching a fixer process, because the user
+  needs visibility into what actions sessions take in response to
+  commands. A frontier agent asked to tend on-deck may still choose
+  to clear gaps first, in-session.
+
+## Reading
+
+Glance at `gaps/` when starting work in an area — a filed gap is known
+context, and its fix may now be in scope (then fix and remove it as its
+own commit). Capture without this read side is write-only memory.
 
 ## Lifecycle
 
 - **Create** `gaps/<slug>.md` when you notice an adjacent defect you are
   deliberately not fixing now (out of scope for the current change).
+  Check existing entries first; extend the file covering the same
+  defect rather than filing a duplicate.
 - **Remove** `gaps/<slug>.md` in the same commit that fixes the gap. Do not
   archive it — git history is the record, and the commit message narrates
   the closure.
+- **Remove when moot** — a gap obsoleted by other work (code deleted,
+  premise falsified, fixed independently) exits by its own small commit
+  naming the reason. Without this exit the empty-`gaps/` target becomes
+  unreachable and the directory rots like the scattered TODOs it
+  replaces.
 
 ## Entry format
 

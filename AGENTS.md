@@ -661,9 +661,11 @@ comment that dies with the session. Record it as a committed
 `gaps/<slug>.md` entry (create `gaps/` when first needed), and remove that
 file in the commit that fixes the gap. Fix in place instead only when the
 fix is cheap *and* in scope — the seam is already open — and then as its
-own commit, not folded into unrelated work. Format, lifecycle, and the
-distinctions from `tasks/`, `topics/`, and `on-deck/` live in
-`gaps/README.md`.
+own commit, not folded into unrelated work. The capture has a read
+side: when the repo has `gaps/`, glance at it when starting work in
+an area — a filed gap is known context there, and its fix may now be
+in scope. Format, lifecycle, and the distinctions from `tasks/`,
+`topics/`, and `on-deck/` live in `gaps/README.md`.
 
 ## Ideal coding
 

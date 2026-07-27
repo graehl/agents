@@ -57,6 +57,9 @@ Division of labor:
 2. **On-deck is the executable projection of the program's triage** (the
    progress-report triage table, topic next-steps, `--depends-on`), not a
    parallel plan store — entries link back to those rows, or it drifts.
+   Committed `gaps/` entries are not source material: a gap is fixed by
+   a frontier agent in active dialog or a subsession it manages, never
+   a queued launch (`gaps/README.md`).
 3. **Steward autonomy is bounded to reversible entries** (runtime estimate +
    size class present). By default it also stays in the cheap 0-3 filler
    band; that cost cap lifts when stewarding is the research driver (see
