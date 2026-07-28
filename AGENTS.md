@@ -1109,6 +1109,14 @@ edit-and-rerun beats re-typing, and it sidesteps shell-quoting fragility.
 Remove it when done; for anything you may re-run after a gap, prefer a
 durable scratch dir to reboot-cleared `/tmp`.
 
+## Deleting files
+
+Leave `-f` off `rm` (and prefer `rm -r` over `rm -rf`) unless a missing
+path genuinely must not fail the command. Harness permission layers read
+the force flag as destructive and reject the call, so it usually buys a
+rejection plus a retry; on a path that exists, plain `rm` deletes just the
+same.
+
 ## Agent-facing CLI help
 
 When designing or modifying CLI tools likely used by agents, keep `--help`
