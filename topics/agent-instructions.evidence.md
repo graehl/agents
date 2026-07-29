@@ -593,3 +593,22 @@ the sweep single-target.
 - **User judgment worth keeping** — the `tactical` name is "neither
   better nor worse than tasks"; do not propose renaming it in his
   repos.
+
+## 2026-07-29 — existing two-remote push rule missed
+
+- **Incident** — in yepanywhere, the user requested `push origin`; the
+  agent pushed only `origin/main` and reported completion. The user
+  corrected that the phrase also means pushing `graehl/main`.
+  `AGENTS.local.md` already stated this twice: the standing preference
+  says to push the same tip to both remotes, and the detailed
+  `push origin` contract says to update `origin/main` and then make
+  `graehl/main` match its exact history.
+- **Disposition** — no third copy was added to the boot-loaded local
+  instructions; the wording and placement already answer the decision,
+  so duplication would not repair failure to apply the file. The agent
+  completed the missing graehl push and the already-implied hosted-client
+  publish.
+- **Context note** — the miss occurred after conversation compaction; the
+  retained summary did not carry the local remote convention. This does
+  not establish whether the file was loaded earlier, but it narrows the
+  failure away from ambiguity in the rule itself.
