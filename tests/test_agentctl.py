@@ -17,7 +17,9 @@ import hashlib
 import importlib.util
 import json
 import os
+import select
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -180,7 +182,395 @@ def _json_records(output: str) -> list[dict]:
     return [json.loads(line) for line in output.splitlines() if line.strip()]
 
 
+def _fake_nvidia_smi(ws: Workspace, row: str) -> dict[str, str]:
+    fake_bin = ws.scratch / "bin"
+    fake_bin.mkdir(exist_ok=True)
+    nvidia_smi = fake_bin / "nvidia-smi"
+    nvidia_smi.write_text(
+        "#!/bin/sh\n"
+        'case "$*" in\n'
+        "  *--query-compute-apps*) exit 1 ;;\n"
+        "esac\n"
+        f"printf '%s\\n' {row!r}\n",
+        encoding="utf-8",
+    )
+    nvidia_smi.chmod(0o755)
+    return {"PATH": f"{fake_bin}:{os.environ['PATH']}"}
+
+
+def _fake_ssh(ws: Workspace, delay: float = 0.0) -> Path:
+    fake_bin = ws.scratch / "bin"
+    fake_bin.mkdir(exist_ok=True)
+    ssh = fake_bin / "ssh"
+    ssh.write_text(
+        f'#!/bin/sh\nsleep {delay:g}\nshift\nexec "$@"\n',
+        encoding="utf-8",
+    )
+    ssh.chmod(0o755)
+    return ssh
+
+
+def _sequence_nvidia_smi(ws: Workspace, rows: list[str]) -> dict[str, str]:
+    fake_bin = ws.scratch / "bin"
+    fake_bin.mkdir(exist_ok=True)
+    counter = ws.scratch / "nvidia-smi-count"
+    cases = "\n".join(
+        f"  {index}) row={row!r} ;;" for index, row in enumerate(rows, start=1)
+    )
+    nvidia_smi = fake_bin / "nvidia-smi"
+    nvidia_smi.write_text(
+        "#!/bin/sh\n"
+        'case "$*" in\n'
+        "  *--query-compute-apps*) exit 1 ;;\n"
+        "esac\n"
+        f"counter={str(counter)!r}\n"
+        "count=0\n"
+        '[ ! -f "$counter" ] || count=$(cat "$counter")\n'
+        "count=$((count + 1))\n"
+        'printf \'%s\\n\' "$count" > "$counter"\n'
+        'case "$count" in\n'
+        f"{cases}\n"
+        f"  *) row={rows[-1]!r} ;;\n"
+        "esac\n"
+        "printf '%s\\n' \"$row\"\n",
+        encoding="utf-8",
+    )
+    nvidia_smi.chmod(0o755)
+    return {"PATH": f"{fake_bin}:{os.environ['PATH']}"}
+
+
 # ---- Tests -----------------------------------------------------------------
+
+
+def test_fleet_watch_wakes_for_idle_local_gpu():
+    ws = Workspace()
+    try:
+        res = ws.run(
+            "fleet-watch",
+            "--min-free-memory",
+            "3000",
+            "--poll",
+            "0.01",
+            env_extra=_fake_nvidia_smi(ws, "0, 46000, 1024, 20, 0"),
+        )
+        _assert(
+            res.returncode == 0,
+            f"fleet-watch failed: rc={res.returncode}\n"
+            f"stdout: {res.stdout}\nstderr: {res.stderr}",
+        )
+        _assert("local" in res.stdout, f"target missing from output: {res.stdout!r}")
+        _assert(
+            "GPU capacity available" in res.stdout,
+            f"capacity wake missing: {res.stdout!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_fleet_watch_is_silent_until_a_wake_condition():
+    ws = Workspace()
+    proc = None
+    try:
+        env = _sequence_nvidia_smi(ws, ["0, 46000, 40000, 200, 90"])
+        proc = ws.popen(
+            "fleet-watch",
+            "--min-free-memory",
+            "30000",
+            "--poll",
+            "0.01",
+            env_extra=env,
+        )
+        counter = ws.scratch / "nvidia-smi-count"
+        deadline = time.monotonic() + 2
+        while not counter.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        _assert(counter.exists(), "fleet-watch did not complete its first GPU probe")
+        time.sleep(0.05)
+        readable, _, _ = select.select([proc.stdout], [], [], 0)
+        _assert(not readable, "fleet-watch emitted output before any wake condition")
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
+            proc.communicate(timeout=2)
+        ws.cleanup()
+
+
+def test_fleet_watch_ctrl_c_exits_cleanly_without_output():
+    ws = Workspace()
+    proc = None
+    try:
+        env = _sequence_nvidia_smi(ws, ["0, 46000, 40000, 200, 90"])
+        proc = ws.popen(
+            "fleet-watch",
+            "--min-free-memory",
+            "30000",
+            "--poll",
+            "0.01",
+            env_extra=env,
+        )
+        counter = ws.scratch / "nvidia-smi-count"
+        deadline = time.monotonic() + 2
+        while not counter.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        _assert(counter.exists(), "fleet-watch did not complete its first GPU probe")
+        proc.send_signal(signal.SIGINT)
+        stdout, stderr = proc.communicate(timeout=2)
+        _assert(proc.returncode == 130, f"unexpected Ctrl-C rc: {proc.returncode}")
+        _assert(stdout == "", f"Ctrl-C emitted stdout: {stdout!r}")
+        _assert("Traceback" not in stderr, f"Ctrl-C traceback: {stderr!r}")
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.kill()
+            proc.communicate(timeout=2)
+        ws.cleanup()
+
+
+def test_fleet_watch_requires_consecutive_capacity_samples():
+    ws = Workspace()
+    try:
+        env = _sequence_nvidia_smi(
+            ws,
+            [
+                "0, 46000, 1000, 20, 0",
+                "0, 46000, 40000, 200, 90",
+                "0, 46000, 1000, 20, 0",
+            ],
+        )
+        res = ws.run(
+            "fleet-watch",
+            "--min-free-memory",
+            "30000",
+            "--poll",
+            "0.01",
+            "--timeout",
+            "0.3",
+            env_extra=env,
+        )
+        _assert(
+            res.returncode == 0,
+            f"fleet-watch failed: rc={res.returncode}\n"
+            f"stdout: {res.stdout}\nstderr: {res.stderr}",
+        )
+        _assert(
+            (ws.scratch / "nvidia-smi-count").read_text().strip() == "5",
+            "transient capacity did not reset the consecutive-sample count",
+        )
+        _assert(
+            "samples=3/3" in res.stdout,
+            f"unsupported process-query fallback did not require 3 samples: {res.stdout!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_fleet_watch_extends_stability_for_live_unloaded_gpu_process():
+    ws = Workspace()
+    try:
+        fake_bin = ws.scratch / "bin"
+        fake_bin.mkdir()
+        counter = ws.scratch / "gpu-process-query-count"
+        nvidia_smi = fake_bin / "nvidia-smi"
+        nvidia_smi.write_text(
+            "#!/bin/sh\n"
+            'case "$*" in\n'
+            "  *--query-compute-apps*)\n"
+            f"    counter={str(counter)!r}\n"
+            "    count=0\n"
+            '    [ ! -f "$counter" ] || count=$(cat "$counter")\n'
+            "    count=$((count + 1))\n"
+            '    printf \'%s\\n\' "$count" > "$counter"\n'
+            f"    [ \"$count\" -ne 1 ] || printf '%s\\n' {os.getpid()}\n"
+            "    exit 0\n"
+            "    ;;\n"
+            "esac\n"
+            "printf '%s\\n' '0, 46000, 1000, 20, 0'\n",
+            encoding="utf-8",
+        )
+        nvidia_smi.chmod(0o755)
+        res = ws.run(
+            "fleet-watch",
+            "--min-free-memory",
+            "30000",
+            "--poll",
+            "0.01",
+            "--timeout",
+            "0.3",
+            env_extra={"PATH": f"{fake_bin}:{os.environ['PATH']}"},
+        )
+        _assert(
+            res.returncode == 0,
+            f"fleet-watch failed: rc={res.returncode}\n"
+            f"stdout: {res.stdout}\nstderr: {res.stderr}",
+        )
+        _assert(
+            "samples=6/6" in res.stdout,
+            f"live unloaded process did not extend stability: {res.stdout!r}",
+        )
+        _assert(
+            f"reload-risk-pids={os.getpid()}" in res.stdout,
+            f"reload-risk PID missing: {res.stdout!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_fleet_watch_wakes_for_finished_local_job_while_gpu_busy():
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "done", "--", "true")
+        ws.wait_finished("done")
+        res = ws.run(
+            "fleet-watch",
+            "--job",
+            "local=done",
+            "--poll",
+            "0.01",
+            "--timeout",
+            "0.2",
+            env_extra=_fake_nvidia_smi(ws, "0, 46000, 12000, 180, 90"),
+        )
+        _assert(
+            res.returncode == 0,
+            f"fleet-watch failed: rc={res.returncode}\n"
+            f"stdout: {res.stdout}\nstderr: {res.stderr}",
+        )
+        _assert(
+            "done:finished" in res.stdout and "rc=0" in res.stdout,
+            f"job wake missing from output: {res.stdout!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_fleet_watch_rejects_unknown_native_job():
+    ws = Workspace()
+    try:
+        res = ws.run(
+            "fleet-watch",
+            "--job",
+            "local=not-a-job",
+            env_extra=_fake_nvidia_smi(ws, "0, 46000, 12000, 180, 90"),
+        )
+        _assert(res.returncode != 0, "unknown native job should fail")
+        _assert(
+            "unknown agentctl job" in res.stderr,
+            f"actionable unknown-job error missing: {res.stderr!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_fleet_watch_bare_ssh_target_needs_no_remote_agentctl():
+    ws = Workspace()
+    try:
+        env = _fake_nvidia_smi(ws, "0, 96000, 32000, 120, 70")
+        ssh = _fake_ssh(ws)
+        res = ws.run(
+            "fleet-watch",
+            "--no-local",
+            "--target",
+            "remote=fake-host",
+            "--ssh-bin",
+            ssh,
+            "--min-free-memory",
+            "30000",
+            "--poll",
+            "0.01",
+            env_extra=env,
+        )
+        _assert(
+            res.returncode == 0,
+            f"bare SSH fleet-watch failed: rc={res.returncode}\n"
+            f"stdout: {res.stdout}\nstderr: {res.stderr}",
+        )
+        _assert(
+            "remote=64000MiB" in res.stdout,
+            f"remote capacity missing: {res.stdout!r}",
+        )
+        _assert(
+            "agentctl" not in res.stderr.lower(),
+            f"bare remote incorrectly required agentctl: {res.stderr!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_fleet_watch_reads_native_agentctl_job_over_ssh():
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "remote-done", "--", "true")
+        ws.wait_finished("remote-done")
+        env = _fake_nvidia_smi(ws, "0, 96000, 80000, 200, 90")
+        ssh = _fake_ssh(ws)
+        res = ws.run(
+            "fleet-watch",
+            "--no-local",
+            "--target",
+            "remote=fake-host",
+            "--root",
+            f"remote={ws.tmp}",
+            "--job",
+            "remote=remote-done",
+            "--ssh-bin",
+            ssh,
+            "--poll",
+            "0.01",
+            "--timeout",
+            "0.3",
+            env_extra=env,
+        )
+        _assert(
+            res.returncode == 0,
+            f"native SSH fleet-watch failed: rc={res.returncode}\n"
+            f"stdout: {res.stdout}\nstderr: {res.stderr}",
+        )
+        _assert(
+            "remote/remote-done:finished" in res.stdout and "rc=0" in res.stdout,
+            f"native remote completion missing: {res.stdout!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_fleet_watch_probes_ssh_targets_concurrently():
+    ws = Workspace()
+    try:
+        env = _fake_nvidia_smi(ws, "0, 96000, 80000, 200, 90")
+        ssh = _fake_ssh(ws, delay=0.4)
+        started = time.monotonic()
+        res = ws.run(
+            "fleet-watch",
+            "--no-local",
+            "--target",
+            "one=fake-one",
+            "--target",
+            "two=fake-two",
+            "--pid",
+            "one=999991",
+            "--pid",
+            "two=999992",
+            "--ssh-bin",
+            ssh,
+            "--timeout",
+            "1",
+            env_extra=env,
+        )
+        elapsed = time.monotonic() - started
+        _assert(
+            res.returncode == 0,
+            f"multi-SSH fleet-watch failed: rc={res.returncode}\n"
+            f"stdout: {res.stdout}\nstderr: {res.stderr}",
+        )
+        _assert(
+            elapsed < 0.95,
+            f"SSH probes appear serial: elapsed={elapsed:.3f}s\n{res.stdout}",
+        )
+        _assert(
+            "ended_pids=one/999991,two/999992" in res.stdout,
+            f"both remote PID results missing: {res.stdout!r}",
+        )
+    finally:
+        ws.cleanup()
 
 
 def test_no_aim_writes_nothing():

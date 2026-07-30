@@ -3498,7 +3498,7 @@ def query_gpu_stats(gpu_index: int) -> dict[str, float | int | None]:
         [
             "nvidia-smi",
             f"--id={gpu_index}",
-            "--query-gpu=index,memory.used,power.draw,utilization.gpu",
+            "--query-gpu=index,memory.total,memory.used,power.draw,utilization.gpu",
             "--format=csv,noheader,nounits",
         ],
         text=True,
@@ -3506,15 +3506,16 @@ def query_gpu_stats(gpu_index: int) -> dict[str, float | int | None]:
     )
     line = out.strip().splitlines()[0]
     fields = [field.strip() for field in line.split(",")]
-    if len(fields) != 4:
+    if len(fields) != 5:
         raise RuntimeError(
             f"unexpected nvidia-smi output for gpu {gpu_index}: {line!r}"
         )
     return {
         "gpu": int(fields[0]),
-        "memory_used_mib": int(fields[1]),
-        "power_draw_w": parse_nvidia_smi_number(fields[2]),
-        "utilization_gpu_pct": parse_nvidia_smi_number(fields[3]),
+        "memory_total_mib": int(fields[1]),
+        "memory_used_mib": int(fields[2]),
+        "power_draw_w": parse_nvidia_smi_number(fields[3]),
+        "utilization_gpu_pct": parse_nvidia_smi_number(fields[4]),
     }
 
 
@@ -3621,7 +3622,14 @@ def gpu_below_watch_thresholds(
 
 
 def format_gpu_stats(stats: dict[str, float | int | None]) -> str:
-    bits = [f"gpu={int(stats['gpu'])}", f"VRAM={int(stats['memory_used_mib'])}MiB"]
+    total = stats.get("memory_total_mib")
+    used = int(stats["memory_used_mib"])
+    memory = (
+        f"VRAM={used}/{int(total)}MiB free={int(total) - used}MiB"
+        if total is not None
+        else f"VRAM={used}MiB"
+    )
+    bits = [f"gpu={int(stats['gpu'])}", memory]
     power_draw = stats.get("power_draw_w_avg", stats.get("power_draw_w"))
     util = stats.get("utilization_gpu_pct_avg", stats.get("utilization_gpu_pct"))
     util_peak = stats.get("utilization_gpu_pct_max")
@@ -4995,6 +5003,8 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
+    except KeyboardInterrupt:
+        raise SystemExit(130) from None
     except BrokenPipeError:
         # Let common truncating consumers such as `head` close the pipe without
         # turning a successful status/list command into a traceback.

@@ -173,7 +173,8 @@ window.
   refresh or masquerade as the agent — a count-down-once guard that needs no
   env stripping and leaves the harness's own session var intact. With no
   session id resolvable, the launcher does not touch `active/` at all.
-- The long-blocking verbs (`wait`, `watch`, `wait-gpu`, `wait-work`) keep
+- The long-blocking verbs (`wait`, `watch`, `wait-gpu`, `wait-work`,
+  `fleet-watch`) keep
   the agent's entry
   *fresh* without writing content: each poll loop runs a self-throttled mtime
   touch (`touch_active_entry`, at most every 300s — never creating an entry,
@@ -315,6 +316,76 @@ window.
   their behalf. Imports that may fail (e.g. the Aim SDK) must be guarded
   inside the plugin and treated as best-effort.
 
+## Fleet capacity watch
+
+`fleet-watch` is one foreground wait across the local GPU and any number of
+named SSH workers. It exists to replace agent-authored polling loops: the
+calling agent supplies the free-VRAM requirement of the smallest worthwhile
+on-deck run, receives no output while the condition is false, and regains
+control when capacity is durable or a watched job ends.
+
+The local target is implicit. Remote targets are additive and probed
+concurrently, so one slow SSH round does not multiply by the worker count:
+
+```bash
+~/agents/agentctl fleet-watch \
+  --target hi=ubuntu@172.18.93.214 \
+  --target g7=ubuntu@54.175.245.181 \
+  --root hi=/local/draft \
+  --root g7=/local/draft \
+  --ssh-arg=-i \
+  --ssh-arg=/home/graehl/.ssh/id_ed25519_rws \
+  --min-free-memory 30000 \
+  --timeout 3300
+```
+
+`--min-free-memory` is available VRAM, not a nearly-idle used-memory
+threshold. A 96-GiB GPU already using 60 GiB is therefore eligible for a
+30-GiB run when the remaining headroom is durable. The foreground process is
+a blocking primitive, not a dashboard: it emits nothing until a wake
+condition is satisfied. Its one flushed wake line then carries the fleet
+snapshot, running native jobs, completed job/PID details, and the durability
+evidence for qualifying capacity.
+
+One sample never releases the wait. With the default ten-second poll:
+
+- two consecutive qualifying samples establish ordinary capacity;
+- six are required if a PID seen on the GPU disappears from the GPU process
+  list but remains alive, because the process may be between unload and
+  reload;
+- three are required when GPU-process enumeration is unavailable.
+
+Any below-threshold sample silently resets the candidate. The final capacity
+line names free memory, the requested minimum, sample count, native jobs
+still running, and any watched completions accumulated while
+`--no-wake-on-job-end` was active.
+
+Native job awareness is opportunistic. On local and SSH targets with
+`agentctl`, the watcher automatically discovers jobs live at entry or later,
+then reports their terminal status, elapsed time, and return code. A named
+`--job NAME=JOB` may also be supplied. Job/PID endings wake the agent by
+default so it can do a rough result check before filling the capacity;
+`--no-wake-on-job-end` deliberately sleeps through them and waits for GPU
+capacity instead.
+
+Foreground invocations should use a sub-hour timeout (`--timeout 3300` is
+the normal 55-minute bound) so the agent periodically regains control even
+when no resource or job transition occurs. The verb defaults to that bound;
+`--timeout 0` is the deliberate unbounded override. A timeout is itself a
+wake and prints the final fleet snapshot.
+
+A fresh remote needs only SSH and `nvidia-smi` for capacity monitoring.
+Install-free process monitoring uses `--pid NAME=PID`. If `<root>/agentctl`
+is executable, or `agentctl` is on the remote `PATH`, native job state is
+added; asking for a named job without either is an error rather than a
+silent downgrade.
+
+This verb is a wake point, not a scheduler. Worker provisioning, staging,
+successor choice, launch, result interpretation, and artifact copy-back
+remain explicit agent actions after it returns. A copied remote `agentctl`
+is useful for native job state and launches but is never a prerequisite for
+capacity monitoring.
+
 ## Hook surface
 
 All hooks are optional; the base calls them via `getattr` and a small
@@ -451,13 +522,11 @@ suitable interpreter is found.
 
 ## Catch-up notes
 
-<!-- assumed -->
-The hook surface (9 hooks) was sized to the actual extraction of the `aim`
-plugin from a previously-monolithic `agentctl.py`. It covers every Aim
-touchpoint without requiring base-level knowledge of Aim or its dump format.
-A second plugin would prove the surface is genuinely general; until then,
-treat the hook list as falsifiable by the next concrete plugin rather than
-fixed.
+<!-- observed -->
+The `fleet` plugin is the second independent use of `register_verbs`, after
+the run-record `aim` plugin. It adds a multi-host foreground monitor without
+putting SSH or fleet semantics in the base launcher, confirming that
+top-level operational verbs fit the existing plugin boundary.
 
 <!-- assumed -->
 The 24-hex md5-of-run_id synthesis for `aim_run_hash` is collision-safe
