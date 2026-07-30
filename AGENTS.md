@@ -265,8 +265,8 @@ snapshot it under `.backups/<YYYYmmdd-HHMMSS>/<relative-path>`.
 Companion docs hold split-out, opt-in policy:
 - `RESEARCH.md` — research method; load before substantive
   research/experimentation work (notebooks, train/eval, significance
-  claims, paper/report drafting). Also names the survey-field and
-  research-frontier templates.
+  claims, paper/report drafting). Also routes the field-map, frontier-map,
+  literature-search, and research-advisor protocols.
 - `RUNS.md` — run-operation / `agentctl` policy; load before
   launching/monitoring/summarizing long-running jobs.
 - `feature-branch.md` — branch-per-feature workflow; load when the

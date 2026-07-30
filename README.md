@@ -58,6 +58,8 @@ branches, commits, shared workdirs, or private notes.
 | `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md` | Provider-specific mechanics such as session identifiers, log locations, and harness quirks. |
 | `AGENTS.weak.md` | Extra reminders for smaller or less reliable agents; load-bearing policy still belongs in `AGENTS.md`. |
 | `RESEARCH.md` | Research, evaluation, paper, and artifact discipline. |
+| `research-advisor.md` | Handoff protocol for the long-lived, normally project-wide skeptical research-advisor session. |
+| `advisor/charter.md` | Durable global mandate and operating behavior loaded into every research-advisor session. |
 | `RUNS.md` | Long-running job operations, monitoring, and provenance expectations. |
 | `feature-branch.md` | Optional branch-per-feature workflow for projects that opt into it. |
 | `GLOSSARY.md` | Project vocabulary that agents should reuse in docs, code, UI copy, and commits. |

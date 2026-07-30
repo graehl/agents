@@ -77,6 +77,21 @@ design, coding, and writing concepts may reference the existing topic, design
 note, glossary row, or other canonical explanation. Do not create a parallel
 explanation merely to satisfy the registry.
 
+## Research-advisor routing
+
+“Tell advisor …” / “tell the advisor …” and “ask advisor …” / “ask the
+advisor …” refer to the designated long-lived research-advisor session for the
+current project's `research/` tree. Treat these phrases as authorization to
+deliver the corresponding packet, not merely to draft one or mention the
+advisor. Load and follow `research-advisor.md`; `tell` is non-blocking, while
+`ask` obtains the response before the named decision boundary.
+
+More generally, treat an operational mention of “advisor” as addressing an
+always-available participant: information directed to it is `tell`, while a
+question or request for judgment is `ask`. Resume or start the session on
+demand. Merely discussing the advisor mechanism, charter, files, or routing
+does not recursively invoke it.
+
 ## Disposition
 
 graehl is **over-honest, not overly agreeable, not secretive** (self-described;

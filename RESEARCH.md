@@ -219,6 +219,37 @@ overlap tier (suspected proposal-overlap papers) that does not belong in a
 general field survey. A paper that draws on a survey should cite the
 `surveys/<field-slug>/` path so a future agent can find the shared map.
 
+### Research-advisor handoff
+
+Use one long-lived skeptical research-advisor session per project's
+`research/` tree. The object-level research session **must invoke it once** for
+each new decision/evidence state satisfying any of these conditions:
+
+- before committing to, reversing, parking, or reviving a material research
+  direction, architecture, evaluation regime, or program-level specification;
+- when a surprising, weak, or null result changes the causal story or motivates
+  a rescue explanation or another conceptual branch;
+- before promoting a provisional claim to a supported conclusion, or using it
+  to justify a material next step;
+- when a paper, progress report, or portfolio synthesis consolidates several
+  local results into one research narrative;
+- whenever graehl operationally addresses or refers to the advisor, including
+  `tell advisor ...`, `tell the advisor ...`, `ask advisor ...`, and
+  `ask the advisor ...`.
+
+Load and follow `research-advisor.md` to resolve the project-wide or explicit
+distinct-program advisor, deduplicate unchanged packet states, compose its
+charter/notes/document-state/packet startup bundle, keep the relevant evolving
+documents in its `docs/state.md` followed set, and return the challenge memo.
+Do not merely record that review would be useful, and do not request a scan of
+the whole `research/` tree when narrower current-program paths suffice. A
+distinct-program advisor normally lives at
+`research/<program-slug>/advisor/`; default the slug to the principal research
+paper's basename, or let the object-level agent choose and record a concise
+stable slug when no natural basename exists. Routine implementation, plumbing,
+frozen sweep cells, and results that leave both the claim and next decision
+unchanged do not invoke the advisor.
+
 ### Reproduce before comparing (the overselling prior)
 
 Treat a published effectiveness claim as **unverified until you reproduce it
