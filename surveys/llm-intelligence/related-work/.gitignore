@@ -1,6 +1,5 @@
 # Regenerable extraction artifacts — rebuild with ./fetch.sh. Only papers.yaml,
-# fetch.sh, and this file are committed.
-pdf/
-html/
+# fetch.sh, and this file are committed. Everything a fetch produces (source
+# PDFs, saved HTML, marker markdown, figures) lands under extract/<short>/.
 extract/
 extract.tmp/

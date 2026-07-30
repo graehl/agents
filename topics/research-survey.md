@@ -32,8 +32,9 @@
   concept, which may only vaguely resemble the paper title). (1) A durable
   full-text **extract** (`related-work/extract/<short>/`) — a linked reference,
   read on demand, not routinely traversed. (2) A committed **understanding**
-  page (`concepts/<short>.md`) — our distillation, the working artifact, which
-  **records the source URL(s)** so the extract can be reconstituted. (3) The
+  page (`concepts/<short>.md`) — our distillation, the working artifact,
+  written from a **fetch+read** of the full text (not pretrained recall) and
+  **recording the source URL(s)** so the extract can be reconstituted. (3) The
   compact **map node** in `survey.md`, linking to both. `papers.yaml` carries
   each concept's `short` handle alongside its citation key.
 - **Extracts are computed, git-ignored, reconstitutable.** Extraction produces a
@@ -63,6 +64,12 @@
   is stated at the top of every output. A `recall` survey caps effectiveness
   grades at `single-source` and carries a provenance banner; it must not
   present itself as grounded.
+- **Concept understanding pages follow a fetch+read.** `concepts/<short>.md` is
+  written from an actual read of the fetched full text — its
+  `related-work/extract/<short>/`, or the fetched primary source — not from
+  pretrained recall; a durable, checked understanding is the goal. A
+  recall-only page is a banner-marked stopgap, not a grounded concept page, and
+  its citations stay `verified: false` until a fetch+read confirms them.
 - Every effectiveness claim is graded (`reproduced` / `single-source` /
   `contested` / `failed-replication` / `folklore`) and conditioned on
   baseline, benchmark, and regime. A bare "works well" is rejected.
