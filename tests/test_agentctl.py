@@ -460,6 +460,51 @@ def test_fleet_watch_rejects_unknown_native_job():
         ws.cleanup()
 
 
+def test_fleet_watch_rejects_disabled_event_only_wake():
+    ws = Workspace()
+    try:
+        res = ws.run(
+            "fleet-watch",
+            "--job",
+            "local=anything",
+            "--no-wake-on-job-end",
+            "--timeout",
+            "0",
+        )
+        _assert(res.returncode != 0, "watch with no enabled wake must fail")
+        _assert(
+            "--min-free-memory" in res.stderr,
+            f"missing actionable wake-condition error: {res.stderr!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_fleet_watch_rejects_alternate_local_project_root():
+    ws = Workspace()
+    try:
+        other = ws.scratch / "other-project"
+        other.mkdir()
+        res = ws.run(
+            "fleet-watch",
+            "--no-local",
+            "--target",
+            "other=local",
+            "--root",
+            f"other={other}",
+            "--min-free-memory",
+            "3000",
+            env_extra=_fake_nvidia_smi(ws, "0, 46000, 1024, 20, 0"),
+        )
+        _assert(res.returncode != 0, "alternate local project root must fail loud")
+        _assert(
+            "local target" in res.stderr and "project root" in res.stderr,
+            f"missing actionable local-root error: {res.stderr!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
 def test_fleet_watch_bare_ssh_target_needs_no_remote_agentctl():
     ws = Workspace()
     try:

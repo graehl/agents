@@ -13,6 +13,7 @@ import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import agentctl
 
@@ -229,6 +230,16 @@ def _targets(args: argparse.Namespace) -> list[Target]:
                 getattr(targets[name], attr).append(convert(value))
             except ValueError as exc:
                 raise SystemExit(f"{option} has invalid value {value!r}") from exc
+    for target in targets.values():
+        if not target.local:
+            continue
+        local_root = Path(target.root).expanduser().resolve()
+        if local_root != agentctl.ROOT:
+            raise SystemExit(
+                f"{target.name}: a local target must use the invocation project root "
+                f"{agentctl.ROOT}; alternate local project roots are not supported"
+            )
+        target.root = str(local_root)
     return list(targets.values())
 
 
@@ -543,11 +554,15 @@ def _probe_target(
 
 
 def fleet_watch(args: argparse.Namespace) -> int:
-    targets = _targets(args)
+    if args.no_wake_on_job_end and args.min_free_memory is None:
+        raise SystemExit(
+            "fleet-watch --no-wake-on-job-end requires --min-free-memory"
+        )
     if args.min_free_memory is None and not args.job and not args.pid:
         raise SystemExit(
             "fleet-watch needs --min-free-memory, --job, or --pid to define a wake condition"
         )
+    targets = _targets(args)
     deadline = time.monotonic() + args.timeout if args.timeout > 0 else None
     previous: dict[str, TargetSnapshot] = {}
     observed_job_names: dict[str, set[str]] = {
@@ -690,7 +705,10 @@ def register_verbs(subparsers) -> None:
         action="append",
         default=[],
         metavar="NAME=PATH",
-        help="Project root on a named target. Repeatable; defaults to '.'.",
+        help=(
+            "Project root on a named target. Repeatable; defaults to '.'. "
+            "A local target must use the invocation project root."
+        ),
     )
     parser.add_argument(
         "--gpu",

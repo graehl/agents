@@ -372,7 +372,13 @@ then reports their terminal status, elapsed time, and return code. A named
 `--job NAME=JOB` may also be supplied. Job/PID endings wake the agent by
 default so it can do a rough result check before filling the capacity;
 `--no-wake-on-job-end` deliberately sleeps through them and waits for GPU
-capacity instead.
+capacity instead, so it is valid only with `--min-free-memory`.
+
+The local target always means the invocation project's agentctl state. A
+named `HOST=local` target may select its GPU or jobs explicitly, but its
+`--root` must resolve to that same project. Use a separate invocation for a
+different local project; accepting the path while reading the invocation
+project would silently monitor the wrong jobs.
 
 Foreground invocations should use a sub-hour timeout (`--timeout 3300` is
 the normal 55-minute bound) so the agent periodically regains control even
@@ -529,10 +535,11 @@ suitable interpreter is found.
 ## Catch-up notes
 
 <!-- observed -->
-The `fleet` plugin is the second independent use of `register_verbs`, after
-the run-record `aim` plugin. It adds a multi-host foreground monitor without
-putting SSH or fleet semantics in the base launcher, confirming that
-top-level operational verbs fit the existing plugin boundary.
+The `fleet` plugin uses `register_verbs` to add a multi-host foreground
+monitor without putting SSH or fleet semantics in the base launcher. The
+run-record `aim` plugin exercises other lifecycle hooks; together the two
+plugins establish both top-level verb extension and launch-lifecycle
+extension without direct plugin calls from the base.
 
 <!-- assumed -->
 The 24-hex md5-of-run_id synthesis for `aim_run_hash` is collision-safe
