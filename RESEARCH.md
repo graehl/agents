@@ -198,10 +198,10 @@ Three companion files cover field-survey work, in pipeline order:
   trusted anchors (paper-DB relevance/citation scores), with keyword search
   filtered by a known-labs/authors prior for the freshest, not-yet-cited work.
   Finds the papers the other two organize and rank.
-- `survey-field.md` — building and maintaining a field map for a survey
-  paper/presentation, or prior-art reconnaissance on a subtopic.
-- `research-frontier.md` — void-mapping and capstone-question suggestion
-  built on top of a field map.
+- `field-map.md` — building and maintaining a survey's field map for
+  research, instruction, or prior-art reconnaissance on a subtopic.
+- `frontier-map.md` — provisional-claim intake, void mapping, and
+  capstone-question suggestion built on top of a field map.
 
 Load them (repo root first, then alongside this file in `~/agents/`) when
 the task is to survey a field, gather prior art before planning a solution,

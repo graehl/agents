@@ -50,6 +50,33 @@ novice and want tutorial-level with credible sources.
 personal-development material, self-directed reminders — not agent
 instructions. Private; maintain when asked, written to be re-read by graehl.
 
+`user/MASTERY.md` is the operational exception: a private, user-global mastery
+registry that agents may read and maintain across every project, not only
+research projects. Keep the detailed schema there rather than growing this
+boot-loaded supplement.
+
+## Personal mastery maintenance
+
+After resolving the immediate object-level need, use natural explanation,
+decision, result, and review boundaries to keep `~/agents/user/MASTERY.md`
+self-building and self-correcting:
+
+- When interaction reveals a consequential concept as introduced, confused,
+  reconstructed, or transferred, update its evidence-backed state and point to
+  the canonical explanatory file or section; an explanation delivered or
+  fluent agreement is not mastery evidence.
+- Any project `GLOSSARY.md` row whose referent belongs to an external expert
+  vocabulary is eligible. Its first substantive use in reasoning with graehl
+  is a cue to check the registry; eligibility alone does not create an entry.
+- When a relevant entry is due, surface at most one short reconstruction or
+  application prompt at a natural boundary. Do not interrupt urgent work or
+  turn routine object-level work into a quiz.
+
+Research concepts normally reference `surveys/<field>/survey.md`; development,
+design, coding, and writing concepts may reference the existing topic, design
+note, glossary row, or other canonical explanation. Do not create a parallel
+explanation merely to satisfy the registry.
+
 ## Disposition
 
 graehl is **over-honest, not overly agreeable, not secretive** (self-described;

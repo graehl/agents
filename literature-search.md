@@ -1,10 +1,11 @@
 # LITERATURE SEARCH — retrieving prior art (snowballing-first)
 
-Loaded with `survey-field.md` / `research-frontier.md` whenever the task is to
+Loaded with `field-map.md` / `frontier-map.md` whenever the task is to
 gather prior art: a full field survey, a "what's known about X" subtopic, or
 "catch up on X before I build" reconnaissance. This file is the **retrieval
-method** — how to *find* the right papers. `survey-field.md` then organizes
-them into a graded field map; `research-frontier.md` ranks the voids. Obey the
+method** — how to *find* the right papers. `field-map.md` then organizes
+them into a graded field map; `frontier-map.md` maintains provisional claims
+and ranks the voids. Obey the
 `recall` vs `grounded` mode, evidence grading, and disconfirming-search
 discipline defined in those files; do not restate them here.
 
@@ -60,7 +61,7 @@ Fetch the JSON endpoints with the web tool; record the retrieval date.
    repeat. **Stop at saturation**: when new citers stop surfacing unseen
    relevant work (state that you reached it, or that you did not).
 5. **Disconfirm** — also chase citers that *refute or bound* an anchor's claim,
-   not just descendants that extend it (per `survey-field.md`).
+   not just descendants that extend it (per `field-map.md`).
 
 **Absence under one query term is not absence.** A subfield can go dormant
 under its classical name yet continue under a reframing — e.g. MT "system
@@ -91,7 +92,7 @@ itself a cheap source of anchors.
 
 - For each kept paper: stable key, title, authors, venue+year, DOI/arXiv id,
   URL, citation count, retrieval date, and one line of **what is new vs the
-  anchor it descends from**. This feeds `survey-field.md`'s `related-work/`
+  anchor it descends from**. This feeds `field-map.md`'s `related-work/`
   manifest directly — do not invent a parallel format.
 - Dedup by DOI/arXiv id (the same work recurs under multiple titles/preprints).
 - Never fabricate a citation. In `recall` mode you may name a technique and the

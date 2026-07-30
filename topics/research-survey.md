@@ -1,8 +1,8 @@
 # Topic: research-survey
 
 > How the project surveys an active research field and maps its
-> frontier; governs `literature-search.md`, `survey-field.md`,
-> `research-frontier.md`, and the `surveys/` artifact tree.
+> frontier; governs `literature-search.md`, `field-map.md`,
+> `frontier-map.md`, and the `surveys/` artifact tree.
 
 ## Contracts
 
@@ -11,10 +11,11 @@
   any single experiment branch. Research papers *reference* a `surveys/`
   subdir rather than duplicating per-paper related-work extraction.
 - One field map serves both the survey paper/presentation use and the
-  prior-art-reconnaissance use; the latter is a filtered slice of the
-  former, not a separate artifact.
+  prior-art-reconnaissance, instruction, and personal-mastery-reference uses;
+  these are views or sparse overlays on the map, not separate factual
+  artifacts.
 - **Frontier analysis depends on a field map.** Void-ranking is unfounded
-  without a map of what is already filled; `research-frontier.md` builds
+  without a map of what is already filled; `frontier-map.md` builds
   the relevant region of `survey.md` first if none exists.
 
 ## Invariants
@@ -27,6 +28,12 @@
 - Every effectiveness claim is graded (`reproduced` / `single-source` /
   `contested` / `failed-replication` / `folklore`) and conditioned on
   baseline, benchmark, and regime. A bare "works well" is rejected.
+- A fresh, decision-relevant claim remains in `frontier.md` with its exact
+  claim, regime, independent-check status, and revisit condition until its
+  evidence changes what `survey.md` should teach.
+- Discovery narratives distinguish documented history, retrospective,
+  rational reconstruction, and conjecture; a finished-method decomposition
+  is not presented as the path by which its pieces were noticed and combined.
 - A frontier void is not a capstone candidate until a falsification search
   (aimed at *finding* prior work, not confirming absence) is recorded.
 
