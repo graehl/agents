@@ -299,8 +299,12 @@ polling, or an intention to reattach later is not equivalent. If the call
 fails to start, report that failure immediately and never claim the wait
 occurred. Any violation resets this session's proven wait cap to five minutes
 and must be disclosed explicitly. New user steering interrupts the atomic
-interval; handle it, then revalidate and re-announce before re-entering any
-foreground wait.
+interval. When the user interrupts with other work, the agent may stop the
+foreground monitor and use background status checks while doing that work,
+until the user asks it to foreground-wait again. This is neither a failed
+wait nor a protocol violation, and it neither resets nor advances the proven
+timeout rung. A later foreground wait still requires a fresh state check,
+announcement, and immediately following synchronous call.
 
 Immediately before entering a foreground `agentctl` wait/watch, tell the user
 exactly: `going into foreground agentctl wait now.` Then invoke the blocking

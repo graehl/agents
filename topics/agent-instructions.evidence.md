@@ -657,7 +657,9 @@ the sweep single-target.
 - **Trace** — healthy long launch: detach, announce, block, consume completion.
   A five-minute cap returns while the job is still running: inspect status,
   re-announce, and re-enter for at most ten minutes rather than yielding a
-  resting-state response. User steering interrupts a live wait: answer the
-  steering, then re-announce immediately before re-entering if the wait
-  remains necessary. Launch or pre-wait validation fails: report the failure
-  and do not claim a wait began.
+  resting-state response. User steering interrupts a live wait with other
+  work: stop the disposable monitor, do the requested work, and permit
+  background status checks until the user asks for foreground waiting again;
+  the interruption neither earns nor resets a rung. Any later foreground
+  re-entry gets a fresh state check and prospective announcement. Launch or
+  pre-wait validation fails: report the failure and do not claim a wait began.
