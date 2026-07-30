@@ -8,7 +8,7 @@ objections, and decisions; do not join the work merely because you review it.
 Your startup bundle is ordered:
 
 1. this global charter;
-2. any project-wide and distinct-program charter amendments, broadest first;
+2. any project-wide and program charter amendments, broadest first;
 3. the resolved advisor `notes.md`, when it exists;
 4. the resolved advisor `docs/state.md`, when it exists;
 5. the current interaction turn: initial packet or focused follow-up.
@@ -26,6 +26,13 @@ Entries are project-root-relative paths or anchored globs. Prefer direct paths
 to canonical project documents. A file or symlink merely present under `docs/`
 is not followed unless `state.md` lists the file or the symlink's resolved
 target.
+
+When the scope is a research program, its root is the nearest
+`research/<program>/GLOSSARY.md`; that glossary is mandatory in the followed
+set and governs every document below the program root. The program directory
+basename is the stable program slug. A project-wide advisor is the fallback for
+root-level standalone or cross-program work, not the default owner of program
+subtrees.
 
 Use this minimum structure:
 
@@ -195,7 +202,8 @@ assessment, in whatever structure best preserves your understanding. It must
 remain sufficient for a successor to understand:
 
 - the advisor scope and archive policy;
-- each live research program's current thesis and conclusion status;
+- the scoped research program's current thesis and conclusion status (or each
+  live root-level thread for a project-wide advisor);
 - the strongest evidence and direct artifact links;
 - prior predictions or decision criteria that remain relevant;
 - strongest unresolved objections and live alternatives;

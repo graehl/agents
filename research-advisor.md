@@ -9,45 +9,45 @@ started only on demand.
 
 ## Scope and continuity
 
-The default unit is one project:
+The default unit is one research program. Discover program roots by the
+presence of `research/<program>/GLOSSARY.md`; do not infer a program from an
+arbitrary research subdirectory. A program advisor uses:
 
-- one advisor session covers the project's whole `research/` tree;
-- its compact current assessment lives in `research/advisor/notes.md`;
-- its followed-document list and last-review state live in
-  `research/advisor/docs/state.md`;
-- its machine-local transport address lives in
-  `research/advisor/session.local.md`;
-- completed advisor-session logs live in `research/advisor/sessions/`;
-- separate papers and branches still use that project-wide advisor.
+- `research/<program>/advisor/notes.md` for its compact current assessment;
+- `research/<program>/advisor/docs/state.md` for its followed-document list
+  and last-review state;
+- `research/<program>/advisor/session.local.md` for its machine-local
+  transport address;
+- `research/<program>/advisor/sessions/` for completed session logs.
+
+The directory basename is the stable program slug. Every paper, report, log,
+and supporting artifact below the program root belongs to that program unless
+the program glossary says otherwise.
+
+Root-level standalone papers and cross-program synthesis use the project-wide
+fallback under `research/advisor/` with the same layout. A project-wide advisor
+may follow multiple root-level threads; it does not absorb a program merely to
+share context.
 
 Create the advisor directory on first actual handoff, not merely because a
 project has a `research/` directory. The advisor's continuous transcript is the
 v1 working memory: resume the same session rather than starting a clean reviewer
 for each packet. The advisor maintains `notes.md`, in whatever compact structure
 best preserves its current understanding, as a self-contained statement of
-current project state. It is not a copy of the transcript, a persona prompt, or
+current scope state. It is not a copy of the transcript, a persona prompt, or
 another chronological research log.
 
 The durable default advisor behavior is `~/agents/advisor/charter.md`. A project
-may add `research/advisor/charter.md` as a project-wide amendment. An explicitly
-distinct research program may further add
-`research/<program-slug>/advisor/charter.md`. Amendments are loaded broadest to
-narrowest; they supplement rather than silently replace the global charter.
+may add `research/advisor/charter.md` as a project-wide amendment, and a program
+may add `research/<program>/advisor/charter.md`. Amendments are loaded broadest
+to narrowest; they supplement rather than silently replace the global charter.
 
-A distinct research program may override the default with its own advisor
-session and `research/<program-slug>/advisor/{notes.md,docs/,sessions/}`. Make
-that split only after deciding that the program's evidence stream and research
-narrative are independent enough that shared advising adds more contamination
-or context load than useful cross-program memory. The slug defaults to the
-basename of the program's principal `research/<name>.md` paper. If there is no
-natural paper basename, the object-level agent chooses a concise stable slug.
-Record the override, slug, and scope at the top of its `notes.md`. A paper,
-directory, or branch existing is not by itself an override.
-
-Route a packet to the most specific existing `advisor/notes.md` whose declared
-scope covers the active program; otherwise use the project-wide advisor. Do not
-infer a distinct-program advisor from unrelated files under the program
-directory.
+Route work on a document below a program root to that program's advisor. Route
+work that names a program to the matching program root even when the immediate
+artifact is outside it. Use the project-wide fallback only for root-level
+standalone work or genuinely cross-program decisions. If scope is ambiguous,
+list the discovered program glossaries and choose from those stable slugs
+rather than inventing another advisor directory.
 
 When an advisor session is deliberately replaced or can no longer be usefully
 resumed, archive its available provider transcript or lossless export under
@@ -86,11 +86,12 @@ address records that decision; it does not create a standing router.
 On the first handoff, use this protocol to start the advisor. Its first
 transaction creates `notes.md` with its initial scope and assessment, using a
 `none` fold watermark if no turn has yet been folded, and `docs/state.md` with
-the initial followed set and completed-review state. Start or resume every
-advisor turn with this ordered bundle:
+the initial followed set and completed-review state. For a program advisor,
+the program's `GLOSSARY.md` is the first required followed document. Start or
+resume every advisor turn with this ordered bundle:
 
 1. `~/agents/advisor/charter.md`;
-2. optional project-wide and distinct-program charter amendments;
+2. optional project-wide and program charter amendments;
 3. the resolved `notes.md`, when it exists;
 4. the resolved `docs/state.md`, when it exists;
 5. the current interaction turn: initial packet or focused follow-up.

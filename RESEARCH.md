@@ -18,6 +18,21 @@ task also owns two companion documents in `research/`:
 The main task file itself should explicitly track the branch's acceptance criteria,
 implementation steps, and current state, not merely act as a subtask index.
 
+## Research programs
+
+A **research program** is a durable, named line of inquiry that contains more
+than one paper, report, or supporting research artifact. It lives under
+`research/<program>/`; standalone papers may remain directly under
+`research/`.
+
+Every research program has `research/<program>/GLOSSARY.md`. That glossary
+defines the program's shared vocabulary and applies by path to every document
+below the program directory, including papers, reports, advisor notes, logs,
+and related-work artifacts. A nested document is presumed to use that glossary;
+authors need not repeat the association in each file. Define a term in the
+program glossary when multiple program artifacts use it, while paper-local
+notation that does not recur stays in the paper.
+
 ### Research log conventions
 
 Log entries go at the **top** (newest first). For each experiment: brief preface
@@ -221,9 +236,12 @@ general field survey. A paper that draws on a survey should cite the
 
 ### Research-advisor handoff
 
-Use one long-lived skeptical research-advisor session per project's
-`research/` tree. The object-level research session **must invoke it once** for
-each new decision/evidence state satisfying any of these conditions:
+Use one long-lived skeptical research-advisor session per research program.
+Discover programs by `research/<program>/GLOSSARY.md`; their advisors live at
+`research/<program>/advisor/`. Root-level standalone papers and cross-program
+syntheses use the project-wide fallback at `research/advisor/`. The object-level
+research session **must invoke the applicable advisor once** for each new
+decision/evidence state satisfying any of these conditions:
 
 - before committing to, reversing, parking, or reviving a material research
   direction, architecture, evaluation regime, or program-level specification;
@@ -237,18 +255,14 @@ each new decision/evidence state satisfying any of these conditions:
   `tell advisor ...`, `tell the advisor ...`, `ask advisor ...`, and
   `ask the advisor ...`.
 
-Load and follow `research-advisor.md` to resolve the project-wide or explicit
-distinct-program advisor, deduplicate unchanged packet states, compose its
+Load and follow `research-advisor.md` to resolve the program or project-wide
+advisor, deduplicate unchanged packet states, compose its
 charter/notes/document-state/packet startup bundle, keep the relevant evolving
 documents in its `docs/state.md` followed set, and return the challenge memo.
 Do not merely record that review would be useful, and do not request a scan of
-the whole `research/` tree when narrower current-program paths suffice. A
-distinct-program advisor normally lives at
-`research/<program-slug>/advisor/`; default the slug to the principal research
-paper's basename, or let the object-level agent choose and record a concise
-stable slug when no natural basename exists. Routine implementation, plumbing,
-frozen sweep cells, and results that leave both the claim and next decision
-unchanged do not invoke the advisor.
+the whole `research/` tree when current-program paths suffice. Routine
+implementation, plumbing, frozen sweep cells, and results that leave both the
+claim and next decision unchanged do not invoke the advisor.
 
 ### Reproduce before comparing (the overselling prior)
 
