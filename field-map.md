@@ -69,8 +69,18 @@ experiment line, so it is **not** branch-scoped like `research/<branch>.md`.
 
 ```
 surveys/<field-slug>/
-  survey.md            the field map (this template's product)
-  related-work/        fetch/extract artifacts + metadata manifest
+  survey.md            "total survey": field map + territory/relationships,
+                       linking to concept pages by short handle
+  GLOSSARY.md          survey-scoped vocabulary (governs the subtree by path)
+  concepts/<short>.md  committed per-concept understanding/summary page
+                       (our distillation; records source URL); the primary
+                       artifact we reason/traverse on
+  related-work/
+    papers.yaml        metadata manifest (carries each concept's short handle)
+    fetch.sh           regenerable fetch/extract (marker-pdf, or arXiv HTML view)
+    extract/<short>/   full-text extract + images — .gitignored, workdir-durable,
+                       a computed artifact; consulted only for specifics the
+                       summary omits
   frontier.md          provisional claims + void map (see frontier-map.md)
 ```
 

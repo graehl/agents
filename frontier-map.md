@@ -10,6 +10,15 @@ Frontier maintenance sits on top of a field map. It depends on the
 map exists, build the relevant region of one first — void-ranking without a
 map of what is already filled is unfounded.
 
+**Field and frontier are two views on one representation, not two artifact
+kinds.** They share the same `surveys/<field-slug>/` structure and grounding
+mode; a frontier pass may run *within* an established survey dir. "Frontier"
+foregrounds the **lower-trustworthiness** subset a field already carries — the
+unproven / unreproduced nodes marked `single-source`/`contested` and `[R]` — and
+adds the provisional-claim inbox, void map, and capstone analysis below. It does
+not re-represent the field; it filters and ranks the same nodes on the trust
+signal `survey.md` already records.
+
 This is **not** a long-running autonomous research loop. It is a bounded
 analysis: map the voids, rank the best ones, optionally draft a proposal.
 It never launches runs. As with the field map, ordinary discussion does not
