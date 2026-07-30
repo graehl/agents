@@ -50,9 +50,10 @@ A `recall` survey must not pass itself off as grounded:
   the model's training cutoff, the date and scope of any light search run,
   and an explicit "claims are pretrained recall, not citation-verified".
 - **Cap effectiveness grades at `single-source`.** `reproduced`,
-  `contested`, and `failed-replication` assert a cross-source check that
-  recall has not performed; do not use them. `folklore` is allowed and
-  often honest in this mode.
+  `externally-evaluated`, `benchmark-reported`, `contested`, and
+  `failed-replication` assert source or evaluation details that recall has not
+  checked; do not use them. `folklore` is allowed and often honest in this
+  mode.
 - Name techniques and the gist of who/when, but do not fabricate precise
   citations (exact venue, year, author lists). Flag what would need a
   grounded pass to pin down.
@@ -123,8 +124,10 @@ decision:
 Private mastery state is a sparse overlay on this larger map. A mastery entry
 references a node as
 `<project-alias>:surveys/<field-slug>/survey.md[#section]`; most map nodes need
-no mastery entry. A project `GLOSSARY.md` supplies canonical terminology, while
-the map node supplies the explanation and relations. Outside research fields,
+no mastery entry. The default alias is the project root relative to `~/`
+(`~/draft` → `draft`); roots outside the home directory use their canonical
+absolute path. A project `GLOSSARY.md` supplies canonical terminology, while the
+map node supplies the explanation and relations. Outside research fields,
 mastery may instead reference the canonical topic, design note, glossary row,
 or other explanatory section. Preserve referenced headings where practical and
 update mastery references when a heading or path moves.
@@ -149,8 +152,13 @@ adopted"). It must be relative and conditioned:
 - in *what* regime (scale, data budget, compute, modality).
 
 Tag every effectiveness claim with an evidence grade:
-- `reproduced` — independent replication, multiple groups, or a standard
-  benchmark leaderboard
+- `reproduced` — an independent group reran the method or the consequential
+  procedure and obtained a compatible result
+- `externally-evaluated` — an independent benchmark operator executed the
+  submitted artifact or predictions under a controlled or hidden evaluation;
+  this verifies that score, not the training or method claim
+- `benchmark-reported` — the result is comparable on a standard benchmark but
+  the located leaderboard or table does not independently execute or verify it
 - `single-source` — one paper, not independently confirmed
 - `contested` — conflicting published results
 - `failed-replication` — claimed effect that did not hold up

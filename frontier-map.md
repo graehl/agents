@@ -47,6 +47,11 @@ for every paper encountered. Record:
 - the cheapest discriminating check;
 - a date to revisit or expire it.
 
+When the revisit/expiry date could change a live decision, create a matching
+project-owned `at/` entry under `topics/at.md`; the frontier date alone is not a
+scheduler. For low-value items, label the date as an unscheduled reminder
+instead of creating maintenance work that may never matter.
+
 Preserve the claim's uncertainty in every summary. Citation count and social
 uptake are relevance and retrieval signals, not confirmation. Promote or
 rewrite the corresponding `survey.md` node only when evidence changes what the
