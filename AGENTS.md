@@ -14,11 +14,22 @@ private working state — never commit them and stay branch-agnostic;
 tracked means the feature-branch workflow (committed task files, branch
 per task). The active root task is named by `tasks/ROOT` (a one-line
 pointer holding its filename); update it when a new root task begins —
-rarely. Prefer
-opening or updating a committed `topics/` doc for durable conclusions,
-contracts, and project-facing knowledge. Create or extend a task file
-when private direction-setting, handoff state, or an active-work
-scratchpad would make the work easier to resume or coordinate. Read the
+rarely. Prefer a committed `topics/` doc for durable conclusions, contracts,
+and project-facing knowledge, and reach for a git-ignored `tasks/` file
+**last** — one test decides: would committing this plausibly help a repo
+collaborator? If yes, commit it durably. `tasks/` is the parking spot
+for what fails that test — *our* session management of no collaborator
+interest: private direction-setting, coordination, an active-work
+scratchpad, and save/resume of plans or progress that only we will pick
+back up — plus anything that must stay private (auth, secrets,
+confidential context) and so cannot be committed at all. **But** when you
+commit an *incomplete* shared artifact, its resumable status (what is
+done, what is pending, the coverage/grounding cutoff) passes the test —
+an uncommitted status would let the partial result mislead — so commit
+that status *with the artifact* (a status banner, cutoff line, or
+"what's left" section), never only in `tasks/`. (In the tracked-`tasks/`
+variant those files are themselves the committed collaborator artifact,
+so the last-resort test does not apply.) Read the
 active root task when resuming. On believed completion, append a dated
 status note with the relevant commit(s) and one line of evidence; if the
 task file has inline subtasks, make it a section listing each subtask's
@@ -728,8 +739,12 @@ occasion to enforce the default.
 
 For git projects, maintain committed `topics/*.md` docs for cross-cutting
 contracts: shared invariants, integration boundaries, and system-level
-concerns, not module notes or changelogs. Create `topics/` when first
-needed, not proactively. Basenames are the `Topic:` trailer namespace; read
+concerns, not module notes or changelogs. A topic doc holds the repo's
+evolved truth — contracts, invariants, knowledge state — and may also
+carry live plans or ephemera, so long as they are cleared when addressed
+rather than accreted; permanence is not what separates a topic from
+`tasks/` (§ Session management), collaborator value is. Create `topics/`
+when first needed, not proactively. Basenames are the `Topic:` trailer namespace; read
 `~/agents/TOPICS.md` when creating or assessing a topic's granularity
 or choosing a landing site for a durable note.
 

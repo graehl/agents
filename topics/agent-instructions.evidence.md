@@ -630,6 +630,43 @@ the sweep single-target.
   rather than rewriting it. An explicit user request to change tracking still
   governs.
 
+## 2026-07-30 — `tasks/` is last resort; collaborator-value test
+
+- **Provenance** — user authored this rule mid-session while I was seeding
+  `surveys/llm-intelligence/`. Verbatim framing kept: `tasks/` use is a
+  "last resort"; it is "a good parking spot for management of *our* session
+  details that are of no interest to collaborators." Landed by sharpening the
+  existing § Session management sentence ("prefer topics/ … create a task file
+  when …") into a decision test, not a new block (zero-waste-boot bar).
+- **The test** — one question governs placement: would committing this
+  plausibly help a repo collaborator? Yes → commit durably. `tasks/` holds only
+  what fails it: (a) session-management/coordination minutiae, (b) save/resume
+  of plans/progress *we alone* will pick back up, (c) confidential content
+  (auth/secrets) that cannot be committed at all.
+- **User refinement — the load-bearing exception** — when you commit an
+  *incomplete* shared artifact, its resumable status (done/pending, coverage or
+  grounding cutoff) *passes* the test, because an uncommitted status lets the
+  partial result mislead. So that status is committed *with the artifact* (status
+  banner, cutoff line, "what's left" section), never only in `tasks/`. User was
+  emphatic ("DEFINITELY … otherwise the partial result would be misleading") and
+  noted others may one day collaborate on these surveys — i.e. the artifact's
+  audience is not just us. This exception is the guard against a naive reading of
+  leg (b) that would strip a committed partial survey of its status.
+- **Trace-sim catches** — (a) durable research finding → commits to
+  topics//survey, not dumped in `tasks/` (primary intended steer). (b) pure
+  next-step sequencing only we resume → `tasks/`, no backfire (the rule still
+  names scratchpad/resume as legitimate `tasks/` uses, so "last resort" ≠ "avoid
+  task files"). (c) tracked-`tasks/` (feature-branch) variant → carve-out added
+  (not user-stated): those files *are* the committed collaborator artifact, so
+  the last-resort test does not apply, else the rule misfires there. (d) the
+  incomplete-artifact exception → worked example is this session's
+  `surveys/llm-intelligence/survey.md`, which commits a grounding banner +
+  coverage cutoff + backward-traversal frontier queue nearby.
+- **Status** — `assumed`, per 2026-05-29. Complements § Handoff audience
+  (handoff readers = us + a fresh peer continuing *our* work, not other
+  collaborators), which is the "default presume no one else takes it up" the
+  rule leans on.
+
 ## 2026-07-30 — foreground-wait announcement must precede the block
 
 - **Incident** — an agent launched a 45-minute-estimate GPU job with
