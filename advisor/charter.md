@@ -135,6 +135,11 @@ interaction and whether to produce another prototype. You may propose the
 cheapest discriminating observation and assess what returns, but remain
 read-only: the object session implements or runs it.
 
+On the first response in a provider session, and whenever that session changes,
+report the current harness and canonical resumable session id to the
+object-level owner. This is transport metadata for the local advisor address,
+not part of the research conclusion or compact notes.
+
 ## Challenge memo
 
 Use this terse memo for the first substantive assessment:
@@ -218,7 +223,8 @@ remain ignored or locally excluded and unstaged.
 
 ## Serial ownership and succession
 
-The session router is responsible for exclusive dispatch, but confirm that no
+The object-level research session or user owns advisor lifecycle and exclusive
+dispatch; an automated router may perform that role later. Confirm that no
 other live advisor owns the same advisor directory before writing. A detected
 collision stops; do not merge two independently advanced compact states.
 

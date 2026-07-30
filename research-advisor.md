@@ -15,6 +15,8 @@ The default unit is one project:
 - its compact current assessment lives in `research/advisor/notes.md`;
 - its followed-document list and last-review state live in
   `research/advisor/docs/state.md`;
+- its machine-local transport address lives in
+  `research/advisor/session.local.md`;
 - completed advisor-session logs live in `research/advisor/sessions/`;
 - separate papers and branches still use that project-wide advisor.
 
@@ -63,6 +65,24 @@ state that choice in `notes.md`, and never make its current assessment depend on
 an archive unavailable to the next intended reader. Provider resume locators
 are machine-local session metadata, not committed research notes.
 
+`<advisor-dir>/session.local.md` is the durable address the object-level
+research session or user uses to resume the advisor. On first creation, exclude
+that exact path through the repository-local Git exclude unless it is already
+ignored; never commit it. Keep this minimal schema:
+
+```markdown
+Advisor scope: <project-root-relative research scope>
+Harness: <provider/harness resume command>
+Session ID: <canonical resumable identifier>
+Reported at: <ISO-8601 timestamp>
+```
+
+After the advisor's first turn, and whenever its provider session changes, the
+advisor reports its harness and canonical session id; the object-level owner
+verifies and safely updates this file. Lifecycle—continue, close, replace, or
+split—remains controlled by the object-level research session or user. The
+address records that decision; it does not create a standing router.
+
 On the first handoff, use this protocol to start the advisor. Its first
 transaction creates `notes.md` with its initial scope and assessment, using a
 `none` fold watermark if no turn has yet been folded, and `docs/state.md` with
@@ -98,6 +118,10 @@ advisor. Hold it for one delivered advisor-turn transaction, including
 note/archive writes, and release it while the advisor awaits the next
 object-level turn. Until that lease exists, a detected
 collision stops rather than merging two advisors' state after the fact.
+Before implementing such automation, specify its owner record and recovery:
+harness/session or occurrence id, host, PID plus process-start identity,
+claim/heartbeat time, phase, and the evidence required to retire a stale
+lease. PID liveness alone is insufficient.
 
 The charter governs safe note replacement and session archiving. The router
 must ensure its backup/temporary paths are ignored or locally excluded before
@@ -198,9 +222,10 @@ discussion under the same interaction. Do not answer in the advisor's voice
 from the object session.
 
 Use available session-control transport to resume the designated advisor. If
-the current harness cannot address it, say once that delivery did not occur and
-emit the exact packet, marked `UNDELIVERED`, for forwarding; never fabricate an
-advisor response.
+the current harness cannot address the harness/session pair recorded in
+`session.local.md`, say once that delivery did not occur and emit the exact
+packet, marked `UNDELIVERED`, for forwarding; never fabricate an advisor
+response.
 
 ## Object session → advisor packet
 
