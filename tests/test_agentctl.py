@@ -1435,6 +1435,40 @@ def test_wait_not_running_blocks_on_queued_job():
         ws.cleanup()
 
 
+def test_wait_tail_prints_only_after_completion():
+    ws = Workspace()
+    try:
+        _start(
+            ws,
+            "--no-aim",
+            "waittail",
+            "--",
+            "bash",
+            "-c",
+            "for i in $(seq 1 15); do echo line-$i; done",
+        )
+        ws.wait_finished("waittail")
+        res = ws.run(
+            "wait",
+            "waittail",
+            "--target",
+            "finished",
+            "--heartbeat",
+            "0",
+            "--tail",
+            "3",
+        )
+        _assert(res.returncode == 0, f"wait --tail failed: {res.stderr!r}")
+        _assert("line-13\nline-14\nline-15\n" in res.stdout, res.stdout)
+        _assert("line-12" not in res.stdout, res.stdout)
+        _assert(
+            res.stdout.index("finished") < res.stdout.index("line-13"),
+            f"tail should follow the terminal status: {res.stdout!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
 def test_after_output_of_queued_producer_blocks_then_releases():
     # --after <output> where the producer job is still queued: the target
     # resolves through the producer's declared --output, and a stale completion
@@ -1628,6 +1662,49 @@ def test_watch_attaches_through_queued_phase():
             "done: follower" in out and "status=finished" in out,
             f"watch should end at the terminal state, not status=waiting: {out!r}",
         )
+    finally:
+        ws.cleanup()
+
+
+def test_watch_tail_does_not_replay_the_full_existing_log():
+    ws = Workspace()
+    try:
+        _start(
+            ws,
+            "--no-aim",
+            "watchtail",
+            "--",
+            "bash",
+            "-c",
+            "echo old-1; echo old-2; echo old-3; sleep 0.8; echo new-4",
+        )
+        state = ws.state("watchtail")
+        log_path = Path(state["log_path"])
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            if log_path.exists() and "old-3" in log_path.read_text():
+                break
+            time.sleep(0.02)
+        else:
+            raise AssertionError("watchtail did not write its initial log lines")
+
+        proc = ws.popen(
+            "watch",
+            "watchtail",
+            "--poll",
+            "0.05",
+            "--heartbeat",
+            "0",
+            "--gpu-patience",
+            "0",
+            "--tail",
+            "2",
+        )
+        out, err = proc.communicate(timeout=10)
+        _assert(proc.returncode == 0, f"watch failed: rc={proc.returncode} {err!r}")
+        _assert("old-1" not in out, f"watch replayed pre-tail history: {out!r}")
+        _assert(out.count("old-2") == 1 and out.count("old-3") == 1, out)
+        _assert(out.count("new-4") == 1, out)
     finally:
         ws.cleanup()
 

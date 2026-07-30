@@ -136,6 +136,12 @@ window.
   would hide short successful runs, and `status/list --failed` exists as a
   troubleshooting view. `wait --target not-running` prints the final return
   code and log path, and exits nonzero for failed `finished` jobs.
+- `wait <job> --tail N` stays quiet apart from requested heartbeat lines until
+  the target status is reached, then prints the terminal status and the final
+  `N` log lines. Use this one-command form when completion diagnostics are
+  useful but live training-log traffic is not. `watch --tail N` has different,
+  explicitly live-debug semantics: it prints the last `N` existing lines once
+  at attachment, then streams only bytes appended after that snapshot.
 - Default `list` is a catch-up view, not just a live-process view: it shows
   live jobs (`running` and queued `waiting` behind `--after`) plus enough
   recent finished jobs to reach `--show-last` rows total (default 6), when

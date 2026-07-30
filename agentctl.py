@@ -3461,6 +3461,8 @@ def wait_job(args: argparse.Namespace) -> int:
             if state.get("log_path"):
                 bits.append(f"log={state['log_path']}")
             print(" ".join(bits))
+            if args.tail > 0 and state.get("log_path"):
+                print_tail(Path(state["log_path"]), args.tail)
             return status_returncode_exit_code(state) if status == "finished" else 0
         now = time.time()
         if heartbeat_interval > 0 and (next_report == 0.0 or now >= next_report):
@@ -3877,6 +3879,7 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
             tail_lines = lines[-args.tail :]
             sys.stdout.buffer.write(b"".join(tail_lines))
             sys.stdout.buffer.flush()
+            offset = len(data)
         else:
             offset = len(data)
     print(
@@ -4712,6 +4715,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=0.0,
         help="Maximum seconds to wait; 0 means no timeout.",
+    )
+    s.add_argument(
+        "--tail",
+        type=int,
+        default=0,
+        help="After the target status is reached, print the last N log lines (default: 0).",
     )
     s.set_defaults(func=wait_job)
 
