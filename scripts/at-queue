@@ -1,0 +1,316 @@
+#!/usr/bin/env python3
+"""Mechanical scan/claim/ack cleanup for topics/at.md queues."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import shutil
+import socket
+import sys
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def iso_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def timestamp_ns(value: datetime) -> int:
+    return int(value.timestamp()) * 1_000_000_000 + value.microsecond * 1_000
+
+
+def parse_run_after(data: bytes, path: Path) -> datetime | None:
+    try:
+        lines = data.decode("utf-8").splitlines()
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"{path.name}: prompt is not UTF-8: {exc}") from exc
+    if not lines or lines[0].strip() != "---":
+        raise ValueError(f"{path.name}: missing opening Markdown frontmatter")
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        key, separator, raw = line.partition(":")
+        if not separator or key.strip() != "run_after":
+            continue
+        text = raw.strip()
+        if text.lower() in {"null", "~"}:
+            return None
+        if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
+            text = text[1:-1]
+        try:
+            value = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError(
+                f"{path.name}: invalid RFC 3339 run_after {text!r}"
+            ) from exc
+        if value.tzinfo is None:
+            raise ValueError(f"{path.name}: run_after must include a timezone")
+        return value.astimezone(timezone.utc)
+    raise ValueError(f"{path.name}: frontmatter has no run_after")
+
+
+def prompt_hash(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def process_start_ticks(pid: int) -> str | None:
+    try:
+        text = Path(f"/proc/{pid}/stat").read_text()
+        fields = text.rsplit(")", 1)[1].split()
+        return fields[19]
+    except (IndexError, OSError):
+        return None
+
+
+def boot_id() -> str | None:
+    try:
+        return Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+    except OSError:
+        return None
+
+
+def owner_text(args: argparse.Namespace, digest: str, claimed_at: datetime) -> str:
+    lines = [
+        "# At queue owner",
+        "",
+        f"session_id: {args.session}",
+        f"harness: {args.harness}",
+        f"host: {socket.gethostname()}",
+    ]
+    if args.owner_pid is not None:
+        lines.append(f"pid: {args.owner_pid}")
+        start = process_start_ticks(args.owner_pid)
+        if start is not None:
+            lines.append(f"process_start_ticks: {start}")
+        host_boot = boot_id()
+        if host_boot is not None:
+            lines.append(f"boot_id: {host_boot}")
+    stamp = iso_utc(claimed_at)
+    lines.extend(
+        [
+            f"claimed_at: {stamp}",
+            f"heartbeat_at: {stamp}",
+            "phase: claimed",
+            f"prompt_sha256: {digest}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def retire_lock(lock: Path) -> None:
+    tombstones = lock.parent / ".tombstones"
+    tombstones.mkdir(exist_ok=True)
+    tombstone = tombstones / f"{lock.name}.{uuid.uuid4().hex}"
+    os.replace(lock, tombstone)
+    shutil.rmtree(tombstone)
+
+
+def clean_tombstones(locks: Path) -> None:
+    tombstones = locks / ".tombstones"
+    if not tombstones.is_dir():
+        return
+    for path in tombstones.iterdir():
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
+
+
+def acknowledged(job: Path, now: datetime) -> bool:
+    try:
+        run_after = parse_run_after(job.read_bytes(), job)
+        stored_ns = job.stat().st_mtime_ns
+    except (OSError, ValueError):
+        return False
+    if run_after is None:
+        return stored_ns > timestamp_ns(now)
+    requested_ns = timestamp_ns(run_after)
+    return requested_ns > timestamp_ns(now) and stored_ns == requested_ns
+
+
+def recover_acknowledged(queue: Path, locks: Path, now: datetime) -> list[str]:
+    recovered: list[str] = []
+    for lock in sorted(locks.glob("*.lock")):
+        job = queue / f"{lock.stem}.md"
+        if job.is_file() and acknowledged(job, now):
+            try:
+                retire_lock(lock)
+            except FileNotFoundError:
+                pass
+            recovered.append(job.name)
+    return recovered
+
+
+def repair_future_mtime(job: Path, run_after: datetime) -> None:
+    requested_ns = timestamp_ns(run_after)
+    stat_before = job.stat()
+    os.utime(job, ns=(stat_before.st_atime_ns, requested_ns))
+    if job.stat().st_mtime_ns != requested_ns:
+        raise OSError(
+            f"{job.name}: filesystem stored {job.stat().st_mtime_ns}, "
+            f"not requested run_after {requested_ns}"
+        )
+
+
+def emit(payload: dict) -> None:
+    print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+
+
+def claim(args: argparse.Namespace) -> int:
+    project = Path(args.root).expanduser().resolve()
+    queue = project / "at"
+    if not queue.is_dir():
+        emit(
+            {
+                "status": "none",
+                "project": str(project),
+                "reason": "no at directory",
+                "recovered": [],
+                "repaired": [],
+                "warnings": [],
+            }
+        )
+        return 3
+
+    locks = queue / ".locks"
+    locks.mkdir(exist_ok=True)
+    clean_tombstones(locks)
+    now = utc_now()
+    recovered = recover_acknowledged(queue, locks, now)
+    repaired: list[str] = []
+    warnings: list[str] = []
+    candidates = sorted(
+        (
+            path
+            for path in queue.glob("*.md")
+            if path.is_file() and path.stat().st_mtime_ns <= timestamp_ns(now)
+        ),
+        key=lambda path: path.stat().st_mtime_ns,
+    )
+    for job in candidates:
+        try:
+            candidate_bytes = job.read_bytes()
+        except OSError as exc:
+            warnings.append(f"{job.name}: cannot read candidate: {exc}")
+            continue
+        digest = prompt_hash(candidate_bytes)
+        lock = locks / f"{job.stem}.lock"
+        try:
+            lock.mkdir()
+        except FileExistsError:
+            continue
+        try:
+            (lock / "owner.md").write_text(owner_text(args, digest, now))
+            claimed_bytes = job.read_bytes()
+            if claimed_bytes != candidate_bytes:
+                warnings.append(f"{job.name}: changed while being claimed")
+                retire_lock(lock)
+                continue
+            run_after = parse_run_after(claimed_bytes, job)
+            if run_after is None:
+                warnings.append(
+                    f"{job.name}: run_after is null but its mtime is due; "
+                    "leaving the lock for acknowledgement repair"
+                )
+                continue
+            if run_after > now:
+                repair_future_mtime(job, run_after)
+                repaired.append(job.name)
+                retire_lock(lock)
+                continue
+            emit(
+                {
+                    "status": "claimed",
+                    "project": str(project),
+                    "job": str(job),
+                    "lock": str(lock),
+                    "prompt_sha256": digest,
+                    "run_after": iso_utc(run_after),
+                    "recovered": recovered,
+                    "repaired": repaired,
+                    "warnings": warnings,
+                }
+            )
+            return 0
+        except (OSError, ValueError) as exc:
+            warnings.append(str(exc))
+            if lock.exists() and not acknowledged(job, now):
+                retire_lock(lock)
+
+    emit(
+        {
+            "status": "none",
+            "project": str(project),
+            "recovered": recovered,
+            "repaired": repaired,
+            "warnings": warnings,
+        }
+    )
+    return 3
+
+
+def finish(args: argparse.Namespace) -> int:
+    project = Path(args.root).expanduser().resolve()
+    queue = project / "at"
+    job = queue / Path(args.job).name
+    lock = queue / ".locks" / f"{job.stem}.lock"
+    if not lock.is_dir():
+        emit({"status": "error", "error": f"no lock for {job.name}"})
+        return 4
+    if not acknowledged(job, utc_now()):
+        emit(
+            {
+                "status": "blocked",
+                "job": str(job),
+                "lock": str(lock),
+                "error": "job is not verifiably rescheduled or parked",
+            }
+        )
+        return 70
+    retire_lock(lock)
+    emit({"status": "released", "job": str(job)})
+    return 0
+
+
+def parser() -> argparse.ArgumentParser:
+    top = argparse.ArgumentParser(
+        description="Scan and claim one project-owned topics/at.md prompt."
+    )
+    sub = top.add_subparsers(dest="verb", required=True)
+
+    claim_parser = sub.add_parser(
+        "claim", help="Recover acknowledged locks, repair indexes, claim one due job."
+    )
+    claim_parser.add_argument("--root", required=True, help="Owning project root.")
+    claim_parser.add_argument(
+        "--session", required=True, help="Canonical resumable invoker session id."
+    )
+    claim_parser.add_argument("--harness", default="unknown")
+    claim_parser.add_argument("--owner-pid", type=int)
+    claim_parser.set_defaults(func=claim)
+
+    finish_parser = sub.add_parser(
+        "finish", help="Release a lock after verified rescheduling or parking."
+    )
+    finish_parser.add_argument("--root", required=True, help="Owning project root.")
+    finish_parser.add_argument("--job", required=True, help="Claimed job basename.")
+    finish_parser.set_defaults(func=finish)
+    return top
+
+
+def main() -> int:
+    args = parser().parse_args()
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

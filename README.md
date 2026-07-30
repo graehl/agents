@@ -67,7 +67,7 @@ branches, commits, shared workdirs, or private notes.
 | `topics/` | Committed cross-cutting contracts and rationale: debugging, testing, agent instructions, run provenance, UI verification, and more. |
 | `skills/` | Optional workflows layered on the core policy; highlights below. |
 | `agentctl`, `agentctl.py`, `agentctl_plugins/` | A dependency-free process manager with active-session participation, run state, optional plugins, and foreground local/SSH GPU-capacity watching. |
-| `scripts/` | Small helper scripts, including guarded git launchers, on-deck queue scaffolding, and commit-message formatting checks. |
+| `scripts/` | Small helper scripts, including guarded git launchers, scheduled-prompt claiming, on-deck queue scaffolding, and commit-message formatting checks. |
 | `code-map/` | Developer-facing maps of this repo and selected related repos. |
 | `tests/` | Regression coverage for `agentctl` behavior. |
 

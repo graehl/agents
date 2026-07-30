@@ -133,6 +133,12 @@ containing it and runs with that project root as its working directory.
 An at-launched runner skips this startup probe, preventing recursive launch
 chains.
 
+Use the project-local `scripts/at-queue` when executable, else
+`~/agents/scripts/at-queue` when executable, to scan/repair and atomically claim
+one job; pass it the project root, canonical resumable session id, and harness,
+then use the exact job and lock paths it returns. If neither helper exists,
+perform the same protocol manually.
+
 Use file mtime only to select due candidates without reading future entries.
 Before invoking one, load and follow `topics/at.md` from the project root when
 present, else `~/agents/topics/at.md`; its in-file `run_after`, atomic

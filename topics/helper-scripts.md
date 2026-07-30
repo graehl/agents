@@ -136,6 +136,40 @@ commit-msg-fmt -m "feat: do thing" -m '' -m "Body paragraph." \
   | commit-msg-lint && git commit -F -
 ```
 
+### at-queue
+
+Mechanizes the filesystem-critical part of `topics/at.md`; provider launch and
+object-level scheduling judgment remain outside it.
+
+**CLI**:
+- `at-queue claim --root <project> --session <canonical-id> --harness <name>
+  [--owner-pid <pid>]` — recover acknowledged locks, repair future mtime
+  indexes, and atomically claim at most one due job. Exit 0 emits one JSON
+  `claimed` record; exit 3 emits `status:"none"`.
+- `at-queue finish --root <project> --job <name>.md` — verify that the claimed
+  job is rescheduled or parked, atomically tombstone its lock, and remove the
+  tombstone. Exit 0 released, 4 no lock, 70 acknowledgement not verified.
+
+**Post-conditions**:
+- An absent `<project>/at/` is not created.
+- A claim winner leaves `<project>/at/.locks/<job>.lock/owner.md` containing
+  the prompt hash, harness/session identity, host, timestamps, and available
+  PID process-start identity.
+- A future in-file `run_after` repairs an accidentally due mtime only while the
+  claimed bytes remain unchanged.
+- A still-due ownerless lock remains blocked; a lock over a verifiably
+  non-due acknowledgement is safely recoverable.
+
+**Examples**:
+1. No `at/` → exit 3, `{"status":"none","reason":"no at directory",...}`.
+2. Due `at/review.md` → exit 0 with exact `job`, `lock`, `prompt_sha256`, and
+   `run_after`; a concurrent claim exits 3.
+3. Future `run_after` with current mtime → repair and verify mtime, release the
+   temporary claim, exit 3 if no other job is due.
+
+**Canonical source**: `scripts/at-queue` (in this repo). No install is
+required; startup uses this path only when it exists and is executable.
+
 ### vendor-skill
 
 Copies a subdirectory of a remote git repo into this tree, pinned to an

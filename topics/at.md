@@ -82,6 +82,14 @@ An at-launched runner does not perform the startup probe. An explicit user
 request, a bounded multi-project helper, or YA may also trigger a probe and may
 service more than one job under an explicit concurrency bound.
 
+When available, `scripts/at-queue claim --root <project> --session <id>
+--harness <name>` performs steps 2–4: it recovers locks whose prompt is already
+verifiably acknowledged, repairs a future `run_after` whose mtime was made due,
+and leaves one due job atomically claimed. Exit 0 returns the exact job, lock,
+hash, and schedule as JSON; exit 3 means none was claimable. The helper does not
+launch a session, choose recurrence, edit the object prompt, or acknowledge
+object-level work. Its absence leaves the manual protocol authoritative.
+
 No session-start scheme wakes while no session starts. It provides eventual
 catch-up only. A future independent scheduler owns punctual wakeups; it must
 not keep one provider process or polling loop alive per job.
@@ -105,9 +113,10 @@ another invoker owns or left the lock; skip the job.
 
 Immediately record in `owner.md`:
 
-- the canonical resumable invoker session id;
-- host and PID when available;
-- claim time;
+- the invoker harness and canonical resumable session id;
+- host, PID, and process-start identity (Linux start ticks, or boot id plus
+  start time) when available—PID alone is not a stable identity;
+- claim and last-heartbeat times;
 - phase (`claimed`, `launching`, or `runner`);
 - the SHA-256 of the exact job bytes claimed;
 - once known, the runner session or durable occurrence id.
@@ -139,8 +148,12 @@ that state. The order is part of the contract:
    `parked_mtime` in the job and accept it only when it is still safely in the
    future; the cleared `run_after` remains the semantic defense when that
    filesystem horizon eventually arrives.
-4. Only after successful verification remove `owner.md` and `rmdir` the
-   per-job lock.
+4. Only after successful verification atomically rename the whole lock
+   directory to a unique tombstone sibling, thereby releasing the canonical
+   lock name, then remove the tombstone. Do not remove `owner.md` first.
+   An interrupted tombstone deletion is inert and may be completed by any
+   later scan. `scripts/at-queue finish --root <project> --job <job>.md`
+   performs this verified release when the helper is available.
 
 If the filesystem refuses a future timestamp, clamps it to a value that is not
 future, or any acknowledgement step cannot be verified, keep the lock and
@@ -158,10 +171,19 @@ Never steal or remove a lock merely because it is old. First inspect
 result:
 
 - a live or uncertain owner keeps the lock;
+- a prompt already verifiably rescheduled to an exact future `run_after`, or
+  parked with `run_after: null` and a future mtime, makes the invocation lock
+  safe to retire regardless of whether the owner disappeared during teardown;
 - a provably dead owner with proof that no runner was created may have its lock
   removed and the still-due job retried;
 - if session creation may have succeeded but its durable id was not recorded,
   leave the job blocked for manual adjudication.
+
+Liveness proof matches the recorded host, process-start identity, resumable
+session or occurrence, and heartbeat. `kill -0 <pid>` alone never proves
+ownership because PIDs are reused. An ownerless lock over a still-due prompt
+remains ambiguous; an ownerless lock over a verified acknowledgement is the
+safe teardown-crash case above.
 
 Exactly-once session creation across the final case requires the launcher to
 accept an idempotency key. When available, derive it from the canonical queue
@@ -176,6 +198,11 @@ Re-read a job immediately before changing it. Preserve the object prompt and
 prior completion facts. For a non-trivial rewrite, build and validate a
 complete sibling temporary file and atomically rename it over the job; keep a
 recoverable backup when the update could replace user-authored content.
+
+When a claimed prompt proves future-scheduled and its bytes are unchanged,
+restore its mtime from `run_after`, verify the stored value, then release the
+lock. This repairs the cheap index after an editor or copy operation touched a
+future job instead of making every later session rediscover the mismatch.
 
 The lock controls invocation, not authorship. A user may edit or cancel a job
 at any time. An invoker detects such a change by the mandatory post-lock
