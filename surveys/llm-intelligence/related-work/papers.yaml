@@ -19,6 +19,8 @@ meta:
 
 papers:
   - key: anthropic2026-jspace
+    short: j-space
+    concept_page: concepts/j-space.md
     title: "Verbalizable Representations Form a Global Workspace in Language Models"
     authors: ["Anthropic (transformer-circuits.pub)"]   # exact author list TBD from paper
     venue: "transformer-circuits.pub"

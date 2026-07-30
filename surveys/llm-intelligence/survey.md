@@ -311,7 +311,8 @@ techniques.
 
 **Source (grounded).** "Verbalizable Representations Form a Global Workspace in
 Language Models," Anthropic / transformer-circuits.pub, July 2026. Popularly
-"J-space." Fetched and read this session.
+"J-space." Fetched and read this session. **Concept page:**
+[`concepts/j-space.md`](concepts/j-space.md) (short handle `j-space`).
 
 - **J-lens (the "J").** For layer ℓ, the averaged Jacobian
   `J_ℓ = E[∂h_final,t' / ∂h_ℓ,t]` over token positions and ~1,000 prompts:
