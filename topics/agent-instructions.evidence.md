@@ -629,3 +629,35 @@ the sweep single-target.
   excluded directory: maintenance leaves the already-correct exclusion alone
   rather than rewriting it. An explicit user request to change tracking still
   governs.
+
+## 2026-07-30 — foreground-wait announcement must precede the block
+
+- **Incident** — an agent launched a 45-minute-estimate GPU job with
+  `agentctl start --watch`, sampled the live watcher for one minute, then sent
+  a final response claiming `in agentctl wait.` The turn boundary destroyed
+  the monitor. The detached training happened to survive and finished after
+  26m53s, but no completion wake-up remained; the GPU then sat idle for about
+  2h10m until the user asked whether the agent had really been waiting.
+- **Decision** — the user-facing wait announcement is prospective and occurs
+  immediately before the blocking call: `going into foreground agentctl wait
+  now.` The synchronous `agentctl` call is the next action and the turn remains
+  open until a meaningful output line, condition, job end, or timeout returns
+  control. A yielded terminal/session id must be consumed immediately and does
+  not permit an assistant response. Fleet/resource waits use `fleet-watch`
+  including local capacity when applicable; job-specific waits use normal
+  `wait`/`watch`. Runs over 15 minutes use detached `agentctl start` followed
+  by a separate foreground wait; `start --watch` is forbidden for that run
+  class.
+- **Proof ladder** — each resumable session begins with a five-minute maximum
+  and can increase only when its transcript proves the preceding synchronous
+  wait: 5, 10, 20, 40, then 55 minutes. Announcements, failed starts, and lost
+  tool sessions do not earn a rung. The user required this as a hard,
+  no-latitude observable gate after repeated violations: any violation is
+  disclosed and resets the session to the five-minute rung.
+- **Trace** — healthy long launch: detach, announce, block, consume completion.
+  A five-minute cap returns while the job is still running: inspect status,
+  re-announce, and re-enter for at most ten minutes rather than yielding a
+  resting-state response. User steering interrupts a live wait: answer the
+  steering, then re-announce immediately before re-entering if the wait
+  remains necessary. Launch or pre-wait validation fails: report the failure
+  and do not claim a wait began.

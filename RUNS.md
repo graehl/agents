@@ -288,10 +288,35 @@ When running builds or tests, always redirect full output to a log file
 (e.g., `make 2>&1 | tee /tmp/build.log`) and show only the tail.
 Never discard output with bare `| tail`.
 
-For `agentctl` and other long-running waits, do not say `in agentctl wait.`
-unless the wait/watch command is still live in this turn and you are actively
-using its output as the current control point. If the environment will not
-reliably wake you on completion, do not use that phrase.
+**Hard gate — no latitude or inferred equivalent.** A foreground-wait
+announcement and its effective synchronous `agentctl` call are one atomic
+protocol. After the announcement, the agent may emit no final/status/planning
+prose and run no status query or unrelated tool before starting the call.
+While a yielded terminal/session remains live, the only permitted action is
+continuing to consume it until a wake condition or timeout returns control.
+Background monitoring, a detached job, a session id, `agentctl status`
+polling, or an intention to reattach later is not equivalent. If the call
+fails to start, report that failure immediately and never claim the wait
+occurred. Any violation resets this session's proven wait cap to five minutes
+and must be disclosed explicitly. New user steering interrupts the atomic
+interval; handle it, then revalidate and re-announce before re-entering any
+foreground wait.
+
+Immediately before entering a foreground `agentctl` wait/watch, tell the user
+exactly: `going into foreground agentctl wait now.` Then invoke the blocking
+`agentctl` call as the next action in the same turn and keep the turn open
+until it returns. The call must be synchronous with this assistant turn: a
+meaningful output line, watched condition, job end, or timeout must return
+control to the agent. A tool call yielding only a terminal/session id does not
+satisfy the announcement; immediately continue consuming that session without
+sending a response. Use `agentctl fleet-watch` with the local host included
+when fleet/resource availability is the wake condition; otherwise use the
+specific job's normal `wait`/`watch`.
+
+The announcement creates an execution obligation. Do not make it unless the
+effective foreground call is the next action, and do not replace it with a
+post-launch `in agentctl wait` response: yielding that response can tear down
+the monitor and forfeit completion wake-up.
 
 A resolved wait is not a resting state. Once the watched job finishes or the
 relevant idle condition is met, immediately consume that completion and launch
@@ -315,6 +340,10 @@ anchoring the job as a descendant) or wrapping the launch in a backgrounded shel
 the harness still owns. Either way the teardown SIGKILL reaches the job. `agentctl`
 itself documents the split ("start queued work detached, then watch the job").
 Verify once if unsure: `ps -o ppid= -p <job-pid>` should print `1`.
+
+For a run expected to exceed 15 minutes, therefore use two commands: detached
+`agentctl start` first, then the separately announced foreground
+`agentctl wait/watch`. Never use `start --watch` for that run class.
 
 Monitor the now-detached job with a **separate** `agentctl watch`/`status`/`wait`
 (foreground or backgrounded per the harness — see *Wait watchdog discipline*). That
@@ -403,16 +432,24 @@ be consumed immediately in the same turn.
 See `~/agents/yepanywhere.md` for heartbeat turn handling and the `PULSE:`
 observability convention.
 
-### Blanket wait cap (55 min)
+### Proven foreground-wait cap (5 → 55 min)
 
-All agents here bound a foreground `agentctl wait` at **55 min**
-(`--timeout 3300`). The cap segments one logical wait, so **re-wait is
-mandatory**: on a still-running return (timeout exit 1, `timeout waiting for
-<job> to reach <target>` on stderr) start another 55-min wait; only a terminal
-status ends the loop (a finished `unknown`/nonzero returncode is failure — the
-still-running case that *Early failure is a terminal result* leaves open).
-Best-effort in practice: an agent mid-analysis may instead pause to confirm
-with the user, which is fine.
+Every resumable session starts with a maximum foreground-wait timeout of
+**5 minutes**. Longer calls are earned only when this session's transcript
+shows the previous rung actually remained live until its awaited condition or
+timeout. Use the ladder **5 → 10 → 20 → 40 → 55 minutes**; a failed start,
+lost terminal/session, announcement alone, or assistant response while the
+monitor is pending does not advance it. A new resumable session starts again
+at five minutes. This observable gate is excluded from any frontier-agent
+latitude to substitute an inferred equivalent for the required steps.
+
+The cap segments one logical wait, so **re-wait is mandatory** when the job
+remains healthy: inspect status after a timeout, announce again immediately
+before the next synchronous call, and use at most the next earned rung. Only
+a terminal status ends the loop (a finished `unknown`/nonzero returncode is
+failure — the still-running case that *Early failure is a terminal result*
+leaves open). Best-effort in practice: an agent mid-analysis may instead pause
+to confirm with the user, which is fine.
 
 The dual when nothing is waiting: in GPU-fill / steward mode idling is the
 failure — the default, even absent user feedback, is to launch a useful or
@@ -420,11 +457,9 @@ speculative job at **low recorded priority** (an explicit interrupt/abandon
 candidate), not to wait. Slot it via *On-deck GPU fillers* and the
 on-deck/steward instructions.
 
-55 sits under both the 59-min harness ceiling and the 1h extended-cache TTL,
-so one block stays a cache hit while waking the model only ~once an hour. Do
-not re-poll under 5 min for genuinely long jobs — that churns context and
-degrades reasoning for no cache gain; the sub-TTL re-poll only helps under the
-5-min standard cache, which is not in use here.
+The earned 55-minute maximum sits under both the 59-minute harness ceiling and
+the 1h extended-cache TTL. The shorter initial rungs are a liveness proof, not
+a preferred steady-state polling cadence.
 
 The agent must pass an explicit ~59-min `timeout` on the Bash call that runs
 the wait; the 2-min default (`BASH_DEFAULT_TIMEOUT_MS`, deliberately left
