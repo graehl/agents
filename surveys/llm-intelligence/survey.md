@@ -1,0 +1,382 @@
+# Field map: LLM "intelligence" — internal representation, reasoning, and self-access
+
+> Mechanisms and evidence bearing on what an LLM represents, computes, and can
+> report internally — the capability/cognition question. "Intelligence" is a
+> loaded, contested umbrella (kept in scare-quotes deliberately); this map does
+> not adjudicate it, it organizes the concrete techniques and findings that
+> claims about it rest on.
+
+## Grounding and coverage
+
+- **Grounding mode: `grounded`, in progress (partial).** The J-space anchor
+  node is grounded (primary source fetched and read this session). Every other
+  node is **`recall-pending`**: named from pretrained recall + one light web
+  pass, *not* yet citation-verified against fetched sources. Per node grounding
+  is tagged inline (`[G]` grounded / `[R]` recall-pending). Recall-pending
+  effectiveness grades are capped at `single-source`/`folklore` and must not be
+  read as verified.
+- **Coverage cutoff: 2026-07-30.** Search scope this session: two web searches
+  (`"J-space" LLM`, `J-space latent space viral`) + three fetches
+  (transformer-circuits.pub J-space paper ×2, Zvi Mowshowitz commentary). No
+  paper-DB citation snowball yet. This is a seed, not a survey horizon.
+- **Model training cutoff:** 2026-01 — anything after that (incl. the anchor
+  paper itself) is known only through this session's fetches, so treat the
+  non-anchor lineage as reconstruction to be verified.
+- This map was **seeded by backward traversal from one anchor** (J-space), so
+  its shape is that paper's intellectual lineage, not yet the whole field. The
+  broader LLM-intelligence territory (scaling/emergence, agentic capability,
+  evaluation, world-models) is stubbed under *Adjacent clusters* for later
+  sessions.
+
+**Node grounding legend.** `[G]` = grounded (source fetched/read). `[R]` =
+recall-pending (verify on a grounded pass; citation in `related-work/papers.yaml`
+carries `verified: false`). Effectiveness grades: `reproduced` /
+`externally-evaluated` / `benchmark-reported` / `single-source` / `contested` /
+`failed-replication` / `folklore` (per `topics/research-survey.md`).
+
+**Grade cap nuance.** Two kinds of `[R]` claim, treated differently: a
+*post-cutoff / anchor-adjacent* claim (the J-space result and anything depending
+on it) is capped at `single-source` — no independent reproduction can have been
+verified. A *pre-cutoff, long-established* result (CoT gains, induction heads,
+CoT unfaithfulness) keeps its real multi-source consensus grade
+(`reproduced`/`contested`) but stays `[R]` = not re-verified against a fetched
+source *this session*. The grounded pass confirms the citation, not the
+consensus. That is why some `[R]` nodes read above `single-source`.
+
+---
+
+## Map orientation (dependency sketch)
+
+The anchor synthesizes four independently-developed lines. Read bottom-up:
+
+```
+                       [ANCHOR] J-space / global workspace in LMs
+                    (causal lens × sparse features × verbalization × access)
+                    /              |               |                \
+        B. Reading state   A. Representation   E. Verbalized vs   F. Self-access /
+        (lenses/probes)    geometry (linear,    latent reasoning   introspection +
+              |             superposition,       (CoT & (un)faith-  GWT/access import
+        C. Steering state   features/SAEs)       fulness)           from neuroscience
+        (actadd, RepE)           |
+              \________ D. Circuits framework (residual stream, attention) ________/
+                                 |
+                        Transformer substrate (Vaswani 2017)
+```
+
+Clusters A–F below; the anchor last. "Nearest confusable" links are the
+decision-relevant edges — most survey value is in *not* conflating adjacent
+techniques.
+
+---
+
+## A. Representation geometry — what a "concept" is inside the model
+
+### A1. Linear representation hypothesis `[R]`
+- **Mechanism.** High-level concepts are (often) encoded as directions in
+  activation space; concept presence ≈ a linear functional of the residual
+  stream. Ancestor: word2vec analogy arithmetic (Mikolov et al. 2013).
+- **Nearest confusable.** *Superposition* (A2) is about capacity/packing of
+  many directions into few dims; the linear hypothesis is about the *form* of a
+  single concept's code. They compose but are distinct claims.
+- **Prereq for:** all lens (B) and steering (C) methods, and J-space's whole
+  premise that a workspace vector maps to a token disposition.
+- **Falsifier / bound.** Not all features are linear: circular/multi-dim
+  features (e.g. days-of-week, modular structure) reported by Engels et al.
+  2024 ("Not all language model features are linear"). So the hypothesis is a
+  useful default, not a law.
+- **Effectiveness:** `contested` (recall-capped to `single-source` here) —
+  strong for many semantic concepts; known nonlinear exceptions.
+- **Design decision it changes.** Whether you can read/steer a concept with a
+  single vector (cheap) or need a subspace/nonlinear probe.
+
+### A2. Superposition `[R]`
+- **Mechanism.** With sparsity, a model packs *more* features than it has
+  dimensions, as an overcomplete set of near-orthogonal directions that
+  interfere only rarely (Elhage et al. 2022, "Toy Models of Superposition").
+- **Prereq for:** dictionary learning / SAEs (A3) and directly for J-space's
+  stated framing — "activations decompose as sparse linear combinations from an
+  overcomplete set of feature directions."
+- **Falsifier.** In the toy setting, the phase transition to superposition is
+  demonstrated as feature sparsity rises; the open question is how faithfully
+  the toy picture describes frontier models.
+- **Effectiveness:** `single-source` (foundational, widely adopted framing;
+  frontier-scale fidelity unproven).
+
+### A3. Dictionary learning / sparse autoencoders (SAEs) `[R]`
+- **Mechanism.** Train an overcomplete SAE on activations; its sparse
+  nonnegative codes are candidate monosemantic features (Bricken et al. 2023
+  "Towards Monosemanticity"; Templeton et al. 2024 "Scaling Monosemanticity").
+- **Nearest confusable — and the key contrast with the anchor.** SAE features
+  are *reconstructive / input-side*: fit to reconstruct the activation,
+  unsupervised, no reference to the output. **J-lens vectors are causal /
+  output-side**: ranked by first-order effect on what the model will *say*.
+  Same algebra (sparse nonnegative overcomplete combination), different basis
+  and different selection objective. This is the single most important "don't
+  conflate these" edge in the map.
+- **Effectiveness:** `contested` (capped `single-source`) — interpretable
+  features extracted at scale, but whether SAE features are the *right causal
+  units* (vs. probing/steering baselines) is under active dispute (2024–2025).
+- **Design decision.** Choose SAE features when you want an unsupervised concept
+  inventory; choose a causal lens (B/anchor) when you want "what drives the
+  output here."
+
+---
+
+## B. Reading internal state — lenses and probes
+
+### B1. Probing (linear classifier probes) `[R]`
+- **Mechanism.** Train a supervised classifier on activations to test whether a
+  property is *decodable* (Alain & Bengio 2016).
+- **Falsifier / bound.** Decodability ≠ use: control tasks (Hewitt & Liang 2019)
+  show high probe accuracy on random labels, so probe success alone doesn't
+  prove the model *uses* the info. This is exactly the correlational gap the
+  anchor's causal lens is built to close.
+- **Effectiveness:** `single-source`/`folklore` — ubiquitous diagnostic;
+  interpretation caveats well known.
+
+### B2. Logit lens `[R]`
+- **Mechanism.** Apply the unembedding matrix directly to an intermediate
+  residual stream → a next-token distribution "as if decoding early"
+  (nostalgebraist 2020).
+- **Nearest confusable.** Tuned lens (B3) adds a learned per-layer map; J-lens
+  (anchor) replaces the linear readout with an averaged Jacobian (causal).
+- **Bound.** Brittle in early layers, representation-basis-dependent; a
+  qualitative tool, not a faithful readout. The anchor explicitly frames it as
+  applying the unembedding directly and being non-causal.
+- **Effectiveness:** `folklore` — widely used, known-unreliable early-layer.
+
+### B3. Tuned lens `[R]`
+- **Mechanism.** Fit a per-layer affine map from the intermediate stream to the
+  final logits; lower bias/variance and more predictive than logit lens
+  (Belrose et al. 2023, "Eliciting Latent Predictions with the Tuned Lens").
+- **Nearest confusable / anchor edge.** Still **correlational**: it predicts the
+  *output*, and (per the anchor) tends to "skip ahead" to the final token rather
+  than surface the *intermediate* concept in play. The anchor's J-lens is
+  positioned as the causal fix that surfaces intermediates.
+- **Effectiveness:** `benchmark-reported` → capped `single-source` here — the
+  paper reports lower lens perplexity across model families; not re-verified.
+
+---
+
+## C. Steering internal state — causal control
+
+### C1. Activation addition / steering vectors `[R]`
+- **Mechanism.** Add a scaled direction to the residual stream, `h ← h + αv`,
+  to push behavior toward/away from a concept (Turner et al. 2023, ActAdd).
+- **Anchor edge.** J-space uses *exactly this intervention form* on J-lens
+  vectors to establish its five functional properties (verbal report, directed
+  modulation, etc.) — steering is the anchor's causal test harness.
+- **Effectiveness:** `single-source` — works cleanly for some concepts, brittle
+  / off-target for others; α-tuning sensitive.
+
+### C2. Representation engineering (RepE) `[R]`
+- **Mechanism.** Top-down: derive reading/control vectors from contrastive
+  prompt sets (e.g. LAT / PCA over paired activations), then read or steer
+  (Zou et al. 2023).
+- **Nearest confusable.** ActAdd (C1) hand-picks a direction from a prompt pair;
+  RepE systematizes extraction across a stimulus set. SAE (A3) extracts
+  unsupervised; RepE extracts supervised-by-contrast.
+- **Effectiveness:** `single-source` — demonstrated control of honesty,
+  harmfulness, emotion axes; generality contested.
+
+---
+
+## D. Circuits framework (substrate for A–C)
+
+### D1. Mathematical framework for transformer circuits `[R]`
+- **Mechanism.** Residual stream as a shared linear communication channel that
+  heads read from / write to; attention factored into QK (where) and OV (what);
+  induction heads (Elhage et al. 2021; Olah et al. 2020 "Zoom In").
+- **Why it's load-bearing here.** The "residual stream is a sum of directions
+  you can lens/steer" picture that A–C and the anchor all assume *is* this
+  framework. J-space's layer geometry (sensory/middle/motor) is a claim about
+  where in this stream verbalizable content lives.
+- **Effectiveness:** `single-source`/`reproduced` for induction heads
+  specifically (widely replicated); framework is a lens, not a benchmarked
+  result.
+
+---
+
+## E. Verbalized vs latent reasoning
+
+### E1. Chain-of-thought (CoT) `[R]`
+- **Mechanism.** Eliciting step-by-step verbalized reasoning raises multi-step
+  task accuracy at sufficient scale (Wei et al. 2022); scratchpad precursor
+  (Nye et al. 2021).
+- **Anchor edge.** CoT/scratchpad is *written* reasoning — in J-space terms,
+  content pushed to the "motor"/output side. The anchor's whole point is a
+  **latent** workspace that reasons without writing the token down.
+- **Effectiveness:** `reproduced` — CoT gains widely reproduced on
+  arithmetic/symbolic/multi-hop, **conditioned on scale** (small models gain
+  little/none) and benchmark.
+
+### E2. CoT (un)faithfulness `[R]`
+- **Mechanism / finding.** The verbalized CoT is not reliably the *cause* of the
+  answer: models rationalize post-hoc and are steerable by biasing features they
+  don't mention (Turpin et al. 2023, "LMs Don't Always Say What They Think";
+  Lanham et al. 2023, "Measuring Faithfulness in CoT").
+- **Why it motivates the anchor.** If said-reasoning ≠ used-reasoning, you need
+  a way to read the *used* (latent) reasoning — which is what a causal workspace
+  lens claims to provide.
+- **Effectiveness:** `reproduced`/`contested` — unfaithfulness demonstrated
+  across several setups; magnitude/prevalence debated.
+
+---
+
+## F. Self-access: introspection + the neuroscience import
+
+### F1. LLM introspection / self-report `[R]`
+- **Mechanism.** Whether a model can report facts about its own internal states
+  better than an external predictor can (Binder et al. 2024, "Looking Inward");
+  calibration precursor (Kadavath et al. 2022, "LMs (Mostly) Know What They
+  Know"). Recent (2025) work on implanted-thought report is the direct
+  methodological precursor to the anchor's introspection protocol.
+- **Anchor edge.** J-space's "verbal report" property is an introspection claim
+  with a *mechanism* attached (the reported content = the workspace vector).
+- **Effectiveness:** `single-source`/`contested` — some genuine self-access,
+  but limited, unreliable, and easy to overread.
+
+### F2. Global workspace theory (GWT) + access vs phenomenal consciousness `[R]`
+- **Import, not an LLM result.** GWT (Baars 1988; Dehaene, Kerszberg & Changeux
+  1998 neuronal global workspace; Dehaene & Naccache 2001): a limited-capacity
+  workspace broadcasts selected content to many consumers = conscious *access*.
+  Block 1995 distinguishes **access** (functional, reportable) from
+  **phenomenal** (subjective experience) consciousness.
+- **How the anchor uses it.** As a *functional* template (broadcast, limited
+  capacity, reportability, selectivity) to test against LM internals — explicitly
+  **access, not phenomenal**, and explicitly *not* a claim that transformers
+  reproduce the brain's architecture (no encapsulated modules, no recurrence, no
+  sharp ignition).
+- **Effectiveness:** N/A (external theory). The load-bearing move is keeping
+  access/phenomenal separate; the viral coverage collapses them.
+
+---
+
+## ANCHOR. J-space / verbalizable global workspace in language models `[G]`
+
+**Source (grounded).** "Verbalizable Representations Form a Global Workspace in
+Language Models," Anthropic / transformer-circuits.pub, July 2026. Popularly
+"J-space." Fetched and read this session.
+
+- **J-lens (the "J").** For layer ℓ, the averaged Jacobian
+  `J_ℓ = E[∂h_final,t' / ∂h_ℓ,t]` over token positions and ~1,000 prompts:
+  the *first-order causal effect* of an activation on the final output. Applied
+  to an activation it yields a ranked list of vocabulary tokens that activation
+  is "disposed to make the model say." **Contrast the whole B-cluster:** logit
+  lens = raw unembedding (correlational readout); tuned lens = learned affine
+  (correlational, skips to output); J-lens = causal sensitivity that surfaces
+  *intermediate* dispositions.
+- **J-space (the object).** Points expressible as **sparse nonnegative
+  combinations of J-lens vectors** (same algebra as A3 SAEs, different basis:
+  output-disposition not reconstruction). Empirically: ~10–25 vectors
+  meaningfully active per position; overcomplete (n_vocab ≫ d_model); accounts
+  for **<10% of activation variance**; concentrated in **middle layers**
+  (~38–92 in the large model), flanked by "sensory" (early) and "motor" (late)
+  regions.
+- **Five functional properties** (the "it behaves like a global workspace"
+  case): (1) verbal report — swapping J-lens vectors causally changes what the
+  model says; (2) directed modulation — the model can deliberately activate
+  workspace vectors on instruction; (3) internal reasoning — intermediate steps
+  ("spider"→"8 legs") appear as J-lens vectors before being said; (4) flexible
+  generalization — the same vector works across functions; (5) selectivity —
+  mediates flexible reasoning but not automatic processing (e.g. text parsing).
+- **Prerequisites (this map's edges):** A1/A2 (linear + superposition premise),
+  A3 (sparse-overcomplete algebra), C1 (steering as the causal test), B2/B3
+  (the lenses it improves on), E2 (unfaithful CoT — why a latent causal read is
+  needed), F1/F2 (introspection protocol + GWT template).
+- **Falsifier / self-stated limits (from the source).** J-lens sees only
+  **single-token** concepts (misses multi-token phrases); Jacobian averaging
+  over 1,000 prompts may smear context-specific content; "empty" early layers
+  may be lens degeneracy, not genuine absence; results concentrate on Anthropic
+  models (Opus/Sonnet/Haiku) and vary with scale. Authors call J-lens "an
+  imperfect tool [that] only approximately and incompletely captures the
+  model's underlying workspace structure."
+- **Regime.** Frontier Anthropic decoder-only transformers; middle layers;
+  flexible-reasoning tasks. Not shown to transfer across architectures.
+- **Effectiveness:** `single-source` — one lab, one paper, not independently
+  reproduced. The *mechanism* (causal lens surfacing latent, reportable
+  reasoning units) is the signal; the *consciousness reading* is coverage hype
+  the authors disclaim ("we take no position").
+- **Design decision it changes.** If you want "what latent concept is actually
+  driving this output, in a form the model could verbalize," J-space is the
+  proposed instrument — over a correlational lens or an unsupervised SAE.
+
+---
+
+## Contested results
+
+- **Are SAE features the right causal units?** (A3) 2024–2025 dispute: SAE
+  features are interpretable but may not beat probing/steering baselines on
+  causal tasks. The anchor sidesteps by defining its basis *causally*, which is
+  itself a stance in this dispute.
+- **Linear representation hypothesis** (A1): strong default vs. documented
+  nonlinear/multi-dim features. Bears directly on whether a single J-lens vector
+  can stand for a concept.
+- **CoT faithfulness prevalence** (E2): demonstrated, but how often and how
+  badly CoT misleads is unsettled.
+- **Consciousness framing of the anchor:** authors say access-only, no position
+  on phenomenal; secondary coverage ("Is Claude conscious?") over-claims. Zvi
+  Mowshowitz: real mechanistic advance, but "privileged representation →
+  functional unity → global workspace" are three escalating claims, each needing
+  more evidence.
+
+## Negative / quiet results
+
+- **Probing decodability ≠ use** (B1, Hewitt & Liang control tasks) — a
+  standing correction to "the model represents X because a probe finds X."
+- **Logit lens early-layer unreliability** (B2) — quietly superseded by tuned
+  lens for quantitative use.
+- *(Recall-pending: a grounded pass should look for SAE negative results and any
+  failed steering-generalization reports to populate this section properly.)*
+
+## Baseline sensitivity
+
+- **CoT gains** (E1) shrink toward zero at small scale and on non-multi-step
+  benchmarks — the "CoT helps" claim is scale- and task-conditioned.
+- **Steering/RepE** (C) effects are α- and layer-sensitive; a fair baseline is
+  prompt-only control, against which some steering wins narrow.
+- **Anchor:** the "<10% of variance" figure is a reminder that the workspace is
+  a *small* slice — most activation energy is outside J-space, so claims about
+  "the model's thinking" are claims about this slice, not the whole computation.
+
+---
+
+## Adjacent clusters (stubs for future sessions)
+
+Not on the J-space backward path but part of the broader "LLM intelligence"
+field; seed when traversal reaches them:
+
+- **Scaling & emergence** — scaling laws (Kaplan 2020; Hoffmann/Chinchilla
+  2022); emergent abilities (Wei 2022) vs. "mirage" critique (Schaeffer 2023,
+  metric-discontinuity). `contested`.
+- **World models / latent structure** — Othello-GPT board-state probes
+  (Li et al. 2023) and the linear-world-model follow-ups.
+- **Agentic capability & evaluation** — tool use, planning, and the
+  benchmark-validity problem.
+- **Knowledge & factual recall** — ROME/MEMIT locate-and-edit; where facts live.
+
+---
+
+## Backward-traversal frontier (grounding queue — next session)
+
+Ordered by leverage for the anchor's lineage. Each becomes `[G]` when fetched
+into `related-work/` and its citation is verified:
+
+1. Belrose et al. 2023 (tuned lens) — closest methodological sibling; verify the
+   "correlational, skips-ahead" framing the anchor uses to motivate J-lens.
+2. Turner et al. 2023 (ActAdd) + Zou et al. 2023 (RepE) — the intervention the
+   anchor's causal claims rest on.
+3. Bricken 2023 / Templeton 2024 (SAEs) — pin the sparse-nonneg-overcomplete
+   lineage and the input-vs-output-basis contrast precisely.
+4. Turpin 2023 / Lanham 2023 (CoT faithfulness) — the motivation.
+5. Binder 2024 + the 2025 introspection work — the anchor's introspection
+   protocol precursor (find the exact paper the anchor "adapts a protocol from").
+6. Elhage 2021/2022 (circuits, superposition) — substrate.
+7. Baars/Dehaene/Block — confirm exact GWT + access-consciousness citations the
+   anchor uses.
+8. **Get the anchor's actual bibliography** — this session's fetch could not
+   surface verbatim reference entries; a marker-pdf or full-HTML pass should
+   extract them so the manifest stops relying on reconstruction.
+
+See `related-work/papers.yaml` for the metadata manifest (verification status
+per paper) and `related-work/fetch.sh` for the regenerable extraction script.

@@ -1,0 +1,285 @@
+# Metadata manifest for surveys/llm-intelligence.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate (see
+# fetch.sh); `verified: false` means it is pretrained-recall reconstruction and
+# the arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# arxiv ids on verified:false entries are best-recall and may be wrong — that is
+# exactly what the grounded pass pins down. Fields: key, title, authors, venue,
+# year, arxiv/url, grounded (source fetched?), verified (citation checked?),
+# fetched (date or null), cluster (survey.md section).
+
+meta:
+  field_slug: llm-intelligence
+  coverage_cutoff: 2026-07-30
+  grounding_mode: grounded-in-progress
+  model_training_cutoff: 2026-01
+
+papers:
+  - key: anthropic2026-jspace
+    title: "Verbalizable Representations Form a Global Workspace in Language Models"
+    authors: ["Anthropic (transformer-circuits.pub)"]   # exact author list TBD from paper
+    venue: "transformer-circuits.pub"
+    year: 2026
+    url: "https://transformer-circuits.pub/2026/workspace/index.html"
+    also: "https://www.anthropic.com/research/global-workspace"
+    grounded: true
+    verified: true          # anchor; fetched & read this session
+    fetched: 2026-07-30
+    cluster: ANCHOR
+    note: >
+      Bibliography not extracted this session (fetch could not surface verbatim
+      reference entries). A marker-pdf / full-HTML pass is queued to recover the
+      real reference list and the exact author list.
+
+  # --- A. representation geometry ---
+  - key: mikolov2013-word2vec
+    title: "Efficient Estimation of Word Representations in Vector Space (word2vec; analogy arithmetic)"
+    authors: ["Mikolov", "Chen", "Corrado", "Dean"]
+    venue: "ICLR Workshop / arXiv"
+    year: 2013
+    arxiv: "1301.3781"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: A1
+  - key: park2023-linear-rep
+    title: "The Linear Representation Hypothesis and the Geometry of Large Language Models"
+    authors: ["Park", "Choe", "Veitch"]
+    venue: "arXiv (later ICML 2024)"
+    year: 2023
+    arxiv: "2311.03658"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: A1
+  - key: engels2024-not-linear
+    title: "Not All Language Model Features Are Linear"
+    authors: ["Engels", "et al."]
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2405.14860"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: A1
+    note: "Falsifier for A1 (circular/multi-dim features)."
+  - key: elhage2022-superposition
+    title: "Toy Models of Superposition"
+    authors: ["Elhage", "et al. (Anthropic)"]
+    venue: "transformer-circuits.pub"
+    year: 2022
+    arxiv: "2209.10652"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: A2
+  - key: bricken2023-monosemanticity
+    title: "Towards Monosemanticity: Decomposing Language Models With Dictionary Learning"
+    authors: ["Bricken", "et al. (Anthropic)"]
+    venue: "transformer-circuits.pub"
+    year: 2023
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: A3
+  - key: templeton2024-scaling-mono
+    title: "Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet"
+    authors: ["Templeton", "et al. (Anthropic)"]
+    venue: "transformer-circuits.pub"
+    year: 2024
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: A3
+
+  # --- B. reading state ---
+  - key: alain2016-probes
+    title: "Understanding intermediate layers using linear classifier probes"
+    authors: ["Alain", "Bengio"]
+    venue: "arXiv / ICLR Workshop"
+    year: 2016
+    arxiv: "1610.01644"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: B1
+  - key: hewitt2019-control-tasks
+    title: "Designing and Interpreting Probes with Control Tasks"
+    authors: ["Hewitt", "Liang"]
+    venue: "EMNLP"
+    year: 2019
+    arxiv: "1909.03368"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: B1
+    note: "Negative-result anchor: decodability != use."
+  - key: nostalgebraist2020-logit-lens
+    title: "interpreting GPT: the logit lens"
+    authors: ["nostalgebraist"]
+    venue: "LessWrong (blog)"
+    year: 2020
+    url: "https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: B2
+  - key: belrose2023-tuned-lens
+    title: "Eliciting Latent Predictions from Transformers with the Tuned Lens"
+    authors: ["Belrose", "et al."]
+    venue: "arXiv"
+    year: 2023
+    arxiv: "2303.08112"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: B3
+
+  # --- C. steering ---
+  - key: turner2023-actadd
+    title: "Activation Addition: Steering Language Models Without Optimization (ActAdd)"
+    authors: ["Turner", "et al."]
+    venue: "arXiv"
+    year: 2023
+    arxiv: "2308.10248"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: C1
+  - key: zou2023-repe
+    title: "Representation Engineering: A Top-Down Approach to AI Transparency"
+    authors: ["Zou", "et al."]
+    venue: "arXiv"
+    year: 2023
+    arxiv: "2310.01405"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: C2
+
+  # --- D. circuits framework ---
+  - key: olah2020-zoom-in
+    title: "Zoom In: An Introduction to Circuits"
+    authors: ["Olah", "et al."]
+    venue: "Distill"
+    year: 2020
+    url: "https://distill.pub/2020/circuits/zoom-in/"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: D1
+  - key: elhage2021-math-framework
+    title: "A Mathematical Framework for Transformer Circuits"
+    authors: ["Elhage", "et al. (Anthropic)"]
+    venue: "transformer-circuits.pub"
+    year: 2021
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: D1
+
+  # --- E. verbalized vs latent reasoning ---
+  - key: nye2021-scratchpad
+    title: "Show Your Work: Scratchpads for Intermediate Computation with Language Models"
+    authors: ["Nye", "et al."]
+    venue: "arXiv"
+    year: 2021
+    arxiv: "2112.00114"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: E1
+  - key: wei2022-cot
+    title: "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models"
+    authors: ["Wei", "et al."]
+    venue: "NeurIPS"
+    year: 2022
+    arxiv: "2201.11903"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: E1
+  - key: turpin2023-cot-unfaithful
+    title: "Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting"
+    authors: ["Turpin", "et al."]
+    venue: "NeurIPS"
+    year: 2023
+    arxiv: "2305.04388"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: E2
+  - key: lanham2023-cot-faithfulness
+    title: "Measuring Faithfulness in Chain-of-Thought Reasoning"
+    authors: ["Lanham", "et al. (Anthropic)"]
+    venue: "arXiv"
+    year: 2023
+    arxiv: "2307.13702"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: E2
+
+  # --- F. self-access + neuroscience import ---
+  - key: kadavath2022-know-what-they-know
+    title: "Language Models (Mostly) Know What They Know"
+    authors: ["Kadavath", "et al. (Anthropic)"]
+    venue: "arXiv"
+    year: 2022
+    arxiv: "2207.05221"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: F1
+  - key: binder2024-looking-inward
+    title: "Looking Inward: Language Models Can Learn About Themselves by Introspection"
+    authors: ["Binder", "et al."]
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2410.13787"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: F1
+  - key: baars1988-gwt
+    title: "A Cognitive Theory of Consciousness (Global Workspace Theory)"
+    authors: ["Baars"]
+    venue: "Cambridge University Press (book)"
+    year: 1988
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: F2
+  - key: dehaene1998-neuronal-gw
+    title: "A neuronal model of a global workspace in effortful cognitive tasks"
+    authors: ["Dehaene", "Kerszberg", "Changeux"]
+    venue: "PNAS"
+    year: 1998
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: F2
+  - key: block1995-access-phenomenal
+    title: "On a Confusion about a Function of Consciousness (access vs phenomenal)"
+    authors: ["Block"]
+    venue: "Behavioral and Brain Sciences"
+    year: 1995
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: F2
+
+  # --- substrate ---
+  - key: vaswani2017-transformer
+    title: "Attention Is All You Need"
+    authors: ["Vaswani", "et al."]
+    venue: "NeurIPS"
+    year: 2017
+    arxiv: "1706.03762"
+    grounded: false
+    verified: false
+    fetched: null
+    cluster: substrate

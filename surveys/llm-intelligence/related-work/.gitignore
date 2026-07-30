@@ -1,0 +1,6 @@
+# Regenerable extraction artifacts — rebuild with ./fetch.sh. Only papers.yaml,
+# fetch.sh, and this file are committed.
+pdf/
+html/
+extract/
+extract.tmp/
