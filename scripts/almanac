@@ -43,6 +43,7 @@ from acli import ExitCode, Format, die, emit, resolve_format, write_jsonl  # noq
 from acli.args import (  # noqa: E402
     add_standard_args,
     argument_parser,
+    candidates,
     capability_line,
     hint,
     maybe_complete,
@@ -144,6 +145,18 @@ def records_of(manifest: dict, data, *, where: str) -> list[dict]:
     return node
 
 
+def validate_extracted_records(manifest: dict, data) -> list[dict]:
+    records = records_of(manifest, data, where="extractor output")
+    key = manifest.get("schema", {}).get("key")
+    if key and any(key not in record for record in records):
+        die(
+            f"extractor output is missing key field {key!r} on some records; "
+            "re-run the almanac skill to repair",
+            ExitCode.SOFTWARE,
+        )
+    return records
+
+
 def ordinal_combos(manifest: dict) -> list[list[str]]:
     """Field combos that get reading-order ordinals (schema.ordinals;
     default: each filter field singly)."""
@@ -173,7 +186,7 @@ def load_dataset(name: str):
         for record in records:
             key = tuple(str(record.get(field)) for field in combo)
             counters[key] = counters.get(key, 0) + 1
-            record.setdefault(column, counters[key])
+            record[column] = counters[key]
     return directory, manifest, records
 
 
@@ -328,8 +341,18 @@ def git_commit(paths: list[Path], message: str) -> str:
 # --- verbs ---
 
 
-def dataset_summary(name: str) -> dict:
-    manifest = read_json(root() / name / "manifest.json", f"{name}/manifest.json")
+def dataset_summary(name: str, *, quiet: bool = False) -> dict | None:
+    path = root() / name / "manifest.json"
+    try:
+        manifest = json.loads(path.read_text())
+    except (OSError, ValueError) as exc:
+        if quiet:
+            return None
+        die(
+            f"cannot read {name}/manifest.json: {exc}",
+            ExitCode.DATA,
+            detail={"path": str(path)},
+        )
     try:
         data = json.loads((root() / name / "data.json").read_text())
         path = manifest.get("schema", {}).get("records", "")
@@ -542,7 +565,13 @@ def example_commands(name: str, manifest: dict, records: list[dict],
 
     lines = []
     if filter_expr:
-        lines.append(ex("query", filter_expr, "exact filter (comma = any-of)"))
+        lines.append(
+            ex(
+                "query",
+                shlex.quote(filter_expr),
+                "exact filter (comma = any-of)",
+            )
+        )
     if needle:
         lines.append(ex("query", f"~{needle}", "substring across text fields"))
         lines.append(ex("query", f"~{needle} more words",
@@ -604,20 +633,29 @@ def help_epilog() -> str | None:
             return (f"no datasets yet under {root()}; "
                     "the almanac skill builds one from a URL")
         lines = ["datasets:"]
+        readable = []
         for name in names:
-            summary = dataset_summary(name)
+            summary = dataset_summary(name, quiet=True)
+            if summary is None:
+                lines.append(
+                    f"  {name}  unreadable (re-run the almanac skill to repair)"
+                )
+                continue
+            readable.append(name)
             lines.append(
                 f"  {name}  {summary['records']} records  {summary['url']}"
             )
-        try:
-            _, manifest, records = load_dataset(names[0])
-            examples = example_commands(names[0], manifest, records, None)
-        except SystemExit:
-            examples = []
-        examples.append(
-            f"  almanac help {names[0]}".ljust(44)
-            + "  # dataset help: columns, filters, sample rows"
-        )
+        examples = []
+        if readable:
+            try:
+                _, manifest, records = load_dataset(readable[0])
+                examples = example_commands(readable[0], manifest, records, None)
+            except SystemExit:
+                pass
+            examples.append(
+                f"  almanac help {readable[0]}".ljust(44)
+                + "  # dataset help: columns, filters, sample rows"
+            )
         lines += ["", "examples:", *examples]
         return "\n".join(lines)
     except Exception:
@@ -628,6 +666,7 @@ def cmd_check(args) -> int:
     directory, manifest, _ = load_dataset(args.name)
     source = refresh_source(manifest, args)
     parsed = run_extract(directory, source)
+    validate_extracted_records(manifest, parsed)
     changed = content_hash(parsed) != manifest.get("content_hash")
     manifest["checked"] = now_utc()
     write_json_atomic(directory / "manifest.json", manifest)
@@ -642,18 +681,11 @@ def cmd_update(args) -> int:
     directory, manifest, _ = load_dataset(args.name)
     source = refresh_source(manifest, args)
     parsed = run_extract(directory, source)
-    fresh = records_of(manifest, parsed, where="extractor output")
+    fresh = validate_extracted_records(manifest, parsed)
     if not fresh and not args.allow_empty:
         die(
             "extractor returned zero records; refusing to replace data "
             "(pass --allow-empty if the source is genuinely empty)",
-            ExitCode.SOFTWARE,
-        )
-    key = manifest.get("schema", {}).get("key")
-    if key and any(key not in record for record in fresh):
-        die(
-            f"extractor output is missing key field {key!r} on some records; "
-            "re-run the almanac skill to repair",
             ExitCode.SOFTWARE,
         )
     new_hash = content_hash(parsed)
@@ -692,24 +724,7 @@ def launcher_text(name: str) -> str:
 # {LAUNCHER_MARKER} (generated by `almanac register`) -- dataset: {name}
 # {capability_line(CAPABILITIES)}
 set -euo pipefail
-if [ "${{1:-}}" = "--acli-complete" ]; then
-  shift
-  case "${{1:-}}" in
-    query|show|search|info|check|update|help)
-      v="$1"; shift; exec almanac --acli-complete "$v" {name} "$@";;
-    *) exec almanac --acli-complete query {name} "$@";;
-  esac
-fi
-if [ "${{1:-}}" = "--repl" ]; then exec almanac --repl {name}; fi
-case "${{1:-}}" in
-  -h|--help|help) exec almanac help {name} --prog "${{0##*/}}";;
-esac
-v="${{1:-info}}"
-case "$v" in
-  query|show|search|info|check|update) [ "$#" -gt 0 ] && shift;;
-  *) v=query;;
-esac
-exec almanac "$v" {name} "$@"
+exec almanac --launcher {name} "${{0##*/}}" "$@"
 """
 
 
@@ -960,6 +975,55 @@ def complete_filter(prefix, tokens):
 
 
 LAUNCHER_VERBS = ("query", "show", "search", "info", "check", "update", "help")
+_LAUNCHER_FLAG_VALUES = {"--format"}
+_LAUNCHER_FLAGS = {"--compact", "--pretty", "--toon", "--full"}
+
+
+def launcher_argv(name: str, tokens: list[str], *, bare_info: bool) -> list[str]:
+    """Bind launcher shorthand to one engine argv.
+
+    Only leading ACLI output flags may precede an explicit verb. Everything
+    else is query input, so record/filter text is never reparsed by the shell.
+    """
+    if not tokens:
+        return ["info", name] if bare_info else []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token in _LAUNCHER_FLAGS:
+            index += 1
+            continue
+        if token in _LAUNCHER_FLAG_VALUES:
+            index += 2
+            continue
+        break
+    if index < len(tokens) and tokens[index] in ("-h", "--help"):
+        return ["help", name]
+    if index < len(tokens) and tokens[index] in LAUNCHER_VERBS:
+        verb = tokens[index]
+        if verb == "help":
+            return ["help", name]
+        return [verb, name, *tokens[:index], *tokens[index + 1 :]]
+    return ["query", name, *tokens]
+
+
+def launcher_completion_rows(parser, name: str, tokens: list[str]) -> list[dict]:
+    """Union bound-shorthand and raw-engine candidates, deduplicated."""
+    rewritten = launcher_argv(name, list(tokens), bare_info=False)
+    row_sets = [candidates(parser, rewritten)]
+    if rewritten != tokens:
+        row_sets.append(candidates(parser, tokens))
+    insertable: list[dict] = []
+    hints: list[dict] = []
+    seen: set[str] = set()
+    for rows in row_sets:
+        for row in rows:
+            if row.get("kind") == "hint":
+                hints.append(row)
+            elif row["completion"] not in seen:
+                seen.add(row["completion"])
+                insertable.append(row)
+    return insertable if insertable else hints[:1]
 
 
 def launcher_rewrite(name: str):
@@ -968,14 +1032,7 @@ def launcher_rewrite(name: str):
     filters/search. Keeps the final token in place (completion contract)."""
 
     def rewrite(tokens: list[str]) -> list[str]:
-        if not tokens:
-            return tokens
-        head, *rest = tokens
-        if head in ("-h", "--help"):
-            return ["help", name, *rest]
-        if head in LAUNCHER_VERBS:
-            return [head, name, *rest]
-        return ["query", name, head, *rest]
+        return launcher_argv(name, tokens, bare_info=False)
 
     return rewrite
 
@@ -996,6 +1053,25 @@ def run_repl(parser, rest: list[str]) -> int:
         intro=f"bound to dataset {name!r}: bare FIELD=VALUE / ~text lines query it; "
         "verbs query/show/search/info/check/update/help also work",
     )
+
+
+def run_launcher(parser, rest: list[str]) -> int:
+    if len(rest) < 2:
+        die("--launcher requires DATASET and PROGRAM", ExitCode.USAGE)
+    name, prog, *tokens = rest
+    dataset_dir(name)
+    if tokens[:1] == ["--acli-complete"]:
+        write_jsonl(launcher_completion_rows(parser, name, tokens[1:]))
+        return 0
+    if tokens[:1] == ["--repl"]:
+        if len(tokens) != 1:
+            die("--repl takes no arguments in a dataset launcher", ExitCode.USAGE)
+        return run_repl(parser, [name])
+    bound = launcher_argv(name, tokens, bare_info=True)
+    if bound[:1] == ["help"]:
+        bound.extend(("--prog", prog))
+    args = parser.parse_args(bound)
+    return args.func(args)
 
 
 # --- parser ---
@@ -1086,6 +1162,8 @@ def main() -> int:
     argv = sys.argv[1:]
     wants_help = not argv or argv[0] in ("-h", "--help", "help")
     parser = build_parser(epilog=help_epilog() if wants_help else None)
+    if argv[:1] == ["--launcher"]:
+        return run_launcher(parser, argv[1:])
     maybe_complete(parser)
     if argv[:1] == ["--repl"]:
         return run_repl(parser, argv[1:])

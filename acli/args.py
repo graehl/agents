@@ -161,23 +161,66 @@ def _takes_value(action: argparse.Action) -> bool:
     return action.nargs != 0
 
 
+def _option_value_bounds(action: argparse.Action) -> tuple[int, int | None, bool]:
+    """Minimum, maximum, and whether another option ends this value slot."""
+    nargs = action.nargs
+    if nargs is None:
+        return 1, 1, True
+    if isinstance(nargs, int):
+        return nargs, nargs, True
+    if nargs == "?":
+        return 0, 1, True
+    if nargs == "*":
+        return 0, None, True
+    if nargs == "+":
+        return 1, None, True
+    if nargs == argparse.REMAINDER:
+        return 0, None, False
+    if nargs == argparse.PARSER:
+        return 1, None, False
+    return 1, 1, True
+
+
 def _walk(parser: argparse.ArgumentParser, tokens: list[str]):
     """Best-effort walk of the already-complete tokens.
 
     Returns (parser, pending_option_action, positionals_consumed). The walk
-    approximates one value per option and per positional slot — enough for
-    the flat grammars ACLI tools keep.
+    tracks argparse's option cardinality and approximates one value per
+    positional slot — enough for the flat grammars ACLI tools keep.
     """
-    pending: argparse.Action | None = None
+    pending: tuple[argparse.Action, int, int | None, bool] | None = None
     positionals = 0
     for tok in tokens:
         if pending is not None:
-            pending = None
-            continue
+            action, required, remaining, stops_at_option = pending
+            option = (
+                parser._option_string_actions.get(tok.partition("=")[0])
+                if tok.startswith("-") and tok != "-"
+                else None
+            )
+            if option is not None and stops_at_option and required == 0:
+                pending = None
+            else:
+                required = max(0, required - 1)
+                if remaining is not None:
+                    remaining -= 1
+                pending = (
+                    (action, required, remaining, stops_at_option)
+                    if remaining is None or remaining > 0
+                    else None
+                )
+                continue
         if tok.startswith("-") and tok != "-":
-            action = parser._option_string_actions.get(tok.partition("=")[0])
-            if action is not None and _takes_value(action) and "=" not in tok:
-                pending = action
+            name, separator, _ = tok.partition("=")
+            action = parser._option_string_actions.get(name)
+            if action is not None and _takes_value(action):
+                required, remaining, stops_at_option = _option_value_bounds(action)
+                if separator:
+                    required = max(0, required - 1)
+                    if remaining is not None:
+                        remaining -= 1
+                if remaining is None or remaining > 0:
+                    pending = (action, required, remaining, stops_at_option)
             continue
         sub = _subparsers_action(parser)
         if sub is not None and tok in sub.choices:
@@ -185,7 +228,7 @@ def _walk(parser: argparse.ArgumentParser, tokens: list[str]):
             positionals = 0
             continue
         positionals += 1
-    return parser, pending, positionals
+    return parser, pending[0] if pending is not None else None, positionals
 
 
 def _positional_action(

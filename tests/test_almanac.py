@@ -182,6 +182,31 @@ def test_help_and_no_args():
         "dataset help also ends with the capability line",
     )
 
+    broken = root / "broken"
+    broken.mkdir()
+    (broken / "manifest.json").write_text("{not json")
+    proc = run(root, "--help")
+    _assert(proc.returncode == 0, "one broken dataset must not disable global help")
+    _assert("cards-test" in proc.stdout and "acli: 1" in proc.stdout, proc.stdout)
+
+
+def test_help_examples_quote_spaced_filter_values():
+    root = Path(tempfile.mkdtemp(prefix="almanac-test-"))
+    data = {
+        "cards": [
+            {
+                "name": "Storybook",
+                "tier": "Always Amazing",
+                "cost": 1,
+                "text": "Example card.",
+            }
+        ]
+    }
+    make_dataset(root, name="spaced", data=data)
+    proc = run(root, "help", "spaced")
+    _assert(proc.returncode == 0, proc.stderr)
+    _assert("'tier=Always Amazing'" in proc.stdout, proc.stdout)
+
 
 def test_sequence_numbers_and_supersets():
     root = Path(tempfile.mkdtemp(prefix="almanac-test-"))
@@ -216,6 +241,23 @@ def test_sequence_numbers_and_supersets():
     _assert("seq" not in stored and "n_tier" not in stored, stored)
 
 
+def test_derived_ordinals_override_stored_values_in_memory():
+    root = Path(tempfile.mkdtemp(prefix="almanac-test-"))
+    data = {
+        "cards": [
+            {"name": "A", "tier": "S", "cost": 1, "text": "a", "n_tier": 999},
+            {"name": "B", "tier": "S", "cost": 2, "text": "b"},
+        ],
+    }
+    directory = make_dataset(root, name="derived", data=data)
+    _assert(run(root, "register", "derived", "--no-launcher").returncode == 0)
+
+    rows = jsonl(run(root, "query", "derived", "tier=S"))
+    _assert([row["n_tier"] for row in rows] == [1, 2], rows)
+    stored = json.loads((directory / "data.json").read_text())["cards"][0]
+    _assert(stored["n_tier"] == 999, "derived values stay in-memory only")
+
+
 def test_check_and_update_cycle():
     root, _ = registered_root()
     fixture = root / "fixture.json"
@@ -239,6 +281,13 @@ def test_check_and_update_cycle():
     _assert(proc.returncode == 70, "zero records must be refused by default")
     proc = run(root, "update", "cards-test", "--allow-empty", source=fixture)
     _assert(proc.returncode == 0 and jsonl(proc)[0]["records"] == 0, proc.stderr)
+
+    fixture.write_text("{}")
+    proc = run(root, "check", "cards-test", source=fixture)
+    _assert(
+        proc.returncode == 70,
+        "check must reject extractor JSON that no longer fits the record schema",
+    )
 
 
 def test_refresh_mode_gates():
@@ -327,9 +376,27 @@ def test_launcher_dispatch():
     proc = subprocess.run([launcher, "show", "bash"], capture_output=True, text=True, env=env)
     _assert(json.loads(proc.stdout.splitlines()[0])["cost"] == 2, proc.stdout)
 
+    proc = subprocess.run(
+        [launcher, "--pretty", "show", "bash"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    _assert(
+        json.loads(proc.stdout)["cost"] == 2,
+        "leading output flags must not change launcher verb dispatch",
+    )
+
     proc = subprocess.run([launcher, "-h"], capture_output=True, text=True, env=env)
     _assert(proc.returncode == 0, proc.stderr)
     _assert("launcher bound to" in proc.stdout, "launcher -h explains the binding")
+    proc = subprocess.run(
+        [launcher, "--pretty", "help"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    _assert(proc.returncode == 0 and "launcher bound to" in proc.stdout, proc.stderr)
 
     proc = subprocess.run([launcher, "vulnerable"], capture_output=True, text=True, env=env)
     _assert(json.loads(proc.stdout.splitlines()[0])["name"] == "Bash", "bare word = search")
@@ -339,10 +406,24 @@ def test_launcher_dispatch():
     )
     _assert(proc.returncode == 0, proc.stderr)
     _assert([json.loads(l)["completion"] for l in proc.stdout.splitlines()] == ["Bash"])
+    proc = subprocess.run(
+        [launcher, "--acli-complete", "s"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    completions = [
+        json.loads(line)["completion"] for line in proc.stdout.splitlines()
+    ]
+    _assert("show" in completions and "search" in completions, completions)
 
     _assert(
         "# acli: 1 complete repl toon" in Path(launcher).read_text()[:200],
         "launcher head carries the zero-execution capability marker",
+    )
+    _assert(
+        "case " not in Path(launcher).read_text(),
+        "generated launcher delegates all argument parsing to the engine",
     )
     proc = subprocess.run(
         [launcher, "--repl"],

@@ -154,6 +154,9 @@ bare = info, `-h`/`--help`/`help` = `almanac help <name>`, `--repl`
 = the engine repl bound to this dataset, verbs pass through,
 anything else = query filters/search) plus the `~/bin/almanac`
 engine symlink if missing.
+The generated shell only passes its dataset, program name, and untouched
+argv to the engine. The engine owns that grammar—including leading output
+flags and completion—so launchers cannot drift into a second parser.
 The launcher head carries the zero-execution capability marker
 (`# acli: 1 complete repl toon`).
 

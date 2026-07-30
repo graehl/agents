@@ -190,6 +190,25 @@ def test_complete_subcommands_flags_and_values():
     _assert([r["completion"] for r in rows] == ["--mode=wide"], rows)
 
 
+def test_complete_multi_value_option_tracks_argparse_cardinality():
+    args_mod = importlib.import_module("acli.args")
+    parser = args_mod.argument_parser(prog="multi")
+    parser.add_argument("--pair", nargs=2, choices=["alpha", "beta"])
+    parser.add_argument("--maybe", nargs="?", choices=["yes", "no"])
+    parser.add_argument("--other", choices=["left", "right"])
+
+    rows = _complete_lines(args_mod, parser, ["--pair", "alpha", ""])
+    _assert(
+        [row["completion"] for row in rows] == ["alpha", "beta"],
+        "the second value of nargs=2 still belongs to --pair",
+    )
+    rows = _complete_lines(args_mod, parser, ["--maybe", "--other", ""])
+    _assert(
+        [row["completion"] for row in rows] == ["left", "right"],
+        "a new option ends an optional-value slot",
+    )
+
+
 def test_complete_empty_is_definitive():
     args_mod, parser = _completion_parser()
     _assert(_complete_lines(args_mod, parser, ["show", "zzz"]) == [])
