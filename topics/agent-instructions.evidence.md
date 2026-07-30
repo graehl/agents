@@ -700,3 +700,27 @@ the sweep single-target.
   the interruption neither earns nor resets a rung. Any later foreground
   re-entry gets a fresh state check and prospective announcement. Launch or
   pre-wait validation fails: report the failure and do not claim a wait began.
+
+## 2026-07-30 — advisor read cursor vs. semantic understanding
+
+- **User direction** — after the first program-scoped advisor handoff, graehl
+  asked that an advisor maintain its internal knowledge summary after reading
+  followed documents, using the last-read markers in `docs/state.md` or a
+  separate understanding file.
+- **Decision** — retain the existing two-file separation rather than add a
+  third overlapping state file. `docs/state.md` is the mechanical read cursor;
+  `notes.md` is the semantic program understanding. Every successful document
+  synchronization writes state first, reconciles notes against the material
+  deltas, and advances a notes watermark containing the exact state observation
+  time and HEAD SHA. A mismatch is explicit reconciliation debt for the next
+  advisor activation.
+- **Trace** — (a) a followed paper changes its selected incumbent while the
+  packet asks about another issue: the advisor reads the paper, updates the
+  semantic summary and marker, then answers, so a successor does not inherit
+  the old incumbent. (b) only formatting changes: the cursor and notes marker
+  advance, but the summary does not accumulate invented narrative churn. (c)
+  the process stops after atomically updating `docs/state.md` but before notes:
+  the next activation sees the marker lag and reconciles before advising.
+- **Status** — `assumed`; the next fresh advisor start should verify that the
+  marker mismatch is noticed and repaired without replaying already folded
+  transcript archives.

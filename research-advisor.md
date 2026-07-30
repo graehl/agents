@@ -37,6 +37,20 @@ best preserves its current understanding, as a self-contained statement of
 current scope state. It is not a copy of the transcript, a persona prompt, or
 another chronological research log.
 
+The two durable state files have distinct roles:
+
+- `docs/state.md` is the mechanical read cursor: which documents were resolved,
+  at what repository revision, plus fingerprints for dirty or untracked text;
+- `notes.md` is the semantic state: the advisor's synthesized understanding of
+  the program after reading through that cursor.
+
+Do not create a parallel `state-understanding.md`. After every successful
+followed-document synchronization, reconcile `notes.md` against what was read
+and advance its understanding watermark even when no conclusion changes. This
+makes a successor's startup test explicit: if the document cursor is newer than
+the notes watermark, the compact understanding is stale and must be reconciled
+before advising.
+
 The durable default advisor behavior is `~/agents/advisor/charter.md`. A project
 may add `research/advisor/charter.md` as a project-wide amendment, and a program
 may add `research/<program>/advisor/charter.md`. Amendments are loaded broadest
@@ -98,9 +112,10 @@ resume every advisor turn with this ordered bundle:
 
 The advisor applies any followed-document changes requested by the packet, then
 synchronizes every path in `docs/state.md`—committed, staged, unstaged, and
-untracked deltas included—before reviewing the claim or decision. The object
-session names the narrow set of evolving documents needed for the program; it
-does not default to the entire `research/` tree.
+untracked deltas included—and reconciles `notes.md` through that completed
+document state before reviewing the claim or decision. The object session names
+the narrow set of evolving documents needed for the program; it does not
+default to the entire `research/` tree.
 
 ## Serial ownership and locking
 
@@ -185,6 +200,29 @@ Before a successor relies on `notes.md`, fold every available debt session or
 turn. If a provider session cannot be resumed, archive its transcript first so
 the successor can pay the debt. Pre-watermark sessions remain cold provenance
 and need no replay.
+
+## Semantic-state reconciliation
+
+In addition to the transcript fold watermark, `notes.md` carries:
+
+```markdown
+Document understanding synchronized through: <docs/state.md Observed at timestamp> · <full HEAD SHA>
+```
+
+Use `none · none` before the first completed document review. After resolving
+and reading the followed set, atomically write `docs/state.md` first. Then
+compare every live claim, evidence status, criterion, objection, alternative,
+and pending adjudication in `notes.md` with the synchronized documents. Update
+the semantic summary where the documents changed its meaning and advance the
+marker to the exact observation timestamp and SHA recorded in `docs/state.md`.
+When changes are formatting-only or otherwise semantically inert, advance only
+the marker rather than manufacturing narrative churn.
+
+This ordering makes interruption detectable: if `docs/state.md` advances but
+the notes marker does not, the next activation must perform the missing
+reconciliation before it treats compact notes as current. Matching markers mean
+the advisor deliberately considered the synchronized document state; they do
+not imply that every statement in the documents is correct or endorsed.
 
 ## Followed documents
 

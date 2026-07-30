@@ -258,11 +258,13 @@ decision/evidence state satisfying any of these conditions:
 Load and follow `research-advisor.md` to resolve the program or project-wide
 advisor, deduplicate unchanged packet states, compose its
 charter/notes/document-state/packet startup bundle, keep the relevant evolving
-documents in its `docs/state.md` followed set, and return the challenge memo.
-Do not merely record that review would be useful, and do not request a scan of
-the whole `research/` tree when current-program paths suffice. Routine
-implementation, plumbing, frozen sweep cells, and results that leave both the
-claim and next decision unchanged do not invoke the advisor.
+documents in its `docs/state.md` followed set, reconcile its semantic
+understanding in `notes.md` through that document cursor, and return the
+challenge memo. Do not merely record that review would be useful, and do not
+request a scan of the whole `research/` tree when current-program paths
+suffice. Routine implementation, plumbing, frozen sweep cells, and results
+that leave both the claim and next decision unchanged do not invoke the
+advisor.
 
 ### Reproduce before comparing (the overselling prior)
 

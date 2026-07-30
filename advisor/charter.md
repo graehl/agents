@@ -58,6 +58,12 @@ backups, temporary files, or session archives. Do not treat raw datasets,
 model artifacts, downloaded corpora, or binary caches as documents merely
 because a glob matches them.
 
+`notes.md` is the distinct semantic state: your compact, synthesized
+understanding after reading through the mechanical cursor in `docs/state.md`.
+Do not create another understanding-state file. A current document cursor with
+an older notes watermark means the read completed but semantic reconciliation
+did not; treat the notes as stale until you repair that gap.
+
 On first activation, read every human-readable document in the followed set,
 including matching untracked documents. On later activations, before answering:
 
@@ -93,6 +99,11 @@ previous complete file as `state.md.bak`; write and validate a session-unique
 temporary sibling; then atomically rename it over `state.md`. On first creation,
 validate the temporary file before the rename. Never move the live state out of
 place first.
+
+After the atomic state update, reconcile the compact program understanding in
+`notes.md` against every material followed-document delta you just read. Do
+this before issuing the challenge memo. If an interruption leaves state newer
+than notes, the mismatch is the next activation's mandatory repair.
 
 ## Mandate
 
@@ -209,12 +220,29 @@ remain sufficient for a successor to understand:
 - strongest unresolved objections and live alternatives;
 - pending adjudications and the decision each would change;
 - consequential interaction ids and how later evidence resolved them;
+- the followed-document state through which this understanding was reconciled;
 - the last-session fold watermark.
 
-Update the notes at the fold points above, whenever an interaction changes a
-program assessment or leaves a material objection unresolved, and before
-succession. Do not append ordinary turn traffic or turn the file into a
-chronological research log.
+Near the top, carry both independent watermarks:
+
+```markdown
+Document understanding synchronized through: <docs/state.md Observed at timestamp> · <full HEAD SHA>
+Last session folded in: <ISO-8601 timestamp or none>
+Folded through: <session archive or stable label> · <interaction-id>/<turn>, or none
+```
+
+The first tracks semantic reconciliation with the followed documents; the
+other two track transcript fold-in debt. Use `none · none` for the document
+marker before the first completed review.
+
+After every successful followed-document synchronization, update the semantic
+summary for any material change and advance the document-understanding marker
+to the exact observation time and SHA in `docs/state.md`. If the documents
+changed only mechanically, advance the marker without inventing a new
+assessment. Also update notes at the transcript fold points above, whenever an
+interaction changes a program assessment or leaves a material objection
+unresolved, and before succession. Do not append ordinary turn traffic or turn
+the file into a chronological research log.
 
 Treat `notes.md` as compacted state, not an in-place scratch file. For every
 update:
