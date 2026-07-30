@@ -43,6 +43,39 @@ CoT unfaithfulness) keeps its real multi-source consensus grade
 source *this session*. The grounded pass confirms the citation, not the
 consensus. That is why some `[R]` nodes read above `single-source`.
 
+- **Grounded pass 2026-07-30** verified citations and flipped to `[G]`: A2
+  (superposition), B3 (tuned lens), C1 (ActAdd — title corrected), C2 (RepE),
+  E2 (Turpin CoT-unfaithfulness), F1 (introspection precursor), and added D2
+  (circuit tracing). The rest remain `[R]`.
+
+---
+
+## Seed set and governing instruction (what "coverage" means here)
+
+Completeness here is **not** "all of LLM intelligence" — it is defined by this
+seed set plus the traversal rule. A topic is in scope once some seed's backward
+citation chain reaches it; anything no seed reaches is *out-of-scope-so-far*,
+not *missing*. This is the contract a later reader (or collaborator) uses to
+tell a genuine gap from an unreached branch.
+
+- **Governing instruction** (graehl, 2026-07-30): seed from the J-space paper
+  and *traverse backward* through its preconditions / inspirations /
+  fundamentals (~30 min, continued across sessions); additionally fold in
+  *recent* high-interest / high-utility discoveries encountered en route.
+- **Seed set:**
+  1. **J-space anchor** (primary) — Anthropic, "Verbalizable Representations
+     Form a Global Workspace in Language Models," 2026. The origin seed;
+     clusters A–F are its backward lineage.
+  2. **Emergent Introspective Awareness** (Anthropic, Oct 2025) — recent
+     addition; the concept-injection introspection protocol the anchor adapts
+     (node F1).
+  3. **Circuit Tracing / On the Biology of a Large Language Model** (Anthropic,
+     2025) — recent addition; cross-layer-transcoder attribution graphs, the
+     causal-interpretability sibling of J-lens (node D2).
+
+Adding a seed widens declared scope; retiring the traversal to a new anchor
+starts a new region. Record both here when they change.
+
 ---
 
 ## Map orientation (dependency sketch)
@@ -89,7 +122,7 @@ techniques.
 - **Design decision it changes.** Whether you can read/steer a concept with a
   single vector (cheap) or need a subspace/nonlinear probe.
 
-### A2. Superposition `[R]`
+### A2. Superposition `[G]`
 - **Mechanism.** With sparsity, a model packs *more* features than it has
   dimensions, as an overcomplete set of near-orthogonal directions that
   interfere only rarely (Elhage et al. 2022, "Toy Models of Superposition").
@@ -145,7 +178,7 @@ techniques.
   applying the unembedding directly and being non-causal.
 - **Effectiveness:** `folklore` — widely used, known-unreliable early-layer.
 
-### B3. Tuned lens `[R]`
+### B3. Tuned lens `[G]`
 - **Mechanism.** Fit a per-layer affine map from the intermediate stream to the
   final logits; lower bias/variance and more predictive than logit lens
   (Belrose et al. 2023, "Eliciting Latent Predictions with the Tuned Lens").
@@ -160,16 +193,18 @@ techniques.
 
 ## C. Steering internal state — causal control
 
-### C1. Activation addition / steering vectors `[R]`
+### C1. Activation addition / steering vectors `[G]`
 - **Mechanism.** Add a scaled direction to the residual stream, `h ← h + αv`,
-  to push behavior toward/away from a concept (Turner et al. 2023, ActAdd).
+  to push behavior toward/away from a concept — ActAdd, from a contrastive
+  prompt pair (Turner et al. 2023, "Steering Language Models With Activation
+  Engineering"; title corrected on the grounded pass).
 - **Anchor edge.** J-space uses *exactly this intervention form* on J-lens
   vectors to establish its five functional properties (verbal report, directed
   modulation, etc.) — steering is the anchor's causal test harness.
 - **Effectiveness:** `single-source` — works cleanly for some concepts, brittle
   / off-target for others; α-tuning sensitive.
 
-### C2. Representation engineering (RepE) `[R]`
+### C2. Representation engineering (RepE) `[G]`
 - **Mechanism.** Top-down: derive reading/control vectors from contrastive
   prompt sets (e.g. LAT / PCA over paired activations), then read or steer
   (Zou et al. 2023).
@@ -195,6 +230,23 @@ techniques.
   specifically (widely replicated); framework is a lens, not a benchmarked
   result.
 
+### D2. Circuit tracing / attribution graphs `[G]`
+- **Mechanism.** Cross-layer transcoders (CLTs) replace MLP activations with
+  sparse interpretable features; **attribution graphs** then trace the causal
+  input→intermediate→output pathway for a specific prompt (Anthropic 2025,
+  "Circuit Tracing" + "On the Biology of a Large Language Model," on Claude 3.5
+  Haiku).
+- **Nearest confusable / anchor edge.** Both attribution graphs and J-lens are
+  *causal* interpretability from the same lab: attribution graphs map the
+  *pathway between features*; J-lens ranks a single activation's *output-token
+  disposition*. CLT features (A3-style sparse) are the graph's nodes — so this
+  is where the SAE lineage (A3) and the circuits substrate (D1) fuse into a
+  causal tracer, the immediate methodological context J-space sits in.
+- **Effectiveness:** `single-source` — Anthropic 2025; interpretable causal
+  graphs demonstrated on a production model, not independently reproduced.
+- **Design decision.** Attribution graphs for "trace the whole circuit behind
+  this output"; J-space for "what latent, verbalizable concept is active here."
+
 ---
 
 ## E. Verbalized vs latent reasoning
@@ -210,7 +262,7 @@ techniques.
   arithmetic/symbolic/multi-hop, **conditioned on scale** (small models gain
   little/none) and benchmark.
 
-### E2. CoT (un)faithfulness `[R]`
+### E2. CoT (un)faithfulness `[G]` (Turpin grounded; Lanham `[R]`)
 - **Mechanism / finding.** The verbalized CoT is not reliably the *cause* of the
   answer: models rationalize post-hoc and are steerable by biasing features they
   don't mention (Turpin et al. 2023, "LMs Don't Always Say What They Think";
@@ -225,12 +277,15 @@ techniques.
 
 ## F. Self-access: introspection + the neuroscience import
 
-### F1. LLM introspection / self-report `[R]`
+### F1. LLM introspection / self-report `[G]` (precursor grounded; Binder/Kadavath `[R]`)
 - **Mechanism.** Whether a model can report facts about its own internal states
-  better than an external predictor can (Binder et al. 2024, "Looking Inward");
-  calibration precursor (Kadavath et al. 2022, "LMs (Mostly) Know What They
-  Know"). Recent (2025) work on implanted-thought report is the direct
-  methodological precursor to the anchor's introspection protocol.
+  better than an external predictor can (Binder et al. 2024, "Looking Inward";
+  calibration precursor Kadavath et al. 2022, "LMs (Mostly) Know What They
+  Know"). The direct methodological precursor to the anchor's protocol is
+  Anthropic's **"Emergent Introspective Awareness in Language Models"** (Oct
+  2025): inject a known concept's representation into activations, then measure
+  its effect on the model's self-report — the same concept-injection design the
+  anchor's "verbal report" property uses.
 - **Anchor edge.** J-space's "verbal report" property is an introspection claim
   with a *mechanism* attached (the reported content = the workspace vector).
 - **Effectiveness:** `single-source`/`contested` — some genuine self-access,
@@ -357,26 +412,25 @@ field; seed when traversal reaches them:
 
 ---
 
-## Backward-traversal frontier (grounding queue — next session)
+## Backward-traversal frontier (grounding queue)
 
-Ordered by leverage for the anchor's lineage. Each becomes `[G]` when fetched
-into `related-work/` and its citation is verified:
+Grounded on the 2026-07-30 pass (now `[G]`): tuned lens, ActAdd, RepE, Toy
+Models of Superposition, Turpin CoT-unfaithfulness, the 2025 introspection
+precursor (F1), and circuit tracing (D2). Remaining, ordered by leverage:
 
-1. Belrose et al. 2023 (tuned lens) — closest methodological sibling; verify the
-   "correlational, skips-ahead" framing the anchor uses to motivate J-lens.
-2. Turner et al. 2023 (ActAdd) + Zou et al. 2023 (RepE) — the intervention the
-   anchor's causal claims rest on.
-3. Bricken 2023 / Templeton 2024 (SAEs) — pin the sparse-nonneg-overcomplete
+1. Bricken 2023 / Templeton 2024 (SAEs) — pin the sparse-nonneg-overcomplete
    lineage and the input-vs-output-basis contrast precisely.
-4. Turpin 2023 / Lanham 2023 (CoT faithfulness) — the motivation.
-5. Binder 2024 + the 2025 introspection work — the anchor's introspection
-   protocol precursor (find the exact paper the anchor "adapts a protocol from").
-6. Elhage 2021/2022 (circuits, superposition) — substrate.
-7. Baars/Dehaene/Block — confirm exact GWT + access-consciousness citations the
-   anchor uses.
-8. **Get the anchor's actual bibliography** — this session's fetch could not
-   surface verbatim reference entries; a marker-pdf or full-HTML pass should
-   extract them so the manifest stops relying on reconstruction.
+2. Lanham 2023 (CoT faithfulness) — second faithfulness anchor (Turpin done).
+3. Elhage 2021 (circuits math framework) — substrate (superposition done).
+4. Park 2023 + Engels 2024 (linear representation hypothesis + its nonlinear
+   falsifier).
+5. Binder 2024 + Kadavath 2022 (the pre-2025 introspection/calibration lineage).
+6. Baars / Dehaene / Block — confirm exact GWT + access-consciousness citations.
+7. **Get the anchor's actual bibliography** — this session's fetch could not
+   surface verbatim reference entries; a marker-pdf or full-HTML pass (run
+   `related-work/fetch.sh`) should extract them so the manifest stops relying on
+   reconstruction, and should confirm the `anthropic2025-introspection` arXiv
+   mirror (2601.01828) and author lists for the three 2025 seeds.
 
 See `related-work/papers.yaml` for the metadata manifest (verification status
 per paper) and `related-work/fetch.sh` for the regenerable extraction script.

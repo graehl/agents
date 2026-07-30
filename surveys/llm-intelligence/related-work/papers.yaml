@@ -68,13 +68,13 @@ papers:
     note: "Falsifier for A1 (circular/multi-dim features)."
   - key: elhage2022-superposition
     title: "Toy Models of Superposition"
-    authors: ["Elhage", "et al. (Anthropic)"]
+    authors: ["Elhage", "Hume", "Olsson", "Schiefer", "Henighan", "Kravec", "Hatfield-Dodds", "Lasenby", "et al. (Anthropic)"]
     venue: "transformer-circuits.pub"
     year: 2022
     arxiv: "2209.10652"
-    grounded: false
-    verified: false
-    fetched: null
+    grounded: true
+    verified: true
+    fetched: 2026-07-30
     cluster: A2
   - key: bricken2023-monosemanticity
     title: "Towards Monosemanticity: Decomposing Language Models With Dictionary Learning"
@@ -129,35 +129,42 @@ papers:
     cluster: B2
   - key: belrose2023-tuned-lens
     title: "Eliciting Latent Predictions from Transformers with the Tuned Lens"
-    authors: ["Belrose", "et al."]
+    authors: ["Belrose", "Ostrovsky", "McKinney", "Furman", "Smith", "Halawi", "Biderman", "Steinhardt"]
     venue: "arXiv"
     year: 2023
     arxiv: "2303.08112"
-    grounded: false
-    verified: false
-    fetched: null
+    grounded: true
+    verified: true
+    fetched: 2026-07-30
     cluster: B3
+    note: 'Abstract: tuned lens is "more predictive, reliable and unbiased than the logit lens"; logit lens "brittle".'
 
   # --- C. steering ---
   - key: turner2023-actadd
-    title: "Activation Addition: Steering Language Models Without Optimization (ActAdd)"
-    authors: ["Turner", "et al."]
+    title: "Steering Language Models With Activation Engineering (introduces ActAdd)"
+    authors: ["Turner", "Thiergart", "Leech", "Udell", "Vazquez", "Mini", "MacDiarmid"]
     venue: "arXiv"
     year: 2023
     arxiv: "2308.10248"
-    grounded: false
-    verified: false
-    fetched: null
+    grounded: true
+    verified: true
+    fetched: 2026-07-30
     cluster: C1
+    note: >
+      Grounded-pass correction: arXiv 2308.10248's title is "Steering Language
+      Models With Activation Engineering"; ActAdd (contrast prompt-pair
+      activations, add the steering vector during the forward pass) is the
+      technique it introduces. Recalled title "Activation Addition ... Without
+      Optimization" was wrong.
   - key: zou2023-repe
     title: "Representation Engineering: A Top-Down Approach to AI Transparency"
-    authors: ["Zou", "et al."]
+    authors: ["Zou", "Phan", "Chen", "Campbell", "Guo", "Ren", "Pan", "et al."]
     venue: "arXiv"
     year: 2023
     arxiv: "2310.01405"
-    grounded: false
-    verified: false
-    fetched: null
+    grounded: true
+    verified: true
+    fetched: 2026-07-30
     cluster: C2
 
   # --- D. circuits framework ---
@@ -204,14 +211,15 @@ papers:
     cluster: E1
   - key: turpin2023-cot-unfaithful
     title: "Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting"
-    authors: ["Turpin", "et al."]
+    authors: ["Turpin", "Michael", "Perez", "Bowman"]
     venue: "NeurIPS"
     year: 2023
     arxiv: "2305.04388"
-    grounded: false
-    verified: false
-    fetched: null
+    grounded: true
+    verified: true
+    fetched: 2026-07-30
     cluster: E2
+    note: 'Abstract: "CoT explanations can systematically misrepresent the true reason for a model''s prediction"; biasing features cut accuracy up to 36%.'
   - key: lanham2023-cot-faithfulness
     title: "Measuring Faithfulness in Chain-of-Thought Reasoning"
     authors: ["Lanham", "et al. (Anthropic)"]
@@ -271,6 +279,54 @@ papers:
     verified: false
     fetched: null
     cluster: F2
+
+  # --- recent high-interest seed additions (2025, Anthropic/transformer-circuits) ---
+  - key: anthropic2025-introspection
+    title: "Emergent Introspective Awareness in Large Language Models"
+    authors: ["Anthropic (transformer-circuits.pub)"]   # full author list pending
+    venue: "transformer-circuits.pub"
+    year: 2025
+    date: 2025-10-29
+    url: "https://transformer-circuits.pub/2025/introspection/index.html"
+    arxiv: "2601.01828"   # mirror per search listing; confirm
+    grounded: true
+    verified: true
+    fetched: 2026-07-30
+    cluster: F1
+    note: >
+      Concept-injection introspection: inject a known concept's representation
+      into activations, measure its influence on the model's self-report. Direct
+      precursor to the J-space anchor's "verbal report" introspection protocol.
+      Claude Opus 4.1/4 performed best. Located + summarized via search
+      2026-07-30; author list and full-page fetch pending.
+  - key: anthropic2025-circuit-tracing
+    title: "Circuit Tracing: Revealing Computational Graphs in Language Models"
+    authors: ["Anthropic (transformer-circuits.pub)"]   # authors pending
+    venue: "transformer-circuits.pub"
+    year: 2025
+    url: "https://transformer-circuits.pub/2025/attribution-graphs/methods.html"
+    grounded: true
+    verified: true
+    fetched: 2026-07-30
+    cluster: D2
+    note: >
+      Cross-layer transcoders (CLTs) replace MLP activations with sparse
+      interpretable features; attribution graphs trace causal input->output
+      pathways. Causal-interpretability sibling of J-lens. Via search 2026-07-30.
+  - key: anthropic2025-biology
+    title: "On the Biology of a Large Language Model"
+    authors: ["Anthropic (transformer-circuits.pub)"]   # authors pending
+    venue: "transformer-circuits.pub"
+    year: 2025
+    url: "https://transformer-circuits.pub/2025/attribution-graphs/biology.html"
+    grounded: true
+    verified: true
+    fetched: 2026-07-30
+    cluster: D2
+    note: >
+      Applies attribution-graph circuit tracing to Claude 3.5 Haiku across many
+      case studies; companion to the circuit-tracing methods paper. Via search
+      2026-07-30.
 
   # --- substrate ---
   - key: vaswani2017-transformer
