@@ -25,8 +25,7 @@ it as its own commit — no gap file needed.
   agent in active dialog — or a subsession it chooses and manages —
   never by queueing or launching a fixer process, because the user
   needs visibility into what actions sessions take in response to
-  commands. A frontier agent asked to tend on-deck may still choose
-  to clear gaps first, in-session.
+  commands. Tending on-deck does not itself put unrelated gaps in scope.
 
 ## Reading
 

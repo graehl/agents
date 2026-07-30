@@ -36,12 +36,17 @@ pixels, viewport matrix, interaction sequences — is
 ## Mechanics
 
 Prefer the project's own screenshot tooling when its instructions name
-one. Generic fallback where Playwright is available:
+one. Generic fallback only when the project already has a local Playwright
+executable:
 
 ```bash
-npx playwright screenshot --viewport-size "1920,1080" <url> desktop.png
-npx playwright screenshot --viewport-size "375,812" <url> mobile.png
+./node_modules/.bin/playwright screenshot --viewport-size "1920,1080" <url> desktop.png
+./node_modules/.bin/playwright screenshot --viewport-size "375,812" <url> mobile.png
 ```
+
+Do not use `npx playwright` as the fallback: when no local package exists,
+`npx` may acquire and execute one from the registry. Installing screenshot
+tooling is a dependency change and uses the normal approval gate.
 
 Store captures under a durable project artifact directory (not
 reboot-cleared `/tmp`) so cited paths outlive the session.
