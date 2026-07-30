@@ -112,6 +112,15 @@ root of the preferences below).
 (Tool-jargon-in-summaries rule promoted to global `AGENTS.md` § Reader-facing
 summaries.)
 
+- **Compress implementation/debugging operations, not explanations.** During
+  implementation and debugging, keep progress updates and routine findings
+  concise: lead with the result, blocker, or next action; use short bullets or
+  sentence fragments when unambiguous; omit procedural narration and
+  already-shared context. Name concrete files, symbols, errors, and prior
+  claims instead of vague pronouns or allusions, and briefly define unfamiliar
+  terms. This does not shorten reasoning graehl asks to understand, design or
+  research discussion, tutorials, or prose written into project artifacts.
+
 - **One pass per idea — cut elaborative redundancy.** In communications *to
   graehl*, don't follow a point with a second sentence that only restates
   it; a restatement he must skim past is cost, not service. Assume he reads
