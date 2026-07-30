@@ -123,6 +123,25 @@ doing" orientation fallback. A `last-session.md` newer than that
 live evidence may be offered as an optional restore step; never
 treat it as authoritative.
 
+## Scheduled session prompts
+
+Once at the start of each ordinary new or resumed project session, cheaply
+probe that project's `<project>/at/` for a due `*.md` prompt when the directory
+exists. Do not create `at/` merely to check it, and do not also probe
+`~/agents/at/` from another project: an `at/` entry belongs to the project
+containing it and runs with that project root as its working directory.
+An at-launched runner skips this startup probe, preventing recursive launch
+chains.
+
+Use file mtime only to select due candidates without reading future entries.
+Before invoking one, load and follow `topics/at.md` from the project root when
+present, else `~/agents/topics/at.md`; its in-file `run_after`, atomic
+directory-lock handoff, and runner acknowledgement govern whether it may run.
+A session-start probe is catch-up, not a wall-clock scheduler: an explicit
+multi-project helper or YA may provide independent wakeups later, but must use
+the same claim protocol and derive each job's working directory from its owning
+`at/`, never from the helper's caller.
+
 # Verification and retrieval
 
 Verify claims about a project against the repo before relying on them;
@@ -687,6 +706,17 @@ points below are either not in those docs or are worth repeating here:
   `[end WARMUP]`) or relying on indentation.
 
 # Project organization
+
+## Convention-owned private directories
+
+When a project convention says a directory is git-excluded by default, add its
+path to the repository-local exclude file (`git rev-parse --git-path
+info/exclude`, commonly `.git/info/exclude`) **only in the same operation that
+creates the directory**, never to `.gitignore`. If the directory already
+exists, do not add or restore the exclusion unless the user explicitly asks:
+the project owner may have removed it deliberately in order to track the
+contents. Creating children or later maintaining the convention is not another
+occasion to enforce the default.
 
 ## Project topics
 

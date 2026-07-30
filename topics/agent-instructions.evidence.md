@@ -612,3 +612,20 @@ the sweep single-target.
   retained summary did not carry the local remote convention. This does
   not establish whether the file was loaded earlier, but it narrows the
   failure away from ambiguity in the rule itself.
+
+## 2026-07-30 — default-private directories exclude only on creation
+
+- **User convention** — when a project convention makes a directory private
+  by default, initialize it through the repository-local Git exclude, never a
+  committed `.gitignore`, and do so only in the operation that creates the
+  directory. A missing exclusion on an existing directory may be the project
+  owner's deliberate choice to track it; later agents must not “repair” it.
+- **Failure prevented** — a maintenance session sees an existing convention
+  directory, assumes its unignored state is accidental, and silently restores
+  a local exclusion that hides files the owner intended to review and commit.
+- **Trace** — fresh absent `at/`: its initializer creates the directory and
+  adds the local exclusion together. Existing unexcluded `at/`: a session
+  creates `.locks/` or edits jobs without touching Git exclusions. Existing
+  excluded directory: maintenance leaves the already-correct exclusion alone
+  rather than rewriting it. An explicit user request to change tracking still
+  governs.
