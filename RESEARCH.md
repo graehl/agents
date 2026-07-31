@@ -234,6 +234,18 @@ overlap tier (suspected proposal-overlap papers) that does not belong in a
 general field survey. A paper that draws on a survey should cite the
 `surveys/<field-slug>/` path so a future agent can find the shared map.
 
+**Canonical, cross-repo.** The shared field surveys live under
+`~/agents/surveys/<field-slug>/`. Research or prior-art work in **any** repo —
+including one whose own tree has no `surveys/` (e.g. `~/draft`) — should search
+them there before extracting a field afresh, and resolve a bare
+`surveys/<field-slug>/` reference to `~/agents/surveys/` when the current repo
+has none. Within a survey, the two things to search and cite are the `survey.md`
+map and the read-backed per-concept **`concepts/<short>.md`** digests — each our
+distilled understanding of one paper/idea, keyed by a short handle and read from
+a git-ignored full-text extract. `concepts/` is a survey-scoped convention,
+distinct from repo-wide `topics/` (cross-cutting contracts); it is the
+understanding-page tier defined in `topics/research-survey.md`.
+
 ### Research-advisor handoff
 
 Use one long-lived skeptical research-advisor session per research program.

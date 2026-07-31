@@ -302,7 +302,10 @@ Companion docs hold split-out, opt-in policy:
 - `RESEARCH.md` — research method; load before substantive
   research/experimentation work (notebooks, train/eval, significance
   claims, paper/report drafting). Also routes the field-map, frontier-map,
-  literature-search, and research-advisor protocols.
+  literature-search, and research-advisor protocols. Shared field surveys
+  live under `~/agents/surveys/<field>/` (`survey.md` map + per-concept
+  `concepts/<short>.md` digests) — cross-repo prior-art to search before
+  extracting a field afresh, from any repo including one with no `surveys/`.
 - `RUNS.md` — run-operation / `agentctl` policy; load before
   launching/monitoring/summarizing long-running jobs.
 - `feature-branch.md` — branch-per-feature workflow; load when the
