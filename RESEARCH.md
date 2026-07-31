@@ -33,6 +33,21 @@ authors need not repeat the association in each file. Define a term in the
 program glossary when multiple program artifacts use it, while paper-local
 notation that does not recur stays in the paper.
 
+A program glossary **declares** the program on its own line above the table:
+
+```markdown
+Research program: <slug>
+```
+
+The slug is the directory basename, and the declaration is what makes the
+directory a program root — for advisor scope, for followed-document defaults,
+and for everything else keyed on programs. Declare deliberately, once the
+program's evidence stream and narrative are independent enough that separate
+advising beats shared context. A directory existing under `research/`, holding
+papers, or holding a glossary is not by itself a program: `topics/glossary.md`
+has every subtree create a `GLOSSARY.md` as soon as local jargon recurs, so an
+undeclared glossary under `research/` scopes vocabulary and nothing more.
+
 ### Research log conventions
 
 Log entries go at the **top** (newest first). For each experiment: brief preface
@@ -249,7 +264,8 @@ understanding-page tier defined in `topics/research-survey.md`.
 ### Research-advisor handoff
 
 Use one long-lived skeptical research-advisor session per research program.
-Discover programs by `research/<program>/GLOSSARY.md`; their advisors live at
+Discover programs by the `Research program:` declaration in
+`research/<program>/GLOSSARY.md`; their advisors live at
 `research/<program>/advisor/`. Root-level standalone papers and cross-program
 syntheses use the project-wide fallback at `research/advisor/`. The object-level
 research session **must invoke the applicable advisor once** for each new

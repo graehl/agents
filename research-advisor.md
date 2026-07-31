@@ -10,8 +10,10 @@ started only on demand.
 ## Scope and continuity
 
 The default unit is one research program. Discover program roots by the
-presence of `research/<program>/GLOSSARY.md`; do not infer a program from an
-arbitrary research subdirectory. A program advisor uses:
+`Research program:` declaration in `research/<program>/GLOSSARY.md`
+(`RESEARCH.md` § Research programs); a glossary without one scopes vocabulary
+only, so no subdirectory forks an advisor by merely existing. A program advisor
+uses:
 
 - `research/<program>/advisor/notes.md` for its compact current assessment;
 - `research/<program>/advisor/docs/state.md` for its followed-document list
