@@ -44,35 +44,38 @@ papers:
   # --- A. representation geometry ---
   - key: mikolov2013-word2vec
     title: "Efficient Estimation of Word Representations in Vector Space (word2vec; analogy arithmetic)"
-    authors: ["Mikolov", "Chen", "Corrado", "Dean"]
+    authors: ["Tomas Mikolov", "Kai Chen", "Greg Corrado", "Jeffrey Dean"]
     venue: "ICLR Workshop / arXiv"
     year: 2013
     arxiv: "1301.3781"
-    grounded: false
-    verified: false
-    fetched: null
+    grounded: true
+    verified: true          # title + byline read off the fetched extract
+    fetched: 2026-07-31
     cluster: A1
   - key: park2023-linear-rep
     title: "The Linear Representation Hypothesis and the Geometry of Large Language Models"
-    authors: ["Park", "Choe", "Veitch"]
+    authors: ["Kiho Park", "Yo Joong Choe", "Victor Veitch"]
     venue: "arXiv (later ICML 2024)"
     year: 2023
     arxiv: "2311.03658"
-    grounded: false
-    verified: false
-    fetched: null
+    grounded: true
+    verified: true          # title + byline read off the fetched extract
+    fetched: 2026-07-31
     cluster: A1
   - key: engels2024-not-linear
-    title: "Not All Language Model Features Are Linear"
-    authors: ["Engels", "et al."]
+    title: "Not All Language Model Features Are One-Dimensionally Linear"
+    authors: ["Joshua Engels", "et al."]
     venue: "arXiv"
     year: 2024
     arxiv: "2405.14860"
-    grounded: false
-    verified: false
-    fetched: null
+    grounded: true
+    verified: true          # title corrected against the fetched extract
+    fetched: 2026-07-31
     cluster: A1
-    note: "Falsifier for A1 (circular/multi-dim features)."
+    note: >
+      Falsifier for A1 (circular/multi-dim features). The recalled title
+      dropped "One-Dimensionally", which changes the claim: the paper
+      falsifies one-dimensionality, not linearity.
   - key: elhage2022-superposition
     short: superposition
     concept_page: concepts/superposition.md
@@ -89,34 +92,36 @@ papers:
     short: sae
     concept_page: concepts/sae.md
     title: "Towards Monosemanticity: Decomposing Language Models With Dictionary Learning"
-    authors: ["Bricken", "et al. (Anthropic)"]
+    authors: ["Trenton Bricken", "Adly Templeton", "Joshua Batson", "Brian Chen", "Adam Jermyn", "et al. (Anthropic)"]
     venue: "transformer-circuits.pub"
     year: 2023
+    url: "https://transformer-circuits.pub/2023/monosemantic-features/index.html"
     grounded: true
-    verified: false
+    verified: true          # title + byline read off the fetched page
     fetched: 2026-07-31
     cluster: A3
   - key: templeton2024-scaling-mono
     concept_page: concepts/sae.md
     title: "Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet"
-    authors: ["Templeton", "et al. (Anthropic)"]
+    authors: ["Adly Templeton", "Tom Conerly", "Jonathan Marcus", "Jack Lindsey", "Trenton Bricken", "et al. (Anthropic)"]
     venue: "transformer-circuits.pub"
     year: 2024
-    grounded: false
-    verified: false
-    fetched: null
+    url: "https://transformer-circuits.pub/2024/scaling-monosemanticity/index.html"
+    grounded: true
+    verified: true          # title + byline read off the fetched page
+    fetched: 2026-07-31
     cluster: A3
 
   # --- B. reading state ---
   - key: alain2016-probes
     title: "Understanding intermediate layers using linear classifier probes"
-    authors: ["Alain", "Bengio"]
+    authors: ["Guillaume Alain", "Yoshua Bengio"]
     venue: "arXiv / ICLR Workshop"
     year: 2016
     arxiv: "1610.01644"
-    grounded: false
-    verified: false
-    fetched: null
+    grounded: true
+    verified: true          # title + byline read off the fetched extract
+    fetched: 2026-07-31
     cluster: B1
   - key: hewitt2019-control-tasks
     title: "Designing and Interpreting Probes with Control Tasks"
@@ -138,7 +143,7 @@ papers:
     year: 2020
     url: "https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens"
     grounded: true
-    verified: false
+    verified: true          # title/author/2020-08-31 read off the fetched page
     fetched: 2026-07-31
     cluster: B2
   - key: belrose2023-tuned-lens

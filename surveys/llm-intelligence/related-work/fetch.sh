@@ -29,6 +29,8 @@
 # Usage:
 #   ./fetch.sh              # build every extract not yet completed
 #   ./fetch.sh KEY ...      # only the named papers.yaml keys
+#   ./fetch.sh --audit      # reconcile papers.yaml state against ./extract;
+#                           # exits 1 on drift, so it also works as a check
 #   NO_HTML=1 ./fetch.sh    # skip the arXiv HTML view; go straight to PDF+marker
 #   KEYS_ONLY=1 ./fetch.sh  # download raw sources only, skip marker extraction
 #   REFETCH=1 ./fetch.sh K  # re-fetch even a completed target (rebuild)
@@ -64,6 +66,87 @@ rows() {
     /^[[:space:]]*url:[[:space:]]*/   { v=$0; sub(/.*url:[[:space:]]*/,"",v);   sub(/[[:space:]]+#.*$/,"",v); gsub(/["\r]/,"",v); sub(/[[:space:]]+$/,"",v); printf "%s\037url\037%s\n",   key, v }
   ' papers.yaml
 }
+
+# Same crude reader, for the state fields the audit reconciles. `has` is 1 when
+# the entry carries an arxiv:/url: (i.e. rows() can regenerate it) and `src` is
+# its `source:` provenance when it has one.
+audit_rows() {
+  awk '
+    function val(line, name,   v) {
+      v = line; sub(".*" name ":[[:space:]]*", "", v)
+      sub(/[[:space:]]*#.*$/, "", v); gsub(/["\r]/, "", v)
+      sub(/[[:space:]]+$/, "", v); return v
+    }
+    function flush() {
+      if (key != "") printf "%s\037%s\037%s\037%s\037%s\037%s\n", key, g, v, f, has, src
+    }
+    /^[[:space:]]*-[[:space:]]*key:[[:space:]]*/ {
+      flush(); key=val($0,"key"); g=""; v=""; f=""; has=0; src=""
+    }
+    /^[[:space:]]*grounded:[[:space:]]*/ { g=val($0,"grounded") }
+    /^[[:space:]]*verified:[[:space:]]*/  { v=val($0,"verified") }
+    /^[[:space:]]*fetched:[[:space:]]*/   { f=val($0,"fetched") }
+    /^[[:space:]]*source:[[:space:]]*/    { src=val($0,"source") }
+    /^[[:space:]]*(arxiv|url):[[:space:]]*/ { has=1 }
+    END { flush() }
+  ' papers.yaml
+}
+
+# Reconcile the manifest's declared state against the extract tree, so that
+# staying honest is a command rather than a standing manual chore. Four rules,
+# each a claim the manifest header makes that disk can confirm or refute:
+#
+#   grounded    <-> the completion sentinel exists. Drifts both ways in
+#                   practice: a paper fetched but never marked, and a paper
+#                   marked but never actually extracted.
+#   fetched     -> a date whenever the sentinel exists.
+#   verified    -> for a grounded paper, fetching its own source settles its
+#                   own citation, so grounded-but-unverified is a contradiction.
+#                   Verified WITHOUT grounded is fine and common: a citation
+#                   checked against the anchor's fetched bibliography needs no
+#                   extract of its own — but it must then say so in `source:`,
+#                   which is what separates it from pretrained recall.
+#   regenerable -> an extract on disk whose entry has no arxiv:/url: cannot be
+#                   rebuilt from this repo, which is the one promise the
+#                   git-ignored extract tree makes.
+audit() {
+  local drift=0
+  local key grounded verified fetched has_ident source sentinel
+  while IFS=$'\x1f' read -r -u 3 key grounded verified fetched has_ident source; do
+    [ -z "$key" ] && continue
+    sentinel="extract/$key/.fetched"
+    if [ -e "$sentinel" ]; then
+      if [ "$grounded" != true ]; then
+        echo "DRIFT $key: extract fetched, but grounded: ${grounded:-<unset>}"; drift=1
+      fi
+      if [ -z "$fetched" ] || [ "$fetched" = null ]; then
+        echo "DRIFT $key: extract fetched, but fetched: ${fetched:-<unset>}"; drift=1
+      fi
+      if [ "$verified" != true ]; then
+        echo "DRIFT $key: own source fetched, but verified: ${verified:-<unset>}"; drift=1
+      fi
+    elif [ "$grounded" = true ]; then
+      echo "DRIFT $key: grounded: true, but no $sentinel"; drift=1
+    fi
+    if [ -d "extract/$key" ] && [ "$has_ident" != 1 ]; then
+      echo "DRIFT $key: extract on disk, but no arxiv:/url: to regenerate it"; drift=1
+    fi
+    if [ "$verified" = true ] && [ "$grounded" != true ] && [ -z "$source" ]; then
+      echo "DRIFT $key: verified without its own extract needs source:"; drift=1
+    fi
+  done 3< <(audit_rows)
+  if [ "$drift" = 0 ]; then
+    echo "audit: papers.yaml agrees with ./extract"
+    return 0
+  fi
+  echo "audit: reconcile papers.yaml with disk (or re-run ./fetch.sh)" >&2
+  return 1
+}
+
+if [ "${1:-}" = --audit ]; then
+  audit || exit 1
+  exit 0
+fi
 
 declare -A WANT=(); for a in "$@"; do WANT["$a"]=1; done
 
@@ -138,4 +221,5 @@ while IFS=$'\x1f' read -r -u 3 key kind ident; do
   [ -z "$key" ] && continue
   fetch_one "$key" "$kind" "$ident" </dev/null || echo "WARN error on $key"
 done 3< <(rows)
-echo "done. extracts in ./extract/<key>/ (rg-able); mark papers.yaml grounded/verified as you confirm."
+echo "done. extracts in ./extract/<key>/ (rg-able); mark papers.yaml grounded/verified"
+echo "as you confirm, then ./fetch.sh --audit to check the manifest against disk."

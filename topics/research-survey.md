@@ -28,19 +28,18 @@
   pass may run *within* an established survey dir (`field-map.md` builds the map;
   `frontier-map.md` overlays on it — same `surveys/<field-slug>/`
   representation, same grounding mode).
-- **Concept artifacts: three tiers, keyed by a short handle** (our name for the
-  concept, which may only vaguely resemble the paper title). (1) A durable
-  full-text **extract** (`related-work/extract/<short>/`) — a linked reference,
-  read on demand, not routinely traversed. (2) A committed **understanding**
-  page (`concepts/<short>.md`) — our distillation, the working artifact,
-  written from a **fetch+read** of the full text (not pretrained recall) and
-  carrying **direct clickable hyperlinks** to the viewable full text — the HTML
-  viewer (`arxiv.org/html/<id>`, a transformer-circuits page, a blog post) and/or
-  the PDF (`arxiv.org/pdf/<id>`), as markdown links not bare identifiers — so a
-  reader browsing the committed page on GitHub clicks straight through to the
-  paper; the same URLs reconstitute the git-ignored extract. (3) The
-  compact **map node** in `survey.md`, linking to both. `papers.yaml` carries
-  each concept's `short` handle alongside its citation key.
+- **Concept artifacts: three tiers.** (1) A durable full-text **extract**
+  (`related-work/extract/<key>/`) — a linked reference, read on demand, not
+  routinely traversed. (2) A committed **understanding** page
+  (`concepts/<short>.md`) — our distillation, the working artifact, written
+  from a **fetch+read** of the full text and hyperlinking it (invariants
+  below). (3) The compact **map node** in `survey.md`, linking to both.
+- **Two names per paper, and the extract takes the durable one.** The
+  **citation key** exists from the moment a paper enters `papers.yaml`; the
+  **short handle** — our name for the concept, which may only vaguely resemble
+  the paper title — is added later, and only for a paper that earns a concept
+  page. So extracts are keyed by citation key: keying them by `short` orphans
+  every already-fetched extract the day a handle is assigned.
 - **Extracts are computed, git-ignored, reconstitutable.** Extraction produces a
   good `.md` — via **marker-pdf** (`AGENTS.md § PDF reading` + the
   `AGENTS.user.md` host recipe) for PDFs, or the equally valid **arXiv HTML
@@ -70,7 +69,7 @@
   present itself as grounded.
 - **Concept understanding pages follow a fetch+read.** `concepts/<short>.md` is
   written from an actual read of the fetched full text — its
-  `related-work/extract/<short>/`, or the fetched primary source — not from
+  `related-work/extract/<key>/`, or the fetched primary source — not from
   pretrained recall; a durable, checked understanding is the goal. A
   recall-only page is a banner-marked stopgap, not a grounded concept page, and
   its citations stay `verified: false` until a fetch+read confirms them.

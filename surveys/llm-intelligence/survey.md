@@ -40,8 +40,9 @@ fetched + citation-checked but not yet read (see the legend).
 - **Grounding mode: `grounded`, in progress (partial).** State as of the
   cutoff below, counted from `related-work/papers.yaml` and `concepts/` rather
   than narrated per session — update these numbers when either changes:
-  **64 papers manifested, 45 citation-verified, 19 with a fetched extract, 15
-  read in full and digested.** Per-node grounding is tagged inline (`[G]`
+  **64 papers manifested, 52 citation-verified, 24 with a fetched extract, 15
+  read in full and digested.** `./related-work/fetch.sh --audit` checks those
+  first three against disk. Per-node grounding is tagged inline (`[G]`
   citation-grounded / `[R]` recall-pending); a full read is marked by a linked
   `concepts/` digest. Recall-pending effectiveness grades are capped at
   `single-source`/`folklore` and must not be read as verified.
@@ -201,10 +202,12 @@ survey value is in *not* conflating adjacent techniques.
   single concept's code. They compose but are distinct claims.
 - **Prereq for:** all lens (B) and steering (C) methods, and J-space's whole
   premise that a workspace vector maps to a token disposition.
-- **Falsifier / bound.** Not all features are linear: circular/multi-dim
-  features (e.g. days-of-week, modular structure) reported by Engels et al.
-  2024 ("Not all language model features are linear"). So the hypothesis is a
-  useful default, not a law.
+- **Falsifier / bound.** Not all features are *one-dimensional*: circular /
+  multi-dimensional features (e.g. days-of-week, modular structure) reported by
+  Engels et al. 2024, "Not All Language Model Features Are One-Dimensionally
+  Linear" [G]. The title matters — the paper falsifies one-dimensionality, not
+  linearity, so a multi-dim linear subspace still satisfies the weaker
+  hypothesis. A useful default, not a law.
 - **Effectiveness:** `contested` (recall-capped to `single-source` here) —
   strong for many semantic concepts; known nonlinear exceptions.
 - **Design decision it changes.** Whether you can read/steer a concept with a
@@ -693,11 +696,17 @@ leverage (a `[G]`-no-digest node = fetched + citation-checked, read pending):
 
 1. **SAE deepening** — the `sae` digest is read-backed on Bricken (+ Templeton
    skim); read **Cunningham 2023** and **Templeton 2024** in full to complete it.
+   Templeton's extract is built; Cunningham's is a bare `source.pdf` whose
+   marker run never completed, so it needs a re-run before it can be read.
 3. **Activation-decoding deepening** — the digest is read-backed on SelFIE +
    LatentQA; **Activation Oracles** (Karvonen) and **NL-Autoencoders**
    (Fraser-Taliente) are summarized from the anchor bib, not yet read.
-4. A1 geometry: **Park 2023 + Engels 2024** (linear rep hypothesis + nonlinear
+4. A1 geometry: **Park 2023 + Engels 2024** (linear rep hypothesis + its
    falsifier) — the one unread foundational cluster; **word2vec** ancestor.
+   All three extracts are now built, so this is a read, not a fetch. The
+   fetch already corrected Engels' title to "Not All Language Model Features
+   Are **One-Dimensionally** Linear": it falsifies one-dimensionality, not
+   linearity, which is a weaker claim against A1 than the map assumed.
 5. Lanham 2023 (second CoT-faithfulness anchor); **Bogdan slots (B5)**;
    **Wendler / Yang (E3)** latent-computation precursors — read the new seeds.
 6. D1: **Elhage 2021** (circuits math framework) + Olah 2020 "Zoom In".
