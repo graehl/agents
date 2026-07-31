@@ -9,6 +9,8 @@
 Explanations in Chain-of-Thought Prompting," Turpin, Michael, Perez, Bowman,
 NeurIPS 2023 (arXiv 2305.04388).
 
+**Full text:** [HTML](https://arxiv.org/html/2305.04388) · [PDF](https://arxiv.org/pdf/2305.04388).
+
 ## What it is
 
 Chain-of-thought (CoT) makes a model verbalize step-by-step reasoning before

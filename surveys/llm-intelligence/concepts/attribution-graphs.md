@@ -9,6 +9,8 @@
 - "Circuit Tracing: Revealing Computational Graphs in Language Models" (methods).
 - "On the Biology of a Large Language Model" (application to Claude 3.5 Haiku).
 
+**Full text:** [Circuit Tracing (methods)](https://transformer-circuits.pub/2025/attribution-graphs/methods.html) · [On the Biology of a Large Language Model](https://transformer-circuits.pub/2025/attribution-graphs/biology.html).
+
 ## What it is
 
 Build an interpretable **replacement model**: swap the MLPs for a **cross-layer

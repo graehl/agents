@@ -16,11 +16,10 @@ Bogdan, Euan Ong, Rowan Wang, T. Ben Thompson, David Abrahams, Subhash
 Kantamneni, Emmanuel Ameisen, Joshua Batson; Jack Lindsey\*† (correspondence,
 jacklindsey@anthropic.com). \*core contributor.
 
-**Sources (for reconstituting the git-ignored full-text extract):**
-- Primary: https://transformer-circuits.pub/2026/workspace/index.html
-- Companion announce: https://www.anthropic.com/research/global-workspace
-- Skeptical read (counterweight): Zvi Mowshowitz, "No Space Like J-Space,"
-  https://thezvi.substack.com/p/no-space-like-j-space
+**Full text (click through; also reconstitutes the git-ignored extract):**
+- Primary: [Verbalizable Representations Form a Global Workspace in LMs](https://transformer-circuits.pub/2026/workspace/index.html) (transformer-circuits)
+- Companion announce: [anthropic.com/research/global-workspace](https://www.anthropic.com/research/global-workspace)
+- Skeptical read (counterweight): [Zvi Mowshowitz, "No Space Like J-Space"](https://thezvi.substack.com/p/no-space-like-j-space)
 
 Extract (built 2026-07-31, git-ignored):
 `related-work/extract/j-space/2026/workspace/` — full page + figures, plus

@@ -7,7 +7,8 @@
 
 **Paper.** "Emergent Introspective Awareness in Large Language Models," Anthropic,
 transformer-circuits.pub, 2025 (published 2025-10-29).
-https://transformer-circuits.pub/2025/introspection/index.html
+
+**Full text:** [Emergent Introspective Awareness in LLMs](https://transformer-circuits.pub/2025/introspection/index.html) (transformer-circuits).
 
 ## What it is
 

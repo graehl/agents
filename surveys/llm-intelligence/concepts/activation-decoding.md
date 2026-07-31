@@ -14,6 +14,8 @@
   — Fraser-Taliente, Kantamneni, et al. 2026 (co-author Kantamneni is also a
   J-space author).
 
+**Full text:** SelFIE → [HTML](https://arxiv.org/html/2403.10949) · [PDF](https://arxiv.org/pdf/2403.10949) · LatentQA → [HTML](https://arxiv.org/html/2412.08686) · [PDF](https://arxiv.org/pdf/2412.08686). (Activation Oracles / NL-Autoencoders not yet fetched.)
+
 ## What it is
 
 Decode an internal activation **into free text** rather than a token score.

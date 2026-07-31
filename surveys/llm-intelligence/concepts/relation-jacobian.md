@@ -8,6 +8,8 @@
 Hernandez, Sharma, Haklay, Meng, Wattenberg, Andreas, Bau, Belinkov, ICLR 2024
 (arXiv 2308.09124).
 
+**Full text:** [HTML](https://arxiv.org/html/2308.09124) · [PDF](https://arxiv.org/pdf/2308.09124).
+
 ## What it is
 
 Much of an LM's factual knowledge is relational: `(Miles Davis, plays instrument,

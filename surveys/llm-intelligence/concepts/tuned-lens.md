@@ -8,6 +8,8 @@
 Belrose, Furman, Smith, Halawi, Ostrovsky, McKinney, Biderman, Steinhardt, 2023
 (arXiv 2303.08112). Code: github.com/AlignmentResearch/tuned-lens.
 
+**Full text:** [HTML](https://arxiv.org/html/2303.08112) · [PDF](https://arxiv.org/pdf/2303.08112).
+
 ## What it is
 
 For each layer ℓ, train an **affine map** (a "translator") so that

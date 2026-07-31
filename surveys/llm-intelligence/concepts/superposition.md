@@ -7,7 +7,8 @@
 
 **Paper.** "Toy Models of Superposition," Elhage, Hume, Olsson, Schiefer,
 Henighan, et al. (Anthropic), transformer-circuits.pub, 2022.
-https://transformer-circuits.pub/2022/toy_model/index.html
+
+**Full text:** [Toy Models of Superposition](https://transformer-circuits.pub/2022/toy_model/index.html) (transformer-circuits).
 
 ## What it is
 

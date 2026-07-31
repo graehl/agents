@@ -14,6 +14,8 @@
 - Templeton et al. (Anthropic), "Scaling Monosemanticity: Extracting Interpretable
   Features from Claude 3 Sonnet," transformer-circuits.pub, 2024.
 
+**Full text:** Bricken → [Towards Monosemanticity](https://transformer-circuits.pub/2023/monosemantic-features/index.html) · Cunningham → [PDF](https://arxiv.org/pdf/2309.08600) (no arXiv HTML view) · Templeton → [Scaling Monosemanticity](https://transformer-circuits.pub/2024/scaling-monosemanticity/index.html).
+
 ## What it is
 
 Train an **overcomplete sparse autoencoder (SAE)** on a model's activations: an

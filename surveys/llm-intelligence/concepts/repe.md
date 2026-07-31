@@ -8,6 +8,8 @@
 Zou, Phan, Chen, Campbell, Guo, Ren, Pan, ... et al., 2023 (arXiv 2310.01405).
 Code: github.com/andyzoujm/representation-engineering.
 
+**Full text:** [HTML](https://arxiv.org/html/2310.01405) · [PDF](https://arxiv.org/pdf/2310.01405).
+
 ## What it is
 
 Put **representations** (not neurons or circuits) at the center of analysis.

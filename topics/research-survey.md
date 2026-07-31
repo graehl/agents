@@ -34,7 +34,11 @@
   read on demand, not routinely traversed. (2) A committed **understanding**
   page (`concepts/<short>.md`) — our distillation, the working artifact,
   written from a **fetch+read** of the full text (not pretrained recall) and
-  **recording the source URL(s)** so the extract can be reconstituted. (3) The
+  carrying **direct clickable hyperlinks** to the viewable full text — the HTML
+  viewer (`arxiv.org/html/<id>`, a transformer-circuits page, a blog post) and/or
+  the PDF (`arxiv.org/pdf/<id>`), as markdown links not bare identifiers — so a
+  reader browsing the committed page on GitHub clicks straight through to the
+  paper; the same URLs reconstitute the git-ignored extract. (3) The
   compact **map node** in `survey.md`, linking to both. `papers.yaml` carries
   each concept's `short` handle alongside its citation key.
 - **Extracts are computed, git-ignored, reconstitutable.** Extraction produces a
@@ -47,7 +51,7 @@
   convention dirs): they are regenerable "computed" artifacts, durable in the
   author's workdir, retrieved under the user's own authorization to access the
   source, and not redistributed by default. The committed understanding page
-  (plus its source URL) is the **primary artifact reasoned and traversed on**;
+  (plus its full-text hyperlinks) is the **primary artifact reasoned and traversed on**;
   drop to the git-ignored full-text extract only for a specific the summary omits.
 - One field map serves both the survey paper/presentation use and the
   prior-art-reconnaissance, instruction, and personal-mastery-reference uses;
@@ -70,6 +74,13 @@
   pretrained recall; a durable, checked understanding is the goal. A
   recall-only page is a banner-marked stopgap, not a grounded concept page, and
   its citations stay `verified: false` until a fetch+read confirms them.
+- **Understanding pages hyperlink the viewable full text.** Every
+  `concepts/<short>.md` includes **direct, clickable** markdown links (not bare
+  arXiv ids) to where the full text is viewed/downloaded — the HTML viewer and/or
+  the PDF — so a reader on GitHub reaches the paper in one click. Use the exact
+  URL `fetch.sh` downloads from (`arxiv.org/html/<id>` + `arxiv.org/pdf/<id>`, a
+  transformer-circuits `index.html`, or a blog post); it doubles as the extract's
+  reconstitution source.
 - Every effectiveness claim is graded (`reproduced` / `single-source` /
   `contested` / `failed-replication` / `folklore`) and conditioned on
   baseline, benchmark, and regime. A bare "works well" is rejected.

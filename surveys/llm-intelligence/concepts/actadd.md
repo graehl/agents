@@ -11,6 +11,8 @@ Models Without Optimization"; current arXiv title "Steering Language Models With
 Activation Engineering." (The anchor cites the original title; both are the same
 paper. An earlier survey pass wrongly flagged the old title as an error.)
 
+**Full text:** [HTML](https://arxiv.org/html/2308.10248) · [PDF](https://arxiv.org/pdf/2308.10248).
+
 ## What it is
 
 **Activation engineering** = inference-time modification of activations to steer

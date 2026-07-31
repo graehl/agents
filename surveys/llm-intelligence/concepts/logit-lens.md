@@ -6,7 +6,7 @@
 > vocabulary" family.
 
 **Source.** nostalgebraist, "interpreting GPT: the logit lens," LessWrong, 2020.
-https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens
+**Full text:** [interpreting GPT: the logit lens](https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens) (LessWrong post).
 
 ## What it is
 
