@@ -22,17 +22,30 @@
 #      self-contained (images via wget) or, failing that, as raw HTML.
 #
 # Usage:
-#   ./fetch.sh              # build every extract missing from ./extract
+#   ./fetch.sh              # build every extract not yet completed
 #   ./fetch.sh KEY ...      # only the named papers.yaml keys
 #   NO_HTML=1 ./fetch.sh    # skip the arXiv HTML view; go straight to PDF+marker
 #   KEYS_ONLY=1 ./fetch.sh  # download raw sources only, skip marker extraction
+#   REFETCH=1 ./fetch.sh K  # re-fetch even a completed target (rebuild)
 #
-# Idempotent: skips a paper whose extract/<name>/ dir already exists.
+# Idempotent by completion sentinel: a target counts as done only once its
+# extract SUCCEEDS, recorded as extract/<name>/.fetched. Re-running skips
+# completed targets — so you can add papers to papers.yaml and fetch only the
+# new ones — but RETRIES a partial/failed one: a PDF whose marker run crashed
+# leaves source.pdf and no .fetched, so the next run tries again (reusing the
+# already-downloaded PDF). Guarding on the sentinel, not on the dir's mere
+# existence, is what keeps a cached failure from masquerading as done.
 set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p extract
 
 have() { command -v "$1" >/dev/null 2>&1; }
+
+# Completion sentinel: written ONLY when an extract actually succeeded, so a
+# partial/crashed run is retried rather than cached as done. Line: method + src.
+mark_fetched() { printf '%s\t%s\n' "$2" "$3" > "extract/$1/.fetched"; }
+# true when the extract dir holds extracted content (markdown or a saved page).
+has_content() { [ -n "$(find "extract/$1" \( -name '*.md' -o -name '*.html' \) -print -quit 2>/dev/null)" ]; }
 
 # crude papers.yaml reader: emit "key<US>short<US>kind<US>ident" rows, where <US>
 # is the 0x1f unit separator. A non-whitespace separator is deliberate: `read`
@@ -72,42 +85,46 @@ fetch_one() {
   local key="$1" short="$2" kind="$3" ident="$4"
   local name="${short:-$key}"
   [ "${#WANT[@]}" -gt 0 ] && [ -z "${WANT[$key]:-}" ] && return 0
-  [ -d "extract/$name" ] && { echo "SKIP $name (extract/$name exists)"; return 0; }
+  [ -z "${REFETCH:-}" ] && [ -e "extract/$name/.fetched" ] && { echo "SKIP $name (already fetched)"; return 0; }
   case "$kind" in
     arxiv)
       if [ -z "${NO_HTML:-}" ]; then
         echo "HTML $name arxiv:$ident (html view)"
         if save_page "extract/$name" "https://arxiv.org/html/$ident" "$name"; then
+          mark_fetched "$name" arxiv-html "$ident"
           echo "  -> extract/$name (arXiv HTML view)"; return 0
         fi
         echo "  arXiv HTML view unavailable; falling back to PDF+marker"
       fi
       mkdir -p "extract/$name"; local pdf="extract/$name/source.pdf"
-      echo "GET  $name arxiv:$ident (pdf)"
-      curl -fsSL "https://arxiv.org/pdf/$ident" -o "$pdf"
-      [ -n "${KEYS_ONLY:-}" ] && return 0
+      # keep the PDF across retries so a re-run after a marker crash re-uses it
+      [ -e "$pdf" ] || { echo "GET  $name arxiv:$ident (pdf)"; curl -fsSL "https://arxiv.org/pdf/$ident" -o "$pdf"; }
+      [ -n "${KEYS_ONLY:-}" ] && return 0   # raw download only; no sentinel -> a later run extracts
       if have marker_single; then
         echo "MARK $name"
-        marker_single "$pdf" --output_dir extract.tmp >/dev/null
+        marker_single "$pdf" --output_dir extract.tmp >/dev/null || true   # tolerate a marker crash (e.g. CUDA OOM)
         # marker writes extract.tmp/<stem>/ with <stem>.md + extracted images.
         # Copy the WHOLE dir so images are preserved; normalize the .md name.
-        local sub; sub=$(find extract.tmp -mindepth 1 -maxdepth 1 -type d -print -quit || true)
+        local sub; sub=$(find extract.tmp -mindepth 1 -maxdepth 1 -type d -print -quit 2>/dev/null || true)
         if [ -n "$sub" ]; then
           cp -r "$sub"/. "extract/$name/"
           local md; md=$(find "extract/$name" -maxdepth 1 -name '*.md' -print -quit || true)
           [ -n "$md" ] && [ "$md" != "extract/$name/$name.md" ] && mv "$md" "extract/$name/$name.md"
         fi
         rm -rf extract.tmp
+        if has_content "$name"; then mark_fetched "$name" pdf-marker "$ident"
+        else echo "WARN $name: marker produced no markdown (kept source.pdf; will retry next run)"; fi
       else
         echo "WARN marker_single not on PATH; kept $pdf unextracted (see AGENTS.user.md)"
       fi ;;
     url)
       echo "GET  $name url:$ident"
-      save_page "extract/$name" "$ident" "$name" || { echo "WARN fetch failed $name"; return 0; }
+      save_page "extract/$name" "$ident" "$name" || { echo "WARN fetch failed $name (no sentinel; will retry)"; return 0; }
       # best-effort markdown from the raw-HTML fallback filename; the
       # self-contained wget capture is the primary artifact either way.
       have pandoc && [ -e "extract/$name/$name.html" ] && \
-        pandoc -f html -t gfm "extract/$name/$name.html" -o "extract/$name/$name.md" 2>/dev/null || true ;;
+        pandoc -f html -t gfm "extract/$name/$name.html" -o "extract/$name/$name.md" 2>/dev/null || true
+      mark_fetched "$name" url-html "$ident" ;;
   esac
 }
 
