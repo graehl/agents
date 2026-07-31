@@ -41,7 +41,7 @@ fetched + citation-checked but not yet read (see the legend).
   cutoff below, counted from `related-work/papers.yaml` and `concepts/` rather
   than narrated per session — update these numbers when either changes:
   **64 papers manifested, 52 citation-verified, 24 with a fetched extract, 15
-  read in full and digested.** `./related-work/fetch.sh --audit` checks those
+  read in full and digested.** `related-work audit` checks those
   first three against disk. Per-node grounding is tagged inline (`[G]`
   citation-grounded / `[R]` recall-pending); a full read is marked by a linked
   `concepts/` digest. Recall-pending effectiveness grades are capped at
@@ -718,6 +718,7 @@ leverage (a `[G]`-no-digest node = fetched + citation-checked, read pending):
    `anthropic2025-introspection` arXiv mirror (2601.01828).
 
 See `related-work/papers.yaml` for the metadata manifest (verification status
-per paper) and `related-work/fetch.sh` for the regenerable extraction script.
-Extracts are git-ignored; rebuild with `./fetch.sh` (arXiv HTML view preferred,
-marker PDF fallback needs a free GPU).
+per paper). Extracts are git-ignored and rebuilt by the shared engine:
+`related-work fetch KEY...` (arXiv HTML view preferred, marker PDF fallback
+needs a free GPU), `related-work audit` to reconcile the manifest against them,
+`related-work status` for the counts in the banner above.

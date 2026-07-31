@@ -1,5 +1,5 @@
-# Regenerable extraction artifacts — rebuild with ./fetch.sh. Only papers.yaml,
-# fetch.sh, and this file are committed. Everything a fetch produces (source
-# PDFs, saved HTML, marker markdown, figures) lands under extract/<short>/.
+# Regenerable extraction artifacts — rebuild with `related-work fetch`. Only
+# papers.yaml and this file are committed. Everything a fetch produces (source
+# PDFs, saved HTML, marker markdown, figures) lands under extract/<key>/, keyed
+# by citation key so a later `short:` handle never orphans an extract.
 extract/
-extract.tmp/

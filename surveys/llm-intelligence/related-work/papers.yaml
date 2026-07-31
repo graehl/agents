@@ -1,19 +1,29 @@
 # Metadata manifest for surveys/llm-intelligence.
 #
+# Built and checked by the shared `related-work` engine (scripts/related-work
+# in ~/agents; contract topics/research-survey.md): `related-work fetch` builds
+# extracts under ./extract/<key>/, `related-work audit` reconciles this file
+# against them, `related-work status` derives survey.md's grounding banner.
+#
 # One entry per paper the field map references. `verified: true` means the
-# citation was checked against a fetched source THIS repo can regenerate (see
-# fetch.sh); `verified: false` means it is pretrained-recall reconstruction and
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and
 # the arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
 # a verified:false entry as authoritative.
 #
 # arxiv ids on verified:false entries are best-recall and may be wrong — that is
 # exactly what the grounded pass pins down. Fields: key, title, authors, venue,
 # year, arxiv/url, grounded (source fetched?), verified (citation checked?),
-# fetched (date or null), cluster (survey.md section).
+# source (where a verified-but-ungrounded citation was checked), fetched (date
+# or null), short + concept_page (once the paper earns a digest), cluster
+# (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
 
 meta:
   field_slug: llm-intelligence
-  coverage_cutoff: 2026-07-30
+  coverage_cutoff: 2026-07-31
   grounding_mode: grounded-in-progress
   model_training_cutoff: 2026-01
 
@@ -34,7 +44,7 @@ papers:
     fetched: 2026-07-31      # full HTML extract + bibliography.bib (recall pass was 07-30)
     cluster: ANCHOR
     note: >
-      Full HTML + bibliography.bib fetched 2026-07-31 via fetch.sh
+      Full HTML + bibliography.bib fetched 2026-07-31
       (extract/anthropic2026-jspace/2026/workspace/). Paper cites 171 distinct keys
       (cited.bib, filtered from the 807-entry shared bib); its actual citations
       confirm this survey's cluster structure A-F and surface new nodes folded in

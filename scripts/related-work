@@ -1,0 +1,681 @@
+#!/usr/bin/env python3
+# acli: 1 complete toon
+"""related-work — fetch, audit, and report a field survey's related-work tree.
+
+Contract: topics/research-survey.md in the ~/agents repo. Every field survey
+under `surveys/<field>/` keeps a `related-work/` directory holding a committed
+`papers.yaml` manifest and a git-ignored `extract/` tree of full texts. This
+tool owns both, so a new survey inherits fetch idempotency, HTTP revalidation,
+and manifest/disk reconciliation instead of hand-rolling a `fetch.sh`.
+
+Verbs: list, status, fetch, audit, init.
+Output follows topics/agent-cli.md: compact JSONL by default, --pretty for
+humans, --toon on the table verbs, --acli-complete for completion.
+
+Exit codes (beyond 0/2): 3 = audit found drift, 4 = no such survey or key,
+70 = papers.yaml is not the shape this tool reads, 75 = a fetch or extraction
+failed.
+
+Not almanac. `almanac` caches web pages as queryable *record datasets* under
+its own cache root; this manages a bibliography whose product is readable full
+text beside a committed, hand-edited manifest. Same verb names, different
+artifact.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import sys
+import tempfile
+import urllib.error
+import urllib.request
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import ExitCode, Format, die, emit, resolve_format, write_jsonl  # noqa: E402
+from acli.args import (  # noqa: E402
+    add_standard_args,
+    argument_parser,
+    hint,
+    maybe_complete,
+    set_completer,
+)
+
+try:
+    import yaml
+except ModuleNotFoundError:  # pragma: no cover - environment guard
+    die(
+        "PyYAML is required to read papers.yaml",
+        ExitCode.UNAVAILABLE,
+        detail={"install": "pip install pyyaml"},
+    )
+
+CAPABILITIES = ("complete", "toon")
+EXIT_CODES = {
+    3: "audit found drift between papers.yaml and extract/",
+    4: "no such survey directory or paper key",
+    70: "papers.yaml is not the shape this tool reads",
+    75: "a fetch or extraction failed",
+}
+USER_AGENT = "related-work/1 (+https://github.com/graehl/agents)"
+SENTINEL = ".fetched"
+
+
+# --- manifest ---
+
+
+@dataclass
+class Paper:
+    """One `papers.yaml` entry, with the fields this tool reasons about.
+
+    `key` is the citation key and the only name the extract tree ever uses.
+    `short` names a concept page and is assigned later, if ever — keying
+    extracts on it would move every directory out from under its sentinel.
+    """
+
+    key: str
+    ident: str | None
+    kind: str | None  # "arxiv" | "url" | None
+    grounded: bool
+    verified: bool
+    fetched: str | None
+    source: str | None
+    short: str | None
+    concept_page: str | None
+    raw: dict = field(repr=False, default_factory=dict)
+
+
+@dataclass
+class Survey:
+    root: Path  # the related-work/ directory
+    meta: dict
+    papers: list[Paper]
+
+    @property
+    def manifest_path(self) -> Path:
+        return self.root / "papers.yaml"
+
+    @property
+    def extract_root(self) -> Path:
+        return self.root / "extract"
+
+    def extract_dir(self, key: str) -> Path:
+        return self.extract_root / key
+
+    def sentinel_path(self, key: str) -> Path:
+        return self.extract_dir(key) / SENTINEL
+
+    def find(self, key: str) -> Paper:
+        for paper in self.papers:
+            if paper.key == key:
+                return paper
+        die(
+            f"no paper with key {key!r} in {self.manifest_path}",
+            ExitCode.NOT_FOUND,
+            detail={"key": key},
+        )
+
+
+def _bool(value, default: bool = False) -> bool:
+    return value if isinstance(value, bool) else default
+
+
+def _text(value) -> str | None:
+    """A YAML scalar as a string, or None when absent.
+
+    YAML resolves a bare `2026-07-31` to a `datetime.date`, which every output
+    path here has to serialize as JSON. Normalizing at the boundary keeps that
+    from surfacing as an encoder crash three verbs away.
+    """
+    if value is None or value == "":
+        return None
+    return value.isoformat() if isinstance(value, (date, datetime)) else str(value)
+
+
+def load_survey(start: Path) -> Survey:
+    """Resolve `start` to a related-work directory and parse its manifest.
+
+    Accepts the directory itself, a survey root holding one, or the manifest
+    path, so `related-work audit` works from wherever the agent happens to be.
+    """
+    candidates = [start, start / "related-work"]
+    if start.name == "papers.yaml":
+        candidates = [start.parent]
+    root = next((c for c in candidates if (c / "papers.yaml").is_file()), None)
+    if root is None:
+        die(
+            f"no papers.yaml under {start} or {start}/related-work",
+            ExitCode.NOT_FOUND,
+            detail={"searched": [str(c) for c in candidates]},
+        )
+    try:
+        data = yaml.safe_load(root.joinpath("papers.yaml").read_text()) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        die(f"cannot parse {root}/papers.yaml: {exc}", ExitCode.SOFTWARE)
+    if not isinstance(data, dict) or not isinstance(data.get("papers"), list):
+        die(
+            "papers.yaml must be a mapping with a `papers:` list",
+            ExitCode.SOFTWARE,
+            detail={"path": str(root / "papers.yaml")},
+        )
+    papers = []
+    for index, entry in enumerate(data["papers"]):
+        if not isinstance(entry, dict) or not entry.get("key"):
+            die(
+                f"papers[{index}] has no `key`",
+                ExitCode.SOFTWARE,
+                detail={"entry": str(entry)[:120]},
+            )
+        arxiv, url = entry.get("arxiv"), entry.get("url")
+        papers.append(
+            Paper(
+                key=str(entry["key"]),
+                ident=str(arxiv) if arxiv else (str(url) if url else None),
+                kind="arxiv" if arxiv else ("url" if url else None),
+                grounded=_bool(entry.get("grounded")),
+                verified=_bool(entry.get("verified")),
+                fetched=_text(entry.get("fetched")),
+                source=_text(entry.get("source")),
+                short=_text(entry.get("short")),
+                concept_page=_text(entry.get("concept_page")),
+                raw=entry,
+            )
+        )
+    return Survey(root=root, meta=data.get("meta") or {}, papers=papers)
+
+
+# --- completion sentinel ---
+
+
+@dataclass
+class Sentinel:
+    """Proof that an extract completed, plus what it would take to revalidate.
+
+    Written only on success, so a crashed extraction leaves no sentinel and the
+    next run retries it. Guarding on this rather than on the directory existing
+    is what keeps a cached failure from masquerading as done.
+    """
+
+    method: str
+    source: str
+    at: str | None = None
+    etag: str | None = None
+    last_modified: str | None = None
+
+    def to_json(self) -> str:
+        body = {"method": self.method, "source": self.source, "at": self.at}
+        if self.etag:
+            body["etag"] = self.etag
+        if self.last_modified:
+            body["last_modified"] = self.last_modified
+        return json.dumps(body, sort_keys=True) + "\n"
+
+
+def read_sentinel(path: Path) -> Sentinel | None:
+    """Parse a sentinel, tolerating the pre-JSON `method<TAB>source` form."""
+    try:
+        text = path.read_text().strip()
+    except OSError:
+        return None
+    if not text:
+        return None
+    if text.startswith("{"):
+        try:
+            body = json.loads(text)
+        except ValueError:
+            return None
+        return Sentinel(
+            method=str(body.get("method", "")),
+            source=str(body.get("source", "")),
+            at=body.get("at"),
+            etag=body.get("etag"),
+            last_modified=body.get("last_modified"),
+        )
+    method, _, source = text.partition("\t")
+    return Sentinel(method=method, source=source)
+
+
+def write_sentinel(path: Path, sentinel: Sentinel) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(sentinel.to_json())
+
+
+# --- fetching ---
+
+
+def have(tool: str) -> bool:
+    return shutil.which(tool) is not None
+
+
+def http_headers(url: str) -> dict[str, str]:
+    """Validators for `url`, or {} when the server offers none."""
+    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return {k.lower(): v for k, v in response.headers.items()}
+    except (urllib.error.URLError, OSError, ValueError):
+        return {}
+
+
+def is_unchanged(url: str, sentinel: Sentinel) -> bool:
+    """True when the server answers 304 to this sentinel's validators.
+
+    Absent an ETag or Last-Modified there is nothing to ask, so the answer is
+    False: "cannot tell" must read as "may have changed", never as fresh.
+    """
+    conditional = {"User-Agent": USER_AGENT}
+    if sentinel.etag:
+        conditional["If-None-Match"] = sentinel.etag
+    if sentinel.last_modified:
+        conditional["If-Modified-Since"] = sentinel.last_modified
+    if len(conditional) == 1:
+        return False
+    request = urllib.request.Request(url, headers=conditional)
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status == 304
+    except urllib.error.HTTPError as exc:
+        return exc.code == 304
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
+
+
+def save_page(directory: Path, url: str, stem: str) -> bool:
+    """Save `url` into `directory`, self-contained when wget is available.
+
+    wget's page-requisites capture keeps figures readable offline; the urllib
+    fallback saves the bare HTML, which the recorded source URL can always
+    reconstitute into the richer form later.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    if have("wget"):
+        # -p requisites, -k rewrite links for offline reading, -E fix
+        # extensions, -nH drop the host dir, robots=off so figures come too.
+        completed = subprocess.run(
+            ["wget", "-q", "-e", "robots=off", "-p", "-k", "-E", "-nH",
+             "--restrict-file-names=windows", "-P", str(directory), url],
+            stdin=subprocess.DEVNULL,
+            check=False,
+        )
+        if completed.returncode == 0:
+            return True
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            (directory / f"{stem}.html").write_bytes(response.read())
+        return True
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
+
+
+def download(url: str, target: Path) -> bool:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=300) as response:
+            target.write_bytes(response.read())
+        return True
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
+
+
+def has_content(directory: Path) -> bool:
+    """True when the directory holds extracted text, not just a raw download."""
+    return any(directory.rglob("*.md")) or any(directory.rglob("*.html"))
+
+
+def run_marker(pdf: Path, directory: Path, key: str) -> bool:
+    """PDF -> markdown via marker_single, keeping its extracted images.
+
+    A marker crash (CUDA OOM is the usual one) is tolerated and leaves the
+    downloaded PDF in place, so the retry costs no bandwidth.
+    """
+    if not have("marker_single"):
+        return False
+    with tempfile.TemporaryDirectory(dir=directory.parent) as tmp:
+        subprocess.run(
+            ["marker_single", str(pdf), "--output_dir", tmp],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            check=False,
+        )
+        produced = next((p for p in Path(tmp).iterdir() if p.is_dir()), None)
+        if produced is None:
+            return False
+        shutil.copytree(produced, directory, dirs_exist_ok=True)
+    markdown = next(iter(sorted(directory.glob("*.md"))), None)
+    if markdown is not None and markdown.name != f"{key}.md":
+        markdown.rename(directory / f"{key}.md")
+    return has_content(directory)
+
+
+def fetch_paper(survey: Survey, paper: Paper, *, no_html: bool, keys_only: bool) -> dict:
+    """Build one extract. Returns a JSONL-shaped result row."""
+    directory = survey.extract_dir(paper.key)
+    sentinel_path = survey.sentinel_path(paper.key)
+    stamp = date.today().isoformat()
+
+    def done(method: str, source: str) -> dict:
+        headers = http_headers(source)
+        write_sentinel(
+            sentinel_path,
+            Sentinel(
+                method=method,
+                source=source,
+                at=stamp,
+                etag=headers.get("etag"),
+                last_modified=headers.get("last-modified"),
+            ),
+        )
+        return {"key": paper.key, "status": "fetched", "method": method, "source": source}
+
+    if paper.kind == "url":
+        if save_page(directory, paper.ident, paper.key):
+            return done("url-html", paper.ident)
+        return {"key": paper.key, "status": "failed", "reason": "page fetch failed"}
+
+    html_url = f"https://arxiv.org/html/{paper.ident}"
+    if not no_html and save_page(directory, html_url, paper.key) and has_content(directory):
+        return done("arxiv-html", html_url)
+
+    pdf_url = f"https://arxiv.org/pdf/{paper.ident}"
+    pdf = directory / "source.pdf"
+    if not pdf.exists() and not download(pdf_url, pdf):
+        return {"key": paper.key, "status": "failed", "reason": "pdf download failed"}
+    if keys_only:
+        return {"key": paper.key, "status": "downloaded", "note": "no sentinel; extract later"}
+    if run_marker(pdf, directory, paper.key):
+        return done("pdf-marker", pdf_url)
+    reason = (
+        "marker_single not on PATH"
+        if not have("marker_single")
+        else "marker produced no markdown"
+    )
+    return {"key": paper.key, "status": "failed", "reason": reason, "kept": str(pdf)}
+
+
+# --- audit ---
+
+
+def audit_findings(survey: Survey) -> list[dict]:
+    """Every disagreement between the manifest's claims and the extract tree.
+
+    The manifest header defines `grounded` as "source fetched" and `verified`
+    as "citation checked against a fetched source", which makes most of it
+    mechanically checkable. Doing that by hand is how it drifted: entries
+    fetched but never marked, and entries marked but never fetched.
+    """
+    findings: list[dict] = []
+
+    def report(key: str, rule: str, detail: str) -> None:
+        findings.append({"key": key, "rule": rule, "detail": detail})
+
+    seen: set[str] = set()
+    for paper in survey.papers:
+        if paper.key in seen:
+            report(paper.key, "duplicate-key", "appears more than once in papers.yaml")
+        seen.add(paper.key)
+
+        directory = survey.extract_dir(paper.key)
+        fetched = survey.sentinel_path(paper.key).exists()
+        if fetched:
+            if not paper.grounded:
+                report(paper.key, "grounded", "extract fetched, but grounded is not true")
+            if not paper.fetched:
+                report(paper.key, "fetched-date", "extract fetched, but fetched: is empty")
+            if not paper.verified:
+                # Its own full text is on disk; nothing is left to check.
+                report(paper.key, "verified", "own source fetched, but verified is not true")
+        elif paper.grounded:
+            report(paper.key, "grounded", f"grounded: true, but no {SENTINEL}")
+
+        if directory.is_dir() and paper.ident is None:
+            report(paper.key, "regenerable", "extract on disk, but no arxiv:/url: to rebuild it")
+        if paper.verified and not paper.grounded and not paper.source:
+            # Legal and common — a citation checked against the anchor's
+            # bibliography needs no extract — but it must say where.
+            report(paper.key, "source", "verified without its own extract needs source:")
+        if paper.concept_page and not (survey.root.parent / paper.concept_page).is_file():
+            report(paper.key, "concept-page", f"{paper.concept_page} does not exist")
+
+    known = {paper.key for paper in survey.papers}
+    if survey.extract_root.is_dir():
+        for directory in sorted(survey.extract_root.iterdir()):
+            if directory.is_dir() and directory.name not in known:
+                report(directory.name, "orphan-extract", "no papers.yaml entry claims this extract")
+    return findings
+
+
+def survey_status(survey: Survey) -> dict:
+    concepts = survey.root.parent / "concepts"
+    digests = len(list(concepts.glob("*.md"))) if concepts.is_dir() else 0
+    return {
+        "survey": str(survey.root.parent.name),
+        "manifested": len(survey.papers),
+        "verified": sum(1 for p in survey.papers if p.verified),
+        "grounded": sum(1 for p in survey.papers if p.grounded),
+        "extracts": sum(1 for p in survey.papers if survey.sentinel_path(p.key).exists()),
+        "digested": digests,
+        "coverage_cutoff": _text(survey.meta.get("coverage_cutoff")),
+        "grounding_mode": _text(survey.meta.get("grounding_mode")),
+    }
+
+
+# --- verbs ---
+
+
+def resolve(args) -> Survey:
+    return load_survey(Path(args.dir).resolve())
+
+
+def emit_table(args, rows: list[dict], columns: list[str], name: str) -> None:
+    fmt = resolve_format(args)
+    if fmt is Format.TOON:
+        emit({"rows": rows, "columns": columns, "name": name}, fmt)
+    elif not rows and fmt is Format.COMPACT:
+        # Definitive empty state (topics/agent-cli.md): zero lines is ambiguous.
+        write_jsonl({"count": 0, "of": name})
+    else:
+        emit(rows, fmt)
+
+
+def verb_list(args) -> int:
+    survey = resolve(args)
+    rows = [
+        {
+            "key": p.key,
+            "short": p.short or "",
+            "kind": p.kind or "",
+            "grounded": p.grounded,
+            "verified": p.verified,
+            "extract": survey.sentinel_path(p.key).exists(),
+        }
+        for p in survey.papers
+    ]
+    emit_table(args, rows, ["key", "short", "kind", "grounded", "verified", "extract"], "papers")
+    return 0
+
+
+def verb_status(args) -> int:
+    emit(survey_status(resolve(args)), resolve_format(args))
+    return 0
+
+
+def verb_audit(args) -> int:
+    survey = resolve(args)
+    findings = audit_findings(survey)
+    if not findings:
+        emit({"ok": True, "drift": 0, **survey_status(survey)}, resolve_format(args))
+        return 0
+    emit_table(args, findings, ["key", "rule", "detail"], "findings")
+    return int(ExitCode.DATA)
+
+
+def verb_fetch(args) -> int:
+    survey = resolve(args)
+    if args.keys:
+        wanted = [survey.find(key) for key in args.keys]
+    else:
+        wanted = [p for p in survey.papers if p.ident and not survey.sentinel_path(p.key).exists()]
+        if not args.all and args.limit is None:
+            # The bare form used to queue every unfetched paper at once, which
+            # is a surprising amount of network for a command that reads like
+            # a no-op. Make the size of the job something the caller states.
+            die(
+                f"{len(wanted)} papers have no extract; pass keys, --limit N, or --all",
+                ExitCode.USAGE,
+                detail={"pending": [p.key for p in wanted]},
+            )
+        if args.limit is not None:
+            wanted = wanted[: args.limit]
+    results = []
+    failed = False
+    for paper in wanted:
+        if paper.ident is None:
+            results.append({"key": paper.key, "status": "skipped", "reason": "no arxiv:/url:"})
+            continue
+        sentinel = read_sentinel(survey.sentinel_path(paper.key))
+        if sentinel is not None and not args.refetch:
+            if not args.revalidate:
+                results.append({"key": paper.key, "status": "skipped", "reason": "already fetched"})
+                continue
+            if is_unchanged(sentinel.source, sentinel):
+                results.append({"key": paper.key, "status": "fresh", "source": sentinel.source})
+                continue
+        results.append(
+            fetch_paper(survey, paper, no_html=args.no_html, keys_only=args.keys_only)
+        )
+        failed = failed or results[-1]["status"] == "failed"
+    emit_table(args, results, ["key", "status", "method", "reason"], "results")
+    return int(ExitCode.TEMPORARY) if failed else 0
+
+
+MANIFEST_TEMPLATE = '''\
+# Metadata manifest for surveys/{slug}.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: {slug}
+  coverage_cutoff: null
+  grounding_mode: recall
+
+papers: []
+'''
+
+
+def verb_init(args) -> int:
+    root = Path(args.dir).resolve()
+    if root.name != "related-work":
+        root = root / "related-work"
+    manifest = root / "papers.yaml"
+    if manifest.exists():
+        die(f"{manifest} already exists", ExitCode.CONFLICT, detail={"path": str(manifest)})
+    root.mkdir(parents=True, exist_ok=True)
+    slug = args.slug or root.parent.name
+    manifest.write_text(MANIFEST_TEMPLATE.format(slug=slug))
+    gitignore = root / ".gitignore"
+    if not gitignore.exists():
+        # Shared policy, not a per-clone exclude: extracts are computed,
+        # regenerable, and retrieved under the user's own access to the source.
+        gitignore.write_text("# computed full-text extracts; rebuild with `related-work fetch`\nextract/\n")
+    emit(
+        {"status": "created", "manifest": str(manifest), "field_slug": slug},
+        resolve_format(args),
+    )
+    return 0
+
+
+# --- parser ---
+
+
+def key_completer(survey_dir: str):
+    def complete_key(prefix: str, tokens: list[str]):
+        try:
+            survey = load_survey(Path(survey_dir).resolve())
+        except SystemExit:
+            return [hint("no papers.yaml here; pass --dir")]
+        return [p.key for p in survey.papers if p.key.startswith(prefix)]
+
+    return complete_key
+
+
+def build_parser():
+    parser = argument_parser(
+        prog="related-work",
+        description="Fetch and audit a field survey's related-work tree. "
+        "Contract: topics/research-survey.md.",
+        capabilities=CAPABILITIES,
+        exit_codes=EXIT_CODES,
+    )
+    parser.add_argument(
+        "--dir",
+        default=".",
+        help="Survey or related-work directory (default: cwd, then ./related-work).",
+    )
+    sub = parser.add_subparsers(dest="verb", required=True)
+
+    p = sub.add_parser("list", help="One row per manifested paper.")
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=verb_list)
+
+    p = sub.add_parser("status", help="Derived counts for the survey's grounding banner.")
+    add_standard_args(p)
+    p.set_defaults(func=verb_status)
+
+    p = sub.add_parser("audit", help="Reconcile papers.yaml against extract/; exit 3 on drift.")
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=verb_audit)
+
+    p = sub.add_parser("fetch", help="Build extracts for papers that have none.")
+    keys = p.add_argument("keys", nargs="*", help="Citation keys; default is the pending set.")
+    set_completer(keys, key_completer("."))
+    p.add_argument("--all", action="store_true", help="Fetch every pending paper.")
+    p.add_argument("--limit", type=int, help="Fetch at most N pending papers.")
+    p.add_argument("--refetch", action="store_true", help="Rebuild even a completed extract.")
+    p.add_argument(
+        "--revalidate",
+        action="store_true",
+        help="Ask the server whether a completed extract is stale (ETag/Last-Modified) and rebuild if so.",
+    )
+    p.add_argument("--no-html", action="store_true", help="Skip the arXiv HTML view; go straight to PDF.")
+    p.add_argument("--keys-only", action="store_true", help="Download sources only; extract on a later run.")
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=verb_fetch)
+
+    p = sub.add_parser("init", help="Scaffold a related-work/ for a new survey.")
+    p.add_argument("--slug", help="Field slug (default: the parent directory name).")
+    add_standard_args(p)
+    p.set_defaults(func=verb_init)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    maybe_complete(parser, [sys.argv[0], *(argv if argv is not None else sys.argv[1:])])
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

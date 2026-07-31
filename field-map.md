@@ -75,12 +75,12 @@ surveys/<field-slug>/
   concepts/<short>.md  committed per-concept understanding/summary page
                        (our distillation; records source URL); the primary
                        artifact we reason/traverse on
-  related-work/
+  related-work/      driven by `related-work` (fetch / audit / status / init);
+                       never a per-survey fetch script
     papers.yaml        metadata manifest (carries each concept's short handle)
-    fetch.sh           regenerable fetch/extract (marker-pdf, or arXiv HTML view)
-    extract/<short>/   full-text extract + images — .gitignored, workdir-durable,
+    extract/<key>/     full-text extract + images — .gitignored, workdir-durable,
                        a computed artifact; consulted only for specifics the
-                       summary omits
+                       summary omits. Keyed by citation key, not short handle
   frontier.md          provisional claims + void map (see frontier-map.md)
 ```
 

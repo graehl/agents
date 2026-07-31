@@ -15,10 +15,21 @@
   handle); `GLOSSARY.md` (survey-scoped vocabulary, governing every doc below
   the subdir by path, as a research program's glossary governs its subtree);
   `concepts/<short>.md` (committed per-concept understanding/analysis pages);
-  `related-work/` (`papers.yaml` manifest + `fetch.sh` + git-ignored
-  `extract/`); and `frontier.md` (the frontier overlay). Each survey subdir is
+  `related-work/` (`papers.yaml` manifest + git-ignored `extract/`); and
+  `frontier.md` (the frontier overlay). Each survey subdir is
   also listed as a row in the top-level `~/agents/GLOSSARY.md` so surveys are
   discoverable from the repo's shared vocabulary.
+- **`related-work/` is driven by the shared `related-work` engine, never by a
+  per-survey script.** `~/agents/scripts/related-work` (on `PATH`) owns fetch,
+  extraction, and reconciliation for every survey: `init` scaffolds a new
+  `related-work/`, `fetch` builds extracts, `audit` reconciles `papers.yaml`
+  against `extract/` and exits 3 on drift, `status` derives the grounding
+  banner's counts, `list` reports the manifest. Do not write a survey-local
+  `fetch.sh`: the last one accumulated three defects the engine now has tests
+  for — extracts rekeyed out from under their sentinels, a manifest that
+  silently drifted from disk, and a bare invocation that queued every pending
+  download at once. A survey needing behavior the engine lacks extends the
+  engine.
 - **Field and frontier are two views on one representation, not two artifact
   kinds.** A frontier-survey is *additive*: it foregrounds the
   **lower-trustworthiness** subset of a field — unproven / unreproduced claims —
@@ -52,6 +63,12 @@
   source, and not redistributed by default. The committed understanding page
   (plus its full-text hyperlinks) is the **primary artifact reasoned and traversed on**;
   drop to the git-ignored full-text extract only for a specific the summary omits.
+  A completed extract carries a `.fetched` sentinel written *only* on success —
+  so a crashed extraction is retried rather than cached as done — recording the
+  method, source URL, and the server's `ETag`/`Last-Modified` when it offers
+  them. `related-work fetch --revalidate` uses those to ask whether a source
+  changed; with no validators to send, the answer is "may have changed", never
+  "fresh".
 - One field map serves both the survey paper/presentation use and the
   prior-art-reconnaissance, instruction, and personal-mastery-reference uses;
   these are views or sparse overlays on the map, not separate factual
@@ -77,7 +94,7 @@
   `concepts/<short>.md` includes **direct, clickable** markdown links (not bare
   arXiv ids) to where the full text is viewed/downloaded — the HTML viewer and/or
   the PDF — so a reader on GitHub reaches the paper in one click. Use the exact
-  URL `fetch.sh` downloads from (`arxiv.org/html/<id>` + `arxiv.org/pdf/<id>`, a
+  URL the fetch downloads from (`arxiv.org/html/<id>` + `arxiv.org/pdf/<id>`, a
   transformer-circuits `index.html`, or a blog post); it doubles as the extract's
   reconstitution source.
 - Every effectiveness claim is graded and conditioned on baseline, benchmark,
