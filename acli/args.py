@@ -110,6 +110,48 @@ def add_standard_args(
     setattr(parser, "_acli_standard_args", True)
 
 
+_STANDARD_FLAG_ARITY: dict[str, int] | None = None
+
+
+def standard_flag_arity() -> dict[str, int]:
+    """Each standard flag, mapped to how many later tokens its value takes.
+
+    Derived by asking `add_standard_args` itself, so the flags and their
+    arity have one definition. Callers that must recognize a standard flag
+    *before* argparse runs read this instead of restating the table: a
+    launcher deciding where its verb starts has to know that `--format`
+    swallows the next token but `--pretty` does not, and a hand-rolled copy
+    of that goes stale the day a flag is added.
+    """
+    global _STANDARD_FLAG_ARITY
+    if _STANDARD_FLAG_ARITY is None:
+        probe = argparse.ArgumentParser(add_help=False)
+        add_standard_args(probe, allow_toon=True)
+        _STANDARD_FLAG_ARITY = {
+            option: _option_value_bounds(action)[0] if _takes_value(action) else 0
+            for action in probe._actions
+            for option in action.option_strings
+        }
+    return _STANDARD_FLAG_ARITY
+
+
+def skip_standard_flags(tokens: list[str]) -> int:
+    """Index of the first token that is not a leading standard flag.
+
+    `--format pretty` and `--format=pretty` both consume their value, so a
+    caller splitting leading flags from what follows never mistakes a
+    flag's value for the next grammar element.
+    """
+    arity = standard_flag_arity()
+    index = 0
+    while index < len(tokens):
+        name, separator, _ = tokens[index].partition("=")
+        if name not in arity:
+            break
+        index += 1 if separator else 1 + arity[name]
+    return index
+
+
 # --- Completion protocol (topics/agent-cli.md § Completion protocol) ---
 #
 # `tool --acli-complete <argv-prefix...>` emits JSONL candidates for the

@@ -150,6 +150,32 @@ def _demo_name_completer(prefix, tokens):
     ]
 
 
+def test_standard_flag_arity_covers_every_flag_add_standard_args_adds():
+    args_mod = importlib.import_module("acli.args")
+    parser = args_mod.argument_parser(prog="arity", add_help=False)
+    args_mod.add_standard_args(parser, allow_toon=True)
+    declared = {
+        option: 1 if action.nargs != 0 else 0
+        for action in parser._actions
+        for option in action.option_strings
+    }
+    _assert(
+        args_mod.standard_flag_arity() == declared,
+        f"a standard flag with no arity entry is invisible to launcher verb "
+        f"dispatch: {declared} vs {args_mod.standard_flag_arity()}",
+    )
+
+
+def test_skip_standard_flags_consumes_values_in_both_spellings():
+    skip = importlib.import_module("acli.args").skip_standard_flags
+    _assert(skip(["--format", "pretty", "show", "x"]) == 2)
+    _assert(skip(["--format=pretty", "show", "x"]) == 1)
+    _assert(skip(["--pretty", "--full", "show", "x"]) == 2)
+    _assert(skip(["show", "--pretty", "x"]) == 0, "only leading flags are skipped")
+    _assert(skip([]) == 0)
+    _assert(skip(["--format"]) == 2, "a dangling value slot leaves nothing behind")
+
+
 def _completion_parser():
     args_mod = importlib.import_module("acli.args")
     parser = args_mod.argument_parser(prog="demo")

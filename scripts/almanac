@@ -48,6 +48,7 @@ from acli.args import (  # noqa: E402
     hint,
     maybe_complete,
     set_completer,
+    skip_standard_flags,
 )
 
 REFRESH_MODES = ("auto", "headless", "remote", "manual", "frozen")
@@ -975,28 +976,18 @@ def complete_filter(prefix, tokens):
 
 
 LAUNCHER_VERBS = ("query", "show", "search", "info", "check", "update", "help")
-_LAUNCHER_FLAG_VALUES = {"--format"}
-_LAUNCHER_FLAGS = {"--compact", "--pretty", "--toon", "--full"}
 
 
 def launcher_argv(name: str, tokens: list[str], *, bare_info: bool) -> list[str]:
     """Bind launcher shorthand to one engine argv.
 
-    Only leading ACLI output flags may precede an explicit verb. Everything
-    else is query input, so record/filter text is never reparsed by the shell.
+    Only the leading standard output flags may precede an explicit verb.
+    Everything else is query input, so record/filter text is never reparsed
+    by the shell.
     """
     if not tokens:
         return ["info", name] if bare_info else []
-    index = 0
-    while index < len(tokens):
-        token = tokens[index]
-        if token in _LAUNCHER_FLAGS:
-            index += 1
-            continue
-        if token in _LAUNCHER_FLAG_VALUES:
-            index += 2
-            continue
-        break
+    index = skip_standard_flags(tokens)
     if index < len(tokens) and tokens[index] in ("-h", "--help"):
         return ["help", name]
     if index < len(tokens) and tokens[index] in LAUNCHER_VERBS:

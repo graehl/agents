@@ -376,16 +376,22 @@ def test_launcher_dispatch():
     proc = subprocess.run([launcher, "show", "bash"], capture_output=True, text=True, env=env)
     _assert(json.loads(proc.stdout.splitlines()[0])["cost"] == 2, proc.stdout)
 
-    proc = subprocess.run(
-        [launcher, "--pretty", "show", "bash"],
-        capture_output=True,
-        text=True,
-        env=env,
-    )
-    _assert(
-        json.loads(proc.stdout)["cost"] == 2,
-        "leading output flags must not change launcher verb dispatch",
-    )
+    for leading in (["--pretty"], ["--format", "pretty"], ["--format=pretty"]):
+        proc = subprocess.run(
+            [launcher, *leading, "show", "bash"],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        _assert(
+            proc.stdout.startswith("{\n"),
+            f"{leading} must reach the engine as a format flag:\n{proc.stdout}",
+        )
+        _assert(
+            json.loads(proc.stdout)["cost"] == 2,
+            f"leading standard flags must not change which verb runs: {leading}\n"
+            f"{proc.stdout}{proc.stderr}",
+        )
 
     proc = subprocess.run([launcher, "-h"], capture_output=True, text=True, env=env)
     _assert(proc.returncode == 0, proc.stderr)
