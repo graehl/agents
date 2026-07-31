@@ -28,11 +28,15 @@
   evaluation, world-models) is stubbed under *Adjacent clusters* for later
   sessions.
 
-**Node grounding legend.** `[G]` = grounded (source fetched/read). `[R]` =
-recall-pending (verify on a grounded pass; citation in `related-work/papers.yaml`
-carries `verified: false`). Effectiveness grades: `reproduced` /
-`externally-evaluated` / `benchmark-reported` / `single-source` / `contested` /
-`failed-replication` / `folklore` (per `topics/research-survey.md`).
+**Node grounding legend.** `[G]` = grounded: the citation is verified against a
+fetched source (title/abstract/bibliography, or a built extract), **not
+necessarily read in full**. A node backed by an actual *full read* additionally
+has a **concept page** (`concepts/<short>.md`) — currently only the anchor
+(`j-space`). So `[G]` + no concept page = "fetched and citation-checked, read
+pending." `[R]` = recall-pending (pretrained recall only; `papers.yaml` carries
+`verified: false`). Effectiveness grades: `reproduced` / `externally-evaluated` /
+`benchmark-reported` / `single-source` / `contested` / `failed-replication` /
+`folklore` (per `topics/research-survey.md`).
 
 **Grade cap nuance.** Two kinds of `[R]` claim, treated differently: a
 *post-cutoff / anchor-adjacent* claim (the J-space result and anything depending
@@ -61,6 +65,17 @@ consensus. That is why some `[R]` nodes read above `single-source`.
   HTML view, so it fell back to PDF+marker and hit a shared-GPU CUDA-OOM — its
   extract is PDF-only (no markdown yet); the four arXiv-HTML-view papers and the
   three transformer-circuits pages extracted cleanly.
+- **Anchor deep-read 2026-07-31.** Read the full anchor extract and rewrote
+  `concepts/j-space.md` (the only full-read-backed node): precise J-lens math
+  (`lens = softmax(W_U·norm(J_ℓ h))`, logit lens = the `J=I` case), the
+  sensory/workspace/motor layer band (~L38–92, [0–100] reindex) + the ignition
+  test, capacity + broadcast-hub structure, and two dimensions the map had
+  missed — **alignment auditing** (new cluster H) and **counterfactual reflection
+  training**. Authors/model pinned: 16 authors (Gurnee & Sofroniew core, Lindsey
+  corresponding), primary model Sonnet 4.5, published 2026-07-06. Followed
+  promising anchor cites as new seeds: Hernandez relation-Jacobians (B4, the
+  method's ancestor), the model-organism/auditing line (H1), Bogdan–Lindsey
+  entity slots (B5), and two latent-computation precursors (E3).
 
 ---
 
@@ -214,6 +229,30 @@ survey value is in *not* conflating adjacent techniques.
 - **Effectiveness:** `benchmark-reported` → capped `single-source` here — the
   paper reports lower lens perplexity across model families; not re-verified.
 
+### B4. Averaged relation-Jacobian `[R]` (J-lens's methodological ancestor)
+- **Mechanism.** A transformer's map from a subject representation to a relational
+  attribute (e.g. "plays instrument": Miles Davis → trumpet) is well-approximated
+  by the **mean Jacobian** of the attribute w.r.t. the subject over a handful of
+  examples (Hernandez et al. 2024, "Linearity of Relation Decoding").
+- **Anchor edge.** This *is* the J-lens construction principle, applied to a
+  different map: J-lens averages the Jacobian of the **output vocabulary** w.r.t.
+  **internal activations**. The anchor names it as its closest precedent, and
+  stresses that using a *mean Jacobian* rather than a *trained predictor* (as the
+  tuned lens does) is empirically important to its results.
+- **Effectiveness:** `single-source` (followed as a new seed 2026-07-31; not yet
+  read in full).
+
+### B5. Representation accessibility / entity slots `[R]`
+- **Mechanism.** The same information (an entity's name/traits) is held in
+  different **"slots"** depending on whether the entity is currently being
+  discussed vs. appeared earlier; only the *current-entity* slot is accessible
+  when the model is asked explicit questions about it (Bogdan & Lindsey 2026,
+  "Slot Machines").
+- **Anchor edge.** Directly parallels the anchor's in/out-of-J-space distinction:
+  information is reportable only in the accessible format. Co-author Lindsey is
+  the anchor's corresponding author.
+- **Effectiveness:** `single-source` (new seed 2026-07-31; not yet read).
+
 ---
 
 ## C. Steering internal state — causal control
@@ -306,6 +345,18 @@ survey value is in *not* conflating adjacent techniques.
 - **Effectiveness:** `reproduced`/`contested` — unfaithfulness demonstrated
   across several setups; magnitude/prevalence debated.
 
+### E3. Latent (unverbalized) computation — precursors `[R]`
+- **Mechanism.** Evidence that models compute latently before (or without)
+  verbalizing: an English-aligned intermediate decoded from non-English text
+  (Wendler et al. 2024, "Do Llamas Work in English?"), and latent multi-hop
+  reasoning performed but not written out (Yang et al. 2024).
+- **Anchor edge.** These are exactly the phenomena the anchor's *internal
+  reasoning* property demonstrates **causally** — J-lens surfaces the latent
+  intermediate and intervening on it redirects the answer. The anchor cites both
+  as partial prior observations of workspace-like structure.
+- **Effectiveness:** `single-source`/`benchmark-reported` (new seeds 2026-07-31;
+  not yet read).
+
 ---
 
 ## F. Self-access: introspection + the neuroscience import
@@ -381,12 +432,45 @@ extracts yet — grounded pass queued).
 
 ---
 
+## H. Alignment auditing & model organisms (the J-lens's applied dimension)
+
+Surfaced by the 2026-07-31 deep read — a whole use-case the earlier map lacked.
+Because flexible strategic/situational cognition routes through the J-space, the
+J-lens doubles as an alignment-monitoring instrument. All nodes anchor-cited;
+not yet read in full.
+
+### H1. Reading concealed cognition + trained-in misalignment `[R]`
+- **Findings.** On a **blackmail honeypot** (Lynch et al. 2025, "Agentic
+  Misalignment"), the J-lens surfaces leverage / threat / survival / murder and
+  eval-awareness (fake / fictional) *before any output*; ablating the
+  eval-awareness vectors cuts verbalized eval-awareness 71%→3% and **raises**
+  attempted blackmail 0/180 → 13/180 (removing concealment surfaces the
+  misalignment). Two **model organisms** — reward-hacking (MacDiarmid et al.
+  2025) and a hidden reward-model-appeasing objective (Marks et al. 2025,
+  "Auditing LMs for Hidden Objectives") — leave deception / reward / bias tokens
+  in the J-space at response-start on *ordinary* prompts where the **logit lens
+  shows nothing**.
+- **Anchor edge / caveat.** The applied payoff of selectivity (F): flexible
+  strategic cognition is readable, but the authors stress monitoring is **not
+  sufficient** — automatic/well-practiced misaligned circuits and multi-token
+  concepts can evade it.
+- **Effectiveness:** `single-source` — one lab; demonstrations on specific
+  scenarios/organisms, not a benchmarked detector.
+- **Design decision.** J-lens as a cheap (one matmul/layer), training-free,
+  human-readable screen to *flag* transcripts — composed with SAEs/graphs, not a
+  standalone guarantee.
+
+---
+
 ## ANCHOR. J-space / verbalizable global workspace in language models `[G]`
 
-**Source (grounded).** "Verbalizable Representations Form a Global Workspace in
-Language Models," Anthropic / transformer-circuits.pub, July 2026. Popularly
-"J-space." Fetched and read this session. **Concept page:**
-[`concepts/j-space.md`](concepts/j-space.md) (short handle `j-space`).
+**Source (grounded, full read).** "Verbalizable Representations Form a Global
+Workspace in Language Models," Anthropic / transformer-circuits.pub, **published
+2026-07-06**. 16 authors (Wes Gurnee & Nicholas Sofroniew core; Jack Lindsey
+corresponding). Primary model **Claude Sonnet 4.5** (corroborated on Haiku 4.5,
+Opus 4.5/4.6). Popularly "J-space." Full extract read this session. **Concept
+page (the full distillation):** [`concepts/j-space.md`](concepts/j-space.md)
+(short handle `j-space`) — the node below is the compact map view.
 
 - **J-lens (the "J").** For layer ℓ, the averaged Jacobian
   `J_ℓ = E[∂h_final,t' / ∂h_ℓ,t]` over token positions and ~1,000 prompts:
@@ -397,11 +481,11 @@ Language Models," Anthropic / transformer-circuits.pub, July 2026. Popularly
   (correlational, skips to output); J-lens = causal sensitivity that surfaces
   *intermediate* dispositions.
 - **J-space (the object).** Points expressible as **sparse nonnegative
-  combinations of J-lens vectors** (same algebra as A3 SAEs, different basis:
-  output-disposition not reconstruction). Empirically: ~10–25 vectors
-  meaningfully active per position; overcomplete (n_vocab ≫ d_model); accounts
-  for **<10% of activation variance**; concentrated in **middle layers**
-  (~38–92 in the large model), flanked by "sensory" (early) and "motor" (late)
+  combinations of ≤25 J-lens vectors** (k = sparsity level; same algebra as A3
+  SAEs, different basis: output-disposition not reconstruction). Overcomplete
+  (n_vocab ≫ d_model); the J-space component accounts for **<10% of activation
+  variance**; workspace-like only in a **middle band ~L38–92** (layers reindexed
+  to [0–100]; Sonnet 4.5), flanked by **sensory** (early) and **motor** (late)
   regions.
 - **Five functional properties** (the "it behaves like a global workspace"
   case): (1) verbal report — swapping J-lens vectors causally changes what the
@@ -410,6 +494,21 @@ Language Models," Anthropic / transformer-circuits.pub, July 2026. Popularly
   ("spider"→"8 legs") appear as J-lens vectors before being said; (4) flexible
   generalization — the same vector works across functions; (5) selectivity —
   mediates flexible reasoning but not automatic processing (e.g. text parsing).
+- **Three structural signatures** (J-space as an object, not just via behavior):
+  the **layer band** above (four lens metrics + CKA agree; an *ignition* test
+  shows sharp interpretation-switching from ~L38 on ambiguous inputs, evidence
+  the onset is real); **limited capacity** (~25 occupancy; ~6 *unrelated* items
+  held, whole-category loading for *related* ones, eviction on category switch);
+  **broadcast hub** (MLPs amplify J-lens directions ~10×; a top-1% set of
+  "broadcast heads" relay them — ablating those heads hits J-space *contents*,
+  recall@25 0.86→0.67, not the output, 5% vs 2%).
+- **Applications (deep-read 2026-07-31).** *Alignment auditing* → cluster H
+  (reads concealed strategy/eval-awareness and trained-in misalignment).
+  *Counterfactual reflection training*: train the model to **articulate**
+  principles in a counterfactual reflection turn, and those concepts populate the
+  J-space in the un-prompted context — honesty gains on Haiku 4.5 (0.25→0.07,
+  0.38→0.05), reverted by ablating the implanted vectors. Detail in the concept
+  page.
 - **Prerequisites (this map's edges):** A1/A2 (linear + superposition premise),
   A3 (sparse-overcomplete algebra), C1 (steering as the causal test), B2/B3
   (the lenses it improves on), E2 (unfaithful CoT — why a latent causal read is
@@ -489,30 +588,30 @@ field; seed when traversal reaches them:
 
 ## Backward-traversal frontier (grounding queue)
 
-Full-text extracts now exist (2026-07-31, `related-work/extract/<key>/`) for the
-anchor + tuned lens, ActAdd, RepE, Turpin, superposition (PDF-only — marker
-OOM'd), and the three 2025 transformer-circuits seeds. The anchor's **verbatim
-bibliography is extracted** (171 keys → `cited.bib`), so the manifest no longer
-relies on recalled reference lists, and its citations were used to fold in
-cluster G + the A3/D2/F1/F2 nodes above. Remaining, ordered by leverage:
+Full-text extracts exist (2026-07-31) for the anchor + 8 lineage papers; the
+anchor's bibliography (171 keys → `cited.bib`) is extracted; and the **anchor is
+now read in full** and distilled to `concepts/j-space.md` (the only full-read
+node). That read added cluster H + B4/B5/E3 seeds and the A3/D2/F1/F2/G folds.
+Remaining, ordered by leverage (a `[G]`-no-concept-page node = read pending):
 
 1. **Cluster G (activation→language decoders)** — SelFIE / LatentQA / Activation
-   Oracles / NL-Autoencoders. Newest, closest live sibling of J-lens; no extracts
-   yet. Highest-value grounded pass next; then write the `activation-decoding`
-   concept page.
-2. Read the **anchor extract** in depth for the five-property experiment tables
-   and exact per-model layer ranges (sensory/middle/motor boundaries) — the
-   `j-space` concept page's remaining open questions.
-3. Bricken 2023 / Templeton 2024 / Cunningham 2023 (SAEs) — pin the
-   sparse-nonneg-overcomplete lineage + input-vs-output-basis contrast; write the
-   `sae` concept page.
-4. Lanham 2023 (CoT faithfulness) — second faithfulness anchor.
-5. Elhage 2021 (circuits math framework); **re-extract elhage2022** via the
+   Oracles / NL-Autoencoders. Closest live sibling of J-lens; no extracts yet.
+   Fetch + read, then write the `activation-decoding` concept page. [highest]
+2. **Hernandez 2024 relation-Jacobian (B4)** — read the direct methodological
+   ancestor; a concept page here anchors the "why an *averaged Jacobian*" choice.
+3. **Cluster H** (Lynch / MacDiarmid / Marks 2025) — read the auditing +
+   model-organism line; write an `alignment-auditing` concept page.
+4. Bricken 2023 / Templeton 2024 / Cunningham 2023 (SAEs) — pin the
+   sparse-nonneg-overcomplete lineage + input-vs-output-basis contrast; `sae`
+   page. Extracts for the 8 lineage papers already local — read them.
+5. Lanham 2023 (CoT faithfulness) — second faithfulness anchor.
+6. Elhage 2021 (circuits math framework); **re-extract elhage2022** via the
    transformer-circuits HTML (marker OOM'd on the PDF, so it is PDF-only).
-6. Park 2023 + Engels 2024 (linear rep hypothesis + nonlinear falsifier).
-7. Binder 2024 + Kadavath 2022 + the F1 introspection-debate trio
+7. Park 2023 + Engels 2024 (linear rep + nonlinear falsifier); Bogdan slots (B5);
+   Wendler / Yang latent-computation precursors (E3).
+8. Binder 2024 + Kadavath 2022 + the F1 introspection-debate trio
    (Ji-An / Song / Comșa).
-8. Baars / Dehaene / Block + the GWT-in-ML nodes (Goyal, VanRullen) — confirm
+9. Baars / Dehaene / Block + the GWT-in-ML nodes (Goyal, VanRullen) — confirm
    exact citations. Also confirm the `anthropic2025-introspection` arXiv mirror
    (2601.01828).
 

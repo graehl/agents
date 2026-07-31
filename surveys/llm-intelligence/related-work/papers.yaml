@@ -498,6 +498,107 @@ papers:
     cluster: G1
     note: "Unsupervised NL explanations of activations; co-author Kantamneni is also a J-space author."
 
+  # --- followed from the anchor's related-work on the 2026-07-31 deep read ---
+  # "Promising cites as new seeds" (graehl's latitude). grounded:false /
+  # verified:true (from the anchor bib); no concept pages until a fetch+read.
+  - key: hernandez2024-relation-jacobian
+    title: "Linearity of Relation Decoding in Transformer Language Models"
+    authors: ["Hernandez", "Sharma", "Haklay", "Meng", "Wattenberg", "Andreas", "et al."]
+    venue: "ICLR"
+    year: 2024
+    arxiv: "2308.09124"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: B4
+    note: >
+      The direct methodological ANCESTOR of J-lens: approximates a transformer's
+      subject->attribute map by the mean Jacobian over a few examples. J-lens
+      applies the same averaged-Jacobian principle to the activations->output-
+      vocab map. The anchor names this as its closest construction precedent.
+  - key: bogdan2026-slots
+    title: "Slot Machines: How LLMs Keep Track of Multiple Entities"
+    authors: ["Bogdan", "Lindsey"]
+    venue: "arXiv / transformer-circuits"
+    year: 2026
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: B5
+    note: >
+      Same info held in different "slots" (current vs previous entity); only the
+      current-entity slot is accessible for explicit report. Parallels the
+      anchor's in/out-of-J-space accessibility distinction; co-author Lindsey is
+      the anchor's corresponding author.
+  - key: wendler2024-latent-language
+    title: "Do Llamas Work in English? On the Latent Language of Multilingual Transformers"
+    authors: ["Wendler", "Veselovsky", "Monea", "West"]
+    venue: "ACL"
+    year: 2024
+    arxiv: "2402.10588"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: E3
+    note: "Logit-lens evidence of an English-aligned latent intermediate; anchor cites as a workspace precursor."
+  - key: yang2024-latent-multihop
+    title: "Do Large Language Models Latently Perform Multi-Hop Reasoning?"
+    authors: ["Yang", "Gribovskaya", "Kassner", "Geva", "Riedel"]
+    venue: "ACL"
+    year: 2024
+    arxiv: "2402.16837"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: E3
+    note: "Latent (unverbalized) multi-hop reasoning; the internal-reasoning property the anchor demonstrates causally."
+
+  # --- H. alignment auditing & model organisms (the anchor's applied dimension) ---
+  # The J-lens auditing section rests on these; a whole use-case the survey lacked.
+  - key: lynch2025-agentic-misalignment
+    title: "Agentic Misalignment: How LLMs Could Be Insider Threats"
+    authors: ["Lynch", "Wright", "Larson", "Ritchie", "Mindermann", "et al. (Anthropic)"]
+    venue: "Anthropic"
+    year: 2025
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: H1
+    note: "Source of the blackmail honeypot the anchor audits with the J-lens."
+  - key: macdiarmid2025-reward-hacking
+    title: "Natural Emergent Misalignment from Reward Hacking in Production RL"
+    authors: ["MacDiarmid", "Wright", "Uesato", "Benton", "Kutasov", "et al. (Anthropic)"]
+    venue: "Anthropic"
+    year: 2025
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: H1
+    note: >
+      Reward-hacking model organism (SDF then coding RL). The J-lens surfaces
+      deception tokens at response-start on ordinary prompts, already at the SDF
+      checkpoint before RL; logit lens shows nothing.
+  - key: marks2025-auditing-hidden
+    title: "Auditing Language Models for Hidden Objectives"
+    authors: ["Marks", "Treutlein", "Bricken", "Lindsey", "et al. (Anthropic)"]
+    venue: "arXiv"
+    year: 2025
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: H1
+    note: >
+      Hidden reward-model-appeasing objective model organism + auditing testbed.
+      The J-lens surfaces reward/bias in the top-25 on ordinary prompts; distinct
+      from marks2024-feature-circuits (same lead author, different paper).
+
   # --- substrate ---
   - key: vaswani2017-transformer
     title: "Attention Is All You Need"
