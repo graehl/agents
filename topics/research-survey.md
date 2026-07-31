@@ -81,9 +81,10 @@
   URL `fetch.sh` downloads from (`arxiv.org/html/<id>` + `arxiv.org/pdf/<id>`, a
   transformer-circuits `index.html`, or a blog post); it doubles as the extract's
   reconstitution source.
-- Every effectiveness claim is graded (`reproduced` / `single-source` /
-  `contested` / `failed-replication` / `folklore`) and conditioned on
-  baseline, benchmark, and regime. A bare "works well" is rejected.
+- Every effectiveness claim is graded and conditioned on baseline, benchmark,
+  and regime. A bare "works well" is rejected. `field-map.md` owns the grade
+  vocabulary and its definitions; do not restate the list here, since a second
+  copy is what let this one fall two grades behind.
 - A fresh, decision-relevant claim remains in `frontier.md` with its exact
   claim, regime, independent-check status, and revisit condition until its
   evidence changes what `survey.md` should teach.

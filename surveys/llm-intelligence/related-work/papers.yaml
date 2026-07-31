@@ -35,7 +35,7 @@ papers:
     cluster: ANCHOR
     note: >
       Full HTML + bibliography.bib fetched 2026-07-31 via fetch.sh
-      (extract/j-space/2026/workspace/). Paper cites 171 distinct keys
+      (extract/anthropic2026-jspace/2026/workspace/). Paper cites 171 distinct keys
       (cited.bib, filtered from the 807-entry shared bib); its actual citations
       confirm this survey's cluster structure A-F and surface new nodes folded in
       below (cluster G activation-decoding, cunningham SAE, transcoder/feature
@@ -643,3 +643,248 @@ papers:
     verified: false
     fetched: null
     cluster: substrate
+
+  # ---------------------------------------------------------------------------
+  # Backward-traversal completion pass (2026-07-31). Every entry below is cited
+  # by the anchor and was missed by the earlier passes; metadata is transcribed
+  # verbatim from the anchor's own cited.bib, so verified:true / source:
+  # anchor-bib. None are read yet (grounded:false, no concept page).
+  # ---------------------------------------------------------------------------
+
+  - key: ghandeharioun2024-patchscopes
+    title: "Patchscopes: A Unifying Framework for Inspecting Hidden Representations of Language Models"
+    authors: ["Ghandeharioun", "Caciularu", "Pearce", "Dixon", "Geva"]
+    venue: "ICML"
+    year: 2024
+    arxiv: "2401.06102"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: G0
+    note: >
+      The unifying framework for cluster G: prior vocabulary-projection and
+      intervention methods (logit lens, SelfIE-style self-explanation, Future
+      Lens) are instances of it. Adam Pearce is an author here and on the
+      anchor's byline. Its absence made cluster G look like a loose family
+      rather than an already-unified one.
+
+  - key: pal2023-future-lens
+    title: "Future Lens: Anticipating Subsequent Tokens from a Single Hidden State"
+    authors: ["Pal", "Sun", "Yuan", "Wallace", "Bau"]
+    venue: "CoNLL"
+    year: 2023
+    arxiv: "2311.04897"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: B6
+    note: >
+      Reads *future* tokens out of one hidden state — the temporal counterpart
+      of J-lens's "poised to verbalize", and the closest prior statement of the
+      anchor's core question.
+
+  - key: katz2024-backward-lens
+    title: "Backward Lens: Projecting Language Model Gradients into the Vocabulary Space"
+    authors: ["Katz", "Belinkov", "Geva", "Wolf"]
+    venue: "EMNLP"
+    year: 2024
+    arxiv: "2402.12865"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: B6
+    note: >
+      Projects *gradients* into vocabulary space; J-lens projects an averaged
+      *Jacobian*. The nearest methodological sibling in the lens family and the
+      sharpest available contrast for what a mean-Jacobian readout adds.
+
+  - key: arditi2024-refusal-direction
+    title: "Refusal in Language Models Is Mediated by a Single Direction"
+    authors: ["Arditi", "Obeso", "Syed", "Paleka", "Panickssery", "et al."]
+    venue: "NeurIPS"
+    year: 2024
+    arxiv: "2406.11717"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: C3
+    note: >
+      Widely reproduced single-direction causal result; the strongest
+      independent evidence that steering-relevant structure is low-dimensional.
+      Effectiveness grade may exceed single-source once read.
+
+  - key: li2023-inference-time-intervention
+    title: "Inference-Time Intervention: Eliciting Truthful Answers from a Language Model"
+    authors: ["Li", "Patel", "Viégas", "Pfister", "Wattenberg"]
+    venue: "NeurIPS"
+    year: 2023
+    arxiv: "2306.03341"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: C3
+
+  - key: hendel2023-task-vectors
+    title: "In-Context Learning Creates Task Vectors"
+    authors: ["Hendel", "Geva", "Globerson"]
+    venue: "EMNLP Findings"
+    year: 2023
+    arxiv: "2310.15916"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: C3
+
+  - key: olsson2022-induction-heads
+    title: "In-context Learning and Induction Heads"
+    authors: ["Olsson", "Elhage", "Nanda", "Joseph", "DasSarma", "et al. (Anthropic)"]
+    venue: "transformer-circuits.pub"
+    year: 2022
+    url: "https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: D1
+    note: "Foundational circuits result the map cited around but never listed."
+
+  - key: chanin2024-sae-absorption
+    title: "A Is for Absorption: Studying Feature Splitting and Absorption in Sparse Autoencoders"
+    authors: ["Chanin", "Wilken-Smith", "Dulka", "Bhatnagar", "et al."]
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2409.14507"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: A3
+    note: >
+      The SAE negative result survey.md's own grounding queue asked for. The
+      anchor cites it; the earlier traversal walked past it.
+
+  - key: geva2023-dissecting-recall
+    title: "Dissecting Recall of Factual Associations in Auto-Regressive Language Models"
+    authors: ["Geva", "Bastings", "Filippova", "Globerson"]
+    venue: "EMNLP"
+    year: 2023
+    arxiv: "2304.14767"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: D1
+
+  - key: plunkett2025-self-interpretability
+    title: "Self-Interpretability: LLMs Can Describe Complex Internal Processes That Drive Their Decisions, and Improve with Training"
+    authors: ["Plunkett", "Morris", "Reddy", "Morales"]
+    venue: "arXiv"
+    year: 2025
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F1
+
+  - key: laine2024-sad
+    title: "Me, Myself, and AI: The Situational Awareness Dataset (SAD) for LLMs"
+    authors: ["Laine", "Chughtai", "Betley", "Hariharan", "Balesni", "et al."]
+    venue: "NeurIPS Datasets"
+    year: 2024
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F1
+
+  - key: lu2026-assistant-axis
+    title: "The Assistant Axis: Situating and Stabilizing the Default Persona of Language Models"
+    authors: ["Lu", "Gallagher", "Michala", "Fish", "Lindsey"]
+    venue: "Anthropic"
+    year: 2026
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F1
+    note: "Shares the anchor's corresponding author (Lindsey); same-year persona work."
+
+  # Working-memory baseline the anchor's ~25-item capacity claim argues with.
+  - key: miller1956-magical-seven
+    title: "The Magical Number Seven, Plus or Minus Two: Some Limits on Our Capacity for Processing Information"
+    authors: ["Miller"]
+    venue: "Psychological Review"
+    year: 1956
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F3
+
+  - key: cowan2001-magical-four
+    title: "The Magical Number 4 in Short-Term Memory: A Reconsideration of Mental Storage Capacity"
+    authors: ["Cowan"]
+    venue: "Behavioral and Brain Sciences"
+    year: 2001
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F3
+    note: >
+      With miller1956, the referent for the anchor's "~25 concepts, ~6
+      unrelated items" capacity finding. The map recorded the number without
+      the literature it is a claim against.
+
+  # ---------------------------------------------------------------------------
+  # Cluster I — independent concurrent work on the same split (2026-07-31).
+  # NOT cited by the anchor and not citing it: published too close together.
+  # This is the map's only external corroboration of the anchor's central
+  # claim, so it is what could lift anchor-dependent grades off single-source.
+  # Metadata verified by direct arXiv fetch, not recall.
+  # ---------------------------------------------------------------------------
+
+  - key: xiros2026-knowledge-verbalization
+    short: knowledge-vs-verbalization
+    concept_page: concepts/knowledge-vs-verbalization.md
+    title: "Knowledge Knows, Verbalization Tells: Disentangling Latent Directions for Mathematical Solvability in LLMs"
+    authors: ["Xiros", "Zoumpoulidi", "Paraskevopoulos"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2607.05013"
+    grounded: true
+    verified: true
+    source: direct-arxiv-fetch
+    fetched: 2026-07-31
+    cluster: I1
+    note: >
+      Submitted 2026-07-06 — the anchor's own publication date, so neither can
+      cite the other. Finds knowledge and verbalization to be distinct,
+      linearly decodable directions, and fabrication to be a shift in
+      verbalization rather than in knowledge. Same structural claim as J-space
+      by an independent route (probing + steering, math solvability).
+
+  - key: zhang2026-pre-verbalization-commitment
+    short: pre-verbalization-commitment
+    concept_page: concepts/pre-verbalization-commitment.md
+    title: "When Does a Language Model Commit? A Finite-Answer Theory of Pre-Verbalization Commitment"
+    authors: ["Zhang", "Chen", "Wei", "Qin"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2605.06723"
+    grounded: true
+    verified: true
+    source: direct-arxiv-fetch
+    fetched: 2026-07-31
+    cluster: I1
+    note: >
+      Submitted 2026-05-07, two months before the anchor and uncited by it.
+      Measures when answer preference stabilizes before the answer is
+      parseable: a 17-31 token mean lead. A quantitative handle on exactly what
+      J-lens visualizes ("poised to verbalize").

@@ -2,8 +2,13 @@
 # Regenerable fetch/extract for surveys/llm-intelligence related work.
 #
 # Reads papers.yaml and, for each entry with an `arxiv:` or `url:` field,
-# builds a durable full-text extract under ./extract/<short>/, keyed by the
-# paper's `short` handle (falling back to its citation key when it has none).
+# builds a durable full-text extract under ./extract/<key>/, keyed by the
+# citation key. Deliberately NOT the `short` handle: a short is added when a
+# paper earns a concept page, which is usually after its extract exists, and
+# keying on it would move the directory out from under the completion sentinel
+# -- silently re-downloading every already-fetched paper and orphaning the
+# extract path each concepts/<short>.md records. The key never changes; the
+# short names the concept page, not the extract.
 # The extract is a "computed" artifact: git-ignored (see .gitignore), durable
 # in the author's workdir, regenerated under the user's own access to the
 # source, not redistributed. Only papers.yaml + this script are committed.
@@ -47,18 +52,16 @@ mark_fetched() { printf '%s\t%s\n' "$2" "$3" > "extract/$1/.fetched"; }
 # true when the extract dir holds extracted content (markdown or a saved page).
 has_content() { [ -n "$(find "extract/$1" \( -name '*.md' -o -name '*.html' \) -print -quit 2>/dev/null)" ]; }
 
-# crude papers.yaml reader: emit "key<US>short<US>kind<US>ident" rows, where <US>
-# is the 0x1f unit separator. A non-whitespace separator is deliberate: `read`
-# with a tab IFS collapses an empty middle field (a short-less entry) and shifts
-# every column left, so tabs silently mis-parsed every paper but the one with a
-# `short`. `short` is "" when the entry has none. A block starts at "- key:";
-# reset short there so it never leaks from the previous entry.
+# crude papers.yaml reader: emit "key<US>kind<US>ident" rows, where <US> is the
+# 0x1f unit separator. A non-whitespace separator is deliberate: `read` with a
+# tab IFS collapses an empty field and shifts every column left, which once
+# silently mis-parsed every entry but one. Keep 0x1f even now that no field is
+# optional, since `ident` is arbitrary URL text.
 rows() {
   awk '
-    /^[[:space:]]*-[[:space:]]*key:[[:space:]]*/ { key=$0; sub(/.*key:[[:space:]]*/,"",key); gsub(/["\r]/,"",key); short="" }
-    /^[[:space:]]*short:[[:space:]]*/            { short=$0; sub(/.*short:[[:space:]]*/,"",short); gsub(/["\r]/,"",short) }
-    /^[[:space:]]*arxiv:[[:space:]]*/ { v=$0; sub(/.*arxiv:[[:space:]]*/,"",v); sub(/[[:space:]]+#.*$/,"",v); gsub(/["\r]/,"",v); sub(/[[:space:]]+$/,"",v); printf "%s\037%s\037arxiv\037%s\n", key, short, v }
-    /^[[:space:]]*url:[[:space:]]*/   { v=$0; sub(/.*url:[[:space:]]*/,"",v);   sub(/[[:space:]]+#.*$/,"",v); gsub(/["\r]/,"",v); sub(/[[:space:]]+$/,"",v); printf "%s\037%s\037url\037%s\n",   key, short, v }
+    /^[[:space:]]*-[[:space:]]*key:[[:space:]]*/ { key=$0; sub(/.*key:[[:space:]]*/,"",key); gsub(/["\r]/,"",key) }
+    /^[[:space:]]*arxiv:[[:space:]]*/ { v=$0; sub(/.*arxiv:[[:space:]]*/,"",v); sub(/[[:space:]]+#.*$/,"",v); gsub(/["\r]/,"",v); sub(/[[:space:]]+$/,"",v); printf "%s\037arxiv\037%s\n", key, v }
+    /^[[:space:]]*url:[[:space:]]*/   { v=$0; sub(/.*url:[[:space:]]*/,"",v);   sub(/[[:space:]]+#.*$/,"",v); gsub(/["\r]/,"",v); sub(/[[:space:]]+$/,"",v); printf "%s\037url\037%s\n",   key, v }
   ' papers.yaml
 }
 
@@ -82,8 +85,8 @@ save_page() {
 }
 
 fetch_one() {
-  local key="$1" short="$2" kind="$3" ident="$4"
-  local name="${short:-$key}"
+  local key="$1" kind="$2" ident="$3"
+  local name="$key"
   [ "${#WANT[@]}" -gt 0 ] && [ -z "${WANT[$key]:-}" ] && return 0
   [ -z "${REFETCH:-}" ] && [ -e "extract/$name/.fetched" ] && { echo "SKIP $name (already fetched)"; return 0; }
   case "$kind" in
@@ -130,11 +133,9 @@ fetch_one() {
 
 # Read rows on FD 3 (not a pipe into the loop) so the loop runs in the main
 # shell; fetch_one's stdin is /dev/null so a child (wget/curl/marker) can't
-# read from the terminal. IFS is the 0x1f unit separator emitted by rows() —
-# non-whitespace, so empty fields (short-less entries) are preserved, not
-# collapsed.
-while IFS=$'\x1f' read -r -u 3 key short kind ident; do
+# read from the terminal. IFS is the 0x1f unit separator emitted by rows().
+while IFS=$'\x1f' read -r -u 3 key kind ident; do
   [ -z "$key" ] && continue
-  fetch_one "$key" "$short" "$kind" "$ident" </dev/null || echo "WARN error on $key"
+  fetch_one "$key" "$kind" "$ident" </dev/null || echo "WARN error on $key"
 done 3< <(rows)
-echo "done. extracts in ./extract/<short>/ (rg-able); mark papers.yaml grounded/verified as you confirm."
+echo "done. extracts in ./extract/<key>/ (rg-able); mark papers.yaml grounded/verified as you confirm."

@@ -22,7 +22,7 @@ jacklindsey@anthropic.com). \*core contributor.
 - Skeptical read (counterweight): [Zvi Mowshowitz, "No Space Like J-Space"](https://thezvi.substack.com/p/no-space-like-j-space)
 
 Extract (built 2026-07-31, git-ignored):
-`related-work/extract/j-space/2026/workspace/` — full page + figures, plus
+`related-work/extract/anthropic2026-jspace/2026/workspace/` — full page + figures, plus
 `bibliography.bib` (807-entry shared bib) and `cited.bib` (the **171 keys this
 paper cites**). Consult for specifics this summary omits (exact figures, ablation
 tables, the appendix formalization + multi-token extension).

@@ -29,23 +29,28 @@ audits):
 | 11 | [activation-decoding](concepts/activation-decoding.md) | read activations into language — **J-lens's live sibling** | G1 |
 | 12 | [**j-space**](concepts/j-space.md) | **the anchor** — verbalizable global workspace + auditing | ANCHOR |
 | 13 | [alignment-auditing](concepts/alignment-auditing.md) | the model organisms the J-lens audits (blackmail honeypot, reward-hacking + hidden-objective) | H1 |
+| 14 | [knowledge-vs-verbalization](concepts/knowledge-vs-verbalization.md) | the same split found independently, by probing — **corroborates the anchor** | I1 |
+| 15 | [pre-verbalization-commitment](concepts/pre-verbalization-commitment.md) | how far ahead the answer is fixed: 17–31 token lead — the temporal axis | I1 |
 
 A `[G]` node with a linked digest is **read-backed**; a `[G]` node without one is
 fetched + citation-checked but not yet read (see the legend).
 
 ## Grounding and coverage
 
-- **Grounding mode: `grounded`, in progress (partial).** The J-space anchor
-  node is grounded (primary source fetched and read this session). Every other
-  node is **`recall-pending`**: named from pretrained recall + one light web
-  pass, *not* yet citation-verified against fetched sources. Per node grounding
-  is tagged inline (`[G]` grounded / `[R]` recall-pending). Recall-pending
-  effectiveness grades are capped at `single-source`/`folklore` and must not be
-  read as verified.
-- **Coverage cutoff: 2026-07-30.** Search scope this session: two web searches
-  (`"J-space" LLM`, `J-space latent space viral`) + three fetches
-  (transformer-circuits.pub J-space paper ×2, Zvi Mowshowitz commentary). No
-  paper-DB citation snowball yet. This is a seed, not a survey horizon.
+- **Grounding mode: `grounded`, in progress (partial).** State as of the
+  cutoff below, counted from `related-work/papers.yaml` and `concepts/` rather
+  than narrated per session — update these numbers when either changes:
+  **64 papers manifested, 45 citation-verified, 19 with a fetched extract, 15
+  read in full and digested.** Per-node grounding is tagged inline (`[G]`
+  citation-grounded / `[R]` recall-pending); a full read is marked by a linked
+  `concepts/` digest. Recall-pending effectiveness grades are capped at
+  `single-source`/`folklore` and must not be read as verified.
+- **Coverage cutoff: 2026-07-31.** The anchor's verbatim bibliography (178
+  entries) has been fetched and diffed against the manifest, so backward
+  traversal is now measurable rather than estimated. Still open: roughly 40
+  anchor-cited works remain unmanifested (mostly benchmarks, datasets, and
+  consciousness-science background — see the grounding queue for the
+  substantive residue), and no forward citation search has been run.
 - **Model training cutoff:** 2026-01 — anything after that (incl. the anchor
   paper itself) is known only through this session's fetches, so treat the
   non-anchor lineage as reconstruction to be verified.
@@ -58,12 +63,13 @@ fetched + citation-checked but not yet read (see the legend).
 **Node grounding legend.** `[G]` = grounded: the citation is verified against a
 fetched source (title/abstract/bibliography, or a built extract), **not
 necessarily read in full**. A node backed by an actual *full read* additionally
-has a **concept page** (`concepts/<short>.md`) — currently only the anchor
-(`j-space`). So `[G]` + no concept page = "fetched and citation-checked, read
-pending." `[R]` = recall-pending (pretrained recall only; `papers.yaml` carries
-`verified: false`). Effectiveness grades: `reproduced` / `externally-evaluated` /
-`benchmark-reported` / `single-source` / `contested` / `failed-replication` /
-`folklore` (per `topics/research-survey.md`).
+has a **concept page** (`concepts/<short>.md`); 15 nodes do, listed in the
+read-backed digest index below. So `[G]` + no concept page = "fetched and
+citation-checked, read pending." `[R]` = recall-pending (pretrained recall
+only; `papers.yaml` carries `verified: false`). Effectiveness grades:
+`reproduced` / `externally-evaluated` / `benchmark-reported` / `single-source` /
+`contested` / `failed-replication` / `folklore` (defined in `field-map.md`,
+which owns this vocabulary).
 
 **Grade cap nuance.** Two kinds of `[R]` claim, treated differently: a
 *post-cutoff / anchor-adjacent* claim (the J-space result and anything depending
@@ -81,7 +87,7 @@ consensus. That is why some `[R]` nodes read above `single-source`.
 - **Fetch+read pass 2026-07-31** built durable full-text extracts
   (`related-work/extract/<key>/`, git-ignored) for the anchor + 8 lineage papers
   and pulled the anchor's **verbatim bibliography** — 171 cited keys, filtered
-  to `related-work/extract/j-space/2026/workspace/cited.bib`. The anchor's real
+  to `related-work/extract/anthropic2026-jspace/2026/workspace/cited.bib`. The anchor's real
   citations *confirm* clusters A–F and surfaced new anchor-cited nodes now folded
   into the seed set: **cluster G (activation decoding to language)** — the
   nearest live sibling of J-lens — plus Cunningham SAEs (A3),
@@ -103,6 +109,23 @@ consensus. That is why some `[R]` nodes read above `single-source`.
   promising anchor cites as new seeds: Hernandez relation-Jacobians (B4, the
   method's ancestor), the model-organism/auditing line (H1), Bogdan–Lindsey
   entity slots (B5), and two latent-computation precursors (E3).
+- **Traversal-completion + sibling pass 2026-07-31.** Diffed the anchor's
+  `cited.bib` (178 entries) against `papers.yaml` mechanically instead of by
+  eye — **57 cited works were absent**, i.e. the declared backward-traversal
+  method had not actually been run to completion. Folded in the 14 substantive
+  ones with metadata transcribed from the anchor's own bib (`source:
+  anchor-bib`, so `verified: true` without a separate fetch): **Patchscopes**
+  (the framework that already unifies cluster G; an author of it is on the
+  anchor's byline), **Future Lens** and **Backward Lens** (B6 — the nearest
+  lens-family siblings, gradients-into-vocabulary vs Jacobian-into-vocabulary),
+  Arditi refusal-direction / ITI / task vectors (C3), induction heads and
+  Geva factual recall (D1), **Chanin SAE feature absorption** (A3 — the SAE
+  negative result this map's own queue had asked for), self-interpretability /
+  SAD / Assistant Axis (F1), and Miller 1956 + Cowan 2001 (F3), the
+  working-memory baseline the anchor's ~25-item capacity claim argues against
+  and which the map had recorded a number without.
+  Separately, a forward search found work the anchor does *not* cite and cannot
+  have: **new cluster I**, read-backed digests written from fetched full text.
 
 ---
 
@@ -489,6 +512,47 @@ not yet read in full.
 
 ---
 
+## I. Independent concurrent convergence (the anchor's uncited siblings)
+
+Every other cluster is *ancestry* — reached by backward traversal from the
+anchor's bibliography, so every node is something the anchor read. This cluster
+is the opposite relation and the only one of its kind here: work published too
+close to the anchor for either to cite the other, arriving at the same
+structural claim by a different route.
+
+It matters disproportionately for grading. The anchor's own results are capped
+at `single-source` because no independent reproduction *could* have been
+verified; these are the first external evidence that the verbalizable/latent
+split is not an artifact of one lab's method. They are not a replication — the
+methods and domains differ — so the cap stays for now, but a deliberate
+cross-check (below) could lift it.
+
+### I1. Knowledge vs verbalization as separable directions `[G]` · digests: [knowledge-vs-verbalization](concepts/knowledge-vs-verbalization.md), [pre-verbalization-commitment](concepts/pre-verbalization-commitment.md)
+
+- **Xiros, Zoumpoulidi & Paraskevopoulos 2026** (arXiv 2607.05013, submitted
+  **the anchor's own publication date**): knowledge and verbalization are
+  distinct, linearly decodable directions; **verbalization is the easier of the
+  two to decode**; fabrication is a *verbalization* shift over intact
+  knowledge; gated joint steering beats steering either direction alone.
+  Ordinary probing + steering on math solvability in open models — no Jacobian,
+  no frontier model, same split.
+- **Zhang, Chen, Wei & Qin 2026** (arXiv 2605.06723, two months earlier):
+  answer preference stabilizes **17–31 tokens before the answer is parseable**
+  (Qwen3-4B-Instruct, binary delayed-verdict templates), measured by projecting
+  continuation probabilities onto a finite answer set rather than by a probe.
+  Carries its own negative result: steering δ shows local sensitivity but not
+  reliable generation control.
+- **Effectiveness:** `single-source` each. Both are small-scale relative to the
+  anchor (open/small models, narrow task families), so they corroborate the
+  *structure* of the claim, not its magnitude.
+- **The cheapest discriminating check this map affords.** The anchor says
+  J-space carries what is poised to be verbalized; Zhang gives a number for how
+  far ahead preference is fixed. If both are describing one phenomenon, J-space
+  occupancy should settle on roughly that lead. Neither paper tests it, and
+  nothing else in this survey offers an equally concrete cross-validation.
+
+---
+
 ## ANCHOR. J-space / verbalizable global workspace in language models `[G]`
 
 **Source (grounded, full read).** "Verbalizable Representations Form a Global
@@ -615,12 +679,17 @@ field; seed when traversal reaches them:
 
 ## Backward-traversal frontier (grounding queue)
 
-**12 papers are now read in full** and distilled to `concepts/` digests (see the
-*Read-backed digests* index at the top): superposition, sae, logit-lens,
-tuned-lens, relation-jacobian, actadd, repe, cot-unfaithfulness, introspection,
-attribution-graphs, activation-decoding, and the j-space anchor. The anchor's
-bibliography (171 keys → `cited.bib`) is extracted. Remaining, ordered by
+**15 papers are read in full** and distilled to `concepts/` digests — the
+*Read-backed digests* index at the top is the authoritative list; do not
+restate it here. The anchor's bibliography (178 entries → `cited.bib`) is
+extracted and has been diffed against `papers.yaml`. Remaining, ordered by
 leverage (a `[G]`-no-digest node = fetched + citation-checked, read pending):
+
+0. **Newly manifested, none read** (2026-07-31 traversal completion):
+   Patchscopes is the highest-leverage of these — it claims to *unify* cluster
+   G, so reading it may restructure that cluster rather than add to it.
+   Then Backward/Future Lens (B6), Chanin absorption (A3, the SAE
+   falsifier), Arditi refusal (C3, likely above `single-source` once read).
 
 1. **SAE deepening** — the `sae` digest is read-backed on Bricken (+ Templeton
    skim); read **Cunningham 2023** and **Templeton 2024** in full to complete it.
