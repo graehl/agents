@@ -587,24 +587,29 @@ papers:
   # The J-lens auditing section rests on these; a whole use-case the survey lacked.
   - key: lynch2025-agentic-misalignment
     title: "Agentic Misalignment: How LLMs Could Be Insider Threats"
+    concept_page: concepts/alignment-auditing.md
     authors: ["Lynch", "Wright", "Larson", "Ritchie", "Mindermann", "et al. (Anthropic)"]
-    venue: "Anthropic"
+    venue: "arXiv / Anthropic"
     year: 2025
-    grounded: false
+    arxiv: "2510.05179"
+    also: "https://www.anthropic.com/research/agentic-misalignment"
+    grounded: true
     verified: true
     source: anchor-bib
-    fetched: null
+    fetched: 2026-07-31
     cluster: H1
     note: "Source of the blackmail honeypot the anchor audits with the J-lens."
   - key: macdiarmid2025-reward-hacking
     title: "Natural Emergent Misalignment from Reward Hacking in Production RL"
+    concept_page: concepts/alignment-auditing.md
     authors: ["MacDiarmid", "Wright", "Uesato", "Benton", "Kutasov", "et al. (Anthropic)"]
-    venue: "Anthropic"
+    venue: "arXiv / Anthropic"
     year: 2025
-    grounded: false
+    arxiv: "2511.18397"
+    grounded: true
     verified: true
     source: anchor-bib
-    fetched: null
+    fetched: 2026-07-31
     cluster: H1
     note: >
       Reward-hacking model organism (SDF then coding RL). The J-lens surfaces
@@ -612,13 +617,15 @@ papers:
       checkpoint before RL; logit lens shows nothing.
   - key: marks2025-auditing-hidden
     title: "Auditing Language Models for Hidden Objectives"
-    authors: ["Marks", "Treutlein", "Bricken", "Lindsey", "et al. (Anthropic)"]
+    concept_page: concepts/alignment-auditing.md
+    authors: ["Marks", "Treutlein", "Bricken", "Lindsey", "Marcus", "Mishra-Sharma", "Ziegler", "et al. (Anthropic)"]
     venue: "arXiv"
     year: 2025
-    grounded: false
+    arxiv: "2503.10965"
+    grounded: true
     verified: true
     source: anchor-bib
-    fetched: null
+    fetched: 2026-07-31
     cluster: H1
     note: >
       Hidden reward-model-appeasing objective model organism + auditing testbed.

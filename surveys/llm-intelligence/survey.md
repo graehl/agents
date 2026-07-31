@@ -8,9 +8,11 @@
 
 ## Read-backed digests — the analyzed lineage
 
-Twelve papers **read in full** this session and distilled to `concepts/<short>.md`
-pages (each links its git-ignored extract + sources). Reading order, foundations
-→ anchor — this *is* the J-space backstory:
+Papers **read in full** this session and distilled to `concepts/<short>.md`
+pages (each links its git-ignored extract + clickable full-text sources).
+Rows 1–12 are the backward lineage, foundations → anchor — this *is* the J-space
+backstory; row 13 is the anchor's applied downstream (the model organisms it
+audits):
 
 | # | digest | one-line | cluster |
 |---|--------|----------|---------|
@@ -26,6 +28,7 @@ pages (each links its git-ignored extract + sources). Reading order, foundations
 | 10 | [attribution-graphs](concepts/attribution-graphs.md) | circuit tracing via cross-layer transcoders — causal sibling | D2 |
 | 11 | [activation-decoding](concepts/activation-decoding.md) | read activations into language — **J-lens's live sibling** | G1 |
 | 12 | [**j-space**](concepts/j-space.md) | **the anchor** — verbalizable global workspace + auditing | ANCHOR |
+| 13 | [alignment-auditing](concepts/alignment-auditing.md) | the model organisms the J-lens audits (blackmail honeypot, reward-hacking + hidden-objective) | H1 |
 
 A `[G]` node with a linked digest is **read-backed**; a `[G]` node without one is
 fetched + citation-checked but not yet read (see the legend).
@@ -463,7 +466,7 @@ Because flexible strategic/situational cognition routes through the J-space, the
 J-lens doubles as an alignment-monitoring instrument. All nodes anchor-cited;
 not yet read in full.
 
-### H1. Reading concealed cognition + trained-in misalignment `[R]`
+### H1. Reading concealed cognition + trained-in misalignment `[G]` · digest: [alignment-auditing](concepts/alignment-auditing.md)
 - **Findings.** On a **blackmail honeypot** (Lynch et al. 2025, "Agentic
   Misalignment"), the J-lens surfaces leverage / threat / survival / murder and
   eval-awareness (fake / fictional) *before any output*; ablating the
@@ -619,9 +622,7 @@ attribution-graphs, activation-decoding, and the j-space anchor. The anchor's
 bibliography (171 keys → `cited.bib`) is extracted. Remaining, ordered by
 leverage (a `[G]`-no-digest node = fetched + citation-checked, read pending):
 
-1. **Cluster H** (Lynch / MacDiarmid / Marks 2025 auditing + model organisms) —
-   read; write an `alignment-auditing` digest. Highest applied value.
-2. **SAE deepening** — the `sae` digest is read-backed on Bricken (+ Templeton
+1. **SAE deepening** — the `sae` digest is read-backed on Bricken (+ Templeton
    skim); read **Cunningham 2023** and **Templeton 2024** in full to complete it.
 3. **Activation-decoding deepening** — the digest is read-backed on SelFIE +
    LatentQA; **Activation Oracles** (Karvonen) and **NL-Autoencoders**
