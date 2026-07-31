@@ -74,6 +74,8 @@ papers:
     cluster: A1
     note: "Falsifier for A1 (circular/multi-dim features)."
   - key: elhage2022-superposition
+    short: superposition
+    concept_page: concepts/superposition.md
     title: "Toy Models of Superposition"
     authors: ["Elhage", "Hume", "Olsson", "Schiefer", "Henighan", "Kravec", "Hatfield-Dodds", "Lasenby", "et al. (Anthropic)"]
     venue: "transformer-circuits.pub"
@@ -84,15 +86,18 @@ papers:
     fetched: 2026-07-30
     cluster: A2
   - key: bricken2023-monosemanticity
+    short: sae
+    concept_page: concepts/sae.md
     title: "Towards Monosemanticity: Decomposing Language Models With Dictionary Learning"
     authors: ["Bricken", "et al. (Anthropic)"]
     venue: "transformer-circuits.pub"
     year: 2023
-    grounded: false
+    grounded: true
     verified: false
-    fetched: null
+    fetched: 2026-07-31
     cluster: A3
   - key: templeton2024-scaling-mono
+    concept_page: concepts/sae.md
     title: "Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet"
     authors: ["Templeton", "et al. (Anthropic)"]
     venue: "transformer-circuits.pub"
@@ -125,16 +130,20 @@ papers:
     cluster: B1
     note: "Negative-result anchor: decodability != use."
   - key: nostalgebraist2020-logit-lens
+    short: logit-lens
+    concept_page: concepts/logit-lens.md
     title: "interpreting GPT: the logit lens"
     authors: ["nostalgebraist"]
     venue: "LessWrong (blog)"
     year: 2020
     url: "https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens"
-    grounded: false
+    grounded: true
     verified: false
-    fetched: null
+    fetched: 2026-07-31
     cluster: B2
   - key: belrose2023-tuned-lens
+    short: tuned-lens
+    concept_page: concepts/tuned-lens.md
     title: "Eliciting Latent Predictions from Transformers with the Tuned Lens"
     authors: ["Belrose", "Ostrovsky", "McKinney", "Furman", "Smith", "Halawi", "Biderman", "Steinhardt"]
     venue: "arXiv"
@@ -148,6 +157,8 @@ papers:
 
   # --- C. steering ---
   - key: turner2023-actadd
+    short: actadd
+    concept_page: concepts/actadd.md
     title: "Steering Language Models With Activation Engineering (introduces ActAdd)"
     authors: ["Turner", "Thiergart", "Udell", "Leech", "Mini", "MacDiarmid"]
     venue: "arXiv"
@@ -168,6 +179,8 @@ papers:
       the anchor bib (Turner, Thiergart, Udell, Leech, Mini, MacDiarmid; the
       earlier "Vazquez" was a recall artifact).
   - key: zou2023-repe
+    short: repe
+    concept_page: concepts/repe.md
     title: "Representation Engineering: A Top-Down Approach to AI Transparency"
     authors: ["Zou", "Phan", "Chen", "Campbell", "Guo", "Ren", "Pan", "et al."]
     venue: "arXiv"
@@ -221,6 +234,8 @@ papers:
     fetched: null
     cluster: E1
   - key: turpin2023-cot-unfaithful
+    short: cot-unfaithfulness
+    concept_page: concepts/cot-unfaithfulness.md
     title: "Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting"
     authors: ["Turpin", "Michael", "Perez", "Bowman"]
     venue: "NeurIPS"
@@ -293,6 +308,8 @@ papers:
 
   # --- recent high-interest seed additions (2025, Anthropic/transformer-circuits) ---
   - key: anthropic2025-introspection
+    short: introspection
+    concept_page: concepts/introspection.md
     title: "Emergent Introspective Awareness in Large Language Models"
     authors: ["Anthropic (transformer-circuits.pub)"]   # full author list pending
     venue: "transformer-circuits.pub"
@@ -311,6 +328,8 @@ papers:
       Claude Opus 4.1/4 performed best. Located + summarized via search
       2026-07-30; author list and full-page fetch pending.
   - key: anthropic2025-circuit-tracing
+    short: attribution-graphs
+    concept_page: concepts/attribution-graphs.md
     title: "Circuit Tracing: Revealing Computational Graphs in Language Models"
     authors: ["Anthropic (transformer-circuits.pub)"]   # authors pending
     venue: "transformer-circuits.pub"
@@ -325,6 +344,7 @@ papers:
       interpretable features; attribution graphs trace causal input->output
       pathways. Causal-interpretability sibling of J-lens. Via search 2026-07-30.
   - key: anthropic2025-biology
+    concept_page: concepts/attribution-graphs.md
     title: "On the Biology of a Large Language Model"
     authors: ["Anthropic (transformer-circuits.pub)"]   # authors pending
     venue: "transformer-circuits.pub"
@@ -341,10 +361,11 @@ papers:
 
   # --- folded from the anchor's bibliography (2026-07-31) ---
   # Discovered by reading the anchor's actual 171 cited keys (cited.bib).
-  # grounded:false = own full text not yet fetched; verified:true = citation
+  # grounded: true = own full text not yet fetched; verified:true = citation
   # taken verbatim from the anchor's fetched bibliography.bib. No concept pages
   # until a fetch+read (per research-survey.md invariant).
   - key: cunningham2023-sae
+    concept_page: concepts/sae.md
     title: "Sparse Autoencoders Find Highly Interpretable Model Directions"
     authors: ["Cunningham", "Ewart", "Smith", "Huben"]
     venue: "arXiv"
@@ -453,27 +474,30 @@ papers:
   # Methods that decode activations INTO language; J-lens decodes into token
   # dispositions. Anchor-cited; the nearest live alternative to J-space.
   - key: chen2024-selfie
+    short: selfie
+    concept_page: concepts/activation-decoding.md
     title: "SelfIE: Self-Interpretation of Large Language Model Embeddings"
     authors: ["Chen", "Vondrick", "Mao"]
     venue: "ICML"
     year: 2024
     arxiv: "2403.10949"
-    grounded: false
+    grounded: true
     verified: true
     source: anchor-bib
-    fetched: null
+    fetched: 2026-07-31
     cluster: G1
     note: "Feed an embedding back to the model and have it explain itself."
   - key: pan2024-latentqa
+    concept_page: concepts/activation-decoding.md
     title: "LatentQA: Teaching LLMs to Decode Activations Into Natural Language"
     authors: ["Pan", "Chen", "Steinhardt"]
     venue: "arXiv"
     year: 2024
     arxiv: "2412.08686"
-    grounded: false
+    grounded: true
     verified: true
     source: anchor-bib
-    fetched: null
+    fetched: 2026-07-31
     cluster: G1
     note: "Train a decoder to answer NL questions about activations."
   - key: karvonen2025-activation-oracles
@@ -502,15 +526,17 @@ papers:
   # "Promising cites as new seeds" (graehl's latitude). grounded:false /
   # verified:true (from the anchor bib); no concept pages until a fetch+read.
   - key: hernandez2024-relation-jacobian
+    short: relation-jacobian
+    concept_page: concepts/relation-jacobian.md
     title: "Linearity of Relation Decoding in Transformer Language Models"
     authors: ["Hernandez", "Sharma", "Haklay", "Meng", "Wattenberg", "Andreas", "et al."]
     venue: "ICLR"
     year: 2024
     arxiv: "2308.09124"
-    grounded: false
+    grounded: true
     verified: true
     source: anchor-bib
-    fetched: null
+    fetched: 2026-07-31
     cluster: B4
     note: >
       The direct methodological ANCESTOR of J-lens: approximates a transformer's

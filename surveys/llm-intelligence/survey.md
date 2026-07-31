@@ -6,6 +6,30 @@
 > not adjudicate it, it organizes the concrete techniques and findings that
 > claims about it rest on.
 
+## Read-backed digests — the analyzed lineage
+
+Twelve papers **read in full** this session and distilled to `concepts/<short>.md`
+pages (each links its git-ignored extract + sources). Reading order, foundations
+→ anchor — this *is* the J-space backstory:
+
+| # | digest | one-line | cluster |
+|---|--------|----------|---------|
+| 1 | [superposition](concepts/superposition.md) | more features than dimensions → an overcomplete feature frame | A2 |
+| 2 | [sae](concepts/sae.md) | sparse dictionary learning un-mixes that frame (input-side) | A3 |
+| 3 | [logit-lens](concepts/logit-lens.md) | decode a hidden state with the unembedding (`J=I`) | B2 |
+| 4 | [tuned-lens](concepts/tuned-lens.md) | a *trained* per-layer lens; correlational, "skips ahead" | B3 |
+| 5 | [relation-jacobian](concepts/relation-jacobian.md) | averaged Jacobians as linear maps — **J-lens's ancestor** | B4 |
+| 6 | [actadd](concepts/actadd.md) | activation-addition steering — J-space's "write" primitive | C1 |
+| 7 | [repe](concepts/repe.md) | representation engineering — read/steer from contrasts | C2 |
+| 8 | [cot-unfaithfulness](concepts/cot-unfaithfulness.md) | said ≠ used reasoning → why a latent causal read is needed | E2 |
+| 9 | [introspection](concepts/introspection.md) | concept-injection self-report tests — the verbal-report precursor | F1 |
+| 10 | [attribution-graphs](concepts/attribution-graphs.md) | circuit tracing via cross-layer transcoders — causal sibling | D2 |
+| 11 | [activation-decoding](concepts/activation-decoding.md) | read activations into language — **J-lens's live sibling** | G1 |
+| 12 | [**j-space**](concepts/j-space.md) | **the anchor** — verbalizable global workspace + auditing | ANCHOR |
+
+A `[G]` node with a linked digest is **read-backed**; a `[G]` node without one is
+fetched + citation-checked but not yet read (see the legend).
+
 ## Grounding and coverage
 
 - **Grounding mode: `grounded`, in progress (partial).** The J-space anchor
@@ -160,7 +184,7 @@ survey value is in *not* conflating adjacent techniques.
 - **Design decision it changes.** Whether you can read/steer a concept with a
   single vector (cheap) or need a subspace/nonlinear probe.
 
-### A2. Superposition `[G]`
+### A2. Superposition `[G]` · digest: [superposition](concepts/superposition.md)
 - **Mechanism.** With sparsity, a model packs *more* features than it has
   dimensions, as an overcomplete set of near-orthogonal directions that
   interfere only rarely (Elhage et al. 2022, "Toy Models of Superposition").
@@ -173,7 +197,7 @@ survey value is in *not* conflating adjacent techniques.
 - **Effectiveness:** `single-source` (foundational, widely adopted framing;
   frontier-scale fidelity unproven).
 
-### A3. Dictionary learning / sparse autoencoders (SAEs) `[R]`
+### A3. Dictionary learning / sparse autoencoders (SAEs) `[G]` · digest: [sae](concepts/sae.md)
 - **Mechanism.** Train an overcomplete SAE on activations; its sparse
   nonnegative codes are candidate monosemantic features (Bricken et al. 2023
   "Towards Monosemanticity"; Templeton et al. 2024 "Scaling Monosemanticity";
@@ -207,7 +231,7 @@ survey value is in *not* conflating adjacent techniques.
 - **Effectiveness:** `single-source`/`folklore` — ubiquitous diagnostic;
   interpretation caveats well known.
 
-### B2. Logit lens `[R]`
+### B2. Logit lens `[G]` · digest: [logit-lens](concepts/logit-lens.md)
 - **Mechanism.** Apply the unembedding matrix directly to an intermediate
   residual stream → a next-token distribution "as if decoding early"
   (nostalgebraist 2020).
@@ -218,7 +242,7 @@ survey value is in *not* conflating adjacent techniques.
   applying the unembedding directly and being non-causal.
 - **Effectiveness:** `folklore` — widely used, known-unreliable early-layer.
 
-### B3. Tuned lens `[G]`
+### B3. Tuned lens `[G]` · digest: [tuned-lens](concepts/tuned-lens.md)
 - **Mechanism.** Fit a per-layer affine map from the intermediate stream to the
   final logits; lower bias/variance and more predictive than logit lens
   (Belrose et al. 2023, "Eliciting Latent Predictions with the Tuned Lens").
@@ -229,7 +253,7 @@ survey value is in *not* conflating adjacent techniques.
 - **Effectiveness:** `benchmark-reported` → capped `single-source` here — the
   paper reports lower lens perplexity across model families; not re-verified.
 
-### B4. Averaged relation-Jacobian `[R]` (J-lens's methodological ancestor)
+### B4. Averaged relation-Jacobian `[G]` (J-lens's methodological ancestor) · digest: [relation-jacobian](concepts/relation-jacobian.md)
 - **Mechanism.** A transformer's map from a subject representation to a relational
   attribute (e.g. "plays instrument": Miles Davis → trumpet) is well-approximated
   by the **mean Jacobian** of the attribute w.r.t. the subject over a handful of
@@ -257,7 +281,7 @@ survey value is in *not* conflating adjacent techniques.
 
 ## C. Steering internal state — causal control
 
-### C1. Activation addition / steering vectors `[G]`
+### C1. Activation addition / steering vectors `[G]` · digest: [actadd](concepts/actadd.md)
 - **Mechanism.** Add a scaled direction to the residual stream, `h ← h + αv`,
   to push behavior toward/away from a concept — ActAdd, from a contrastive
   prompt pair (Turner et al. 2023, arXiv 2308.10248 — original title "Activation
@@ -271,7 +295,7 @@ survey value is in *not* conflating adjacent techniques.
 - **Effectiveness:** `single-source` — works cleanly for some concepts, brittle
   / off-target for others; α-tuning sensitive.
 
-### C2. Representation engineering (RepE) `[G]`
+### C2. Representation engineering (RepE) `[G]` · digest: [repe](concepts/repe.md)
 - **Mechanism.** Top-down: derive reading/control vectors from contrastive
   prompt sets (e.g. LAT / PCA over paired activations), then read or steer
   (Zou et al. 2023).
@@ -297,7 +321,7 @@ survey value is in *not* conflating adjacent techniques.
   specifically (widely replicated); framework is a lens, not a benchmarked
   result.
 
-### D2. Circuit tracing / attribution graphs `[G]`
+### D2. Circuit tracing / attribution graphs `[G]` · digest: [attribution-graphs](concepts/attribution-graphs.md)
 - **Mechanism.** Cross-layer transcoders (CLTs) replace MLP activations with
   sparse interpretable features; **attribution graphs** then trace the causal
   input→intermediate→output pathway for a specific prompt (Anthropic 2025,
@@ -334,7 +358,7 @@ survey value is in *not* conflating adjacent techniques.
   arithmetic/symbolic/multi-hop, **conditioned on scale** (small models gain
   little/none) and benchmark.
 
-### E2. CoT (un)faithfulness `[G]` (Turpin grounded; Lanham `[R]`)
+### E2. CoT (un)faithfulness `[G]` (Turpin grounded; Lanham `[R]`) · digest: [cot-unfaithfulness](concepts/cot-unfaithfulness.md)
 - **Mechanism / finding.** The verbalized CoT is not reliably the *cause* of the
   answer: models rationalize post-hoc and are steerable by biasing features they
   don't mention (Turpin et al. 2023, "LMs Don't Always Say What They Think";
@@ -361,7 +385,7 @@ survey value is in *not* conflating adjacent techniques.
 
 ## F. Self-access: introspection + the neuroscience import
 
-### F1. LLM introspection / self-report `[G]` (precursor grounded; Binder/Kadavath `[R]`)
+### F1. LLM introspection / self-report `[G]` (precursor grounded; Binder/Kadavath `[R]`) · digest: [introspection](concepts/introspection.md)
 - **Mechanism.** Whether a model can report facts about its own internal states
   better than an external predictor can (Binder et al. 2024, "Looking Inward";
   calibration precursor Kadavath et al. 2022, "LMs (Mostly) Know What They
@@ -412,7 +436,7 @@ alternative to J-space, which decodes an activation into a ranked **token
 disposition**. All anchor-cited; folded in on the 2026-07-31 read (no full-text
 extracts yet — grounded pass queued).
 
-### G1. Activation→language explainers `[R]`
+### G1. Activation→language explainers `[G]` · digest: [activation-decoding](concepts/activation-decoding.md)
 - **Mechanism.** Feed an internal activation (back) to an LLM and have it emit a
   natural-language description of what that activation encodes. Variants: **SelFIE**
   (Chen et al. 2024, self-interpretation of embeddings); **LatentQA** (Pan et al.
@@ -588,32 +612,31 @@ field; seed when traversal reaches them:
 
 ## Backward-traversal frontier (grounding queue)
 
-Full-text extracts exist (2026-07-31) for the anchor + 8 lineage papers; the
-anchor's bibliography (171 keys → `cited.bib`) is extracted; and the **anchor is
-now read in full** and distilled to `concepts/j-space.md` (the only full-read
-node). That read added cluster H + B4/B5/E3 seeds and the A3/D2/F1/F2/G folds.
-Remaining, ordered by leverage (a `[G]`-no-concept-page node = read pending):
+**12 papers are now read in full** and distilled to `concepts/` digests (see the
+*Read-backed digests* index at the top): superposition, sae, logit-lens,
+tuned-lens, relation-jacobian, actadd, repe, cot-unfaithfulness, introspection,
+attribution-graphs, activation-decoding, and the j-space anchor. The anchor's
+bibliography (171 keys → `cited.bib`) is extracted. Remaining, ordered by
+leverage (a `[G]`-no-digest node = fetched + citation-checked, read pending):
 
-1. **Cluster G (activation→language decoders)** — SelFIE / LatentQA / Activation
-   Oracles / NL-Autoencoders. Closest live sibling of J-lens; no extracts yet.
-   Fetch + read, then write the `activation-decoding` concept page. [highest]
-2. **Hernandez 2024 relation-Jacobian (B4)** — read the direct methodological
-   ancestor; a concept page here anchors the "why an *averaged Jacobian*" choice.
-3. **Cluster H** (Lynch / MacDiarmid / Marks 2025) — read the auditing +
-   model-organism line; write an `alignment-auditing` concept page.
-4. Bricken 2023 / Templeton 2024 / Cunningham 2023 (SAEs) — pin the
-   sparse-nonneg-overcomplete lineage + input-vs-output-basis contrast; `sae`
-   page. Extracts for the 8 lineage papers already local — read them.
-5. Lanham 2023 (CoT faithfulness) — second faithfulness anchor.
-6. Elhage 2021 (circuits math framework); **re-extract elhage2022** via the
-   transformer-circuits HTML (marker OOM'd on the PDF, so it is PDF-only).
-7. Park 2023 + Engels 2024 (linear rep + nonlinear falsifier); Bogdan slots (B5);
-   Wendler / Yang latent-computation precursors (E3).
-8. Binder 2024 + Kadavath 2022 + the F1 introspection-debate trio
-   (Ji-An / Song / Comșa).
-9. Baars / Dehaene / Block + the GWT-in-ML nodes (Goyal, VanRullen) — confirm
-   exact citations. Also confirm the `anthropic2025-introspection` arXiv mirror
-   (2601.01828).
+1. **Cluster H** (Lynch / MacDiarmid / Marks 2025 auditing + model organisms) —
+   read; write an `alignment-auditing` digest. Highest applied value.
+2. **SAE deepening** — the `sae` digest is read-backed on Bricken (+ Templeton
+   skim); read **Cunningham 2023** and **Templeton 2024** in full to complete it.
+3. **Activation-decoding deepening** — the digest is read-backed on SelFIE +
+   LatentQA; **Activation Oracles** (Karvonen) and **NL-Autoencoders**
+   (Fraser-Taliente) are summarized from the anchor bib, not yet read.
+4. A1 geometry: **Park 2023 + Engels 2024** (linear rep hypothesis + nonlinear
+   falsifier) — the one unread foundational cluster; **word2vec** ancestor.
+5. Lanham 2023 (second CoT-faithfulness anchor); **Bogdan slots (B5)**;
+   **Wendler / Yang (E3)** latent-computation precursors — read the new seeds.
+6. D1: **Elhage 2021** (circuits math framework) + Olah 2020 "Zoom In".
+7. F1: Binder 2024 + Kadavath 2022 + the introspection-debate trio
+   (Ji-An / Song / Comșa). F2: Baars / Dehaene / Block + GWT-in-ML (Goyal,
+   VanRullen) — confirm exact citations.
+8. Housekeeping: **re-extract elhage2022** arXiv dir is PDF-only (superposition
+   digest reads the tcircuits HTML instead); confirm the
+   `anthropic2025-introspection` arXiv mirror (2601.01828).
 
 See `related-work/papers.yaml` for the metadata manifest (verification status
 per paper) and `related-work/fetch.sh` for the regenerable extraction script.
