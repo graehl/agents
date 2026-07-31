@@ -3,7 +3,13 @@
 > Understanding/summary page (our ideas + beliefs about the work — the primary
 > artifact we reason on). Short handle: `j-space`. Trust: `single-source`
 > (one lab, one paper, not independently reproduced). Grounded from the primary
-> source this session (2026-07-30).
+> source (WebFetch 2026-07-30); full HTML + bibliography extract built 2026-07-31.
+>
+> **Authors** (from the paper's Author Contributions; the byline is JS-rendered
+> and front-matter `authors:[]` is empty): Wes Gurnee (led J-lens development)
+> and Jack Lindsey (corresponding, jacklindsey@anthropic) conceived the method,
+> with Nicholas Sofroniew, Subhash Kantamneni, Mateusz Piotrowski, Isaac Kauvar,
+> and Adam Pearce (Anthropic).
 
 **Sources (for reconstituting the git-ignored full-text extract):**
 - Primary: "Verbalizable Representations Form a Global Workspace in Language
@@ -13,13 +19,17 @@
 - Skeptical read (useful counterweight): Zvi Mowshowitz, "No Space Like
   J-Space," https://thezvi.substack.com/p/no-space-like-j-space
 
-Extract (when built): `related-work/extract/j-space/` — consult only for
+Extract (built 2026-07-31, git-ignored):
+`related-work/extract/j-space/2026/workspace/` — full page + figures, plus
+`bibliography.bib` (the 807-entry shared transformer-circuits bib) and
+`cited.bib` (the **171 keys this paper actually cites**). Consult only for
 specifics this summary omits (e.g. exact layer indices per model, the full
-five-property experiment tables, the verbatim bibliography).
+five-property experiment tables).
 
 Map node: [`survey.md` § ANCHOR](../survey.md). Related concept pages (as they
-land): `tuned-lens`, `sae`, `actadd`, `attribution-graphs`, `cot-faithfulness`,
-`introspection`, `global-workspace`.
+land): `activation-decoding` (cluster G — the live sibling family), `tuned-lens`,
+`sae`, `actadd`, `attribution-graphs`, `cot-faithfulness`, `introspection`,
+`global-workspace`.
 
 ## What it is
 
@@ -61,6 +71,15 @@ attribution-graph circuit tracing (2025): both are causal interpretability from
 the same lab — attribution graphs map the *pathway between features*, J-lens
 ranks a single activation's *output-token disposition*.
 
+A second, more direct sibling family — surfaced by reading the paper's actual
+citations — is **activation→language decoding** (SelFIE, LatentQA, Activation
+Oracles, Natural Language Autoencoders; survey cluster G). Those decode an
+activation into *free-text* explanation; J-lens decodes it into a *ranked token
+disposition* carrying a first-order **causal** guarantee (∂output/∂activation).
+Expressivity vs. causal faithfulness is the axis, and J-space is the causal pole
+of exactly this family — which is why it reads as "the causal version of asking
+the model what an activation means."
+
 ## Our assessment / trust
 
 - **Grade `single-source`.** One lab, one 2026 paper; no independent
@@ -83,10 +102,16 @@ ranks a single activation's *output-token disposition*.
   Claims about "the model's thinking" are claims about this slice, not the whole
   computation.
 
-## Open questions (would consult the extract / a grounded pass)
+## Open questions
 
+Now answerable from the local extract (fetched, not yet distilled here — the
+next in-depth read):
 - Exact per-model layer ranges and the sensory/middle/motor boundary criteria.
+- The full five-property experiment tables and any ablations/baselines.
 - The verbatim introspection protocol and how directly it adapts Anthropic's
   2025 *Emergent Introspective Awareness* concept-injection method.
-- The full five-property experiment tables and any ablations/baselines.
-- The paper's actual bibliography (not yet extracted; frontier-queue item).
+
+Resolved on the 2026-07-31 pass: the **bibliography is extracted** (171 cited
+keys, `related-work/extract/j-space/2026/workspace/cited.bib`), confirming the
+survey's cluster structure and surfacing cluster G; and the **author list** is
+recovered from the Author Contributions section (see the header).

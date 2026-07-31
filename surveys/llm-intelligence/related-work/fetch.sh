@@ -34,15 +34,18 @@ mkdir -p extract
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# crude papers.yaml reader: emit "key<TAB>short<TAB>kind<TAB>ident" rows.
-# `short` is "" when the entry has no short handle. A block starts at "- key:";
+# crude papers.yaml reader: emit "key<US>short<US>kind<US>ident" rows, where <US>
+# is the 0x1f unit separator. A non-whitespace separator is deliberate: `read`
+# with a tab IFS collapses an empty middle field (a short-less entry) and shifts
+# every column left, so tabs silently mis-parsed every paper but the one with a
+# `short`. `short` is "" when the entry has none. A block starts at "- key:";
 # reset short there so it never leaks from the previous entry.
 rows() {
   awk '
     /^[[:space:]]*-[[:space:]]*key:[[:space:]]*/ { key=$0; sub(/.*key:[[:space:]]*/,"",key); gsub(/["\r]/,"",key); short="" }
     /^[[:space:]]*short:[[:space:]]*/            { short=$0; sub(/.*short:[[:space:]]*/,"",short); gsub(/["\r]/,"",short) }
-    /^[[:space:]]*arxiv:[[:space:]]*/ { v=$0; sub(/.*arxiv:[[:space:]]*/,"",v); sub(/[[:space:]]+#.*$/,"",v); gsub(/["\r]/,"",v); sub(/[[:space:]]+$/,"",v); print key"\t"short"\tarxiv\t"v }
-    /^[[:space:]]*url:[[:space:]]*/   { v=$0; sub(/.*url:[[:space:]]*/,"",v);   sub(/[[:space:]]+#.*$/,"",v); gsub(/["\r]/,"",v); sub(/[[:space:]]+$/,"",v); print key"\t"short"\turl\t"v }
+    /^[[:space:]]*arxiv:[[:space:]]*/ { v=$0; sub(/.*arxiv:[[:space:]]*/,"",v); sub(/[[:space:]]+#.*$/,"",v); gsub(/["\r]/,"",v); sub(/[[:space:]]+$/,"",v); printf "%s\037%s\037arxiv\037%s\n", key, short, v }
+    /^[[:space:]]*url:[[:space:]]*/   { v=$0; sub(/.*url:[[:space:]]*/,"",v);   sub(/[[:space:]]+#.*$/,"",v); gsub(/["\r]/,"",v); sub(/[[:space:]]+$/,"",v); printf "%s\037%s\037url\037%s\n",   key, short, v }
   ' papers.yaml
 }
 
@@ -108,8 +111,13 @@ fetch_one() {
   esac
 }
 
-rows | while IFS=$'\t' read -r key short kind ident; do
+# Read rows on FD 3 (not a pipe into the loop) so the loop runs in the main
+# shell; fetch_one's stdin is /dev/null so a child (wget/curl/marker) can't
+# read from the terminal. IFS is the 0x1f unit separator emitted by rows() —
+# non-whitespace, so empty fields (short-less entries) are preserved, not
+# collapsed.
+while IFS=$'\x1f' read -r -u 3 key short kind ident; do
   [ -z "$key" ] && continue
-  fetch_one "$key" "$short" "$kind" "$ident" || echo "WARN error on $key"
-done
+  fetch_one "$key" "$short" "$kind" "$ident" </dev/null || echo "WARN error on $key"
+done 3< <(rows)
 echo "done. extracts in ./extract/<short>/ (rg-able); mark papers.yaml grounded/verified as you confirm."

@@ -44,9 +44,23 @@ source *this session*. The grounded pass confirms the citation, not the
 consensus. That is why some `[R]` nodes read above `single-source`.
 
 - **Grounded pass 2026-07-30** verified citations and flipped to `[G]`: A2
-  (superposition), B3 (tuned lens), C1 (ActAdd — title corrected), C2 (RepE),
+  (superposition), B3 (tuned lens), C1 (ActAdd), C2 (RepE),
   E2 (Turpin CoT-unfaithfulness), F1 (introspection precursor), and added D2
   (circuit tracing). The rest remain `[R]`.
+- **Fetch+read pass 2026-07-31** built durable full-text extracts
+  (`related-work/extract/<key>/`, git-ignored) for the anchor + 8 lineage papers
+  and pulled the anchor's **verbatim bibliography** — 171 cited keys, filtered
+  to `related-work/extract/j-space/2026/workspace/cited.bib`. The anchor's real
+  citations *confirm* clusters A–F and surfaced new anchor-cited nodes now folded
+  into the seed set: **cluster G (activation decoding to language)** — the
+  nearest live sibling of J-lens — plus Cunningham SAEs (A3),
+  transcoder/sparse-feature circuits (D2), and GWT-in-deep-learning +
+  AI-consciousness assessment (F2). ActAdd (C1) title **reconciled**: the paper
+  was arXiv-renamed across versions, not miscited (the 07-30 "title corrected"
+  note over-corrected). Extract caveat: `elhage2022-superposition` has no arXiv
+  HTML view, so it fell back to PDF+marker and hit a shared-GPU CUDA-OOM — its
+  extract is PDF-only (no markdown yet); the four arXiv-HTML-view papers and the
+  three transformer-circuits pages extracted cleanly.
 
 ---
 
@@ -72,6 +86,14 @@ tell a genuine gap from an unreached branch.
   3. **Circuit Tracing / On the Biology of a Large Language Model** (Anthropic,
      2025) — recent addition; cross-layer-transcoder attribution graphs, the
      causal-interpretability sibling of J-lens (node D2).
+  4. **Folded from the anchor bibliography (2026-07-31 read):** the
+     activation-decoding family (SelFIE, LatentQA, Activation Oracles, Natural
+     Language Autoencoders — **cluster G**), Cunningham SAEs (A3),
+     transcoder/sparse-feature circuits (D2), GWT-in-deep-learning (Goyal shared
+     workspace, VanRullen & Kanai) and Butlin et al. AI-consciousness indicators
+     (F2). These are **anchor-cited**, so they are backward-traversal hits, not
+     scope widening — recorded here as the recent high-utility discoveries the
+     governing instruction invites.
 
 Adding a seed widens declared scope; retiring the traversal to a new anchor
 starts a new region. Record both here when they change.
@@ -96,9 +118,10 @@ The anchor synthesizes four independently-developed lines. Read bottom-up:
                         Transformer substrate (Vaswani 2017)
 ```
 
-Clusters A–F below; the anchor last. "Nearest confusable" links are the
-decision-relevant edges — most survey value is in *not* conflating adjacent
-techniques.
+Clusters A–F below, then **G** (activation→language decoders — J-lens's live
+sibling, sitting beside the anchor on the "read out an activation" side), then
+the anchor. "Nearest confusable" links are the decision-relevant edges — most
+survey value is in *not* conflating adjacent techniques.
 
 ---
 
@@ -138,7 +161,9 @@ techniques.
 ### A3. Dictionary learning / sparse autoencoders (SAEs) `[R]`
 - **Mechanism.** Train an overcomplete SAE on activations; its sparse
   nonnegative codes are candidate monosemantic features (Bricken et al. 2023
-  "Towards Monosemanticity"; Templeton et al. 2024 "Scaling Monosemanticity").
+  "Towards Monosemanticity"; Templeton et al. 2024 "Scaling Monosemanticity";
+  Cunningham et al. 2023 "SAEs Find Highly Interpretable Model Directions" — the
+  other foundational SAE result, anchor-cited).
 - **Nearest confusable — and the key contrast with the anchor.** SAE features
   are *reconstructive / input-side*: fit to reconstruct the activation,
   unsupervised, no reference to the output. **J-lens vectors are causal /
@@ -196,8 +221,11 @@ techniques.
 ### C1. Activation addition / steering vectors `[G]`
 - **Mechanism.** Add a scaled direction to the residual stream, `h ← h + αv`,
   to push behavior toward/away from a concept — ActAdd, from a contrastive
-  prompt pair (Turner et al. 2023, "Steering Language Models With Activation
-  Engineering"; title corrected on the grounded pass).
+  prompt pair (Turner et al. 2023, arXiv 2308.10248 — original title "Activation
+  Addition: Steering Language Models Without Optimization", later arXiv-renamed
+  "Steering Language Models With Activation Engineering"; the anchor cites the
+  original title. Same paper — the 07-30 "recalled title was wrong" note
+  over-corrected).
 - **Anchor edge.** J-space uses *exactly this intervention form* on J-lens
   vectors to establish its five functional properties (verbal report, directed
   modulation, etc.) — steering is the anchor's causal test harness.
@@ -242,6 +270,11 @@ techniques.
   disposition*. CLT features (A3-style sparse) are the graph's nodes — so this
   is where the SAE lineage (A3) and the circuits substrate (D1) fuse into a
   causal tracer, the immediate methodological context J-space sits in.
+- **Lineage (anchor-cited, folded 2026-07-31).** The CLT tracer descends from
+  **transcoders as circuit units** (Dunefsky et al. 2024/25, "Transcoders find
+  interpretable LLM feature circuits") and **sparse *feature* circuits** — causal
+  graphs over SAE features (Marks et al. 2024). Transcoder → CLT → attribution
+  graph is the methodological staircase into D2.
 - **Effectiveness:** `single-source` — Anthropic 2025; interpretable causal
   graphs demonstrated on a production model, not independently reproduced.
 - **Design decision.** Attribution graphs for "trace the whole circuit behind
@@ -288,6 +321,12 @@ techniques.
   anchor's "verbal report" property uses.
 - **Anchor edge.** J-space's "verbal report" property is an introspection claim
   with a *mechanism* attached (the reported content = the workspace vector).
+- **The live debate (anchor-cited, folded 2026-07-31).** Positive pole: Ji-An et
+  al. 2025 (LMs show metacognitive monitoring/control of their own activations)
+  and Song et al. 2025 (what *privileged self-access* would have to mean).
+  Negative pole: Comșa & Shanahan 2025 ("Does it make sense to speak of
+  introspection in LLMs?"). J-space enters this debate on the positive side but
+  with a causal handle the behavioral studies lack.
 - **Effectiveness:** `single-source`/`contested` — some genuine self-access,
   but limited, unreliable, and easy to overread.
 
@@ -302,8 +341,43 @@ techniques.
   **access, not phenomenal**, and explicitly *not* a claim that transformers
   reproduce the brain's architecture (no encapsulated modules, no recurrence, no
   sharp ignition).
+- **ML instantiations (anchor-cited, folded 2026-07-31).** GWT is not only an
+  import: Goyal et al. 2022 ("Coordination Among Neural Modules Through a Shared
+  Global Workspace") builds a limited-capacity shared-workspace *architecture*,
+  and VanRullen & Kanai 2021 ("Deep Learning and the Global Workspace Theory")
+  proposes it as an organizing principle for multi-modal nets. Butlin, Long,
+  Chalmers et al. 2023 ("Consciousness in AI") turn GWT + rivals into an
+  **indicator-property checklist** for assessing AI systems — the disciplined
+  version of the question the anchor's coverage sensationalizes.
 - **Effectiveness:** N/A (external theory). The load-bearing move is keeping
   access/phenomenal separate; the viral coverage collapses them.
+
+---
+
+## G. Activation decoding to natural language (J-lens's live siblings)
+
+Methods that decode an activation **into language** — the nearest live
+alternative to J-space, which decodes an activation into a ranked **token
+disposition**. All anchor-cited; folded in on the 2026-07-31 read (no full-text
+extracts yet — grounded pass queued).
+
+### G1. Activation→language explainers `[R]`
+- **Mechanism.** Feed an internal activation (back) to an LLM and have it emit a
+  natural-language description of what that activation encodes. Variants: **SelFIE**
+  (Chen et al. 2024, self-interpretation of embeddings); **LatentQA** (Pan et al.
+  2024, a decoder trained to answer NL questions about activations); **Activation
+  Oracles** (Karvonen et al. 2025, general-purpose activation explainers);
+  **Natural Language Autoencoders** (Fraser-Taliente et al. 2026, *unsupervised*
+  NL explanations — co-authored by J-space author Kantamneni).
+- **Nearest confusable / anchor edge.** These produce **free text** — expressive
+  but unvalidated, prone to plausible confabulation. **J-lens** produces a ranked
+  vocabulary disposition with a first-order **causal** guarantee
+  (∂output/∂activation). The trade is expressivity vs. causal faithfulness;
+  J-space is the causal pole of exactly this family, which is why it belongs
+  beside them rather than under B (correlational lenses).
+- **Effectiveness:** `single-source` each — recent, largely un-reproduced across
+  labs; whether free-text explainers are *faithful* (vs. fluent) is the open
+  question the causal lens is meant to answer.
 
 ---
 
@@ -415,23 +489,34 @@ field; seed when traversal reaches them:
 
 ## Backward-traversal frontier (grounding queue)
 
-Grounded on the 2026-07-30 pass (now `[G]`): tuned lens, ActAdd, RepE, Toy
-Models of Superposition, Turpin CoT-unfaithfulness, the 2025 introspection
-precursor (F1), and circuit tracing (D2). Remaining, ordered by leverage:
+Full-text extracts now exist (2026-07-31, `related-work/extract/<key>/`) for the
+anchor + tuned lens, ActAdd, RepE, Turpin, superposition (PDF-only — marker
+OOM'd), and the three 2025 transformer-circuits seeds. The anchor's **verbatim
+bibliography is extracted** (171 keys → `cited.bib`), so the manifest no longer
+relies on recalled reference lists, and its citations were used to fold in
+cluster G + the A3/D2/F1/F2 nodes above. Remaining, ordered by leverage:
 
-1. Bricken 2023 / Templeton 2024 (SAEs) — pin the sparse-nonneg-overcomplete
-   lineage and the input-vs-output-basis contrast precisely.
-2. Lanham 2023 (CoT faithfulness) — second faithfulness anchor (Turpin done).
-3. Elhage 2021 (circuits math framework) — substrate (superposition done).
-4. Park 2023 + Engels 2024 (linear representation hypothesis + its nonlinear
-   falsifier).
-5. Binder 2024 + Kadavath 2022 (the pre-2025 introspection/calibration lineage).
-6. Baars / Dehaene / Block — confirm exact GWT + access-consciousness citations.
-7. **Get the anchor's actual bibliography** — this session's fetch could not
-   surface verbatim reference entries; a marker-pdf or full-HTML pass (run
-   `related-work/fetch.sh`) should extract them so the manifest stops relying on
-   reconstruction, and should confirm the `anthropic2025-introspection` arXiv
-   mirror (2601.01828) and author lists for the three 2025 seeds.
+1. **Cluster G (activation→language decoders)** — SelFIE / LatentQA / Activation
+   Oracles / NL-Autoencoders. Newest, closest live sibling of J-lens; no extracts
+   yet. Highest-value grounded pass next; then write the `activation-decoding`
+   concept page.
+2. Read the **anchor extract** in depth for the five-property experiment tables
+   and exact per-model layer ranges (sensory/middle/motor boundaries) — the
+   `j-space` concept page's remaining open questions.
+3. Bricken 2023 / Templeton 2024 / Cunningham 2023 (SAEs) — pin the
+   sparse-nonneg-overcomplete lineage + input-vs-output-basis contrast; write the
+   `sae` concept page.
+4. Lanham 2023 (CoT faithfulness) — second faithfulness anchor.
+5. Elhage 2021 (circuits math framework); **re-extract elhage2022** via the
+   transformer-circuits HTML (marker OOM'd on the PDF, so it is PDF-only).
+6. Park 2023 + Engels 2024 (linear rep hypothesis + nonlinear falsifier).
+7. Binder 2024 + Kadavath 2022 + the F1 introspection-debate trio
+   (Ji-An / Song / Comșa).
+8. Baars / Dehaene / Block + the GWT-in-ML nodes (Goyal, VanRullen) — confirm
+   exact citations. Also confirm the `anthropic2025-introspection` arXiv mirror
+   (2601.01828).
 
 See `related-work/papers.yaml` for the metadata manifest (verification status
 per paper) and `related-work/fetch.sh` for the regenerable extraction script.
+Extracts are git-ignored; rebuild with `./fetch.sh` (arXiv HTML view preferred,
+marker PDF fallback needs a free GPU).

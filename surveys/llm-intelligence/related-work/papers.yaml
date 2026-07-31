@@ -22,19 +22,24 @@ papers:
     short: j-space
     concept_page: concepts/j-space.md
     title: "Verbalizable Representations Form a Global Workspace in Language Models"
-    authors: ["Anthropic (transformer-circuits.pub)"]   # exact author list TBD from paper
+    # From the paper's Author Contributions (byline is JS-rendered; front-matter
+    # authors:[] is empty). Gurnee led J-lens development; Lindsey corresponding.
+    authors: ["Wes Gurnee", "Jack Lindsey (corresponding)", "Nicholas Sofroniew", "Subhash Kantamneni", "Mateusz Piotrowski", "Isaac Kauvar", "Adam Pearce", "et al. (Anthropic)"]
     venue: "transformer-circuits.pub"
     year: 2026
     url: "https://transformer-circuits.pub/2026/workspace/index.html"
     also: "https://www.anthropic.com/research/global-workspace"
     grounded: true
-    verified: true          # anchor; fetched & read this session
-    fetched: 2026-07-30
+    verified: true          # anchor; full text + bibliography fetched & read
+    fetched: 2026-07-31      # full HTML extract + bibliography.bib (recall pass was 07-30)
     cluster: ANCHOR
     note: >
-      Bibliography not extracted this session (fetch could not surface verbatim
-      reference entries). A marker-pdf / full-HTML pass is queued to recover the
-      real reference list and the exact author list.
+      Full HTML + bibliography.bib fetched 2026-07-31 via fetch.sh
+      (extract/j-space/2026/workspace/). Paper cites 171 distinct keys
+      (cited.bib, filtered from the 807-entry shared bib); its actual citations
+      confirm this survey's cluster structure A-F and surface new nodes folded in
+      below (cluster G activation-decoding, cunningham SAE, transcoder/feature
+      circuits, GWT-in-deep-learning). Correspondence jacklindsey@anthropic.
 
   # --- A. representation geometry ---
   - key: mikolov2013-word2vec
@@ -144,20 +149,24 @@ papers:
   # --- C. steering ---
   - key: turner2023-actadd
     title: "Steering Language Models With Activation Engineering (introduces ActAdd)"
-    authors: ["Turner", "Thiergart", "Leech", "Udell", "Vazquez", "Mini", "MacDiarmid"]
+    authors: ["Turner", "Thiergart", "Udell", "Leech", "Mini", "MacDiarmid"]
     venue: "arXiv"
     year: 2023
     arxiv: "2308.10248"
     grounded: true
     verified: true
-    fetched: 2026-07-30
+    fetched: 2026-07-31
     cluster: C1
     note: >
-      Grounded-pass correction: arXiv 2308.10248's title is "Steering Language
-      Models With Activation Engineering"; ActAdd (contrast prompt-pair
-      activations, add the steering vector during the forward pass) is the
-      technique it introduces. Recalled title "Activation Addition ... Without
-      Optimization" was wrong.
+      Title reconciliation (fetch+read, supersedes the 07-30 note): arXiv
+      2308.10248 was RENAMED across versions. Current arXiv title (HTML view,
+      confirmed 2026-07-31) is "Steering Language Models With Activation
+      Engineering"; the ORIGINAL v1 title, which the anchor cites as
+      turner2023activation, is "Activation Addition: Steering Language Models
+      Without Optimization". Both are the same paper, not an error -- the earlier
+      "recalled title was wrong" note over-corrected. Author list also fixed from
+      the anchor bib (Turner, Thiergart, Udell, Leech, Mini, MacDiarmid; the
+      earlier "Vazquez" was a recall artifact).
   - key: zou2023-repe
     title: "Representation Engineering: A Top-Down Approach to AI Transparency"
     authors: ["Zou", "Phan", "Chen", "Campbell", "Guo", "Ren", "Pan", "et al."]
@@ -329,6 +338,165 @@ papers:
       Applies attribution-graph circuit tracing to Claude 3.5 Haiku across many
       case studies; companion to the circuit-tracing methods paper. Via search
       2026-07-30.
+
+  # --- folded from the anchor's bibliography (2026-07-31) ---
+  # Discovered by reading the anchor's actual 171 cited keys (cited.bib).
+  # grounded:false = own full text not yet fetched; verified:true = citation
+  # taken verbatim from the anchor's fetched bibliography.bib. No concept pages
+  # until a fetch+read (per research-survey.md invariant).
+  - key: cunningham2023-sae
+    title: "Sparse Autoencoders Find Highly Interpretable Model Directions"
+    authors: ["Cunningham", "Ewart", "Smith", "Huben"]
+    venue: "arXiv"
+    year: 2023
+    arxiv: "2309.08600"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: A3
+    note: "Second foundational SAE paper (with Bricken/Templeton); anchor-cited."
+  - key: dunefsky2024-transcoders
+    title: "Transcoders find interpretable LLM feature circuits"
+    authors: ["Dunefsky", "Chlenski", "Nanda"]
+    venue: "arXiv"
+    year: 2025
+    arxiv: "2406.11944"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: D2
+    note: "Transcoders as circuit units; precursor to the CLT attribution graphs."
+  - key: marks2024-feature-circuits
+    title: "Sparse Feature Circuits: Discovering and Editing Interpretable Causal Graphs in Language Models"
+    authors: ["Marks", "Rager", "Michaud", "Belinkov", "Bau", "Mueller"]
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2403.19647"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: D2
+    note: "Causal graphs over SAE features; the feature-circuit line D2 builds on."
+  - key: goyal2022-shared-workspace
+    title: "Coordination Among Neural Modules Through a Shared Global Workspace"
+    authors: ["Goyal", "Didolkar", "Lamb", "Badola", "Ke", "Rahaman", "et al."]
+    venue: "ICLR"
+    year: 2022
+    arxiv: "2103.01197"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F2
+    note: "GWT instantiated as a deep-learning architecture; bridges F2 theory to ML."
+  - key: vanrullen2021-deep-gwt
+    title: "Deep Learning and the Global Workspace Theory"
+    authors: ["VanRullen", "Kanai"]
+    venue: "Trends in Neurosciences"
+    year: 2021
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F2
+    note: "Proposes GWT as an organizing principle for multi-modal deep nets."
+  - key: butlin2023-consciousness-ai
+    title: "Consciousness in Artificial Intelligence: Insights from the Science of Consciousness"
+    authors: ["Butlin", "Long", "Elmoznino", "Bengio", "Birch", "et al."]
+    venue: "arXiv"
+    year: 2023
+    arxiv: "2308.08708"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F2
+    note: "Indicator-property checklist (incl. GWT) for assessing AI consciousness."
+  - key: song2025-privileged-introspection
+    title: "Privileged Self-Access Matters for Introspection in AI"
+    authors: ["Song", "Lederman", "Hu", "Mahowald"]
+    venue: "arXiv"
+    year: 2025
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F1
+    note: "Sharpens what would count as genuine introspection (privileged access)."
+  - key: comsa2025-introspection-skeptic
+    title: "Does It Make Sense to Speak of Introspection in Large Language Models?"
+    authors: ["Comsa", "Shanahan"]
+    venue: "arXiv"
+    year: 2025
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F1
+    note: "Skeptical framing; the negative pole for the F1 introspection debate."
+  - key: jian2025-metacognition
+    title: "Language Models Are Capable of Metacognitive Monitoring and Control of Their Internal Activations"
+    authors: ["Ji-An", "Xiong", "Wilson", "Mattar", "Benna"]
+    venue: "arXiv"
+    year: 2025
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: F1
+    note: "Positive metacognition evidence; pairs with the anchor's modulation property."
+
+  # --- G. activation decoding to natural language (J-lens sibling family) ---
+  # Methods that decode activations INTO language; J-lens decodes into token
+  # dispositions. Anchor-cited; the nearest live alternative to J-space.
+  - key: chen2024-selfie
+    title: "SelfIE: Self-Interpretation of Large Language Model Embeddings"
+    authors: ["Chen", "Vondrick", "Mao"]
+    venue: "ICML"
+    year: 2024
+    arxiv: "2403.10949"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: G1
+    note: "Feed an embedding back to the model and have it explain itself."
+  - key: pan2024-latentqa
+    title: "LatentQA: Teaching LLMs to Decode Activations Into Natural Language"
+    authors: ["Pan", "Chen", "Steinhardt"]
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2412.08686"
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: G1
+    note: "Train a decoder to answer NL questions about activations."
+  - key: karvonen2025-activation-oracles
+    title: "Activation Oracles: Training and Evaluating LLMs as General-Purpose Activation Explainers"
+    authors: ["Karvonen", "Chua", "Dumas", "et al."]
+    venue: "arXiv"
+    year: 2025
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: G1
+  - key: frasertaliente2026-nla
+    title: "Natural Language Autoencoders Produce Unsupervised Explanations of LLM Activations"
+    authors: ["Fraser-Taliente", "Kantamneni", "Ong", "Mossing", "Lu", "Bogdan"]
+    venue: "arXiv / transformer-circuits"
+    year: 2026
+    grounded: false
+    verified: true
+    source: anchor-bib
+    fetched: null
+    cluster: G1
+    note: "Unsupervised NL explanations of activations; co-author Kantamneni is also a J-space author."
 
   # --- substrate ---
   - key: vaswani2017-transformer
