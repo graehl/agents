@@ -1,15 +1,62 @@
 # At — scheduled agent sessions
 
-> An `at/` queue is a project-owned, mtime-indexed set of future
-> session-opening prompts whose runners claim once, execute in the owning
-> project, and acknowledge by rescheduling or parking the prompt.
+> An `at/` queue pairs hand-editable prompt sources, which may be committed,
+> with a clone-local activation store that alone decides what runs; every
+> mutation goes through `scripts/at-queue`.
 
 Topic: `at`
 
 This is a filesystem protocol for low-volume, agent-operated scheduling. It
-does not pretend that instructions alone provide a wall-clock daemon. A future
-helper or YA scheduler may implement the same protocol, but ordinary sessions
-can service it correctly without one.
+does not pretend that instructions alone provide a wall-clock daemon. A helper
+or YA scheduler may provide punctual wakeups over the same store, but ordinary
+sessions service it correctly without one.
+
+## Source and activation are separate
+
+Two artifacts, and the split is the safety property:
+
+- **Source** — `<project>/at/<job>.md`, the reusable opening prompt. Ordinary
+  Markdown, hand-editable, and trackable if the owner wants it reviewed.
+- **Activation** — `<project>/.yep/at-activation.json`, holding schedule,
+  enabled state, the approved prompt hash, and run records.
+
+**Activation must never be tracked.** Because it is clone-local and untracked,
+`git pull` cannot write it, so no repository content can schedule agent work —
+not by policy but by construction. `at-queue` refuses to read or write a
+tracked activation file rather than trusting the rule to hold.
+
+The source stays free: an agent may create *and* activate a job with no
+external API and no human UI step. What it cannot do is make that activation
+travel to another clone through Git.
+
+Activation lives under `.yep/` because that is the established clone-local
+directory (YA keeps its own approvals there) and because it sits outside the
+queue directory the owner may deliberately track.
+
+## The helper is mandatory
+
+All activation reads and writes go through `scripts/at-queue`. Hand-editing
+`at-activation.json` is forbidden: the file is machine-owned, and a bare write
+can lose a concurrent update. `at-queue` warns when it loads a file it did not
+write (non-canonical formatting), so a hand edit is noticed rather than merely
+prohibited.
+
+If neither the project-local nor the `~/agents` helper is present and
+executable, **skip the probe entirely**. Do not hand-roll the claim: an
+unlocked read-modify-write is exactly what the helper exists to prevent, and a
+missed catch-up is cheaper than a double launch.
+
+```text
+at-queue activate --root R --job NAME --run-after RFC3339
+at-queue pause|resume --root R --job NAME
+at-queue claim --root R --session ID --harness H --owner-pid PID
+at-queue done --root R --job NAME (--run-after RFC3339 | --park) [--status S]
+at-queue list --root R
+```
+
+`claim` exits 0 with the claimed job, 3 when nothing is claimable; a refused
+operation exits 4 with a JSON `error`. Full CLI contract and post-conditions:
+`topics/helper-scripts.md`.
 
 ## Ownership and location
 
@@ -18,15 +65,16 @@ with that project root as the working directory. In particular,
 `~/agents/at/<job>.md` belongs to `~/agents`; it is not a machine-global queue
 that every other project session scans.
 
-Ordinary session startup checks only the current project's `at/`. An explicit
+Ordinary session startup checks only the current project. An explicit
 multi-project invoker may inspect several known project queues, but resolves
-and preserves each queue's own project root. When two paths resolve to the
-same project and queue, canonicalize them and inspect it once.
+and preserves each queue's own project root. When two paths resolve to the same
+project, canonicalize them and inspect it once.
 
 `at/` is git-excluded by default. Apply the global creation-only convention:
 add the exclusion to the repository-local Git exclude only while creating
 `at/`; never use `.gitignore`, and never restore a missing exclusion on an
-existing directory. The owner may deliberately track the queue.
+existing directory. The owner may deliberately track the prompt sources. That
+permission never extends to the activation file.
 
 ## Job file
 
@@ -36,8 +84,7 @@ small, human-editable Markdown:
 
 ```markdown
 ---
-run_after: 2026-08-01T09:00:00Z
-created_at: 2026-07-30T18:00:00Z
+name: mastery-review
 scope:
   - user/MASTERY.md
 ---
@@ -45,180 +92,136 @@ scope:
 Review one currently due mastery entry. ...
 ```
 
-`run_after` is required for an active job and uses RFC 3339 with an explicit
-timezone. `created_at` and `scope` are recommended. Provider, model,
-permission-mode, expiry, or source-routine fields may be added when the
-launcher needs them; absent launch fields inherit the ordinary project/session
-defaults. The Markdown body is the object-level opening prompt.
+`name` and `scope` are recommended. Provider, model, or permission-mode fields
+may be added when the launcher needs them; absent launch fields inherit the
+ordinary project/session defaults. The Markdown body is the object-level
+opening prompt.
+
+**No schedule field.** `run_after` is activation state and lives only in the
+activation store. A source file carrying a schedule is a source file that
+schedules work by being copied.
 
 The job may state a recurrence rule in ordinary language because its runner,
-not a parser, chooses the next appropriate instant. If it does not specify
-rescheduling, one completed invocation retires it by the year-3000 mtime
-sentinel described below.
+not a parser, chooses the next appropriate instant and passes it to
+`at-queue done --run-after`. A job that specifies no rescheduling is parked by
+`--park` after one completed invocation.
 
-## Due index and wakeups
-
-For an active job, the file's mtime should equal `run_after`. The in-file value
-is authoritative; mtime is only the cheap index that prevents every startup
-from reading every future job.
+## Probe and claim
 
 At the start of each ordinary new or resumed session, once per process launch:
 
 1. Resolve the current project root.
 2. If `<project>/at/` does not exist, stop without creating it.
-3. Inspect top-level `*.md` entries whose mtime is not later than now, oldest
-   first. A normal startup probe invokes at most one job.
-4. Acquire the per-job lock, then re-read and validate `run_after` and the
-   prompt. A due-looking mtime never overrides a future or invalid in-file
-   value.
-5. Launch the runner with the owning project root as its working directory and
-   pass the exact job and lock paths plus the runner-acknowledgement duty.
+3. Run `at-queue claim`, passing the project root, canonical resumable session
+   id, harness, and the PID of a process that will outlive the claim.
+4. On exit 0, launch the runner with the owning project root as its working
+   directory, passing the exact source path and the acknowledgement duty.
 
-Continue past locked, invalid, or no-longer-due candidates until one job is
-invoked or the bounded candidate set is exhausted; one stale lock must not
-starve unrelated jobs.
+`claim` grades every job before taking one and reports why each was skipped
+(`paused`, `not due`, `already running`, `prompt source is missing`, or a
+prompt changed since activation), so one blocked job never hides the rest. A
+normal startup probe takes at most one job.
 
-An at-launched runner does not perform the startup probe. An explicit user
-request, a bounded multi-project helper, or YA may also trigger a probe and may
-service more than one job under an explicit concurrency bound.
-
-When available, `scripts/at-queue claim --root <project> --session <id>
---harness <name>` performs steps 2–4: it recovers locks whose prompt is already
-verifiably acknowledged, repairs a future `run_after` whose mtime was made due,
-and leaves one due job atomically claimed. Exit 0 returns the exact job, lock,
-hash, and schedule as JSON; exit 3 means none was claimable. The helper does not
-launch a session, choose recurrence, edit the object prompt, or acknowledge
-object-level work. Its absence leaves the manual protocol authoritative.
+An at-launched runner does not perform the startup probe, which is what
+prevents recursive launch chains. An explicit user request, a bounded
+multi-project helper, or YA may also trigger a probe and may service more than
+one job under an explicit concurrency bound.
 
 No session-start scheme wakes while no session starts. It provides eventual
-catch-up only. A future independent scheduler owns punctual wakeups; it must
-not keep one provider process or polling loop alive per job.
+catch-up only. A punctual scheduler is a separate concern and must not keep one
+provider process or polling loop alive per job.
 
-## Per-job lock and handoff
+### A changed prompt blocks its own claim
 
-Several sessions may discover the same due mtime. Exclusion is therefore a
-per-job directory lock:
+Activation records the SHA-256 of the prompt bytes it approved. If the source
+differs at claim time, the job is skipped with `re-activate to approve` rather
+than run. This matters most for a tracked `at/`, where a collaborator's commit
+can change what a scheduled job says; approving is a deliberate `activate`.
 
-```text
-<project>/at/.locks/<job>.lock/
-  owner.md
-```
+## Exclusion without a heartbeat
 
-Create `.locks/` when initializing `at/`, or as operational state if an older
-queue lacks it; doing so does not authorize changing the queue's Git exclusion.
-Acquire `<job>.lock/` with one plain atomic `mkdir` of that final directory.
-Do not use `flock`, a check-then-create lock file, `mkdir -p` for the final
-component, or `mv -n` as the exclusion primitive. A failed `mkdir` means
-another invoker owns or left the lock; skip the job.
+Two mechanisms, deliberately distinct — conflating them is what forces
+liveness ceremony into a lock:
 
-Immediately record in `owner.md`:
+**A lock, held for one write.** `at-queue` serializes activation writes with an
+atomic `mkdir` of `at-activation.json.lock`. `mkdir` rather than `flock`
+because these queues live on NFS, where directory creation is atomic but
+flock's auto-release is not dependable. The critical section spans a single
+read-modify-write, never a job's run, which is what makes an age-based break
+sound: a lock older than 30 seconds cannot be a live holder, only debris.
 
-- the invoker harness and canonical resumable session id;
-- host, PID, and process-start identity (Linux start ticks, or boot id plus
-  start time) when available—PID alone is not a stable identity;
-- claim and last-heartbeat times;
-- phase (`claimed`, `launching`, or `runner`);
-- the SHA-256 of the exact job bytes claimed;
-- once known, the runner session or durable occurrence id.
+**A run record, held for the run.** A claim records the runner's session,
+harness, host, and process-start identity (PID plus `/proc` start ticks plus
+boot id). A later claim asks "is that exact process incarnation still alive?" —
+answerable at any instant with no periodic write. If it is gone, the run was
+abandoned and the job is claimable again.
 
-After acquiring the lock, re-read the job and compute its hash. If it moved,
-changed, became future-scheduled, or became invalid, record the reason and
-release only the lock this invoker created; never run the stale candidate.
-
-The invoker retains the directory lock across session creation. The launched
-runner's first protocol action is to verify the job hash and update `owner.md`
-to name its own resumable session id and phase `runner`. The lock remains for
-the entire run. Its purpose is not mutual exclusion around file editing alone;
-it prevents another startup probe from launching the still-due prompt before
-the runner has acknowledged its disposition.
+There is therefore no heartbeat and no phase ladder. `kill -0 <pid>` alone
+never proves ownership because PIDs are reused; start ticks are what
+distinguish a live process from its successor, so a claim that cannot record
+them warns that it is not provably exclusive.
 
 ## Mandatory runner acknowledgement
 
-Before its final response, the runner must leave the prompt non-due and verify
-that state. The order is part of the contract:
+Before its final response, the runner must call `at-queue done` with an
+explicit disposition — `--run-after <next instant>` or `--park`. The helper
+clears the run record, stamps the outcome, and re-approves the current source
+bytes in one locked write, so there is no ordering for a caller to get wrong
+and no half-applied acknowledgement to recover from.
 
-1. Record a concise completion/failure fact in the job without erasing its
-   reusable prompt.
-2. If the job specifies recurrence, choose the next instant, update
-   `run_after`, set the file mtime to exactly that future instant, and verify
-   both values.
-3. Otherwise mark it completed, set `run_after: null`, set its mtime to
-   `3000-01-01T00:00:00Z`, and compare the stored mtime to that exact request.
-   A filesystem may silently clamp it. If so, record the actual stored
-   `parked_mtime` in the job and accept it only when it is still safely in the
-   future; the cleared `run_after` remains the semantic defense when that
-   filesystem horizon eventually arrives.
-4. Only after successful verification atomically rename the whole lock
-   directory to a unique tombstone sibling, thereby releasing the canonical
-   lock name, then remove the tombstone. Do not remove `owner.md` first.
-   An interrupted tombstone deletion is inert and may be completed by any
-   later scan. `scripts/at-queue finish --root <project> --job <job>.md`
-   performs this verified release when the helper is available.
+`done` refuses without a disposition rather than guessing. A failed
+object-level task reschedules only when the job specified or the user directs a
+retry; otherwise record the failure and park it. Automatic retry after an
+uncertain result is more dangerous than a visible miss because it can duplicate
+external effects.
 
-If the filesystem refuses a future timestamp, clamps it to a value that is not
-future, or any acknowledgement step cannot be verified, keep the lock and
-report the job as blocked. Do not release it and leave the file due.
+A runner that dies without calling `done` leaves a run record whose process is
+provably gone, so the job simply becomes claimable again at its existing
+schedule. That is the intended failure mode: at-most-once per due instant, with
+a visible retry, rather than a stuck lock needing adjudication.
 
-A failed object-level task follows the same rule: reschedule only when the job
-specified or the user directs a retry; otherwise record the failure and park
-it. Automatic retry after an uncertain result is more dangerous than a visible
-miss because it can duplicate external effects.
+## Exactly-once session creation
 
-## Stale and ambiguous locks
-
-Never steal or remove a lock merely because it is old. First inspect
-`owner.md`, the named invoker/runner session, the prompt, and any recorded
-result:
-
-- a live or uncertain owner keeps the lock;
-- a prompt already verifiably rescheduled to an exact future `run_after`, or
-  parked with `run_after: null` and a future mtime, makes the invocation lock
-  safe to retire regardless of whether the owner disappeared during teardown;
-- a provably dead owner with proof that no runner was created may have its lock
-  removed and the still-due job retried;
-- if session creation may have succeeded but its durable id was not recorded,
-  leave the job blocked for manual adjudication.
-
-Liveness proof matches the recorded host, process-start identity, resumable
-session or occurrence, and heartbeat. `kill -0 <pid>` alone never proves
-ownership because PIDs are reused. An ownerless lock over a still-due prompt
-remains ambiguous; an ownerless lock over a verified acknowledgement is the
-safe teardown-crash case above.
-
-Exactly-once session creation across the final case requires the launcher to
-accept an idempotency key. When available, derive it from the canonical queue
-path, job basename, and claimed prompt SHA-256; a retry with that key must
-resolve to the original occurrence rather than create another. Without such a
-launcher contract, this protocol deliberately prefers visible at-most-once
-behavior over a duplicate run.
+The claim protocol prevents two *simultaneous* launches. It cannot by itself
+prevent a duplicate when a launcher created a session but the caller crashed
+before recording it. Where the launcher accepts an idempotency key, derive it
+from the canonical queue path, job basename, and claimed prompt SHA-256; a
+retry with that key must resolve to the original occurrence rather than create
+another. Without such a launcher contract, this protocol deliberately prefers
+visible at-most-once behavior over a duplicate run.
 
 ## Safe job updates
 
-Re-read a job immediately before changing it. Preserve the object prompt and
+Re-read a source immediately before changing it. Preserve the object prompt and
 prior completion facts. For a non-trivial rewrite, build and validate a
 complete sibling temporary file and atomically rename it over the job; keep a
 recoverable backup when the update could replace user-authored content.
 
-When a claimed prompt proves future-scheduled and its bytes are unchanged,
-restore its mtime from `run_after`, verify the stored value, then release the
-lock. This repairs the cheap index after an editor or copy operation touched a
-future job instead of making every later session rediscover the mismatch.
-
-The lock controls invocation, not authorship. A user may edit or cancel a job
-at any time. An invoker detects such a change by the mandatory post-lock
-re-read/hash; it never overwrites the newer version to preserve its claim.
+Activation controls invocation, not authorship. A user may edit or cancel a
+source at any time; the claim-time hash comparison turns that edit into a
+visible block, never a silently overwritten file.
 
 ## Relationship to YA routines
 
-An `at/` job is one authorized occurrence. A YA routine is reusable
-project-owned source plus server-local activation and recurrence. A future YA
-routine tick may materialize an occurrence equivalent to an `at/` job, and a
-YA launcher may service `at/`, but it must keep these identities separate:
+An `at/` job and a YA routine now share one shape — reusable source plus
+server- or clone-local activation:
 
 ```text
-routine source + activation -> occurrence -> safe session dispatch
-at/<job>.md -----------------> occurrence -> safe session dispatch
+routine source + YA activation -------> occurrence -> safe session dispatch
+at/<job>.md    + at-activation.json --> occurrence -> safe session dispatch
 ```
 
+YA is a **helper over this convention, not its owner**. It may discover `at/`
+sources, display schedules and run history from `at-queue list`, provide the
+punctual wakeups a session-start probe cannot, and offer run/pause actions —
+all by invoking `at-queue`, never by reimplementing the lock in a second
+language.
+
+YA's rule that repository content must not activate a routine
+(`~/ya/topics/routines.md`) remains YA's, and applies to what YA dispatches:
+it may batch drift warnings and block *its own* executions until a user
+confirms. It does not gate the CLI probe, and it does not need to — untracked
+activation already makes a pulled repository unable to schedule anything.
+
 Do not turn `at/` into a second prompt library or invent a cron grammar for it.
-Periodic `at/` jobs remain agent-rescheduled until promoted to a YA routine.
+Recurrence stays agent-chosen per completion until promoted to a YA routine.

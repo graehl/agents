@@ -144,20 +144,23 @@ containing it and runs with that project root as its working directory.
 An at-launched runner skips this startup probe, preventing recursive launch
 chains.
 
-Use the project-local `scripts/at-queue` when executable, else
-`~/agents/scripts/at-queue` when executable, to scan/repair and atomically claim
-one job; pass it the project root, canonical resumable session id, and harness,
-then use the exact job and lock paths it returns. If neither helper exists,
-perform the same protocol manually.
+Claiming goes through the project-local `scripts/at-queue` when executable,
+else `~/agents/scripts/at-queue`: pass the project root, canonical resumable
+session id, harness, and the PID of a process outliving the claim, then use the
+exact source path it returns. The helper is mandatory, not a convenience — if
+neither exists, skip the probe rather than hand-rolling an unlocked claim.
 
-Use file mtime only to select due candidates without reading future entries.
-Before invoking one, load and follow `topics/at.md` from the project root when
-present, else `~/agents/topics/at.md`; its in-file `run_after`, atomic
-directory-lock handoff, and runner acknowledgement govern whether it may run.
-A session-start probe is catch-up, not a wall-clock scheduler: an explicit
-multi-project helper or YA may provide independent wakeups later, but must use
-the same claim protocol and derive each job's working directory from its owning
-`at/`, never from the helper's caller.
+A prompt under `at/` is inert source; what schedules it is the clone-local
+activation store the helper owns, which is never tracked, so pulling a
+repository cannot start agent work. Never hand-edit that store. Before invoking
+a job, load and follow `topics/at.md` from the project root when present, else
+`~/agents/topics/at.md`; its activation split, claim protocol, and runner
+acknowledgement (`at-queue done`) govern whether a job may run.
+
+A session-start probe is catch-up, not a wall-clock scheduler. An explicit
+multi-project helper or YA may provide punctual wakeups over the same store,
+invoking `at-queue` rather than reimplementing it, and must derive each job's
+working directory from its owning `at/`, never from the helper's caller.
 
 # Verification and retrieval
 

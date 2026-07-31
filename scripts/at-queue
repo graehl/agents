@@ -1,18 +1,38 @@
 #!/usr/bin/env python3
-"""Mechanical scan/claim/ack cleanup for topics/at.md queues."""
+"""Activation store and claim protocol for topics/at.md queues.
+
+`at/<job>.md` is hand-editable prompt source. Everything a scheduler needs to
+decide *whether* to run it -- schedule, enabled state, run records -- lives in
+a separate clone-local activation file, so no tracked file can carry the
+authority to start agent work. Every mutation goes through this helper: the
+activation store is machine-owned and must not be hand-edited.
+"""
 
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import json
 import os
 import shutil
 import socket
+import subprocess
 import sys
-import uuid
+import time
 from datetime import datetime, timezone
 from pathlib import Path
+
+SCHEMA_VERSION = 1
+
+# A holder only ever spans one read-modify-write of the activation file, so a
+# lock older than this was left by a process that died mid-write.
+LOCK_STALE_SECONDS = 30
+LOCK_ACQUIRE_SECONDS = 10
+
+
+class Refused(Exception):
+    """An operation the caller must fix, reported as JSON on exit 4."""
 
 
 def utc_now() -> datetime:
@@ -23,49 +43,24 @@ def iso_utc(value: datetime) -> str:
     return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def timestamp_ns(value: datetime) -> int:
-    return int(value.timestamp()) * 1_000_000_000 + value.microsecond * 1_000
-
-
-def parse_run_after(data: bytes, path: Path) -> datetime | None:
+def parse_rfc3339(text: str, what: str) -> datetime:
     try:
-        lines = data.decode("utf-8").splitlines()
-    except UnicodeDecodeError as exc:
-        raise ValueError(f"{path.name}: prompt is not UTF-8: {exc}") from exc
-    if not lines or lines[0].strip() != "---":
-        raise ValueError(f"{path.name}: missing opening Markdown frontmatter")
-    for line in lines[1:]:
-        if line.strip() == "---":
-            break
-        key, separator, raw = line.partition(":")
-        if not separator or key.strip() != "run_after":
-            continue
-        text = raw.strip()
-        if text.lower() in {"null", "~"}:
-            return None
-        if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
-            text = text[1:-1]
-        try:
-            value = datetime.fromisoformat(text.replace("Z", "+00:00"))
-        except ValueError as exc:
-            raise ValueError(
-                f"{path.name}: invalid RFC 3339 run_after {text!r}"
-            ) from exc
-        if value.tzinfo is None:
-            raise ValueError(f"{path.name}: run_after must include a timezone")
-        return value.astimezone(timezone.utc)
-    raise ValueError(f"{path.name}: frontmatter has no run_after")
+        value = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise Refused(f"{what}: invalid RFC 3339 timestamp {text!r}") from exc
+    if value.tzinfo is None:
+        raise Refused(f"{what}: timestamp {text!r} must include a timezone")
+    return value.astimezone(timezone.utc)
 
 
-def prompt_hash(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
+# --- process identity: whether a recorded runner is still alive ---
 
 
 def process_start_ticks(pid: int) -> str | None:
+    """Field 22 of proc(5), which distinguishes a PID from its reuse."""
     try:
-        text = Path(f"/proc/{pid}/stat").read_text()
-        fields = text.rsplit(")", 1)[1].split()
-        return fields[19]
+        stat = Path(f"/proc/{pid}/stat").read_text()
+        return stat.rsplit(")", 1)[1].split()[19]
     except (IndexError, OSError):
         return None
 
@@ -77,239 +72,436 @@ def boot_id() -> str | None:
         return None
 
 
-def owner_text(args: argparse.Namespace, digest: str, claimed_at: datetime) -> str:
-    lines = [
-        "# At queue owner",
-        "",
-        f"session_id: {args.session}",
-        f"harness: {args.harness}",
-        f"host: {socket.gethostname()}",
-    ]
-    if args.owner_pid is not None:
-        lines.append(f"pid: {args.owner_pid}")
-        start = process_start_ticks(args.owner_pid)
-        if start is not None:
-            lines.append(f"process_start_ticks: {start}")
-        host_boot = boot_id()
-        if host_boot is not None:
-            lines.append(f"boot_id: {host_boot}")
-    stamp = iso_utc(claimed_at)
-    lines.extend(
-        [
-            f"claimed_at: {stamp}",
-            f"heartbeat_at: {stamp}",
-            "phase: claimed",
-            f"prompt_sha256: {digest}",
-            "",
-        ]
-    )
-    return "\n".join(lines)
+def process_identity(pid: int, warnings: list[str]) -> dict:
+    """Record what makes this exact incarnation recognizable later.
+
+    Start ticks are what let a later claim tell "still running" from "PID
+    reused", so losing them costs the single-winner property outright; say so
+    rather than degrading quietly.
+    """
+    identity = {"pid": pid}
+    ticks = process_start_ticks(pid)
+    if ticks is None:
+        warnings.append(
+            f"pid {pid} has no readable /proc start ticks; this claim cannot be "
+            "proven live, so a concurrent claim may take the same job"
+        )
+    else:
+        identity["start_ticks"] = ticks
+    host_boot = boot_id()
+    if host_boot is not None:
+        identity["boot_id"] = host_boot
+    return identity
 
 
-def retire_lock(lock: Path) -> None:
-    tombstones = lock.parent / ".tombstones"
-    tombstones.mkdir(exist_ok=True)
-    tombstone = tombstones / f"{lock.name}.{uuid.uuid4().hex}"
-    os.replace(lock, tombstone)
-    shutil.rmtree(tombstone)
+def process_alive(identity: dict) -> bool:
+    """True only when this exact process incarnation is still running.
 
-
-def clean_tombstones(locks: Path) -> None:
-    tombstones = locks / ".tombstones"
-    if not tombstones.is_dir():
-        return
-    for path in tombstones.iterdir():
-        if path.is_dir():
-            shutil.rmtree(path)
-        else:
-            path.unlink()
-
-
-def acknowledged(job: Path, now: datetime) -> bool:
-    try:
-        run_after = parse_run_after(job.read_bytes(), job)
-        stored_ns = job.stat().st_mtime_ns
-    except (OSError, ValueError):
+    Without recorded start ticks the answer is unknowable from a PID alone
+    (PIDs are reused), so an unidentifiable runner counts as gone and its job
+    becomes claimable again.
+    """
+    pid = identity.get("pid")
+    ticks = identity.get("start_ticks")
+    if not isinstance(pid, int) or ticks is None:
         return False
-    if run_after is None:
-        return stored_ns > timestamp_ns(now)
-    requested_ns = timestamp_ns(run_after)
-    return requested_ns > timestamp_ns(now) and stored_ns == requested_ns
+    recorded_boot = identity.get("boot_id")
+    if recorded_boot is not None and recorded_boot != boot_id():
+        return False
+    return process_start_ticks(pid) == ticks
 
 
-def recover_acknowledged(queue: Path, locks: Path, now: datetime) -> list[str]:
-    recovered: list[str] = []
-    for lock in sorted(locks.glob("*.lock")):
-        job = queue / f"{lock.stem}.md"
-        if job.is_file() and acknowledged(job, now):
-            try:
-                retire_lock(lock)
-            except FileNotFoundError:
-                pass
-            recovered.append(job.name)
-    return recovered
+# --- activation store ---
 
 
-def repair_future_mtime(job: Path, run_after: datetime) -> None:
-    requested_ns = timestamp_ns(run_after)
-    stat_before = job.stat()
-    os.utime(job, ns=(stat_before.st_atime_ns, requested_ns))
-    if job.stat().st_mtime_ns != requested_ns:
-        raise OSError(
-            f"{job.name}: filesystem stored {job.stat().st_mtime_ns}, "
-            f"not requested run_after {requested_ns}"
+def activation_path(project: Path) -> Path:
+    return project / ".yep" / "at-activation.json"
+
+
+def assert_untracked(project: Path, path: Path) -> None:
+    """Refuse an activation file that Git tracks.
+
+    Clone-local activation is the whole reason a pull cannot schedule agent
+    work; a tracked activation file silently restores that path, so this is a
+    hard check rather than a documented rule.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", str(path)],
+            cwd=project,
+            capture_output=True,
+            check=False,
+        )
+    except OSError:
+        return
+    if result.returncode == 0:
+        raise Refused(
+            f"{path} is tracked by Git; activation must stay clone-local so that "
+            "pulling a repository cannot schedule agent work. Remove it from the "
+            "index (git rm --cached) and add it to the repository-local exclude."
         )
 
 
-def emit(payload: dict) -> None:
+def canonical_json(state: dict) -> str:
+    return json.dumps(state, indent=1, sort_keys=True) + "\n"
+
+
+def empty_state() -> dict:
+    return {"version": SCHEMA_VERSION, "rev": 0, "jobs": {}}
+
+
+def read_state(path: Path) -> tuple[dict, list[str]]:
+    """Load activation state, reporting whatever looks hand-edited."""
+    warnings: list[str] = []
+    try:
+        raw = path.read_text()
+    except FileNotFoundError:
+        return empty_state(), warnings
+    except OSError as exc:
+        raise Refused(f"cannot read {path}: {exc}") from exc
+    try:
+        state = json.loads(raw)
+    except ValueError as exc:
+        raise Refused(f"{path} is not valid JSON: {exc}") from exc
+    if not isinstance(state, dict) or not isinstance(state.get("jobs"), dict):
+        raise Refused(f"{path} is not an activation store")
+    if state.get("version") != SCHEMA_VERSION:
+        raise Refused(
+            f"{path} has schema version {state.get('version')!r}, expected "
+            f"{SCHEMA_VERSION}"
+        )
+    if raw != canonical_json(state):
+        warnings.append(
+            f"{path.name} was not written by at-queue (non-canonical formatting); "
+            "activation is machine-owned and hand edits can be lost"
+        )
+    return state, warnings
+
+
+def write_state(path: Path, state: dict) -> None:
+    state["rev"] = int(state.get("rev", 0)) + 1
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.parent / f".{path.name}.{os.getpid()}.tmp"
+    tmp.write_text(canonical_json(state))
+    os.replace(tmp, path)
+
+
+class ActivationLock:
+    """Atomic `mkdir` exclusion around one read-modify-write.
+
+    `mkdir` rather than flock: at/ queues live on NFS, where flock's
+    auto-release semantics are unreliable but directory creation is atomic.
+    The critical section spans a single file rewrite, never a job's run, so a
+    lock older than LOCK_STALE_SECONDS can only be debris from a crash.
+    """
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.broke_stale = False
+
+    def __enter__(self) -> "ActivationLock":
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        deadline = time.monotonic() + LOCK_ACQUIRE_SECONDS
+        while True:
+            try:
+                self.path.mkdir()
+                return self
+            except FileExistsError:
+                pass
+            except OSError as exc:
+                raise Refused(f"cannot lock {self.path}: {exc}") from exc
+            if self._break_if_stale():
+                continue
+            if time.monotonic() >= deadline:
+                raise Refused(
+                    f"{self.path} held for over {LOCK_ACQUIRE_SECONDS}s by another "
+                    "at-queue process"
+                )
+            time.sleep(0.05)
+
+    def _break_if_stale(self) -> bool:
+        try:
+            age = time.time() - self.path.stat().st_mtime
+        except FileNotFoundError:
+            return True
+        if age < LOCK_STALE_SECONDS:
+            return False
+        try:
+            shutil.rmtree(self.path)
+        except FileNotFoundError:
+            pass
+        except OSError:
+            return False
+        self.broke_stale = True
+        return True
+
+    def __exit__(self, *exc_info) -> None:
+        try:
+            self.path.rmdir()
+        except OSError as exc:
+            if exc.errno not in (errno.ENOENT, errno.ENOTEMPTY):
+                raise
+
+
+class Store:
+    """The activation file plus the lock that serializes writes to it."""
+
+    def __init__(self, root: str) -> None:
+        self.project = Path(root).expanduser().resolve()
+        self.path = activation_path(self.project)
+        self.queue = self.project / "at"
+        self.warnings: list[str] = []
+        assert_untracked(self.project, self.path)
+
+    def load(self) -> dict:
+        state, warnings = read_state(self.path)
+        self.warnings.extend(warnings)
+        return state
+
+    def lock(self) -> ActivationLock:
+        return ActivationLock(self.path.parent / f"{self.path.name}.lock")
+
+    def job_source(self, name: str) -> Path:
+        return self.queue / f"{Path(name).stem}.md"
+
+
+def prompt_digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def emit(payload: dict, warnings: list[str]) -> None:
+    if warnings:
+        payload = {**payload, "warnings": warnings}
     print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
 
 
-def claim(args: argparse.Namespace) -> int:
-    project = Path(args.root).expanduser().resolve()
-    queue = project / "at"
-    if not queue.is_dir():
-        emit(
+# --- verbs ---
+
+
+def cmd_activate(args: argparse.Namespace) -> int:
+    store = Store(args.root)
+    name = Path(args.job).stem
+    source = store.job_source(name)
+    if not source.is_file():
+        raise Refused(f"no prompt source at {source}")
+    run_after = parse_rfc3339(args.run_after, name)
+    with store.lock():
+        state = store.load()
+        entry = dict(state["jobs"].get(name, {}))
+        entry.update(
             {
-                "status": "none",
-                "project": str(project),
-                "reason": "no at directory",
-                "recovered": [],
-                "repaired": [],
-                "warnings": [],
+                "run_after": iso_utc(run_after),
+                "enabled": True,
+                "source_sha256": prompt_digest(source),
             }
+        )
+        entry.pop("running", None)
+        state["jobs"][name] = entry
+        write_state(store.path, state)
+    emit(
+        {"status": "activated", "job": name, "run_after": iso_utc(run_after)},
+        store.warnings,
+    )
+    return 0
+
+
+def cmd_set_enabled(args: argparse.Namespace, enabled: bool) -> int:
+    store = Store(args.root)
+    name = Path(args.job).stem
+    with store.lock():
+        state = store.load()
+        if name not in state["jobs"]:
+            raise Refused(f"{name} has no activation")
+        state["jobs"][name]["enabled"] = enabled
+        write_state(store.path, state)
+    emit({"status": "enabled" if enabled else "paused", "job": name}, store.warnings)
+    return 0
+
+
+def block_reason(name: str, entry: dict, now: datetime, store: Store) -> str | None:
+    """Why this job cannot be claimed now, or None when it can.
+
+    `claim` and `list` share this so the queue never reports one state and
+    acts on another.
+    """
+    if not entry.get("enabled", False):
+        return "paused"
+    run_after = entry.get("run_after")
+    if not isinstance(run_after, str):
+        return "no schedule"
+    if parse_rfc3339(run_after, name) > now:
+        return "not due"
+    running = entry.get("running")
+    if isinstance(running, dict) and process_alive(running.get("identity", {})):
+        return "already running"
+    source = store.job_source(name)
+    if not source.is_file():
+        return "prompt source is missing"
+    approved = entry.get("source_sha256")
+    if approved is not None and approved != prompt_digest(source):
+        return "prompt changed since activation; re-activate to approve"
+    return None
+
+
+def cmd_claim(args: argparse.Namespace) -> int:
+    store = Store(args.root)
+    now = utc_now()
+    skipped: dict[str, str] = {}
+    claimed: dict | None = None
+    with store.lock():
+        state = store.load()
+        # Grade every job before taking one, so `skipped` explains the whole
+        # queue rather than only what happened to sort ahead of the winner.
+        for name in sorted(state["jobs"]):
+            reason = block_reason(name, state["jobs"][name], now, store)
+            if reason is not None:
+                skipped[name] = reason
+        due = sorted(
+            (n for n in state["jobs"] if n not in skipped),
+            key=lambda n: state["jobs"][n]["run_after"],
+        )
+        for name in due[:1]:
+            entry = state["jobs"][name]
+            source = store.job_source(name)
+            digest = prompt_digest(source)
+            entry["running"] = {
+                "session": args.session,
+                "harness": args.harness,
+                "host": socket.gethostname(),
+                "started_at": iso_utc(now),
+                "identity": process_identity(args.owner_pid, store.warnings),
+            }
+            entry["last_started"] = iso_utc(now)
+            state["jobs"][name] = entry
+            write_state(store.path, state)
+            claimed = {
+                "status": "claimed",
+                "job": name,
+                "source": str(source),
+                "project": str(store.project),
+                "prompt_sha256": digest,
+                "run_after": entry["run_after"],
+            }
+            break
+    if claimed is None:
+        emit(
+            {"status": "none", "project": str(store.project), "skipped": skipped},
+            store.warnings,
         )
         return 3
+    emit({**claimed, "skipped": skipped}, store.warnings)
+    return 0
 
-    locks = queue / ".locks"
-    locks.mkdir(exist_ok=True)
-    clean_tombstones(locks)
-    now = utc_now()
-    recovered = recover_acknowledged(queue, locks, now)
-    repaired: list[str] = []
-    warnings: list[str] = []
-    candidates = sorted(
-        (
-            path
-            for path in queue.glob("*.md")
-            if path.is_file() and path.stat().st_mtime_ns <= timestamp_ns(now)
-        ),
-        key=lambda path: path.stat().st_mtime_ns,
-    )
-    for job in candidates:
-        try:
-            candidate_bytes = job.read_bytes()
-        except OSError as exc:
-            warnings.append(f"{job.name}: cannot read candidate: {exc}")
-            continue
-        digest = prompt_hash(candidate_bytes)
-        lock = locks / f"{job.stem}.lock"
-        try:
-            lock.mkdir()
-        except FileExistsError:
-            continue
-        try:
-            (lock / "owner.md").write_text(owner_text(args, digest, now))
-            claimed_bytes = job.read_bytes()
-            if claimed_bytes != candidate_bytes:
-                warnings.append(f"{job.name}: changed while being claimed")
-                retire_lock(lock)
-                continue
-            run_after = parse_run_after(claimed_bytes, job)
-            if run_after is None:
-                warnings.append(
-                    f"{job.name}: run_after is null but its mtime is due; "
-                    "leaving the lock for acknowledgement repair"
-                )
-                continue
-            if run_after > now:
-                repair_future_mtime(job, run_after)
-                repaired.append(job.name)
-                retire_lock(lock)
-                continue
-            emit(
-                {
-                    "status": "claimed",
-                    "project": str(project),
-                    "job": str(job),
-                    "lock": str(lock),
-                    "prompt_sha256": digest,
-                    "run_after": iso_utc(run_after),
-                    "recovered": recovered,
-                    "repaired": repaired,
-                    "warnings": warnings,
-                }
-            )
-            return 0
-        except (OSError, ValueError) as exc:
-            warnings.append(str(exc))
-            if lock.exists() and not acknowledged(job, now):
-                retire_lock(lock)
 
+def cmd_done(args: argparse.Namespace) -> int:
+    store = Store(args.root)
+    name = Path(args.job).stem
+    if args.run_after is None and not args.park:
+        raise Refused("done requires --run-after <RFC3339> or --park")
+    next_run = None if args.park else parse_rfc3339(args.run_after, name)
+    with store.lock():
+        state = store.load()
+        entry = state["jobs"].get(name)
+        if entry is None:
+            raise Refused(f"{name} has no activation")
+        entry.pop("running", None)
+        entry["last_finished"] = iso_utc(utc_now())
+        entry["last_status"] = args.status
+        if next_run is None:
+            entry["enabled"] = False
+            entry["run_after"] = None
+        else:
+            entry["run_after"] = iso_utc(next_run)
+        source = store.job_source(name)
+        if source.is_file():
+            entry["source_sha256"] = prompt_digest(source)
+        state["jobs"][name] = entry
+        write_state(store.path, state)
     emit(
         {
-            "status": "none",
-            "project": str(project),
-            "recovered": recovered,
-            "repaired": repaired,
-            "warnings": warnings,
-        }
+            "status": "parked" if next_run is None else "rescheduled",
+            "job": name,
+            "run_after": None if next_run is None else iso_utc(next_run),
+        },
+        store.warnings,
     )
-    return 3
+    return 0
 
 
-def finish(args: argparse.Namespace) -> int:
-    project = Path(args.root).expanduser().resolve()
-    queue = project / "at"
-    job = queue / Path(args.job).name
-    lock = queue / ".locks" / f"{job.stem}.lock"
-    if not lock.is_dir():
-        emit({"status": "error", "error": f"no lock for {job.name}"})
-        return 4
-    if not acknowledged(job, utc_now()):
-        emit(
-            {
-                "status": "blocked",
-                "job": str(job),
-                "lock": str(lock),
-                "error": "job is not verifiably rescheduled or parked",
+def cmd_list(args: argparse.Namespace) -> int:
+    store = Store(args.root)
+    now = utc_now()
+    state = store.load()
+    jobs = []
+    for name in sorted(state["jobs"]):
+        entry = dict(state["jobs"][name])
+        running = entry.get("running")
+        if isinstance(running, dict):
+            entry["running"] = {
+                **running,
+                "alive": process_alive(running.get("identity", {})),
             }
-        )
-        return 70
-    retire_lock(lock)
-    emit({"status": "released", "job": str(job)})
+        entry["name"] = name
+        entry["blocked_by"] = block_reason(name, state["jobs"][name], now, store)
+        jobs.append(entry)
+    emit({"status": "ok", "project": str(store.project), "jobs": jobs}, store.warnings)
     return 0
 
 
 def parser() -> argparse.ArgumentParser:
     top = argparse.ArgumentParser(
-        description="Scan and claim one project-owned topics/at.md prompt."
+        description="Activation store and claim protocol for topics/at.md queues."
     )
     sub = top.add_subparsers(dest="verb", required=True)
 
-    claim_parser = sub.add_parser(
-        "claim", help="Recover acknowledged locks, repair indexes, claim one due job."
-    )
-    claim_parser.add_argument("--root", required=True, help="Owning project root.")
-    claim_parser.add_argument(
-        "--session", required=True, help="Canonical resumable invoker session id."
-    )
-    claim_parser.add_argument("--harness", default="unknown")
-    claim_parser.add_argument("--owner-pid", type=int)
-    claim_parser.set_defaults(func=claim)
+    def with_root(p):
+        p.add_argument("--root", required=True, help="Owning project root.")
+        return p
 
-    finish_parser = sub.add_parser(
-        "finish", help="Release a lock after verified rescheduling or parking."
+    p = with_root(sub.add_parser("activate", help="Schedule a prompt source."))
+    p.add_argument("--job", required=True, help="Prompt basename under at/.")
+    p.add_argument("--run-after", required=True, help="RFC 3339 instant.")
+    p.set_defaults(func=cmd_activate)
+
+    p = with_root(sub.add_parser("pause", help="Stop scheduling without forgetting."))
+    p.add_argument("--job", required=True)
+    p.set_defaults(func=lambda a: cmd_set_enabled(a, False))
+
+    p = with_root(sub.add_parser("resume", help="Re-enable a paused activation."))
+    p.add_argument("--job", required=True)
+    p.set_defaults(func=lambda a: cmd_set_enabled(a, True))
+
+    p = with_root(sub.add_parser("claim", help="Atomically claim one due job."))
+    p.add_argument("--session", required=True, help="Canonical resumable session id.")
+    p.add_argument("--harness", default="unknown")
+    p.add_argument(
+        "--owner-pid",
+        type=int,
+        required=True,
+        help="PID of the invoking session, which must outlive the claim; its "
+        "process-start identity is what proves the claim still live.",
     )
-    finish_parser.add_argument("--root", required=True, help="Owning project root.")
-    finish_parser.add_argument("--job", required=True, help="Claimed job basename.")
-    finish_parser.set_defaults(func=finish)
+    p.set_defaults(func=cmd_claim)
+
+    p = with_root(sub.add_parser("done", help="Release a claim, rescheduled or parked."))
+    p.add_argument("--job", required=True)
+    p.add_argument("--run-after", help="Next RFC 3339 instant.")
+    p.add_argument("--park", action="store_true", help="Retire until re-activated.")
+    p.add_argument("--status", default="ok")
+    p.set_defaults(func=cmd_done)
+
+    p = with_root(sub.add_parser("list", help="Report activation state as JSON."))
+    p.set_defaults(func=cmd_list)
     return top
 
 
 def main() -> int:
     args = parser().parse_args()
-    return args.func(args)
+    try:
+        return args.func(args)
+    except Refused as exc:
+        print(json.dumps({"status": "refused", "error": str(exc)}, sort_keys=True))
+        return 4
 
 
 if __name__ == "__main__":

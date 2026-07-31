@@ -138,34 +138,47 @@ commit-msg-fmt -m "feat: do thing" -m '' -m "Body paragraph." \
 
 ### at-queue
 
-Mechanizes the filesystem-critical part of `topics/at.md`; provider launch and
-object-level scheduling judgment remain outside it.
+Sole writer of the clone-local activation store described in `topics/at.md`;
+provider launch and object-level scheduling judgment remain outside it. Every
+mutation goes through this helper — the store is machine-owned, and callers
+must not hand-edit it.
 
-**CLI**:
-- `at-queue claim --root <project> --session <canonical-id> --harness <name>
-  [--owner-pid <pid>]` — recover acknowledged locks, repair future mtime
-  indexes, and atomically claim at most one due job. Exit 0 emits one JSON
-  `claimed` record; exit 3 emits `status:"none"`.
-- `at-queue finish --root <project> --job <name>.md` — verify that the claimed
-  job is rescheduled or parked, atomically tombstone its lock, and remove the
-  tombstone. Exit 0 released, 4 no lock, 70 acknowledgement not verified.
+**CLI** (all verbs take `--root <project>`; all emit one JSON line):
+- `activate --job <name> --run-after <RFC3339>` — schedule a prompt source and
+  record the hash of the bytes being approved. Also the re-approval action
+  after a source changes.
+- `pause --job <name>` / `resume --job <name>` — stop or restart scheduling
+  without discarding the schedule.
+- `claim --session <canonical-id> --harness <name> --owner-pid <pid>` —
+  atomically claim at most one due job. `--owner-pid` is required and must
+  outlive the claim: its process-start identity is the exclusion proof.
+- `done --job <name> (--run-after <RFC3339> | --park) [--status <s>]` — clear
+  the run record, stamp the outcome, and re-approve the current source.
+- `list` — report every job's state and `blocked_by` reason.
+
+**Exit codes**: 0 success; 3 `claim` found nothing claimable; 4 refused, with a
+JSON `error` naming what to fix; 2 argparse usage.
 
 **Post-conditions**:
-- An absent `<project>/at/` is not created.
-- A claim winner leaves `<project>/at/.locks/<job>.lock/owner.md` containing
-  the prompt hash, harness/session identity, host, timestamps, and available
-  PID process-start identity.
-- A future in-file `run_after` repairs an accidentally due mtime only while the
-  claimed bytes remain unchanged.
-- A still-due ownerless lock remains blocked; a lock over a verifiably
-  non-due acknowledgement is safely recoverable.
+- An absent `<project>/at/` is never created, and a claim that takes nothing
+  writes no activation file.
+- A tracked `at-activation.json` is refused by every verb, because clone-local
+  activation is what stops a `git pull` from scheduling agent work.
+- Loading a file at-queue did not write (non-canonical formatting) succeeds but
+  emits a `warnings` entry.
+- Prompt sources are never rewritten; `activate` and `done` touch only
+  activation.
+- A claim whose recorded process is gone is re-claimable with no heartbeat,
+  lock-breaking, or adjudication.
+- A source whose bytes differ from the approved hash is skipped, not run.
 
 **Examples**:
-1. No `at/` → exit 3, `{"status":"none","reason":"no at directory",...}`.
-2. Due `at/review.md` → exit 0 with exact `job`, `lock`, `prompt_sha256`, and
-   `run_after`; a concurrent claim exits 3.
-3. Future `run_after` with current mtime → repair and verify mtime, release the
-   temporary claim, exit 3 if no other job is due.
+1. No activation → `claim` exits 3 with `{"status":"none","skipped":{}}`.
+2. Due `at/review.md` → exit 0 with `job`, `source`, `prompt_sha256`,
+   `run_after`; a concurrent `claim` exits 3 with
+   `skipped:{"review":"already running"}`.
+3. Source edited after activation → `claim` exits 3 with
+   `"prompt changed since activation; re-activate to approve"`.
 
 **Canonical source**: `scripts/at-queue` (in this repo). No install is
 required; startup uses this path only when it exists and is executable.

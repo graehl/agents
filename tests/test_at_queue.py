@@ -8,13 +8,14 @@ import os
 import subprocess
 import sys
 import tempfile
-import time
 import traceback
-from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "at-queue"
+
+PAST = "2020-01-01T00:00:00Z"
+FUTURE = "2030-01-02T03:04:05Z"
 
 
 def _assert(condition, message="assertion failed"):
@@ -22,19 +23,26 @@ def _assert(condition, message="assertion failed"):
         raise AssertionError(message)
 
 
-def _stamp(text: str) -> float:
-    return datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp()
+def _project(*, git: bool = False) -> Path:
+    root = Path(tempfile.mkdtemp(prefix="at-queue-test-"))
+    if git:
+        subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+    return root
 
 
-def _job(root: Path, name: str, run_after: str | None) -> Path:
+def _source(root: Path, name: str, body: str = "Run it.") -> Path:
     queue = root / "at"
-    queue.mkdir()
+    queue.mkdir(exist_ok=True)
     path = queue / f"{name}.md"
-    value = "null" if run_after is None else run_after
-    path.write_text(f"---\nrun_after: {value}\n---\n\nRun {name}.\n")
-    if run_after is not None:
-        os.utime(path, (_stamp(run_after), _stamp(run_after)))
+    path.write_text(f"---\nname: {name}\n---\n\n{body}\n")
     return path
+
+
+def _claim(root: Path, session: str, pid: int | None = None):
+    return _run(root, "claim", "--session", session,
+                "--owner-pid", str(os.getpid() if pid is None else pid))
 
 
 def _run(root: Path, *args: str):
@@ -46,98 +54,191 @@ def _run(root: Path, *args: str):
     )
 
 
-def test_claim_repairs_future_mtime_without_claiming():
-    root = Path(tempfile.mkdtemp(prefix="at-queue-test-"))
-    future = "2030-01-02T03:04:05Z"
-    job = _job(root, "future", future)
-    os.utime(job, (time.time() - 5, time.time() - 5))
-
-    result = _run(root, "claim", "--session", "session-a")
-    _assert(result.returncode == 3, result.stderr)
-    payload = json.loads(result.stdout)
-    _assert(
-        payload["status"] == "none" and payload["repaired"] == ["future.md"],
-        payload,
-    )
-    _assert(job.stat().st_mtime_ns == int(_stamp(future) * 1_000_000_000))
-    _assert(not (root / "at/.locks/future.lock").exists())
+def _json(proc):
+    return json.loads(proc.stdout)
 
 
-def test_claim_does_not_create_absent_queue():
-    root = Path(tempfile.mkdtemp(prefix="at-queue-test-"))
-    result = _run(root, "claim", "--session", "session-a")
-    _assert(result.returncode == 3, result.stderr)
-    _assert(json.loads(result.stdout)["reason"] == "no at directory")
-    _assert(not (root / "at").exists())
+def _activation(root: Path) -> Path:
+    return root / ".yep" / "at-activation.json"
 
 
-def test_claim_is_single_winner_and_records_owner_identity():
-    root = Path(tempfile.mkdtemp(prefix="at-queue-test-"))
-    _job(root, "due", "2020-01-01T00:00:00Z")
+def test_activation_is_separate_from_source():
+    root = _project()
+    source = _source(root, "review")
+    before = source.read_text()
+    proc = _run(root, "activate", "--job", "review", "--run-after", FUTURE)
+    _assert(proc.returncode == 0, proc.stderr)
 
-    result = _run(
-        root,
-        "claim",
-        "--session",
-        "session-a",
-        "--harness",
-        "codex",
-        "--owner-pid",
-        str(os.getpid()),
-    )
-    _assert(result.returncode == 0, result.stderr)
-    payload = json.loads(result.stdout)
-    _assert(payload["status"] == "claimed" and payload["job"].endswith("due.md"))
-    owner = (root / "at/.locks/due.lock/owner.md").read_text()
-    _assert("session-a" in owner and "harness: codex" in owner, owner)
-    _assert("process_start_ticks:" in owner, owner)
-
-    second = _run(root, "claim", "--session", "session-b")
-    _assert(second.returncode == 3, second.stderr)
-    _assert(json.loads(second.stdout)["status"] == "none")
+    _assert(source.read_text() == before, "activating must not rewrite the prompt")
+    state = json.loads(_activation(root).read_text())
+    _assert(state["jobs"]["review"]["run_after"] == FUTURE, state)
+    _assert("run_after" not in before, "schedule never lives in the source file")
 
 
-def test_claim_recovers_lock_after_verified_acknowledgement():
-    root = Path(tempfile.mkdtemp(prefix="at-queue-test-"))
-    job = _job(root, "once", "2020-01-01T00:00:00Z")
-    claimed = _run(root, "claim", "--session", "session-a")
+def test_claim_skips_future_and_takes_due():
+    root = _project()
+    _source(root, "later")
+    _source(root, "now")
+    _run(root, "activate", "--job", "later", "--run-after", FUTURE)
+    _run(root, "activate", "--job", "now", "--run-after", PAST)
+
+    proc = _claim(root, "session-a")
+    _assert(proc.returncode == 0, proc.stderr)
+    payload = _json(proc)
+    _assert(payload["job"] == "now", payload)
+    _assert(payload["skipped"]["later"] == "not due", payload)
+
+
+def test_claim_is_single_winner_while_runner_is_alive():
+    root = _project()
+    _source(root, "solo")
+    _run(root, "activate", "--job", "solo", "--run-after", PAST)
+
+    first = _claim(root, "a")
+    _assert(first.returncode == 0, first.stderr)
+    second = _claim(root, "b")
+    _assert(second.returncode == 3, second.stdout)
+    _assert(_json(second)["skipped"]["solo"] == "already running", second.stdout)
+
+
+def test_dead_runner_releases_the_job_without_a_heartbeat():
+    root = _project()
+    _source(root, "orphan")
+    _run(root, "activate", "--job", "orphan", "--run-after", PAST)
+
+    dead = subprocess.Popen([sys.executable, "-c", "pass"])
+    dead.wait()
+    claimed = _claim(root, "a", dead.pid)
     _assert(claimed.returncode == 0, claimed.stderr)
 
-    job.write_text("---\nrun_after: null\n---\n\nRun once.\n")
-    parked = _stamp("2030-01-01T00:00:00Z")
-    os.utime(job, (parked, parked))
-    recovered = _run(root, "claim", "--session", "session-b")
-    _assert(recovered.returncode == 3, recovered.stderr)
-    _assert(json.loads(recovered.stdout)["recovered"] == ["once.md"])
-    _assert(not (root / "at/.locks/once.lock").exists())
+    again = _claim(root, "b")
+    _assert(again.returncode == 0, "an exited runner must not hold the job forever")
+    _assert(_json(again)["job"] == "orphan", again.stdout)
 
 
-def test_due_ownerless_lock_remains_ambiguous():
-    root = Path(tempfile.mkdtemp(prefix="at-queue-test-"))
-    _job(root, "ambiguous", "2020-01-01T00:00:00Z")
-    (root / "at/.locks/ambiguous.lock").mkdir(parents=True)
+def test_done_reschedules_or_parks():
+    root = _project()
+    _source(root, "periodic")
+    _run(root, "activate", "--job", "periodic", "--run-after", PAST)
+    _claim(root, "a")
 
-    result = _run(root, "claim", "--session", "session-a")
-    _assert(result.returncode == 3, result.stderr)
-    _assert((root / "at/.locks/ambiguous.lock").is_dir())
+    proc = _run(root, "done", "--job", "periodic", "--run-after", FUTURE)
+    _assert(proc.returncode == 0 and _json(proc)["status"] == "rescheduled", proc.stdout)
+    _assert(_claim(root, "b").returncode == 3, "no longer due")
+
+    _run(root, "activate", "--job", "periodic", "--run-after", PAST)
+    _claim(root, "c")
+    proc = _run(root, "done", "--job", "periodic", "--park")
+    _assert(proc.returncode == 0 and _json(proc)["status"] == "parked", proc.stdout)
+    entry = json.loads(_activation(root).read_text())["jobs"]["periodic"]
+    _assert(entry["enabled"] is False and entry["run_after"] is None, entry)
 
 
-def test_finish_refuses_due_job_then_releases_verified_schedule():
-    root = Path(tempfile.mkdtemp(prefix="at-queue-test-"))
-    job = _job(root, "periodic", "2020-01-01T00:00:00Z")
-    claimed = _run(root, "claim", "--session", "session-a")
-    _assert(claimed.returncode == 0, claimed.stderr)
+def test_done_requires_an_explicit_disposition():
+    root = _project()
+    _source(root, "ambiguous")
+    _run(root, "activate", "--job", "ambiguous", "--run-after", PAST)
+    proc = _run(root, "done", "--job", "ambiguous")
+    _assert(proc.returncode == 4, proc.stdout)
+    _assert("--park" in _json(proc)["error"], proc.stdout)
 
-    blocked = _run(root, "finish", "--job", job.name)
-    _assert(blocked.returncode == 70, blocked.stdout)
-    _assert((root / "at/.locks/periodic.lock").is_dir())
 
-    future = "2030-02-03T04:05:06Z"
-    job.write_text(f"---\nrun_after: {future}\n---\n\nRun periodically.\n")
-    os.utime(job, (_stamp(future), _stamp(future)))
-    released = _run(root, "finish", "--job", job.name)
-    _assert(released.returncode == 0, released.stdout)
-    _assert(not (root / "at/.locks/periodic.lock").exists())
+def test_pause_blocks_claiming_without_forgetting_the_schedule():
+    root = _project()
+    _source(root, "sleepy")
+    _run(root, "activate", "--job", "sleepy", "--run-after", PAST)
+    _assert(_run(root, "pause", "--job", "sleepy").returncode == 0)
+
+    proc = _claim(root, "a")
+    _assert(proc.returncode == 3 and _json(proc)["skipped"]["sleepy"] == "paused")
+    _assert(json.loads(_activation(root).read_text())["jobs"]["sleepy"]["run_after"])
+
+    _assert(_run(root, "resume", "--job", "sleepy").returncode == 0)
+    _assert(_claim(root, "a").returncode == 0)
+
+
+def test_changed_prompt_blocks_the_claim_until_reactivated():
+    root = _project()
+    source = _source(root, "drifting")
+    _run(root, "activate", "--job", "drifting", "--run-after", PAST)
+    source.write_text("---\nname: drifting\n---\n\nSomething else entirely.\n")
+
+    proc = _claim(root, "a")
+    _assert(proc.returncode == 3, proc.stdout)
+    _assert("re-activate" in _json(proc)["skipped"]["drifting"], proc.stdout)
+
+    _run(root, "activate", "--job", "drifting", "--run-after", PAST)
+    _assert(_claim(root, "a").returncode == 0)
+
+
+def test_tracked_activation_is_refused():
+    root = _project(git=True)
+    _source(root, "tracked")
+    _run(root, "activate", "--job", "tracked", "--run-after", PAST)
+    subprocess.run(
+        ["git", "add", "-f", ".yep/at-activation.json"], cwd=root, check=True
+    )
+
+    for verb in (["list"], ["claim", "--session", "a", "--owner-pid", str(os.getpid())]):
+        proc = _run(root, *verb)
+        _assert(proc.returncode == 4, f"{verb} must refuse tracked activation")
+        _assert("clone-local" in _json(proc)["error"], proc.stdout)
+
+
+def test_hand_edited_activation_is_reported():
+    root = _project()
+    _source(root, "edited")
+    _run(root, "activate", "--job", "edited", "--run-after", PAST)
+    path = _activation(root)
+    path.write_text(json.dumps(json.loads(path.read_text())))  # compact, not canonical
+
+    proc = _run(root, "list")
+    _assert(proc.returncode == 0, proc.stderr)
+    _assert("not written by at-queue" in _json(proc)["warnings"][0], proc.stdout)
+
+
+def test_stale_lock_is_broken_but_a_live_one_is_not():
+    root = _project()
+    _source(root, "locked")
+    lock = _activation(root).parent / "at-activation.json.lock"
+    lock.mkdir(parents=True)
+
+    proc = _run(root, "activate", "--job", "locked", "--run-after", PAST)
+    _assert(proc.returncode == 4, "a fresh lock must not be stolen")
+
+    os.utime(lock, (0, 0))
+    proc = _run(root, "activate", "--job", "locked", "--run-after", PAST)
+    _assert(proc.returncode == 0, "a lock older than the critical section is debris")
+
+
+def test_missing_source_is_refused_and_never_claimed():
+    root = _project()
+    source = _source(root, "vanishing")
+    _run(root, "activate", "--job", "vanishing", "--run-after", PAST)
+    source.unlink()
+
+    proc = _claim(root, "a")
+    _assert(proc.returncode == 3, proc.stdout)
+    _assert(_json(proc)["skipped"]["vanishing"] == "prompt source is missing")
+    _assert(_run(root, "activate", "--job", "gone", "--run-after", PAST).returncode == 4)
+
+
+def test_claim_demands_provable_liveness():
+    root = _project()
+    _source(root, "unproven")
+    _run(root, "activate", "--job", "unproven", "--run-after", PAST)
+
+    proc = _run(root, "claim", "--session", "a")
+    _assert(proc.returncode == 2, "exclusion without an owner pid must not be silent")
+    _assert("--owner-pid" in proc.stderr, proc.stderr)
+
+
+def test_absent_queue_and_activation_are_not_created():
+    root = _project()
+    proc = _claim(root, "a")
+    _assert(proc.returncode == 3, proc.stdout)
+    _assert(not _activation(root).exists(), "claiming nothing writes no state")
+    _assert(not (root / "at").exists(), "an absent at/ is never created")
 
 
 def _collect_tests():
