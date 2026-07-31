@@ -225,7 +225,8 @@ remain sufficient for a successor to understand:
 - the followed-document state through which this understanding was reconciled;
 - the last-session fold watermark.
 
-Near the top, carry both independent watermarks:
+Near the top, carry both independent watermarks — the document one on a
+single line, the transcript one on a pair of lines:
 
 ```markdown
 Document understanding synchronized through: <docs/state.md Observed at timestamp> · <full HEAD SHA>
@@ -234,8 +235,9 @@ Folded through: <session archive or stable label> · <interaction-id>/<turn>, or
 ```
 
 The first tracks semantic reconciliation with the followed documents; the
-other two track transcript fold-in debt. Use `none · none` for the document
-marker before the first completed review.
+`Last session folded in` / `Folded through` pair tracks transcript fold-in
+debt. Use `none · none` for the document marker before the first completed
+review.
 
 After every successful followed-document synchronization, update the semantic
 summary for any material change and advance the document-understanding marker

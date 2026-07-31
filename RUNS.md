@@ -288,39 +288,41 @@ When running builds or tests, always redirect full output to a log file
 (e.g., `make 2>&1 | tee /tmp/build.log`) and show only the tail.
 Never discard output with bare `| tail`.
 
-**Hard gate — no latitude or inferred equivalent.** A foreground-wait
-announcement and its effective synchronous `agentctl` call are one atomic
-protocol. After the announcement, the agent may emit no final/status/planning
-prose and run no status query or unrelated tool before starting the call.
-While a yielded terminal/session remains live, the only permitted action is
-continuing to consume it until a wake condition or timeout returns control.
-Background monitoring, a detached job, a session id, `agentctl status`
-polling, or an intention to reattach later is not equivalent. If the call
-fails to start, report that failure immediately and never claim the wait
-occurred. Any violation resets this session's proven wait cap to five minutes
-and must be disclosed explicitly. New user steering interrupts the atomic
-interval. When the user interrupts with other work, the agent may stop the
-foreground monitor and use background status checks while doing that work,
-until the user asks it to foreground-wait again. This is neither a failed
-wait nor a protocol violation, and it neither resets nor advances the proven
-timeout rung. A later foreground wait still requires a fresh state check,
-announcement, and immediately following synchronous call.
-
-Immediately before entering a foreground `agentctl` wait/watch, tell the user
-exactly: `going into foreground agentctl wait now.` Then invoke the blocking
-`agentctl` call as the next action in the same turn and keep the turn open
-until it returns. The call must be synchronous with this assistant turn: a
-meaningful output line, watched condition, job end, or timeout must return
-control to the agent. A tool call yielding only a terminal/session id does not
-satisfy the announcement; immediately continue consuming that session without
-sending a response. Use `agentctl fleet-watch` with the local host included
-when fleet/resource availability is the wake condition; otherwise use the
-specific job's normal `wait`/`watch`.
+**The announcement.** Immediately before entering a foreground `agentctl`
+wait/watch, tell the user exactly: `going into foreground agentctl wait now.`
+Then invoke the blocking `agentctl` call as the next action in the same turn
+and keep the turn open until it returns. The call must be synchronous with
+this assistant turn: a meaningful output line, watched condition, job end, or
+timeout must return control to the agent. A tool call yielding only a
+terminal/session id does not satisfy the announcement; immediately continue
+consuming that session without sending a response. Use `agentctl fleet-watch`
+with the local host included when fleet/resource availability is the wake
+condition; otherwise use the specific job's normal `wait`/`watch`.
 
 The announcement creates an execution obligation. Do not make it unless the
 effective foreground call is the next action, and do not replace it with a
 post-launch `in agentctl wait` response: yielding that response can tear down
 the monitor and forfeit completion wake-up.
+
+**Hard gate — no latitude or inferred equivalent.** The announcement and its
+effective synchronous `agentctl` call are one atomic protocol. After the
+announcement, the agent may emit no final/status/planning prose and run no
+status query or unrelated tool before starting the call. While a yielded
+terminal/session remains live, the only permitted action is continuing to
+consume it until a wake condition or timeout returns control. Background
+monitoring, a detached job, a session id, `agentctl status` polling, or an
+intention to reattach later is not equivalent. If the call fails to start,
+report that failure immediately and never claim the wait occurred. Any
+violation resets this session's proven wait cap to five minutes and must be
+disclosed explicitly.
+
+**New user steering interrupts the atomic interval.** When the user interrupts
+with other work, the agent may stop the foreground monitor and use background
+status checks while doing that work, until the user asks it to foreground-wait
+again. This is neither a failed wait nor a protocol violation, and it neither
+resets nor advances the proven timeout rung. A later foreground wait still
+requires a fresh state check, announcement, and immediately following
+synchronous call.
 
 A resolved wait is not a resting state. Once the watched job finishes or the
 relevant idle condition is met, immediately consume that completion and launch

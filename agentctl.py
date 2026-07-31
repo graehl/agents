@@ -3873,15 +3873,14 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
     heartbeat_interval = max(0.0, float(getattr(args, "heartbeat", 30.0) or 0.0))
     gpu_poll = args.gpu_poll if args.gpu_poll > 0 else args.poll
     if log_path.exists():
+        # Follow from the end either way; --tail only decides how much of
+        # the existing log is replayed first.
         data = log_path.read_bytes()
         if args.tail > 0:
-            lines = data.splitlines(keepends=True)
-            tail_lines = lines[-args.tail :]
+            tail_lines = data.splitlines(keepends=True)[-args.tail :]
             sys.stdout.buffer.write(b"".join(tail_lines))
             sys.stdout.buffer.flush()
-            offset = len(data)
-        else:
-            offset = len(data)
+        offset = len(data)
     print(
         f"[watch] job={state['job']} run={state['run_id']} status={state.get('status', '?')} log={log_path}",
         flush=True,

@@ -103,10 +103,17 @@ def dataset_dir(name: str) -> Path:
     return directory
 
 
-def read_json(path: Path, what: str):
+def read_json(path: Path, what: str, *, quiet: bool = False):
+    """Parse `path`, or die loud; `quiet` returns None instead.
+
+    `quiet` serves scans over a directory of candidate datasets, where an
+    unreadable entry is one to skip rather than a run to fail.
+    """
     try:
         return json.loads(path.read_text())
     except (OSError, ValueError) as exc:
+        if quiet:
+            return None
         die(f"cannot read {what}: {exc}", ExitCode.DATA, detail={"path": str(path)})
 
 
@@ -343,22 +350,15 @@ def git_commit(paths: list[Path], message: str) -> str:
 
 
 def dataset_summary(name: str, *, quiet: bool = False) -> dict | None:
-    path = root() / name / "manifest.json"
+    manifest = read_json(
+        root() / name / "manifest.json", f"{name}/manifest.json", quiet=quiet
+    )
+    if manifest is None:
+        return None
     try:
-        manifest = json.loads(path.read_text())
-    except (OSError, ValueError) as exc:
-        if quiet:
-            return None
-        die(
-            f"cannot read {name}/manifest.json: {exc}",
-            ExitCode.DATA,
-            detail={"path": str(path)},
-        )
-    try:
-        data = json.loads((root() / name / "data.json").read_text())
-        path = manifest.get("schema", {}).get("records", "")
-        node = data
-        for part in path.split(".") if path else []:
+        node = json.loads((root() / name / "data.json").read_text())
+        records = manifest.get("schema", {}).get("records", "")
+        for part in records.split(".") if records else []:
             node = node[part]
         count = len(node) if isinstance(node, list) else None
     except (OSError, ValueError, KeyError, TypeError):
