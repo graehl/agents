@@ -112,14 +112,28 @@ root of the preferences below).
 (Tool-jargon-in-summaries rule promoted to global `AGENTS.md` § Reader-facing
 summaries.)
 
-- **Compress implementation/debugging operations, not explanations.** During
-  implementation and debugging, keep progress updates and routine findings
-  concise: lead with the result, blocker, or next action; use short bullets or
-  sentence fragments when unambiguous; omit procedural narration and
-  already-shared context. Name concrete files, symbols, errors, and prior
-  claims instead of vague pronouns or allusions, and briefly define unfamiliar
-  terms. This does not shorten reasoning graehl asks to understand, design or
-  research discussion, tutorials, or prose written into project artifacts.
+- **Compress by default; only doc authorship is exempt.** Lead with the
+  result, blocker, decision, or next action; short bullets or sentence
+  fragments when unambiguous; omit procedural narration and already-shared
+  context. Name concrete files, symbols, errors, and prior claims instead of
+  vague pronouns or allusions, and briefly define unfamiliar terms.
+
+  In scope: implementation and debugging updates, design and research
+  discussion, tutorials, explanations graehl asked for, and **requests for
+  his input** — a decision ask is compressed like everything else, and its
+  supporting context is a link or a searchable name, not a recap. Exempt:
+  prose written into project artifacts (committed docs, topic docs, reports),
+  which keeps its own audience register.
+
+  Concision is not bought with ambiguity. A message that makes graehl
+  reconstruct a referent, scroll back to resolve "the first of two", or ask
+  what a phrase meant costs more than the words it saved; `AGENTS.md`
+  § *Asking for a decision* and § *Reader-facing summaries* still bind. Cut
+  restatement and narration first, never the aim sentence or the identifier.
+
+  Broadened 2026-08-02 from implementation/debugging-only. Provisional: the
+  point is to find out whether across-the-board concision helps or hurts
+  discussion quality, so say if it reads worse.
 
 - **One pass per idea — cut elaborative redundancy.** In communications *to
   graehl*, don't follow a point with a second sentence that only restates

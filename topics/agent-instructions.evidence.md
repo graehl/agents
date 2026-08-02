@@ -764,3 +764,20 @@ the sweep single-target.
   different costs.
 - **Status** — `assumed`; watch whether summaries stop acquiring balanced-clause
   sign-offs and whether decision requests open with an aim sentence.
+
+## 2026-08-02 — concision scope broadened to everything but doc authorship
+
+- **Why the old rule missed** — `AGENTS.user.md` § *Writing and summary style*
+  compressed "implementation and debugging" and explicitly exempted "design or
+  research discussion". A request for graehl's input reads as design
+  discussion, so a long decision ask was compliant.
+- **Decision** — invert the scope: compress everything written to graehl,
+  exempt only prose written into project artifacts. Decision asks are named
+  in-scope so the carve-out cannot be re-derived.
+- **Tension made explicit in the rule** — graehl's other complaint the same
+  day was *under*-specification ("undue inference burden", an unsearchable
+  coined phrase, a bare "The choice" heading with no aim). Concision and
+  self-containedness pull opposite ways, so the rule says which loses: cut
+  restatement and narration, never the aim sentence or the identifier.
+- **Status** — `provisional` by graehl's framing: run it broadly and see
+  whether discussion quality improves. Revert or re-narrow if it reads worse.
