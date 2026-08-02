@@ -12,7 +12,8 @@ The skill's product is a dataset, not a program. A build session
 (`skills/almanac/SKILL.md`) spends agent judgment once — finding the
 data channel, designing the schema, writing the extractor — and
 captures it as deterministic artifacts a model-free CLI can serve and
-refresh. The engine (`scripts/almanac`, installed as `~/bin/almanac`)
+refresh. The importable engine (`almanac/cli.py`, reached through the
+executable `scripts/almanac` wrapper and installed as `~/bin/almanac`)
 is one shared implementation of query/refresh over any manifest;
 per-site variation lives entirely in data, never in per-site viewer
 code.
@@ -26,8 +27,8 @@ $ALMANAC_ROOT/                 # default ~/.cache/almanac, a local git repo
     data.json                  # extractor output (or transcription)
     extract                    # executable: argv[1] = URL or local file,
                                #   normalized JSON on stdout (absent when frozen)
-    images/ …                  # optional attachment subdirs, referenced
-                               #   by relative path from data.json
+    images/ …                  # optional attachment subdirs, preferably PNG,
+                               #   referenced by relative path from data.json
   by-url/<slug>-<sha8> -> ../<name>   # canonical URL -> dataset mapping
 ```
 
@@ -40,7 +41,9 @@ agent-authored extractors. It is never pushed.
 and `schema`: `records` (dotted path to the record array; empty = data
 root), `key` (unique-ish display key field), `columns` (3–4 minimal
 default fields, per ACLI minimal-schemas), `filters` and `search`
-(completion/search hints). Free-form provenance prose (which channel
+(completion/search hints), plus optional `image` (the record field
+holding a dataset-relative image attachment path). Free-form provenance
+prose (which channel
 the extractor reads, quirks) is welcome as extra keys.
 
 ## Extractor contract
@@ -132,8 +135,20 @@ prompt_toolkit is installed, install advice when not). `almanac
 each line then uses the launcher grammar (bare filters/search query
 the bound dataset, verbs optional). `--help` and
 `help <name>` end with the `acli: 1 complete repl toon` capability
-line. Verbs: `list`, `query`, `show`, `search`, `info`, `check`,
+line. Verbs: `list`, `query`, `show`, `image`, `search`, `info`, `check`,
 `update`, `help`, `register`.
+
+`image <name> <key>` resolves the selected record's `schema.image`
+attachment and displays it only when stdout is a TTY. Auto mode uses the
+Kitty or iTerm2 inline-image protocol when the terminal identifies itself,
+Sixel through an installed `img2sixel`, or an installed `chafa`, `viu`, or
+`timg` renderer. `--renderer` can select or disable that behavior, and
+`--width` sets the native-protocol cell width. A non-TTY, an undetected
+terminal, or a renderer failure succeeds with a compact structured fallback:
+dataset, record key, relative image, resolved path, MIME type, renderer,
+and reason. It never sends terminal escape sequences to captured output.
+Attachment paths must remain inside their dataset after symlink resolution;
+an escaping or missing path is invalid dataset data (exit 70).
 
 `query` filter grammar: `FIELD=VALUE` (exact, comma = any-of),
 `FIELD~TEXT` (substring on one field), `~TEXT` (substring across the
@@ -151,7 +166,7 @@ launcher form).
 `register` validates a built dataset, wires the `by-url` symlink,
 commits, and writes a thin per-dataset launcher (`~/bin/<name>`:
 bare = info, `-h`/`--help`/`help` = `almanac help <name>`, `--repl`
-= the engine repl bound to this dataset, verbs pass through,
+= the engine repl bound to this dataset, verbs (including `image`) pass through,
 anything else = query filters/search) plus the `~/bin/almanac`
 engine symlink if missing.
 The generated shell only passes its dataset, program name, and untouched
@@ -199,3 +214,12 @@ built; lives in the YA repo when it is.
 - **Local git history in the root** (vs. dated snapshot copies):
   diffs across refreshes and extractor versioning for free; never
   pushed, so no remote coupling.
+- **Explicit image field and structured fallback** (vs. guessing from record
+  fields or always emitting terminal escapes): `schema.image` makes the
+  attachment contract inspectable, while non-TTY callers receive a usable
+  path without terminal-control bytes. Accepts one optional manifest field.
+- **Small native renderers plus executable fallback** (vs. adding Pillow and
+  a terminal-image library): PNG can travel directly over Kitty and iTerm2,
+  while installed helpers cover Sixel and text-rendering terminals. This
+  keeps the shared engine standard-library-only; uncommon formats may fall
+  back to their path unless a helper can render them.

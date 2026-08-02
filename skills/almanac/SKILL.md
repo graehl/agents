@@ -4,10 +4,11 @@ description: "Build or repair an almanac dataset — a locally queryable snapsho
 ---
 
 Contract: `topics/almanac.md` (in `~/agents`) — read it before building.
-The engine is `~/bin/almanac` (canonical `~/agents/scripts/almanac`);
-this skill does the one-time agent work: find the data channel, design
-the schema, write the fixed extractor, register the dataset. Queries
-and refreshes afterward need no agent.
+The engine is the importable `~/agents/almanac` package, reached through
+`~/bin/almanac` and the `~/agents/scripts/almanac` executable wrapper;
+never generate a per-dataset viewer. This skill does the one-time agent
+work: find the data channel, design the schema, write the fixed extractor,
+register the dataset. Queries and refreshes afterward need no agent.
 
 Arguments: a URL; optionally a short dataset name and/or a user-saved
 page (SingleFile HTML, MHTML) or HAR capture.
@@ -91,7 +92,10 @@ page (SingleFile HTML, MHTML) or HAR capture.
    (dotted path), `key` (what a human names a record by), `columns`
    (3–4 fields for the default listing), `filters`, `search`.
    Download genuinely useful attachments (card images) into subdirs,
-   referenced by relative path.
+   referenced by relative path. For a per-record image intended for
+   terminal display, store a PNG copy and set `schema.image` to the record
+   field carrying that path; keep another source format only when an
+   existing path is an observable compatibility surface.
 
 4. **Write `extract`**: takes one arg (URL or local file — must
    accept both), emits the full normalized JSON on stdout,
@@ -105,8 +109,9 @@ page (SingleFile HTML, MHTML) or HAR capture.
    symlink, commits to the root's local git, and installs the
    `~/bin/<name>` launcher.
 
-6. **Verify and hand over.** Smoke `query`/`show`/`search`, and
-   `check` (expect exit 0; for `manual`, with `--source`). Report:
+6. **Verify and hand over.** Smoke `query`/`show`/`search`, `image` when
+   `schema.image` is present, and `check` (expect exit 0; for `manual`,
+   with `--source`). Report:
    dataset name, refresh mode and what it implies for updates, and
    two or three example commands.
 

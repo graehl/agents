@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""End-to-end tests for scripts/almanac (topics/almanac.md).
+"""End-to-end tests for the almanac module and launcher (topics/almanac.md).
 
 Stdlib only, no pytest. Each test builds a synthetic dataset in its own
 tmp ALMANAC_ROOT and drives the engine via subprocess. Run directly:
@@ -22,6 +22,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "almanac"
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 CARDS = {
     "cards": [
@@ -35,6 +37,8 @@ EXTRACT = """#!/usr/bin/env python3
 import pathlib, sys
 sys.stdout.write(pathlib.Path(sys.argv[1]).read_text())
 """
+
+PNG = b"\x89PNG\r\n\x1a\nsynthetic-test-image"
 
 
 def _assert(cond, msg="assertion failed"):
@@ -80,6 +84,23 @@ def make_dataset(root, name="cards-test", refresh="auto", data=CARDS, url=None):
     return directory
 
 
+def add_images(directory):
+    manifest_path = directory / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["schema"]["image"] = "image"
+    manifest_path.write_text(json.dumps(manifest))
+
+    data_path = directory / "data.json"
+    data = json.loads(data_path.read_text())
+    images = directory / "images"
+    images.mkdir()
+    for record in data["cards"]:
+        filename = record["name"].lower().replace(" ", "-") + ".png"
+        record["image"] = f"images/{filename}"
+        (images / filename).write_bytes(PNG)
+    data_path.write_text(json.dumps(data))
+
+
 def registered_root():
     tmp = tempfile.mkdtemp(prefix="almanac-test-")
     make_dataset(tmp)
@@ -87,6 +108,97 @@ def registered_root():
     proc = run(tmp, "register", "cards-test", "--launcher-dir", str(bin_dir))
     _assert(proc.returncode == 0, proc.stderr)
     return Path(tmp), bin_dir
+
+
+def test_engine_is_an_importable_module():
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from almanac.cli import build_parser; print(build_parser().prog)",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    _assert(proc.returncode == 0 and proc.stdout == "almanac\n", proc.stderr)
+
+
+def test_image_verb_falls_back_to_a_structured_path():
+    root = Path(tempfile.mkdtemp(prefix="almanac-test-"))
+    directory = make_dataset(root)
+    add_images(directory)
+    _assert(run(root, "register", "cards-test", "--no-launcher").returncode == 0)
+
+    proc = run(root, "image", "cards-test", "strike")
+    _assert(proc.returncode == 0, proc.stderr)
+    result = jsonl(proc)[0]
+    _assert(result["record"] == "Strike", result)
+    _assert(result["image"] == "images/strike.png", result)
+    _assert(result["path"] == str((directory / "images/strike.png").resolve()), result)
+    _assert(result["mime"] == "image/png", result)
+    _assert(result["rendered"] is False and result["renderer"] is None, result)
+    _assert("not a terminal" in result["reason"], result)
+
+    data = json.loads((directory / "data.json").read_text())
+    data["cards"][0]["image"] = "../outside.png"
+    (root / "outside.png").write_bytes(PNG)
+    (directory / "data.json").write_text(json.dumps(data))
+    proc = run(root, "image", "cards-test", "strike")
+    _assert(proc.returncode == 70, "attachment paths may not escape the dataset")
+    _assert("outside" in json.loads(proc.stderr)["error"]["message"], proc.stderr)
+
+
+def test_image_native_renderers():
+    from io import BytesIO
+
+    from almanac.image import detect_renderer, display_image
+
+    def missing(_name):
+        return None
+
+    _assert(detect_renderer({"TERM": "xterm-kitty"}, which=missing) == "kitty")
+    _assert(detect_renderer({"TERM_PROGRAM": "iTerm.app"}, which=missing) == "iterm2")
+    _assert(
+        detect_renderer(
+            {"TERM": "xterm-sixel"},
+            which=lambda name: f"/test/{name}" if name == "img2sixel" else None,
+        )
+        == "sixel"
+    )
+    _assert(
+        detect_renderer(
+            {"TERM": "xterm-256color"},
+            which=lambda name: f"/test/{name}" if name == "chafa" else None,
+        )
+        == "chafa"
+    )
+
+    image = Path(tempfile.mkdtemp(prefix="almanac-test-")) / "card.png"
+    image.write_bytes(PNG)
+
+    kitty = BytesIO()
+    result = display_image(
+        image, renderer="kitty", width=24, out=kitty, is_tty=True
+    )
+    _assert(result.rendered and result.renderer == "kitty", result)
+    _assert(kitty.getvalue().startswith(b"\x1b_G"), kitty.getvalue())
+    _assert(b"f=100" in kitty.getvalue() and b"c=24" in kitty.getvalue())
+
+    iterm2 = BytesIO()
+    result = display_image(
+        image, renderer="iterm2", width=24, out=iterm2, is_tty=True
+    )
+    _assert(result.rendered and result.renderer == "iterm2", result)
+    _assert(iterm2.getvalue().startswith(b"\x1b]1337;File="), iterm2.getvalue())
+    _assert(b"width=24" in iterm2.getvalue())
+
+    captured = BytesIO()
+    result = display_image(
+        image, renderer="kitty", width=24, out=captured, is_tty=False
+    )
+    _assert(not result.rendered and captured.getvalue() == b"", result)
 
 
 def test_register_wires_symlink_launcher_and_git():
@@ -311,6 +423,8 @@ def test_completion():
     keys = jsonl(run(root, "--acli-complete", "show", "cards-test", "b"))
     _assert([r["completion"] for r in keys] == ["Bash"], keys)
     _assert(keys[0]["help"] == "B · 2", "key candidates summarize the other columns")
+    image_keys = jsonl(run(root, "--acli-complete", "image", "cards-test", "b"))
+    _assert([r["completion"] for r in image_keys] == ["Bash"], image_keys)
     fuzzy = jsonl(run(root, "--acli-complete", "show", "cards-test", "ash"))
     _assert(
         [r["completion"] for r in fuzzy] == ["Bash"],
@@ -364,6 +478,7 @@ def test_repl_batch_lines():
 
 def test_launcher_dispatch():
     root, bin_dir = registered_root()
+    add_images(root / "cards-test")
     env = dict(os.environ, ALMANAC_ROOT=str(root), PATH=f"{bin_dir}:{os.environ['PATH']}")
     launcher = str(bin_dir / "cards-test")
 
@@ -375,6 +490,10 @@ def test_launcher_dispatch():
 
     proc = subprocess.run([launcher, "show", "bash"], capture_output=True, text=True, env=env)
     _assert(json.loads(proc.stdout.splitlines()[0])["cost"] == 2, proc.stdout)
+
+    proc = subprocess.run([launcher, "image", "bash"], capture_output=True, text=True, env=env)
+    image_result = json.loads(proc.stdout.splitlines()[0])
+    _assert(image_result["record"] == "Bash" and not image_result["rendered"], proc.stdout)
 
     for leading in (["--pretty"], ["--format", "pretty"], ["--format=pretty"]):
         proc = subprocess.run(
