@@ -724,3 +724,43 @@ the sweep single-target.
 - **Status** — `assumed`; the next fresh advisor start should verify that the
   marker mismatch is noticed and repaired without replaying already folded
   transcript archives.
+
+## 2026-08-02 — literary register in implementation talk; decision-request shape
+
+- **Trigger** — a status summary closed a flagged open decision with "yours to
+  make, not one to slip in", and posed the decision under a bare "## The
+  choice" heading that went straight into option A with no aim sentence. graehl
+  named the coda "LLM-assistant-instruction-tuning-ese" and asked why the
+  existing rule did not fire.
+- **Why it did not fire** — the ban on aphorism and clever reversal already
+  existed at `topics/agent-instructions.md` § *Writing rules*, but scoped to
+  *writing instruction text*. Nothing extended it to prose written **to** the
+  user about an implementation, so an agent following the letter had no rule
+  against a balanced-clause sign-off in a status report.
+- **Decision** — generalize it in the boot-loaded `AGENTS.md` § *Interaction
+  style* rather than duplicate it in `AGENTS.user.md`. The failure is generic
+  assistant register, not a graehl-specific taste, and § *Interaction style*
+  already owns "no plucky affect". The new text names the concrete defect: a
+  balanced two-clause coda hides which half is the claim, and adds no fact.
+  The cross-reference to `topics/agent-instructions.md` keeps the two scopes
+  visibly related instead of silently redundant.
+- **Second decision** — added `AGENTS.md` § *Asking for a decision*: aim
+  sentence first ("We want X"), one short self-contained paragraph, oversized
+  context reachable by link or exact Ctrl-F substring, never by a coined
+  phrase, and no re-opening a settled decision. graehl supplied all four
+  constraints across two messages in the same exchange; the coined-phrase
+  clause has its own separate trace (he asked "explain - what is this" about
+  "the fidelity-vs-latency decision", a string absent from the repo).
+- **Naming correction in the same exchange** — the agent had labelled the
+  cold-tokenize cost a "fidelity-vs-latency decision". graehl objected that
+  harm confined to perf-only internal state is properly a miss cost or
+  outlier drag, not fidelity. Half-right and worth recording precisely: the
+  *first-view cost itself* is a cache-miss cost and naming it "fidelity"
+  invited the confusion, but the *remedy under discussion* — lowering
+  `WHOLE_FILE_HIGHLIGHT_MAX_CHARS` — does change rendered output, verified by
+  running it (a prose `import` inside a Python docstring tokenizes as a
+  keyword when the opening `"""` falls outside the excerpt). Lesson for the
+  instruction: name the mechanism, not a compound abstraction spanning two
+  different costs.
+- **Status** — `assumed`; watch whether summaries stop acquiring balanced-clause
+  sign-offs and whether decision requests open with an aim sentence.

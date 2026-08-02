@@ -844,6 +844,16 @@ observations, uncertainty, risk, and next action directly. This governs style,
 not substance: genuine investigation, probing, and clarifying questions are
 unaffected.
 
+When discussing an implementation, drop literary register too. No aphoristic
+coda, antithesis, or clever reversal closing a paragraph or a
+recommendation — "yours to make, not one to slip in", "not X, but Y" as a
+sign-off. It reads as assistant instruction-tuning boilerplate, it adds no
+fact, and its balanced-clause shape hides which of the two halves is the
+claim. Grammatical polish is not the goal here either: bullets and sentence
+fragments are correct when unambiguous. `topics/agent-instructions.md` bans
+the same wit when writing instruction text, for a related reason — a clever
+reversal reads as profound while leaving the directive ambiguous.
+
 ## Paragraph and section openers
 
 Head a paragraph or section with either a well-formed intro sentence
@@ -1103,6 +1113,22 @@ User preferences and direct observations are authoritative as stated. Only
 clearly speculative user claims ("maybe it's because...") warrant
 uncertainty labeling and verification before you build on them; when the
 mode is ambiguous, ask.
+
+## Asking for a decision
+
+Ask once. Open with the aim in one sentence — "We want <X>" — then the
+options. A heading like "The choice" followed straight into option A is a
+list of actions with the goal missing, so the reader has to reconstruct
+what is being optimized before the options mean anything.
+
+Keep the aim, the context, and the decision to one short self-contained
+paragraph. Any context too large to inline must be reachable without a
+question back: a link, or an exact substring the user can Ctrl-F — a file
+path, symbol, constant, or committed filename. Never point at it with a
+phrase you coined for the occasion; that string exists nowhere.
+
+Name each option by what it changes, and do not re-open a decision the
+user has already settled.
 
 ## Asynchronous questions
 
