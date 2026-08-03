@@ -827,3 +827,24 @@ the sweep single-target.
   rebase the whole sequence to `new-base → A' → B'`, retaining A-before-B.
   Duplicate PR head exists: amend B's message with the closing reference and
   push the local sequence; never insert the PR commit ahead of A.
+
+## 2026-08-03 — worked example for broad concision
+
+- **Trigger** — after the 2026-08-02 scope broadening, graehl had not observed
+  much new concision and asked for a one-shot example. The first proposed
+  `Before` was constructed without checking a pre-rule model output; graehl
+  challenged its representativeness and required an actual sample at least 72
+  hours old.
+- **Probe** — a 2026-07-29 `gpt-5.6-sol` transcript predating the broad rule
+  showed competent, moderately narrated discussion: concrete finding, causal
+  explanation, then next action, commonly in a 60–100-word paragraph. The
+  worked negative is a glossary-specific reconstruction of that observed
+  shape, not a transcript quotation. Its elision is only token economy.
+- **Decision** — preserve the complete target: decision first, then the
+  concrete resolution, invalidation, and persistence handles.
+- **Trace** — an implementation update and a plan discussion both compress to
+  the target form without losing the directory-listing versus glossary-file
+  invalidation split. Prose authored into a topic doc remains exempt under the
+  immediately preceding scope clause.
+- **Status** — `provisional`; the example sharpens the intended behavior but
+  does not establish that the broader rule changes model output.

@@ -131,6 +131,20 @@ summaries.)
   § *Asking for a decision* and § *Reader-facing summaries* still bind. Cut
   restatement and narration first, never the aim sentence or the identifier.
 
+  Worked plan/status example; the wordy side is intentionally elided:
+
+  > **Before:** `ProjectPathIndex.findExisting` provides the right presence
+  > truth because its directory listings are mtime-validated. That still does
+  > not detect edits to an existing `GLOSSARY.md` ... I'll therefore reuse the
+  > index for nearest-file resolution, stat the selected glossary separately,
+  > and keep the parsed matcher in process memory for v1.
+  >
+  > **After:** Decision: memory-only glossary cache for v1.
+  >
+  > - Nearest-file truth: reuse `ProjectPathIndex.findExisting`.
+  > - Content invalidation: stat the selected `GLOSSARY.md`.
+  > - Persistence: reconsider only if cold compilation measures badly.
+
   Broadened 2026-08-02 from implementation/debugging-only. Provisional: the
   point is to find out whether across-the-board concision helps or hurts
   discussion quality, so say if it reads worse.
