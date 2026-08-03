@@ -277,6 +277,33 @@ writing, propagation protocol, plugin contract), see
 `topics/provenance-tracking.md`. For the agentctl plugin/hook surface
 specifically, see `topics/agentctl.md`.
 
+### Verified provenance for row-wise text transforms
+
+Any scripted batch translation, paraphrase, or other text rewrite must carry
+stable source identity inside each output row when the format permits it:
+dataset/document identity, an explicit `line_1based` or `row_0based` locator,
+the source text and hash, Unicode-codepoint input/output lengths, and
+`AGENTCTL_RUN_ID`. Prefer this inline envelope over a positional mapping. A
+legacy keyed sidecar is acceptable only with exact membership, order, and hash
+checks; line position alone is not provenance.
+
+When the transform already has a tokenizer loaded, include source and output
+token counts with the tokenizer's immutable revision and special-token
+convention; do not save the integer token-ID sequence. Codepoint and token
+ratios are complementary for cross-script transforms.
+
+Independently resolve a sample (all rows when cheap) against the original
+source and log the checked count. For every such batch, and especially before
+accepting an expensive transform, log the configured length-ratio coverage
+summary and save the actual source/output pairs that fall outside it for
+review. Acceptance uses a policy frozen for the operation/language direction,
+not one fitted on the batch under review; same-batch fitting is exploratory and
+cannot detect a coherent batch-wide misalignment. Length anomalies are review
+signals, not automatic rejection. Use the standard `row-transform/v1`
+envelope and reciprocal-symmetric empirical check
+in `topics/verified-provenance.md`; the shared implementation is
+`run_quality.length_ratio.LengthRatioPolicy`.
+
 # Long-running commands 
 If a command times out:
 - Clearly say "Command timed out after X minutes"

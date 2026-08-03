@@ -19,6 +19,32 @@ and rely on the datestamp rather than position for chronology. Agents
 are licensed to append trace findings, incident reports, and
 clarifying examples encountered while consulting this file.
 
+## 2026-08-03 — verified provenance for row-wise rewrites
+
+- **Motivation** — expensive translated and paraphrased datasets could carry a
+  parallel row-to-source map while a sorting/unpermutation defect silently
+  shifted the actual outputs. `RUNS.md` now requires inline source identity and
+  independently checked hashes, plus concrete length-outlier pairs.
+- **Trace: shifted rows** — a length-sorted translator emits output `i` with
+  source metadata `i+1`. Reopening `line_1based` and checking the embedded
+  source text/hash catches a stale locator; a frozen length policy can also
+  expose source/output mismatch. If the producer shifts text and metadata
+  together between equal-length rows, length alone cannot prove semantic
+  alignment, so the rule retains operation-specific checks rather than
+  claiming length is sufficient.
+- **Trace: self-normalized garbage** — an entire batch is shifted consistently.
+  Fitting center/range on that same batch merely describes the broken batch;
+  the rule limits same-batch fitting to exploration and requires a previously
+  frozen operation/language policy for acceptance.
+- **Trace: cross-script MT** — valid Chinese-to-English output has a large
+  codepoint ratio and looks anomalous under a language-agnostic range. The
+  policy is frozen per direction and count unit; tokenizer counts are retained
+  when already available, while codepoints remain the universal fallback.
+- **Trace: legitimate expansion** — a creative rewrite exceeds the length
+  range. The required artifact exposes the actual pair for review and does not
+  automatically reject it, avoiding a pressure to make the range so broad it
+  ceases to detect failures.
+
 ## 2026-05-15 — dcb23f3 — AGENTS.md compression pass
 
 Trace-simulated five high-risk rules during a ~44% token-compression of
