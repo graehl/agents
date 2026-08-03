@@ -781,3 +781,23 @@ the sweep single-target.
   restatement and narration, never the aim sentence or the identifier.
 - **Status** — `provisional` by graehl's framing: run it broadly and see
   whether discussion quality improves. Revert or re-narrow if it reads worse.
+
+## 2026-08-03 — publication preserves local commit order
+
+- **Incident** — after an accidental feature PR, the agent proposed rebuilding
+  publication history so that the PR's exact cherry-picked head preceded an
+  older completed local commit. That would have made GitHub mark the PR merged
+  by changing the local sequence to fit PR bookkeeping. graehl corrected the
+  governing invariant: completed local commits reach `origin/main` and
+  `graehl/main` in their existing order; only an order-preserving rebase is
+  allowed when `origin/main` has advanced.
+- **Decision** — `yepanywhere/AGENTS.local.md` now states this as a mandatory
+  publish rule and explicitly bans reorder, cherry-pick, squash, fold, or
+  reconstruction for PR closure. An unpushed commit that achieves an open PR
+  may instead have its message amended with the closing reference before the
+  normal ordered push.
+- **Trace** — local history `base → A → B`, unchanged upstream: push `A → B`
+  to both remotes even if a PR independently carries B's patch. Upstream moves:
+  rebase the whole sequence to `new-base → A' → B'`, retaining A-before-B.
+  Duplicate PR head exists: amend B's message with the closing reference and
+  push the local sequence; never insert the PR commit ahead of A.
