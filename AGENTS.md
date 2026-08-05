@@ -384,8 +384,9 @@ capture or disrupt others' work, absent an explicit user request:
 staging others' changes into your commit (`git add -A`/`git add .`, and
 bare `git stash` — both sweep up everyone's dirty files; scope with a
 pathspec), bypassing hooks (`git commit --no-verify`), moving the
-worktree's HEAD out from under peers (`git switch`, `gh pr checkout`),
-and force-pushing a shared or default branch. Reviewing or inspecting
+worktree's HEAD out from under peers (`git switch`, `gh pr checkout`, or
+any backward `git reset` — even soft/mixed to reorganize your own commits;
+see *Amends*), and force-pushing a shared or default branch. Reviewing or inspecting
 a branch or PR never requires moving HEAD — use `gh pr diff`, `git
 --no-pager diff main...BRANCH`, or a dedicated `git worktree add`, not
 a checkout.
@@ -570,16 +571,24 @@ pace", "split however you like") means unrelated large themes should land
 separately; closely related changes still belong together.
 
 Read `topics/commits.md` before writing a non-trivial commit message,
-amending, deciding correction commit vs. amend, or relying on topic-trailer,
-Gerrit, coverage-gap, or message-preservation mechanics.
+amending, splitting or otherwise rewriting history, deciding correction
+commit vs. amend, or relying on topic-trailer, Gerrit, coverage-gap, or
+message-preservation mechanics.
 
 ### Amends
 
 When amending, keep the subject, preserve existing message content except
 deliberate corrections, and prefer amend over a local correction commit;
 never amend after a PR has opened. In a shared worktree, first check active
-peers; with any active peer, do not amend or rebase. With no active peer,
-verify `HEAD` is the intended commit and is your own current-session work.
+peers; with any active peer, no history rewrite at all — not amend, not
+rebase, and not a `git reset` that rewinds the branch to split, squash, or
+reorder what you believe is your tip commit. The scope is peer presence,
+not `HEAD` ownership: a peer may commit at any moment, so no `HEAD` check
+closes the race — the rewind can land below a freshly-landed commit you
+don't own and silently orphan or absorb it. Make a follow-up commit, use a
+separate worktree, or block with `agentctl alone`. With no active peer,
+verify `HEAD` is the intended commit and is your own current-session work;
+then splitting it with `git reset` + recommits is as free as amending.
 Repair bad history without discarding the worktree. Full procedure,
 including Gerrit `Change-Id` and message-preservation mechanics, lives in
 `topics/commits.md`.

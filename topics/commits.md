@@ -12,8 +12,9 @@ doc carries the full standard and the procedure that fires on specific
 actions such as amending.
 
 Read this doc before writing a non-trivial commit message, amending,
-deciding correction commit vs. amend, or relying on topic-trailer,
-Gerrit, coverage-gap, or message-preservation mechanics.
+splitting or otherwise rewriting history, deciding correction commit
+vs. amend, or relying on topic-trailer, Gerrit, coverage-gap, or
+message-preservation mechanics.
 
 ## Commit messages
 
@@ -134,22 +135,36 @@ remote tip. For a rewrite computed against a specific base, pin the
 expectation explicitly with `--force-with-lease=<ref>:<expected-sha>`
 captured before the rewrite, rather than relying on the implicit lease.
 
-## Amending in a shared worktree
+## History rewrites in a shared worktree
+
+This covers every rewrite of existing history — amend, rebase, and
+any backward `git reset` (soft/mixed included) that rewinds the
+branch to split, squash, or reorder commits. A reset-recommit split
+is an amend in everything but name; it gets no separate latitude.
 
 Check for active peers first (`find .agentctl/active -maxdepth 1
 -type f -mmin -70`; entries not starting with `DONE`). With any
-active peer, do not amend or rebase — a history rewrite races their
-in-flight commits and unstaged edits, and the urge to "line it up
-against the right commit" is what leads to a worktree-destroying
-`git reset --hard`. Make a follow-up commit instead, or do history
-surgery in a separate worktree.
+active peer, no history rewrite at all. The scope is peer presence,
+not `HEAD` ownership: a peer may commit at any moment, so verifying
+"my commit is at `HEAD`" immediately before the rewind still leaves
+the race open — the reset point can end up below a freshly landed
+commit you don't own, silently orphaning it or absorbing its changes
+into your recommit. No acquirable token changes this: a project
+commit lock is advisory and never substitutes for peer absence.
+Beyond the race, a history rewrite disrupts peers' in-flight commits
+and unstaged edits, and the urge to "line it up against the right
+commit" is what leads to a worktree-destroying `git reset --hard`.
+Make a follow-up commit instead, do history surgery in a separate
+worktree, or wait out the peers with `agentctl alone` — which is not
+a lock but a blocking wait for the no-peer state below.
 
-With no active peer you may amend: take the project's commit lock
+With no active peer you may rewrite: take the project's commit lock
 if one exists or is required, then verify `HEAD` is the commit you
 intend and is your own current-session work — at least subject,
-files changed, and authorship/session context. If another session
-has committed on top, stop and report the mismatch rather than
-amend. Recovery from a bad amend follows the shared-workdir discard
+files changed, and authorship/session context. Splitting your own
+tip commit with `git reset` + recommits is then as free as amending.
+If another session has committed on top, stop and report the
+mismatch rather than rewrite below it. Recovery from a bad amend follows the shared-workdir discard
 ban (`AGENTS.md § Shared-workdir discard ban`): never `git reset
 --hard` in a dirty shared worktree; revert with a new commit or
 move your work to a separate worktree.
