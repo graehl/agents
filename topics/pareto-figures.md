@@ -12,10 +12,15 @@ two-system or single-objective comparison does not need one.
 
 ## Rendering contract
 
-- Emit **SVG** (inline-linkable from the `.md`: `![…](figures/x.svg)`)
-  and **PDF** (for LaTeX `\includegraphics`); PNG only as an extra
-  fallback for viewers that reject SVG. One generating script produces
-  all formats in a run.
+- **SVG is the canonical inline format** (`![…](figures/x.svg)` in the
+  `.md`): crisp at any zoom, diffable, and YA's markdown rendering is
+  confirmed to display it inline sized by the file's own
+  `width`/`height` attributes. Keep those attributes in the output —
+  matplotlib's SVG backend writes explicit `width`/`height` (pt) plus
+  `viewBox` by default; do not strip them to "make it responsive".
+  Also emit **PDF** for LaTeX `\includegraphics`; PNG only as an extra
+  fallback for contexts that reject SVG (some chat/issue trackers).
+  One generating script produces all formats in a run.
 - The figure script reads the committed machine-readable evidence
   (JSON/CSV) that the tables are built from — never hand-entered
   numbers, which silently diverge when results are rerun. Commit the
