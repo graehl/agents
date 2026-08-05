@@ -47,7 +47,12 @@ a lost worktree is recoverable) is a separate, not-yet-built partner.
 ## Classified as discarding
 
 reset `--hard`/`--merge`; `clean` (any); `restore` unless `--staged`-only;
-`checkout`/`co` with `-f`/`--force`/`--`/`.`; `stash drop`/`clear`. `co` is
+`checkout`/`co` with `-f`/`--force`/`--`/`.`; `stash drop`/`clear`/`pop`;
+`stash`/`stash push`/`stash save` without a `--` pathspec, or with
+pathspec `.` — the bare sweep captures every peer's dirty files, and
+`pop` auto-drops the backup on textual success. `stash apply` stays
+allowed: it keeps the backup, and git's merge-safety aborts rather than
+overwrite dirty overlapping files (verified 2026-08-05). `co` is
 matched because the shim sees the literal token before git expands the
 alias. Scope is worktree/index discard only — push/force-push (the gated
 remote action) and branch-ref deletion are different concerns, untouched.
@@ -59,6 +64,10 @@ remote action) and branch-ref deletion are different concerns, untouched.
   not worth it. Countered by advising the explicit `git checkout -- <path>`
   / `git restore <path>` form (AGENTS.md); a bare form is the agent's
   fault.
+- The dual over-block: `git stash push <path>` without `--` is refused
+  even though it is scoped — lexing cannot tell a pathspec from an
+  option value, so only the `--` form passes. AGENTS.md advises that
+  form anyway; the refusal message costs one retry.
 - Protection is only as good as `.agentctl/active` hygiene. A peer that
   never wrote an active entry (the convention exempts read-only/interview
   sessions) or crashed mid-write is invisible to the guard — and is

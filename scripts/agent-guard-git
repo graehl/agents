@@ -70,8 +70,22 @@ is_destructive() {
             done
             return 1 ;;
         stash)
-            case "${rest[0]:-}" in drop|clear) return 0 ;; esac
-            return 1 ;;
+            # drop/clear delete saved work; pop auto-drops the backup on
+            # textual success. Bare stash / push / save sweep every dirty
+            # file — peers' included — unless `--`-pathspec'd (and `.` as
+            # pathspec is the sweep again). apply keeps the backup and
+            # git's merge-safety aborts on dirty overlap, so it passes.
+            case "${rest[0]:-}" in
+                drop|clear|pop) return 0 ;;
+                list|show|apply|branch|create|store) return 1 ;;
+                *)  # bare, option-first, push, save: sweep unless -- pathspec
+                    local a dashdash=0 dot=0
+                    for a in "${rest[@]}"; do
+                        case "$a" in --) dashdash=1 ;; .) dot=1 ;; esac
+                    done
+                    [ "$dashdash" -eq 1 ] && [ "$dot" -eq 0 ] && return 1
+                    return 0 ;;
+            esac ;;
         *) return 1 ;;
     esac
 }

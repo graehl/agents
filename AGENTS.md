@@ -386,7 +386,15 @@ bare `git stash` — both sweep up everyone's dirty files; scope with a
 pathspec), bypassing hooks (`git commit --no-verify`), moving the
 worktree's HEAD out from under peers (`git switch`, `gh pr checkout`, or
 any backward `git reset` — even soft/mixed to reorganize your own commits;
-see *Amends*), and force-pushing a shared or default branch. Reviewing or inspecting
+see *Amends*), and force-pushing a shared or default branch.
+
+Stashing: dirty files are not presumed yours — "stash my changes" means
+the named, path-scoped form `git stash push -m '<why>' -- <paths>`,
+as safe as editing those files, never bare `git stash`. Restore with
+`stash apply` and verify before any `drop`; `stash pop` auto-drops your
+only backup the moment the merge textually succeeds, so it has no place
+in a shared workdir. `stash drop`/`clear` are discard commands under
+this ban. Reviewing or inspecting
 a branch or PR never requires moving HEAD — use `gh pr diff`, `git
 --no-pager diff main...BRANCH`, or a dedicated `git worktree add`, not
 a checkout.
