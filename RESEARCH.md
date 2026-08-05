@@ -85,6 +85,11 @@ without scanning prose blocks.
 
 ### Research paper conventions
 
+When a handout/paper compares three or more systems on quality versus any
+cost axis, read [`topics/pareto-figures.md`](topics/pareto-figures.md) and
+include the mandated Pareto scatter (SVG for the `.md`, PDF for LaTeX,
+script + evidence committed together).
+
 #### `topics/` vs `research/` placement, and the stub-topic rule
 
 `topics/` vs `research/` is fundamentally an **audience/plan axis, not a rigor
