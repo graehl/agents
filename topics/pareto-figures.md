@@ -18,6 +18,12 @@ two-system or single-objective comparison does not need one.
   `width`/`height` attributes. Keep those attributes in the output —
   matplotlib's SVG backend writes explicit `width`/`height` (pt) plus
   `viewBox` by default; do not strip them to "make it responsive".
+  A root carrying only a `viewBox`, or `width="100%"`, declares no size
+  at all: a Markdown image link has no place to put dimensions, so the
+  root attributes are the author's only size channel. Strip them and
+  each renderer picks its own box — YA gives such a figure a bounded
+  container width and derives the height from the ratio — which is
+  legible but no longer the size the figure was designed at.
   Also emit **PDF** for LaTeX `\includegraphics`; PNG only as an extra
   fallback for contexts that reject SVG (some chat/issue trackers).
   One generating script produces all formats in a run.

@@ -68,7 +68,11 @@
   method, source URL, and the server's `ETag`/`Last-Modified` when it offers
   them. `related-work fetch --revalidate` uses those to ask whether a source
   changed; with no validators to send, the answer is "may have changed", never
-  "fresh".
+  "fresh". Figures survive extraction only as raster: marker rewrites every
+  figure region, vector originals included, to a JPEG crop at a resolution
+  fixed once at extraction time (`_page_<n>_Figure_<k>.jpeg`), so detail the
+  crop missed is not recoverable by zooming later — see
+  `gaps/paper-extract-vector-figures.md`.
 - One field map serves both the survey paper/presentation use and the
   prior-art-reconnaissance, instruction, and personal-mastery-reference uses;
   these are views or sparse overlays on the map, not separate factual
