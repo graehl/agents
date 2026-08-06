@@ -520,6 +520,39 @@ codemods. The line is intent — a bulk transform that is awkward as
 hand-edits is fine; a single targeted edit re-expressed as a shell
 substitution to avoid a prompt is not.
 
+## Edit anchors: copy, don't compose
+
+`old_string` is a verbatim substring of the file, not a description of
+the region. Every part of it is literal — indentation, trailing spaces,
+and the position of every line break. Compose it from what you expect
+the file to say and the edit fails; the usual retry re-composes the same
+guess and fails again.
+
+- **Copy from text you can currently see verbatim.** *Pre-edit re-Read*
+  above covers peer and user edits; the gap it leaves is a write you
+  made indirectly — a subagent, a formatter, a codemod, a script —
+  whose result you never read. Re-Read before anchoring there. Your own
+  prior `Edit` needs no re-Read: its `new_string` is visible verbatim.
+- **Never re-indent an anchor or start one mid-line.** A Read's
+  soft-wrapped display is not the file's line structure. An anchor that
+  begins at a wrap point, or whose leading whitespace you supplied
+  rather than copied, cannot match — and switching spaces for a tab on
+  the retry is a guess, not a diagnosis.
+- **Anchor on the smallest span that is unique, not the largest you can
+  reproduce.** A 40-line anchor is 40 chances to mis-copy, not more
+  safety.
+- **On "Found N matches", extend the anchor upward** to the nearest
+  unique line — the enclosing `it("...")`, `describe`, `function`, or
+  heading. Adding more of the identical body just re-fails.
+- **Escape sequences in source (`\0`, `\n`, `\t`, `\\`) are two
+  characters in the file; emit two.** A literal control byte compiles
+  and behaves identically, so tests stay green, but it makes the file
+  binary to `rg`/`grep` — which then silently skips it, leaving a hole
+  in every later search — and breaks every later anchor that spells the
+  escape correctly.
+- **After a second failure on one file, stop varying the anchor:** Read
+  the exact line range and copy from it.
+
 # Reader-facing summaries
 
 In any summary written for a reader — commit subjects and bodies, status

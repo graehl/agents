@@ -848,3 +848,40 @@ the sweep single-target.
   immediately preceding scope clause.
 - **Status** — `provisional`; the example sharpens the intended behavior but
   does not establish that the broader rule changes model output.
+
+## 2026-08-05 — Edit-anchor failures measured across models
+
+- **Trigger** — graehl reported "many edit failures by a Sol agent" in a YA
+  gateway session and asked whether instructions could help. Diagnosis read
+  the raw transcript rather than trusting the report's framing.
+- **Probe** — `~/.claude/projects/-local-graehl-yepanywhere/703283e9-….jsonl`
+  (`gpt-5.6-sol`): 8 failed `Edit` calls / 148. Failure-rate comparison over
+  recent same-project sessions: `gpt-5.6-sol` 10/224 (4.5%), `claude-opus-5`
+  3/245 (1.2%), `claude-fable-5` 29/167 (17%). So the reported model is *not*
+  the worst offender in this corpus — the rule was written model-agnostic for
+  that reason, not scoped to `AGENTS.weak.md` or a model supplement.
+- **Classes observed** — (1) anchor too short, 3 failures, and the retry
+  lengthened the *body* rather than reaching upward to the enclosing
+  `it("...")`, so it re-failed at the same 2 matches; (2) anchor composed from
+  memory, 3 failures, including an 11-line "Status: Partially implemented…"
+  paragraph for a doc that actually read "Status: Partly implemented
+  (2026-08-05)…"; (3) line structure guessed, 2 failures, anchoring mid-line
+  392 as though a soft wrap were a line break, then retrying with a tab
+  substituted for the 3 spaces.
+- **Severest instance was not a retry cost** — the agent emitted a literal
+  NUL byte where TS source needed `\0`, twice:
+  `packages/client/src/hooks/useProviders.ts` (`${sourceKey}\0${providerName}`)
+  and `packages/server/src/routes/local-resource-policy.ts` (`raw.join("\0")`).
+  Both compiled, both passed tests, and both made `rg` classify the file as
+  binary and skip it — a silent search hole. The second reached
+  `origin/main`. This is what the escape-sequence bullet exists for; the
+  others only cost calls.
+- **Trace** — bullet 1 was initially "copy from a Read done in the current
+  turn", which would have mandated a re-Read after every self-`Edit` and
+  regressed the common Read-then-several-Edits path that *Pre-edit re-Read*
+  explicitly blesses. Narrowed to writes made indirectly (subagent, formatter,
+  codemod), with own-`Edit` excluded because its `new_string` is visible.
+  Two candidate bullets were cut as non-load-bearing: `replace_all` semantics
+  and "strip the `NNN\t` prefix" are both already in the `Edit` tool
+  description.
+- **Status** — `provisional`; the classes are measured, the fix is not.
