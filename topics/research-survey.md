@@ -68,11 +68,20 @@
   method, source URL, and the server's `ETag`/`Last-Modified` when it offers
   them. `related-work fetch --revalidate` uses those to ask whether a source
   changed; with no validators to send, the answer is "may have changed", never
-  "fresh". Figures survive extraction only as raster: marker rewrites every
-  figure region, vector originals included, to a JPEG crop at a resolution
-  fixed once at extraction time (`_page_<n>_Figure_<k>.jpeg`), so detail the
-  crop missed is not recoverable by zooming later — see
-  `gaps/paper-extract-vector-figures.md`.
+  "fresh".
+- **A figure whose PDF original is vector is extracted as vector.** marker
+  rewrites every figure region — vector originals included — to a raster crop
+  at a resolution fixed once at extraction time (`_page_<n>_Figure_<k>.jpeg`),
+  and no later zoom recovers what that crop did not capture, which is the one
+  thing a durable full-text extract exists to protect. So `related-work fetch`
+  asks the same marker run for per-block geometry and hands it to
+  `scripts/pdf-figures-svg`, which recuts each figure region from the source
+  PDF as SVG and repoints the markdown link. The raster crop stays on disk as
+  a fallback, and stays *linked* for a region that is genuinely a placed
+  bitmap or whose geometry disagrees with the crop — the tool names each such
+  case in its output rather than passing over it. `--no-svg-figures` opts out;
+  a host that cannot run the pass (no `uv`) reports `figures: raster only
+  (…)` on the fetch row, never a silent no-op.
 - One field map serves both the survey paper/presentation use and the
   prior-art-reconnaissance, instruction, and personal-mastery-reference uses;
   these are views or sparse overlays on the map, not separate factual

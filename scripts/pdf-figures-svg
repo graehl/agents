@@ -1,0 +1,381 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pymupdf>=1.24"]
+# ///
+# acli: 1 complete
+"""pdf-figures-svg — recut a marker extract's figure crops as vector SVG.
+
+marker rewrites every figure region to a raster crop at a resolution fixed
+at extraction time, so a vector figure arrives as pixels and no later zoom
+recovers what the crop did not capture. This pass re-cuts each figure from
+the source PDF: crop the page to the figure's own bounding box, render that
+region through MuPDF's SVG device, and repoint the markdown link. The raster
+crop stays on disk as a fallback, so a sentinel that treats a missing figure
+as an incomplete extract still sees a figure.
+
+Inputs are what one `marker_single` run already produces, given a config
+file holding `{"debug_json": true, "debug_data_folder": "geom"}`:
+
+    marker_single paper.pdf --output_dir out --config_json debug.json
+
+`--blocks geom/paper/blocks.json` then carries a `polygon` for every block,
+which is the geometry this needs — no second, GPU-priced marker run. (Only
+marker's `--debug` flag is documented for this, and it also dumps a rendered
+PNG per page; the config file asks for the block data alone.)
+
+Two figures are left as raster on purpose:
+
+- A region holding no vector drawings and no text is genuinely a placed
+  bitmap. SVG would wrap the same pixels in XML — bigger, no crisper — so
+  the raster crop is the honest artifact. Such a row reports the placed
+  image's native pixel size, which is often several times marker's crop.
+- A region whose recorded bbox disagrees with the raster crop's aspect
+  ratio means the geometry did not come from this figure. Rather than
+  silently ship a crop of the wrong part of the page, keep the raster and
+  say so (`geometry-mismatch`).
+
+Contract: topics/research-survey.md (extract tree),
+topics/pareto-figures.md § Rendering contract (why the SVG root keeps
+explicit `pt` width/height rather than a bare viewBox).
+
+Exit codes: 4 = an input path does not exist, 75 = a figure failed to
+convert.
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import (  # noqa: E402
+    ExitCode,
+    Format,
+    add_standard_args,
+    argument_parser,
+    die,
+    emit,
+    maybe_complete,
+    resolve_format,
+    write_jsonl,
+)
+
+import pymupdf  # noqa: E402
+
+CAPABILITIES = ("complete",)
+EXIT_CODES = {
+    4: "an input path does not exist",
+    75: "a figure failed to convert",
+}
+
+# marker names an extracted crop after the block's own id: `BlockId.to_path()`
+# turns /page/3/Figure/1 into _page_3_Figure_1, and the renderer appends the
+# image extension. That is the whole join between the markdown and the geometry.
+FIGURE_LINK = re.compile(
+    r"!\[[^\]]*\]\((?P<file>_page_(?P<page>\d+)_(?P<kind>[A-Za-z]+)_(?P<block>\d+)"
+    r"\.(?P<ext>jpeg|jpg|png|webp))\)"
+)
+VECTOR_LINK = re.compile(r"!\[[^\]]*\]\((_page_\d+_[A-Za-z]+_\d+\.svg)\)")
+
+# A crop whose aspect ratio is this far from its recorded bbox did not come
+# from that bbox. The budget is a fixed part for bbox rounding plus 1/short
+# edge, because a crop only knows its own aspect to whole pixels: a 22px-tall
+# strip is uncertain by ~4.5%, a 1000px one by 0.1%.
+ASPECT_TOLERANCE = 0.02
+# A drawing this large is the page's background or frame, not figure content.
+BACKGROUND_AREA_FRACTION = 0.9
+# How much of the region a placed bitmap must cover to be named as the one
+# responsible for it. Loose, because it only labels a row: marker's bbox is
+# fitted to the artwork and routinely differs from the image's placement by
+# a few points in either direction.
+RASTER_COVERAGE = 0.8
+
+SVG_ROOT_SIZE = re.compile(r'(<svg\b[^>]*?)width="([\d.]+)"\s+height="([\d.]+)"')
+TOON_COLUMNS = ("figure", "page", "status", "crop", "svg_bytes", "native")
+
+
+@dataclass
+class Figure:
+    """One markdown-referenced figure crop, in the order the markdown cites it."""
+
+    file: str
+    page: int
+    block: int
+
+
+def die_missing(label: str, path: Path):
+    die(f"{label} not found: {path}", ExitCode.NOT_FOUND, detail={"path": str(path)})
+
+
+def markdown_figures(text: str) -> list[Figure]:
+    """Every raster figure the markdown links, deduplicated, in citation order."""
+    seen: set[str] = set()
+    figures: list[Figure] = []
+    for match in FIGURE_LINK.finditer(text):
+        name = match.group("file")
+        if name in seen:
+            continue
+        seen.add(name)
+        figures.append(
+            Figure(file=name, page=int(match.group("page")), block=int(match.group("block")))
+        )
+    return figures
+
+
+def load_geometry(path: Path) -> dict[int, tuple[list[float], dict[int, list[float]]]]:
+    """Page frame and per-block bbox, keyed by page then block id.
+
+    marker's `debug_json` dump is its internal document model, so it names
+    block types by enum ordinal rather than by name. Keying on (page, block
+    id) instead sidesteps that: the pair is unique within a page and is
+    exactly what the crop filename already spells out.
+    """
+    pages = json.loads(path.read_text())
+    geometry: dict[int, tuple[list[float], dict[int, list[float]]]] = {}
+    for page in pages:
+        page_id = page.get("page_id")
+        frame = (page.get("polygon") or {}).get("bbox")
+        if page_id is None or not frame:
+            continue
+        blocks: dict[int, list[float]] = {}
+        for child in page.get("children") or []:
+            block_id = child.get("block_id")
+            bbox = (child.get("polygon") or {}).get("bbox")
+            if block_id is not None and bbox:
+                blocks[block_id] = bbox
+        geometry[page_id] = (frame, blocks)
+    return geometry
+
+
+def to_page_rect(page: pymupdf.Page, frame: list[float], bbox: list[float]) -> pymupdf.Rect:
+    """Map a bbox stated in marker's page frame onto the PDF page's own rect."""
+    full = page.rect
+    frame_w = frame[2] - frame[0]
+    frame_h = frame[3] - frame[1]
+    if frame_w <= 0 or frame_h <= 0:
+        return pymupdf.Rect()
+    sx = full.width / frame_w
+    sy = full.height / frame_h
+    return pymupdf.Rect(
+        full.x0 + (bbox[0] - frame[0]) * sx,
+        full.y0 + (bbox[1] - frame[1]) * sy,
+        full.x0 + (bbox[2] - frame[0]) * sx,
+        full.y0 + (bbox[3] - frame[1]) * sy,
+    )
+
+
+def crop_pixels(path: Path) -> tuple[int, int] | None:
+    """Pixel size of marker's crop, or None when it is missing or unreadable."""
+    try:
+        pixmap = pymupdf.Pixmap(path)
+    except (RuntimeError, FileNotFoundError, ValueError):
+        return None
+    return pixmap.width, pixmap.height
+
+
+def aspect_agrees(pixels: tuple[int, int], rect: pymupdf.Rect) -> bool:
+    if rect.width <= 0 or rect.height <= 0 or min(pixels) <= 0:
+        return False
+    expected = rect.width / rect.height
+    budget = ASPECT_TOLERANCE + 1.0 / min(pixels)
+    return abs(pixels[0] / pixels[1] - expected) <= budget * expected
+
+
+def has_vector_content(page: pymupdf.Page, rect: pymupdf.Rect, drawings: list) -> bool:
+    """True when the region draws something a raster crop can only approximate."""
+    if page.get_text("text", clip=rect).strip():
+        return True
+    page_area = page.rect.get_area()
+    for drawing in drawings:
+        box = drawing["rect"]
+        if box.is_empty or box.get_area() >= BACKGROUND_AREA_FRACTION * page_area:
+            continue
+        if box.intersects(rect):
+            return True
+    return False
+
+
+def placed_raster(page: pymupdf.Page, rect: pymupdf.Rect) -> dict | None:
+    """The bitmap covering this region, when one does — its native pixel size
+    is what a resolution-fixed crop threw away, and the row reports it."""
+    if rect.is_empty:
+        return None
+    for info in page.get_image_info():
+        overlap = pymupdf.Rect(info["bbox"]) & rect
+        if overlap.get_area() >= RASTER_COVERAGE * rect.get_area():
+            return {"native": f"{info['width']}x{info['height']}"}
+    return None
+
+
+def size_in_points(svg: str) -> str:
+    """Restate the root width/height in points.
+
+    MuPDF writes them unitless, which a browser reads as CSS pixels and so
+    renders the figure at 3/4 of the size it occupies on the page. A Markdown
+    image link has nowhere to carry dimensions, so these attributes are the
+    only size channel the figure has (topics/pareto-figures.md).
+    """
+    return SVG_ROOT_SIZE.sub(r'\1width="\2pt" height="\3pt"', svg, count=1)
+
+
+class Recutter:
+    """Recuts one extract's figures; every outcome comes back as a row.
+
+    Each `recut` decides a single figure's fate and never raises past itself:
+    a figure this cannot improve keeps its raster crop and says which of the
+    reasons applied, so a caller reading only the rows can tell "left as
+    raster on purpose" from "the pass did nothing here".
+    """
+
+    def __init__(self, pdf: Path, blocks: Path, directory: Path, *, dry_run: bool, max_bytes: int):
+        self.document = pymupdf.open(pdf)
+        self.geometry = load_geometry(blocks)
+        self.directory = directory
+        self.dry_run = dry_run
+        self.max_bytes = max_bytes
+        self.drawings: dict[int, list] = {}
+        self.rewrites: dict[str, str] = {}
+        self.failed = False
+
+    def page_drawings(self, page: pymupdf.Page, number: int) -> list:
+        if number not in self.drawings:
+            self.drawings[number] = page.get_drawings()
+        return self.drawings[number]
+
+    def recut(self, figure: Figure) -> dict:
+        row: dict = {"figure": figure.file, "page": figure.page}
+        frame, blocks = self.geometry.get(figure.page, ([], {}))
+        bbox = blocks.get(figure.block)
+        if not frame or not bbox or figure.page >= self.document.page_count:
+            return {**row, "status": "no-geometry"}
+
+        page = self.document[figure.page]
+        if page.rotation:
+            # set_cropbox takes unrotated coordinates while marker states the
+            # bbox in the displayed frame. Rather than guess the mapping,
+            # keep the crop that is already correct.
+            return {**row, "status": "rotated-page"}
+
+        rect = to_page_rect(page, frame, bbox)
+        row["bbox"] = [round(v, 1) for v in rect]
+        pixels = crop_pixels(self.directory / figure.file)
+        if pixels is None:
+            return {**row, "status": "no-crop"}
+        row["crop"] = f"{pixels[0]}x{pixels[1]}"
+        if not aspect_agrees(pixels, rect):
+            return {**row, "status": "geometry-mismatch"}
+        if not has_vector_content(page, rect, self.page_drawings(page, figure.page)):
+            return {**row, "status": "raster", **(placed_raster(page, rect) or {})}
+
+        cropbox = pymupdf.Rect(page.cropbox)
+        try:
+            page.set_cropbox(rect)
+            svg = size_in_points(page.get_svg_image(text_as_path=True))
+        except (RuntimeError, ValueError) as exc:
+            self.failed = True
+            return {**row, "status": "failed", "error": str(exc)}
+        finally:
+            page.set_cropbox(cropbox)
+
+        row["svg_bytes"] = len(svg.encode())
+        if self.max_bytes and row["svg_bytes"] > self.max_bytes:
+            return {**row, "status": "oversize"}
+        target = (self.directory / figure.file).with_suffix(".svg")
+        if not self.dry_run:
+            target.write_text(svg)
+        self.rewrites[figure.file] = target.name
+        return {**row, "status": "vector", "svg": target.name}
+
+
+def convert(args) -> int:
+    pdf_path = Path(args.pdf)
+    blocks_path = Path(args.blocks)
+    markdown_path = Path(args.markdown)
+    for label, path in (("pdf", pdf_path), ("blocks", blocks_path), ("markdown", markdown_path)):
+        if not path.exists():
+            die_missing(label, path)
+
+    text = markdown_path.read_text()
+    recutter = Recutter(
+        pdf_path,
+        blocks_path,
+        markdown_path.parent,
+        dry_run=args.dry_run,
+        max_bytes=args.max_bytes,
+    )
+    rows = [recutter.recut(figure) for figure in markdown_figures(text)]
+    rows += [
+        {"figure": name, "status": "already"}
+        for name in dict.fromkeys(VECTOR_LINK.findall(text))
+    ]
+
+    if recutter.rewrites and not args.dry_run:
+        for old, new in recutter.rewrites.items():
+            text = text.replace(f"]({old})", f"]({new})")
+        markdown_path.write_text(text)
+
+    fmt = resolve_format(args)
+    if fmt is Format.TOON:
+        # TOON is a flat table: pad every row to the same columns, since a row
+        # carries `native` or `svg_bytes` only when its outcome had one.
+        table = [{column: row.get(column, "") for column in TOON_COLUMNS} for row in rows]
+        emit({"rows": table, "columns": list(TOON_COLUMNS), "name": "figures"}, fmt)
+    elif not rows and fmt is Format.COMPACT:
+        write_jsonl({"count": 0, "of": "figures"})
+    else:
+        emit(rows, fmt)
+    return int(ExitCode.TEMPORARY) if recutter.failed else 0
+
+
+def build_parser():
+    parser = argument_parser(
+        prog="pdf-figures-svg",
+        description="Recut a marker extract's figure crops as vector SVG and repoint the markdown. "
+        "Contract: topics/research-survey.md.",
+        capabilities=CAPABILITIES,
+        exit_codes=EXIT_CODES,
+    )
+    parser.add_argument("--pdf", required=True, help="Source PDF marker extracted.")
+    parser.add_argument(
+        "--blocks",
+        required=True,
+        help="marker's blocks.json, from a run whose --config_json file set "
+        'debug_json true and debug_data_folder to its directory.',
+    )
+    parser.add_argument(
+        "--markdown",
+        required=True,
+        help="Markdown to rewrite; figure crops are read from its directory.",
+    )
+    parser.add_argument(
+        "--max-bytes",
+        type=int,
+        default=0,
+        help="Keep the raster crop when the SVG would exceed this many bytes (0: no limit).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what each figure would become; write nothing.",
+    )
+    add_standard_args(parser, allow_toon=True)
+    parser.set_defaults(func=convert)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    maybe_complete(parser, [sys.argv[0], *(argv if argv is not None else sys.argv[1:])])
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

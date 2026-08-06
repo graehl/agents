@@ -331,32 +331,96 @@ def has_content(directory: Path) -> bool:
     return any(directory.rglob("*.md")) or any(directory.rglob("*.html"))
 
 
-def run_marker(pdf: Path, directory: Path, key: str) -> bool:
+SVG_FIGURES = _REPO_ROOT / "scripts" / "pdf-figures-svg"
+
+
+def vector_figures_blocker() -> str | None:
+    """Why the SVG figure pass cannot run here, or None when it can.
+
+    Named for the negative because the caller has to *say* why it skipped:
+    a figure pass that quietly no-ops leaves an extract that looks complete
+    and has silently thrown away every vector figure's resolution.
+    """
+    if not SVG_FIGURES.exists():
+        return f"missing {SVG_FIGURES.name}"
+    if not have("uv"):
+        return "uv not on PATH"
+    return None
+
+
+def vector_figures(pdf: Path, blocks: Path, markdown: Path) -> dict:
+    """Recut this extract's figure crops as SVG; report the outcome counts."""
+    completed = subprocess.run(
+        [
+            str(SVG_FIGURES),
+            "--pdf", str(pdf),
+            "--blocks", str(blocks),
+            "--markdown", str(markdown),
+            "--compact",
+        ],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    counts: dict[str, int] = {}
+    for line in completed.stdout.splitlines():
+        try:
+            status = json.loads(line).get("status")
+        except json.JSONDecodeError:
+            continue
+        if isinstance(status, str):
+            counts[status] = counts.get(status, 0) + 1
+    if not counts:
+        return {"figures": f"no rows (exit {completed.returncode})"}
+    return {"figures": ", ".join(f"{n} {status}" for status, n in sorted(counts.items()))}
+
+
+def run_marker(pdf: Path, directory: Path, key: str, *, svg_figures: bool) -> dict | None:
     """PDF -> markdown via marker_single, keeping its extracted images.
 
-    A marker crash (CUDA OOM is the usual one) is tolerated and leaves the
-    downloaded PDF in place, so the retry costs no bandwidth.
+    Returns extraction notes for the result row, or None when nothing usable
+    came out. A marker crash (CUDA OOM is the usual one) is tolerated and
+    leaves the downloaded PDF in place, so the retry costs no bandwidth.
+
+    marker fixes each figure's resolution when it crops the region to a
+    raster image, so the same run also dumps per-block geometry and
+    `pdf-figures-svg` recuts the vector ones from the PDF.
     """
     if not have("marker_single"):
-        return False
+        return None
+    blocker = vector_figures_blocker() if svg_figures else "not requested"
     with tempfile.TemporaryDirectory(dir=directory.parent) as tmp:
-        subprocess.run(
-            ["marker_single", str(pdf), "--output_dir", tmp],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            check=False,
-        )
-        produced = next((p for p in Path(tmp).iterdir() if p.is_dir()), None)
+        command = ["marker_single", str(pdf), "--output_dir", tmp]
+        geometry = Path(tmp) / "geometry"
+        if blocker is None:
+            config = Path(tmp) / "marker-config.json"
+            config.write_text(
+                json.dumps({"debug_json": True, "debug_data_folder": str(geometry)})
+            )
+            command += ["--config_json", str(config)]
+        subprocess.run(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, check=False)
+        produced = next((p for p in Path(tmp).iterdir() if p.is_dir() and p != geometry), None)
         if produced is None:
-            return False
+            return None
         shutil.copytree(produced, directory, dirs_exist_ok=True)
-    markdown = next(iter(sorted(directory.glob("*.md"))), None)
-    if markdown is not None and markdown.name != f"{key}.md":
-        markdown.rename(directory / f"{key}.md")
-    return has_content(directory)
+        markdown = next(iter(sorted(directory.glob("*.md"))), None)
+        if markdown is not None and markdown.name != f"{key}.md":
+            markdown = markdown.rename(directory / f"{key}.md")
+        blocks = next(iter(sorted(geometry.glob("*/blocks.json"))), None)
+        notes: dict = {}
+        if blocker is not None:
+            notes["figures"] = f"raster only ({blocker})"
+        elif markdown is None or blocks is None:
+            notes["figures"] = "raster only (marker dumped no block geometry)"
+        else:
+            notes = vector_figures(pdf, blocks, markdown)
+    return notes if has_content(directory) else None
 
 
-def fetch_paper(survey: Survey, paper: Paper, *, no_html: bool, keys_only: bool) -> dict:
+def fetch_paper(
+    survey: Survey, paper: Paper, *, no_html: bool, keys_only: bool, svg_figures: bool
+) -> dict:
     """Build one extract. Returns a JSONL-shaped result row."""
     directory = survey.extract_dir(paper.key)
     sentinel_path = survey.sentinel_path(paper.key)
@@ -391,8 +455,9 @@ def fetch_paper(survey: Survey, paper: Paper, *, no_html: bool, keys_only: bool)
         return {"key": paper.key, "status": "failed", "reason": "pdf download failed"}
     if keys_only:
         return {"key": paper.key, "status": "downloaded", "note": "no sentinel; extract later"}
-    if run_marker(pdf, directory, paper.key):
-        return done("pdf-marker", pdf_url)
+    notes = run_marker(pdf, directory, paper.key, svg_figures=svg_figures)
+    if notes is not None:
+        return {**done("pdf-marker", pdf_url), **notes}
     reason = (
         "marker_single not on PATH"
         if not have("marker_single")
@@ -478,7 +543,11 @@ def resolve(args) -> Survey:
 def emit_table(args, rows: list[dict], columns: list[str], name: str) -> None:
     fmt = resolve_format(args)
     if fmt is Format.TOON:
-        emit({"rows": rows, "columns": columns, "name": name}, fmt)
+        # A TOON table is uniform by contract, while these rows carry only the
+        # keys their own outcome produced (a failure has `reason`, not
+        # `method`). Project each onto the declared columns.
+        table = [{column: row.get(column, "") for column in columns} for row in rows]
+        emit({"rows": table, "columns": columns, "name": name}, fmt)
     elif not rows and fmt is Format.COMPACT:
         # Definitive empty state (topics/agent-cli.md): zero lines is ambiguous.
         write_jsonl({"count": 0, "of": name})
@@ -550,10 +619,16 @@ def verb_fetch(args) -> int:
                 results.append({"key": paper.key, "status": "fresh", "source": sentinel.source})
                 continue
         results.append(
-            fetch_paper(survey, paper, no_html=args.no_html, keys_only=args.keys_only)
+            fetch_paper(
+                survey,
+                paper,
+                no_html=args.no_html,
+                keys_only=args.keys_only,
+                svg_figures=not args.no_svg_figures,
+            )
         )
         failed = failed or results[-1]["status"] == "failed"
-    emit_table(args, results, ["key", "status", "method", "reason"], "results")
+    emit_table(args, results, ["key", "status", "method", "reason", "figures"], "results")
     return int(ExitCode.TEMPORARY) if failed else 0
 
 
@@ -660,6 +735,11 @@ def build_parser():
     )
     p.add_argument("--no-html", action="store_true", help="Skip the arXiv HTML view; go straight to PDF.")
     p.add_argument("--keys-only", action="store_true", help="Download sources only; extract on a later run.")
+    p.add_argument(
+        "--no-svg-figures",
+        action="store_true",
+        help="Keep marker's fixed-resolution raster figure crops; skip the pdf-figures-svg recut.",
+    )
     add_standard_args(p, allow_toon=True)
     p.set_defaults(func=verb_fetch)
 
