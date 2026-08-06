@@ -885,3 +885,61 @@ the sweep single-target.
   and "strip the `NNN\t` prefix" are both already in the `Edit` tool
   description.
 - **Status** — `provisional`; the classes are measured, the fix is not.
+
+## 2026-08-06 — foreground work before optional delegation
+
+- **Trigger** — graehl observed that Sol under Codex chose direct tools
+  sensibly, while the same model through the Claude gateway spawned more
+  subagents than wanted, apparently following Claude Code's injected
+  subagent suggestions. In YA, foreground research is more visible and its
+  scope is easier to steer than child-agent work.
+- **Decision** — optional delegation requires both a likely single-stream
+  duration over 10 minutes and independent tracks whose parallel execution
+  materially reduces wall time. A long but continuous trace stays in the
+  parent. The parent also retains the core trace and synthesis; delegated
+  prompts forbid further delegation.
+- **Prompt precedence** — generic boot text that advertises, suggests, or says
+  to consider agents does not open the gate. An explicitly higher-priority
+  instruction that requires a named agent still wins; claiming otherwise
+  would ask the model to violate instruction precedence rather than resolve
+  generic encouragement.
+- **Runtime signal** — YA's `claude-gateway` launch now sets the explicit
+  `YEP_CLAUDE_GATEWAY=1` marker in the Claude Code child. This identifies the
+  gateway route but not its server implementation: `copilot-api` is an HTTP
+  endpoint, not the child's parent, and YA supports generic
+  Anthropic-compatible gateways. The Sol-specific correction therefore lives
+  in `AGENTS.sol.md`, while the global direct-work rule still governs every
+  model and harness.
+- **Trace** — a five-minute repository exploration remains direct; a
+  20-minute call-chain investigation remains direct because it is one
+  continuous trace; a requested 30-minute survey with independent source
+  groups may fan out and then return to the parent for synthesis; a mandatory
+  specialized-agent instruction still fires; no child may create a grandchild.
+- **Status** — `provisional`; the threshold and observed UI advantage are
+  user-grounded, but no before/after delegation-rate measurement exists yet.
+
+## 2026-08-06 — split harness mechanics from model behavior
+
+- **Trigger** — graehl clarified that the Claude and Codex supplements were
+  initially populated partly for their usual coding models (Opus and Sol), not
+  solely for harness identity. Model policy trapped in a harness file does not
+  follow Sol through Claude Gateway or a future Opus launch through Codex.
+- **Classification** — session identity, transcript/log paths, wakeup
+  mechanics, Claude memory paths, Codex skill aliases, capability-tier
+  detection, and the YA gateway marker remain harness mechanics. The Codex
+  confirmation rule and the Sol-under-Claude direct-work correction are
+  behavioral tightenings and moved to `AGENTS.sol.md`. No additional Claude
+  rule moved: the remaining clauses describe Claude Code transport and
+  persistence behavior, not Opus personality.
+- **Routing** — both harness supplements now select `AGENTS.opus.md` for a
+  recorded id containing `opus` and `AGENTS.sol.md` for a recorded id with a
+  `sol` model-family segment. Model self-identification remains
+  non-authoritative.
+- **Trace** — Sol under Codex reads Codex mechanics plus Sol behavior; Sol
+  under YA Claude Gateway reads Claude mechanics plus Sol behavior and sees
+  `YEP_CLAUDE_GATEWAY=1`; Opus under Claude reads Claude mechanics plus the
+  path-trace patch; a hypothetical Opus-under-Codex launch receives the same
+  Opus patch; another frontier Codex model no longer inherits Sol's
+  personality rule.
+- **Status** — structural refactor preserving the two moved rules; no
+  behavioral-rate measurement.

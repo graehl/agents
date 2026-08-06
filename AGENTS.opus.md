@@ -1,8 +1,8 @@
 # Opus supplement to AGENTS.md
 
-Model-scoped behavior patch, loaded via the Claude supplement when the
-harness-recorded model id is opus-class. Everything in `AGENTS.md`
-still applies; this file tightens one behavior.
+Model-scoped behavior patch, loaded via a harness supplement when its recorded
+model id is opus-class. Everything in `AGENTS.md` still applies; this file
+tightens one behavior.
 
 ## Path-trace code claims
 

@@ -213,13 +213,14 @@ Prior art grounding that plan <!-- verified: web search 2026-05-29 -->:
   self-correction does not help and can degrade. Direct caution that a
   self-recorded evidence ledger is not self-grounding.
 
-## Provider-scoped supplements
+## Harness- and model-scoped supplements
 
 `AGENTS.codex.md` and `AGENTS.claude.md` are sibling instruction files for
 harness-specific mechanics: session-log locations, real resume identifiers,
-provider skill paths, and launcher quirks. `AGENTS.md` routes agents to the
-matching supplement when present but keeps cross-provider policy in the main
-file.
+provider skill paths, and launcher quirks. Each reads the model id from its
+harness transcript and routes matching model-scoped behavior patches.
+`AGENTS.md` routes agents to the matching harness supplement when present but
+keeps cross-provider policy in the main file.
 
 `AGENTS.weak.md` is a sibling instruction file carrying restatements of
 behavior that frontier agents perform by default but weaker models
@@ -248,14 +249,14 @@ Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.
 Anything binding belongs in `AGENTS.md`.
 
-`AGENTS.opus.md` is a model-scoped supplement — the third kind after
-weak (restatements) and frontier (relaxations): a behavior patch
-countering a failure mode observed in one model family. Currently it
-carries the path-trace rule against Opus-class overconfident
-assertions about unread code. The Claude supplement routes to it when
-the harness-recorded transcript id is opus-class, by the same
-grep-the-transcript mechanism as tier detection.
+`AGENTS.opus.md` and `AGENTS.sol.md` are model-scoped behavior patches. Both
+harness supplements route to them from the harness-recorded id, so a model
+keeps its patch when served through another harness. Opus carries the
+path-trace rule against overconfident assertions about unread code. Sol carries
+the confirmation rule formerly housed in the Codex supplement and the
+direct-work correction for Sol served through Claude Gateway.
 
-Edit policy: `AGENTS.opus.md` carries model-specific tightenings
-only. A rule that would improve every model belongs in `AGENTS.md`;
-a relaxation belongs in `AGENTS.frontier.md`.
+Edit policy: model supplements carry model-specific tightenings only. A rule
+that would improve every model belongs in `AGENTS.md`; a relaxation belongs in
+`AGENTS.frontier.md`; transport, session, log, and tool-format mechanics belong
+in the harness supplement.

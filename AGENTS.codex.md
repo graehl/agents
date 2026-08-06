@@ -2,9 +2,7 @@
 
 Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
 running in Codex / OpenAI Codex. This file contains Codex harness
-mechanics; broad shared policy stays in `AGENTS.md`. The one carve-out
-is the confirm-before-acting rule below, which the Claude harness
-injects automatically but Codex does not.
+mechanics; shared and model-scoped policy stays outside this file.
 
 Model tier: do not trust self-knowledge of your model name — models
 misreport it. Read the harness-recorded id from your own rollout
@@ -19,6 +17,12 @@ Below GPT-5.5 (e.g. Codex 5.3 Spark), or with `AGENTS.weak.md`
 surfaced, you are weak tier: read `~/agents/AGENTS.weak.md` and do
 not read `AGENTS.frontier.md`. At GPT-5.5 or above, read
 `~/agents/AGENTS.frontier.md` next — frontier-tier latitude.
+
+Then load the model-scoped behavior patch selected by that same recorded id:
+an id containing `opus` reads `~/agents/AGENTS.opus.md`; an id containing a
+`sol` model-family segment (for example, `gpt-5.6-sol`) reads
+`~/agents/AGENTS.sol.md`. This routing follows the model across harnesses
+rather than assuming Codex always runs Sol.
 
 ## Session Identity
 
@@ -89,9 +93,3 @@ Follow symlinks when checking identity:
 ```bash
 stat -Lc '%d:%i %n' ~/agents/skills ~/.codex/skills/user
 ```
-
-## Confirm before hard-to-reverse or outward-facing actions
-
-For actions that are hard to reverse or outward-facing, confirm first
-unless durably authorized or explicitly told to proceed without
-asking; approval in one context doesn't extend to the next.

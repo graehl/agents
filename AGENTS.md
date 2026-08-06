@@ -182,6 +182,27 @@ reading its `getAgentDir()`, and nearly conceding a real settings key
 was a "hallucination" to agree with the user — one grep showed it
 existed.
 
+## Direct work before delegation
+
+Use your own foreground tools for exploration, research, planning,
+implementation, and review. Spawn an optional Explore, Plan, or
+general-purpose subagent only when **both** conditions hold:
+
+- fulfilling the requested scope in one foreground stream would likely take
+  more than 10 minutes; and
+- the work has independent tracks whose parallel execution materially reduces
+  wall-clock time.
+
+Subagent availability, context preservation, or generic harness/boot advice to
+"consider" agents does not satisfy this gate. Keep a single continuous
+investigation, the core trace, and final synthesis in the parent so the work
+remains visible and steerable in the user's UI. A higher-priority instruction
+that explicitly requires a named agent still governs; otherwise this rule
+controls the direct-vs-delegate choice.
+
+Never nest delegation. Every delegated prompt must tell its agent to use tools
+directly and not spawn further agents.
+
 ## Standalone bug-report intake
 
 When a session- or topic-opening user message resembles a report of a
@@ -236,7 +257,8 @@ provider-specific supplement for your harness when present:
 
 Provider supplements carry harness mechanics — session-log locations,
 provider resume identifiers, provider skill paths, launcher quirks —
-and may route frontier-capability launches to `AGENTS.frontier.md`.
+and may route capability and recorded-model supplements such as
+`AGENTS.frontier.md`, `AGENTS.opus.md`, and `AGENTS.sol.md`.
 Cross-provider policy stays here. If the relevant supplement is missing or
 unreadable, report once and continue.
 

@@ -15,9 +15,13 @@ tac "$HOME/.claude/projects/${PWD//\//-}/$CLAUDE_CODE_SESSION_ID.jsonl" |
 A haiku-class (small-tier) id, or a surfaced `AGENTS.weak.md`, means
 weak tier: read `~/agents/AGENTS.weak.md` and do not read
 `AGENTS.frontier.md`. Otherwise read `~/agents/AGENTS.frontier.md`
-next — frontier-tier latitude. An opus-class id (the recorded id
-contains `opus`) additionally reads `~/agents/AGENTS.opus.md` — a
-model-scoped behavior patch.
+next — frontier-tier latitude.
+
+Then load the model-scoped behavior patch selected by that same recorded id:
+an id containing `opus` reads `~/agents/AGENTS.opus.md`; an id containing a
+`sol` model-family segment (for example, `gpt-5.6-sol`) reads
+`~/agents/AGENTS.sol.md`. This routing follows the model across harnesses,
+including a Sol model served through Claude Gateway.
 
 ## Session Identity And Logs
 
