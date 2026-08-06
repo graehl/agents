@@ -65,6 +65,14 @@ When `AGENTS.md` says to search provider session logs, search
 `~/.claude/projects/**/*.jsonl`, excluding the current session
 file.
 
+Transcript lines are wall-clock timestamped (top-level
+`timestamp`, ISO-8601 Z). The rendered prompt carries no times,
+so elapsed time between turns is invisible in context but always
+recoverable here: date a past observation ("when did I actually
+check that?") by grepping your own transcript, and ground a
+queued message's `(Ns ago)` separator with `queued-anchor`
+(spec: `topics/helper-scripts.md`), which parses this format.
+
 ## Pause-then-default flows ("wait for steer, else proceed")
 
 The harness gives you a turn from exactly three things: a user message, a

@@ -224,3 +224,62 @@ record. Implements the convention in `topics/vendoring.md`.
 
 **Canonical source**: `scripts/vendor-skill` (in this repo).
 **Install target**: `~/bin/vendor-skill` (symlink by default).
+
+### queued-anchor
+
+Grounds a queued user message's composition time against the provider
+session transcript, so its referents resolve against what the sender
+had actually seen rather than the current conversation tail
+(`AGENTS.md` § Queued-send time separators). Models essentially never
+perform this wall-clock-to-turn mapping unaided; the transcript's
+per-message timestamps make it mechanical.
+
+**CLI**: `queued-anchor <seconds-ago> [--session <id>]
+[--project-dir <dir>] [--transcript <jsonl>]`. `<seconds-ago>` is N
+from the leading `--- (Ns ago)` separator. Transcript discovery:
+`--transcript` wins; else the session id (`--session`, defaulting to
+`$AGENTCTL_SESSION_ID` then `$CLAUDE_CODE_SESSION_ID`) names
+`~/.claude/projects/<cwd-dashed>/<id>.jsonl`; else the newest
+transcript in that directory. Claude Code jsonl only (v1); other
+harnesses exit 3 and the caller falls back to judgment. On success
+prints one JSON line: `composed_at`; `anchor` (timestamp plus
+≤160-char `text_head` of the last visible assistant text at
+composition, null when composition predates all assistant output);
+`anchor_turn_continued` (the anchor's turn kept producing text after
+composition); `activity_at_composition` (latest thinking or tool_use
+event at composition when it postdates the text anchor — a sender
+watching the live stream may be reacting to mid-turn activity, not
+completed text; null otherwise); `unseen_turn_heads` (ascending;
+first visible text of each assistant turn the sender had not seen).
+Exit 0 success, 2 usage, 3 no transcript or no timestamped user
+events (JSON `error` line on stderr).
+
+**Post-conditions**:
+- `composed_at` equals the newest user event's timestamp minus
+  `<seconds-ago>`; sidechain (subagent) events are ignored.
+- `anchor` is the latest visible assistant text at or before
+  `composed_at`; `unseen_turn_heads` holds exactly the turn-opening
+  texts after it, in order.
+- Read-only: never writes anything.
+
+**Examples** (fixture: user@T+0s, assistant "Alpha result is
+ready"@T+10s, assistant "Alpha continued detail"@T+20s (same turn),
+user@T+100s, assistant "Beta answer"@T+110s, assistant tool_use
+`Bash {"command":"git push"}`@T+120s (turn continues), user@T+200s):
+1. `queued-anchor 150 --transcript fx.jsonl` → composed T+50; anchor
+   "Alpha continued detail"; `anchor_turn_continued` false; unseen
+   heads `["Beta answer"]`.
+2. `queued-anchor 185 --transcript fx.jsonl` → composed T+15; anchor
+   "Alpha result is ready"; `anchor_turn_continued` true (the T+20
+   event follows within the turn); unseen heads `["Beta answer"]`.
+3. `queued-anchor 300 --transcript fx.jsonl` → anchor null; unseen
+   heads `["Alpha result is ready", "Beta answer"]`.
+4. Nonexistent `--transcript` → exit 3,
+   `{"error": "no transcript found"}` on stderr.
+5. `queued-anchor 75 --transcript fx.jsonl` → composed T+125; anchor
+   "Beta answer"; `activity_at_composition` kind `tool_use`, head
+   `Bash {"command": "git push"}` — the sender was likely reacting
+   to that in-flight command; unseen heads `[]`.
+
+**Canonical source**: `scripts/queued-anchor` (in this repo).
+**Install target**: `~/bin/queued-anchor` (symlink by default).

@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""queued-anchor: ground a queued message's composition time in the
+session transcript.
+
+Given the N from a leading `--- (Ns ago)` separator, reads the provider
+session log (Claude Code jsonl) and prints the last assistant output the
+sender had seen when composing, plus the openings of assistant turns they
+had not yet seen. Resolve the queued chunk's referents against the anchor,
+not the current conversation tail.
+"""
+
+import argparse
+import json
+import os
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+HEAD_CHARS = 160
+
+
+def parse_ts(raw: str) -> datetime:
+    return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+
+
+def discover_transcript(session_id: str | None, project_dir: str) -> Path | None:
+    proj = str(Path(project_dir).resolve()).replace("/", "-")
+    d = Path.home() / ".claude" / "projects" / proj
+    if session_id:
+        p = d / f"{session_id}.jsonl"
+        return p if p.is_file() else None
+    candidates = sorted(
+        d.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    return candidates[0] if candidates else None
+
+
+def visible_text(message: dict) -> str | None:
+    content = message.get("content")
+    if isinstance(content, str):
+        return content or None
+    if isinstance(content, list):
+        for block in content:
+            if (
+                isinstance(block, dict)
+                and block.get("type") == "text"
+                and block.get("text")
+            ):
+                return block["text"]
+    return None
+
+
+def activity_head(message: dict) -> tuple[str, str] | None:
+    """(kind, head) for any assistant content — text, thinking, or tool
+    use — since a sender watching the live stream may be reacting to
+    mid-turn activity, not only completed text."""
+    content = message.get("content")
+    if isinstance(content, str):
+        return ("text", content) if content else None
+    if not isinstance(content, list):
+        return None
+    for block in content:
+        if not isinstance(block, dict):
+            continue
+        kind = block.get("type")
+        if kind == "text" and block.get("text"):
+            return ("text", block["text"])
+        if kind == "thinking" and block.get("thinking"):
+            return ("thinking", block["thinking"])
+        if kind == "tool_use":
+            name = block.get("name", "?")
+            args = json.dumps(block.get("input", {}))
+            return ("tool_use", f"{name} {args}")
+    return None
+
+
+def load_events(
+    path: Path,
+) -> tuple[
+    list[datetime],
+    list[tuple[datetime, str, bool]],
+    list[tuple[datetime, str, str]],
+]:
+    """Returns (user_times, assistant_texts, activities) in file order.
+
+    assistant_texts entries are (time, text, starts_turn) where starts_turn
+    marks the first text-bearing assistant event since the last user event.
+    activities entries are (time, kind, head) for every assistant event
+    with any visible content (text, thinking, or tool_use).
+    """
+    user_times: list[datetime] = []
+    assistant_texts: list[tuple[datetime, str, bool]] = []
+    activities: list[tuple[datetime, str, str]] = []
+    open_turn = False
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            try:
+                d = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if d.get("isSidechain"):
+                continue
+            kind, ts = d.get("type"), d.get("timestamp")
+            if kind not in ("user", "assistant") or not ts:
+                continue
+            when = parse_ts(ts)
+            if kind == "user":
+                user_times.append(when)
+                open_turn = False
+            else:
+                message = d.get("message") or {}
+                text = visible_text(message)
+                if text:
+                    assistant_texts.append((when, text, not open_turn))
+                    open_turn = True
+                activity = activity_head(message)
+                if activity:
+                    activities.append((when, activity[0], activity[1]))
+    return user_times, assistant_texts, activities
+
+
+def fail(code: int, message: str) -> int:
+    print(json.dumps({"error": message}), file=sys.stderr)
+    return code
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        prog="queued-anchor",
+        description=(
+            "Locate the assistant output a queued message's sender had last "
+            "seen, from the leading '--- (Ns ago)' separator value."
+        ),
+    )
+    ap.add_argument(
+        "seconds_ago",
+        type=float,
+        help="N from the leading '--- (Ns ago)' separator",
+    )
+    ap.add_argument(
+        "--session",
+        default=os.environ.get("AGENTCTL_SESSION_ID")
+        or os.environ.get("CLAUDE_CODE_SESSION_ID"),
+        help="session id (default: $AGENTCTL_SESSION_ID or $CLAUDE_CODE_SESSION_ID)",
+    )
+    ap.add_argument(
+        "--project-dir",
+        default=os.getcwd(),
+        help="project working directory the session runs in (default: cwd)",
+    )
+    ap.add_argument(
+        "--transcript",
+        help="explicit transcript jsonl path (overrides session discovery)",
+    )
+    args = ap.parse_args()
+
+    path = (
+        Path(args.transcript)
+        if args.transcript
+        else discover_transcript(args.session, args.project_dir)
+    )
+    if not path or not path.is_file():
+        return fail(3, "no transcript found")
+
+    user_times, assistant_texts, activities = load_events(path)
+    if not user_times:
+        return fail(3, f"no timestamped user events in {path}")
+
+    # The queued chunk is (one of) the newest user event(s); its jsonl
+    # timestamp approximates prompt-render, the moment N counts back from.
+    render = max(user_times)
+    composed = render - timedelta(seconds=args.seconds_ago)
+
+    seen = [(t, text) for t, text, _ in assistant_texts if t <= composed]
+    unseen_heads = [
+        (t, text) for t, text, starts in assistant_texts if t > composed and starts
+    ]
+    anchor_turn_continued = bool(seen) and any(
+        not starts for t, _, starts in assistant_texts if t > composed
+    )
+
+    # The sender may have been reacting to mid-turn activity (thinking or
+    # a tool call) rather than the last completed text; surface the latest
+    # such event at composition when it postdates the text anchor.
+    seen_activity = [a for a in activities if a[0] <= composed]
+    activity = None
+    if seen_activity:
+        at, kind, head = seen_activity[-1]
+        if not seen or (kind != "text" and at > seen[-1][0]):
+            activity = {"at": at.isoformat(), "kind": kind, "head": head[:HEAD_CHARS]}
+
+    result = {
+        "composed_at": composed.isoformat(),
+        "anchor": (
+            {"at": seen[-1][0].isoformat(), "text_head": seen[-1][1][:HEAD_CHARS]}
+            if seen
+            else None
+        ),
+        "anchor_turn_continued": anchor_turn_continued,
+        "activity_at_composition": activity,
+        "unseen_turn_heads": [
+            {"at": t.isoformat(), "text_head": text[:HEAD_CHARS]}
+            for t, text in unseen_heads
+        ],
+    }
+    print(json.dumps(result))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

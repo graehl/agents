@@ -1045,6 +1045,16 @@ through one or more agent turns. Read the chunk's content to
 judge whether it continues, refines, or shifts from the
 preceding context.
 
+With a large leading N, don't guess what the sender had seen:
+run `queued-anchor <N>` (spec: `topics/helper-scripts.md`). It
+reads the provider session log's per-message timestamps and
+prints the last assistant output visible at composition, any
+in-flight activity (thinking, a tool call) the sender may have
+been reacting to in the live stream, and the turn openings that
+followed. Resolve the chunk's referents against that anchor,
+not the current tail; if the helper is unavailable for the
+harness, fall back to the judgment reading above.
+
 ## "Don't forget" reminders
 
 When the user says `don't forget X`, check whether `X` is already in

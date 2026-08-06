@@ -72,6 +72,13 @@ When `AGENTS.md` says to search provider session logs, search
 `~/.codex/sessions/**/*.jsonl`, excluding your own session
 (`$AGENTCTL_SESSION_ID`).
 
+Rollout lines are wall-clock timestamped (top-level `timestamp`,
+ISO-8601 Z). The rendered prompt carries no times, so elapsed
+time between turns is invisible in context but recoverable here:
+date a past observation by grepping your own rollout file.
+`queued-anchor` v1 (spec: `topics/helper-scripts.md`) parses only
+Claude transcripts; on Codex, read the timestamps directly.
+
 ## Skills Path Aliasing
 
 `~/agents/skills` and `~/.codex/skills/user` may alias the same directory;
