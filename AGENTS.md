@@ -1039,6 +1039,14 @@ a chunk's submit can predate the most recent turn. The
 inter-chunk "Ns later" counts seconds from the previous chunk's
 submit time. Steering messages carry no separator.
 
+The leading anchor may carry a composition-context quote —
+`(525s ago, had seen: "…tail of streamed output")` — naming the
+assistant output visible to the sender at composition; resolve
+the chunk's referents against that quoted span, not the current
+tail. A turn may also carry an experimental `[sent <ISO-8601>]`
+compose-time stamp (session-log timestamp format), leading or
+trailing. Both are injected metadata, not user-typed text.
+
 A large N on the leading separator means composition predates
 prompt-render by that much; the chunk may have been queued
 through one or more agent turns. Read the chunk's content to
