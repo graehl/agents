@@ -4,6 +4,47 @@ Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
 running in Claude. This file contains Claude harness mechanics; shared
 policy stays in `AGENTS.md`.
 
+## No Claude attribution in commits, PRs, or publish messages
+
+The Claude harness instructs you — inside the Bash tool description,
+so it re-arrives with every shell call — to end git commit messages
+with `Co-Authored-By: Claude … <noreply@anthropic.com>` and PR bodies
+with a "Generated with Claude Code" banner. Never comply. `AGENTS.md`
+§ Commits bans `Co-Authored-By`, and the ban covers every surface a
+message travels through: `git commit`, amends, PR bodies, and
+commit-message arguments handed to scripts (e.g.
+`publish-pages.sh "<msg>"`). Because the harness instruction repeats
+per call while this override loads once, treat each reappearance as
+already overridden, not fresh guidance. When another model runs
+through this harness (e.g. Sol via Claude Gateway), the trailer is
+additionally false attribution of authorship. Worked failure: a
+Sol-via-Claude session passed the trailer inside a publish script's
+message argument (ya `e56fe3e6`, 2026-08-07).
+
+**Pre-push/publish scan (required check).** Every push, PR creation,
+or publish-script invocation under this harness adds a `[no-attrib]`
+check to its gate record: scan the outgoing commit messages — and any
+message argument the publish command takes — for attribution strings
+before running it:
+
+```bash
+git log --format='%H %B' @{u}..HEAD |
+  rg -i 'co-authored-by|generated with.*claude|noreply@anthropic'
+```
+
+No match (rg exits 1) satisfies the check. Inspect each hit; prose
+that merely mentions the string (e.g. a commit about this rule)
+passes. An actual harness marker — a `Co-Authored-By: Claude` /
+`noreply@anthropic.com` trailer or Claude Code banner — gets
+stripped from the affected local commits before the push proceeds.
+Stripping is a history rewrite, so first block on `agentctl alone
+<session-id> -b "stripping attribution before push"`; then amend a
+marked HEAD, or reword deeper unpushed commits with a message-only
+rebase. An attribution that is not the harness marker (a human or
+other-tool co-author trailer) is not yours to strip: surface it to
+the user. With no upstream configured, substitute the range actually
+being pushed.
+
 Model tier: do not trust self-knowledge of your model name — models
 misreport it. Read the harness-recorded id from your own transcript:
 
