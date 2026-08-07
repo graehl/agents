@@ -213,7 +213,7 @@ Prior art grounding that plan <!-- verified: web search 2026-05-29 -->:
   self-correction does not help and can degrade. Direct caution that a
   self-recorded evidence ledger is not self-grounding.
 
-## Harness- and model-scoped supplements
+## Harness-, backend-, and model-scoped supplements
 
 `AGENTS.codex.md` and `AGENTS.claude.md` are sibling instruction files for
 harness-specific mechanics: session-log locations, real resume identifiers,
@@ -221,6 +221,12 @@ provider skill paths, and launcher quirks. Each reads the model id from its
 harness transcript and routes matching model-scoped behavior patches.
 `AGENTS.md` routes agents to the matching harness supplement when present but
 keeps cross-provider policy in the main file.
+
+`AGENTS.copilot.md` is route-scoped rather than model-scoped. Native Copilot
+CLI exposes `COPILOT_CLI=1`; YA propagates `YEP_COPILOT_API=1` only after an
+Anthropic-compatible gateway explicitly identifies itself through its model
+catalog response. Both routes load the same stricter optional-subagent proof,
+and a Claude Gateway launch also retains its Claude and model supplements.
 
 `AGENTS.weak.md` is a sibling instruction file carrying restatements of
 behavior that frontier agents perform by default but weaker models
@@ -259,4 +265,6 @@ direct-work correction for Sol served through Claude Gateway.
 Edit policy: model supplements carry model-specific tightenings only. A rule
 that would improve every model belongs in `AGENTS.md`; a relaxation belongs in
 `AGENTS.frontier.md`; transport, session, log, and tool-format mechanics belong
-in the harness supplement.
+in the harness supplement. A backend supplement may tighten behavior only
+where the backend or its quota/visibility constraints make the distinction
+load-bearing.

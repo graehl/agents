@@ -253,14 +253,16 @@ After reading this file and `~/agents/AGENTS.user.md`, read the
 provider-specific supplement for your harness when present:
 - Codex / OpenAI Codex: `~/agents/AGENTS.codex.md`
 - Claude: `~/agents/AGENTS.claude.md`
+- GitHub Copilot CLI (`COPILOT_CLI=1`) or a YA Claude Gateway child marked
+  `YEP_COPILOT_API=1`: `~/agents/AGENTS.copilot.md`
 - Grok / xAI: `~/agents/AGENTS.grok.md`
 
-Provider supplements carry harness mechanics — session-log locations,
-provider resume identifiers, provider skill paths, launcher quirks —
-and may route capability and recorded-model supplements such as
-`AGENTS.frontier.md`, `AGENTS.opus.md`, and `AGENTS.sol.md`.
-Cross-provider policy stays here. If the relevant supplement is missing or
-unreadable, report once and continue.
+Harness/backend supplements carry scoped mechanics and behavior patches —
+session-log locations, resume identifiers, provider skill paths, launcher
+quirks, and backend-specific safeguards — and may route capability and
+recorded-model supplements such as `AGENTS.frontier.md`, `AGENTS.opus.md`, and
+`AGENTS.sol.md`. Cross-provider policy stays here. If the relevant supplement
+is missing or unreadable, report once and continue.
 
 Symlinks and hardlinks to the same target are the same loaded
 source for provider-supplement routing.

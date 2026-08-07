@@ -943,3 +943,29 @@ the sweep single-target.
   personality rule.
 - **Status** — structural refactor preserving the two moved rules; no
   behavioral-rate measurement.
+
+## 2026-08-06 — explicit Copilot route and stricter delegation proof
+
+- **Trigger** — graehl asked whether both native Copilot CLI and Claude Code
+  backed by `copilot-api` could load one stronger Copilot supplement. Native
+  CLI already exposes `COPILOT_CLI=1`; the HTTP gateway is not a parent process
+  and previously exposed no stable implementation identity to its Claude
+  child.
+- **Decision** — `copilot-api` advertises `X-Copilot-API: 1` on `/v1/models`.
+  YA accepts only that explicit handshake, remembers it for the configured
+  Gateway URL, and injects `YEP_COPILOT_API=1` into later Claude settings and
+  child environments. URL, port, model ids, vendors, and catalog shape are
+  deliberately insufficient.
+- **Behavior patch** — `AGENTS.copilot.md` requires a visible pre-spawn line
+  naming a direct estimate over 10 minutes, at least two independent tracks,
+  and the material parallelism gain. Missing any fact means direct foreground
+  tools. It also repeats the no-nesting rule; YA's depth cap is only defense in
+  depth.
+- **Trace** — native Copilot CLI loads the file from `COPILOT_CLI=1`; a new YA
+  Claude Gateway catalog read against the marked proxy yields
+  `YEP_COPILOT_API=1` and loads Claude, Copilot, and any matching model
+  supplement; a generic gateway on port 4141 does not; changing the configured
+  URL clears a previously learned identity; a launch before any successful
+  catalog read remains unmarked rather than guessed.
+- **Status** — explicit handshake and routing are covered at both HTTP and YA
+  environment boundaries; delegation-rate impact remains unmeasured.
