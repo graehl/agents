@@ -410,7 +410,12 @@ the rewrite lock (§ Amends). A marker discovered on already-pushed
 history gets stripped there too — amend/reword, then the gated
 force-push form; when that history sits on a shared or default
 branch others pull from, the strip still happens but waits for the
-explicit user go the shared-branch force-push ban requires. With no upstream configured, substitute the range
+explicit user go the shared-branch force-push ban requires.
+`scripts/pre-push-no-attrib`, installed machine-locally as a repo's
+`pre-push` hook, refuses marked pushes mechanically (trailer-block
+parsing, so prose mentions pass); where present it backstops this
+check, but the scan stays required — hook installs don't travel with
+clones. With no upstream configured, substitute the range
 actually being pushed.
 
 When a review step is part of the same request as a push or deploy,
