@@ -76,6 +76,14 @@ content at agent discretion (plan notes, considered approaches, longer
 status); brief readers stop after the header. Readers treat files
 whose line 1 starts with `DONE` (`DONE*`) as complete.
 
+A line 1 starting `REWRITE` is the advisory history-rewrite lock
+(`AGENTS.md § Amends`): the holder took the floor via `agentctl alone
+<id> -b "REWRITE: <what>"` and is mid rewrite-chain. While a fresh
+non-self `REWRITE` entry exists, peers create no commits and make no
+other git history/index moves; the lock clears when the holder
+rewrites its banner or marks `DONE`, and a crashed holder ages out at
+the stale window like any entry.
+
 `agentctl active --sweep` archives entries older than the stale window
 (`ACTIVE_STALE_MINUTES`, default 70) out of `active/`, so the hot peer-check
 `find .agentctl/active -maxdepth 1 -type f -mmin -70` only ever stats

@@ -149,8 +149,8 @@ not `HEAD` ownership: a peer may commit at any moment, so verifying
 "my commit is at `HEAD`" immediately before the rewind still leaves
 the race open — the reset point can end up below a freshly landed
 commit you don't own, silently orphaning it or absorbing its changes
-into your recommit. No acquirable token changes this: a project
-commit lock is advisory and never substitutes for peer absence.
+into your recommit. No acquirable token changes this: the advisory
+rewrite lock below never substitutes for peer absence.
 Beyond the race, a history rewrite disrupts peers' in-flight commits
 and unstaged edits, and the urge to "line it up against the right
 commit" is what leads to a worktree-destroying `git reset --hard`.
@@ -158,13 +158,70 @@ Make a follow-up commit instead, do history surgery in a separate
 worktree, or wait out the peers with `agentctl alone` — which is not
 a lock but a blocking wait for the no-peer state below.
 
-With no active peer you may rewrite: take the project's commit lock
-if one exists or is required, then verify `HEAD` is the commit you
-intend and is your own current-session work — at least subject,
-files changed, and authorship/session context. Splitting your own
+With no active peer you may rewrite. A multi-command chain (rebase,
+split, series of amends, attribution strip) holds the advisory
+rewrite lock for its whole duration: `agentctl alone <id> -b
+"REWRITE: <what>"`, cleared by rewriting your banner when the chain
+ends (`AGENTS.md § Amends`). The `REWRITE` entry warns sessions
+arriving mid-chain, which defer commits while it is fresh; it stays
+advisory and never substitutes for the peer check. Then verify
+`HEAD` is the commit you intend and is your own current-session
+work — at least subject, files changed, and authorship/session
+context. Splitting your own
 tip commit with `git reset` + recommits is then as free as amending.
 If another session has committed on top, stop and report the
 mismatch rather than rewrite below it. Recovery from a bad amend follows the shared-workdir discard
 ban (`AGENTS.md § Shared-workdir discard ban`): never `git reset
 --hard` in a dirty shared worktree; revert with a new commit or
 move your work to a separate worktree.
+
+## Attribution strip by SHA
+
+When the `[no-attrib]` scan (`AGENTS.md § Big-effect command gate`)
+flags commits, strip by the exact SHAs the scan's `%H` column names —
+never a pattern sweep over every message in the range, which edits
+messages nobody flagged. A marked tip alone is a plain message-only
+amend. Anything deeper takes one filter pass over the range,
+SHA-conditioned so only flagged messages are touched — one pass even
+for several scrub points, since each pass rewrites all descendant
+hashes:
+
+```bash
+FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f \
+  --msg-filter 'case "$GIT_COMMIT" in
+      <sha1>|<sha2>)
+        sed "/^co-authored-by: /Id" | git stripspace ;;
+      *) cat ;;
+    esac' -- <oldest-sha>^..HEAD
+```
+
+Adapt the `sed` to the marker being removed (banner lines likewise);
+a sequence of single-SHA passes in one script also works, at the
+cost of rewriting descendants once per pass. Unflagged messages pass
+through byte-identical.
+
+Verify before deleting the `refs/original/` backup, in one command:
+the new tip's tree is identical to the pre-rewrite tip's (message-only
+rewrite), no remote-shared history moved (every remote ref that was
+an ancestor of the old tip still is one), and the scan comes back
+clean:
+
+```bash
+old=$(git rev-parse refs/original/refs/heads/<branch>) &&
+{ git diff --quiet "$old" HEAD &&
+  for r in $(git for-each-ref --format='%(refname)' refs/remotes); do
+    ! git merge-base --is-ancestor "$r" "$old" ||
+      git merge-base --is-ancestor "$r" HEAD || exit 1
+  done &&
+  ! git log --format=%B "$old"..HEAD | rg -iq \
+    'co-authored-by|generated with|noreply@|🤖'
+} && echo STRIP-OK ||
+  echo "STRIP-VERIFY FAILED: pre-rewrite HEAD was $old"
+```
+
+(The scan line passes only when no marker remains; prose mentions
+found earlier still need the same one-time inspection.) Only on
+`STRIP-OK` delete the backup ref. On failure, notify with that
+message — it names the pre-rewrite HEAD so recovery is a one-liner —
+and stop; no auto-repair, no backup deletion. The whole flow runs
+under the advisory rewrite lock (`AGENTS.md § Amends`).

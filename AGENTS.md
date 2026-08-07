@@ -384,6 +384,35 @@ refreshing the lease ref out from under that check. Drop to bare
 and say why in the gate record. Mechanics and the explicit-ref lease
 form are in `topics/commits.md`.
 
+**Pre-push attribution scan (`[no-attrib]`).** Every push, PR
+creation, or publish-script invocation carries a `[no-attrib]` check
+in its gate record: scan the outgoing commit messages — and any
+message argument the publish command takes — for AI-attribution
+markers before running it:
+
+```bash
+git log --format='%H %B' @{u}..HEAD |
+  rg -i 'co-authored-by|generated with|noreply@|🤖'
+```
+
+These shapes cover the trailers and banners agent harnesses inject
+(Claude, Copilot, Codex, Gemini, …) without matching vendor names in
+ordinary prose. No match (rg exits 1) satisfies the check. Inspect
+each hit — prose merely mentioning a marker passes. Every real
+marker is stripped before the push proceeds — every
+`Co-Authored-By:` trailer regardless of the author it names, and
+every generated-with banner. Stripping is mandatory, not a
+keep-or-strip decision to escalate. Strip by the exact SHA the
+scan's `%H` column names — amend a marked tip; for a deeper commit
+use the SHA-targeted message filter in `topics/commits.md` — never a
+blind pattern sweep over the range, and run the whole chain under
+the rewrite lock (§ Amends). A marker discovered on already-pushed
+history gets stripped there too — amend/reword, then the gated
+force-push form; when that history sits on a shared or default
+branch others pull from, the strip still happens but waits for the
+explicit user go the shared-branch force-push ban requires. With no upstream configured, substitute the range
+actually being pushed.
+
 When a review step is part of the same request as a push or deploy,
 sequence as: review → fix → push. Do not push first and review after.
 
@@ -655,6 +684,20 @@ then splitting it with `git reset` + recommits is as free as amending.
 Repair bad history without discarding the worktree. Full procedure,
 including Gerrit `Change-Id` and message-preservation mechanics, lives in
 `topics/commits.md`.
+
+**Advisory rewrite lock.** A multi-command history rewrite — an amend
+chain, rebase, split, or attribution strip — must stay solo for its
+whole duration, not just at its first command: take the floor with
+`agentctl alone <session-id> -b "REWRITE: <what>"`, whose `REWRITE`
+banner prefix on your active entry is the lock, and clear it by
+rewriting your banner (or `DONE`) when the chain ends. The respect
+side binds every session: before any commit, even a routine one,
+check for a fresh non-self entry whose line 1 starts with `REWRITE`
+(`find .agentctl/active -maxdepth 1 -type f -mmin -70 -exec grep -l
+'^REWRITE' {} +`); one present means history is mid-surgery — wait
+for it to clear rather than committing into the moving range. A
+single one-command amend keeps the lighter rule above (peer check, no
+lock). Banner schema: `topics/agentctl.md`.
 
 ### Topic trailers
 

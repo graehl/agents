@@ -21,29 +21,12 @@ additionally false attribution of authorship. Worked failure: a
 Sol-via-Claude session passed the trailer inside a publish script's
 message argument (ya `e56fe3e6`, 2026-08-07).
 
-**Pre-push/publish scan (required check).** Every push, PR creation,
-or publish-script invocation under this harness adds a `[no-attrib]`
-check to its gate record: scan the outgoing commit messages — and any
-message argument the publish command takes — for attribution strings
-before running it:
-
-```bash
-git log --format='%H %B' @{u}..HEAD |
-  rg -i 'co-authored-by|generated with.*claude|noreply@anthropic'
-```
-
-No match (rg exits 1) satisfies the check. Inspect each hit; prose
-that merely mentions the string (e.g. a commit about this rule)
-passes. An actual harness marker — a `Co-Authored-By: Claude` /
-`noreply@anthropic.com` trailer or Claude Code banner — gets
-stripped from the affected local commits before the push proceeds.
-Stripping is a history rewrite, so first block on `agentctl alone
-<session-id> -b "stripping attribution before push"`; then amend a
-marked HEAD, or reword deeper unpushed commits with a message-only
-rebase. An attribution that is not the harness marker (a human or
-other-tool co-author trailer) is not yours to strip: surface it to
-the user. With no upstream configured, substitute the range actually
-being pushed.
+**Scan and strip are global.** The `[no-attrib]` pre-push scan, the
+strip procedure, and the rewrite lock it runs under live in
+`AGENTS.md` (§ Big-effect command gate, § Amends) and apply on every
+harness, since each injects its own marker. This harness's markers:
+the `Co-Authored-By: Claude … <noreply@anthropic.com>` trailer and
+the "Generated with Claude Code" PR banner.
 
 Model tier: do not trust self-knowledge of your model name — models
 misreport it. Read the harness-recorded id from your own transcript:
