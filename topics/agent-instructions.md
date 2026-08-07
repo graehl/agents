@@ -258,7 +258,8 @@ Anything binding belongs in `AGENTS.md`.
 `AGENTS.opus.md` and `AGENTS.sol.md` are model-scoped behavior patches. Both
 harness supplements route to them from the harness-recorded id, so a model
 keeps its patch when served through another harness. Opus carries the
-path-trace rule against overconfident assertions about unread code. Sol carries
+path-trace rule against overconfident assertions about unread code and the
+boot-list check before calling a request verb ambiguous. Sol carries
 the confirmation rule formerly housed in the Codex supplement and the
 direct-work correction for Sol served through Claude Gateway.
 

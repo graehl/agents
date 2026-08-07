@@ -303,11 +303,30 @@ agent would not need it.
 
 ## Project-level instructions
 
-Before using tools in a repo for the first time in a session, read its
+Before using tools in a repo for the first time in a session — at
+launch or when work pivots into another project mid-session — read its
 root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, any `README.md` they
-name as an instruction source, and `GLOSSARY.md` if present. Task
-files do not substitute for this. If a file is unreadable or a symlink
-is broken, report once and continue.
+name as an instruction source, and `GLOSSARY.md` if present. The duty
+binds to the repo being acted on, not the launch cwd; the harness
+injects nothing for a foreign repo, so these reads are the only way
+its rules load. Copy this list rather than recalling it — a
+mid-session entry has been observed probing `ls AGENTS.md CLAUDE.md
+GLOSSARY.md`, dropping `AGENTS.local.md`, then calling a request verb
+"ambiguous" that the unread file defined. An existence probe or a
+sliced excerpt does not satisfy the read; files already read this
+session are not re-read on later returns. Task files do not
+substitute for this. If a file is unreadable or a symlink is broken,
+report once and continue.
+
+When a request targets a project other than the one this session was
+launched in, weigh where the work lands best: a fresh agent launched
+with the target project as its working directory boots with that
+project's instruction stack loaded automatically — generally the
+better vehicle for a self-contained task. When this session's prior
+context materially informs the work, prefer a context-carrying fork,
+or act here after completing the boot reads above. The duty is
+identical on every path; a target-cwd launch merely makes it
+automatic.
 
 Project instructions are the final word for work inside that project;
 `AGENTS.local.md` is its private final amendment. Global instructions

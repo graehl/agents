@@ -969,3 +969,37 @@ the sweep single-target.
   catalog read remains unmarked rather than guessed.
 - **Status** — explicit handshake and routing are covered at both HTTP and YA
   environment boundaries; delegation-rate impact remains unmeasured.
+
+## 2026-08-07 — foreign-repo pivot: truncated boot list, "ambiguous publish"
+
+- **Trigger** — an Opus 5 session launched in `copilot-api` pivoted
+  mid-session into yepanywhere work. Its project-entry probe `ls
+  AGENTS.md CLAUDE.md GLOSSARY.md` recalled the boot list from memory
+  and dropped `AGENTS.local.md`; it then read a 45-line slice of
+  CLAUDE.md and announced "publish is genuinely ambiguous — three
+  release channels" while ya's unread `AGENTS.local.md` defined bare
+  `publish` exactly. The supplement chain (user/claude/opus) was never
+  loaded, so the existing path-trace patch — whose
+  universally-quantified-claim line condemns "nothing defines this" —
+  could not fire. Transcript
+  `-home-graehl-copilot-api/3e663caa-….jsonl` lines 158 (probe), 260
+  (slice), 333 (claim), 347 (post-correction read). Mitigating
+  context, per the user: the harness injects no instruction context
+  for a foreign repo (an unexercised scenario), the duty fired far
+  from the rule text, and cross-cwd launches are a deliberate style
+  that usually works — so blame is shared and mitigations must stay
+  low-cost and scoped.
+- **Decision** — § Project-level instructions now names the
+  mid-session pivot, states the no-injection fact, requires copying
+  the boot list rather than recalling it, rules out existence probes
+  and sliced excerpts as substitutes, and keeps a no-reread guard
+  (user constraint: no redundant re-loading of already-read files).
+  A follow-on paragraph routes foreign-project requests: target-cwd
+  agent for self-contained tasks, context-carrying fork or in-session
+  boot reads when prior context matters. `AGENTS.opus.md` gains the
+  verb-resolution instance; ya `AGENTS.md` now names
+  `AGENTS.local.md` as its machine-local final authority.
+- **Rejected** — an "are you sure?" checkpoint before foreign-repo
+  big actions: it would tax the user's intended cross-cwd flow; the
+  routing preference replaced it.
+- **Status** — rule patches only; recurrence unmeasured.

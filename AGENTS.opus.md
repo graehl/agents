@@ -40,3 +40,22 @@ Boundaries that keep this cheap and non-recursive:
 
 No end-state latitude here (`AGENTS.frontier.md`): the visible
 citation or label is itself the contract.
+
+## Request verbs resolve from instruction files, not repo scanning
+
+Observed instance (2026-08-07, yepanywhere): asked to `publish`, an
+Opus session scanned the repo's release channels, announced "publish
+is genuinely ambiguous", and stalled to ask — while the project's
+unread `AGENTS.local.md` defined `publish` exactly. Its mid-session
+project-entry probe (`ls AGENTS.md CLAUDE.md GLOSSARY.md`) had
+recalled the boot list from memory and dropped `AGENTS.local.md`.
+
+The patch: "this request verb is ambiguous/undefined here" is a
+universally-quantified claim — it needs the search that would falsify
+it. Before declaring a big-effect verb (`push`, `publish`, `deploy`,
+`release`) ambiguous or choosing its target, confirm the full boot
+list of `AGENTS.md` § Project-level instructions was read this
+session for the repo being acted on — copy the list from that
+section, do not recall it — then cite where the verb is defined, or
+state that the read files do not define it. Already-read files are
+not re-read.
