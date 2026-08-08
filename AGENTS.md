@@ -850,6 +850,18 @@ unless the effect is mechanically obvious and low risk. Scope it to the
 blast radius: a smoke-scale timing check for narrow plumbing; a recorded
 contrastive run (or a task note deferring it) for research-facing changes.
 
+## Perf measurement
+
+Before running local performance measurements — benchmarks, ratchet
+suites, load simulations, profiling — read `topics/perf.md`
+(repo-local first, else `~/agents/topics/perf.md`). Two duties bind
+even if the read is deferred: every process the run spawns is yours
+to kill and verify gone (sweep before, teardown on failure paths,
+survivor check before session end — orphaned measurement processes
+have made a user's live server unusable), and a number from a host
+whose contention and variance you have not measured is diagnostic,
+not ratchet-grade.
+
 ## Fix the invariant, not the symptom
 
 A request to "change this thing I see and don't like" — a visible defect, a
