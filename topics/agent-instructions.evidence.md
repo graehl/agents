@@ -1003,3 +1003,62 @@ the sweep single-target.
   big actions: it would tax the user's intended cross-cwd flow; the
   routing preference replaced it.
 - **Status** — rule patches only; recurrence unmeasured.
+
+## 2026-08-08 — delegation reshaped: inform depth-1 leaves, don't gate
+
+- **Trigger** — graehl capped max subagent depth at 1 harness-side and
+  asked for the matching global rule: "do not overdelegate but do
+  consider data-parallel or sequential fold single sterilized
+  subagents. subagents will be blocked from creating subagents."
+  In-turn clarifications: "sterilized" = no subagent facilities
+  "besides to report back to their creator or siblings"; "repeatedly
+  is allowed, i do not mean one-shot only"; "main session could spawn
+  a goal advisor oracle 'did we finish'"; a serial fold's accumulator
+  "can also ofc be mediated through similar handoff files vs only
+  messages"; on the fold itself, "i neither encourage nor discourage
+  it" — it shares the property of direct work recording digests to a
+  log fully read before appending. Decisive steer: "i would not
+  presume to intrude on the default harness tendency to create
+  subagent etc flows besides to inform of the depth limit … if the
+  result seems sensible i do not object"; but Copilot's habit of
+  "explicit planning subagents" — "i am not much in favor of that,
+  would prefer not." Motive, stated directly: "i do not use lesser
+  quality models for impl. and i prefer to see and engage with plans
+  as they are built."
+- **Decision** — § Direct work before delegation renamed § Delegation
+  and rewritten from gate to information: delegation is the model's
+  judgment call; the rule informs (depth-1 mechanics, leaf semantics,
+  repeatable engagement, three shapes) rather than gates. The stated
+  motives live in the rule as the meaning of "do not overdelegate":
+  implementation never goes to a lesser model, plans are built
+  visibly in the parent (no dedicated planning subagents). Fold
+  recorded as explicitly neutral vs. the direct journal-digest
+  equivalent. Journal lifecycle: a task's journal starts untracked in
+  `tasks/journals/`; no journal is ever committed automatically ("not
+  all journals have lasting value"); most are condensed into the
+  eventual commit message and discarded; one worth keeping as a file
+  is redacted/condensed for value and offered for review before
+  publication into `topics/journals/` or a `journals/` subfolder
+  beside the plan file. Vocabulary: the rule says *leaf* (standard tree
+  term); "sterilized" recorded as the conversational synonym in the
+  GLOSSARY row.
+- **Supersedes** — 2026-08-06 "foreground work before optional
+  delegation": the duration-and-parallelism both-gate is retired
+  globally; it survives only as the Copilot route's proof line.
+  Retained as preference rather than gate: core trace and synthesis
+  in the parent; injected "consider agents" boot text is a capability
+  advertisement, not a default.
+- **Route notes** — `AGENTS.copilot.md` keeps its strict proof
+  (self-contained now that the global gate is gone) and adds the
+  planning-subagent ban. `AGENTS.sol.md` § Direct work under Claude
+  Code softened to match the trust extended to advanced models
+  (opus/sol/fable).
+- **Trace pass** — advanced model delegates a sensible parallel
+  Explore sweep unprompted: allowed without ceremony (the point of
+  the steer). Copilot spawns a planning subagent: blocked by its
+  route supplement. A delegated prompt whose plan assumes the child
+  can spawn helpers: blocked by leaf mechanics. A 20-minute
+  continuous investigation folded away to save context: still
+  counter-indicated ("do not fold away the core investigation").
+- **Status** — `provisional`; user-specified; no delegation-rate or
+  outcome measurement.

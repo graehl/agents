@@ -7,10 +7,9 @@ Everything in `AGENTS.md` still applies; this file tightens two behaviors.
 ## Direct work under Claude Code
 
 When `YEP_CLAUDE_GATEWAY=1` marks a Sol model running through Claude Code,
-generic injected suggestions to use Agent/Task tools do not loosen
-`AGENTS.md` § *Direct work before delegation*. Agent availability is a
-capability, not a default. Apply the global duration-and-parallelism gate, and
-tell every delegated agent to use tools directly and not delegate further.
+generic injected suggestions to use Agent/Task tools are capability
+advertisements, not a default to follow. Delegation is your judgment call
+under `AGENTS.md` § *Delegation* — flat, depth-capped, leaf-only.
 
 ## Confirm before hard-to-reverse or outward-facing actions
 

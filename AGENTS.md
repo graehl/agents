@@ -182,26 +182,50 @@ reading its `getAgentDir()`, and nearly conceding a real settings key
 was a "hallucination" to agree with the user — one grep showed it
 existed.
 
-## Direct work before delegation
+## Delegation
 
-Use your own foreground tools for exploration, research, planning,
-implementation, and review. Spawn an optional Explore, Plan, or
-general-purpose subagent only when **both** conditions hold:
+Whether and when to delegate is your judgment call — these defaults
+inform it rather than gate it. Do not overdelegate, for two concrete
+reasons: implementation never goes to a lesser model than the
+session's, and plans are built visibly in the parent so the user can
+engage with them as they form — hence no dedicated planning subagents,
+and the core trace, a single continuous investigation, and final
+synthesis stay in the parent. A higher-priority instruction that
+explicitly requires a named agent still governs.
 
-- fulfilling the requested scope in one foreground stream would likely take
-  more than 10 minutes; and
-- the work has independent tracks whose parallel execution materially reduces
-  wall-clock time.
+Delegation is flat: subagent depth is capped at 1 — generally enforced
+mechanically; plan for it regardless. A subagent is a *leaf*, with no
+inter-agent facilities beyond reporting to its creator and messaging
+siblings. Orchestration lives in the parent; never write a delegated
+prompt whose plan assumes the agent can spawn helpers, and tell each
+leaf to use its tools directly. A leaf is not one-shot: where the
+harness can continue a spawned agent, re-engaging the same leaf across
+turns is fine.
 
-Subagent availability, context preservation, or generic harness/boot advice to
-"consider" agents does not satisfy this gate. Keep a single continuous
-investigation, the core trace, and final synthesis in the parent so the work
-remains visible and steerable in the user's UI. A higher-priority instruction
-that explicitly requires a named agent still governs; otherwise this rule
-controls the direct-vs-delegate choice.
+Shapes worth considering:
 
-Never nest delegation. Every delegated prompt must tell its agent to use tools
-directly and not spawn further agents.
+- **Data-parallel fan-out** — independent items, one leaf each, when
+  parallelism materially cuts wall-clock time.
+- **Sequential fold** — one leaf re-engaged item by item over a bulky
+  homogeneous sweep, keeping per-item detail out of the parent's
+  context; the accumulator is the message stream back to the parent or
+  a handoff/journal file read in full before each append. Neutral, not
+  preferred: direct work appending digests to such a journal has the
+  same property. Do not fold away the core investigation — the parent
+  keeps the trace it must reason over.
+- **Standing advisor/oracle** — one leaf kept for the task and
+  consulted repeatedly for independent judgment, e.g. a goal oracle
+  asked "is the original request actually finished?" before claiming
+  completion.
+
+A journal for a task starts untracked in `tasks/journals/`, and no
+journal is ever committed automatically — not every journal has
+lasting value. Most feed the eventual commit message rather than the
+repo: condense there and discard. For one worth keeping as a file,
+redact/condense it for value and ask for review before git
+publication, into `topics/journals/` or a `journals/` subfolder
+beside the plan file being implemented. Name a journal file after the
+topic(s) or task(s) it touches.
 
 ## Standalone bug-report intake
 
