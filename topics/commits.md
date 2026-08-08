@@ -91,13 +91,12 @@ Every commit an agent authors names the model(s) that did the work
 in `Contributing-model:` trailers — deliberate provenance the user
 wants for fair attribution of effort across models and sessions.
 
-Value grammar: the short model name only — `Fable`, `Opus 5`,
-`Sonnet 5`, `5.6-Sol` — mapped from the harness-recorded model id
-(`claude-fable-5` → `Fable`, `gpt-5.6-sol` → `5.6-Sol`). Never the
-raw id, a vendor or harness name (`Claude`, `Claude Code`), an
-email, or a link. Models misreport their own names, so recover the
-id the way the harness supplement specifies (transcript grep), not
-from self-knowledge.
+Value grammar: an intentional abbreviation of the model name —
+`claude-fable-5` → `Fable`, `claude-opus-5` → `Opus 5`,
+`gpt-5.6-sol` → `5.6-Sol`. Vendor or harness names (`Pi`,
+`Copilot`) are not welcome, nor an email or link. Models misreport
+their own names, so recover the id the way the harness supplement
+specifies (transcript grep), not from self-knowledge.
 
 One trailer per contributing model, unique: when amending or
 extending a commit another model authored, keep its trailer and add

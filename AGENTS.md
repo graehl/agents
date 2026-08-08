@@ -785,15 +785,16 @@ topic doc; details live in `topics/commits.md`.
 ### Contributing-model trailer
 
 Every commit an agent authors carries a `Contributing-model: <name>`
-trailer — the short model name only (`Fable`, `Opus 5`, `5.6-Sol`),
-mapped from the harness-recorded model id (the harness supplement's
-transcript check; models misreport their own names). Never a vendor
-or harness name, raw model id, email, or link. One trailer per
-contributing model, additive across models and sessions, never
-duplicated. This is deliberate, user-mandated provenance for fair
-effort attribution — not an AI-attribution marker: the `[no-attrib]`
-scan does not match it, and it is never stripped. Details:
-`topics/commits.md`.
+trailer — an intentional abbreviation of the model name
+(`claude-fable-5` → `Fable`, `claude-opus-5` → `Opus 5`,
+`gpt-5.6-sol` → `5.6-Sol`); vendor or harness names (`Pi`,
+`Copilot`), emails, and links are not welcome. Recover the id per
+the harness supplement's transcript check; models misreport their
+own names. One trailer per contributing model, additive across
+models and sessions, never duplicated. This is deliberate,
+user-mandated provenance for fair effort attribution — not an
+AI-attribution marker: the `[no-attrib]` scan does not match it,
+and it is never stripped. Details: `topics/commits.md`.
 
 # Code quality
 
