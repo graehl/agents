@@ -18,7 +18,8 @@ message-preservation mechanics.
 
 ## Commit messages
 
-Trivial commits get a short, possibly subject-only message.
+Trivial commits get a short message — possibly subject-only, plus
+the `Contributing-model:` trailer.
 
 Non-trivial messages are a narrative synthesis of motivation and
 decision => change:
@@ -83,6 +84,36 @@ commit spanning topics. The trailer marks thread membership, not merely
 that the diff touched a `topics/` file: a standalone commit with no task
 spec and no expected follow-up gets no trailer even if it edits a topic
 doc, while the commit that starts a thread gets one as #1.
+
+## Contributing-model trailer
+
+Every commit an agent authors names the model(s) that did the work
+in `Contributing-model:` trailers — deliberate provenance the user
+wants for fair attribution of effort across models and sessions.
+
+Value grammar: the short model name only — `Fable`, `Opus 5`,
+`Sonnet 5`, `5.6-Sol` — mapped from the harness-recorded model id
+(`claude-fable-5` → `Fable`, `gpt-5.6-sol` → `5.6-Sol`). Never the
+raw id, a vendor or harness name (`Claude`, `Claude Code`), an
+email, or a link. Models misreport their own names, so recover the
+id the way the harness supplement specifies (transcript grep), not
+from self-knowledge.
+
+One trailer per contributing model, unique: when amending or
+extending a commit another model authored, keep its trailer and add
+your own; never duplicate a name or fold two models into one line.
+The key deliberately collides with no common trailer
+(`Signed-off-by`, `Co-authored-by`, `Reviewed-by`, …) so tooling and
+the attribution scan never conflate them.
+
+Interplay with `[no-attrib]`: the ban and strip flow target
+harness-injected attribution — `Co-Authored-By` trailers,
+generated-with banners, vendor emails, robot emoji. The
+`Contributing-model:` trailer is the sanctioned exception: neither
+the scan patterns nor `scripts/pre-push-no-attrib` match it, and it
+is never stripped. Conversely it must never grow toward the banned
+forms — no email, no link, no banner sentence — which would both
+break the short-name requirement and trip the scan.
 
 ## Amends
 

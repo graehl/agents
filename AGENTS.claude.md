@@ -26,7 +26,9 @@ strip procedure, and the rewrite lock it runs under live in
 `AGENTS.md` (§ Big-effect command gate, § Amends) and apply on every
 harness, since each injects its own marker. This harness's markers:
 the `Co-Authored-By: Claude … <noreply@anthropic.com>` trailer and
-the "Generated with Claude Code" PR banner.
+the "Generated with Claude Code" PR banner. The mandated
+`Contributing-model:` trailer (`AGENTS.md` § Commits) is sanctioned
+provenance, not one of these markers — it stays.
 
 Model tier: do not trust self-knowledge of your model name — models
 misreport it. Read the harness-recorded id from your own transcript:

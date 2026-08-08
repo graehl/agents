@@ -40,6 +40,15 @@ For implementation or bugfix work, search `tasks/*.md` when that directory
 exists, and cite the relevant file(s) in planning and conclusion. Task
 files should cross-reference relevant `topics/*.md`.
 
+Dated progress entries — a `tasks/*.md` or `docs/tactical/` status or
+plan note, a journal append — name the contributing model, in the same
+short form as the `Contributing-model:` commit trailer (§ Commits), so
+effort can be fairly attributed when several models or sessions touch
+one task. Topic docs carry no model identity. Prefer recording the
+session id over hand-counted effort stats (turns, user chars):
+transcripts make those mechanically derivable later, while live counts
+are unreliable across compaction and multi-session commits.
+
 ## Handoff audience
 
 A handoff or persistent plan — `last-session.md`, a `tasks/*.md` file, a
@@ -225,7 +234,10 @@ repo: condense there and discard. For one worth keeping as a file,
 redact/condense it for value and ask for review before git
 publication, into `topics/journals/` or a `journals/` subfolder
 beside the plan file being implemented. Name a journal file after the
-topic(s) or task(s) it touches.
+topic(s) or task(s) it touches. Beyond the fold accumulator, a
+journal is the place to log mid-task spec or requirement changes —
+dated, each marked user-directed or agent-derived — so drift from
+the original request stays reconstructible.
 
 ## Standalone bug-report intake
 
@@ -442,7 +454,10 @@ git log --format='%H %B' @{u}..HEAD |
 
 These shapes cover the trailers and banners agent harnesses inject
 (Claude, Copilot, Codex, Gemini, …) without matching vendor names in
-ordinary prose. No match (rg exits 1) satisfies the check. Inspect
+ordinary prose — and without matching the mandated
+`Contributing-model:` trailer (§ Commits), which is sanctioned
+provenance and is never stripped. No match (rg exits 1) satisfies
+the check. Inspect
 each hit — prose merely mentioning a marker passes. Every real
 marker is stripped before the push proceeds — every
 `Co-Authored-By:` trailer regardless of the author it names, and
@@ -694,7 +709,8 @@ permission, and that project rule governs there.
 
 ## Commit messages
 
-Trivial commits can be subject-only. Non-trivial messages are a narrative
+Trivial commits can be subject-only (the `Contributing-model:`
+trailer still applies). Non-trivial messages are a narrative
 synthesis of motivation and decision => change: describe purpose and
 outcome, cover every non-trivial file group, include main user decision
 points and non-obvious rejected approaches, exclude secrets and unrelated
@@ -756,6 +772,19 @@ Use the basename of the relevant `topics/<topic>.md`, copy it verbatim
 across the series, and use multiple trailers when a commit spans topics.
 The trailer marks thread membership, not merely that the diff touched a
 topic doc; details live in `topics/commits.md`.
+
+### Contributing-model trailer
+
+Every commit an agent authors carries a `Contributing-model: <name>`
+trailer — the short model name only (`Fable`, `Opus 5`, `5.6-Sol`),
+mapped from the harness-recorded model id (the harness supplement's
+transcript check; models misreport their own names). Never a vendor
+or harness name, raw model id, email, or link. One trailer per
+contributing model, additive across models and sessions, never
+duplicated. This is deliberate, user-mandated provenance for fair
+effort attribution — not an AI-attribution marker: the `[no-attrib]`
+scan does not match it, and it is never stripped. Details:
+`topics/commits.md`.
 
 # Code quality
 
