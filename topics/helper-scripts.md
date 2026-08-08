@@ -283,3 +283,51 @@ user@T+100s, assistant "Beta answer"@T+110s, assistant tool_use
 
 **Canonical source**: `scripts/queued-anchor` (in this repo).
 **Install target**: `~/bin/queued-anchor` (symlink by default).
+
+### perf-sweep
+
+Pre-run / end-of-session sweep for the perf measurement discipline in
+`topics/perf.md`: makes leftover measurement processes visible before
+they degrade a shared host, and reaps them on request. Report-first
+because debris is a finding — possibly a lifecycle defect in the
+measured system — so even a fully reaped sweep exits nonzero.
+
+**CLI**: `perf-sweep <marker> [--kill] [--kill-group] [--grace S]
+[--no-environ]`. `<marker>` is a regex (≥5 chars) matched against
+every process's `/proc/<pid>/cmdline` and, unless `--no-environ`, its
+`environ` — env matching finds measured-system children that
+inherited the marker env var but carry no argv marker. Prints
+greppable `SURVIVOR:` lines (`pid= pgid= age= src=argv|env cmd=`),
+`GROUPMATE:` lines for unmatched processes sharing a survivor's
+process group (the usual tell that the measured system, not the
+driver, spawned them), then with `--kill` a TERM → grace → KILL pass
+(`--kill-group` extends it to each survivor's whole group) with
+`KILLED:`/`UNKILLABLE:` lines, and a final `SWEEP:` summary line.
+Exit 0 = nothing matched; 10 = debris found (even if fully reaped);
+11 = debris remains after kill; 2 = usage (short/invalid marker,
+`--kill-group` without `--kill`).
+
+**Post-conditions**:
+- Never signals anything in report-only mode (the default).
+- Never signals a process unless its cmdline/environ matches the
+  marker or (under `--kill-group`) it shares a marked survivor's
+  process group; never signals itself, its ancestors, or pid/pgid
+  ≤ 1.
+- A post-kill rescan, not signal bookkeeping, decides exit 10 vs 11.
+- Exit 0 ⇔ no `SURVIVOR:` line printed.
+
+**Examples**:
+1. `perf-sweep no-such-marker-xyzzy` → `CLEAN: …`, exit 0.
+2. `setsid python3 -c 'import time; time.sleep(300)' --run-id M &`
+   then `perf-sweep M` → one `SURVIVOR: … src=argv …`, exit 10;
+   `perf-sweep M --kill` adds `KILLED:`, exit 10; rerun → exit 0.
+3. `PERF_RUN_ID=M setsid python3 -c '…sleep…' &` (no argv marker) →
+   `perf-sweep M` finds it as `src=env`; `perf-sweep M --no-environ`
+   exits 0.
+4. `setsid bash -c 'sleep 300 & exec python3 …sleep… --run-id M' &`
+   → `perf-sweep M` prints the python as `SURVIVOR:` and the
+   unmarked `sleep 300` as `GROUPMATE:`; `--kill --kill-group`
+   reaps both.
+
+**Canonical source**: `scripts/perf-sweep` (in this repo).
+**Install target**: `~/bin/perf-sweep` (symlink by default).

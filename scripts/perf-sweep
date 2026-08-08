@@ -1,0 +1,299 @@
+#!/usr/bin/env python3
+"""perf-sweep — find and optionally reap leftover perf-run processes.
+
+Part of the perf measurement discipline (topics/perf.md): before a
+measurement run and before a session ends, every process carrying the
+run marker must be found, reported, and brought down. Debris is a
+finding — it may indicate a lifecycle defect in the measured system,
+not just harness sloppiness — so the default mode is report-only and
+the exit code stays nonzero even after a successful reap.
+
+Spec with post-conditions and examples: topics/helper-scripts.md.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import signal
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+
+PROC = Path("/proc")
+CMD_TRUNC = 160
+# A too-short marker risks matching unrelated processes; with --kill that
+# is catastrophic on a shared host.
+MIN_MARKER_LEN = 5
+EXIT_CLEAN = 0
+EXIT_DEBRIS = 10
+EXIT_REMAINING = 11
+
+
+@dataclass
+class Finding:
+    pid: int
+    pgid: int | None
+    age: int | None
+    cmd: str
+    src: str  # "argv" | "env" | "group"
+
+
+def read_bytes(path: Path) -> bytes | None:
+    try:
+        return path.read_bytes()
+    except OSError:
+        return None
+
+
+def stat_fields(pid: int) -> list[bytes] | None:
+    """Fields of /proc/<pid>/stat after comm; comm may contain spaces."""
+    data = read_bytes(PROC / str(pid) / "stat")
+    if data is None:
+        return None
+    end = data.rfind(b")")
+    if end < 0:
+        return None
+    return data[end + 2 :].split()
+
+
+def ancestors(pid: int) -> set[int]:
+    """This process's ancestor chain (and pid 1), never sweep targets."""
+    out = {1}
+    while pid > 1:
+        out.add(pid)
+        fields = stat_fields(pid)
+        if fields is None or len(fields) < 2:
+            break
+        pid = int(fields[1])
+    return out
+
+
+def cmdline_of(pid: int) -> str | None:
+    data = read_bytes(PROC / str(pid) / "cmdline")
+    if not data:  # kernel thread or zombie
+        return None
+    return data.replace(b"\0", b" ").decode("utf-8", "replace").strip()
+
+
+def environ_of(pid: int) -> str | None:
+    data = read_bytes(PROC / str(pid) / "environ")
+    if not data:
+        return None
+    return data.replace(b"\0", b" ").decode("utf-8", "replace")
+
+
+def pgid_of(pid: int) -> int | None:
+    try:
+        return os.getpgid(pid)
+    except OSError:
+        return None
+
+
+def age_of(pid: int, uptime: float, hz: int) -> int | None:
+    fields = stat_fields(pid)
+    if fields is None or len(fields) < 20:
+        return None
+    return max(0, int(uptime - int(fields[19]) / hz))
+
+
+def alive(pid: int) -> bool:
+    """True while the process exists and is not a zombie."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        pass
+    fields = stat_fields(pid)
+    return fields is not None and fields[0:1] != [b"Z"]
+
+
+def all_pids() -> list[int]:
+    return sorted(int(p.name) for p in PROC.iterdir() if p.name.isdigit())
+
+
+def scan(
+    marker: re.Pattern[str], exclude: set[int], *, use_env: bool
+) -> dict[int, Finding]:
+    uptime_data = read_bytes(PROC / "uptime")
+    uptime = float(uptime_data.split()[0]) if uptime_data else 0.0
+    hz = os.sysconf("SC_CLK_TCK")
+    found: dict[int, Finding] = {}
+    for pid in all_pids():
+        if pid in exclude:
+            continue
+        cmd = cmdline_of(pid)
+        if cmd is None:
+            continue
+        src = None
+        if marker.search(cmd):
+            src = "argv"
+        elif use_env:
+            env = environ_of(pid)
+            if env is not None and marker.search(env):
+                src = "env"
+        if src is None:
+            continue
+        found[pid] = Finding(
+            pid, pgid_of(pid), age_of(pid, uptime, hz), cmd[:CMD_TRUNC], src
+        )
+    return found
+
+
+def groupmates(survivors: dict[int, Finding], exclude: set[int]) -> dict[int, Finding]:
+    """Unmatched processes sharing a survivor's process group.
+
+    These are the usual tell that the measured system, not the driver,
+    spawned the debris: they inherited the group but carry no marker.
+    """
+    pgids = {f.pgid for f in survivors.values() if f.pgid is not None and f.pgid > 1}
+    if not pgids:
+        return {}
+    uptime_data = read_bytes(PROC / "uptime")
+    uptime = float(uptime_data.split()[0]) if uptime_data else 0.0
+    hz = os.sysconf("SC_CLK_TCK")
+    out: dict[int, Finding] = {}
+    for pid in all_pids():
+        if pid in exclude or pid in survivors:
+            continue
+        pgid = pgid_of(pid)
+        if pgid not in pgids:
+            continue
+        cmd = cmdline_of(pid)
+        if cmd is None:
+            continue
+        out[pid] = Finding(pid, pgid, age_of(pid, uptime, hz), cmd[:CMD_TRUNC], "group")
+    return out
+
+
+def emit(tag: str, f: Finding) -> None:
+    print(f"{tag}: pid={f.pid} pgid={f.pgid} age={f.age}s src={f.src} cmd={f.cmd}")
+
+
+def signal_targets(pids: set[int], pgids: set[int], sig: signal.Signals) -> set[int]:
+    """Best-effort signal; returns pids refused with EPERM."""
+    refused: set[int] = set()
+    for pgid in sorted(pgids):
+        if pgid <= 1:
+            continue
+        try:
+            os.killpg(pgid, sig)
+        except (ProcessLookupError, PermissionError):
+            pass
+    for pid in sorted(pids):
+        if pid <= 1:
+            continue
+        try:
+            os.kill(pid, sig)
+        except ProcessLookupError:
+            pass
+        except PermissionError:
+            refused.add(pid)
+    return refused
+
+
+def wait_gone(pids: set[int], grace: float) -> set[int]:
+    deadline = time.monotonic() + grace
+    live = {p for p in pids if alive(p)}
+    while live and time.monotonic() < deadline:
+        time.sleep(0.2)
+        live = {p for p in live if alive(p)}
+    return live
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        prog="perf-sweep",
+        description="Inventory (and with --kill, reap) processes left over from "
+        "marker-tagged perf measurement runs. Exit 0 only when nothing matched; "
+        "10 when debris was found (even if fully reaped); 11 when debris "
+        "survived the kill.",
+    )
+    parser.add_argument(
+        "marker", help="regex matched against /proc/*/cmdline (and environ)"
+    )
+    parser.add_argument(
+        "--kill",
+        action="store_true",
+        help="SIGTERM matched processes, then SIGKILL stragglers after --grace",
+    )
+    parser.add_argument(
+        "--kill-group",
+        action="store_true",
+        help="with --kill, also signal each survivor's whole process group",
+    )
+    parser.add_argument(
+        "--grace",
+        type=float,
+        default=5.0,
+        help="seconds between SIGTERM and SIGKILL (default 5)",
+    )
+    parser.add_argument(
+        "--no-environ",
+        action="store_true",
+        help="match argv only, skip /proc/*/environ (env matching finds "
+        "measured-system children that inherited the marker env var but "
+        "carry no argv marker)",
+    )
+    args = parser.parse_args()
+    if len(args.marker) < MIN_MARKER_LEN:
+        parser.error(
+            f"marker shorter than {MIN_MARKER_LEN} chars is too broad to sweep safely"
+        )
+    if args.kill_group and not args.kill:
+        parser.error("--kill-group requires --kill")
+    try:
+        marker = re.compile(args.marker)
+    except re.error as exc:
+        parser.error(f"bad marker regex: {exc}")
+
+    exclude = ancestors(os.getpid())
+    survivors = scan(marker, exclude, use_env=not args.no_environ)
+    mates = groupmates(survivors, exclude)
+    for pid in sorted(survivors):
+        emit("SURVIVOR", survivors[pid])
+    for pid in sorted(mates):
+        emit("GROUPMATE", mates[pid])
+
+    if not survivors:
+        print(f"CLEAN: no process matches marker {args.marker!r}")
+        return EXIT_CLEAN
+
+    reaped = 0
+    remaining: set[int] = set()
+    if args.kill:
+        targets = set(survivors)
+        pgids: set[int] = set()
+        if args.kill_group:
+            targets |= set(mates)
+            pgids = {
+                f.pgid for f in survivors.values() if f.pgid is not None and f.pgid > 1
+            }
+        refused = signal_targets(targets, pgids, signal.SIGTERM)
+        remaining = wait_gone(targets - refused, args.grace)
+        if remaining:
+            refused |= signal_targets(remaining, pgids, signal.SIGKILL)
+            remaining = wait_gone(remaining - refused, 2.0)
+        # The rescan, not signal bookkeeping, is the authoritative check.
+        remaining = {p for p in remaining | refused if alive(p)}
+        remaining |= set(scan(marker, exclude, use_env=not args.no_environ))
+        reaped = len(targets - remaining)
+        for pid in sorted(targets - remaining):
+            print(f"KILLED: pid={pid}")
+        for pid in sorted(remaining):
+            reason = "EPERM" if pid in refused else "survived-SIGKILL"
+            print(f"UNKILLABLE: pid={pid} reason={reason}")
+
+    code = EXIT_REMAINING if remaining else EXIT_DEBRIS
+    print(
+        f"SWEEP: survivors={len(survivors)} groupmates={len(mates)} "
+        f"reaped={reaped} remaining={len(remaining)} exit={code}"
+    )
+    return code
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -48,10 +48,14 @@ owner.
 - **Teardown runs on failure paths.** Crashed scenarios are the main
   orphan source; drivers trap `EXIT`/`INT`/`TERM` and kill their
   process groups there too.
-- **Sweep before, verify after.** Before a run, kill leftovers from
-  prior runs found by the marker. Before ending the session or
-  claiming completion, confirm `pgrep -f <marker>` returns nothing.
-  An orphan you cannot kill is reported, not shrugged off.
+- **Sweep before, verify after.** Before a run, and again before
+  ending the session or claiming completion, run `perf-sweep
+  <marker>` (spec: `~/agents/topics/helper-scripts.md`; fall back to
+  `pgrep -f <marker>` where it is not installed). It reports
+  survivors and their unmarked group-mates and exits 0 only when
+  nothing matches; reap with `--kill` (add `--kill-group` to take
+  each survivor's whole group). An orphan you cannot kill is
+  reported, not shrugged off.
 - **Kill only by marker.** Never `pkill node` / `pkill chrome`-style
   sweeps on a shared host — peers and production run the same
   binaries. This is the shared-workdir discard ban's process-space
@@ -61,6 +65,19 @@ owner.
   restart is a big-effect state change — evidence first). If your
   run degraded it, say so immediately rather than silently fixing
   it.
+
+Debris the sweep finds is a finding, not just mess. When teardown
+claimed a clean exit yet the next sweep still catches survivors,
+name the source before reaping: a harness teardown bug, or a
+lifecycle defect in the measured system itself — a server that
+orphans its helpers on shutdown is a real measurement result, and it
+goes to the measuring agent's attention (a `gaps/` entry or task
+note), not silently into the kill. `GROUPMATE:` and `src=env`
+lines — processes that inherited a survivor's group or the marker
+environment but carry no argv marker — are the usual tell that the
+measured system, not the driver, spawned the debris. `perf-sweep`
+exits nonzero whenever debris existed, even after a clean reap, so a
+driver that gates the next run on exit 0 cannot overlook it.
 
 ## Host baseline: contention and variance
 
