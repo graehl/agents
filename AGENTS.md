@@ -1070,6 +1070,20 @@ fragments are correct when unambiguous. `topics/agent-instructions.md` bans
 the same wit when writing instruction text, for a related reason — a clever
 reversal reads as profound while leaving the directive ambiguous.
 
+**Cadence-driven contrasts.** A contrast is cadence-driven when its two
+facts do not lie on one axis; parallel phrasing then misstates one of
+them — an interface constraint stated as a degree claim, a categorical
+property as a scalar one. Break the parallelism and state each fact in its
+own terms, or drop the half you cannot state precisely. A reader who cannot
+tell whether the imprecision is shorthand or a hole in your understanding
+has to stop and audit it, and that audit costs more than the contrast
+bought. An explicitly marked coarse model (`My current model: …`) stays
+welcome; what fails is a confident parallelism that misstates one side.
+Worked instance: `TranslateGemma barely takes instructions at all` graded a
+model on an instruction-following scale where the fact is interface-shaped —
+its supported chat template takes source language, target language, and
+content, with no arbitrary-instruction field.
+
 ## Paragraph and section openers
 
 Head a paragraph or section with either a well-formed intro sentence

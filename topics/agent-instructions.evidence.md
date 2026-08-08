@@ -1144,3 +1144,27 @@ the sweep single-target.
 - **Status** — the recurring style cost and preference are user-observed; the
   family scope and behavioral effect remain `assumed`, with no cross-model
   outcome comparison.
+
+## 2026-08-08 — cadence-driven contrast: the defect is axis mismatch
+
+- **Escalation** — after the Anthropic-family patch landed, graehl endorsed a
+  compact diagnosis of the same incident and asked for it in the all-models
+  file: *a contrast is cadence-driven when its two facts do not lie on one
+  axis; parallel phrasing then misstates one of them (an interface constraint
+  becomes a degree claim)*. `AGENTS.md` § *Interaction style* now carries it
+  with the fix (break the parallelism) and the audit cost as the why.
+- **Why the sharper name matters** — the earlier framing was "vague gloss",
+  which invites an agent to fix the wrong variable by adding words. Axis
+  mismatch says a contrast is fine when both facts genuinely share an axis,
+  and that the repair for one that does not is to stop writing them in
+  parallel, not to elaborate either half.
+- **Counter-case graehl raised himself** — a coarse or abstract marker that
+  exposes a wrong model (his or the agent's) earns its place; the
+  TranslateGemma audit did exactly that for his refusal-training belief. The
+  all-models rule therefore keeps the `My current model:` escape inline, or it
+  would push an uncertain agent toward inventing a precise-sounding fact —
+  a worse failure than the contrast it replaced.
+- **Placement** — general enough for every model, so it sits in `AGENTS.md`
+  rather than only the family patch; `AGENTS.anthropic.md` now names the rule
+  so the family tightening and the general rule stay linked.
+- **Status** — `assumed`; endorsed wording, no outcome comparison.
