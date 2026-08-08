@@ -302,7 +302,10 @@ greppable `SURVIVOR:` lines (`pid= pgid= age= src=argv|env cmd=`),
 process group (the usual tell that the measured system, not the
 driver, spawned them), then with `--kill` a TERM → grace → KILL pass
 (`--kill-group` extends it to each survivor's whole group) with
-`KILLED:`/`UNKILLABLE:` lines, and a final `SWEEP:` summary line.
+`KILLED:`/`UNKILLABLE:` lines. A `PROTECTED_GROUP:` line means a
+survivor shares a process group with the sweep or one of its ancestors;
+that group is not signaled, and only its marker-matched processes are
+reaped. A final `SWEEP:` summary line follows.
 Exit 0 = nothing matched; 10 = debris found (even if fully reaped);
 11 = debris remains after kill; 2 = usage (short/invalid marker,
 `--kill-group` without `--kill`).
@@ -313,6 +316,9 @@ Exit 0 = nothing matched; 10 = debris found (even if fully reaped);
   marker or (under `--kill-group`) it shares a marked survivor's
   process group; never signals itself, its ancestors, or pid/pgid
   ≤ 1.
+- Never group-signals a process group containing itself or an ancestor;
+  marker-matched processes in such a group still receive the requested
+  per-process signals.
 - A post-kill rescan, not signal bookkeeping, decides exit 10 vs 11.
 - Exit 0 ⇔ no `SURVIVOR:` line printed.
 

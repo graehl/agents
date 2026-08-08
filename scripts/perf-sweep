@@ -268,10 +268,26 @@ def main() -> int:
         targets = set(survivors)
         pgids: set[int] = set()
         if args.kill_group:
-            targets |= set(mates)
-            pgids = {
+            candidate_pgids = {
                 f.pgid for f in survivors.values() if f.pgid is not None and f.pgid > 1
             }
+            protected_pgids = {
+                pgid
+                for pid in exclude
+                if (pgid := pgid_of(pid)) is not None and pgid > 1
+            }
+            protected_matches = candidate_pgids & protected_pgids
+            pgids = candidate_pgids - protected_matches
+            targets |= {
+                pid
+                for pid, finding in mates.items()
+                if finding.pgid not in protected_matches
+            }
+            for pgid in sorted(protected_matches):
+                print(
+                    f"PROTECTED_GROUP: pgid={pgid} "
+                    "reason=contains-sweep-or-ancestor action=matched-pids-only"
+                )
         refused = signal_targets(targets, pgids, signal.SIGTERM)
         remaining = wait_gone(targets - refused, args.grace)
         if remaining:
