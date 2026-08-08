@@ -34,7 +34,9 @@ counter, so jobs never masquerade as the agent.
 |---|---|---|---|---|
 | `AGENTS.md` | Authoritative global operating contract: session recovery, active sessions, task/topic use, edit discipline, commits, glossary, gates, tool conventions. | In: user/project requests, repo state, companion docs. Out: behavioral constraints, commit/topic policy. | Provider supplements and skills build on it. | verified: `wc -l AGENTS.md` (≈32KB) |
 | `AGENTS.user.md` | Personal supplement (active-project hints, ML explanation prefs) layered after the global contract. | In: graehl-specific defaults. Out: narrower per-user policy. | Read alongside `AGENTS.md` each session. | verified: `cat AGENTS.user.md` |
-| `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.weak.md` | Provider/capability supplements: session-id discovery, log paths, weak-model amendments. Harness mechanics only. | In: provider runtime facts. Out: id/log guidance. | Loaded after `AGENTS.md` by harness routing. | verified: `cat AGENTS.claude.md` |
+| `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md`, `AGENTS.copilot.md` | Harness/route supplements: session-id discovery, log paths, launcher quirks, and model-patch routing. | In: provider runtime facts. Out: id/log guidance and routed supplements. | Loaded after `AGENTS.md` for the active harness/route. | verified: `cat AGENTS.claude.md` |
+| `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier supplements: judgment latitude for frontier models and extra scaffolding for weak models. | In: harness-recorded model tier. Out: tier-specific behavior. | Routed by provider supplements. | verified: `cat AGENTS.frontier.md AGENTS.weak.md` |
+| `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md` | Model-family behavior patches for observed model-specific failure modes. | In: harness-recorded model id. Out: narrower behavioral constraints. | Routed by provider supplements; family and subtype patches may stack. | verified: `cat AGENTS.anthropic.md AGENTS.opus.md AGENTS.sol.md` |
 | `README.md`, `RESEARCH.md`, `RUNS.md`, `feature-branch.md` | Repo intro + opt-in companion policy (research method, run ops, branch-per-feature). | In: triggering work mode. Out: scoped extra rules. | `AGENTS.md` "Optional supplements" loads on trigger. | verified: `cat README.md` |
 | `GLOSSARY.md` | Single prescriptive vocabulary table. | In: curated rows + topic ledes. Out: reused terms. | Rules in `topics/glossary.md`. | verified: `cat GLOSSARY.md` |
 | `TOPICS.md`, `topic-definitions.md` | Topic-granularity guidance and curated jargon namespace. | In/Out: vocabulary calibration. | Consulted when creating/assessing topics. | verified: `rg --files` |
@@ -57,13 +59,18 @@ counter, so jobs never masquerade as the agent.
    commit, gate, and tool policy.
 2. `AGENTS.user.md` layers graehl-specific project/explanation preferences.
 3. The provider supplement (`AGENTS.claude.md` for this harness) adds
-   session-id discovery and transcript log paths — mechanics only.
-4. Triggered companions (`RESEARCH.md`, `RUNS.md`, `feature-branch.md`) and
+   session-id discovery and transcript log paths, then routes capability- and
+   model-specific supplements from the harness-recorded model id.
+4. Capability and model supplements add tier latitude or tighten behavior for
+   observed model-family failure modes.
+5. Triggered companions (`RESEARCH.md`, `RUNS.md`, `feature-branch.md`) and
    relevant `topics/*.md` load on demand.
 
 Seams: global rules → `AGENTS.md`; provider mechanics → `AGENTS.<provider>.md`;
-personal prefs → `AGENTS.user.md`; concern contracts → `topics/<name>.md`.
-Evidence: verified: `cat AGENTS.md AGENTS.user.md AGENTS.claude.md`.
+model behavior → `AGENTS.<model-family>.md`; personal prefs → `AGENTS.user.md`;
+concern contracts → `topics/<name>.md`.
+Evidence: verified: `cat AGENTS.md AGENTS.user.md AGENTS.claude.md
+AGENTS.anthropic.md`.
 
 ### Agentctl Launch And State
 
@@ -200,7 +207,7 @@ Run from `/home/graehl/agents`:
 rg --files
 ls topics/ skills/
 for d in skills/*/; do rg -n '^name:|^description:' "$d/SKILL.md" | head -2; done
-cat README.md AGENTS.md AGENTS.user.md AGENTS.claude.md GLOSSARY.md
+cat README.md AGENTS.md AGENTS.user.md AGENTS.claude.md AGENTS.anthropic.md GLOSSARY.md
 cat topics/agentctl.md topics/provenance-tracking.md topics/agent-instructions.md topics/glossary.md
 cat agentctl skills/others/SKILL.md skills/code-map/SKILL.md
 wc -l agentctl.py artifact_meta.py agentctl_plugins/aim.py tests/test_agentctl.py

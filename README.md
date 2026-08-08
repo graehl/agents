@@ -56,7 +56,8 @@ branches, commits, shared workdirs, or private notes.
 | --- | --- |
 | `AGENTS.md` | Global operating contract: session entry, worktree safety, edit discipline, commits, topics, glossary, and interaction rules. |
 | `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md` | Provider-specific mechanics such as session identifiers, log locations, and harness quirks. |
-| `AGENTS.weak.md` | Extra reminders for smaller or less reliable agents; load-bearing policy still belongs in `AGENTS.md`. |
+| `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier latitude and extra reminders; load-bearing policy still belongs in `AGENTS.md`. |
+| `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md` | Model-family behavior patches selected from the harness-recorded model id. |
 | `RESEARCH.md` | Research, evaluation, paper, and artifact discipline. |
 | `research-advisor.md` | Handoff protocol for the long-lived, normally project-wide skeptical research-advisor session. |
 | `advisor/charter.md` | Durable global mandate and operating behavior loaded into every research-advisor session. |

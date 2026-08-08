@@ -18,11 +18,12 @@ surfaced, you are weak tier: read `~/agents/AGENTS.weak.md` and do
 not read `AGENTS.frontier.md`. At GPT-5.5 or above, read
 `~/agents/AGENTS.frontier.md` next — frontier-tier latitude.
 
-Then load the model-scoped behavior patch selected by that same recorded id:
-an id containing `opus` reads `~/agents/AGENTS.opus.md`; an id containing a
-`sol` model-family segment (for example, `gpt-5.6-sol`) reads
-`~/agents/AGENTS.sol.md`. This routing follows the model across harnesses
-rather than assuming Codex always runs Sol.
+Then load the model-scoped behavior patches selected by that same recorded id:
+an id containing `claude` reads `~/agents/AGENTS.anthropic.md`; an id containing
+`opus` also reads `~/agents/AGENTS.opus.md`; an id containing a `sol`
+model-family segment (for example, `gpt-5.6-sol`) reads
+`~/agents/AGENTS.sol.md`. This routing follows the model across harnesses rather
+than assuming Codex always runs Sol.
 
 ## Session Identity
 

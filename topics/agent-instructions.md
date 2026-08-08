@@ -255,13 +255,15 @@ Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.
 Anything binding belongs in `AGENTS.md`.
 
-`AGENTS.opus.md` and `AGENTS.sol.md` are model-scoped behavior patches. Both
-harness supplements route to them from the harness-recorded id, so a model
-keeps its patch when served through another harness. Opus carries the
-path-trace rule against overconfident assertions about unread code and the
-boot-list check before calling a request verb ambiguous. Sol carries
-the confirmation rule formerly housed in the Codex supplement and the
-direct-work correction for Sol served through Claude Gateway.
+`AGENTS.anthropic.md`, `AGENTS.opus.md`, and `AGENTS.sol.md` are model-scoped
+behavior patches. Both harness supplements route to them from the
+harness-recorded id, so a model keeps its patch when served through another
+harness. The Anthropic-family patch requires technical glosses to state the
+relevant operational distinction, expose uncertainty, or be omitted. Opus
+additionally carries the path-trace rule against overconfident assertions about
+unread code and the boot-list check before calling a request verb ambiguous.
+Sol carries the confirmation rule formerly housed in the Codex supplement and
+the direct-work correction for Sol served through Claude Gateway.
 
 Edit policy: model supplements carry model-specific tightenings only. A rule
 that would improve every model belongs in `AGENTS.md`; a relaxation belongs in

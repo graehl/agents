@@ -162,6 +162,16 @@ summaries.)
   graehl skips it is real, deliberate repetition is warranted — restate
   critical warnings.
 
+- **Optional glosses: exact, diagnostic, or omitted.** When a shared name is
+  enough for the point, stop at the name. Add a parenthetical, analogy, or
+  contrast only if it states the concrete operational distinction the claim
+  uses. An optional gloss introduces a new knowledge claim; a vague scalar
+  characterization makes graehl test whether the underlying property is
+  understood. A deliberately coarse summary is useful when it exposes a
+  possibly wrong model. Prefix it with `My current model:` or mark it uncertain
+  instead of presenting it as an explanation. This is not an expansion mandate:
+  name only the differentiator needed here.
+
 - **Preemptive rebuttals: a tolerated cost, kept cheap to skip.** "You
   might be wrong" / "you might mean X, not Y" pushback isn't something I
   enjoy — but I'll pay the skip-cost of a not-applicable "just in case" one

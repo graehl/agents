@@ -1086,3 +1086,61 @@ the sweep single-target.
   overshooting by a full poll.
 - **Status** — implementation and regression coverage added; behavioral effect
   on future agent command choice remains unmeasured.
+
+## 2026-08-08 — optional technical glosses are epistemic claims
+
+- **Incident** — a `claude-fable-5` status summary correctly limited a result
+  to primary-stage routing, then volunteered this parenthetical:
+  `Gemma-4 honors copy instructions; TranslateGemma barely takes instructions
+  at all`. The vague scalar phrase made graehl doubt whether the agent understood
+  TranslateGemma's translation-specific interface, a fact he otherwise would
+  have assumed from the untouched model name. The extra prose reduced
+  confidence and forced an object-level audit.
+- **Technical check** — Google's [TranslateGemma model
+  card](https://huggingface.co/google/translategemma-27b-it) says the supported
+  chat template accepts exactly one text/image content item with source and
+  target language codes and produces translation; the documented content schema
+  has no arbitrary-instruction field. The card also says manually constructed
+  alternate prompts may work but are unsupported. Because open-weights callers
+  control input construction, deterministic schema rejection can enforce any
+  desired `refusal` before inference; no learned refusal is needed for this
+  interface. The supported template is a caller-side interface, not a model
+  refusal policy.
+- **Diagnosis corrected after the check** — given those facts, `barely takes
+  instructions at all` is reasonable high-level shorthand and likely indicated
+  that Fable shared the correct interface model. It is not evidence that Fable
+  misunderstood TranslateGemma. The failure remains communicative: a volunteered
+  graded gloss made graehl verify that understanding. The interrogation happened
+  to correct graehl's mistaken belief that TranslateGemma was trained to refuse
+  invalid formats, but he explicitly retains the style preference because the
+  same audit cost has recurred across many other Anthropic-model interactions.
+- **Scope** — the user-level rule records how graehl interprets every agent's
+  volunteered gloss: exact, deliberately diagnostic, or omitted. The observed
+  recurring pattern is Anthropic-family style, with this incident supplied by
+  Fable; graehl has not observed it in Sol. The stronger worked correction
+  therefore lives in `AGENTS.anthropic.md`. Both harness supplements route
+  recorded `claude` model ids there; Opus continues onward to its additional
+  subtype patch. This avoids attaching an unobserved model-specific defect to
+  Sol while preserving the general communication preference.
+- **Trace: shared term is sufficient** — a summary says the escalation gap is
+  the known TranslateGemma placeholder-discipline effect and stops. The rule
+  adds no explanation; confidence is preserved without expansion.
+- **Trace: mechanism matters** — a comparison relies on arbitrary copy
+  instructions being available in Gemma-4 but absent from TranslateGemma's
+  supported template. The rule states that interface difference rather than
+  grading TranslateGemma as generally bad at taking instructions.
+- **Trace: uncertain understanding** — an agent suspects a model accepts only
+  translation controls but has not checked. `My current model: the supported
+  template has no arbitrary-instruction field (unverified)` exposes the useful
+  possible misconception without dressing it as an explanation.
+- **Trace: explicit partial disagreement** — graehl says, `TranslateGemma only
+  allows strict-template prompt performance`. The agent states the split rather
+  than silently accepting or vaguely rephrasing it: the strict template is the
+  supported interface, but `only allows` is too strong for open weights because
+  callers may send manually constructed token sequences; any guaranteed
+  rejection is caller-side. This trace is already required by `AGENTS.md`
+  § *Agreement and disagreement quality* plus the new gloss rule, so it adds no
+  duplicate boot instruction.
+- **Status** — the recurring style cost and preference are user-observed; the
+  family scope and behavioral effect remain `assumed`, with no cross-model
+  outcome comparison.
