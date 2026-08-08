@@ -1,0 +1,18 @@
+target-version = "py310"
+
+[lint.per-file-ignores]
+"agentctl.py" = [
+  # Plugin, process, and filesystem boundaries deliberately contain failures.
+  "BLE001",
+  # Best-effort discovery paths intentionally skip unreadable candidates.
+  "S110",
+  "S112",
+  # Malformed declaration JSON is a bad value, not a caller type error.
+  "TRY004",
+]
+"tests/test_agentctl.py" = [
+  # The suite runner catches every test failure to report the complete set.
+  "BLE001",
+  # Tests inspect return codes explicitly, including expected failures.
+  "PLW1510",
+]

@@ -7,17 +7,16 @@ import datetime as dt
 import importlib
 import json
 import os
-from pathlib import Path
 import re
 import shlex
 import signal
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import acli
 import acli.args as acli_args
-
 
 CODE_ROOT = Path(__file__).resolve().parent
 ROOT = Path(os.environ.get("AGENTCTL_ROOT") or os.getcwd()).expanduser().resolve()
@@ -175,13 +174,13 @@ def parse_duration_seconds(text: str) -> int:
     scales = {"s": 1.0, "m": 60.0, "h": 3600.0, "d": 86400.0}
     for match in matches:
         total += float(match.group(1)) * scales[match.group(2)]
-    return int(round(total))
+    return round(total)
 
 
-def format_duration(seconds: float | int | None) -> str:
+def format_duration(seconds: float | None) -> str:
     if seconds is None:
         return "?"
-    total = max(0, int(round(float(seconds))))
+    total = max(0, round(float(seconds)))
     days, rem = divmod(total, 86400)
     hours, rem = divmod(rem, 3600)
     minutes, secs = divmod(rem, 60)
@@ -2118,8 +2117,7 @@ def stat_artifact(path: str | Path, *, missing_ok: bool = False) -> dict:
                 continue
             if child.is_file():
                 total += cst.st_size
-            if cst.st_mtime > newest:
-                newest = cst.st_mtime
+            newest = max(newest, cst.st_mtime)
         rec["size"] = total
         rec["mtime"] = dt.datetime.fromtimestamp(newest, tz=dt.timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
@@ -2694,8 +2692,10 @@ def after_target_done(target: dict) -> tuple[bool, int, str]:
                     return (
                         False,
                         0,
-                        f"output={output} producer job={producer['job']} status={status} "
-                        f"elapsed={elapsed_estimate_text(producer)}",
+                        (
+                            f"output={output} producer job={producer['job']} status={status} "
+                            f"elapsed={elapsed_estimate_text(producer)}"
+                        ),
                     )
                 rc = status_returncode_exit_code(producer)
                 if status != "finished":
@@ -2704,15 +2704,19 @@ def after_target_done(target: dict) -> tuple[bool, int, str]:
                     return (
                         True,
                         rc,
-                        f"producer job={producer['job']} ended status={status} "
-                        f"returncode={producer.get('returncode')} out={output}",
+                        (
+                            f"producer job={producer['job']} ended status={status} "
+                            f"returncode={producer.get('returncode')} out={output}"
+                        ),
                     )
                 sidecar = completion_sidecar(output)
                 return (
                     True,
                     0,
-                    f"producer job={producer['job']} finished returncode=0 "
-                    f"sidecar={sidecar or 'none'} out={output}",
+                    (
+                        f"producer job={producer['job']} finished returncode=0 "
+                        f"sidecar={sidecar or 'none'} out={output}"
+                    ),
                 )
             sidecar = completion_sidecar(output)
             if sidecar is not None:
@@ -3678,10 +3682,11 @@ def gpu_activity_seen_since_launch(
         return True
     launch_util = launch_stats.get("utilization_gpu_pct")
     current_util = stats.get("utilization_gpu_pct")
-    if current_util is not None and float(current_util) >= 10.0:
-        if launch_util is None or float(current_util) >= float(launch_util) + 10.0:
-            return True
-    return False
+    return (
+        current_util is not None
+        and float(current_util) >= 10.0
+        and (launch_util is None or float(current_util) >= float(launch_util) + 10.0)
+    )
 
 
 def poll_watch_gpu_state(
@@ -3907,14 +3912,18 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
         if proc_returncode is None:
             proc_returncode = reap_proc(proc)
         state = load_job(args.job)
-        if proc is not None and proc_returncode is not None:
-            if int(state.get("pid", -1)) == proc.pid and (
+        if (
+            proc is not None
+            and proc_returncode is not None
+            and int(state.get("pid", -1)) == proc.pid
+            and (
                 state.get("status") == "running" or state.get("returncode") == "unknown"
-            ):
-                state = mark_state_finished(state, proc_returncode)
-                state = finalize_finished_state(state)
-                write_json(Path(state["state_path"]), state)
-                write_json(current_path(state["job"]), state)
+            )
+        ):
+            state = mark_state_finished(state, proc_returncode)
+            state = finalize_finished_state(state)
+            write_json(Path(state["state_path"]), state)
+            write_json(current_path(state["job"]), state)
         if log_path.exists():
             try:
                 data = log_path.read_bytes()
