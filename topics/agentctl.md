@@ -150,6 +150,15 @@ window.
   useful but live training-log traffic is not. `watch --tail N` has different,
   explicitly live-debug semantics: it prints the last `N` existing lines once
   at attachment, then streams only bytes appended after that snapshot.
+- Both verbs accept a native observation bound via `--timeout SECONDS` (0 =
+  unbounded). `wait` reports an unmet target and returns 1. `watch` leaves the
+  job running, returns 124, and writes
+  `[agentctl-watch-timeout-v1] job=<name> status=<state> timeout=<seconds>s` to
+  its own stderr. If the job reaches terminal state first, `watch` instead
+  returns the job's exit code unchanged; a payload exit of 124 has the normal
+  `[watch] done: ... returncode=124` output and no timeout marker. Use these
+  native options rather than shell `timeout` or a `tail` pipeline, which
+  obscures which process supplied the enclosing shell status.
 - Default `list` is a catch-up view, not just a live-process view: it shows
   live jobs (`running` and queued `waiting` behind `--after`) plus enough
   recent finished jobs to reach `--show-last` rows total (default 6), when

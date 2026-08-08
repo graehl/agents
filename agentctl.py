@@ -140,6 +140,8 @@ DEFAULT_ZERO_COMPUTE_REPORT_INTERVAL_S = 300.0
 DEFAULT_ZERO_COMPUTE_INTERRUPT_AFTER_S = 1200.0
 DEFAULT_ZERO_COMPUTE_MIN_VRAM_MIB = 3000
 DEFAULT_WAIT_AFTER_UNKNOWN_GRACE_S = 15.0
+WATCH_TIMEOUT_EXIT_CODE = 124
+WATCH_TIMEOUT_MARKER = "agentctl-watch-timeout-v1"
 
 
 def utc_now() -> str:
@@ -3843,6 +3845,9 @@ def wait_work(args: argparse.Namespace) -> int:
 
 def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int:
     """Stream new log lines until the job is no longer running, then print final status."""
+    timeout = float(getattr(args, "timeout", 0.0) or 0.0)
+    started = time.monotonic()
+    deadline = started + timeout if timeout > 0 else None
     if getattr(args, "notify_gpu_idle", False):
         if args.notify_max_memory_used is None:
             args.notify_max_memory_used = DEFAULT_IDLE_GPU_MEMORY_USED_MIB
@@ -4084,7 +4089,18 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                     flush=True,
                 )
                 waiting_for_gpu_reported = True
-        time.sleep(args.poll)
+        if deadline is not None and now >= deadline:
+            print(
+                f"[{WATCH_TIMEOUT_MARKER}] job={state['job']} "
+                f"status={current_status} timeout={timeout:g}s",
+                file=sys.stderr,
+                flush=True,
+            )
+            return WATCH_TIMEOUT_EXIT_CODE
+        sleep_for = args.poll
+        if deadline is not None:
+            sleep_for = min(sleep_for, max(0.0, deadline - time.monotonic()))
+        time.sleep(sleep_for)
 
 
 def stop(args: argparse.Namespace) -> int:
@@ -4627,6 +4643,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=20,
         help="Print last N lines of existing log before streaming (0 = start from current end).",
+    )
+    s.add_argument(
+        "--timeout",
+        type=float,
+        default=0.0,
+        help="Maximum seconds to watch; 0 means no timeout.",
     )
     s.add_argument(
         "--gpu",

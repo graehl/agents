@@ -1062,3 +1062,27 @@ the sweep single-target.
   counter-indicated ("do not fold away the core investigation").
 - **Status** — `provisional`; user-specified; no delegation-rate or
   outcome measurement.
+
+## 2026-08-08 — native agentctl watch timeout preserves exit provenance
+
+- **Incident** — a Fable session ran `timeout 3300 ./agentctl watch ... 2>&1 |
+  tail -3`. Bash therefore presented `tail`'s status as the pipeline status,
+  while `timeout`/termination lines and agentctl's watched-job return code
+  appeared together as body text. The resulting explanation had to reconstruct
+  which exit belonged to the payload, shell wrapper, pipeline tail, and tool
+  call. The user initially attributed the command to Sol, then corrected the
+  model identity to Fable; the failure and fix are model-agnostic.
+- **Decision** — add `watch --timeout` beside its existing `--tail`. Terminal
+  completion still returns the watched job's exact exit code. Observation
+  timeout leaves the job running and returns 124 plus the stderr magic marker
+  `[agentctl-watch-timeout-v1]`; the pair distinguishes it from a payload that
+  itself exits 124. `RUNS.md` now forbids the shell wrapper/pipeline form and
+  gives the native one-command replacement.
+- **Trace** — a running job with `--tail 2 --timeout 3300` replays two existing
+  log lines, streams additions, and returns 124 + marker at 55 minutes without
+  stopping the job. A job that exits 7 first makes `watch` return 7. A job that
+  exits 124 first produces the terminal done line and no marker. A poll interval
+  longer than the remaining timeout sleeps only to the deadline rather than
+  overshooting by a full poll.
+- **Status** — implementation and regression coverage added; behavioral effect
+  on future agent command choice remains unmeasured.

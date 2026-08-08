@@ -1754,6 +1754,94 @@ def test_watch_tail_does_not_replay_the_full_existing_log():
         ws.cleanup()
 
 
+def test_watch_timeout_preserves_initial_tail_and_leaves_job_running():
+    ws = Workspace()
+    try:
+        _start(
+            ws,
+            "--no-aim",
+            "watchtimeout",
+            "--",
+            "bash",
+            "-c",
+            "echo old-1; echo old-2; sleep 5",
+        )
+        state = ws.state("watchtimeout")
+        log_path = Path(state["log_path"])
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            if log_path.exists() and "old-2" in log_path.read_text():
+                break
+            time.sleep(0.02)
+        else:
+            raise AssertionError("watchtimeout did not write its initial log lines")
+
+        res = ws.run(
+            "watch",
+            "watchtimeout",
+            "--poll",
+            "5",
+            "--heartbeat",
+            "0",
+            "--gpu-patience",
+            "0",
+            "--tail",
+            "2",
+            "--timeout",
+            "0.2",
+            timeout=2,
+        )
+        _assert(
+            res.returncode == 124, f"watch timeout rc={res.returncode}: {res.stderr!r}"
+        )
+        _assert("old-1\nold-2\n" in res.stdout, res.stdout)
+        _assert("[agentctl-watch-timeout-v1]" in res.stderr, res.stderr)
+        _assert("job=watchtimeout" in res.stderr, res.stderr)
+        _assert("timeout=0.2s" in res.stderr, res.stderr)
+        _assert(
+            ws.state("watchtimeout")["status"] == "running",
+            "timing out the monitor must not stop the watched job",
+        )
+        ws.run("stop", "watchtimeout")
+    finally:
+        ws.cleanup()
+
+
+def test_watch_timeout_marker_distinguishes_payload_exit_124():
+    ws = Workspace()
+    try:
+        _start(
+            ws,
+            "--no-aim",
+            "watchfailure",
+            "--",
+            "bash",
+            "-c",
+            "sleep 0.2; echo payload-failed; exit 124",
+        )
+        res = ws.run(
+            "watch",
+            "watchfailure",
+            "--poll",
+            "0.05",
+            "--heartbeat",
+            "0",
+            "--gpu-patience",
+            "0",
+            "--tail",
+            "0",
+            "--timeout",
+            "2",
+            timeout=5,
+        )
+        _assert(res.returncode == 124, f"watch masked payload rc: {res!r}")
+        _assert("payload-failed" in res.stdout, res.stdout)
+        _assert("returncode=124" in res.stdout, res.stdout)
+        _assert("agentctl-watch-timeout-v1" not in res.stderr, res.stderr)
+    finally:
+        ws.cleanup()
+
+
 def test_refresh_marks_dead_queued_wrapper_failed():
     # A waiting run whose wrapper process died will never launch its payload:
     # liveness refresh must mark it finished returncode=unknown so dependents

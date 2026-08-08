@@ -315,6 +315,21 @@ When running builds or tests, always redirect full output to a log file
 (e.g., `make 2>&1 | tee /tmp/build.log`) and show only the tail.
 Never discard output with bare `| tail`.
 
+For foreground `agentctl` monitoring, use `wait`/`watch`'s native `--timeout`
+and `--tail` options. Never wrap them in shell `timeout` or pipe them through
+`tail`: a pipeline reports its final `tail` process's status instead of the
+watched job's, and merging with `2>&1` also mixes agentctl control messages
+with payload output. Use the one-command form:
+
+```bash
+agentctl watch JOB --tail 2 --heartbeat 1500 --timeout 3300
+```
+
+Completion returns the watched job's exit code. A watch-window timeout leaves
+the job running, returns 124, and emits `[agentctl-watch-timeout-v1]` on
+agentctl's stderr; the marker plus exit code distinguishes it from a watched
+payload that itself exits 124.
+
 **The announcement.** Immediately before entering a foreground `agentctl`
 wait/watch, tell the user exactly: `going into foreground agentctl wait now.`
 Then invoke the blocking `agentctl` call as the next action in the same turn
@@ -494,10 +509,12 @@ The earned 55-minute maximum sits under both the 59-minute harness ceiling and
 the 1h extended-cache TTL. The shorter initial rungs are a liveness proof, not
 a preferred steady-state polling cadence.
 
-The agent must pass an explicit ~59-min `timeout` on the Bash call that runs
-the wait; the 2-min default (`BASH_DEFAULT_TIMEOUT_MS`, deliberately left
-unset) otherwise kills any call that does not opt in — wanted for silent
-hangs.
+The `agentctl wait`/`watch` invocation must carry its explicit native timeout.
+Set the harness's tool-call timeout slightly above that bound so agentctl
+regains control first; do not prefix the command with shell `timeout`. The
+2-min Bash-tool default (`BASH_DEFAULT_TIMEOUT_MS`, deliberately left unset)
+otherwise kills a call that does not opt into a longer tool-call allowance —
+wanted for silent hangs, but not the foreground-wait deadline.
 
 - **Claude:** the ceiling is `BASH_MAX_TIMEOUT_MS=3540000` (ms = 59 min), set
   before launch (`~/keys.sh`) and kept on yepanywhere's claude-provider env
