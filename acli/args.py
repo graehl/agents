@@ -3,7 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from typing import Any, Callable, Iterable, Mapping, TextIO
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, TextIO
 
 # Protocol version advertised by the capability line
 # (topics/agent-cli.md § Capability line and help footer).
@@ -107,7 +108,7 @@ def add_standard_args(
         help="Include the full structured schema instead of the minimal default.",
     )
     parser.set_defaults(format=None, full=False, acli_toon_allowed=allow_toon)
-    setattr(parser, "_acli_standard_args", True)
+    parser._acli_standard_args = True
 
 
 _STANDARD_FLAG_ARITY: dict[str, int] | None = None
@@ -186,7 +187,7 @@ def set_completer(action: argparse.Action, fn: Completer) -> argparse.Action:
     Actions with `choices` complete from them automatically; a completer
     overrides that. Completers must be side-effect-free and fast.
     """
-    setattr(action, "acli_completer", fn)
+    action.acli_completer = fn
     return action
 
 
@@ -384,8 +385,10 @@ def complete(
     out: TextIO = sys.stdout,
 ) -> None:
     """Emit JSONL completion candidates for a partial argv (program name excluded)."""
-    for row in candidates(parser, tokens):
-        out.write(json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n")
+    out.writelines(
+        json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n"
+        for row in candidates(parser, tokens)
+    )
 
 
 def maybe_complete(

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from enum import IntEnum
 import json
 import sys
+from enum import IntEnum
 from typing import Any, NoReturn, TextIO
 
 

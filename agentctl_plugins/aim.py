@@ -15,16 +15,16 @@ Importing the module does not require the Aim SDK.
 Default-on. Opt out per-run with ``--no-aim`` (e.g. trivial launches the user
 runs through ``agentctl`` only for the launcher and permission story).
 """
+
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import agentctl
-
 
 _BANNER_PRINTED = False
 
@@ -39,7 +39,8 @@ def _maybe_print_install_hint() -> None:
     _BANNER_PRINTED = True
     try:
         import aim  # noqa: F401
-    except Exception:
+    # Optional SDK imports can fail inside transitive native dependencies.
+    except Exception:  # noqa: BLE001
         print(
             "agentctl: Aim SDK not installed; runs/aim/ records still written. "
             "Optional UI: pip install aim",
@@ -242,10 +243,10 @@ def on_start(args, state, env) -> None:
 
 def on_meta_built(state, meta_text, *, output_path, log_path, build_meta):
     if not state.get("aim"):
-        return None
+        return
     rec_path = _write_dump(state, meta_text)
     state["aim_dump_record"] = str(rec_path)
-    return None
+    return
 
 
 def on_status_print(state, lines) -> None:
@@ -291,7 +292,8 @@ def on_note(state, note, stamp, *, meta_path, meta_text) -> None:
             text_path = _text_abspath(state)
             if text_path.exists():
                 text_path.write_text(meta_text, encoding="utf-8")
-    except Exception as exc:
+    # A note-enrichment failure must not change the watched job's outcome.
+    except Exception as exc:  # noqa: BLE001
         print(f"warning: failed to update aim run-record: {exc}", file=sys.stderr)
 
 
@@ -319,16 +321,18 @@ def on_finish(state) -> None:
         path_str = info.get("path")
         if not path_str:
             continue
-        if info.get("status", "").startswith("missing") or info.get("status", "").startswith("stat_failed"):
+        if info.get("status", "").startswith("missing") or info.get(
+            "status", ""
+        ).startswith("stat_failed"):
             continue
         sidecar_path = Path(f"{path_str}.meta.json")
         sidecar = {
             "agentctl_run_id": state["run_id"],
-            "aim_run_hash":   aim_hash,
-            "experiment":     experiment,
-            "run_dump":       run_dump_rel,
-            "output_key":     key,
-            "produced_at":    finished_at,
+            "aim_run_hash": aim_hash,
+            "experiment": experiment,
+            "run_dump": run_dump_rel,
+            "output_key": key,
+            "produced_at": finished_at,
         }
         if propagate:
             sidecar["propagate"] = dict(propagate)
@@ -338,7 +342,10 @@ def on_finish(state) -> None:
             )
             info["sidecar"] = str(sidecar_path)
         except OSError as exc:
-            print(f"warning: failed to write output sidecar {sidecar_path}: {exc}", file=sys.stderr)
+            print(
+                f"warning: failed to write output sidecar {sidecar_path}: {exc}",
+                file=sys.stderr,
+            )
 
 
 def on_restart(state, args) -> None:

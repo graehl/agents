@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from enum import Enum
 import os
 import sys
-from typing import Any, Mapping, TextIO
+from collections.abc import Mapping
+from enum import Enum
+from typing import Any, TextIO
 
 
 class Format(str, Enum):

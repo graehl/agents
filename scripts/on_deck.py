@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Manage per-project on-deck run queues."""
+
 from __future__ import annotations
 
 import argparse
@@ -40,7 +41,12 @@ FRONTMATTER_ORDER = (
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def slugify(raw: str) -> str:
@@ -176,7 +182,10 @@ def iter_entries(root: Path) -> list[tuple[Path, dict[str, object], str]]:
         try:
             fields, body = read_entry(path)
         except ValueError as exc:
-            fields, body = {"slug": path.stem, "status": "invalid", "error": str(exc)}, path.read_text()
+            fields, body = (
+                {"slug": path.stem, "status": "invalid", "error": str(exc)},
+                path.read_text(),
+            )
         entries.append((path, fields, body))
     return entries
 
@@ -185,7 +194,10 @@ def sorted_entries(root: Path) -> list[tuple[Path, dict[str, object], str]]:
     def key(item: tuple[Path, dict[str, object], str]) -> tuple[int, str]:
         path, fields, _body = item
         priority = fields.get("priority")
-        return (-(priority if isinstance(priority, int) else -1), str(fields.get("slug") or path.stem))
+        return (
+            -(priority if isinstance(priority, int) else -1),
+            str(fields.get("slug") or path.stem),
+        )
 
     return sorted(iter_entries(root), key=key)
 
@@ -222,7 +234,9 @@ def validate_entry(path: Path, fields: dict[str, object], body: str) -> list[str
         errors.append(f"size_class must be one of {', '.join(sorted(SIZE_CLASSES))}")
     if by == "steward":
         if isinstance(priority, int) and priority > STEWARD_PRIORITY_MAX:
-            errors.append(f"steward-authored entries must use priority <= {STEWARD_PRIORITY_MAX}")
+            errors.append(
+                f"steward-authored entries must use priority <= {STEWARD_PRIORITY_MAX}"
+            )
         if fields.get("cheap_reversible") is not True:
             errors.append("steward-authored entries must be cheap_reversible=true")
     if not section(body, "Launch"):
@@ -369,7 +383,9 @@ def add(args: argparse.Namespace) -> int:
     path.write_text(text)
     index = write_index(args.root)
     if index is None:
-        raise RuntimeError("internal error: add created entry without an on-deck directory")
+        raise RuntimeError(
+            "internal error: add created entry without an on-deck directory"
+        )
     print(path.relative_to(args.root))
     print(f"index: {index.relative_to(args.root)}")
     return 0
@@ -386,7 +402,9 @@ def index_cmd(args: argparse.Namespace) -> int:
 
 
 def replace_status(text: str, status: str) -> str:
-    new_text, count = re.subn(r"(?m)^status: .*$", f"status: {fm_value_text(status)}", text, count=1)
+    new_text, count = re.subn(
+        r"(?m)^status: .*$", f"status: {fm_value_text(status)}", text, count=1
+    )
     if count == 0:
         raise ValueError("no status: frontmatter line to update")
     return new_text
@@ -451,6 +469,7 @@ def run_condition(root: Path, command: str) -> tuple[bool, str]:
             ["bash", "-c", command],
             cwd=root,
             capture_output=True,
+            check=False,
             text=True,
             timeout=CONDITION_TIMEOUT,
         )
@@ -481,7 +500,14 @@ def tending_warnings(root: Path) -> list[str]:
     active = root / ".agentctl" / "active"
     if not active.is_dir():
         return []
-    self_id = next((os.environ[v].strip() for v in SESSION_ID_ENVS if os.environ.get(v, "").strip()), "")
+    self_id = next(
+        (
+            os.environ[v].strip()
+            for v in SESSION_ID_ENVS
+            if os.environ.get(v, "").strip()
+        ),
+        "",
+    )
     now = time.time()
     warnings: list[str] = []
     for path in sorted(active.iterdir()):
@@ -497,7 +523,9 @@ def tending_warnings(root: Path) -> list[str]:
         line1 = lines[0].strip() if lines else ""
         if line1.startswith("DONE"):
             continue
-        tending = next((ln.strip() for ln in lines[1:3] if ln.startswith("tending:")), "")
+        tending = next(
+            (ln.strip() for ln in lines[1:3] if ln.startswith("tending:")), ""
+        )
         if not tending:
             continue
         warnings.append(
@@ -514,7 +542,9 @@ def eligible_cmd(args: argparse.Namespace) -> int:
     entries = sorted_entries(root)
     if args.slug:
         slug = slugify(args.slug)
-        entries = [item for item in entries if (item[1].get("slug") or item[0].stem) == slug]
+        entries = [
+            item for item in entries if (item[1].get("slug") or item[0].stem) == slug
+        ]
         if not entries:
             print(f"unknown on-deck entry: {slug}", file=sys.stderr)
             return 1
@@ -528,7 +558,9 @@ def eligible_cmd(args: argparse.Namespace) -> int:
             continue
         if args.steward and fields.get("cheap_reversible") is not True:
             if args.slug:
-                print(f"{slug}: outside steward autonomy (cheap_reversible is not true)")
+                print(
+                    f"{slug}: outside steward autonomy (cheap_reversible is not true)"
+                )
                 return 1
             continue
         skip_fired, detail = run_condition(root, str(fields.get("skip_if") or "false"))

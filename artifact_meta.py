@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-import os
-from pathlib import Path
 import json
 import math
+import os
 import re
 import subprocess
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,10 @@ def meta_candidates(path: str | Path) -> list[Path]:
     p = Path(path)
     if str(p).endswith(".meta.md"):
         return [p]
-    return [Path(f"{p}.meta.md"), p.with_suffix(f"{p.suffix}.meta.md") if p.suffix else Path(f"{p}.meta.md")]
+    return [
+        Path(f"{p}.meta.md"),
+        p.with_suffix(f"{p.suffix}.meta.md") if p.suffix else Path(f"{p}.meta.md"),
+    ]
 
 
 def find_input_meta(path: str | Path) -> Path | None:
@@ -90,8 +93,10 @@ def stable_created_at() -> str:
 
 def git_output(args: list[str], *, cwd: str | Path) -> str:
     try:
-        return subprocess.check_output(args, cwd=cwd, text=True, stderr=subprocess.DEVNULL).strip()
-    except Exception:
+        return subprocess.check_output(
+            args, cwd=cwd, text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except (OSError, subprocess.SubprocessError, UnicodeError):
         return ""
 
 
@@ -100,7 +105,9 @@ def machine_defaults(*, cwd: str | Path) -> list[tuple[str, str]]:
     git_branch = git_output(["git", "branch", "--show-current"], cwd=cwd)
     git_commit = git_output(["git", "rev-parse", "HEAD"], cwd=cwd)
     git_dirty = (
-        "true" if git_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=cwd) else "false"
+        "true"
+        if git_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=cwd)
+        else "false"
     )
     for key, value in (
         ("git_branch", git_branch),
@@ -110,10 +117,10 @@ def machine_defaults(*, cwd: str | Path) -> list[tuple[str, str]]:
         if value:
             defaults.append((key, value))
     try:
-        from importlib.metadata import version
+        from importlib.metadata import PackageNotFoundError, version
 
         aim_version = version("aim")
-    except Exception:
+    except PackageNotFoundError:
         aim_version = ""
     if aim_version:
         defaults.append(("aim_version", str(aim_version)))
@@ -240,7 +247,7 @@ def write_running_md(
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [f"# In-Flight Job: {out.name}", ""]
     lines += [
-        f"- status: running",
+        "- status: running",
         f"- pid: {pid}",
     ]
     if started:
@@ -266,7 +273,12 @@ def cleanup_running(output: str | Path) -> bool:
 
 def autodetect_related(sidecars: Sidecars) -> list[tuple[str, Path]]:
     related: list[tuple[str, Path]] = []
-    for suffix, label in ((".score", "score"), (".stats.json", "stats"), (".clean", "clean"), (".scores", "scores")):
+    for suffix, label in (
+        (".score", "score"),
+        (".stats.json", "stats"),
+        (".clean", "clean"),
+        (".scores", "scores"),
+    ):
         p = Path(f"{sidecars.out}{suffix}")
         if p.exists():
             related.append((label, p))
@@ -280,7 +292,11 @@ def aim_read_roots(
     """Return configured Aim text dump roots, newest convention first."""
     root = Path(repo_root).resolve()
     if read_roots is None:
-        env_roots = [p for p in os.environ.get("AGENTCTL_AIM_READ_ROOTS", "").split(os.pathsep) if p]
+        env_roots = [
+            p
+            for p in os.environ.get("AGENTCTL_AIM_READ_ROOTS", "").split(os.pathsep)
+            if p
+        ]
         raw_roots: Sequence[str | Path] = env_roots or DEFAULT_AIM_READ_ROOTS
     else:
         raw_roots = read_roots
@@ -317,12 +333,14 @@ def find_aim_run_record(
         for run_json in dump_root.glob("*/runs/*.json"):
             try:
                 record = json.loads(run_json.read_text(encoding="utf-8"))
-            except Exception:
+            except (OSError, UnicodeError, json.JSONDecodeError):
                 continue
             source = record.get("source", {}) or {}
             params = record.get("params", {}) or {}
             output = params.get("output", {}) or {}
-            candidate_meta = output.get("meta_path", "") or params.get("meta", {}).get("path", "")
+            candidate_meta = output.get("meta_path", "") or params.get("meta", {}).get(
+                "path", ""
+            )
             if target_hash:
                 if str(source.get("aim_run_hash", "")) != target_hash:
                     continue
@@ -343,12 +361,14 @@ def find_aim_run_text(
     read_roots: Sequence[str | Path] | None = None,
 ) -> Path | None:
     """Return the exported Aim-format text artifact for this run when present."""
-    run_json = find_aim_run_record(meta_path=meta_path, setup=setup, repo_root=repo_root, read_roots=read_roots)
+    run_json = find_aim_run_record(
+        meta_path=meta_path, setup=setup, repo_root=repo_root, read_roots=read_roots
+    )
     if run_json is None:
         return None
     try:
         record = json.loads(run_json.read_text(encoding="utf-8"))
-    except Exception:
+    except (OSError, UnicodeError, json.JSONDecodeError):
         return None
     for text in record.get("texts", []) or []:
         if text.get("name") == "meta.markdown" and text.get("path"):
@@ -356,7 +376,6 @@ def find_aim_run_text(
             if candidate.exists():
                 return candidate.resolve()
     return None
-
 
 
 def upsert_analysis_summary_markdown(
@@ -391,7 +410,13 @@ def upsert_analysis_summary_markdown(
             return start, end or len(lines)
         insert_at = len(lines)
         if name == "Result":
-            for candidate in ("## Machine", "## Request Plan", "## Related", "## Inputs", "## Notes"):
+            for candidate in (
+                "## Machine",
+                "## Request Plan",
+                "## Related",
+                "## Inputs",
+                "## Notes",
+            ):
                 for i, line in enumerate(lines):
                     if line == candidate:
                         insert_at = i
@@ -427,11 +452,17 @@ def upsert_analysis_summary_markdown(
     notes_start, notes_end = section_bounds("Notes")
     assert notes_start is not None and notes_end is not None
     lines[notes_start + 1 : notes_end] = [
-        line for line in lines[notes_start + 1 : notes_end] if not line.startswith("- analysis-summary:")
+        line
+        for line in lines[notes_start + 1 : notes_end]
+        if not line.startswith("- analysis-summary:")
     ]
     notes_start, notes_end = section_bounds("Notes")
     assert notes_start is not None and notes_end is not None
-    note_line = f"- {label}: {summary}" if not timestamp else f"- {label} ({timestamp}): {summary}"
+    note_line = (
+        f"- {label}: {summary}"
+        if not timestamp
+        else f"- {label} ({timestamp}): {summary}"
+    )
     insert_at = notes_end
     while insert_at > notes_start + 1 and lines[insert_at - 1] == "":
         insert_at -= 1
@@ -483,7 +514,7 @@ def path_items(items: Iterable[tuple[str, Path]]) -> dict[str, str]:
     return {key: str(path) for key, path in items}
 
 
-def setting_value(value) -> str:  # noqa: ANN001
+def setting_value(value) -> str:
     """Stable string form for effective run settings stored in meta/Aim."""
     if value is None:
         return ""
@@ -499,13 +530,13 @@ def setting_value(value) -> str:  # noqa: ANN001
         return str(value)
 
 
-def namespace_keyvals(namespace, *, prefix: str = "effective") -> list[tuple[str, str]]:  # noqa: ANN001
+def namespace_keyvals(namespace, *, prefix: str = "effective") -> list[tuple[str, str]]:
     """Serialize an argparse namespace/object into sorted metadata key/value pairs."""
     data = vars(namespace) if hasattr(namespace, "__dict__") else dict(namespace)
     return [(f"{prefix}.{key}", setting_value(data[key])) for key in sorted(data)]
 
 
-def namespace_keyvals_selected(  # noqa: ANN001
+def namespace_keyvals_selected(
     namespace,
     *,
     prefix: str = "effective",
@@ -547,7 +578,7 @@ def explicit_arg_dests(parser: argparse.ArgumentParser, argv: list[str]) -> set[
     return explicit
 
 
-def namespace_key_sources(  # noqa: ANN001
+def namespace_key_sources(
     namespace,
     *,
     explicit_dests: set[str],
@@ -561,10 +592,13 @@ def namespace_key_sources(  # noqa: ANN001
     if include is not None:
         keys = [key for key in keys if key in include]
     keys = [key for key in keys if key not in exclude]
-    return [(f"{prefix}.{key}", "explicit" if key in explicit_dests else "default") for key in keys]
+    return [
+        (f"{prefix}.{key}", "explicit" if key in explicit_dests else "default")
+        for key in keys
+    ]
 
 
-def effective_source_for_dest(  # noqa: ANN001
+def effective_source_for_dest(
     namespace,
     *,
     dest: str,
@@ -770,8 +804,12 @@ def write_aim_run(
     aim_experiment = experiment or os.environ.get("AIM_EXPERIMENT") or "default"
     agentctl_run_name = ""
     if os.environ.get("AGENTCTL_JOB") and os.environ.get("AGENTCTL_RUN_ID"):
-        agentctl_run_name = f"{os.environ['AGENTCTL_JOB']}/{os.environ['AGENTCTL_RUN_ID']}"
-    aim_run_name = run_name or os.environ.get("AIM_RUN_NAME") or agentctl_run_name or out.name
+        agentctl_run_name = (
+            f"{os.environ['AGENTCTL_JOB']}/{os.environ['AGENTCTL_RUN_ID']}"
+        )
+    aim_run_name = (
+        run_name or os.environ.get("AIM_RUN_NAME") or agentctl_run_name or out.name
+    )
     aim_run_id = run_id or os.environ.get("AGENTCTL_RUN_ID") or ""
     run = Run(
         repo=str(aim_repo),
@@ -836,8 +874,12 @@ def write_aim_run(
     if log_markdown:
         try:
             run.track(Text(markdown), name="meta.markdown", step=0)
-        except Exception:
-            run["meta"]["markdown_excerpt"] = excerpt_markdown(markdown, max_lines=20, max_chars=4000)
+        # Aim integrations have raised several SDK-specific exception types;
+        # retaining the markdown excerpt is the documented fallback.
+        except Exception:  # noqa: BLE001
+            run["meta"]["markdown_excerpt"] = excerpt_markdown(
+                markdown, max_lines=20, max_chars=4000
+            )
     result = AimWriteResult(
         run_hash=run.hash,
         repo=str(aim_repo),
@@ -931,7 +973,11 @@ def input_run_info(spec: InputSpec) -> dict[str, str] | None:
     output = parse_markdown_keyvals(sections.get("output", []))
     if output.get("out"):
         info["output_path"] = output["out"]
-    return info if any(info.get(key) for key in ("title", "aim_run_hash", "aim_run_name")) else None
+    return (
+        info
+        if any(info.get(key) for key in ("title", "aim_run_hash", "aim_run_name"))
+        else None
+    )
 
 
 def collect_input_runs(inputs: Iterable[InputSpec]) -> dict[str, dict[str, str]]:
@@ -1048,7 +1094,9 @@ def build_meta_markdown(
             lines.append(f"- path: {format_link(path.name, path, meta_path)}")
             input_meta = find_input_meta(path)
             if input_meta is not None:
-                lines.append(f"- meta: {format_link(input_meta.name, input_meta, meta_path)}")
+                lines.append(
+                    f"- meta: {format_link(input_meta.name, input_meta, meta_path)}"
+                )
                 text = read_text_if_exists(input_meta)
                 if text:
                     inherited = inherited_meta_lines(spec, input_meta, text, meta_path)
@@ -1057,7 +1105,9 @@ def build_meta_markdown(
                         lines.extend(inherited)
                     else:
                         excerpt = excerpt_markdown(
-                            text, max_lines=input_excerpt_lines, max_chars=input_excerpt_chars
+                            text,
+                            max_lines=input_excerpt_lines,
+                            max_chars=input_excerpt_chars,
                         )
                         if excerpt:
                             lines.append("")

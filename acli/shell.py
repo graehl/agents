@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 import shlex
 import sys
-from typing import Callable, Iterable
+from collections.abc import Callable, Iterable
 
 from .args import candidates
 

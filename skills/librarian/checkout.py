@@ -42,34 +42,39 @@ def parse_repo(repo_input: str) -> tuple[str, str, str]:
     # For provider deep links, cache the repository, not the page path.
     if "-" in parts:
         dash = parts.index("-")
-        if dash >= 2 and len(parts) > dash + 1 and parts[dash + 1] in (
-            "tree",
-            "blob",
-            "merge_requests",
-            "issues",
-            "commit",
-            "commits",
+        if (
+            dash >= 2
+            and len(parts) > dash + 1
+            and parts[dash + 1]
+            in (
+                "tree",
+                "blob",
+                "merge_requests",
+                "issues",
+                "commit",
+                "commits",
+            )
         ):
             parts = parts[:dash]
-    elif host.endswith("bitbucket.org") and len(parts) >= 3 and parts[2] in (
-        "src",
-        "branch",
-        "commits",
-        "pull-requests",
-        "issues",
-        "downloads",
-    ):
-        parts = parts[:2]
-    elif len(parts) >= 3 and parts[2] in (
-        "tree",
-        "blob",
-        "pull",
-        "issues",
-        "commit",
-        "actions",
-        "releases",
-        "compare",
-        "wiki",
+    elif (
+        host.endswith("bitbucket.org")
+        and len(parts) >= 3
+        and parts[2]
+        in ("src", "branch", "commits", "pull-requests", "issues", "downloads")
+    ) or (
+        len(parts) >= 3
+        and parts[2]
+        in (
+            "tree",
+            "blob",
+            "pull",
+            "issues",
+            "commit",
+            "actions",
+            "releases",
+            "compare",
+            "wiki",
+        )
     ):
         parts = parts[:2]
 
@@ -87,13 +92,15 @@ def parse_repo(repo_input: str) -> tuple[str, str, str]:
     return host, org, repo
 
 
-def git(*args: str, cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess[str]:
+def git(
+    *args: str, cwd: Path | None = None, check: bool = True
+) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         ["git", *args],
         cwd=cwd,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
+        check=False,
     )
     if check and result.returncode != 0:
         print(result.stderr, end="", file=sys.stderr)
@@ -124,7 +131,9 @@ def main() -> int:
 
     host, org, repo = parse_repo(repo_input)
 
-    cache_root = Path(os.environ.get("LIBRARIAN_CACHE_ROOT", "~/.cache/checkouts")).expanduser()
+    cache_root = Path(
+        os.environ.get("LIBRARIAN_CACHE_ROOT", "~/.cache/checkouts")
+    ).expanduser()
     checkout_path = cache_root / host / org / repo
     origin_url = f"https://{host}/{org}/{repo}.git"
 
@@ -136,7 +145,9 @@ def main() -> int:
     if not (checkout_path / ".git").is_dir():
         die(f"checkout path is not a git repository: {checkout_path}", code=3)
 
-    current_origin = (git("remote", "get-url", "origin", cwd=checkout_path, check=False).stdout or "").strip()
+    current_origin = (
+        git("remote", "get-url", "origin", cwd=checkout_path, check=False).stdout or ""
+    ).strip()
     if not current_origin:
         git("remote", "add", "origin", origin_url, cwd=checkout_path)
     elif current_origin != origin_url:
@@ -148,7 +159,9 @@ def main() -> int:
 
     if last_fetch_file.is_file() and not force_update:
         try:
-            needs_update = now - int(last_fetch_file.read_text().strip()) >= update_interval
+            needs_update = (
+                now - int(last_fetch_file.read_text().strip()) >= update_interval
+            )
         except ValueError:
             pass
 
@@ -156,7 +169,12 @@ def main() -> int:
         git("fetch", "--prune", "--tags", "origin", cwd=checkout_path)
         last_fetch_file.write_text(f"{now}\n")
 
-        branch = (git("symbolic-ref", "--short", "-q", "HEAD", cwd=checkout_path, check=False).stdout or "").strip()
+        branch = (
+            git(
+                "symbolic-ref", "--short", "-q", "HEAD", cwd=checkout_path, check=False
+            ).stdout
+            or ""
+        ).strip()
         upstream = (
             git(
                 "rev-parse",
@@ -169,7 +187,14 @@ def main() -> int:
             or ""
         ).strip()
         dirty = (
-            git("status", "--porcelain", "--untracked-files=no", cwd=checkout_path, check=False).stdout or ""
+            git(
+                "status",
+                "--porcelain",
+                "--untracked-files=no",
+                cwd=checkout_path,
+                check=False,
+            ).stdout
+            or ""
         ).strip()
 
         if branch and upstream and not dirty:

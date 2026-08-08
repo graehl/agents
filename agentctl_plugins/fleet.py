@@ -555,9 +555,7 @@ def _probe_target(
 
 def fleet_watch(args: argparse.Namespace) -> int:
     if args.no_wake_on_job_end and args.min_free_memory is None:
-        raise SystemExit(
-            "fleet-watch --no-wake-on-job-end requires --min-free-memory"
-        )
+        raise SystemExit("fleet-watch --no-wake-on-job-end requires --min-free-memory")
     if args.min_free_memory is None and not args.job and not args.pid:
         raise SystemExit(
             "fleet-watch needs --min-free-memory, --job, or --pid to define a wake condition"

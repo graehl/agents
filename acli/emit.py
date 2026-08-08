@@ -4,10 +4,10 @@ import json
 import math
 import re
 import sys
-from typing import Any, Iterable, TextIO
+from collections.abc import Iterable
+from typing import Any, TextIO
 
 from .session import Format
-
 
 _KEY_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*\Z")
 _NUMBERISH_RE = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\Z")
@@ -20,8 +20,9 @@ def write_jsonl(value: Any, out: TextIO = sys.stdout) -> None:
     A list/tuple is treated as rows; any other value is one JSONL record.
     """
     rows = value if isinstance(value, (list, tuple)) else [value]
-    for row in rows:
-        out.write(json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n")
+    out.writelines(
+        json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n" for row in rows
+    )
 
 
 def write_pretty(value: Any, out: TextIO = sys.stdout) -> None:

@@ -237,7 +237,9 @@ def default_columns(manifest: dict, records: list[dict]) -> list[str]:
     return [col for col in columns if col not in reserved]
 
 
-def numbered_row(record: dict, i: int, columns: list[str], ordinal_cols: list[str]) -> dict:
+def numbered_row(
+    record: dict, i: int, columns: list[str], ordinal_cols: list[str]
+) -> dict:
     """One output row: selection position (n), content, group ordinals, seq."""
     row = {"n": i}
     row.update({col: cell(record.get(col)) for col in columns})
@@ -279,6 +281,7 @@ def run_extract(directory: Path, source: str):
         proc = subprocess.run(
             [str(exe), source],
             capture_output=True,
+            check=False,
             text=True,
             timeout=EXTRACT_TIMEOUT,
         )
@@ -302,8 +305,7 @@ def run_extract(directory: Path, source: str):
         return json.loads(proc.stdout)
     except ValueError as exc:
         die(
-            f"extract emitted invalid JSON ({exc}); "
-            "re-run the almanac skill to repair",
+            f"extract emitted invalid JSON ({exc}); re-run the almanac skill to repair",
             ExitCode.SOFTWARE,
             detail={"source": source},
         )
@@ -315,12 +317,20 @@ def git_commit(paths: list[Path], message: str) -> str:
     rel = [str(p.relative_to(base)) for p in paths]
     if not (base / ".git").exists():
         init = subprocess.run(
-            ["git", "init", "-q"], cwd=base, capture_output=True, text=True
+            ["git", "init", "-q"],
+            cwd=base,
+            capture_output=True,
+            check=False,
+            text=True,
         )
         if init.returncode != 0:
             return f"skipped: git init failed: {init.stderr.strip()[:200]}"
     add = subprocess.run(
-        ["git", "add", "--", *rel], cwd=base, capture_output=True, text=True
+        ["git", "add", "--", *rel],
+        cwd=base,
+        capture_output=True,
+        check=False,
+        text=True,
     )
     if add.returncode != 0:
         return f"skipped: git add failed: {add.stderr.strip()[:200]}"
@@ -328,6 +338,7 @@ def git_commit(paths: list[Path], message: str) -> str:
         ["git", "diff", "--cached", "--quiet", "--", *rel],
         cwd=base,
         capture_output=True,
+        check=False,
         text=True,
     )
     # Exit 0 = nothing staged for these paths: report "unchanged" without
@@ -338,12 +349,20 @@ def git_commit(paths: list[Path], message: str) -> str:
     commit = subprocess.run(
         [
             "git",
-            "-c", "user.name=almanac",
-            "-c", "user.email=almanac@localhost",
-            "commit", "-q", "-m", message, "--", *rel,
+            "-c",
+            "user.name=almanac",
+            "-c",
+            "user.email=almanac@localhost",
+            "commit",
+            "-q",
+            "-m",
+            message,
+            "--",
+            *rel,
         ],
         cwd=base,
         capture_output=True,
+        check=False,
         text=True,
     )
     if commit.returncode == 0:
@@ -410,13 +429,15 @@ def apply_filters(
             if op == "=":
                 wanted = [w.strip().lower() for w in want.split(",")]
                 records = [
-                    r for r in records
+                    r
+                    for r in records
                     if r.get(field) is not None and str(r[field]).lower() in wanted
                 ]
             else:
                 needle = want.lower()
                 records = [
-                    r for r in records
+                    r
+                    for r in records
                     if r.get(field) is not None and needle in str(r[field]).lower()
                 ]
         elif expr.startswith("~"):
@@ -430,11 +451,9 @@ def apply_filters(
         if not needle:
             continue
         records = [
-            r for r in records
-            if any(
-                r.get(f) is not None and needle in str(r[f]).lower()
-                for f in fields
-            )
+            r
+            for r in records
+            if any(r.get(f) is not None and needle in str(r[f]).lower() for f in fields)
         ]
     return records
 
@@ -444,8 +463,10 @@ def cmd_query(args) -> int:
     records = apply_filters(records, args.filters, search_fields(manifest, records))
     if args.full:
         if resolve_format(args) is Format.TOON:
-            die("--toon requires the default column projection, not --full",
-                ExitCode.USAGE)
+            die(
+                "--toon requires the default column projection, not --full",
+                ExitCode.USAGE,
+            )
         emit(records, resolve_format(args))
         return 0
     columns = default_columns(manifest, records)
@@ -581,9 +602,7 @@ def cmd_search(args) -> int:
 
 def cmd_info(args) -> int:
     directory, manifest, records = load_dataset(args.name)
-    attachments = sorted(
-        entry.name for entry in directory.iterdir() if entry.is_dir()
-    )
+    attachments = sorted(entry.name for entry in directory.iterdir() if entry.is_dir())
     result = dict(manifest)
     result.update(
         {
@@ -617,8 +636,9 @@ def example_bits(manifest: dict, records: list[dict]):
     return filter_expr, needle, key_value
 
 
-def example_commands(name: str, manifest: dict, records: list[dict],
-                     prog: str | None) -> list[str]:
+def example_commands(
+    name: str, manifest: dict, records: list[dict], prog: str | None
+) -> list[str]:
     """Example invocations with real values; launcher form when prog is set
     (the launcher defaults to query, so its verb is omitted there)."""
     filter_expr, needle, key_value = example_bits(manifest, records)
@@ -641,14 +661,25 @@ def example_commands(name: str, manifest: dict, records: list[dict],
         )
     if needle:
         lines.append(ex("query", f"~{needle}", "substring across text fields"))
-        lines.append(ex("query", f"~{needle} more words",
-                        "bare words extend the ~needle: one search for "
-                        f"'{needle} more words'"))
+        lines.append(
+            ex(
+                "query",
+                f"~{needle} more words",
+                f"bare words extend the ~needle: one search for '{needle} more words'",
+            )
+        )
     if key_value:
-        lines.append(ex("show", shlex.quote(key_value),
-                        f"one full record by {manifest.get('schema', {}).get('key')}"))
+        lines.append(
+            ex(
+                "show",
+                shlex.quote(key_value),
+                f"one full record by {manifest.get('schema', {}).get('key')}",
+            )
+        )
         if manifest.get("schema", {}).get("image"):
-            lines.append(ex("image", shlex.quote(key_value), "show its image attachment"))
+            lines.append(
+                ex("image", shlex.quote(key_value), "show its image attachment")
+            )
     if needle:
         lines.append(ex("search", needle, "like ~ but shows what matched where"))
     return lines
@@ -664,21 +695,27 @@ def cmd_help(args) -> int:
     schema = manifest.get("schema", {})
     lines = [
         f"{args.name} — {len(records)} records extracted from {manifest.get('url')}",
-        f"  refresh: {manifest.get('refresh')}   fetched: {manifest.get('fetched')}"
-        f"   dir: {directory}",
+        (
+            f"  refresh: {manifest.get('refresh')}   fetched: {manifest.get('fetched')}"
+            f"   dir: {directory}"
+        ),
     ]
     if prog:
         lines += [
             "",
             f"`{prog}` is an almanac launcher bound to the {args.name!r} dataset:",
             f"  {prog} VERB ARGS...  ==  almanac VERB {args.name} ARGS...",
-            "  verbs: query show image search info check update help;"
-            " bare = info, anything else = query filters/search",
+            (
+                "  verbs: query show image search info check update help;"
+                " bare = info, anything else = query filters/search"
+            ),
         ]
     lines += [
         "",
-        f"columns: {', '.join(columns)}   key: {schema.get('key')}"
-        "   (all fields: show a record, or query --full)",
+        (
+            f"columns: {', '.join(columns)}   key: {schema.get('key')}"
+            "   (all fields: show a record, or query --full)"
+        ),
         f"filters: {FILTER_SYNTAX}",
         "",
         "sample rows:",
@@ -699,8 +736,10 @@ def help_epilog() -> str | None:
     try:
         names = dataset_names()
         if not names:
-            return (f"no datasets yet under {root()}; "
-                    "the almanac skill builds one from a URL")
+            return (
+                f"no datasets yet under {root()}; "
+                "the almanac skill builds one from a URL"
+            )
         lines = ["datasets:"]
         readable = []
         for name in names:
@@ -711,9 +750,7 @@ def help_epilog() -> str | None:
                 )
                 continue
             readable.append(name)
-            lines.append(
-                f"  {name}  {summary['records']} records  {summary['url']}"
-            )
+            lines.append(f"  {name}  {summary['records']} records  {summary['url']}")
         examples = []
         if readable:
             try:
@@ -727,7 +764,8 @@ def help_epilog() -> str | None:
             )
         lines += ["", "examples:", *examples]
         return "\n".join(lines)
-    except Exception:
+    # Help remains available even when one dataset has an unexpected defect.
+    except Exception:  # noqa: BLE001
         return None
 
 
@@ -800,8 +838,10 @@ exec almanac --launcher {name} "${{0##*/}}" "$@"
 def validate_manifest(name: str, manifest: dict, records: list[dict]) -> list[str]:
     warnings: list[str] = []
     if manifest.get("name") != name:
-        die(f"manifest name {manifest.get('name')!r} != dataset dir {name!r}",
-            ExitCode.DATA)
+        die(
+            f"manifest name {manifest.get('name')!r} != dataset dir {name!r}",
+            ExitCode.DATA,
+        )
     url = manifest.get("url", "")
     if not re.match(r"^https?://", url):
         die(f"manifest url {url!r} is not http(s)", ExitCode.DATA)
@@ -927,7 +967,9 @@ def complete_dataset(prefix, tokens):
             row["help"] = title
         rows.append(row)
     if not rows and prefix:
-        rows.append(hint(f"no dataset starts with {prefix!r}; `almanac list` shows all"))
+        rows.append(
+            hint(f"no dataset starts with {prefix!r}; `almanac list` shows all")
+        )
     return rows
 
 
@@ -1041,7 +1083,9 @@ def complete_filter(prefix, tokens):
         )
     if prefix and not rows:
         rows.append(
-            hint(f"no filter field starts with {prefix!r}; bare words become search text")
+            hint(
+                f"no filter field starts with {prefix!r}; bare words become search text"
+            )
         )
     return rows
 
@@ -1168,11 +1212,16 @@ def build_parser(epilog: str | None = None):
             complete_dataset,
         )
 
-    p = sub.add_parser("list", help="List datasets: name, url, refresh, fetched, records.")
+    p = sub.add_parser(
+        "list", help="List datasets: name, url, refresh, fetched, records."
+    )
     add_standard_args(p, allow_toon=True)
     p.set_defaults(func=cmd_list)
 
-    p = sub.add_parser("query", help="List records, filtered by FIELD=VALUE / FIELD~TEXT / ~TEXT or bare search words.")
+    p = sub.add_parser(
+        "query",
+        help="List records, filtered by FIELD=VALUE / FIELD~TEXT / ~TEXT or bare search words.",
+    )
     dataset_arg(p)
     set_completer(
         p.add_argument("filters", nargs="*", help=FILTER_SYNTAX),
@@ -1184,16 +1233,22 @@ def build_parser(epilog: str | None = None):
     p = sub.add_parser("show", help="Show one full record by its key field.")
     dataset_arg(p)
     set_completer(
-        p.add_argument("key", help="Key value; exact match, unique-substring fallback."),
+        p.add_argument(
+            "key", help="Key value; exact match, unique-substring fallback."
+        ),
         complete_key,
     )
     add_standard_args(p)
     p.set_defaults(func=cmd_show)
 
-    p = sub.add_parser("image", help="Display one record's image attachment, or emit its path.")
+    p = sub.add_parser(
+        "image", help="Display one record's image attachment, or emit its path."
+    )
     dataset_arg(p)
     set_completer(
-        p.add_argument("key", help="Key value; exact match, unique-substring fallback."),
+        p.add_argument(
+            "key", help="Key value; exact match, unique-substring fallback."
+        ),
         complete_key,
     )
     p.add_argument(
@@ -1212,42 +1267,80 @@ def build_parser(epilog: str | None = None):
     add_standard_args(p)
     p.set_defaults(func=cmd_image)
 
-    p = sub.add_parser("search", help="Full-text substring search over the schema's search fields.")
+    p = sub.add_parser(
+        "search", help="Full-text substring search over the schema's search fields."
+    )
     dataset_arg(p)
     p.add_argument("text", help="Text to search for (case-insensitive).")
     add_standard_args(p, allow_toon=True)
     p.set_defaults(func=cmd_search)
 
-    p = sub.add_parser("info", help="Show a dataset's manifest, record count, and attachments.")
+    p = sub.add_parser(
+        "info", help="Show a dataset's manifest, record count, and attachments."
+    )
     dataset_arg(p)
     add_standard_args(p)
     p.set_defaults(func=cmd_info)
 
-    p = sub.add_parser("check", help="Re-extract and compare; exit 0 unchanged, 3 changed, 69 cannot-check.")
+    p = sub.add_parser(
+        "check",
+        help="Re-extract and compare; exit 0 unchanged, 3 changed, 69 cannot-check.",
+    )
     dataset_arg(p)
-    p.add_argument("--source", help="Local saved page/payload to extract from (required for refresh=manual).")
+    p.add_argument(
+        "--source",
+        help="Local saved page/payload to extract from (required for refresh=manual).",
+    )
     add_standard_args(p)
     p.set_defaults(func=cmd_check)
 
-    p = sub.add_parser("update", help="Re-extract and replace data.json when changed; commits to the root git repo.")
+    p = sub.add_parser(
+        "update",
+        help="Re-extract and replace data.json when changed; commits to the root git repo.",
+    )
     dataset_arg(p)
-    p.add_argument("--source", help="Local saved page/payload to extract from (required for refresh=manual).")
-    p.add_argument("--allow-empty", action="store_true", help="Accept an extraction with zero records.")
+    p.add_argument(
+        "--source",
+        help="Local saved page/payload to extract from (required for refresh=manual).",
+    )
+    p.add_argument(
+        "--allow-empty",
+        action="store_true",
+        help="Accept an extraction with zero records.",
+    )
     add_standard_args(p)
     p.set_defaults(func=cmd_update)
 
-    p = sub.add_parser("help", help="Human help; with a dataset name, its columns, filters, sample rows, and examples.")
+    p = sub.add_parser(
+        "help",
+        help="Human help; with a dataset name, its columns, filters, sample rows, and examples.",
+    )
     set_completer(
-        p.add_argument("name", nargs="?", help="Dataset name (omit for engine-wide help)."),
+        p.add_argument(
+            "name", nargs="?", help="Dataset name (omit for engine-wide help)."
+        ),
         complete_dataset,
     )
-    p.add_argument("--prog", help=argparse.SUPPRESS)  # launcher name, for example command lines
+    p.add_argument(
+        "--prog", help=argparse.SUPPRESS
+    )  # launcher name, for example command lines
     p.set_defaults(func=cmd_help, parser=parser)
 
-    p = sub.add_parser("register", help="Validate a dataset dir, wire by-url symlink, git history, and ~/bin launcher.")
+    p = sub.add_parser(
+        "register",
+        help="Validate a dataset dir, wire by-url symlink, git history, and ~/bin launcher.",
+    )
     dataset_arg(p)
-    p.add_argument("--launcher-dir", default="~/bin", help="Where the per-dataset launcher is written (default ~/bin).")
-    p.add_argument("--no-launcher", action="store_true", help="Skip writing the per-dataset launcher.")
+    p.add_argument(
+        "--launcher-dir",
+        default="~/bin",
+        help="Where the per-dataset launcher is written (default ~/bin).",
+    )
+    p.add_argument(
+        "--no-launcher",
+        action="store_true",
+        help="Skip writing the per-dataset launcher.",
+    )
     add_standard_args(p)
     p.set_defaults(func=cmd_register)
 
