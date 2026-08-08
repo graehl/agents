@@ -313,6 +313,15 @@ follow a rule or when proposing an improvement (welcome from work
 in any project, not only inside `~/agents`). Evidence-ledger
 conventions are in `~/agents/topics/evidence-ledger.md`.
 
+## Show authored instruction text
+
+When authoring or editing instruction text — `AGENTS.md`,
+supplements, `topics/*.md`, glossary rows, skills — show the exact
+text added or changed, verbatim, in the reply (a unified diff is
+fine); never only a summary. The user reviews the wording that will
+steer future agents, not the gist. Mechanically regenerated output
+is exempt; text you composed is not.
+
 ## Instruction routing
 
 When the user labels a rule, persist it (do not leave it only in chat):
