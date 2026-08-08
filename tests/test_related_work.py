@@ -92,7 +92,9 @@ def survey(tmp: Path) -> Path:
     fetched.mkdir()
     (fetched / "paper.md").write_text("# One\n")
     (fetched / ".fetched").write_text(
-        json.dumps({"method": "arxiv-html", "source": "https://arxiv.org/html/2001.00001"})
+        json.dumps(
+            {"method": "arxiv-html", "source": "https://arxiv.org/html/2001.00001"}
+        )
     )
     return root
 
@@ -101,10 +103,15 @@ def test_clean_survey_audits_clean():
     with tempfile.TemporaryDirectory() as tmp:
         root = survey(Path(tmp))
         proc = run(root, "audit")
-        _assert(proc.returncode == 0, f"clean survey should audit clean:\n{proc.stdout}{proc.stderr}")
+        _assert(
+            proc.returncode == 0,
+            f"clean survey should audit clean:\n{proc.stdout}{proc.stderr}",
+        )
         row = jsonl(proc)[0]
         _assert(row["drift"] == 0 and row["manifested"] == 3, row)
-        _assert(row["grounded"] == 1 and row["verified"] == 2 and row["digested"] == 1, row)
+        _assert(
+            row["grounded"] == 1 and row["verified"] == 2 and row["digested"] == 1, row
+        )
 
 
 def test_audit_catches_drift_in_both_directions():
@@ -114,17 +121,23 @@ def test_audit_catches_drift_in_both_directions():
         # beta was fetched but the manifest was never updated.
         beta = related / "extract" / "beta2021-two"
         beta.mkdir()
-        (beta / ".fetched").write_text('{"method":"url-html","source":"https://example.invalid/two"}')
+        (beta / ".fetched").write_text(
+            '{"method":"url-html","source":"https://example.invalid/two"}'
+        )
         # gamma claims grounding it never had.
-        text = (related / "papers.yaml").read_text().replace(
-            """  - key: gamma2022-three
+        text = (
+            (related / "papers.yaml")
+            .read_text()
+            .replace(
+                """  - key: gamma2022-three
     title: "Three"
     arxiv: "2203.00003"
     grounded: false""",
-            """  - key: gamma2022-three
+                """  - key: gamma2022-three
     title: "Three"
     arxiv: "2203.00003"
     grounded: true""",
+            )
         )
         (related / "papers.yaml").write_text(text)
 
@@ -146,7 +159,11 @@ def test_verified_without_own_extract_needs_a_source():
         related = root / "related-work"
         # gamma is verified against the anchor bibliography, which is legal —
         # until it stops saying so.
-        text = (related / "papers.yaml").read_text().replace("    source: anchor-bib\n", "")
+        text = (
+            (related / "papers.yaml")
+            .read_text()
+            .replace("    source: anchor-bib\n", "")
+        )
         (related / "papers.yaml").write_text(text)
         proc = run(root, "audit")
         _assert(proc.returncode == 3)
@@ -160,7 +177,11 @@ def test_unregenerable_and_orphan_extracts_are_findings():
         related = root / "related-work"
         (related / "extract" / "nobody-claims-me").mkdir()
         # strip alpha's arxiv id: its extract can no longer be rebuilt
-        text = (related / "papers.yaml").read_text().replace('    arxiv: "2001.00001"\n', "")
+        text = (
+            (related / "papers.yaml")
+            .read_text()
+            .replace('    arxiv: "2001.00001"\n', "")
+        )
         (related / "papers.yaml").write_text(text)
         proc = run(root, "audit")
         rules = {(r["key"], r["rule"]) for r in jsonl(proc)}
@@ -181,13 +202,19 @@ def test_bare_fetch_refuses_to_queue_the_whole_backlog():
     with tempfile.TemporaryDirectory() as tmp:
         root = survey(Path(tmp))
         proc = run(root, "fetch")
-        _assert(proc.returncode == 2, "a bare fetch must not silently start N downloads")
+        _assert(
+            proc.returncode == 2, "a bare fetch must not silently start N downloads"
+        )
         envelope = json.loads(proc.stderr.splitlines()[0])
         _assert("2 papers have no extract" in envelope["error"]["message"], envelope)
-        _assert(sorted(envelope["error"]["detail"]["pending"]) == [
-            "beta2021-two",
-            "gamma2022-three",
-        ], envelope)
+        _assert(
+            sorted(envelope["error"]["detail"]["pending"])
+            == [
+                "beta2021-two",
+                "gamma2022-three",
+            ],
+            envelope,
+        )
 
 
 def test_completed_extract_is_skipped_without_network():
@@ -196,7 +223,15 @@ def test_completed_extract_is_skipped_without_network():
         proc = run(root, "fetch", "alpha2020-one")
         _assert(proc.returncode == 0, proc.stderr)
         row = jsonl(proc)[0]
-        _assert(row == {"key": "alpha2020-one", "status": "skipped", "reason": "already fetched"}, row)
+        _assert(
+            row
+            == {
+                "key": "alpha2020-one",
+                "status": "skipped",
+                "reason": "already fetched",
+            },
+            row,
+        )
 
 
 def test_unknown_key_is_not_found():
@@ -219,18 +254,27 @@ def test_sentinel_reads_the_legacy_tab_form():
 def test_revalidation_without_validators_never_claims_fresh():
     # No ETag and no Last-Modified means there is nothing to ask the server;
     # "cannot tell" must read as "may have changed".
-    _assert(not rw.is_unchanged("https://example.invalid/x", rw.Sentinel("url-html", "u")))
+    _assert(
+        not rw.is_unchanged("https://example.invalid/x", rw.Sentinel("url-html", "u"))
+    )
 
 
 def test_list_and_status_report_the_survey():
     with tempfile.TemporaryDirectory() as tmp:
         root = survey(Path(tmp))
         rows = jsonl(run(root, "list"))
-        _assert([r["key"] for r in rows] == ["alpha2020-one", "beta2021-two", "gamma2022-three"], rows)
+        _assert(
+            [r["key"] for r in rows]
+            == ["alpha2020-one", "beta2021-two", "gamma2022-three"],
+            rows,
+        )
         _assert(rows[0]["extract"] is True and rows[1]["extract"] is False, rows)
 
         status = jsonl(run(root, "status"))[0]
-        _assert(status["extracts"] == 1 and status["coverage_cutoff"] == "2026-07-31", status)
+        _assert(
+            status["extracts"] == 1 and status["coverage_cutoff"] == "2026-07-31",
+            status,
+        )
 
         toon = run(root, "list", "--toon")
         _assert(toon.returncode == 0 and "alpha2020-one" in toon.stdout, toon.stdout)
@@ -244,7 +288,9 @@ def test_resolves_the_survey_root_or_the_related_work_dir():
             _assert(proc.returncode == 0, f"{cwd}: {proc.stderr}")
         outside = Path(tmp) / "elsewhere"
         outside.mkdir()
-        _assert(run(outside, "status").returncode == 4, "no manifest anywhere = not found")
+        _assert(
+            run(outside, "status").returncode == 4, "no manifest anywhere = not found"
+        )
 
 
 def test_init_scaffolds_a_new_survey():
@@ -272,7 +318,9 @@ def test_bad_manifest_shapes_fail_loud():
         manifest.write_text("papers: not-a-list\n")
         _assert(run(root, "audit").returncode == 70, "wrong shape is a schema failure")
         manifest.write_text("papers:\n  - title: keyless\n")
-        _assert(run(root, "audit").returncode == 70, "a keyless entry is a schema failure")
+        _assert(
+            run(root, "audit").returncode == 70, "a keyless entry is a schema failure"
+        )
 
 
 def test_help_carries_the_acli_footer():
@@ -290,7 +338,9 @@ def test_completion_offers_verbs():
 
 
 def _collect_tests():
-    return [(name, fn) for name, fn in sorted(globals().items()) if name.startswith("test_")]
+    return [
+        (name, fn) for name, fn in sorted(globals().items()) if name.startswith("test_")
+    ]
 
 
 def main(argv: list[str]) -> int:
@@ -302,11 +352,19 @@ def main(argv: list[str]) -> int:
         try:
             fn()
             passed += 1
-            print(f"PASS  {name}" if verbose else ".", end="" if not verbose else "\n", flush=True)
+            print(
+                f"PASS  {name}" if verbose else ".",
+                end="" if not verbose else "\n",
+                flush=True,
+            )
         except Exception:
             failed += 1
             failures.append((name, traceback.format_exc()))
-            print(f"FAIL  {name}" if verbose else "F", end="" if not verbose else "\n", flush=True)
+            print(
+                f"FAIL  {name}" if verbose else "F",
+                end="" if not verbose else "\n",
+                flush=True,
+            )
     if not verbose:
         print()
     for name, tb in failures:

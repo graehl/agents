@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """End-to-end tests for scripts/on_deck.py."""
+
 from __future__ import annotations
 
 import os
@@ -20,7 +21,9 @@ class Workspace:
     def cleanup(self) -> None:
         shutil.rmtree(self.root, ignore_errors=True)
 
-    def run(self, *args: str, env_extra: dict[str, str] | None = None) -> subprocess.CompletedProcess:
+    def run(
+        self, *args: str, env_extra: dict[str, str] | None = None
+    ) -> subprocess.CompletedProcess:
         env = os.environ.copy()
         # Hermetic: the test runner may itself be under an agent whose ambient
         # session id would make the tending-warning check treat seeded
@@ -104,7 +107,9 @@ def test_add_index_and_validate():
         _assert(index.exists(), "index was not created")
         text = entry.read_text()
         _assert("priority: 5" in text, "priority missing from frontmatter")
-        _assert("## Launch" in text and "agentctl start" in text, "launch block missing")
+        _assert(
+            "## Launch" in text and "agentctl start" in text, "launch block missing"
+        )
         _assert("pilot-a" in index.read_text(), "index omitted entry")
         res = ws.run("validate")
         _assert(res.returncode == 0, res.stderr)
@@ -139,13 +144,21 @@ def test_index_sort_and_retire():
         _assert(ws.run(*add_args("low", priority="1")).returncode == 0)
         _assert(ws.run(*add_args("high", priority="8")).returncode == 0)
         index = (ws.root / "on-deck" / "INDEX.md").read_text()
-        _assert(index.index("high") < index.index("low"), "index should sort by priority descending")
+        _assert(
+            index.index("high") < index.index("low"),
+            "index should sort by priority descending",
+        )
         res = ws.run("retire", "high", "--reason", "covered by newer run")
         _assert(res.returncode == 0, res.stderr)
-        _assert(not (ws.root / "on-deck" / "high.md").exists(), "retired entry stayed live")
+        _assert(
+            not (ws.root / "on-deck" / "high.md").exists(), "retired entry stayed live"
+        )
         done = ws.root / "on-deck" / "done" / "high.md"
         _assert(done.exists(), "retired entry was not moved")
-        _assert("status: \"retired\"" in done.read_text(), "retired status was not written to done entry")
+        _assert(
+            'status: "retired"' in done.read_text(),
+            "retired status was not written to done entry",
+        )
         index = (ws.root / "on-deck" / "INDEX.md").read_text()
         _assert("high" not in index, "retired entry remained in live index")
     finally:
@@ -156,7 +169,9 @@ def test_retired_live_entry_is_not_indexed():
     ws = Workspace()
     try:
         _assert(ws.run(*add_args("stale-retired", priority="9")).returncode == 0)
-        res = ws.run("log", "stale-retired", "--status", "retired", "left retired in live queue")
+        res = ws.run(
+            "log", "stale-retired", "--status", "retired", "left retired in live queue"
+        )
         _assert(res.returncode == 0, res.stderr)
         index = (ws.root / "on-deck" / "INDEX.md").read_text()
         _assert("stale-retired" not in index, "live retired entry remained in index")
@@ -168,10 +183,12 @@ def test_log_updates_status_and_index():
     ws = Workspace()
     try:
         _assert(ws.run(*add_args("tracked", priority="3")).returncode == 0)
-        res = ws.run("log", "tracked", "--status", "launched", "launched job=tracked run=abc123")
+        res = ws.run(
+            "log", "tracked", "--status", "launched", "launched job=tracked run=abc123"
+        )
         _assert(res.returncode == 0, res.stderr)
         entry = (ws.root / "on-deck" / "tracked.md").read_text()
-        _assert("status: \"launched\"" in entry, "status frontmatter was not updated")
+        _assert('status: "launched"' in entry, "status frontmatter was not updated")
         _assert("launched job=tracked run=abc123" in entry, "status log line missing")
         index = (ws.root / "on-deck" / "INDEX.md").read_text()
         _assert("| launched |" in index, "index did not pick up status change")
@@ -188,7 +205,10 @@ def test_validate_reports_parse_error_directly():
         res = ws.run("validate")
         _assert(res.returncode == 1, "corrupt entry should fail validation")
         _assert("missing frontmatter fence" in res.stderr, res.stderr)
-        _assert("missing priority" not in res.stderr, "parse error should not cascade into field errors")
+        _assert(
+            "missing priority" not in res.stderr,
+            "parse error should not cascade into field errors",
+        )
         ws.run("index")
         index = (ws.root / "on-deck" / "INDEX.md").read_text()
         _assert("invalid" in index and "missing frontmatter fence" in index, index)
@@ -202,9 +222,9 @@ def test_log_status_without_status_line_fails():
         _assert(ws.run(*add_args("good")).returncode == 0)
         entry = ws.root / "on-deck" / "no-status.md"
         entry.write_text(
-            "---\nslug: \"no-status\"\npriority: 5\nby: \"director\"\n"
-            "runtime_estimate: \"5m\"\nsize_class: \"small\"\ncheap_reversible: true\n"
-            "guard: \"true\"\nskip_if: \"false\"\n---\n\n# no-status\n\n"
+            '---\nslug: "no-status"\npriority: 5\nby: "director"\n'
+            'runtime_estimate: "5m"\nsize_class: "small"\ncheap_reversible: true\n'
+            'guard: "true"\nskip_if: "false"\n---\n\n# no-status\n\n'
             "## Launch\n```bash\ntrue\n```\n\n## Check\nc\n\n## Status Log\n- t\n"
         )
         res = ws.run("log", "no-status", "--status", "launched", "launched anyway")
@@ -218,7 +238,15 @@ def test_log_and_retire_record_author():
     ws = Workspace()
     try:
         _assert(ws.run(*add_args("authored")).returncode == 0)
-        res = ws.run("log", "authored", "--by", "director", "--status", "blocked", "needs new guard")
+        res = ws.run(
+            "log",
+            "authored",
+            "--by",
+            "director",
+            "--status",
+            "blocked",
+            "needs new guard",
+        )
         _assert(res.returncode == 0, res.stderr)
         entry = (ws.root / "on-deck" / "authored.md").read_text()
         _assert("director: needs new guard" in entry, entry)
@@ -267,8 +295,13 @@ def test_eligible_runs_guard_and_skip_commands():
     ws = Workspace()
     try:
         _assert(ws.run(*add_args("ready", priority="2", guard="true")).returncode == 0)
-        _assert(ws.run(*add_args("guard-fails", priority="9", guard="false")).returncode == 0)
-        _assert(ws.run(*add_args("skips", priority="5", skip_if="true")).returncode == 0)
+        _assert(
+            ws.run(*add_args("guard-fails", priority="9", guard="false")).returncode
+            == 0
+        )
+        _assert(
+            ws.run(*add_args("skips", priority="5", skip_if="true")).returncode == 0
+        )
         res = ws.run("eligible")
         _assert(res.returncode == 0, res.stderr)
         out = res.stdout
@@ -284,7 +317,12 @@ def test_eligible_runs_guard_and_skip_commands():
 def test_eligible_steward_excludes_gated_entries():
     ws = Workspace()
     try:
-        _assert(ws.run(*add_args("gated", priority="9", cheap_reversible="false")).returncode == 0)
+        _assert(
+            ws.run(
+                *add_args("gated", priority="9", cheap_reversible="false")
+            ).returncode
+            == 0
+        )
         res = ws.run("eligible", "--steward")
         _assert(res.returncode == 1, "gated entry should not be steward-eligible")
         _assert("no eligible entry" in res.stdout, res.stdout)
@@ -294,7 +332,9 @@ def test_eligible_steward_excludes_gated_entries():
         ws.cleanup()
 
 
-def _seed_active_entry(ws: Workspace, name: str, text: str, age_minutes: float = 0.0) -> Path:
+def _seed_active_entry(
+    ws: Workspace, name: str, text: str, age_minutes: float = 0.0
+) -> Path:
     """Write a .agentctl/active/<name> entry, optionally backdating its mtime."""
     active = ws.root / ".agentctl" / "active"
     active.mkdir(parents=True, exist_ok=True)
@@ -314,14 +354,21 @@ def test_eligible_warns_when_another_session_is_tending():
     ws = Workspace()
     try:
         _assert(ws.run(*add_args("ready", priority="2", guard="true")).returncode == 0)
-        _seed_active_entry(ws, "sess-steward",
-                           "stewarding on-deck\nscope: on-deck/**\ntending: on-deck")
+        _seed_active_entry(
+            ws,
+            "sess-steward",
+            "stewarding on-deck\nscope: on-deck/**\ntending: on-deck",
+        )
         res = ws.run("eligible")
-        _assert(res.returncode == 0, f"warning must not block eligibility: {res.stderr}")
+        _assert(
+            res.returncode == 0, f"warning must not block eligibility: {res.stderr}"
+        )
         _assert("eligible: ready" in res.stdout, res.stdout)
-        _assert("another session is tending this queue" in res.stderr
-                and "sess-steward" in res.stderr,
-                f"tending warning should name the session: {res.stderr!r}")
+        _assert(
+            "another session is tending this queue" in res.stderr
+            and "sess-steward" in res.stderr,
+            f"tending warning should name the session: {res.stderr!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -332,13 +379,16 @@ def test_eligible_tending_warning_skips_self_done_stale_and_plain():
         _assert(ws.run(*add_args("ready", priority="2", guard="true")).returncode == 0)
         _seed_active_entry(ws, "sess-self", "stewarding on-deck\ntending: on-deck")
         _seed_active_entry(ws, "sess-done", "DONE: stewarded out\ntending: on-deck")
-        _seed_active_entry(ws, "sess-crashed", "stewarding\ntending: on-deck",
-                           age_minutes=120)
+        _seed_active_entry(
+            ws, "sess-crashed", "stewarding\ntending: on-deck", age_minutes=120
+        )
         _seed_active_entry(ws, "sess-editor", "editing the parser\nscope: pkg/**")
         res = ws.run("eligible", env_extra={"AGENTCTL_SESSION_ID": "sess-self"})
         _assert(res.returncode == 0, res.stderr)
-        _assert("tending this queue" not in res.stderr,
-                f"self/DONE/stale/plain entries must not warn: {res.stderr!r}")
+        _assert(
+            "tending this queue" not in res.stderr,
+            f"self/DONE/stale/plain entries must not warn: {res.stderr!r}",
+        )
     finally:
         ws.cleanup()
 
@@ -372,7 +422,11 @@ def test_section_ignores_fenced_headings():
 
 
 def _collect_tests():
-    return [(name, fn) for name, fn in sorted(globals().items()) if name.startswith("test_") and callable(fn)]
+    return [
+        (name, fn)
+        for name, fn in sorted(globals().items())
+        if name.startswith("test_") and callable(fn)
+    ]
 
 
 def main() -> int:

@@ -92,7 +92,9 @@ def make_png(path: Path, width: int, height: int) -> None:
     )
 
 
-def make_extract(directory: Path, crops: dict[str, tuple[int, int]], blocks: list[dict]) -> Path:
+def make_extract(
+    directory: Path, crops: dict[str, tuple[int, int]], blocks: list[dict]
+) -> Path:
     """Lay out one marker-shaped extract; return the markdown path."""
     directory.mkdir(parents=True, exist_ok=True)
     make_pdf(directory / "source.pdf")
@@ -120,9 +122,12 @@ def run(markdown: Path, *argv: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [
             str(TOOL),
-            "--pdf", str(markdown.parent / "source.pdf"),
-            "--blocks", str(markdown.parent / "blocks.json"),
-            "--markdown", str(markdown),
+            "--pdf",
+            str(markdown.parent / "source.pdf"),
+            "--blocks",
+            str(markdown.parent / "blocks.json"),
+            "--markdown",
+            str(markdown),
             "--compact",
             *argv,
         ],
@@ -188,7 +193,8 @@ def test_crop_aspect_disagreeing_with_the_bbox_is_refused():
         proc = run(markdown)
         _assert(proc.returncode == 0, proc.stderr)
         _assert(
-            rows(proc)["_page_0_Figure_1.png"]["status"] == "geometry-mismatch", proc.stdout
+            rows(proc)["_page_0_Figure_1.png"]["status"] == "geometry-mismatch",
+            proc.stdout,
         )
         _assert("](_page_0_Figure_1.png)" in markdown.read_text())
 
@@ -216,7 +222,9 @@ def test_missing_geometry_is_named_not_skipped():
         )
         proc = run(markdown)
         _assert(proc.returncode == 0, proc.stderr)
-        _assert(rows(proc)["_page_0_Figure_7.png"]["status"] == "no-geometry", proc.stdout)
+        _assert(
+            rows(proc)["_page_0_Figure_7.png"]["status"] == "no-geometry", proc.stdout
+        )
 
 
 def test_dry_run_writes_nothing():
@@ -230,7 +238,9 @@ def test_dry_run_writes_nothing():
         proc = run(markdown, "--dry-run")
         _assert(proc.returncode == 0, proc.stderr)
         _assert(rows(proc)["_page_0_Figure_1.png"]["status"] == "vector", proc.stdout)
-        _assert(markdown.read_text() == before, "markdown was rewritten under --dry-run")
+        _assert(
+            markdown.read_text() == before, "markdown was rewritten under --dry-run"
+        )
         _assert(not (markdown.parent / "_page_0_Figure_1.svg").exists())
 
 
@@ -244,7 +254,9 @@ def test_second_run_reports_the_links_it_already_converted():
         _assert(run(markdown).returncode == 0)
         again = run(markdown)
         _assert(again.returncode == 0, again.stderr)
-        _assert(rows(again)["_page_0_Figure_1.svg"]["status"] == "already", again.stdout)
+        _assert(
+            rows(again)["_page_0_Figure_1.svg"]["status"] == "already", again.stdout
+        )
 
 
 def test_missing_input_exits_not_found():
@@ -264,11 +276,16 @@ def test_help_advertises_the_acli_capability_line():
     proc = subprocess.run([str(TOOL), "--help"], capture_output=True, text=True)
     _assert(proc.returncode == 0, proc.stderr)
     _assert("acli: 1 complete" in proc.stdout, proc.stdout[-300:])
-    _assert("# acli: 1 complete" in TOOL.read_text()[:1024], "marker must sit in the first 1 KiB")
+    _assert(
+        "# acli: 1 complete" in TOOL.read_text()[:1024],
+        "marker must sit in the first 1 KiB",
+    )
 
 
 def _collect_tests():
-    return [(name, fn) for name, fn in sorted(globals().items()) if name.startswith("test_")]
+    return [
+        (name, fn) for name, fn in sorted(globals().items()) if name.startswith("test_")
+    ]
 
 
 def main(argv: list[str]) -> int:
@@ -283,11 +300,19 @@ def main(argv: list[str]) -> int:
         try:
             fn()
             passed += 1
-            print(f"PASS  {name}" if verbose else ".", end="" if not verbose else "\n", flush=True)
+            print(
+                f"PASS  {name}" if verbose else ".",
+                end="" if not verbose else "\n",
+                flush=True,
+            )
         except Exception:
             failed += 1
             failures.append((name, traceback.format_exc()))
-            print(f"FAIL  {name}" if verbose else "F", end="" if not verbose else "\n", flush=True)
+            print(
+                f"FAIL  {name}" if verbose else "F",
+                end="" if not verbose else "\n",
+                flush=True,
+            )
     if not verbose:
         print()
     for name, tb in failures:

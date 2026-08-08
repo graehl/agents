@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import contextlib
-import io
 import importlib
+import io
 import json
 import sys
 import time
@@ -146,7 +146,9 @@ def _demo_name_completer(prefix, tokens):
     return [
         entry
         for entry in entries
-        if (entry["completion"] if isinstance(entry, dict) else entry).startswith(prefix)
+        if (entry["completion"] if isinstance(entry, dict) else entry).startswith(
+            prefix
+        )
     ]
 
 

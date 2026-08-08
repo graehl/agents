@@ -10,7 +10,7 @@ target-version = "py310"
   # Malformed declaration JSON is a bad value, not a caller type error.
   "TRY004",
 ]
-"tests/test_agentctl.py" = [
+"tests/test_*.py" = [
   # The suite runner catches every test failure to report the complete set.
   "BLE001",
   # Tests inspect return codes explicitly, including expected failures.

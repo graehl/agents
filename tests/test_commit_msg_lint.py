@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """End-to-end tests for scripts/commit-msg-lint."""
+
 from __future__ import annotations
 
 import os
@@ -88,7 +89,11 @@ def test_no_stdin_without_head_exits_2():
 
 
 def _collect_tests():
-    return [(name, fn) for name, fn in sorted(globals().items()) if name.startswith("test_") and callable(fn)]
+    return [
+        (name, fn)
+        for name, fn in sorted(globals().items())
+        if name.startswith("test_") and callable(fn)
+    ]
 
 
 def main() -> int:

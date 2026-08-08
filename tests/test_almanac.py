@@ -29,7 +29,12 @@ CARDS = {
     "cards": [
         {"name": "Strike", "tier": "C", "cost": 1, "text": "Deal 6 damage."},
         {"name": "Bash", "tier": "B", "cost": 2, "text": "Deal 8. Vulnerable 2."},
-        {"name": "Perfected Strike", "tier": "A", "cost": 2, "text": "More per Strike."},
+        {
+            "name": "Perfected Strike",
+            "tier": "A",
+            "cost": 2,
+            "text": "More per Strike.",
+        },
     ]
 }
 
@@ -179,17 +184,13 @@ def test_image_native_renderers():
     image.write_bytes(PNG)
 
     kitty = BytesIO()
-    result = display_image(
-        image, renderer="kitty", width=24, out=kitty, is_tty=True
-    )
+    result = display_image(image, renderer="kitty", width=24, out=kitty, is_tty=True)
     _assert(result.rendered and result.renderer == "kitty", result)
     _assert(kitty.getvalue().startswith(b"\x1b_G"), kitty.getvalue())
     _assert(b"f=100" in kitty.getvalue() and b"c=24" in kitty.getvalue())
 
     iterm2 = BytesIO()
-    result = display_image(
-        image, renderer="iterm2", width=24, out=iterm2, is_tty=True
-    )
+    result = display_image(image, renderer="iterm2", width=24, out=iterm2, is_tty=True)
     _assert(result.rendered and result.renderer == "iterm2", result)
     _assert(iterm2.getvalue().startswith(b"\x1b]1337;File="), iterm2.getvalue())
     _assert(b"width=24" in iterm2.getvalue())
@@ -203,7 +204,9 @@ def test_image_native_renderers():
 
 def test_register_wires_symlink_launcher_and_git():
     root, bin_dir = registered_root()
-    result = jsonl(run(root, "register", "cards-test", "--launcher-dir", str(bin_dir)))[0]
+    result = jsonl(run(root, "register", "cards-test", "--launcher-dir", str(bin_dir)))[
+        0
+    ]
     _assert(result["warnings"] == [], result)
     _assert(result["git"] == "unchanged", "re-register with no data change is a no-op")
     links = list((root / "by-url").iterdir())
@@ -378,7 +381,10 @@ def test_check_and_update_cycle():
     proc = run(root, "check", "cards-test", source=fixture)
     _assert(proc.returncode == 0 and jsonl(proc)[0]["changed"] is False, proc.stdout)
 
-    changed = {"cards": CARDS["cards"] + [{"name": "Whirlwind", "tier": "S", "cost": 0, "text": "X hits."}]}
+    changed = {
+        "cards": CARDS["cards"]
+        + [{"name": "Whirlwind", "tier": "S", "cost": 0, "text": "X hits."}]
+    }
     fixture.write_text(json.dumps(changed))
     proc = run(root, "check", "cards-test", source=fixture)
     _assert(proc.returncode == 3 and jsonl(proc)[0]["changed"] is True, proc.stdout)
@@ -436,9 +442,7 @@ def test_completion():
     _assert("3 distinct" in fields[0]["help"], fields)
     values = jsonl(run(root, "--acli-complete", "query", "cards-test", "tier="))
     # Page order (C, B, A here), never alphabetized: order is the ranking.
-    _assert(
-        [r["completion"] for r in values] == ["tier=C", "tier=B", "tier=A"], values
-    )
+    _assert([r["completion"] for r in values] == ["tier=C", "tier=B", "tier=A"], values)
     _assert(values[0]["help"] == "1 records", values)
     verbs = [r["completion"] for r in jsonl(run(root, "--acli-complete", "che"))]
     _assert(verbs == ["check"], verbs)
@@ -479,21 +483,33 @@ def test_repl_batch_lines():
 def test_launcher_dispatch():
     root, bin_dir = registered_root()
     add_images(root / "cards-test")
-    env = dict(os.environ, ALMANAC_ROOT=str(root), PATH=f"{bin_dir}:{os.environ['PATH']}")
+    env = dict(
+        os.environ, ALMANAC_ROOT=str(root), PATH=f"{bin_dir}:{os.environ['PATH']}"
+    )
     launcher = str(bin_dir / "cards-test")
 
     proc = subprocess.run([launcher], capture_output=True, text=True, env=env)
-    _assert(json.loads(proc.stdout.splitlines()[0])["records"] == 3, "bare launcher = info")
+    _assert(
+        json.loads(proc.stdout.splitlines()[0])["records"] == 3, "bare launcher = info"
+    )
 
     proc = subprocess.run([launcher, "tier=b"], capture_output=True, text=True, env=env)
-    _assert(json.loads(proc.stdout.splitlines()[0])["name"] == "Bash", "filters = query")
+    _assert(
+        json.loads(proc.stdout.splitlines()[0])["name"] == "Bash", "filters = query"
+    )
 
-    proc = subprocess.run([launcher, "show", "bash"], capture_output=True, text=True, env=env)
+    proc = subprocess.run(
+        [launcher, "show", "bash"], capture_output=True, text=True, env=env
+    )
     _assert(json.loads(proc.stdout.splitlines()[0])["cost"] == 2, proc.stdout)
 
-    proc = subprocess.run([launcher, "image", "bash"], capture_output=True, text=True, env=env)
+    proc = subprocess.run(
+        [launcher, "image", "bash"], capture_output=True, text=True, env=env
+    )
     image_result = json.loads(proc.stdout.splitlines()[0])
-    _assert(image_result["record"] == "Bash" and not image_result["rendered"], proc.stdout)
+    _assert(
+        image_result["record"] == "Bash" and not image_result["rendered"], proc.stdout
+    )
 
     for leading in (["--pretty"], ["--format", "pretty"], ["--format=pretty"]):
         proc = subprocess.run(
@@ -523,11 +539,18 @@ def test_launcher_dispatch():
     )
     _assert(proc.returncode == 0 and "launcher bound to" in proc.stdout, proc.stderr)
 
-    proc = subprocess.run([launcher, "vulnerable"], capture_output=True, text=True, env=env)
-    _assert(json.loads(proc.stdout.splitlines()[0])["name"] == "Bash", "bare word = search")
+    proc = subprocess.run(
+        [launcher, "vulnerable"], capture_output=True, text=True, env=env
+    )
+    _assert(
+        json.loads(proc.stdout.splitlines()[0])["name"] == "Bash", "bare word = search"
+    )
 
     proc = subprocess.run(
-        [launcher, "--acli-complete", "show", "b"], capture_output=True, text=True, env=env
+        [launcher, "--acli-complete", "show", "b"],
+        capture_output=True,
+        text=True,
+        env=env,
     )
     _assert(proc.returncode == 0, proc.stderr)
     _assert([json.loads(l)["completion"] for l in proc.stdout.splitlines()] == ["Bash"])
@@ -537,9 +560,7 @@ def test_launcher_dispatch():
         text=True,
         env=env,
     )
-    completions = [
-        json.loads(line)["completion"] for line in proc.stdout.splitlines()
-    ]
+    completions = [json.loads(line)["completion"] for line in proc.stdout.splitlines()]
     _assert("show" in completions and "search" in completions, completions)
 
     _assert(

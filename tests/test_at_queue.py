@@ -41,8 +41,14 @@ def _source(root: Path, name: str, body: str = "Run it.") -> Path:
 
 
 def _claim(root: Path, session: str, pid: int | None = None):
-    return _run(root, "claim", "--session", session,
-                "--owner-pid", str(os.getpid() if pid is None else pid))
+    return _run(
+        root,
+        "claim",
+        "--session",
+        session,
+        "--owner-pid",
+        str(os.getpid() if pid is None else pid),
+    )
 
 
 def _run(root: Path, *args: str):
@@ -123,7 +129,9 @@ def test_done_reschedules_or_parks():
     _claim(root, "a")
 
     proc = _run(root, "done", "--job", "periodic", "--run-after", FUTURE)
-    _assert(proc.returncode == 0 and _json(proc)["status"] == "rescheduled", proc.stdout)
+    _assert(
+        proc.returncode == 0 and _json(proc)["status"] == "rescheduled", proc.stdout
+    )
     _assert(_claim(root, "b").returncode == 3, "no longer due")
 
     _run(root, "activate", "--job", "periodic", "--run-after", PAST)
@@ -179,7 +187,10 @@ def test_tracked_activation_is_refused():
         ["git", "add", "-f", ".yep/at-activation.json"], cwd=root, check=True
     )
 
-    for verb in (["list"], ["claim", "--session", "a", "--owner-pid", str(os.getpid())]):
+    for verb in (
+        ["list"],
+        ["claim", "--session", "a", "--owner-pid", str(os.getpid())],
+    ):
         proc = _run(root, *verb)
         _assert(proc.returncode == 4, f"{verb} must refuse tracked activation")
         _assert("clone-local" in _json(proc)["error"], proc.stdout)
@@ -220,7 +231,9 @@ def test_missing_source_is_refused_and_never_claimed():
     proc = _claim(root, "a")
     _assert(proc.returncode == 3, proc.stdout)
     _assert(_json(proc)["skipped"]["vanishing"] == "prompt source is missing")
-    _assert(_run(root, "activate", "--job", "gone", "--run-after", PAST).returncode == 4)
+    _assert(
+        _run(root, "activate", "--job", "gone", "--run-after", PAST).returncode == 4
+    )
 
 
 def test_claim_demands_provable_liveness():
