@@ -415,9 +415,9 @@ remain explicit agent actions after it returns. A copied remote `agentctl`
 is useful for native job state and launches but is never a prerequisite for
 capacity monitoring.
 
-## Job-completion wake (planned plugin)
+## Job-completion wake
 
-`agentctl_plugins/wake.py` (design; not yet implemented) closes the
+`agentctl_plugins/wake.py` closes the
 Codex dead-stop gap (`AGENTS.codex.md § Turn-End Is A Dead Stop`): a
 launch made from a YA-supervised session inherits
 `YEP_SESSION_WAKE_URL`/`YEP_SESSION_WAKE_TOKEN`; the plugin arms on
@@ -426,10 +426,12 @@ launch-depth-0 launches carrying that env (`--no-wake` opts out), and
 survives agent teardown with the launch-time env — POSTs a one-line
 completion summary (`[agentctl-wake] job <name> finished
 returncode=<rc> …`) back to the launching session, waking the agent to
-consume the result. Best-effort: stdlib HTTP, one retry, then one log
-line and stop; YA heartbeat turns are the backstop. Full contract —
-endpoint, token, delivery-time gating, resume-on-wake rules, and the
-narrow provider-CLI injection fallback — lives in the yepanywhere
+consume the result. It appends the last non-empty log line for a failed job,
+never follows HTTP redirects with the bearer credential, and persists no URL
+or token in run state. Best-effort: stdlib HTTP with a three-second timeout,
+one retry, then one log line and stop; YA heartbeat turns are the backstop.
+Full contract — endpoint, token, delivery-time gating, resume-on-wake rules,
+and the narrow provider-CLI injection fallback — lives in the yepanywhere
 repo's `topics/session-wake.md`.
 
 ## Hook surface

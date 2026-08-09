@@ -14,6 +14,7 @@ Exits non-zero on any failure.
 from __future__ import annotations
 
 import hashlib
+import http.server
 import importlib.util
 import json
 import os
@@ -23,9 +24,11 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import traceback
 from pathlib import Path
+from typing import ClassVar
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENTCTL_FILES = ("agentctl", "agentctl.py", "artifact_meta.py")
@@ -65,6 +68,8 @@ class Workspace:
             "CLAUDE_CODE_SESSION_ID",
             "AGENTCTL_LAUNCH_DEPTH",
             "BASH_ENV",
+            "YEP_SESSION_WAKE_TOKEN",
+            "YEP_SESSION_WAKE_URL",
         ):
             env.pop(var, None)
         # Also disable parent-process-tree recovery by default: the test runner
@@ -180,6 +185,51 @@ def _json_record(output: str) -> dict:
 
 def _json_records(output: str) -> list[dict]:
     return [json.loads(line) for line in output.splitlines() if line.strip()]
+
+
+class _WakeHandler(http.server.BaseHTTPRequestHandler):
+    requests: ClassVar[list[dict]] = []
+    status = 202
+
+    def do_POST(self):
+        length = int(self.headers.get("Content-Length", "0"))
+        body = json.loads(self.rfile.read(length))
+        self.requests.append(
+            {
+                "authorization": self.headers.get("Authorization"),
+                "body": body,
+                "path": self.path,
+            }
+        )
+        self.send_response(self.status)
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        pass
+
+
+class WakeServer:
+    def __init__(self, status: int = 202):
+        self.status = status
+
+    def __enter__(self):
+        _WakeHandler.requests = []
+        _WakeHandler.status = self.status
+        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _WakeHandler)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        host, port = self.server.server_address
+        self.url = f"http://{host}:{port}/session-wake/test-session"
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=5)
+
+    @property
+    def requests(self) -> list[dict]:
+        return list(_WakeHandler.requests)
 
 
 def _fake_nvidia_smi(ws: Workspace, row: str) -> dict[str, str]:
@@ -624,6 +674,117 @@ def test_no_aim_writes_nothing():
         _start(ws, "--no-aim", "trivial", "--", "true")
         ws.wait_finished("trivial")
         _assert(not (ws.tmp / "runs").exists(), "runs/ should not exist for --no-aim")
+    finally:
+        ws.cleanup()
+
+
+def test_agent_level_launch_posts_session_wake_on_finish():
+    ws = Workspace()
+    try:
+        with WakeServer() as wake:
+            res = ws.run(
+                "start",
+                "--no-aim",
+                "wakejob",
+                "--",
+                "true",
+                env_extra={
+                    "AGENTCTL_SESSION_ID": "test-session",
+                    "YEP_SESSION_WAKE_TOKEN": "wake-secret",
+                    "YEP_SESSION_WAKE_URL": wake.url,
+                },
+            )
+            _assert(res.returncode == 0, res.stderr)
+            state = ws.wait_finished("wakejob")
+            deadline = time.time() + 3
+            while not wake.requests and time.time() < deadline:
+                time.sleep(0.02)
+
+        _assert(len(wake.requests) == 1, wake.requests)
+        request = wake.requests[0]
+        _assert(request["authorization"] == "Bearer wake-secret", request)
+        _assert(request["path"] == "/session-wake/test-session", request)
+        body = request["body"]
+        _assert(body["source"] == "agentctl", body)
+        _assert(body["jobId"] == state["run_id"], body)
+        _assert(
+            body["text"].startswith(
+                "[agentctl-wake] job wakejob finished returncode=0 elapsed="
+            ),
+            body,
+        )
+        _assert(f"log={state['log_path']}" in body["text"], body)
+    finally:
+        ws.cleanup()
+
+
+def test_wake_opt_out_and_nested_launch_do_not_post():
+    ws = Workspace()
+    try:
+        with WakeServer() as wake:
+            wake_env = {
+                "AGENTCTL_SESSION_ID": "test-session",
+                "YEP_SESSION_WAKE_TOKEN": "wake-secret",
+                "YEP_SESSION_WAKE_URL": wake.url,
+            }
+            opt_out = ws.run(
+                "start",
+                "--no-aim",
+                "--no-wake",
+                "optout",
+                "--",
+                "true",
+                env_extra=wake_env,
+            )
+            _assert(opt_out.returncode == 0, opt_out.stderr)
+            ws.wait_finished("optout")
+            nested = ws.run(
+                "start",
+                "--no-aim",
+                "nested",
+                "--",
+                "true",
+                env_extra={**wake_env, "AGENTCTL_LAUNCH_DEPTH": "1"},
+            )
+            _assert(nested.returncode == 0, nested.stderr)
+            ws.wait_finished("nested")
+            time.sleep(0.1)
+
+        _assert(wake.requests == [], wake.requests)
+    finally:
+        ws.cleanup()
+
+
+def test_wake_failure_retries_once_and_logs_once():
+    ws = Workspace()
+    try:
+        with WakeServer(status=500) as wake:
+            res = ws.run(
+                "start",
+                "--no-aim",
+                "wakefail",
+                "--",
+                "bash",
+                "-c",
+                "echo final-error; exit 7",
+                env_extra={
+                    "AGENTCTL_SESSION_ID": "test-session",
+                    "YEP_SESSION_WAKE_TOKEN": "wake-secret",
+                    "YEP_SESSION_WAKE_URL": wake.url,
+                },
+            )
+            _assert(res.returncode == 0, res.stderr)
+            state = ws.wait_finished("wakefail")
+
+        _assert(len(wake.requests) == 2, wake.requests)
+        text = wake.requests[0]["body"]["text"]
+        _assert("returncode=7" in text and "last=final-error" in text, text)
+        log = Path(state["log_path"]).read_text()
+        _assert(
+            log.count("agentctl: session wake failed after retry: HTTP 500") == 1,
+            log,
+        )
+        _assert("wake-secret" not in log, log)
     finally:
         ws.cleanup()
 
