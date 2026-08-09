@@ -84,6 +84,30 @@ date a past observation by grepping your own rollout file.
 `queued-anchor` v1 (spec: `topics/helper-scripts.md`) parses only
 Claude transcripts; on Codex, read the timestamps directly.
 
+## Turn-End Is A Dead Stop
+
+Codex has no scheduled wakeup, cron, or background-job completion
+notification: a new turn arrives only when a message arrives or a tool
+call returns. Ending a turn with work still owed is therefore a dead
+stop — an announced "I'll proceed/monitor" after your final message
+never happens. Observed cost: a session ended its turn with a queued
+training chain running; the chain finished 15 minutes later and the
+GPU sat idle ten hours until the user typed.
+
+Invariant: do not end a turn while you own unconsumed work — a running
+or queued job whose result you will consume, or an idle-GPU successor
+decision — unless the user explicitly deferred it. Either consume and
+launch now, or end the turn inside the announced foreground `agentctl
+wait`/`watch` at the earned rung (RUNS.md § Wait watchdog discipline).
+Interactive questions do not suspend this: answer, then re-enter the
+wait in the same turn. Compaction does not clear the obligation —
+re-verify job state and re-enter the wait.
+
+Mechanics: the unified-exec `wait` honors long yields and returns
+early on completion (yields ≥ 600 s verified in practice), so prefer
+one rung-length wait over a chain of 30–60 s polls — fewer calls, and
+no turn boundary to drift through.
+
 ## Skills Path Aliasing
 
 `~/agents/skills` and `~/.codex/skills/user` may alias the same directory;

@@ -165,6 +165,18 @@ not written until all dependencies complete cleanly. Use this only when the
 follow-on is mechanically determined; if the next step depends on interpreting
 the completed `.meta.md` or output contents, wait and inspect before launching.
 
+Prequeueing the mechanically-determined successor at launch time (eval
+after train, decode after cache) is cheap insurance against an agent
+dead-stop: if nothing consumes the completion promptly, the GPU still
+runs the planned chain and only reporting waits. `--after` gates on
+clean exit, but exit 0 is not semantic success: when the successor
+should not run on a degenerate result (metrics out of range, truncated
+or empty output), put that check in a small standalone guard script
+that the successor payload runs first — exit nonzero fails the
+successor and stops the chain — rather than shell-quoting a compound
+test into the agentctl command line. Results needing real
+interpretation still follow the wait-and-inspect rule above.
+
 The naming relationship is strict: `.meta.md` and `.log` are formed directly from the
 exact output filename. When a run has one primary output, redirect stderr to `<out>.log`.
 
