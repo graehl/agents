@@ -1168,3 +1168,20 @@ the sweep single-target.
   rather than only the family patch; `AGENTS.anthropic.md` now names the rule
   so the family tightening and the general rule stay linked.
 - **Status** — `assumed`; endorsed wording, no outcome comparison.
+
+## 2026-08-09 — authored-text review moves from pasted diffs to source ranges
+
+- **Trigger** — graehl found that pasting every authored instruction change
+  verbatim into the reply lets important discussion points scroll out of the
+  YA view and spends tokens on text already present in the worktree. He wants
+  to review what was written, not necessarily its before/after form.
+- **Decision** — § *Point to authored instruction text* now identifies each
+  important rewrite by project-relative `path:line` and prefers a browseable
+  read-range result. Inline verbatim text is the fallback when the current
+  range cannot be browsed; unified diffs are no longer the default.
+- **Trace** — an agent rewrites two instruction sections: it issues two
+  read-range results and names both starting lines in a compact reply. A
+  harness without browseable range output instead pastes the current authored
+  text. A summary-only reply with no source pointer still fails the rule.
+- **Status** — user-specified YA interaction preference; effect on missed
+  discussion points and response tokens is not yet measured.
