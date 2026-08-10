@@ -464,6 +464,10 @@ The base writes a flat dict to `state.json`. Canonical keys (read freely):
 `depends_on`, `wait_on`, `wait_after`, `queued_at`, `source_env`,
 `git_branch`, `git_commit`, `launch_gpu_stats`.
 
+`user_argv` preserves the payload argv before translated `--input` and
+`--output-arg` declarations are appended. Restarts rebuild translated flags
+from declarations against that original argv, preventing duplicate flags.
+
 Plugins should write their own keys directly on `state` (the dict is the
 in-memory record passed to every hook). Existing convention from the `aim`
 plugin: `aim`, `aim_run_hash`, `experiment`, `tags`, `aim_dump_record`. New

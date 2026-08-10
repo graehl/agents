@@ -370,16 +370,20 @@ def on_restart(state, args) -> None:
         else:
             args.input.append(spec)
     args.output = []
+    args.output_arg = []
     args.output_hash = []
     for key, info in (state.get("outputs") or {}).items():
         path = info.get("path", "")
         if not path:
             continue
         spec = f"{key}={path}"
-        if info.get("needs_hash") or info.get("sha256"):
-            args.output_hash.append(spec)
-        else:
+        hashed = info.get("needs_hash") or info.get("sha256")
+        if info.get("arg"):
+            args.output_arg.append(spec)
+        elif not hashed:
             args.output.append(spec)
+        if hashed:
+            args.output_hash.append(spec)
     # Script override: if state has a recorded script with an explicit path,
     # pass it through as --script PATH on restart so the same file is fingerprinted.
     args.script = (state.get("script") or {}).get("path", "")

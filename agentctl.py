@@ -2845,28 +2845,42 @@ def start(args: argparse.Namespace) -> int:
     headline_path = run_dir / "headline.txt"
 
     # Declared outputs: --output KEY=PATH (repeatable; bare PATH → key="primary").
-    # --output-hash KEY=PATH also declares an output and flags it for sha256 at completion.
+    # --output-arg also appends --KEY=PATH to the payload. --output-hash flags
+    # the same declaration for sha256 at completion.
     declared_outputs: dict = {}
+    output_translations: list[tuple[str, str]] = []
     primary_output_path: Path | None = None
-    for spec in args.output or []:
+
+    def _record_output(spec: str, *, translate: bool, do_hash: bool) -> None:
+        nonlocal primary_output_path
+        if translate and "=" not in spec:
+            raise SystemExit(f"--output-arg requires KEY=PATH, got {spec!r}")
         key, path = parse_keypath(spec, default_key="primary")
         p = Path(path).expanduser()
         if not p.is_absolute():
             p = (ROOT / p).resolve(strict=False)
-        declared_outputs[key] = {"path": str(p)}
-        if primary_output_path is None:
-            primary_output_path = p
-    for spec in args.output_hash or []:
-        key, path = parse_keypath(spec, default_key="primary")
-        p = Path(path).expanduser()
-        if not p.is_absolute():
-            p = (ROOT / p).resolve(strict=False)
-        rec = declared_outputs.get(key) or {}
-        rec["path"] = str(p)
-        rec["needs_hash"] = True
+        prior = declared_outputs.get(key)
+        if prior is not None and prior["path"] != str(p):
+            raise SystemExit(
+                f"conflicting output declarations for {key!r}: "
+                f"{prior['path']!r} != {str(p)!r}"
+            )
+        rec = prior or {"path": str(p)}
+        if translate and not rec.get("arg"):
+            rec["arg"] = True
+            output_translations.append((key, str(p)))
+        if do_hash:
+            rec["needs_hash"] = True
         declared_outputs[key] = rec
         if primary_output_path is None:
             primary_output_path = p
+
+    for spec in args.output or []:
+        _record_output(spec, translate=False, do_hash=False)
+    for spec in args.output_arg or []:
+        _record_output(spec, translate=True, do_hash=False)
+    for spec in args.output_hash or []:
+        _record_output(spec, translate=False, do_hash=True)
     output_path = primary_output_path
     if output_path is None:
         plugin_default = _first_hook("default_output_path", args, run_dir)
@@ -2947,9 +2961,11 @@ def start(args: argparse.Namespace) -> int:
             raise SystemExit(f"expected --env KEY=VALUE, got {item!r}")
         env[key] = value
 
-    # Build the final argv for the child: user's argv + translated --input flags.
+    # Build the final argv for the child: user's argv + translated I/O flags.
     final_argv = list(args.argv)
     for key, path in input_translations:
+        final_argv.append(f"--{key}={path}")
+    for key, path in output_translations:
         final_argv.append(f"--{key}={path}")
 
     # Producer-flagged propagation (static at launch). Run-time-computed facts
@@ -2984,6 +3000,7 @@ def start(args: argparse.Namespace) -> int:
         "git_commit": git_value(["rev-parse", "HEAD"]),
         "headline_path": str(headline_path),
         "inputs": declared_inputs,
+        "user_argv": list(args.argv),
         "job": job,
         "launch_name": launch_name,
         "log_path": str(log_path),
@@ -4139,7 +4156,7 @@ def restart(args: argparse.Namespace) -> int:
     if state.get("status") in ("running", "waiting"):
         stop(argparse.Namespace(job=args.job, grace=args.grace))
     start_args = argparse.Namespace(
-        argv=state["argv"],
+        argv=state.get("user_argv") or state["argv"],
         context_note=state.get("context_note", ""),
         depends_on=state.get("depends_on", []),
         # Requeue behind the same --after dependencies; a clean-finished
@@ -4156,6 +4173,7 @@ def restart(args: argparse.Namespace) -> int:
         input_raw=[],
         input_hash=[],
         output=[],
+        output_arg=[],
         output_hash=[],
         script="",
         propagate_json="",
@@ -4256,9 +4274,20 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         action="append",
         default=[],
         help=(
-            "Declare an output as KEY=PATH (repeatable). The first declared output is the primary "
+            "Declare an output as KEY=PATH for provenance only; this does NOT pass an --output "
+            "argument to the payload (repeatable). The first declared output is the primary "
             "(its path anchors .meta.md). A bare PATH (no '=') is accepted as shorthand for primary=PATH. "
-            "Each output gets a <path>.meta.json sidecar at completion pointing back at the run."
+            "Each output gets a <path>.meta.json sidecar at completion pointing back at the run. "
+            "Use --output-arg output=PATH when the payload also needs --output=PATH."
+        ),
+    )
+    sp.add_argument(
+        "--output-arg",
+        action="append",
+        default=[],
+        help=(
+            "Declare an output as KEY=PATH and append --KEY=PATH to the payload argv (repeatable). "
+            "This avoids repeating a payload output path separately from its provenance declaration."
         ),
     )
     sp.add_argument(

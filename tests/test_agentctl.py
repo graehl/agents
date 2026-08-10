@@ -943,6 +943,70 @@ def test_input_translation_appends_to_argv():
         ws.cleanup()
 
 
+def test_output_arg_translates_and_declares_output():
+    ws = Workspace()
+    try:
+        out = ws.scratch / "translated.txt"
+        _start(
+            ws,
+            "--experiment",
+            "e",
+            "--output-arg",
+            f"output={out}",
+            "--output-hash",
+            f"output={out}",
+            "outputarg",
+            "--",
+            sys.executable,
+            "-c",
+            "import pathlib, sys; pathlib.Path(sys.argv[1].split('=', 1)[1]).write_text('ok')",
+        )
+        s = ws.wait_finished("outputarg")
+        translated = f"--output={out}"
+        _assert(
+            s["argv"].count(translated) == 1,
+            f"expected one {translated!r}: {s['argv']!r}",
+        )
+        _assert(
+            s["outputs"]["output"].get("arg") is True,
+            "output arg marker missing",
+        )
+        _assert(
+            s["outputs"]["output"].get("sha256")
+            == hashlib.sha256(b"ok").hexdigest(),
+            "translated output hash missing",
+        )
+        _assert(
+            out.read_text() == "ok", "translated output argument did not reach payload"
+        )
+        _assert(
+            Path(f"{out}.meta.json").exists(), "translated output sidecar missing"
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_output_arg_requires_keypath():
+    ws = Workspace()
+    try:
+        out = ws.scratch / "unkeyed.txt"
+        result = ws.run(
+            "start",
+            "--output-arg",
+            str(out),
+            "unkeyed-output",
+            "--",
+            "true",
+        )
+        _assert(result.returncode != 0, "bare --output-arg path should fail")
+        _assert(
+            "--output-arg requires KEY=PATH" in result.stderr,
+            f"missing actionable error: {result.stderr!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
 def test_input_hash_at_launch():
     ws = Workspace()
     try:
@@ -2329,12 +2393,54 @@ def test_restart_preserves_declarations():
         rc = ws.run("restart", "rsjob")
         _assert(rc.returncode == 0, f"restart failed: {rc.stderr}")
         s2 = ws.wait_finished("rsjob", since_run_id=s1["run_id"])
+        translated_input = f"--data={f}"
+        _assert(
+            s2["argv"].count(translated_input) == 1,
+            f"restart duplicated translated input: {s2['argv']!r}",
+        )
         _assert(s2["inputs"]["data"].get("sha256"), "restart lost --input-hash sha256")
         _assert(s2["outputs"]["r"].get("sha256"), "restart lost --output-hash sha256")
         _assert(
             s2["script"]["path"] == s1["script"]["path"], "script path drift on restart"
         )
         _assert(s2["propagate"] == {"k": "v"}, f"propagate lost: {s2['propagate']!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_restart_preserves_translated_output_once():
+    ws = Workspace()
+    try:
+        out = ws.scratch / "restart-output.txt"
+        command = (
+            "import pathlib, sys; "
+            "pathlib.Path(sys.argv[1].split('=', 1)[1]).write_text('ok')"
+        )
+        _start(
+            ws,
+            "--experiment",
+            "rs",
+            "--output-arg",
+            f"output={out}",
+            "rsoutput",
+            "--",
+            sys.executable,
+            "-c",
+            command,
+        )
+        s1 = ws.wait_finished("rsoutput")
+        rc = ws.run("restart", "rsoutput")
+        _assert(rc.returncode == 0, f"restart failed: {rc.stderr}")
+        s2 = ws.wait_finished("rsoutput", since_run_id=s1["run_id"])
+        translated = f"--output={out}"
+        _assert(
+            s2["argv"].count(translated) == 1,
+            f"restart duplicated translated output: {s2['argv']!r}",
+        )
+        _assert(
+            s2["outputs"]["output"].get("arg") is True,
+            "restart lost output arg marker",
+        )
     finally:
         ws.cleanup()
 

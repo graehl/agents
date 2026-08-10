@@ -1213,3 +1213,25 @@ the sweep single-target.
   model-specific premise does not apply.
 - **Status** — the 30-minute minimum is documented; the two-minute margin and
   its effect on cache-hit rate are user-directed and otherwise unmeasured.
+
+## 2026-08-10 — combine payload output and provenance declaration
+
+- **Incident** — a queued PII bootstrap used agentctl's `--output` declaration
+  but omitted the payload program's required `--output`. The launch passed and
+  failed only after its dependencies completed. The same path had to appear in
+  two CLI regions with different owners, so the careful form was easy to omit
+  or make inconsistent.
+- **Decision** — `--output-arg KEY=PATH` now declares the output and appends
+  `--KEY=PATH` to the payload from one value. Existing `--output` remains
+  provenance-only for compatibility, and its help says so directly. `RUNS.md`
+  tells run-operating agents to use the combined form when both effects are
+  required.
+- **Boundary** — this does not establish a rule to productize every typo. The
+  combination earns a surface when routine steps share one value or invariant
+  and drift can silently invalidate delayed or expensive work.
+- **Trace** — a program requiring `--report=PATH` uses
+  `--output-arg report=PATH` and receives one argument plus one sidecar; a
+  program writing a positional path keeps plain `--output`; restart rebuilds
+  translated declarations from the pre-translation argv and emits each once.
+- **Status** — the end-to-end agentctl suite passes; future avoidance of the
+  usage error is unmeasured.

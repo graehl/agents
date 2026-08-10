@@ -138,7 +138,8 @@ recognizes the pattern without onboarding.
 | `--input KEY=PATH` (repeatable) | Declare input + translate to `--KEY=PATH` appended to argv |
 | `--input-raw KEY=PATH` (repeatable) | Declare input only, no argv translation |
 | `--input-hash KEY=PATH` (repeatable) | Like `--input` plus compute sha256 of the file at launch (opt-in because hashing large weight tensors is expensive) |
-| `--output KEY=PATH` (repeatable) | Declare output + write `<path>.meta.json` sidecar at completion |
+| `--output KEY=PATH` (repeatable) | Declare output + write `<path>.meta.json` sidecar at completion; provenance only, with no payload argument translation |
+| `--output-arg KEY=PATH` (repeatable) | Like `--output`, and translate to `--KEY=PATH` appended to payload argv |
 | `--output-hash KEY=PATH` (repeatable) | Like `--output` plus compute sha256 at completion (cost is paid after the user command finishes) |
 | `--script PATH` | Override the heuristic script-detection. Useful when argv has no script-shaped argument (`bash -c '...'`), the heuristic picks the wrong file, or the run hides behind a multi-word launcher (`pixi run script.py`, `conda run -n env python ...`, `nohup ...`). |
 | `--propagate-json '{...}'` | Static producer-flagged facts (JSON object) for quoting at the next consumer's input record. Stored in `state.propagate`, folded into each output's `.meta.json` sidecar under `propagate`. Cooperative protocol: programs may write run-time-computed facts to `$AGENTCTL_RUN_DIR/propagate.json` during execution; agentctl merges that file at completion (runtime values override static). |
@@ -174,6 +175,7 @@ shown; full set documented inline in `agentctl.py:start()`.
   "pid": 1512853,
   "pgid": 1512853,
   "argv": ["bash", "-c", "...", "--data=/tmp/in.bin"],
+  "user_argv": ["bash", "-c", "..."],
   "cwd": "/abs/path",
   "log_path": "...",
   "output_path": "/tmp/out.bin",
@@ -244,6 +246,7 @@ writes the back-pointer sidecar and records its path.
 "outputs": {
   "result": {
     "path":    "/abs/path/output.bin",
+    "arg":     true,                                // iff --output-arg
     "size":    98765432,                            // at completion
     "mtime":   "...",                                // at completion
     "sha256":  "...",                                // iff --output-hash

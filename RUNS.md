@@ -284,6 +284,14 @@ launch you might later need to reproduce, audit, or trace. Two tiers:
   of raw shell exec) without paying the dump cost. Per project-local
   run-record policy, trivial janitorial commands do not need Aim records.
 
+When one output path must both reach the payload as `--KEY=PATH` and be
+declared for provenance, use `agentctl start ... --output-arg KEY=PATH`. It
+performs both operations from one value. Do not repeat the path once in
+agentctl's options and again after `--`: the copies can diverge, and agentctl's
+plain `--output` is deliberately provenance-only. Keep plain `--output` for
+payloads whose output is positional, internally determined, or named by some
+other argument.
+
 For the full schema and algorithms (input source resolution, output sidecar
 writing, propagation protocol, plugin contract), see
 `topics/provenance-tracking.md`. For the agentctl plugin/hook surface
