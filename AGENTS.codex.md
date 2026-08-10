@@ -108,6 +108,15 @@ early on completion (yields ≥ 600 s verified in practice), so prefer
 one rung-length wait over a chain of 30–60 s polls — fewer calls, and
 no turn boundary to drift through.
 
+For a Codex session running GPT-5.6 or later, override RUNS.md's
+foreground-wait ladder with `5 → 10 → 20 → 28 minutes`: never take
+its 40- or 55-minute rungs. OpenAI documents a 30-minute minimum
+prompt-cache lifetime for these models; 28 minutes leaves two minutes
+for tool return and the next model continuation request. A wait still
+returns immediately when the job finishes, and a 28-minute timeout
+still carries the same consume/status/re-wait obligation above. Other
+models retain RUNS.md's ordinary ladder.
+
 ## Skills Path Aliasing
 
 `~/agents/skills` and `~/.codex/skills/user` may alias the same directory;

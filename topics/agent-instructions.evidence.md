@@ -1185,3 +1185,31 @@ the sweep single-target.
   text. A summary-only reply with no source pointer still fails the rule.
 - **Status** — user-specified YA interaction preference; effect on missed
   discussion points and response tokens is not yet measured.
+
+## 2026-08-10 — GPT-5.6 Codex waits stay inside cache minimum
+
+- **Trigger** — graehl asked that Codex-specific foreground waits use 28
+  minutes instead of the global 55-minute cap after identifying GPT-5.6's
+  30-minute minimum cache lifetime. OpenAI's prompt-caching documentation says
+  GPT-5.6 and later use `prompt_cache_options.ttl`, whose supported/default
+  `30m` value makes a cached prefix eligible for at least 30 minutes (and
+  possibly longer):
+  <https://developers.openai.com/api/docs/guides/prompt-caching>.
+- **Decision** — `AGENTS.codex.md` overrides the RUNS.md ladder only for Codex
+  sessions running GPT-5.6 or later: `5 → 10 → 20 → 28 minutes`. The
+  two-minute margin covers tool return plus the next continuation request. The
+  global ladder remains authoritative for older models and other harnesses.
+- **Trace: earned long wait** — a healthy GPT-5.6 job is still running after
+  the 20-minute rung. The next foreground wait is 28 minutes, never 40 or 55.
+- **Trace: early completion** — the same job finishes 23 minutes into a
+  28-minute wait. Unified exec returns immediately; the agent consumes the
+  result instead of waiting out the nominal rung.
+- **Trace: still running at cap** — the 28-minute wait times out while the job
+  remains healthy. The returned tool result creates the continuation inside
+  the documented minimum; the agent reports status and re-enters a wait rather
+  than ending the turn.
+- **Trace: unaffected route** — a Codex session on an older model, or a Claude
+  session, continues to use RUNS.md's existing ladder because the verified
+  model-specific premise does not apply.
+- **Status** — the 30-minute minimum is documented; the two-minute margin and
+  its effect on cache-hit rate are user-directed and otherwise unmeasured.
