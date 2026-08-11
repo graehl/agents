@@ -148,6 +148,13 @@ symlink to it. This checkout's root `AGENTS.md` is only its project boot.
 `~/bin/` synchronized and make a brief local commit on `master` when changing
 global instructions/helpers.
 
+For YA-launched sessions, trust present `YEP_AGENT_HARNESS`,
+`YEP_AGENT_INITIAL_MODEL`, `YEP_AGENT_INITIAL_EFFORT`, and
+`AGENTCTL_SESSION_ID` values as launcher-recorded facts. Use the harness marker
+for supplement routing; initial model and effort remain launch facts after a
+mid-session change. Query provider state or logs only for a required fact that
+no present marker supplies.
+
 Read `AGENTS.user.md` every session. Then read the matching harness supplement
 when present:
 

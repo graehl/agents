@@ -1401,3 +1401,26 @@ the sweep single-target.
   the commit message. The seed never silently becomes authorization to act.
 - **Status** — user-directed repository convention; no outcome measurement is
   needed beyond whether future topic search remains project-relevant.
+
+## 2026-08-11 — trust YA-recorded launch identity
+
+- **Trigger** — YA's wrapper-lifetime provider host has an unambiguous launch
+  boundary where it knows the harness route plus the selected initial model and
+  effort. Re-deriving those facts from provider transcripts spends work and can
+  fail even though the launcher already supplied the answer.
+- **Decision** — YA-owned `YEP_AGENT_HARNESS`, `YEP_AGENT_INITIAL_MODEL`, and
+  `YEP_AGENT_INITIAL_EFFORT` are authoritative when present;
+  `AGENTCTL_SESSION_ID` retains the same trust-if-present treatment. Model and
+  effort are explicitly initial-launch facts because either can change during
+  a live session. Provider-log discovery remains the fallback for absent
+  values, not a verification pass over present ones.
+- **Trace: marked launch** — a YA Claude Gateway worker starts with harness
+  `claude`, model `gpt-5.6-sol`, and effort `high`; the agent routes Claude and
+  Sol supplements directly without reading its transcript.
+- **Trace: unmarked direct launch** — a hand-launched Codex process has no YA
+  model marker, so the Codex supplement reads the rollout id exactly as before.
+- **Trace: live model switch** — a session changes model after startup; the
+  initial-model marker remains launch history and is not reported as the
+  current model.
+- **Status** — user-directed; YA's worker and remote-environment tests cover
+  marker replacement and propagation. Behavioral effect remains unmeasured.

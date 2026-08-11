@@ -5,8 +5,8 @@ running in Codex / OpenAI Codex. This file contains Codex harness
 mechanics; shared and model-scoped policy stays outside this file.
 
 Model tier: do not trust self-knowledge of your model name — models
-misreport it. Read the harness-recorded id from your own rollout
-file:
+misreport it. Use `$YEP_AGENT_INITIAL_MODEL` when present; otherwise read the
+harness-recorded id from your own rollout file:
 
 ```bash
 tac "$(find ~/.codex/sessions -name "*$AGENTCTL_SESSION_ID*.jsonl" |
