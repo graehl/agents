@@ -2438,6 +2438,22 @@ def test_script_override():
         ws.cleanup()
 
 
+def test_script_autodetect_ignores_long_inline_program():
+    ws = Workspace()
+    try:
+        program = "print('ok')\n#" + ("x" * 5000)
+        _start(ws, "--no-aim", "longinline", "--", sys.executable, "-c", program)
+        state = ws.wait_finished("longinline")
+
+        _assert(state["status"] == "finished", f"unexpected state: {state}")
+        _assert(
+            state["script"]["path"] == str(Path(sys.executable).resolve()),
+            f"fallback script path: {state['script']!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
 def test_restart_preserves_declarations():
     ws = Workspace()
     try:

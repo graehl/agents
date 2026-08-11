@@ -2474,16 +2474,25 @@ def detect_script(argv: list[str]) -> dict | None:
         p = Path(a)
         if not p.is_absolute():
             p = ROOT / p
-        if p.exists() and p.is_file():
-            candidate = p
-            break
+        try:
+            if p.exists() and p.is_file():
+                candidate = p
+                break
+        except OSError:
+            # Inline programs and other non-path argv may exceed the host's
+            # filename limit. They are not script candidates.
+            continue
     if candidate is None:
         if not argv:
             return None
         p = Path(argv[0])
         if not p.is_absolute():
             p = ROOT / p
-        if not p.exists() or not p.is_file():
+        try:
+            usable_fallback = p.exists() and p.is_file()
+        except OSError:
+            usable_fallback = False
+        if not usable_fallback:
             return None
         candidate = p
     st = candidate.stat()
