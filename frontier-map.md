@@ -57,9 +57,9 @@ for every paper encountered. Record:
 - a date to revisit or expire it.
 
 When the revisit/expiry date could change a live decision, create a matching
-project-owned `at/` entry under `topics/at.md`; the frontier date alone is not a
-scheduler. For low-value items, label the date as an unscheduled reminder
-instead of creating maintenance work that may never matter.
+project-owned `at/` entry under `topics/at-scheduling.md`; the frontier date
+alone is not a scheduler. For low-value items, label the date as an unscheduled
+reminder instead of creating maintenance work that may never matter.
 
 Preserve the claim's uncertainty in every summary. Citation count and social
 uptake are relevance and retrieval signals, not confirmation. Promote or

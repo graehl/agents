@@ -138,8 +138,9 @@ commit-msg-fmt -m "feat: do thing" -m '' -m "Body paragraph." \
 
 ### at-queue
 
-Sole writer of the clone-local activation store described in `topics/at.md`;
-provider launch and object-level scheduling judgment remain outside it. Every
+Sole writer of the clone-local activation store described in
+`topics/at-scheduling.md`; provider launch and object-level scheduling judgment
+remain outside it. Every
 mutation goes through this helper — the store is machine-owned, and callers
 must not hand-edit it.
 

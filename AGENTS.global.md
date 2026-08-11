@@ -95,11 +95,12 @@ Claim only through executable project `scripts/at-queue`, else
 and an owner PID that outlives the claim; use the exact source path returned.
 If neither helper exists, skip rather than hand-roll a claim.
 
-Before invocation, read project `topics/at.md`, else `~/agents/topics/at.md`.
+Before invocation, read project `topics/at-scheduling.md`, else
+`~/agents/topics/at-scheduling.md`.
 The source file is inert; the helper-owned, clone-local activation store is what
 schedules it. Never hand-edit that store. Any YA/multi-project scheduler must
 call the helper and derive cwd from the owning `at/` directory. Slow-path
-activation/acknowledgement mechanics are in `topics/at.md`.
+activation/acknowledgement mechanics are in `topics/at-scheduling.md`.
 
 # Verification and retrieval
 

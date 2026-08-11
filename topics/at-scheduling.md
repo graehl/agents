@@ -1,10 +1,10 @@
-# At — scheduled agent sessions
+# At scheduling — scheduled agent sessions
 
 > An `at/` queue pairs hand-editable prompt sources, which may be committed,
 > with a clone-local activation store that alone decides what runs; every
 > mutation goes through `scripts/at-queue`.
 
-Topic: `at`
+Topic: `at-scheduling`
 
 This is a filesystem protocol for low-volume, agent-operated scheduling. It
 does not pretend that instructions alone provide a wall-clock daemon. A helper

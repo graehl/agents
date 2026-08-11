@@ -1,4 +1,4 @@
-# at — evidence and decisions
+# at-scheduling — evidence and decisions
 
 Append-only notes supporting the `at/` scheduled-session protocol.
 
@@ -75,8 +75,8 @@ Append-only notes supporting the `at/` scheduled-session protocol.
   owner adjudication. Splitting the lock (one write) from the run record (PID +
   `/proc` start ticks + boot id) answers liveness exactly, at any instant, with
   no periodic write. A harsh review found both fields were written once and
-  never updated, with `topics/at.md` resting liveness proof on the heartbeat —
-  the reframe removes the defect rather than fixing it.
+  never updated, with `topics/at-scheduling.md` resting liveness proof on the
+  heartbeat — the reframe removes the defect rather than fixing it.
 - **Rejected: optional `--owner-pid`.** Without recorded start ticks a claim
   carries no liveness evidence and single-winner silently degrades to nothing,
   so the flag is required and an unreadable `/proc` entry warns rather than

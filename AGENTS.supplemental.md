@@ -172,9 +172,10 @@ neither exists, skip the probe rather than hand-rolling an unlocked claim.
 A prompt under `at/` is inert source; what schedules it is the clone-local
 activation store the helper owns, which is never tracked, so pulling a
 repository cannot start agent work. Never hand-edit that store. Before invoking
-a job, load and follow `topics/at.md` from the project root when present, else
-`~/agents/topics/at.md`; its activation split, claim protocol, and runner
-acknowledgement (`at-queue done`) govern whether a job may run.
+a job, load and follow `topics/at-scheduling.md` from the project root when
+present, else `~/agents/topics/at-scheduling.md`; its activation split, claim
+protocol, and runner acknowledgement (`at-queue done`) govern whether a job may
+run.
 
 A session-start probe is catch-up, not a wall-clock scheduler. An explicit
 multi-project helper or YA may provide punctual wakeups over the same store,
