@@ -54,9 +54,10 @@ branches, commits, shared workdirs, or private notes.
 
 | Path | Purpose |
 | --- | --- |
-| `AGENTS.md` | Global operating contract: session entry, worktree safety, edit discipline, commits, topics, glossary, and interaction rules. |
-| `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md` | Provider-specific mechanics such as session identifiers, log locations, and harness quirks. |
-| `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier latitude and extra reminders; load-bearing policy still belongs in `AGENTS.md`. |
+| `AGENTS.global.md` | Installable global operating contract: session entry, worktree safety, edit discipline, commits, topics, glossary, and interaction rules. |
+| `AGENTS.md` | Project boot for developing this instruction repository; deliberately distinct from the global install source. |
+| `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md` | Harness-specific mechanics such as session identifiers, log locations, and launcher quirks. |
+| `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier latitude and extra reminders; load-bearing policy still belongs in `AGENTS.global.md`. |
 | `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md` | Model-family behavior patches selected from the harness-recorded model id. |
 | `RESEARCH.md` | Research, evaluation, paper, and artifact discipline. |
 | `research-advisor.md` | Handoff protocol for the long-lived, normally project-wide skeptical research-advisor session. |
@@ -75,6 +76,63 @@ branches, commits, shared workdirs, or private notes.
 Machine-local supplements such as `AGENTS.local.md` or `AGENTS.user.md` are
 intentionally private in this setup. Public instructions should stand alone
 without relying on those files.
+
+## Install
+
+Clone the checkout at `~/agents` when possible. The global corpus defines
+`~/agents` as its canonical root, and routed supplements and topic docs use
+that spelling. Then inspect or install every supported harness:
+
+```bash
+cd ~/agents
+scripts/install-agents status
+scripts/install-agents install
+scripts/install-agents status
+```
+
+Select one or several harnesses with repeated or comma-separated
+`--harness` values; the default is `all`. Accepted names are `codex`,
+`claude`, `pi`, `opencode`, `grok`, and `copilot` (with `grok-build`,
+`claude-code`, and `copilot-cli` aliases).
+
+The current user-level destinations are:
+
+| Harness | Global instructions | Skills |
+| --- | --- | --- |
+| Codex | `~/.codex/AGENTS.md` | `~/.agents/skills` |
+| Claude Code | `~/.claude/CLAUDE.md` | `~/.claude/skills` |
+| Pi | `~/.pi/agent/AGENTS.md` | `~/.pi/agent/skills` |
+| OpenCode | `~/.config/opencode/AGENTS.md` | `~/.agents/skills` (auto-discovered) |
+| Grok Build | `~/.grok/AGENTS.md` | `~/.grok/skills` |
+| GitHub Copilot CLI/TUI | `~/.copilot/copilot-instructions.md` | `~/.agents/skills` |
+
+Instruction targets point directly to `AGENTS.global.md`. An absent skill root
+becomes one symlink to `skills/`; an existing directory keeps unrelated skills
+and receives one link per repository skill. Roots already resolving to this
+checkout are left alone.
+
+Use `--home` for an isolated rehearsal before touching a real profile:
+
+```bash
+mkdir -p ~/.cache
+test_home=$(mktemp -d ~/.cache/agents-install-test.XXXXXX)
+scripts/install-agents install --home "$test_home"
+scripts/install-agents status --home "$test_home"
+scripts/install-agents uninstall --home "$test_home"
+```
+
+Each install writes a readable manifest and filesystem snapshots under
+`~/.local/state/agents-install/backups/`. It records absent paths, regular
+files, directories, symlinks (including broken ones), inode/link metadata,
+and a non-mutating snapshot of `~/AGENTS.md` when present. `uninstall` restores
+the prior kind, content, link target, and mode of paths the installer replaced;
+it refuses to overwrite a path changed after installation. Backups remain
+after uninstall.
+
+The installer never creates or modifies `~/AGENTS.md`, and it deliberately has
+no hardlink mode. A hardlink to a Git-controlled file can retain the old inode
+when checkout or pull replaces that path, silently freezing stale policy.
+Symlinks follow the named `AGENTS.global.md` across Git updates.
 
 ## Skill Highlights
 
@@ -120,7 +178,7 @@ debt is treated as a maintenance cost.
 
 ## Common Adoption Paths
 
-- **One project, one agent:** start with `AGENTS.md`, then trim sections that
+- **One project, one agent:** start with `AGENTS.global.md`, then trim sections that
   do not apply. Keep a project-local supplement for branch, test, and deploy
   rules.
 - **Shared dirty worktree:** keep the active-session convention, discard ban,

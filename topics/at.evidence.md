@@ -57,7 +57,7 @@ Append-only notes supporting the `at/` scheduled-session protocol.
   hand-edit ban, whose worst case is one lost scheduling record: that is a
   mandate plus a canonical-formatting warning. Mandate what is merely racy;
   mechanize what is a safety boundary — the same split as
-  AGENTS.md § Edit mechanism discipline (mandate) versus `agent-guarded`
+  AGENTS.global.md § Edit mechanism discipline (mandate) versus `agent-guarded`
   (mechanism).
 - **The helper mandate is also the YA integration.** One implementation of the
   protocol that YA shells out to, rather than a second copy in TypeScript

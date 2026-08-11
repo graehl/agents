@@ -1,7 +1,7 @@
 # TypeScript tooling
 
 Loaded before editing TypeScript/JavaScript files or when first working
-in a TS/JS project (trigger: `AGENTS.md` § Language tooling).
+in a TS/JS project (trigger: `AGENTS.global.md` § Language tooling).
 
 When a dependency's types cause an error, fix the root cause — a stale
 `@types`/dep or a version skew — rather than deleting the code or casting

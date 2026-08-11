@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""Install this checkout's global instructions for supported agent harnesses."""
+
+from install_agents.cli import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

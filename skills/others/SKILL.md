@@ -127,7 +127,7 @@ content beyond line 1 and its schema-conforming header lines.
   then format as `Nm` / `Nh` / `Nd`.
 - First line: `head -n1 FILE`.
 - The 70-min active threshold matches
-  `AGENTS.md § Active sessions`.
+  `AGENTS.global.md § Active sessions`.
 - The `done/`, `stale/`, and `awaiting/` subdirs are optional.
   The base convention writes `DONE: <summary>` into the same
   file at its `active/` path; `agentctl active --sweep` (also

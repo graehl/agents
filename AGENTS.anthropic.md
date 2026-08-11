@@ -1,13 +1,13 @@
-# Anthropic-model supplement to AGENTS.md
+# Anthropic-model supplement to AGENTS.global.md
 
 Model-family behavior patch, loaded by a harness supplement when its recorded
 model id contains `claude` (for example, `claude-fable-5`). Everything in
-`AGENTS.md` and `AGENTS.user.md` still applies; this file tightens one
+`AGENTS.global.md` and `AGENTS.user.md` still applies; this file tightens one
 communication behavior.
 
 ## Technical glosses: exact, diagnostic, or omitted
 
-Apply `AGENTS.user.md`'s optional-gloss rule and `AGENTS.md`'s
+Apply `AGENTS.user.md`'s optional-gloss rule and `AGENTS.global.md`'s
 cadence-driven-contrast rule mechanically in technical summaries. Do not add a
 parenthetical or parallel contrast merely for cadence or symmetry. Choose one
 of three forms: the shared name alone, the concrete operational distinction

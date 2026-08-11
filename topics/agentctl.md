@@ -15,7 +15,7 @@ tracking, domain verbs) live in optional plugins under `agentctl_plugins/`.
 Read this topic before changing active-session semantics, diagnosing
 `.agentctl` run state, modifying `agentctl`, or relying on details of the
 `active`/`others`/`tending`/`alone` verbs, staleness window, launch-depth
-guard, or plugin contract. `AGENTS.md` keeps only the first-turn obligations
+guard, or plugin contract. `AGENTS.global.md` keeps only the first-turn obligations
 needed to enter a shared workdir safely.
 
 Scope boundary: this topic owns the launcher, state files, and plugin hook
@@ -29,7 +29,7 @@ tooling, the cooperative declaration helper, and project migration docs.
 ## Active-sessions file schema
 
 `.agentctl/active/<session-id>` files are agent-authored coordination
-state, not job state. `AGENTS.md § Active sessions` carries the
+state, not job state. `AGENTS.global.md § Active sessions` carries the
 first-turn obligations (create, update, peer-check, `DONE`); this
 section is the normative file format. The file is an ordinary text
 artifact: `agentctl active` is a convenience for writing it, never a
@@ -77,7 +77,7 @@ status); brief readers stop after the header. Readers treat files
 whose line 1 starts with `DONE` (`DONE*`) as complete.
 
 A line 1 starting `REWRITE` is the advisory history-rewrite lock
-(`AGENTS.md § Amends`): the holder took the floor via `agentctl alone
+(`AGENTS.global.md § Amends`): the holder took the floor via `agentctl alone
 <id> -b "REWRITE: <what>"` and is mid rewrite-chain. While a fresh
 non-self `REWRITE` entry exists, peers create no commits and make no
 other git history/index moves; the lock clears when the holder
@@ -256,7 +256,7 @@ window.
   but it drops the caller's own entry and emits `other_count`, `has_peers`, and
   a `peers` array. The motivation is behavioral, not cosmetic: a session that
   formed a "peers present" belief early keeps paying the per-file re-Read
-  ceremony (`AGENTS.md § Pre-edit re-Read`) after the peers have finished.
+  ceremony (`AGENTS.global.md § Pre-edit re-Read`) after the peers have finished.
   `others` makes the re-confirming check cheap to re-run at the point of
   caution instead of trusting the stale belief. The **exit code is the
   signal** — 0 when you are alone, nonzero when peers are present — so it

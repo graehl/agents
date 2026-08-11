@@ -1235,3 +1235,41 @@ the sweep single-target.
   translated declarations from the pre-translation argv and emits each once.
 - **Status** — the end-to-end agentctl suite passes; future avoidance of the
   usage error is unmeasured.
+
+## 2026-08-11 — separate the global source from this repo's project boot
+
+- **Trigger** — every harness-global instruction link targeted the checkout's
+  root `AGENTS.md`. Launching inside this repo then made the same source serve
+  as both global policy and project instructions, consuming project-context
+  budget without adding narrower policy. Codex's current manual confirms that
+  it concatenates the global file with one project file per directory and caps
+  the combined project chain at 32 KiB by default.
+- **Decision** — `AGENTS.global.md` is now the canonical install source;
+  root `AGENTS.md` is a compact project boot for authoring this repository.
+  Harness paths symlink directly to the global source. A manifest-backed
+  installer owns current default paths for Codex, Claude Code, Pi, OpenCode,
+  Grok Build, and Copilot CLI/TUI and restores every object it replaces.
+- **Hardlink rejection** — a hardlink can retain the prior inode when Git
+  replaces the tracked source path, freezing an apparently connected global
+  policy. The installer supports symlinks only and records inode/link metadata
+  solely so a prior hardlinked target remains diagnosable and recoverable.
+- **Trace: Grok effective context** — after replacing its hand-written
+  read-this wrapper with a direct link, `grok inspect --json` reports one
+  77,714-byte global source at `~/.grok/AGENTS.md` and the new 1,290-byte
+  project boot. The obsolete wrapper no longer spends boot context restating
+  path resolution.
+- **Trace: installed profile** — the real-home manifest records all six
+  harnesses with no instruction drift and changed only 17 previously absent
+  entries under `~/.grok/skills`. The other skill roots already resolved to
+  this checkout. Grok's own inspection resolves those 17 skills back to their
+  repository `SKILL.md` files.
+- **Trace: reversible install** — synthetic-home tests cover a regular global
+  file, a broken symlink, a directory in an instruction slot, an existing
+  skill directory with unrelated entries, a broken skill-root symlink, and an
+  observed hardlinked `~/AGENTS.md`. Install/status/uninstall restores the
+  prior objects, while uninstall refuses a post-install edit.
+- **Limit** — prompt-source verification is direct for Grok and path/discovery
+  verification is direct for the installed harness versions. Cross-compaction
+  persistence and request-conditioned boot compilation remain separate
+  questions; the rename only makes a project-specific or generated boot
+  possible without aliasing the global source.

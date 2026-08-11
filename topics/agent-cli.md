@@ -50,7 +50,7 @@ markers only cover the residual "real TTY but not an interactive human"
 case (a PTY-allocating harness). Keep the whole disjunction in one function
 (`acli.session`) so a new harness marker is a one-line edit. It is
 deliberately *broader* than the session-id set agentctl uses for active
-sessions (`AGENTS.md § Active sessions`): detection needs only *presence*,
+sessions (`AGENTS.global.md § Active sessions`): detection needs only *presence*,
 so `PI_CODING_AGENT` (a boolean, not an id) and `CODEX_THREAD_ID`
 (thread-scoped — finer than a session) both answer "is this an agent?" but
 are not drop-in session ids.
@@ -264,7 +264,7 @@ mistake-rate, not fewer turns.
   answers by exit code (0 alone / nonzero peers), likewise `alone`,
   `tending`.
 - **Consistent, concise help.** Per-subcommand reference an agent can pull
-  on demand. We already carry the mechanics — `AGENTS.md § Agent-facing CLI
+  on demand. We already carry the mechanics — `AGENTS.global.md § Agent-facing CLI
   help`: no terminal-width hard-wrapping (human-wrapped via explicit
   opt-in), reuse the shared parser/formatter, keep option names greppable
   between logs and `--help`.

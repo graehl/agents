@@ -52,7 +52,7 @@
   page. So extracts are keyed by citation key: keying them by `short` orphans
   every already-fetched extract the day a handle is assigned.
 - **Extracts are computed, git-ignored, reconstitutable.** Extraction produces a
-  good `.md` — via **marker-pdf** (`AGENTS.md § PDF reading` + the
+  good `.md` — via **marker-pdf** (`AGENTS.global.md § PDF reading` + the
   `AGENTS.user.md` host recipe) for PDFs, or the equally valid **arXiv HTML
   view** (`arxiv.org/html/<id>`) — or a saved **HTML** file (markdown is not
   required; marker-pdf→md is the *proposed PDF path*, not a mandate). Extracts

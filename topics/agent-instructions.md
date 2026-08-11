@@ -12,7 +12,11 @@ projects without relying on stale chat state.
 
 ## Contracts
 
-- `AGENTS.md` is the authoritative global policy file.
+- `AGENTS.global.md` is the authoritative global policy file and the source
+  installed into each harness's global instruction location.
+- The root `AGENTS.md` is this checkout's project boot. It must not be used as
+  a harness-global install target, or work launched here receives the global
+  corpus again as project context.
 - Local project instructions may add narrower rules, but global policy changes
   belong here first.
 - Correctness topics are defined by committed `topics/*.md` basenames, and
@@ -36,7 +40,7 @@ projects without relying on stale chat state.
   instruction text.
 - Theory docs should explain why contracts are believed, not accumulate a
   chronological list of every change.
-- Boot-loaded text (`AGENTS.md`, supplements, anything read every
+- Boot-loaded text (`AGENTS.global.md`, supplements, anything read every
   session) budgets every token: a sentence earns its place only by
   steering behavior. Worked examples and rationale that stop a weaker
   agent reasoning around a rule qualify. When the user endorses a
@@ -124,10 +128,10 @@ command to run, the stop to make) so an agent that defers the read
 still acts safely.
 
 The original narrower case: when a topic doc would benefit from
-referencing a specific AGENTS.md section, prefer extracting that
-section to a dedicated file so AGENTS.md keeps a pointer and the file
+referencing a specific `AGENTS.global.md` section, prefer extracting that
+section to a dedicated file so `AGENTS.global.md` keeps a pointer and the file
 carries the full content. Avoids restatement and lets topic docs link
-the dedicated file rather than a deep AGENTS.md section.
+the dedicated file rather than a deep `AGENTS.global.md` section.
 
 ## Verifying instruction changes
 
@@ -219,7 +223,7 @@ Prior art grounding that plan <!-- verified: web search 2026-05-29 -->:
 harness-specific mechanics: session-log locations, real resume identifiers,
 provider skill paths, and launcher quirks. Each reads the model id from its
 harness transcript and routes matching model-scoped behavior patches.
-`AGENTS.md` routes agents to the matching harness supplement when present but
+`AGENTS.global.md` routes agents to the matching harness supplement when present but
 keeps cross-provider policy in the main file.
 
 `AGENTS.copilot.md` is route-scoped rather than model-scoped. Native Copilot
@@ -235,7 +239,7 @@ launcher conventions when a smaller model is in use.
 
 Edit policy: `AGENTS.weak.md` is for restatements of frontier defaults
 only. Anything load-bearing — a rule a capable agent would otherwise
-plausibly get wrong — belongs in `AGENTS.md` itself, so every model
+plausibly get wrong — belongs in `AGENTS.global.md` itself, so every model
 loading the main file gets it.
 
 `AGENTS.frontier.md` is the dual of `AGENTS.weak.md`: latitude
@@ -253,7 +257,7 @@ the model's self-knowledge of its name — models misreport that.
 
 Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.
-Anything binding belongs in `AGENTS.md`.
+Anything binding belongs in `AGENTS.global.md`.
 
 `AGENTS.anthropic.md`, `AGENTS.opus.md`, and `AGENTS.sol.md` are model-scoped
 behavior patches. Both harness supplements route to them from the
@@ -266,7 +270,7 @@ Sol carries the confirmation rule formerly housed in the Codex supplement and
 the direct-work correction for Sol served through Claude Gateway.
 
 Edit policy: model supplements carry model-specific tightenings only. A rule
-that would improve every model belongs in `AGENTS.md`; a relaxation belongs in
+that would improve every model belongs in `AGENTS.global.md`; a relaxation belongs in
 `AGENTS.frontier.md`; transport, session, log, and tool-format mechanics belong
 in the harness supplement. A backend supplement may tighten behavior only
 where the backend or its quota/visibility constraints make the distinction

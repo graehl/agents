@@ -1,10 +1,10 @@
-# Weak-model supplement to AGENTS.md
+# Weak-model supplement to AGENTS.global.md
 
 Restates behavior that frontier agents perform by default. Read in
-addition to `AGENTS.md` (everything there still applies); this file
+addition to `AGENTS.global.md` (everything there still applies); this file
 only adds redundancy for behaviors smaller models are more likely to
-miss. Not loaded by `AGENTS.md`; a provider-specific launcher surfaces
-this file alongside `AGENTS.md` when a smaller model is in use.
+miss. Not loaded by `AGENTS.global.md`; a provider-specific launcher surfaces
+this file alongside `AGENTS.global.md` when a smaller model is in use.
 
 ## Direct instructions and readiness questions
 

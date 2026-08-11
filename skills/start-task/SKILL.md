@@ -23,7 +23,7 @@ argument-hint: "<short-description, e.g. auth-refactor>"
    `## Acceptance Criteria`, `## Current State`, `## Plan`, `## Risks`, and
    `## Subtasks` (the required table and three summary lines).
 6. Point the active-root-task pointer at the new file:
-   `printf '%s\n' NNN-<slug>.md > tasks/ROOT` (see `AGENTS.md` § Session
+   `printf '%s\n' NNN-<slug>.md > tasks/ROOT` (see `AGENTS.global.md` § Session
    management). If `tasks/ROOT` already names a different, unfinished task,
    say so and confirm before redirecting it.
 

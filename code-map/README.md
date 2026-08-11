@@ -40,7 +40,7 @@ counter, so jobs never masquerade as the agent.
 | `README.md`, `RESEARCH.md`, `RUNS.md`, `feature-branch.md` | Repo intro + opt-in companion policy (research method, run ops, branch-per-feature). | In: triggering work mode. Out: scoped extra rules. | `AGENTS.md` "Optional supplements" loads on trigger. | verified: `cat README.md` |
 | `GLOSSARY.md` | Single prescriptive vocabulary table. | In: curated rows + topic ledes. Out: reused terms. | Rules in `topics/glossary.md`. | verified: `cat GLOSSARY.md` |
 | `TOPICS.md`, `topic-definitions.md` | Topic-granularity guidance and curated jargon namespace. | In/Out: vocabulary calibration. | Consulted when creating/assessing topics. | verified: `rg --files` |
-| `topics/*.md` (31 files) | Cross-cutting concern docs (contracts, invariants), method docs (`debugging`, `testing`, `prototyping`), and companions (`.evidence.md`, `.bearings.md`, `.testing.md`). Basenames = `Topic:` trailer namespace. | In: concern contracts. Out: ledes, trailer vocabulary, verification riders. | `AGENTS.md` routes significant work/commits through them. | verified: `ls topics/` |
+| `topics/*.md` (31 files) | Cross-cutting concern docs (contracts, invariants), method docs (`debugging`, `testing`, `prototyping`), and companions (`.evidence.md`, `.bearings.md`, `.testing.md`). Basenames = `Topic:` trailer namespace. | In: concern contracts. Out: ledes, trailer vocabulary, verification riders. | `AGENTS.global.md` routes significant work/commits through them. | verified: `ls topics/` |
 | `skills/*/SKILL.md` (11 skills) | Reusable workflows: `hi`, `bye`, `start-task`, `ship`, `review`, `harsh-review`, `doubt`, `rep`, `wish`, `others`, `code-map`. | In: user skill trigger. Out: scoped workflow steps. | Invoked by harness skill loader. | verified: per-skill `name:`/`description:` read |
 | `skills/others/SKILL.md` | Reads `.agentctl/active/` to report own status, live peers, recent DONE, stale entries. | In: register files + mtimes. Out: peer summary. | Pure reader of the convention `AGENTS.md` defines. | verified: `rg -n 'find .agentctl\|DONE\|mmin' skills/others/SKILL.md` |
 | `tasks/*.md` | Git-ignored active-work scratchpads / handoff state. | In: per-feature direction. Out: private resume context. | Read on resume; not durable project authority. | verified: `ls tasks` (git-ignored) |
@@ -160,7 +160,7 @@ Evidence: verified: `cat GLOSSARY.md topics/glossary.md`.
 
 ## Contracts And Seams
 
-- `agent-instructions`: `AGENTS.md` is the global authority; local/project
+- `agent-instructions`: `AGENTS.global.md` is the global authority; local/project
   files narrow it; task files are not durable authority.
   Evidence: verified: `cat topics/agent-instructions.md`.
 - `agentctl`: `.agentctl/runs/<job>/<run-id>/state.json` and

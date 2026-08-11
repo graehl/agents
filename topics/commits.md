@@ -6,7 +6,7 @@
 
 Topic: `commits`
 
-`AGENTS.md` carries the compact first-load rules: subject ≤65 chars,
+`AGENTS.global.md` carries the compact first-load rules: subject ≤65 chars,
 manual 71-col body wrap, narrative synthesis, and topic trailers. This
 doc carries the full standard and the procedure that fires on specific
 actions such as amending.
@@ -156,7 +156,7 @@ force-push over accumulating fix history — but not once it has
 been submitted as a PR elsewhere; then repair forward.
 
 That force-push — and any other — uses `git push --force-with-lease
---force-if-includes` (`AGENTS.md § Big-effect command gate`), never
+--force-if-includes` (`AGENTS.global.md § Big-effect command gate`), never
 bare `--force`. Bare `--force-with-lease` leases against your local
 remote-tracking ref, so a background `git fetch` can refresh that ref
 and let the push clobber after all; `--force-if-includes` (git ≥2.30)
@@ -192,7 +192,7 @@ With no active peer you may rewrite. A multi-command chain (rebase,
 split, series of amends, attribution strip) holds the advisory
 rewrite lock for its whole duration: `agentctl alone <id> -b
 "REWRITE: <what>"`, cleared by rewriting your banner when the chain
-ends (`AGENTS.md § Amends`). The `REWRITE` entry warns sessions
+ends (`AGENTS.global.md § Amends`). The `REWRITE` entry warns sessions
 arriving mid-chain, which defer commits while it is fresh; it stays
 advisory and never substitutes for the peer check. Then verify
 `HEAD` is the commit you intend and is your own current-session
@@ -201,13 +201,13 @@ context. Splitting your own
 tip commit with `git reset` + recommits is then as free as amending.
 If another session has committed on top, stop and report the
 mismatch rather than rewrite below it. Recovery from a bad amend follows the shared-workdir discard
-ban (`AGENTS.md § Shared-workdir discard ban`): never `git reset
+ban (`AGENTS.global.md § Shared-workdir discard ban`): never `git reset
 --hard` in a dirty shared worktree; revert with a new commit or
 move your work to a separate worktree.
 
 ## Attribution strip by SHA
 
-When the `[no-attrib]` scan (`AGENTS.md § Big-effect command gate`)
+When the `[no-attrib]` scan (`AGENTS.global.md § Big-effect command gate`)
 flags commits, strip by the exact SHAs the scan's `%H` column names —
 never a pattern sweep over every message in the range, which edits
 messages nobody flagged. A marked tip alone is a plain message-only
@@ -254,4 +254,4 @@ found earlier still need the same one-time inspection.) Only on
 `STRIP-OK` delete the backup ref. On failure, notify with that
 message — it names the pre-rewrite HEAD so recovery is a one-liner —
 and stop; no auto-repair, no backup deletion. The whole flow runs
-under the advisory rewrite lock (`AGENTS.md § Amends`).
+under the advisory rewrite lock (`AGENTS.global.md § Amends`).

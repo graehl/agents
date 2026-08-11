@@ -143,7 +143,7 @@ multi-field reference, deliberately not loaded per conversation.
 ## Ambiguity-resolution behavior
 
 When a user phrase is ambiguous against the glossary, see
-`AGENTS.md § Project glossary` for the checkpoint protocol: state
+`AGENTS.global.md § Project glossary` for the checkpoint protocol: state
 the inferred meaning plus 1–2 alternatives, continue at normal pace
 when the fork is minor or cheaply reversible, hold for the reply
 when proceeding wrong would waste significant work. On resolution,

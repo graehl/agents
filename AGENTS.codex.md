@@ -1,6 +1,6 @@
 # Codex Supplement
 
-Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
+Read this after `~/agents/AGENTS.global.md` and `~/agents/AGENTS.user.md` when
 running in Codex / OpenAI Codex. This file contains Codex harness
 mechanics; shared and model-scoped policy stays outside this file.
 
@@ -30,7 +30,7 @@ than assuming Codex always runs Sol.
 **Never fabricate a session id — recover the real one.** Your
 active-session entry (`.agentctl/active/<id>`) must be keyed by the
 resumable id you would `codex resume`, never a hand-picked personal
-tag. This overrides the AGENTS.md "a personal tag is a last resort"
+tag. This overrides the AGENTS.global.md "a personal tag is a last resort"
 clause: in Codex a real id is *always* recoverable, so the last resort
 never applies here. A tasteful invented id (`codex-recap-quote-reply`)
 is worse than useless. Agent-set env does not survive a bash call, so
@@ -73,7 +73,7 @@ retry.
 
 ## Session Logs
 
-When `AGENTS.md` says to search provider session logs, search
+When `AGENTS.global.md` says to search provider session logs, search
 `~/.codex/sessions/**/*.jsonl`, excluding your own session
 (`$AGENTCTL_SESSION_ID`).
 
@@ -119,11 +119,12 @@ models retain RUNS.md's ordinary ladder.
 
 ## Skills Path Aliasing
 
-`~/agents/skills` and `~/.codex/skills/user` may alias the same directory;
+`~/agents/skills` and the current Codex user root `~/.agents/skills` may alias
+the same directory;
 treat `~/agents/skills` as the canonical edit target. Do not "sync" them into
 symlinks — that creates self-referential loops that break skill loading.
 Follow symlinks when checking identity:
 
 ```bash
-stat -Lc '%d:%i %n' ~/agents/skills ~/.codex/skills/user
+stat -Lc '%d:%i %n' ~/agents/skills ~/.agents/skills
 ```

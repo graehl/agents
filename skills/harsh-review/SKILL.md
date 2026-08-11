@@ -81,7 +81,7 @@ For prose artifacts; self-contained, same blocker/advisory discipline and stance
 5. **Citer impact** — sweep every doc, read-trigger, and skill that cites a changed claim. When the diff compresses content behind a pointer, verify block by block that the target actually holds the displaced content — "the owning topic has it" is a per-block claim, not a per-file one. *(blocker)*
 6. **Glossary conformance** — new wording reuses the established `GLOSSARY.md` term rather than coining a synonym; a new cross-cutting concept gets a row; a changed concept doesn't leave a stale row. *(advisory)*
 
-Correctness bar, replacing execution simulation, judged per role. Agent instructions and topic docs: each kept rule is load-bearing (`AGENTS.md` § Load-bearing instructions), no trigger promises detail its target lacks, and worked examples that stop a weaker agent reasoning around a rule are preserved. Reader-facing docs (README, manual, tutorial): every claim matches the current artifact — commands run, paths exist, options are spelled as implemented — and the content serves the named audience's first read.
+Correctness bar, replacing execution simulation, judged per role. Agent instructions and topic docs: each kept rule is load-bearing (`AGENTS.global.md` § Load-bearing instructions), no trigger promises detail its target lacks, and worked examples that stop a weaker agent reasoning around a rule are preserved. Reader-facing docs (README, manual, tutorial): every claim matches the current artifact — commands run, paths exist, options are spelled as implemented — and the content serves the named audience's first read.
 
 ## Approval bar
 

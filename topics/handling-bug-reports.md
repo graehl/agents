@@ -89,7 +89,7 @@ user asked only for diagnosis, stop at the evidence-backed diagnosis;
 the bug-report protocol does not expand the requested authority.
 
 When investigation instead finds that the requested capability already
-exists, follow `AGENTS.md` § *"Add X" when X already exists*: point to
+exists, follow `AGENTS.global.md` § *"Add X" when X already exists*: point to
 the existing mechanism and do not build a duplicate.
 
 ## Reporting contract

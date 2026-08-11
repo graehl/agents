@@ -72,7 +72,7 @@ Status markers per node:
 | `[~]` | paused/blocked |
 | `[x]` | done |
 | `★` | high-value (optional adornment) |
-| `‖` | plan boundary — a momentum checkpoint (see `AGENTS.md § Plan-boundary checkpoints`) |
+| `‖` | plan boundary — a momentum checkpoint (see `AGENTS.global.md § Plan-boundary checkpoints`) |
 
 The active backtrace is the chain of `[*]` from root to deepest
 active leaf — a single highlighted spine through the tree.

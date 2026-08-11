@@ -9,7 +9,7 @@ this supplement the global instructions stay branch-agnostic and default
 agent git behavior applies; the user does not use feature branches by
 default.
 
-It restores the branch-scoped rules that the global `AGENTS.md` omits and
+It restores the branch-scoped rules that `AGENTS.global.md` omits and
 points at the touchpoints that already assume a branch.
 
 ## Branch-scoped instruction routing

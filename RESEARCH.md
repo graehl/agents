@@ -750,7 +750,7 @@ it should run `git branch --show-current` to get the branch name, then write to
 When resuming a session with `/hi`:
 0. If `research/ROOT.md` exists, skim it for the current fruitful-project
    direction (see above) before choosing what to resume.
-1. Recover the active root task and live state per `AGENTS.md` § Resume
+1. Recover the active root task and live state per `AGENTS.global.md` § Resume
    source priority (`tasks/ROOT`, `.agentctl/active/`, run metadata) — not a
    session summary.
 2. Skim `research/<branchname>.md` (paper) for current framing, findings, and

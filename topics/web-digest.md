@@ -65,7 +65,7 @@ account-wide preferences field — no repo/GitHub/digest pointers, by
 the user's choice, so it carries identically in any conversation. The
 file is the verbatim paste payload: bullets only, no title, framing,
 or maintenance notes, so select-all → paste is the whole operation.
-It is hand-maintained (distilled from `AGENTS.md` § Interaction style
+It is hand-maintained (distilled from `AGENTS.global.md` § Interaction style
 and `AGENTS.user.md` § Disposition / Writing and summary style), not
 script-generated: distillation is a judgment step, unlike the
 digest's concatenation. `scripts/web-digest` warns when those sources

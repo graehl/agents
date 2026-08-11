@@ -183,6 +183,47 @@ JSON `error` naming what to fix; 2 argparse usage.
 **Canonical source**: `scripts/at-queue` (in this repo). No install is
 required; startup uses this path only when it exists and is executable.
 
+### install-agents
+
+Installs this checkout's global instructions and skills at the current
+user-level locations recognized by supported agent harnesses. It preserves
+unrelated skills and records enough prior filesystem state for a guarded
+uninstall.
+
+**CLI**: `install-agents <install|status|uninstall> [--home <dir>]
+[--repo <dir>] [--harness <name>[,<name>...]] [--json]`.
+`--harness` is repeatable and defaults to all of `codex`, `claude`, `pi`,
+`opencode`, `grok`, and `copilot`; documented aliases normalize to those
+names. `--home` deliberately accepts a synthetic directory for rehearsal.
+`status` exits 3 when an instruction or skill target is missing or drifted;
+usage and safe refusals exit 2.
+
+**Post-conditions**:
+- Harness instruction paths resolve to `<repo>/AGENTS.global.md` through
+  ordinary symlinks. The installer never creates or edits `~/AGENTS.md` and
+  offers no hardlink mode.
+- An absent skill root becomes a link to `<repo>/skills`; an existing directory
+  retains unrelated entries and receives one link per repository skill. A root
+  already resolving to the source is unchanged.
+- Before mutation, `~/.local/state/agents-install/active.json` and its named
+  backup directory record every target's prior kind, content or link target,
+  mode, and inode/link metadata. `uninstall` restores mutated paths in reverse
+  order and retains the backup.
+- Uninstall refuses to overwrite post-install drift. A repeated install for
+  the same checkout and harness selection is a no-op when complete and extends
+  the manifest when new repository skills need per-skill links.
+
+**Examples**:
+1. `install-agents status` reports every supported harness without writing.
+2. `install-agents install --home "$test_home"` followed by matching `status`
+   and `uninstall` rehearses a complete round trip outside the real profile.
+3. `install-agents install --harness codex,grok` installs only those harnesses;
+   changing that selection requires uninstalling the active install first.
+
+**Canonical source**: `scripts/install-agents` plus the
+`scripts/install_agents/` Python package (in this repo). Run it from the
+checkout; it has no separate `~/bin` install target.
+
 ### vendor-skill
 
 Copies a subdirectory of a remote git repo into this tree, pinned to an
@@ -230,7 +271,7 @@ record. Implements the convention in `topics/vendoring.md`.
 Grounds a queued user message's composition time against the provider
 session transcript, so its referents resolve against what the sender
 had actually seen rather than the current conversation tail
-(`AGENTS.md` § Queued-send time separators). Models essentially never
+(`AGENTS.global.md` § Queued-send time separators). Models essentially never
 perform this wall-clock-to-turn mapping unaided; the transcript's
 per-message timestamps make it mechanical.
 

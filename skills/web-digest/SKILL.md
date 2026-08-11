@@ -20,7 +20,7 @@ script's job, never hand-edited, gitignored — never committed), and
    than the extract's.
 
 2. **Re-distill the extract when stale.** On that warning, or when the
-   user asks: re-read `AGENTS.md` § Interaction style and
+   user asks: re-read `AGENTS.global.md` § Interaction style and
    `AGENTS.user.md` § Disposition and § Writing and summary style, then
    update the bulleted block in `digest/paste-into-claude.ai-preferences.md` to
    match current policy. Preserve its contract:

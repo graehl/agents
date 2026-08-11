@@ -15,7 +15,7 @@ relies on each editor re-deriving how to validate; a rider makes the
 check explicit and inheritable by weaker agents.
 
 This is a companion convention alongside `.evidence.md`,
-`.bearings.md`, and `.runs/` (see `AGENTS.md § Project topics`). It is
+`.bearings.md`, and `.runs/` (see `AGENTS.global.md § Project topics`). It is
 **optional** — most topics will not have one — and is read at a
 **verb-trigger**, not routinely.
 

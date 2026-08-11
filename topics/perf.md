@@ -102,7 +102,7 @@ as comparable.
 ## Optimization work measures itself
 
 Every perf-motivated change records its own before/after under the
-project's suite convention (`AGENTS.md § Feature validation` scoped
+project's suite convention (`AGENTS.global.md § Feature validation` scoped
 to perf). Reworking a facility whose gain was measured re-runs that
 facility's benchmark — updating the benchmark to compile is not
 re-running it. Worked incident: ya's 064 review arc reworked

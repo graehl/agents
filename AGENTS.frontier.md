@@ -1,7 +1,7 @@
-# Frontier supplement to AGENTS.md
+# Frontier supplement to AGENTS.global.md
 
 Latitude for frontier-capability models, loaded via the Claude and
-Codex supplements. Everything in `AGENTS.md` still applies; this file
+Codex supplements. Everything in `AGENTS.global.md` still applies; this file
 relaxes how, not whether. If this launch also surfaced
 `AGENTS.weak.md`, this file does not apply — stop reading it.
 

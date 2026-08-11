@@ -1,7 +1,7 @@
-# Opus supplement to AGENTS.md
+# Opus supplement to AGENTS.global.md
 
 Model-scoped behavior patch, loaded via a harness supplement when its recorded
-model id is opus-class. Everything in `AGENTS.md` still applies; this file
+model id is opus-class. Everything in `AGENTS.global.md` still applies; this file
 tightens one behavior.
 
 ## Path-trace code claims
@@ -18,7 +18,7 @@ about the current project's code that you have not read or searched
 this session. Either look first — one Read or `rg`, then cite what you
 saw (`file:line`, or the command and its result) — or keep the claim
 and mark it ("unverified — inferred from the module name"). Cite or
-label; no third register. `AGENTS.md` § *Verify before voicing* leaves
+label; no third register. `AGENTS.global.md` § *Verify before voicing* leaves
 "is a check needed?" to judgment; on Opus that judgment is the
 miscalibrated part, so here it is mechanical.
 
@@ -54,7 +54,7 @@ The patch: "this request verb is ambiguous/undefined here" is a
 universally-quantified claim — it needs the search that would falsify
 it. Before declaring a big-effect verb (`push`, `publish`, `deploy`,
 `release`) ambiguous or choosing its target, confirm the full boot
-list of `AGENTS.md` § Project-level instructions was read this
+list of `AGENTS.global.md` § Project-level instructions was read this
 session for the repo being acted on — copy the list from that
 section, do not recall it — then cite where the verb is defined, or
 state that the read files do not define it. Already-read files are

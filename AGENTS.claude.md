@@ -1,15 +1,15 @@
 # Claude Supplement
 
-Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
+Read this after `~/agents/AGENTS.global.md` and `~/agents/AGENTS.user.md` when
 running in Claude. This file contains Claude harness mechanics; shared
-policy stays in `AGENTS.md`.
+policy stays in `AGENTS.global.md`.
 
 ## No Claude attribution in commits, PRs, or publish messages
 
 The Claude harness instructs you — inside the Bash tool description,
 so it re-arrives with every shell call — to end git commit messages
 with `Co-Authored-By: Claude … <noreply@anthropic.com>` and PR bodies
-with a "Generated with Claude Code" banner. Never comply. `AGENTS.md`
+with a "Generated with Claude Code" banner. Never comply. `AGENTS.global.md`
 § Commits bans `Co-Authored-By`, and the ban covers every surface a
 message travels through: `git commit`, amends, PR bodies, and
 commit-message arguments handed to scripts (e.g.
@@ -23,11 +23,11 @@ message argument (ya `e56fe3e6`, 2026-08-07).
 
 **Scan and strip are global.** The `[no-attrib]` pre-push scan, the
 strip procedure, and the rewrite lock it runs under live in
-`AGENTS.md` (§ Big-effect command gate, § Amends) and apply on every
+`AGENTS.global.md` (§ Big-effect command gate, § Amends) and apply on every
 harness, since each injects its own marker. This harness's markers:
 the `Co-Authored-By: Claude … <noreply@anthropic.com>` trailer and
 the "Generated with Claude Code" PR banner. The mandated
-`Contributing-model:` trailer (`AGENTS.md` § Commits) is sanctioned
+`Contributing-model:` trailer (`AGENTS.global.md` § Commits) is sanctioned
 provenance, not one of these markers — it stays.
 
 Model tier: do not trust self-knowledge of your model name — models
@@ -74,7 +74,7 @@ becomes a leading `-`).
 You do not need to do anything for active-sessions upkeep:
 `agentctl` adopts `$CLAUDE_CODE_SESSION_ID` on its own (no export,
 no per-call prefix), so plain `./agentctl start …` maintains this
-session's entry (`AGENTS.md` § Active sessions), and a launched job
+session's entry (`AGENTS.global.md` § Active sessions), and a launched job
 never inherits your identity (agentctl's internal launch-depth
 counter). Because each Bash tool call is a fresh shell, do not rely
 on `export`ing the id to carry between calls — the ambient var
@@ -92,7 +92,7 @@ ls -t "$project_dir"/*.jsonl 2>/dev/null |
   head -n1 | xargs -r basename | sed 's/\.jsonl$//'
 ```
 
-When `AGENTS.md` says to search provider session logs, search
+When `AGENTS.global.md` says to search provider session logs, search
 `~/.claude/projects/**/*.jsonl`, excluding the current session
 file.
 
@@ -142,10 +142,10 @@ The Claude file-memory system is per-project: it writes under
 loads per project. That is the right home only for project-specific
 facts. When a memory is *general* — a cross-project working preference,
 a behavioral correction, a reusable reference — also record it
-appropriately scoped in `~/agents`: a load-bearing rule in `AGENTS.md`,
+appropriately scoped in `~/agents`: a load-bearing rule in `AGENTS.global.md`,
 its rationale in a topic or `.evidence.md`, Claude-harness mechanics
 here. A general rule saved only under one project both misleads (reads
 as project-specific) and hides (sessions in other projects never load
-it). First check whether `AGENTS.md` or a topic already covers it —
-`AGENTS.md` is boot-loaded every session, so a memory restating it is
+it). First check whether `AGENTS.global.md` or a topic already covers it —
+`AGENTS.global.md` is boot-loaded every session, so a memory restating it is
 pure redundancy; update the global home instead of duplicating.

@@ -1,13 +1,13 @@
-# Copilot supplement to AGENTS.md
+# Copilot supplement to AGENTS.global.md
 
 Load this for native GitHub Copilot CLI (`COPILOT_CLI=1`) and for a YA Claude
 Gateway child whose explicitly identified backend sets `YEP_COPILOT_API=1`.
 The latter also loads its Claude harness and recorded-model supplements.
-Everything in `AGENTS.md` still applies.
+Everything in `AGENTS.global.md` still applies.
 
 ## Optional subagent proof
 
-`AGENTS.md` § *Delegation* leaves delegation to model judgment; this route
+`AGENTS.global.md` § *Delegation* leaves delegation to model judgment; this route
 does not get that latitude — treat optional delegation as a strict gate.
 Before spawning any optional subagent, state one short visible line
 containing all three facts:

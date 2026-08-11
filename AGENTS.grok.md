@@ -1,8 +1,8 @@
 # Grok Supplement
 
-Read this after `~/agents/AGENTS.md` and `~/agents/AGENTS.user.md` when
+Read this after `~/agents/AGENTS.global.md` and `~/agents/AGENTS.user.md` when
 running in Grok / xAI. This file contains harness mechanics; broad
-shared policy stays in `AGENTS.md`. The one carve-out is the
+shared policy stays in `AGENTS.global.md`. The one carve-out is the
 confirm-before-acting rule below, which the Claude harness injects
 automatically but Grok does not.
 
@@ -32,13 +32,13 @@ to a provider transcript. Record the tag once and reuse it across
 compaction/resume.
 
 If no `AGENTCTL_SESSION_ID` is present and no native id is exposed, fall
-back to a personal tag per `AGENTS.md` § Active sessions and note that the
+back to a personal tag per `AGENTS.global.md` § Active sessions and note that the
 launcher bridge was absent.
 
 ## Session Logs
 
 The on-disk location of Grok transcripts (if any) is not documented here
-yet. When `AGENTS.md` says to search provider session logs, discover the
+yet. When `AGENTS.global.md` says to search provider session logs, discover the
 transcript directory from the running harness and record it in this file
 once known; do not assume a path from training data.
 

@@ -1,6 +1,6 @@
 # User-specific preferences
 
-Supplements `~/agents/AGENTS.md` with graehl-specific context; loaded
+Supplements `~/agents/AGENTS.global.md` with graehl-specific context; loaded
 alongside it, not optional.
 
 ## Active projects
@@ -24,12 +24,12 @@ then record the answer in `AGENTS.local.md` so it doesn't recur.
 ## Worktree coordination
 
 graehl runs low fan-out and usually spawns the rare peer himself, so the
-pre-edit re-Read rule (AGENTS.md § Pre-edit re-Read) leans on a reciprocal
+pre-edit re-Read rule (AGENTS.global.md § Pre-edit re-Read) leans on a reciprocal
 promise: he announces when a peer agent joins a worktree you are mid-impl
 in, and when he hand-edits a file you are mid-impl on. With that, the solo
 case skips slow-gap re-Reads; absent an announcement, treat the tree as
 solo. The guarantee leans on his memory but is backstopped by agent
-detection (AGENTS.md § Pre-edit re-Read: a failed edit or unexpected git
+detection (AGENTS.global.md § Pre-edit re-Read: a failed edit or unexpected git
 state triggers a peer-check); announcing stays the reliable path, since a
 peer who triggers no surprise would otherwise go unnoticed.
 
@@ -109,7 +109,7 @@ root of the preferences below).
 
 ## Writing and summary style
 
-(Tool-jargon-in-summaries rule promoted to global `AGENTS.md` § Reader-facing
+(Tool-jargon-in-summaries rule promoted to `AGENTS.global.md` § Reader-facing
 summaries.)
 
 - **Compress by default; only doc authorship is exempt.** Lead with the
@@ -127,7 +127,7 @@ summaries.)
 
   Concision is not bought with ambiguity. A message that makes graehl
   reconstruct a referent, scroll back to resolve "the first of two", or ask
-  what a phrase meant costs more than the words it saved; `AGENTS.md`
+  what a phrase meant costs more than the words it saved; `AGENTS.global.md`
   § *Asking for a decision* and § *Reader-facing summaries* still bind. Cut
   restatement and narration first, never the aim sentence or the identifier.
 
@@ -219,7 +219,7 @@ tally.
 
 ## PDF → Markdown: marker-pdf (gra host)
 
-Concrete host recipe for the global AGENTS.md § PDF reading rule (use
+Concrete host recipe for the `AGENTS.global.md` § PDF reading rule (use
 `marker-pdf`, not `pdftotext`; isolate it). Install/upgrade:
 
 ```bash

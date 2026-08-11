@@ -2,7 +2,7 @@
 # pre-push-no-attrib: refuse to push commits whose messages carry
 # AI-attribution markers — any Co-Authored-By trailer (regardless of
 # the author it names) or a generated-with banner line. Mechanical
-# enforcement of the [no-attrib] check in ~/agents/AGENTS.md
+# enforcement of the [no-attrib] check in ~/agents/AGENTS.global.md
 # § Big-effect command gate; strip flow:
 # ~/agents/topics/commits.md § Attribution strip by SHA.
 #
