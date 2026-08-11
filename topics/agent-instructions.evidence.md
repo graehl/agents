@@ -1302,3 +1302,71 @@ the sweep single-target.
   commit message itself points to it correctly.
 - **Limit** — one printed page is a revision target, not a mechanical line cap.
   Detail scales with scope; a trivial change may still describe every edit.
+
+## 2026-08-11 — split protected policy into binding mains and clarification
+
+- **Trigger** — YA's provider study records that Codex reconstructs the exact
+  combined AGENTS snapshot across native compaction while ordinary tool reads
+  remain compactable history. In one 103-compaction Sol trace, only 24
+  boundaries were followed within 180 seconds by even a command mentioning
+  `RESEARCH.md` or `RUNS.md`; that is an upper bound on immediate rereads, not
+  evidence the packet survived. The same study notes the opposing cost: every
+  protected byte displaces recent task context and can cause more compaction.
+  See [YA's agent-context-injection topic](https://github.com/graehl/yepanywhere/blob/main/topics/agent-context-injection.md).
+- **Decision** — `AGENTS.global.md`, `RUNS.md`, and `RESEARCH.md` are now
+  compact binding mains. Each retains its governed-action trigger, action, and
+  persistence span. Exact pre-compression text remains in the corresponding
+  `.supplemental.md` file as optional slow-path clarification; the main wins on
+  conflict and locates rare detail by exact heading.
+- **Refresh model** — the unknown-capability fallback refreshes the compact main
+  at the next governed action after compaction/resume. Model recollection and a
+  once-per-session read do not discharge it. A boot-loaded harness/model/effort
+  supplement may tune cadence only with a named packet, trigger, evidence,
+  relaxation, and fallback. The decision surface is residency, observed
+  retrieval/application, effort and request class, and miss cost versus token,
+  latency, and displaced recent context.
+- **Measured text cost** — relative to commit `15fa560`, the installed global
+  plus this repo's project boot changed from 79,713 to 37,932 bytes (52.4%
+  smaller). The global main changed 78,423 → 34,970 bytes; RUNS 31,535 →
+  12,069; RESEARCH 45,183 → 16,075. The project boot grew 1,290 → 2,962
+  bytes to state the empirical strategy and route cadence decisions to this
+  topic.
+- **Recovery check** — the AGENTS and RESEARCH supplemental bodies are
+  byte-identical to their pre-compression sources. RUNS preserves every line
+  and differs only by normalizing one trailing space on its “Long-running
+  commands” heading; the exact old byte remains in Git. SHA-256: AGENTS
+  `b8a43478a44a130be79e2164a960d1264710531f90a1235e1ddce9fdefb9b677`,
+  normalized RUNS
+  `2ff48e713486901448eb1918f114057af4aa090776202d05a37548cb5d84c60f`,
+  RESEARCH
+  `8b7dd64a551a5b10b35de1dd1c49513ec4e95ac90fdacba19afabfe02f07516c`.
+  Every pre-compression global heading remains in the binding global main.
+- **Trace: compacted long run** — the AGENTS trigger survives, and at the next
+  launch/monitor/summary boundary it causes one current `RUNS.md` read. The
+  ordinary wait path then reaches the atomic foreground announcement, detached
+  launch rule, status check, and earned wait ladder from the main alone. It
+  opens the supplemental watchdog section only for a rare external-nudge case.
+- **Trace: protected packet** — a harness verified to reconstruct the exact
+  current RUNS packet does not reread it after compaction. A model that merely
+  says it remembers still rereads. A future evidence-backed Sol/effort profile
+  may choose another cadence, but only if its override itself resides in the
+  protected boot and supplies a fallback.
+- **Trace: research result** — after compaction during an evaluation task, the
+  next research boundary refreshes `RESEARCH.md`; result-sanity preview,
+  strongest-cheap-baseline, attribution, significance, and exact eval-condition
+  rules all remain in the main. A log-template ambiguity reaches the named
+  supplemental section without making the whole supplement mandatory.
+- **Trace: catastrophic action** — a dependency upgrade, destructive command,
+  push, or wholesale replacement reaches the complete stop/gate record in
+  `AGENTS.global.md`; no optional file is required to prevent the action.
+- **Remaining gap** — a protected trigger cannot rely on a compactable
+  supplement to define its own reload semantics. Commit `e0e3c6a` records a
+  harness/model-profile boot compiler that installs the selected semantics into
+  the harness's authoritative AGENTS world-state, with reversible default-slot,
+  explicit-path, and just-in-time activation modes. YA commit `1982fe5d`
+  records the provider-side boundary. This is accepted direction, not an
+  implementation.
+- **Status** — trace-simulation and exact recovery checks pass. The user's long
+  Sol session produced few behavioral complaints, but neither that observation
+  nor the traces are an outcome ablation; optimal packet size and cadence remain
+  unmeasured by model, harness, effort, project, and request class.

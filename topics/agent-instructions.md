@@ -10,13 +10,26 @@ This repo's main correctness claim is that committed global instructions give
 future agents enough stable, searchable policy to behave consistently across
 projects without relying on stale chat state.
 
+Provider placement, compaction behavior, and the request-conditioned boot
+mechanism are developed in YA's
+[agent-context-injection topic](https://github.com/graehl/yepanywhere/blob/main/topics/agent-context-injection.md).
+That topic owns harness facts and launch mechanics; this repository owns policy
+selection, scoped model/harness corrections, and instruction ablation. Each
+repository remains usable without the other.
+
 ## Contracts
 
 - `AGENTS.global.md` is the authoritative global policy file and the source
   installed into each harness's global instruction location.
+- `AGENTS.supplemental.md` is optional clarification, never an install target.
+  The main file retains every trigger and binding rule and wins on conflict.
 - The root `AGENTS.md` is this checkout's project boot. It must not be used as
   a harness-global install target, or work launched here receives the global
   corpus again as project context.
+- `RUNS.md` and `RESEARCH.md` are compact action-triggered binding layers;
+  their `.supplemental.md` companions retain slow-path detail but are not
+  required reads unless the main file points there or its wording is
+  insufficient for the current action.
 - Local project instructions may add narrower rules, but global policy changes
   belong here first.
 - Correctness topics are defined by committed `topics/*.md` basenames, and
@@ -40,8 +53,8 @@ projects without relying on stale chat state.
   instruction text.
 - Theory docs should explain why contracts are believed, not accumulate a
   chronological list of every change.
-- Boot-loaded text (`AGENTS.global.md`, supplements, anything read every
-  session) budgets every token: a sentence earns its place only by
+- Boot-loaded text (`AGENTS.global.md`, routed model/harness supplements, and
+  anything else read every session) budgets every token: a sentence earns its place only by
   steering behavior. Worked examples and rationale that stop a weaker
   agent reasoning around a rule qualify. When the user endorses a
   rule's rationale, do not offer to write the endorsement back into
@@ -127,11 +140,68 @@ fires), and the trigger sentence itself carries the immediate steer (the
 command to run, the stop to make) so an agent that defers the read
 still acts safely.
 
+Compaction makes the trigger boundary temporal as well as topical. Exact
+survival of `AGENTS.global.md` does not protect a prior tool-read policy body.
+A load-bearing read trigger therefore fires again at the governed action after
+compaction/resume; “already read this session” is not sufficient. Under the
+unknown-capability default, skipping that refresh requires verified harness
+reconstruction of the exact current routed packet, not a model's recollection
+that it read the file. A boot-loaded scoped supplement may define another
+evidence-backed cadence under the capability model below. The routed main is
+compact enough to pay the repeat cost when protection is absent. Its optional
+supplemental file preserves recoverability and rare clarification without
+becoming a second mandatory boot.
+
 The original narrower case: when a topic doc would benefit from
 referencing a specific `AGENTS.global.md` section, prefer extracting that
 section to a dedicated file so `AGENTS.global.md` keeps a pointer and the file
 carries the full content. Avoids restatement and lets topic docs link
 the dedicated file rather than a deep `AGENTS.global.md` section.
+
+## Modeling agent capability and tendency
+
+The right refresh policy is a capability/tendency model, not a universal
+reread cadence and not the agent's self-report that it remembers. *Capability*
+means what exact state the harness preserves or reconstructs and what the model
+at a given effort can reliably retrieve and apply. *Tendency* means observed
+behavior in the governed situation: for example, acting from a vague compacted
+summary, skipping a routed read because the filename feels familiar, or
+reloading a whole packet when one located section would suffice.
+
+Choose the policy for a routed packet from four inputs:
+
+- **Residency:** is the exact current packet protected or reconstructable in
+  model context, merely represented in a summary, or absent?
+- **Retrieval and application:** under traces or outcome measurements, does
+  this route and model find the applicable section and obey it after the
+  relevant interruption? Provider or model-family reputation is not evidence
+  for the specific behavior.
+- **Effort and request class:** reasoning effort and task shape may change
+  retrieval and application. Do not assume the change is monotonic; record the
+  actual setting with the observation.
+- **Stakes and cost:** price the consequence of a missed rule against read
+  latency, repeated tokens, protected-context burden, and displacement of
+  recent goal/task state. This selects whole-packet read, section location, or
+  justified reliance on protected content.
+
+With no scoped evidence, the conservative fallback remains: after compaction
+or resume, refresh the compact binding main at the governed action. Verified
+exact reconstruction discharges that refresh. A harness-, model-, or
+effort-scoped supplement may tune the cadence only when it names the packet,
+trigger, evidence, relaxation, and safe fallback. Avoid the instruction "read
+it if you forgot it": an agent cannot reliably observe content it has forgotten
+and a summary can create false familiarity. Use observable events and action
+boundaries instead.
+
+The project `AGENTS.md` states the durable-routing aspiration and points here;
+it should not freeze a universal cadence. Changes to this model are hypotheses
+subject to the trace and ablation disciplines below.
+
+For the initial personal integration, YA may compile this repository's selected
+policy into the exact global boot a harness protects. The provider-side
+contract and opt-in boundary live in the linked YA topic; the deferred local
+compiler/install work is captured in
+[`gaps/agent-specific-durable-boot-compilation.md`](../gaps/agent-specific-durable-boot-compilation.md).
 
 ## Verifying instruction changes
 
