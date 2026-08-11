@@ -8,5 +8,4 @@ __pycache__/
 .backups/
 .snapshots/
 .codex
-last-session.md
 digest/claude-web.md

@@ -1424,3 +1424,50 @@ the sweep single-target.
   current model.
 - **Status** — user-directed; YA's worker and remote-environment tests cover
   marker replacement and propagation. Behavioral effect remains unmeasured.
+
+## 2026-08-11 — make resume scope-aware
+
+- **Trigger** — after repeated compactions, the `hi` skill was invoked as if
+  compaction itself were a new session. Its old procedure privileged a
+  project-root session snapshot, asked whether to continue, and could create a
+  false pause inside already-authorized work. The matching manual save ritual
+  was no longer used, so those snapshots were not reliably maintained.
+- **Decision** — `/hi` is an explicit recovery operation, never a
+  post-compaction ritual. A named resume follows its named scope. A bare `/hi`
+  may inspect `tasks/ROOT` as a possibly stale discovery hint, then reconciles
+  it with live state. Current work maintains its already-known handoff rather
+  than whichever task ROOT names. The dedicated save skill and privileged
+  project-root snapshot convention retire; `topics/handoffs.md` owns general
+  working-handoff guidance.
+- **Landing classifier** — incomplete repository truth goes to the project's
+  gap/tactical convention; an uncommitted nice-to-have goes to its owning
+  topic's candidate-improvement or Sketches section; private active-work state
+  with no known handoff may use `tasks/auto-handoff-<slug>.md`. ROOT selects
+  none of these for current work.
+- **Trace: compacted active work** — the skill detects that it has neither an
+  explicit `/hi` nor a resume request, performs no discovery or prompt, and
+  lets the authorized work continue under the binding post-compaction refresh
+  rules.
+- **Trace: bare recovery with stale ROOT** — `/hi` reads ROOT first, compares
+  its target with dirty files, recent commits, active sessions, and recent task
+  state, then reports a material discrepancy rather than forcing the live work
+  into ROOT's scope.
+- **Trace: named recovery** — a request naming a handoff or task reads that
+  artifact and live evidence without consulting ROOT merely because it exists.
+- **Trace: maintenance cadence** — a significant boundary, direction change,
+  completed blocker, pause, or finish makes a known handoff truthful again;
+  routine edit/build/test cycles do not interleave handoff writes.
+- **Goal header** — when handed-off work remains inside an unsatisfied formal
+  goal loop, its governing `/goal X` is the first line and remaining scope
+  follows. A handoff may declare the same header when a checkable goal would
+  usefully govern continuation. On resume, that first line has exactly the
+  semantics of a separate user turn immediately preceding the rest of the
+  handoff; later or “after” work may therefore use the provider's ordinary
+  goal/plan retention. No separate handoff schema or future YA bridge is a
+  prerequisite. Merely authoring the stored handoff still starts no work.
+- **Retirement mechanism** — installer status exposes a managed skill whose
+  source disappeared. Reinstall restores the recorded pre-install target and
+  archives the retired record, avoiding stale broken harness aliases.
+- **Status** — user-directed. Scenario traces and installer tests pass; no live
+  post-compaction outcome comparison has yet measured whether false `/hi`
+  invocations disappear.

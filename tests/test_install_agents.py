@@ -143,7 +143,7 @@ def test_broken_skill_root_is_backed_up_and_restored() -> None:
         assert os.readlink(root) == "missing-skills"
 
 
-def test_reinstall_adds_new_skills_to_an_existing_root() -> None:
+def test_reinstall_reconciles_added_and_retired_skills() -> None:
     with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
         base = Path(directory)
         home = base / "home"
@@ -156,8 +156,11 @@ def test_reinstall_adds_new_skills_to_an_existing_root() -> None:
         first.joinpath("SKILL.md").write_text("first\n")
 
         skill_root = home / ".grok/skills"
+        old_first = skill_root / "first"
+        old_first.mkdir(parents=True)
+        old_first.joinpath("kept.txt").write_text("old first\n")
         unrelated = skill_root / "unrelated"
-        unrelated.mkdir(parents=True)
+        unrelated.mkdir()
         unrelated.joinpath("SKILL.md").write_text("unrelated\n")
         repo_arg = ("--repo", str(repo), "--harness", "grok")
 
@@ -174,10 +177,51 @@ def test_reinstall_adds_new_skills_to_an_existing_root() -> None:
         assert _target(skill_root / "second") == second.resolve()
         assert _run(home, "status", *repo_arg).returncode == 0
 
+        first.joinpath("SKILL.md").unlink()
+        second.joinpath("SKILL.md").unlink()
+        status = _run(home, "status", *repo_arg)
+        assert status.returncode == 3
+        assert "retired repository skill" in status.stdout
+        refreshed = _run(home, "install", *repo_arg)
+        assert refreshed.returncode == 0, refreshed.stderr
+        assert json.loads(refreshed.stdout)["status"] == "refreshed"
+        assert old_first.is_dir() and not old_first.is_symlink()
+        assert old_first.joinpath("kept.txt").read_text() == "old first\n"
+        assert not skill_root.joinpath("second").exists()
+        assert _run(home, "status", *repo_arg).returncode == 0
+
         assert _run(home, "uninstall", "--repo", str(repo)).returncode == 0
-        assert not skill_root.joinpath("first").exists()
+        assert old_first.is_dir()
+        assert old_first.joinpath("kept.txt").read_text() == "old first\n"
         assert not skill_root.joinpath("second").exists()
         assert unrelated.joinpath("SKILL.md").read_text() == "unrelated\n"
+
+
+def test_reinstall_refuses_changed_retired_skill_target() -> None:
+    with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
+        base = Path(directory)
+        home = base / "home"
+        repo = base / "repo"
+        home.mkdir()
+        repo.mkdir()
+        repo.joinpath("AGENTS.global.md").write_text("global\n")
+        skill = repo / "skills/first"
+        skill.mkdir(parents=True)
+        skill.joinpath("SKILL.md").write_text("first\n")
+        repo_arg = ("--repo", str(repo), "--harness", "grok")
+        home.joinpath(".grok/skills").mkdir(parents=True)
+
+        assert _run(home, "install", *repo_arg).returncode == 0
+        target = home / ".grok/skills/first"
+        skill.joinpath("SKILL.md").unlink()
+        target.unlink()
+        target.mkdir()
+        target.joinpath("user-state").write_text("preserve me\n")
+
+        refreshed = _run(home, "install", *repo_arg)
+        assert refreshed.returncode == 2
+        assert "active install has drifted" in refreshed.stderr
+        assert target.joinpath("user-state").read_text() == "preserve me\n"
 
 
 if __name__ == "__main__":

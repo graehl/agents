@@ -13,19 +13,21 @@ skip that refresh only when the harness is verified to reconstruct the exact
 current routed packet in model context.
 
 Session continuity is primarily resume-by-session-id plus live state:
-worktree, active sessions, `tasks/*.md`, run metadata, and artifacts. `/hi` and
-`/bye` are optional manual recovery tools for a full/corrupted session. Recover
-prior context only on a greeting or explicit resume signal; a fresh specific
-request is independent.
+worktree, active sessions, `tasks/*.md`, run metadata, and artifacts. `/hi` is
+an optional explicit resume tool; do not invoke it merely because context
+compacted or instructions were reinjected. Recover prior context only on a
+greeting or explicit resume signal; a fresh specific request is independent.
 
 `tasks/*.md` records private direction, coordination, acceptance notes, and
-unfinished state. `tasks/ROOT` contains the active root task filename; change it
-only when a new root task begins. Prefer committed `topics/` for knowledge that
-would help a collaborator. Use `tasks/` only when that test fails or material
-must stay private. When committing an incomplete shared artifact, commit an
-honest status/cutoff with it so the artifact cannot mislead; private task state
-alone is insufficient. A project that tracks `tasks/` instead follows its
-tracked-task convention.
+unfinished state. `tasks/ROOT` names the default handoff used only for a bare
+`/hi` or boot with no specified scope; it does not select which artifact active
+work maintains. Change it only when explicitly establishing a new default
+bare-boot target. Prefer committed `topics/` for knowledge that would help a
+collaborator. Use `tasks/` only when that test fails or material must stay
+private. When committing an incomplete shared artifact, commit an honest
+status/cutoff with it so the artifact cannot mislead; private task state alone
+is insufficient. A project that tracks `tasks/` instead follows its tracked-task
+convention.
 
 For implementation/bugfix work, search existing `tasks/*.md` and cite relevant
 files in planning and conclusion. Task files should point to related topics.
@@ -44,6 +46,18 @@ load-bearing constraints, ruled-out paths and why, the crux, and unfinished
 state. Restate context unless a specific cited artifact is one the receiver will
 actually open. Do not waste an `Audience:` line restating this rule. Outward
 reports retain their own reader model.
+
+When a resumed handoff starts with `/goal X`, process that line as a separate
+user turn immediately preceding the remaining handoff, which is the following
+request.
+
+Before creating or updating a handoff, read `topics/handoffs.md` (repo-local,
+else global). Maintain the handoff already governing the work only at
+significant milestones that make its state or next step materially false, not
+between routine edit/build/test actions. When no artifact governs material
+unfinished work, that topic chooses between a project gap and private
+`tasks/auto-handoff-<slug>.md`, while non-blocking candidate improvements stay
+in the owning topic's sketches/plans; `tasks/ROOT` is irrelevant to this choice.
 
 ## Active sessions
 
@@ -73,15 +87,17 @@ sessions” in [AGENTS.supplemental.md](AGENTS.supplemental.md).
 
 ## Resume source priority
 
-After disconnect, restart, compaction, or crash, recover from live state first:
-worktree; active root task (`tasks/ROOT`, else newest task by mtime);
-`.agentctl/active/`; run/on-deck state; artifacts; then provider logs. A recent
-`*.bearings.md` can orient when no root task exists. `last-session.md` is
-optional only when newer than live evidence.
+After disconnect, restart, compaction, or crash, keep any already-known work
+scope; compaction alone does not trigger `/hi`. For a named resume, use the
+named handoff/task. Only a bare `/hi` or boot with no scope reads `tasks/ROOT`
+first as a discovery hint. Then reconcile against live state: worktree and
+recent commits; `.agentctl/active/`; run/on-deck state; artifacts; then provider
+logs needed to fill a specific gap. A recent relevant task/auto-handoff or
+`*.bearings.md` can orient when the first hint is missing, broken, or unrelated.
 
-A first-turn handoff/context-compression message means `/bye` probably did not
-run. If it gives a session link/id, inspect that session, scanning boundaries
-and reading the last two sections closely.
+If a first-turn handoff/context-compression message gives a session link/id,
+inspect that session, scanning boundaries and reading the last two sections
+closely.
 
 ## Scheduled session prompts
 
@@ -503,11 +519,14 @@ against the request and cite capture paths. Read `topics/ui-testing.md`.
 
 ## Adjacent gaps: capture, don't chase or drop
 
-An adjacent code-quality issue not fixed now becomes committed
-`gaps/<slug>.md` (or local `docs/tactical/` convention) and is removed with its
-fix. Fix immediately only when cheap, in scope, and as its own commit. If
-`gaps/` exists, inspect relevant entries when entering an area. Format:
-`gaps/README.md`.
+An adjacent code-quality issue not fixed now, or a partially landed unit whose
+unfinished state leaves repository truth incomplete, becomes
+`gaps/<slug>.md` (or the local tactical equivalent) under that project's
+tracking convention and is removed when the gap closes. Private continuity
+state that implies no project defect belongs in `tasks/`, not `gaps/`. Fix an
+adjacent issue immediately only when cheap, in scope, and as its own commit. If
+`gaps/` exists, inspect relevant entries when entering an area. Format and
+lifecycle: `gaps/README.md`.
 
 ## Ideal coding
 

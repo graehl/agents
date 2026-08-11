@@ -11,20 +11,20 @@ worked example is lost.
 # Session management
 
 Session continuity is primarily resume-by-session-id plus live state
-(active sessions, `tasks/*.md`, run metadata). `/hi` and `/bye` are an
-optional manual save/restore pair, mainly worth reaching for when a
-session is too full or corrupted to resume normally. Recover prior
-context only on a greeting or explicit resume signal — a fresh, specific
-request is independent.
+(active sessions, `tasks/*.md`, run metadata). `/hi` is an optional explicit
+recovery operation, mainly worth reaching for after a disconnect or corrupted
+resume; compaction alone does not invoke it. Recover prior context only on a
+greeting or explicit resume signal — a fresh, specific request is independent.
 
 `tasks/*.md` files track per-task direction, coordination, acceptance
 notes, and unfinished session state. Whether `tasks/` is git-ignored is
 the customization point: ignored (the default here) means task files are
 private working state — never commit them and stay branch-agnostic;
 tracked means the feature-branch workflow (committed task files, branch
-per task). The active root task is named by `tasks/ROOT` (a one-line
-pointer holding its filename); update it when a new root task begins —
-rarely. Prefer a committed `topics/` doc for durable conclusions, contracts,
+per task). The default scope-less boot handoff is named by `tasks/ROOT` (a
+one-line pointer holding its filename); it does not choose what current work
+maintains. Update it only when explicitly establishing a new bare-boot target.
+Prefer a committed `topics/` doc for durable conclusions, contracts,
 and project-facing knowledge, and reach for a git-ignored `tasks/` file
 **last** — one test decides: would committing this plausibly help a repo
 collaborator? If yes, commit it durably. `tasks/` is the parking spot
@@ -40,7 +40,7 @@ that status *with the artifact* (a status banner, cutoff line, or
 "what's left" section), never only in `tasks/`. (In the tracked-`tasks/`
 variant those files are themselves the committed collaborator artifact,
 so the last-resort test does not apply.) Read the
-active root task when resuming. On believed completion, append a dated
+selected task when resuming. On believed completion, append a dated
 status note with the relevant commit(s) and one line of evidence; if the
 task file has inline subtasks, make it a section listing each subtask's
 status. Judge each task file in isolation — no recursing into linked
@@ -61,8 +61,8 @@ are unreliable across compaction and multi-session commits.
 
 ## Handoff audience
 
-A handoff or persistent plan — `last-session.md`, a `tasks/*.md` file, a
-`.bearings.md`, or any ad-hoc "write me a handoff/plan" doc — has exactly
+A handoff or persistent plan — a `tasks/*.md` file, a `.bearings.md`, or any
+ad-hoc "write me a handoff/plan" doc — has exactly
 two readers: the user, and a fresh agent of similar capability. Never
 write down to a lesser reader. "Similar capability" means peer skill with
 zero shared context: the receiver can re-derive reasoning from the same
@@ -137,21 +137,17 @@ window, sweep, launch-depth guard, or plugin contract.
 
 ## Resume source priority
 
-A handoff or context-compression message as the first turn means `/bye`
-did not run before the handoff. If it carries a link/session id, browse
-that session to catch up — scan for commit/topic boundaries and read
+If a first-turn handoff or context-compression message carries a link/session
+id, browse that session to catch up — scan for commit/topic boundaries and read
 the last two sections closely.
 
-When resuming after a disconnect, crash, restart, or compaction,
-recover from live state first: worktree, the active root task
-(`tasks/ROOT` names it if present, else newest `tasks/*.md` by
-mtime, even if git-ignored), `.agentctl/active/`, run metadata,
-`on-deck/` queue state when present, artifacts, then provider
-session logs. With no `tasks/ROOT`, a
-recently modified `*.bearings.md` is a useful "what is this even
-doing" orientation fallback. A `last-session.md` newer than that
-live evidence may be offered as an optional restore step; never
-treat it as authoritative.
+After a disconnect, crash, restart, or compaction, retain any already-known
+work scope. For a named resume use the named artifact. Only a bare `/hi` or
+scope-less boot reads `tasks/ROOT` first, as a possibly stale discovery hint.
+Then reconcile against live state: worktree and recent commits,
+`.agentctl/active/`, run and `on-deck/` state, artifacts, then provider logs
+needed to fill a specific gap. A recent relevant task, auto-handoff, or
+`*.bearings.md` can orient when the first hint is missing or unrelated.
 
 ## Scheduled session prompts
 

@@ -68,6 +68,7 @@ branches, commits, shared workdirs, or private notes.
 | `GLOSSARY.md` | Project vocabulary that agents should reuse in docs, code, UI copy, and commits. |
 | `TOPICS.md`, `topic-definitions.md` | Topic vocabulary and curated general-domain definitions used when naming project concerns. |
 | `topics/` | Committed cross-cutting contracts and rationale: debugging, testing, agent instructions, run provenance, UI verification, and more. |
+| `topics/handoffs.md` | Selection, contents, milestone maintenance, and live-state validation for working handoffs. |
 | `ideas/` | Durable seeds for possible projects unrelated to this repository; preservation without implementation commitment. |
 | `skills/` | Optional workflows layered on the core policy; highlights below. |
 | `agentctl`, `agentctl.py`, `agentctl_plugins/` | A dependency-free process manager with active-session participation, run state, optional plugins, and foreground local/SSH GPU-capacity watching. |
@@ -113,6 +114,11 @@ becomes one symlink to `skills/`; an existing directory keeps unrelated skills
 and receives one link per repository skill. Roots already resolving to this
 checkout are left alone.
 
+Re-running `install` reconciles repository skill additions and retirements.
+For a retired skill, it removes only an alias the installer created and restores
+the exact pre-install object recorded for that path. `status` reports an
+installed retired alias until this refresh is run.
+
 Use `--home` for an isolated rehearsal before touching a real profile:
 
 ```bash
@@ -152,10 +158,10 @@ Symlinks follow the named `AGENTS.global.md` across Git updates.
 
 ## What the Rules Preserve
 
-**Continuity.** Sessions are recoverable from live state first: worktree,
-active sessions, task files, run metadata, artifacts, and only then old chat
-logs. Optional `/hi` and `/bye` skills help, but the repo does not depend on
-manual save rituals.
+**Continuity.** Sessions are recoverable from a named working handoff and live
+state: worktree, active sessions, task files, run metadata, artifacts, and only
+then old chat logs. Bare `/hi` can use `tasks/ROOT` as a discovery hint; routine
+compaction does not invoke a manual save/restore ritual.
 
 **Shared-workdir safety.** Agents must not reach for broad discard commands to
 repair their own history or line up an amend. The default posture is to inspect

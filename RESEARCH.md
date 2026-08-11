@@ -290,10 +290,10 @@ paper, log, task, or topic. See `topics/on-deck.md`.
 ### Subtasks and commit checkpoints
 
 Commit paper/log updates and source checkpoints when meaningful findings or
-subtask states land. `tasks/` and `last-session.md` remain private unless the
-user explicitly asks otherwise. Stage only known work; do not infer ownership
-from timestamps or sweep unrelated files. Global shared-worktree and commit
-rules govern any ambiguity.
+subtask states land. Private task and working-handoff files remain private
+unless the user explicitly asks otherwise. Stage only known work; do not infer
+ownership from timestamps or sweep unrelated files. Global shared-worktree and
+commit rules govern any ambiguity.
 
 Each main task file maintains a `## Subtasks` list covering file-backed and
 inline work, with status, last worked, likely next, and user-confirmed
@@ -315,14 +315,15 @@ corresponding main task file; report a missing one. “Update the research
 paper/log” means the branch-derived file unless the governing task names
 another.
 
-On explicit `/hi` or resume:
+On explicit `/hi` or resume of research work:
 
-1. skim `research/ROOT.md` when present;
-2. recover live state under “Resume source priority” in
-   [AGENTS.global.md](AGENTS.global.md);
-3. skim the branch paper/current framing;
-4. read the active root task and its Subtasks section;
-5. read listed in-progress subtask files; and
+1. resolve the named handoff/task, or for bare `/hi` the default discovery hint,
+   under “Resume source priority” in [AGENTS.global.md](AGENTS.global.md);
+2. reconcile it with live state;
+3. skim `research/ROOT.md` when present;
+4. skim the branch paper/current framing;
+5. read the governing task's Subtasks section and listed in-progress subtask
+   files; and
 6. read the newest research-log entries.
 
 Do not run this checklist for a fresh specific request without a resume signal.

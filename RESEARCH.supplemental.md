@@ -684,9 +684,9 @@ paper/log/task as appropriate. See `topics/on-deck.md`.
 - `research/<branchname>.md` and `research/<branchname>.log.md` — always commit when
   updated; these are the persistent record of the work.
 - Source code changes — commit at checkpoints as above.
-- `tasks/` files and `last-session.md` — do NOT commit. These are live working state
-  shared among agents via the filesystem directly. Exception: only if the user
-  explicitly asks to include them.
+- Private `tasks/` and working-handoff files — do NOT commit. These are live
+  working state shared among agents via the filesystem directly. Exception:
+  only if the user explicitly asks to include them.
 
 **Before committing**: check `git status` and compare untracked/modified file timestamps
 against the current and recent sessions. If any source files look like they were created
@@ -719,8 +719,9 @@ section that serves as the authoritative list of all work under this branch:
 Rules for maintaining this section:
 - List every subtask, whether it has its own file or is tracked inline.
 - Update `Last subtask completed` only when the user explicitly confirms satisfaction.
-- Update `Last subtask worked on` and `Likely next` at the end of each work session
-  (i.e., during `/bye`).
+- Update `Last subtask worked on` and `Likely next` at a significant continuity
+  milestone when either field becomes materially false; do not interleave this
+  bookkeeping with routine edit/run/check cycles.
 - To find all subtask files for a branch:
   `rg -t md -l "Branch: <branchname>" tasks/`
 

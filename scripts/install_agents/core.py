@@ -187,6 +187,21 @@ def _skill_directories(source: Path) -> list[Path]:
     )
 
 
+def _retired_skill_records(
+    manifest: dict[str, Any], skills_source: Path
+) -> list[dict[str, Any]]:
+    records = []
+    for target in manifest.get("targets", []):
+        source = Path(target["source"])
+        if (
+            target.get("mutated")
+            and source.parent == skills_source
+            and not source.joinpath("SKILL.md").is_file()
+        ):
+            records.append(target)
+    return records
+
+
 def _created_parents(paths: list[Path], home: Path) -> list[str]:
     missing: set[Path] = set()
     for path in paths:
@@ -297,7 +312,13 @@ def install(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, 
                 "another install is active; uninstall it before changing "
                 "source or harness selection"
             )
-        drift = _manifest_drift(existing)
+        retired = _retired_skill_records(existing, skills_source)
+        safely_retired_paths = {
+            Path(target["path"])
+            for target in retired
+            if _matches_link(Path(target["path"]), Path(target["source"]))
+        }
+        drift = _manifest_drift(existing, ignored_paths=safely_retired_paths)
         if drift:
             raise InstallError("active install has drifted: " + ", ".join(drift))
         backup_root = Path(existing["backup_root"])
@@ -307,7 +328,7 @@ def install(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, 
         records, actions, observations = _plan_skill_targets(
             home, skills_source, skill_roots, backup_root, known_paths
         )
-        if records:
+        if records or retired:
             refreshed_at = datetime.now(timezone.utc).isoformat()
             existing["phase"] = "prepared"
             existing["targets"].extend(records)
@@ -316,12 +337,28 @@ def install(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, 
                 | set(_created_parents([path for path, _ in actions], home))
             )
             existing.setdefault("refreshes", []).append(
-                {"at": refreshed_at, "skill_roots": observations}
+                {
+                    "at": refreshed_at,
+                    "skill_roots": observations,
+                    "retired_skills": [target["relative"] for target in retired],
+                }
             )
             _atomic_json(backup_root / "manifest.json", existing)
             _atomic_json(state_root / "active.json", existing)
+            for target in reversed(retired):
+                _restore(Path(target["path"]), target["original"], backup_root)
             for path, source in actions:
                 _replace_with_link(path, source)
+            retired_paths = {target["path"] for target in retired}
+            existing["targets"] = [
+                target
+                for target in existing["targets"]
+                if target["path"] not in retired_paths
+            ]
+            for target in retired:
+                existing.setdefault("retired_targets", []).append(
+                    {**target, "retired_at": refreshed_at}
+                )
             existing["phase"] = "installed"
             existing["installed_at"] = datetime.now(timezone.utc).isoformat()
             _atomic_json(backup_root / "manifest.json", existing)
@@ -330,7 +367,7 @@ def install(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, 
                 "status": "refreshed",
                 "manifest": str(state_root / "active.json"),
                 "backup": str(backup_root),
-                "changed": len(actions),
+                "changed": len(actions) + len(retired),
             }
         return {
             "status": "already-installed",
@@ -392,10 +429,15 @@ def install(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, 
     }
 
 
-def _manifest_drift(manifest: dict[str, Any]) -> list[str]:
+def _manifest_drift(
+    manifest: dict[str, Any], *, ignored_paths: set[Path] | None = None
+) -> list[str]:
     drift = []
+    ignored_paths = ignored_paths or set()
     for target in manifest.get("targets", []):
         path = Path(target["path"])
+        if path in ignored_paths:
+            continue
         if not _matches_link(path, Path(target["source"])):
             drift.append(target["relative"])
     return drift
@@ -434,6 +476,10 @@ def status(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, A
         result["phase"] = active.get("phase")
         result["manifest_harnesses"] = active.get("harnesses")
         result["drift"] = _manifest_drift(active)
+        result["drift"].extend(
+            f"{target['relative']} (retired repository skill)"
+            for target in _retired_skill_records(active, repo_root / "skills")
+        )
     result["selected"] = selected
     return result
 

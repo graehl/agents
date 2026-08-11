@@ -1,16 +1,22 @@
-# gaps/ — durable capture of adjacent, deferred defects
+# gaps/ — unresolved project incompleteness
 
-`gaps/` holds one file per noticed-but-not-fixed-now code-quality defect —
-a UI glitch, a lint warning, a failing or flaky test, a small structural
-wart — that is *adjacent* to the current work rather than part of it. The
-point: a defect an agent noticed must not evaporate into a chat comment
-that dies with the session. It becomes a committed, greppable entry the
-next session or the user trips over.
+`gaps/` holds one file per unresolved project incompleteness: a
+noticed-but-not-fixed-now code-quality defect, or a partially landed single unit
+whose current repository state is incomplete or misleading. The point is that
+such state must not evaporate into chat. In this repository gaps are committed
+and greppable; another project may choose different tracking while preserving
+the same semantic boundary.
 
 This is the durable-capture half of *"capture adjacent gaps; don't chase
-or drop them"* (`AGENTS.md`). The other half is the fix-in-place exception:
+or drop them"* (`AGENTS.global.md`). The other half is the fix-in-place exception:
 when the fix is cheap *and* in scope (the seam is already open), just fix
 it as its own commit — no gap file needed.
+
+A nice-to-have or dreamed improvement that exposes no current defect or blocker
+belongs in the owning topic's candidate-improvement or `## Sketches` section.
+Private resume state that implies no project defect belongs in `tasks/`. The
+single-purpose meaning of this directory is unresolved project incompleteness,
+not every unimplemented plan or missing handoff.
 
 ## Why committed, and why its own directory
 
@@ -36,9 +42,9 @@ own commit). Capture without this read side is write-only memory.
 ## Lifecycle
 
 - **Create** `gaps/<slug>.md` when you notice an adjacent defect you are
-  deliberately not fixing now (out of scope for the current change).
-  Check existing entries first; extend the file covering the same
-  defect rather than filing a duplicate.
+  deliberately not fixing now, or when a partially committed unit needs an
+  honest visible account of what remains. Check existing entries first; extend
+  the file covering the same incompleteness rather than filing a duplicate.
 - **Remove** `gaps/<slug>.md` in the same commit that fixes the gap. Do not
   archive it — git history is the record, and the commit message narrates
   the closure.

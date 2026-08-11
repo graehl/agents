@@ -4,20 +4,21 @@
 
 `~/agents` is a **policy-and-tooling repository for filesystem-first coding
 agents** — not an app or framework. Its center of gravity is prose: a layered
-instruction contract (`AGENTS.md` + provider supplements), a `topics/*.md`
-contract library, a `GLOSSARY.md`, and a `skills/` workflow set. A small
+instruction contract (`AGENTS.global.md` + project/provider supplements), a
+`topics/*.md` contract library, a `GLOSSARY.md`, and a `skills/` workflow set. A small
 dependency-free Python layer (`agentctl.py`, `artifact_meta.py`, the `aim`
 plugin) gives agents local job tracking and run provenance.
 
 Three flows orient a new reader fastest:
 
 1. **Instruction loading** — how an agent assembles its operating contract
-   from `AGENTS.md`, `AGENTS.user.md`, and a provider supplement.
+   from `AGENTS.global.md`, `AGENTS.user.md`, and a provider supplement.
 2. **`agentctl` run lifecycle** — `./agentctl` → `agentctl.py` launch/child/
    status verbs writing `.agentctl/jobs/` and `.agentctl/runs/` state, with
    `aim`-plugin provenance dumps.
 3. **Active sessions** — `.agentctl/active/<session-id>`, a
-   *convention-only* coordination file (written by agents per `AGENTS.md`,
+   *convention-only* coordination file (written by agents per
+   `AGENTS.global.md`,
    read by the `/others` skill), distinct from `agentctl.py` job state.
 
 Distinguish the two `.agentctl` worlds: **job state** (`jobs/`, `runs/`) is
@@ -32,30 +33,30 @@ counter, so jobs never masquerade as the agent.
 
 | Path | Responsibility | Inputs / Outputs | Key Callers / Callees | Evidence |
 |---|---|---|---|---|
-| `AGENTS.md` | Authoritative global operating contract: session recovery, active sessions, task/topic use, edit discipline, commits, glossary, gates, tool conventions. | In: user/project requests, repo state, companion docs. Out: behavioral constraints, commit/topic policy. | Provider supplements and skills build on it. | verified: `wc -l AGENTS.md` (≈32KB) |
-| `AGENTS.user.md` | Personal supplement (active-project hints, ML explanation prefs) layered after the global contract. | In: graehl-specific defaults. Out: narrower per-user policy. | Read alongside `AGENTS.md` each session. | verified: `cat AGENTS.user.md` |
-| `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md`, `AGENTS.copilot.md` | Harness/route supplements: session-id discovery, log paths, launcher quirks, and model-patch routing. | In: provider runtime facts. Out: id/log guidance and routed supplements. | Loaded after `AGENTS.md` for the active harness/route. | verified: `cat AGENTS.claude.md` |
+| `AGENTS.global.md`, `AGENTS.md` | Installable global operating contract plus this checkout's narrower project boot. | In: user/project requests, repo state, companion docs. Out: behavioral constraints and repository-authoring policy. | Provider supplements and skills build on the global source; work in this checkout also loads the project boot. | verified: `cat AGENTS.global.md AGENTS.md` |
+| `AGENTS.user.md` | Personal supplement (active-project hints, ML explanation prefs) layered after the global contract. | In: graehl-specific defaults. Out: narrower per-user policy. | Read alongside `AGENTS.global.md` each session. | verified: `cat AGENTS.user.md` |
+| `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md`, `AGENTS.copilot.md` | Harness/route supplements: session-id discovery, log paths, launcher quirks, and model-patch routing. | In: provider runtime facts. Out: id/log guidance and routed supplements. | Loaded after `AGENTS.global.md` for the active harness/route. | verified: `cat AGENTS.claude.md` |
 | `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier supplements: judgment latitude for frontier models and extra scaffolding for weak models. | In: harness-recorded model tier. Out: tier-specific behavior. | Routed by provider supplements. | verified: `cat AGENTS.frontier.md AGENTS.weak.md` |
 | `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md` | Model-family behavior patches for observed model-specific failure modes. | In: harness-recorded model id. Out: narrower behavioral constraints. | Routed by provider supplements; family and subtype patches may stack. | verified: `cat AGENTS.anthropic.md AGENTS.opus.md AGENTS.sol.md` |
-| `README.md`, `RESEARCH.md`, `RUNS.md`, `feature-branch.md` | Repo intro + opt-in companion policy (research method, run ops, branch-per-feature). | In: triggering work mode. Out: scoped extra rules. | `AGENTS.md` "Optional supplements" loads on trigger. | verified: `cat README.md` |
+| `README.md`, `RESEARCH.md`, `RUNS.md`, `feature-branch.md` | Repo intro + opt-in companion policy (research method, run ops, branch-per-feature). | In: triggering work mode. Out: scoped extra rules. | `AGENTS.global.md` "Optional supplements" loads on trigger. | verified: `cat README.md` |
 | `GLOSSARY.md` | Single prescriptive vocabulary table. | In: curated rows + topic ledes. Out: reused terms. | Rules in `topics/glossary.md`. | verified: `cat GLOSSARY.md` |
 | `TOPICS.md`, `topic-definitions.md` | Topic-granularity guidance and curated jargon namespace. | In/Out: vocabulary calibration. | Consulted when creating/assessing topics. | verified: `rg --files` |
-| `topics/*.md` (31 files) | Cross-cutting concern docs (contracts, invariants), method docs (`debugging`, `testing`, `prototyping`), and companions (`.evidence.md`, `.bearings.md`, `.testing.md`). Basenames = `Topic:` trailer namespace. | In: concern contracts. Out: ledes, trailer vocabulary, verification riders. | `AGENTS.global.md` routes significant work/commits through them. | verified: `ls topics/` |
-| `skills/*/SKILL.md` (11 skills) | Reusable workflows: `hi`, `bye`, `start-task`, `ship`, `review`, `harsh-review`, `doubt`, `rep`, `wish`, `others`, `code-map`. | In: user skill trigger. Out: scoped workflow steps. | Invoked by harness skill loader. | verified: per-skill `name:`/`description:` read |
-| `skills/others/SKILL.md` | Reads `.agentctl/active/` to report own status, live peers, recent DONE, stale entries. | In: register files + mtimes. Out: peer summary. | Pure reader of the convention `AGENTS.md` defines. | verified: `rg -n 'find .agentctl\|DONE\|mmin' skills/others/SKILL.md` |
+| `topics/*.md` | Cross-cutting concern docs (contracts, invariants), method docs (`debugging`, `testing`, `prototyping`), and companions (`.evidence.md`, `.bearings.md`, `.testing.md`). Basenames = `Topic:` trailer namespace. | In: concern contracts. Out: ledes, trailer vocabulary, verification riders. | `AGENTS.global.md` routes significant work/commits through them. | verified: `ls topics/` |
+| `skills/*/SKILL.md` | Reusable workflows including `hi`, `start-task`, `ship`, `review`, `harsh-review`, `doubt`, `rep`, `wish`, `others`, and `code-map`. | In: user skill trigger. Out: scoped workflow steps. | Invoked by harness skill loader. | verified: per-skill `name:`/`description:` read |
+| `skills/others/SKILL.md` | Reads `.agentctl/active/` to report own status, live peers, recent DONE, stale entries. | In: register files + mtimes. Out: peer summary. | Pure reader of the convention `AGENTS.global.md` defines. | verified: `rg -n 'find .agentctl\|DONE\|mmin' skills/others/SKILL.md` |
 | `tasks/*.md` | Git-ignored active-work scratchpads / handoff state. | In: per-feature direction. Out: private resume context. | Read on resume; not durable project authority. | verified: `ls tasks` (git-ignored) |
 | `./agentctl` | Shell wrapper: pick Python ≥3.10, set `AGENTCTL_ROOT` to invocation dir, `exec agentctl.py`. | In: argv, `AGENTCTL_PYTHON`, local envs, conda, PATH. Out: exec into `agentctl.py`. | Lets one global checkout drive many project roots. | verified: `cat agentctl` |
 | `agentctl.py` (2754 LOC) | Dependency-free local job manager: parser, plugin loader, process lifecycle, `.agentctl/` job state, GPU waits, and `start`/`smoke`/`status`/`tail`/`note`/`cleanup`/`watch`/`wait`/`wait-gpu`/`stop`/`restart` verbs. Touches `.agentctl/active/` only via `refresh_active_register()`, using `agent_session_id()` (adopts `AGENTCTL_SESSION_ID`/`CLAUDE_CODE_SESSION_ID`, suppressed at `AGENTCTL_LAUNCH_DEPTH` > 0). | In: argv, optional `agentctl_plugins/*.py` hooks. Out: `.agentctl/{jobs,runs}/...`, logs, metadata, child env. | Imports `artifact_meta` in `write_meta`; calls `aim` hooks; tested by `tests/test_agentctl.py`. | verified: `rg -n '^def (start\|run_child\|status\|main\|build_parser\|refresh_active_register)' agentctl.py` |
 | `agentctl_plugins/aim.py` (383 LOC) | Default plugin: Aim-format text dumps + output back-pointer sidecars, no Aim SDK import. | In: agentctl state/hooks. Out: `runs/aim/<exp>/manifest.jsonl`, `runs/<ref>.json`, `texts/<ref>/...`, `<output>.meta.json`. | Loaded by `agentctl.py` plugin loader; `import agentctl` helpers. | verified: `rg -n '^def ' agentctl_plugins/aim.py` |
 | `artifact_meta.py` (1072 LOC) | Metadata sidecar builder + provenance lookup (`build_meta_markdown`, `find_aim_run_record`, `find_aim_run_text`, `stat_artifact`). | In: output paths, key/vals, declared inputs, read roots. Out: `.meta.md`/`.running.md`, summary updates, ancestry excerpts. | Called by `agentctl.py:write_meta`; searched by downstream/tests. | verified: `rg -n '^def (build_meta_markdown\|find_aim_run_record)' artifact_meta.py` |
 | `tests/test_agentctl.py` (783 LOC) | Stdlib-only end-to-end tests for wrapper root selection, runs, Aim dumps, sidecars, propagation, plugin tolerance, restart, cleanup. | In: copied agentctl files in temp dirs. Out: pass/fail. | The current vertical test slice for the Python layer. | verified: `wc -l tests/test_agentctl.py` |
-| `scripts/commit-msg-fmt`, `scripts/commit-msg-lint` | Commit-message format/lint helpers supporting `AGENTS.md` commit policy. | In: commit text. Out: formatting/diagnostics. | Standalone helper scripts. | verified: `ls scripts/` |
+| `scripts/commit-msg-fmt`, `scripts/commit-msg-lint` | Commit-message format/lint helpers supporting `AGENTS.global.md` commit policy. | In: commit text. Out: formatting/diagnostics. | Standalone helper scripts. | verified: `ls scripts/` |
 
 ## Flow Slices
 
 ### Instruction Loading
 
-1. `AGENTS.md` defines global session, register, edit, topic, glossary,
+1. `AGENTS.global.md` defines global session, register, edit, topic, glossary,
    commit, gate, and tool policy.
 2. `AGENTS.user.md` layers graehl-specific project/explanation preferences.
 3. The provider supplement (`AGENTS.claude.md` for this harness) adds
@@ -66,7 +67,8 @@ counter, so jobs never masquerade as the agent.
 5. Triggered companions (`RESEARCH.md`, `RUNS.md`, `feature-branch.md`) and
    relevant `topics/*.md` load on demand.
 
-Seams: global rules → `AGENTS.md`; provider mechanics → `AGENTS.<provider>.md`;
+Seams: global rules → `AGENTS.global.md`; repository authoring rules →
+`AGENTS.md`; provider mechanics → `AGENTS.<provider>.md`;
 model behavior → `AGENTS.<model-family>.md`; personal prefs → `AGENTS.user.md`;
 concern contracts → `topics/<name>.md`.
 Evidence: verified: `cat AGENTS.md AGENTS.user.md AGENTS.claude.md
@@ -117,7 +119,7 @@ Evidence: verified: `rg -n '^def ' agentctl_plugins/aim.py`;
 
 ### Active Sessions (convention-only)
 
-1. `AGENTS.md` "Active sessions" tells an agent to write
+1. `AGENTS.global.md` "Active sessions" tells an agent to write
    `.agentctl/active/<session-id>` on first planning-to-act in a shared
    workdir — line 1 a present-tense gist, optional line 2 `scope: <paths>`,
    `DONE`-prefixed on completion.
@@ -137,7 +139,7 @@ Evidence: verified: `rg -n '^def ' agentctl_plugins/aim.py`;
    env stripping). (Unrelated: the `--active` *flag* is just a `--running-only`
    job-filter alias.)
 
-Seams: register schema → `AGENTS.md`; launcher participation →
+Seams: register schema → `AGENTS.global.md`; launcher participation →
 `agent_session_id()` + `refresh_active_register()` + `AGENTCTL_LAUNCH_DEPTH`
 in `start()`; reader classification → `skills/others`; id source → provider
 supplement. The register is *not* job state.
@@ -173,13 +175,13 @@ Evidence: verified: `cat GLOSSARY.md topics/glossary.md`.
 - `glossary`: `GLOSSARY.md` is one sorted table; topic-linked rows derive from
   ledes; scoped sub-glossaries sit at the narrowest enclosing dir.
   Evidence: verified: `cat topics/glossary.md`.
-- Active-sessions contract (documented in `topics/agentctl.md` + `AGENTS.md`
+- Active-sessions contract (documented in `topics/agentctl.md` + `AGENTS.global.md`
   prose): `.agentctl/active/` files are present-tense status, `DONE`-prefixed
   when complete, classified by 70-min staleness. Authored by agents and read
   by `/others`; `agentctl.py` keeps an entry live by adopting the agent's
   session id (`agent_session_id()`), never rewrites line 1/`scope:`, and
   suppresses jobs via the `AGENTCTL_LAUNCH_DEPTH` counter.
-  Evidence: verified: `rg -n 'Active sessions' AGENTS.md`;
+  Evidence: verified: `rg -n 'Active sessions' AGENTS.global.md`;
   `rg -n 'Active-sessions participation' topics/agentctl.md`.
 - Python test seam: `tests/test_agentctl.py` is the vertical slice guarding
   wrapper root selection, Aim dumps, I/O declarations, propagation, plugin
@@ -207,7 +209,7 @@ Run from `/home/graehl/agents`:
 rg --files
 ls topics/ skills/
 for d in skills/*/; do rg -n '^name:|^description:' "$d/SKILL.md" | head -2; done
-cat README.md AGENTS.md AGENTS.user.md AGENTS.claude.md AGENTS.anthropic.md GLOSSARY.md
+cat README.md AGENTS.global.md AGENTS.md AGENTS.user.md AGENTS.claude.md AGENTS.anthropic.md GLOSSARY.md
 cat topics/agentctl.md topics/provenance-tracking.md topics/agent-instructions.md topics/glossary.md
 cat agentctl skills/others/SKILL.md skills/code-map/SKILL.md
 wc -l agentctl.py artifact_meta.py agentctl_plugins/aim.py tests/test_agentctl.py
