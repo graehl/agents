@@ -206,6 +206,11 @@ repo—fully read, when present:
 An existence probe/slice and task files do not satisfy this. Do not reread on
 later returns in the same session. Report an unreadable/broken file once.
 
+When an unfamiliar subdirectory's purpose, placement rules, or local
+conventions remain unclear, read the nearest `README.md` in that directory or
+its ancestor path before guessing. This is an on-demand fallback, not a startup
+sweep of every README; scoped instruction precedence above remains unchanged.
+
 A self-contained foreign-repo task is often better launched with that repo as
 cwd; otherwise carry context and perform the same reads here. Project
 instructions are final inside that project; `AGENTS.local.md` is its private

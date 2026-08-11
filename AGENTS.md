@@ -33,6 +33,14 @@ harness, model, effort, request class, stakes, and evidence. This is an
 aspiration rather than a free guarantee: fidelity, retrieval cost,
 protected-token burden, and available task context remain explicit tradeoffs.
 
+## Project-unrelated ideas
+
+When the user asks to preserve a clever, fun, or possible-new-project idea that
+does not govern this repository, read `ideas/README.md` and save one tracked
+`ideas/<slug>.md` seed. Its presence preserves the idea; it does not approve,
+schedule, or authorize implementation. Keep `topics/` limited to context that
+governs this project.
+
 ## Working in this repository
 
 - Before editing agent-facing instructions, read

@@ -1370,3 +1370,34 @@ the sweep single-target.
   Sol session produced few behavioral complaints, but neither that observation
   nor the traces are an outcome ablation; optimal packet size and cadence remain
   unmeasured by model, harness, effort, project, and request class.
+
+## 2026-08-11 — keep unrelated project seeds outside topics
+
+- **Trigger** — the user sometimes wants a clever or fun possible-project idea
+  preserved in this repository without committing to build it. Putting those
+  seeds in `topics/` would make topic search return material that does not
+  govern the agents project.
+- **Decision** — tracked `ideas/<slug>.md` files hold one self-contained seed
+  each. `ideas/README.md` defines a minimal status/date form and makes presence
+  explicitly non-authorizing. The project boot carries only the concrete save
+  trigger; ordinary sessions do not scan the directory.
+- **Nearest-README fallback** — global project-entry guidance now reads the
+  closest `README.md` on demand when an unfamiliar subtree's purpose,
+  placement, or conventions remain unclear. It does not turn every README into
+  startup context or let prose override scoped instruction files. This keeps a
+  subdirectory's own README primary without requiring a protected copy of its
+  full convention.
+- **Trace: save** — “save this unrelated idea here” creates one idea seed, not a
+  topic, task, gap, queue item, or implementation plan.
+- **Trace: project relevance** — a proposed change to this instruction corpus
+  still lands in the governing topic because it affects this repository; the
+  mere fact that it began as an idea does not route it to `ideas/`.
+- **Trace: ambiguous subtree** — an agent reaches an unfamiliar directory with
+  no explicit routing rule and is unsure what belongs there. It reads the
+  nearest ancestor README before inventing a category; it does not recursively
+  load unrelated READMEs elsewhere in the repository.
+- **Trace: promotion** — an explicit decision to build establishes the new
+  project/topic source of truth, then removes the seed with a destination in
+  the commit message. The seed never silently becomes authorization to act.
+- **Status** — user-directed repository convention; no outcome measurement is
+  needed beyond whether future topic search remains project-relevant.

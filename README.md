@@ -68,6 +68,7 @@ branches, commits, shared workdirs, or private notes.
 | `GLOSSARY.md` | Project vocabulary that agents should reuse in docs, code, UI copy, and commits. |
 | `TOPICS.md`, `topic-definitions.md` | Topic vocabulary and curated general-domain definitions used when naming project concerns. |
 | `topics/` | Committed cross-cutting contracts and rationale: debugging, testing, agent instructions, run provenance, UI verification, and more. |
+| `ideas/` | Durable seeds for possible projects unrelated to this repository; preservation without implementation commitment. |
 | `skills/` | Optional workflows layered on the core policy; highlights below. |
 | `agentctl`, `agentctl.py`, `agentctl_plugins/` | A dependency-free process manager with active-session participation, run state, optional plugins, and foreground local/SSH GPU-capacity watching. |
 | `scripts/` | Small helper scripts, including guarded git launchers, scheduled-prompt claiming, on-deck queue scaffolding, and commit-message formatting checks. |
