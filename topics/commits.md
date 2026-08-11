@@ -18,11 +18,17 @@ message-preservation mechanics.
 
 ## Commit messages
 
-Trivial commits get a short message — possibly subject-only, plus
-the `Contributing-model:` trailer.
+Trivial commits get a short message — possibly subject-only, plus the
+`Contributing-model:` trailer. A small, simple change may name each edit when
+that remains the shortest clear account.
 
-Non-trivial messages are a narrative synthesis of motivation and
-decision => change:
+A non-trivial message is first a reviewer on-ramp and later a historical
+statement of intent. Write for a fresh human reviewer who is about to inspect
+the diff and has none of the implementation conversation in mind. Lead with
+motivation and decision => outcome; supply enough basic context and terminology
+that the review can start without reconstructing the session.
+
+The narrative synthesis:
 
 - Exclude credentials/secrets from contents and message.
 - Include the main user decision points from the session.
@@ -36,9 +42,10 @@ decision => change:
   the body (before trailers) when there are gaps worth flagging.
   Prose or short bulleted list, whichever fits. Be specific about
   the structural gap; omit the section entirely when empty.
-- Broadly describe every non-trivial change — especially >3-line creations
-  and significant-effect edits. Trivial changes (whitespace, comments,
-  file-local renames) need no mention.
+- Account for every non-trivial file group at the design and outcome level —
+  especially significant-effect edits and creations — without inventorying
+  each action. Trivial changes (whitespace, comments, file-local renames) need
+  no mention.
 
 The message has two usually-aligned purposes: orienting a reviewer now, and
 letting a later reader (`git blame`, a `bisect` bug-hunt) validate a diff
@@ -48,6 +55,22 @@ produce a similar diff, and that every group of files in the diff is
 explained by something in the text. Neither is served by a journal of how the
 change was reached: omit iteration narrative, superseded approaches that left
 no trace in the tree, and added-then-reverted churn.
+
+Before the first review, make a dedicated revision pass toward one printed
+page or less. This is a compression target, not a hard quota: preserve a
+load-bearing decision or risk when it needs more room, while larger changes
+receive less per-edit narration than trivial ones. In particular, prune
+chronological "did X, did Y" lists to why, the resulting design, and the
+shortest summary of what changed.
+
+Action-by-action detail belongs in an implementation journal when it has
+lasting reviewer or maintainer value. Such material starts privately under
+`tasks/journals/`; condense and redact a journal selected for publication into
+`topics/journals/<task-or-topic>.md` (or the plan's adjacent `journals/`
+directory) under `AGENTS.global.md` § Delegation. Drop it when it has no durable
+value. Do not use `changelog/` for this default: changelogs communicate
+release-facing change history, while an implementation journal preserves
+selected reasoning and mechanics behind one body of work.
 
 When a change is largely governed by a committed topic doc, put a short
 onboarding line immediately after the subject, before the explanatory body:
@@ -59,11 +82,15 @@ Onboarding: topics/commits.md
 Use the plain path, not a markdown link — git log, GitHub, and Gerrit
 render commit messages as raw text, so a markdown link just doubles the
 path. This deliberately overlaps with `Topic:` trailers without replacing
-them. The early line is for a human reader scanning the front of the
-message; the trailer is for series membership and search. If the commit wants more
-background that will remain useful after review, expand the topic doc and
-let the commit message point at it instead of duplicating the lasting
-context in the body.
+them. The early line is for a human reader scanning the front of the message;
+the trailer is for series membership and search. If the commit wants more
+background that will remain useful after review, expand the topic doc and let
+the commit message point at it instead of duplicating the lasting context in
+the body. The named topic is read before the diff by the same fresh human
+reviewer. It must explain its context, basic terms, and governing decisions
+without relying on session memory or prior immersion in the changes; a topic
+that becomes legible only after reading the implementation is not an onboarding
+document.
 
 Consider splitting unrelated changes into independent commits (e.g.
 implementation vs. research finding). When a directive grants

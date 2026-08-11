@@ -1273,3 +1273,32 @@ the sweep single-target.
   persistence and request-conditioned boot compilation remain separate
   questions; the rename only makes a project-specific or generated boot
   possible without aliasing the global source.
+
+## 2026-08-11 — separate reviewer on-ramps from implementation journals
+
+- **Trigger** — reviewer feedback found that long commit messages preserved the
+  session's "did X, did Y" path at the expense of why the change exists and
+  what a fresh reviewer needs before opening the diff.
+- **Decision** — a non-trivial commit message now writes first for a fresh human
+  reviewer: motivation, decision, outcome, and only the shortest orienting
+  summary of what changed. A final pre-review revision targets one printed page
+  or less without dropping a load-bearing decision or risk.
+- **Durable detail** — worthwhile implementation chronology is condensed for
+  publication under `topics/journals/` (or a plan's adjacent `journals/`);
+  private or disposable traces stay in `tasks/journals/` or are discarded.
+  `changelog/` remains release-facing rather than becoming the default
+  implementation-log directory.
+- **Onboarding contract** — a topic named at the front of a commit message must
+  be self-contained for a fresh human reviewer before the diff. It cannot rely
+  on the current session or on concepts that become clear only after reviewing
+  the implementation.
+- **Trace: large implementation** — a draft enumerating file edits and the
+  order they happened is revised to motivation, governing design, outcome, and
+  file-group coverage; only durable mechanics move to `topics/journals/`.
+- **Trace: small correction** — a three-edit fix may name all three because the
+  complete account is already shorter than indirection or a separate journal.
+- **Trace: premature onboarding** — a linked topic that assumes the reader has
+  seen new implementation terms fails the onboarding contract even when the
+  commit message itself points to it correctly.
+- **Limit** — one printed page is a revision target, not a mechanical line cap.
+  Detail scales with scope; a trivial change may still describe every edit.

@@ -724,16 +724,26 @@ permission, and that project rule governs there.
 ## Commit messages
 
 Trivial commits can be subject-only (the `Contributing-model:`
-trailer still applies). Non-trivial messages are a narrative
-synthesis of motivation and decision => change: describe purpose and
-outcome, cover every non-trivial file group, include main user decision
-points and non-obvious rejected approaches, exclude secrets and unrelated
-iteration churn, and use `Known coverage gaps:` for meaningful uncovered
-risks. Do not enumerate tests run; the diff and CI carry that.
+trailer still applies). A non-trivial message is a reviewer on-ramp:
+write for a fresh human about to inspect the diff, with none of the
+implementation conversation in mind. Lead with why, the resulting decision,
+and outcome; account for every non-trivial file group at that level. Include
+main user decisions and non-obvious rejected approaches, exclude secrets and
+unrelated iteration churn, and use `Known coverage gaps:` for meaningful
+uncovered risks. Do not enumerate tests run; the diff and CI carry that.
+
+Before first review, make a brevity pass toward one printed page or less.
+Remove action-by-action "did X, then Y" detail and keep only the shortest what
+that orients the reviewer; a trivial small-scope change may still name every
+change. If implementation detail deserves a durable record but would crowd
+the message, condense it under the journal publication rules (§ Delegation)
+into `topics/journals/<task-or-topic>.md`; otherwise discard it.
 
 When work is largely governed by a committed `topics/<name>.md` doc, start
 the body just after the subject with that doc's relative path as the
-onboarding path for new readers. Keep `Topic:` trailers for
+onboarding path for new readers. That topic must be self-contained for the
+fresh human reviewer before they inspect the changes: it cannot rely on the
+session or implementation being familiar. Keep `Topic:` trailers for
 series/search membership, and prefer expanding the topic doc for lasting
 context over lengthening the message.
 
