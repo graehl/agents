@@ -830,6 +830,83 @@ def test_wrapper_uses_invocation_cwd_as_project_root():
         ws.cleanup()
 
 
+def test_project_env_defaults_are_portable_and_overridable():
+    ws = Workspace()
+    try:
+        (ws.tmp / "agentctl.env").write_text(
+            "# Portable project defaults.\n"
+            "PII_EVAL_HOME=${AGENTCTL_ROOT}/untracked/pii-eval\n"
+            "CALLER_WINS=project\n"
+            "EXPLICIT_WINS=project\n"
+        )
+        out = ws.scratch / "environment.json"
+        code = (
+            "import json, os, pathlib; "
+            f"pathlib.Path({str(out)!r}).write_text(json.dumps({{"
+            "'PII_EVAL_HOME': os.environ.get('PII_EVAL_HOME'), "
+            "'CALLER_WINS': os.environ.get('CALLER_WINS'), "
+            "'EXPLICIT_WINS': os.environ.get('EXPLICIT_WINS')}))"
+        )
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "--env",
+            "EXPLICIT_WINS=explicit",
+            "projectenv",
+            "--",
+            sys.executable,
+            "-c",
+            code,
+            env_extra={"CALLER_WINS": "ambient"},
+        )
+        _assert(res.returncode == 0, res.stderr)
+        state = ws.wait_finished("projectenv")
+        values = json.loads(out.read_text())
+        _assert(
+            values["PII_EVAL_HOME"] == str(ws.tmp / "untracked/pii-eval"), values
+        )
+        _assert(values["CALLER_WINS"] == "ambient", values)
+        _assert(values["EXPLICIT_WINS"] == "explicit", values)
+        _assert(state["project_env"]["path"] == str(ws.tmp / "agentctl.env"), state)
+        _assert(
+            state["project_env"]["keys"]
+            == ["PII_EVAL_HOME", "CALLER_WINS", "EXPLICIT_WINS"],
+            state,
+        )
+        _assert(len(state["project_env"]["sha256"]) == 64, state)
+    finally:
+        ws.cleanup()
+
+
+def test_project_env_can_be_disabled_and_rejects_shell_syntax():
+    ws = Workspace()
+    try:
+        config = ws.tmp / "agentctl.env"
+        config.write_text("PROJECT_DEFAULT=enabled\n")
+        out = ws.scratch / "disabled.txt"
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "--no-project-env",
+            "disabled",
+            "--",
+            sys.executable,
+            "-c",
+            f"import os, pathlib; pathlib.Path({str(out)!r}).write_text(os.environ.get('PROJECT_DEFAULT', 'unset'))",
+        )
+        _assert(res.returncode == 0, res.stderr)
+        state = ws.wait_finished("disabled")
+        _assert(out.read_text() == "unset", out.read_text())
+        _assert(state["project_env"] is None, state)
+
+        config.write_text("export PROJECT_DEFAULT=enabled\n")
+        rejected = ws.run("start", "--no-aim", "badenv", "--", "true")
+        _assert(rejected.returncode != 0, rejected)
+        _assert("expected KEY=VALUE" in rejected.stderr, rejected.stderr)
+    finally:
+        ws.cleanup()
+
+
 def test_tracked_writes_dump_and_sidecar():
     ws = Workspace()
     try:

@@ -62,6 +62,7 @@ LAUNCH_DEPTH_ENV = "AGENTCTL_LAUNCH_DEPTH"
 NO_PROC_SESSION_ID_ENV = "AGENTCTL_NO_PROC_SESSION_ID"
 DECLARED_IO_FILENAME = "declared.json"
 PROPAGATE_FILENAME = "propagate.json"
+PROJECT_ENV_FILENAME = "agentctl.env"
 LIVE_JOB_STATUSES = {"running", "waiting"}
 DEFAULT_LIST_SHOW_LAST = 6
 
@@ -1973,6 +1974,60 @@ def source_env_script(env: dict[str, str], script: str | Path) -> dict[str, str]
     return updated
 
 
+def load_project_env(
+    env: dict[str, str], spec: str = ""
+) -> tuple[dict[str, str], dict | None]:
+    """Fill missing child variables from a declarative project env file.
+
+    The default file is ``ROOT / agentctl.env``. It is deliberately not a
+    shell script: only full-line comments, blank lines, and ``KEY=VALUE`` are
+    accepted. ``${AGENTCTL_ROOT}`` expands to the resolved invocation-project
+    root so one tracked file works from differently located local and remote
+    clones. Ambient variables remain authoritative; ``--source-env`` and
+    ``--env`` are applied later and may override these defaults.
+    """
+    explicit = bool(spec)
+    path = Path(spec or PROJECT_ENV_FILENAME).expanduser()
+    if not path.is_absolute():
+        path = ROOT / path
+    path = path.resolve(strict=False)
+    if not path.exists():
+        if explicit:
+            raise SystemExit(f"missing project env file: {path}")
+        return env, None
+    if not path.is_file():
+        raise SystemExit(f"project env path is not a file: {path}")
+
+    updated = env.copy()
+    keys: list[str] = []
+    seen: set[str] = set()
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as exc:
+        raise SystemExit(f"failed to read project env file {path}: {exc}") from exc
+    for line_number, raw_line in enumerate(lines, 1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, sep, value = line.partition("=")
+        key = key.strip()
+        if not sep or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+            raise SystemExit(
+                f"invalid project env entry {path}:{line_number}: expected KEY=VALUE"
+            )
+        if key in seen:
+            raise SystemExit(f"duplicate project env key {key!r} at {path}:{line_number}")
+        seen.add(key)
+        value = value.strip().replace("${AGENTCTL_ROOT}", str(ROOT))
+        updated.setdefault(key, value)
+        keys.append(key)
+    return updated, {
+        "path": str(path),
+        "sha256": compute_sha256(path),
+        "keys": keys,
+    }
+
+
 def mark_state_finished(state: dict, returncode: int | str) -> dict:
     state["status"] = "finished"
     state["finished_at"] = state.get("finished_at") or utc_now()
@@ -2469,6 +2524,15 @@ def write_meta(state: dict) -> dict:
         setup.append(
             ("source_env", ",".join(str(item) for item in state["source_env"]))
         )
+    if state.get("project_env"):
+        project_env = state["project_env"]
+        setup.extend(
+            [
+                ("project_env", str(project_env["path"])),
+                ("project_env_sha256", str(project_env["sha256"])),
+                ("project_env_keys", ",".join(project_env["keys"])),
+            ]
+        )
     if depends_on:
         setup.append(("depends_on_jobs", ",".join(depends_on)))
     if state.get("aim_run_hash"):
@@ -2921,6 +2985,9 @@ def start(args: argparse.Namespace) -> int:
             )
 
     env = os.environ.copy()
+    project_env = None
+    if not args.no_project_env:
+        env, project_env = load_project_env(env, args.project_env)
     for script in args.source_env:
         env = source_env_script(env, script)
     env.setdefault("PYTHONUNBUFFERED", "1")
@@ -3016,6 +3083,7 @@ def start(args: argparse.Namespace) -> int:
         "run_id": rid,
         "runtime_estimate": runtime_estimate,
         "runtime_estimate_seconds": runtime_estimate_seconds,
+        "project_env": project_env,
         "script": script_rec,
         "serial": serial,
         "source_env": list(args.source_env),
@@ -4183,6 +4251,8 @@ def restart(args: argparse.Namespace) -> int:
         mode=state.get("mode", "start"),
         run_id="",
         runtime_estimate=state.get("runtime_estimate", ""),
+        project_env=(state.get("project_env") or {}).get("path", ""),
+        no_project_env=not bool(state.get("project_env")),
         source_env=state.get("source_env", []),
         gpu_patience=600.0,
         wait_gpu=0,
@@ -4250,6 +4320,21 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
     )
     sp.add_argument(
         "--env", action="append", default=[], help="Extra environment KEY=VALUE."
+    )
+    project_env = sp.add_mutually_exclusive_group()
+    project_env.add_argument(
+        "--project-env",
+        default="",
+        help=(
+            "Declarative KEY=VALUE defaults file for the child environment. "
+            "Defaults to ./agentctl.env when that file exists; ${AGENTCTL_ROOT} "
+            "expands to the resolved project root."
+        ),
+    )
+    project_env.add_argument(
+        "--no-project-env",
+        action="store_true",
+        help="Do not auto-load the project-root agentctl.env file.",
     )
     sp.add_argument("--gpus", default="", help="CUDA_VISIBLE_DEVICES value.")
     sp.add_argument(

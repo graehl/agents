@@ -271,6 +271,22 @@ Bare `agentctl` invocations throughout this doc assume PATH lookup; when
 `command -v agentctl` fails, invoke it via `~/agents/agentctl` (the canonical
 absolute path — `./agentctl` will not work from arbitrary project CWDs).
 
+Put stable, non-secret launch defaults that must survive local/remote path
+differences in a tracked project-root `agentctl.env`. It is a declarative
+`KEY=VALUE` file rather than a sourced shell script; `${AGENTCTL_ROOT}` expands
+to the invocation-project root. For example:
+
+```text
+PII_EVAL_HOME=${AGENTCTL_ROOT}/untracked/pii-eval
+```
+
+Project values only fill missing ambient variables. `--source-env` and then
+explicit `--env KEY=VALUE` take precedence. Use `--no-project-env` for an
+intentional clean-room launch or `--project-env PATH` to select a different
+declarative file. Do not put credentials or other secrets in a tracked project
+environment file. Run provenance records its path, SHA-256, and key names,
+without recording values; `restart` preserves the original selection.
+
 When `agentctl` is on `PATH`, prefer `agentctl start ... -- <command>` for any
 launch you might later need to reproduce, audit, or trace. Two tiers:
 

@@ -116,6 +116,17 @@ window.
   `.agentctl/runs/<job>/<run-id>/state.json` and mirrors a pointer to
   `.agentctl/jobs/<job>/current.json`. These files are the ground truth for
   process status; everything else (sidecars, dumps) is derived.
+- `start` and `smoke` load project-root `agentctl.env` when it exists. This is
+  a declarative defaults file, not a shell script: it accepts blank lines,
+  full-line `#` comments, and unique `KEY=VALUE` entries only. The literal
+  `${AGENTCTL_ROOT}` expands to the resolved invocation-project root, making
+  tracked paths portable across local and remote clones. Precedence is
+  ambient child environment over project defaults, then `--source-env`, then
+  explicit `--env KEY=VALUE`. `--project-env PATH` selects another file;
+  `--no-project-env` disables loading. The run state and metadata record the
+  resolved path, file hash, and key names, never values. `restart` preserves
+  the original launch's selected file or disabled state rather than adopting
+  a newly created default.
 - `start --after <job-or-output>` is a mechanical launch gate, not a
   result-interpretation scheduler. It records the new job as `waiting`, then
   starts the payload only after each named `agentctl` job exits cleanly or
@@ -462,7 +473,10 @@ The base writes a flat dict to `state.json`. Canonical keys (read freely):
 `runtime_estimate`, `runtime_estimate_seconds`, `context_note`,
 `pre_run_note`, `post_run_note`, `post_run_noted_at`, `analysis_notes`,
 `depends_on`, `wait_on`, `wait_after`, `queued_at`, `source_env`,
-`git_branch`, `git_commit`, `launch_gpu_stats`.
+`project_env`, `git_branch`, `git_commit`, `launch_gpu_stats`.
+
+`project_env` is null when project defaults were absent or disabled. Otherwise
+it contains `path`, `sha256`, and `keys`; values are deliberately excluded.
 
 `user_argv` preserves the payload argv before translated `--input` and
 `--output-arg` declarations are appended. Restarts rebuild translated flags
