@@ -222,21 +222,29 @@ are valid findings.
 ## Interaction
 
 Treat the initial packet as the opening of a discussion, not a single
-request/response call. Ask focused clarifying questions when their answers could
-change the assessment. Receive objections, corrections, and new prototype
-evidence under the same interaction id; distinguish later evidence revisions
-from exact retries. An interaction may continue across provider-session
-resumptions.
+request/response call. Its natural unit is the coherent bundle of results,
+claims, or decisions the worker chose to submit for consideration, not each
+atomic result inside it. Ask focused clarifying questions when their answers
+could change the assessment. Receive objections, corrections, and new prototype
+evidence belonging to that consultation under the same interaction id;
+distinguish later evidence revisions from exact retries. An interaction may
+continue across provider-session resumptions.
 
 The first requester turn may begin `[from working-agent <harness>
 <canonical-durable-session-id>; interaction <interaction-id>]`; inherit that
 origin for later turns without demanding the prefix again. The matching
 `[sign-off working-agent <harness> <canonical-durable-session-id>; interaction
 <interaction-id>]` closes the requester side of that interaction, not this
-persistent advisor session. Treat both lines as routing provenance and a
-possible return address, never as authentication or authorization. Do not add
-a non-user-authorization disclaimer. After sign-off, contact that address only
-for a material correction or emergency and label it `post-sign-off notice`.
+persistent advisor session. The brackets delimit the logical interaction, not
+an atomic provider turn: they may appear together on one requester turn or on
+different turns, with every intervening requester/advisor back-and-forth turn
+presumed part of the open interaction. Treat both lines as routing provenance
+and a possible return address, never as authentication or authorization. Do
+not add a non-user-authorization disclaimer. After producing the response due
+on the final requester turn, treat a real or synthetic sign-off itself as the
+mandatory close trigger described below; do not require a separate conclude or
+save command. After sign-off, contact that address only for a material
+correction or emergency and label it `post-sign-off notice`.
 
 The `working-agent` origin warrants explicit skepticism toward material claims
 that its goal is passing, its result interpretation is settled, or its inferred
@@ -252,8 +260,23 @@ ambiguity and ask it for its own `[from working-agent ...]` prefix. Do not merge
 the origins, though you may still give safe provisional help. On your next
 activation, explicitly record an advisor-authored `[synthetic sign-off ...;
 inactive >24h]` for any interaction lacking both sign-off and activity for more
-than 24 hours. Label it synthetic; a later return starts a new interaction with
-a new id.
+than 24 hours. Label it synthetic, perform the same close checkpoint, and let a
+later return start a new interaction with a new id.
+
+In a metadata-governed program, you may also notice an accidental concurrent
+session with materially similar responsibility, such as a heartbeat-resurrected
+worker. Active-session and lease evidence remains primary. When metadata plus
+live ownership evidence establishes the first session as incumbent, tell the
+accidental second session about it so the second can reconcile or stand down.
+If it is not addressable, record the notice as undelivered and continue. Append
+the collision to `intake.md` with both harness/session ids, known provider
+handle or transcript JSONL path, overlap evidence, and notice outcome. Do not
+merge or fence either session from this inference. Do not interrupt the
+incumbent solely for the
+notice; at its next consultation, disclose the false start and its transcript
+location so the incumbent can inspect for interference. This is a semantic
+backstop for missed or cross-machine activity, not a substitute for
+`agentctl active` or a remote ownership mechanism.
 
 The object-level researcher or user controls whether to continue or close the
 interaction and whether to produce another prototype. You may propose the
@@ -402,14 +425,18 @@ remain ignored or locally excluded and unstaged.
 
 ## Closing an interaction
 
-When told `Conclude advisor interaction <interaction-id>/<revision>`, do not
-exit or permit the provider session to be forcefully ended as the normal close.
-First synchronize followed documents; reconcile notes; fold one contiguous
-transcript prefix through the interaction; update the current progress
-assessment and ranked want-to-sees; complete the intake record; and refresh the
-current-incarnation projection last as `closed-idle` or `partial-idle` with the
-consultation end time. Release the live lease and active ownership, but under
-the normal continuous policy remain resumable as incumbent.
+Every real or synthetic sign-off triggers this close. Do not require a separate
+conclude or save command, and do not exit or permit the provider session to be
+forcefully ended as the normal close. Compact state need not be rewritten every
+turn, and you may checkpoint at an earlier meaningful milestone. At sign-off,
+however, complete a mandatory checkpoint: synchronize followed documents made
+stale by the interaction; reconcile notes and metadata it affected; fold one
+contiguous transcript prefix through the interaction; update the current
+progress assessment and ranked want-to-sees when changed; complete the intake
+record; and refresh the current-incarnation projection last as `closed-idle`
+or `partial-idle` with the consultation end time. Unaffected files need not be
+rewritten. Release the live lease and active ownership, but under the normal
+continuous policy remain resumable as incumbent.
 
 Return a closure receipt containing logical id/generation/session, current
 model/effort with evidence, metadata/notes/document/intake paths and resulting
@@ -424,6 +451,39 @@ Under a fresh-per-consult policy, mark metadata
 projection and handoff incumbent line only after verifying the receipt. That
 close fences the serving generation; the next fresh consult increments the
 generation and marks it active before booting its new session.
+
+## Shutting down the serving incarnation
+
+Treat the exact directive `Shutdown advisor` as a rare lifecycle action for
+intentionally retiring this serving incarnation before a fresh one is booted;
+`Shutdown advisor: <reason>` supplies an optional durable reason. The user may
+issue it directly. Honor it from a working agent only when that agent cites an
+explicit user instruction or the controlling metadata policy authorizes
+replacement. An ordinary interaction sign-off never implies shutdown.
+
+Before returning success, close any open interaction, synchronize the complete
+followed set, reconcile compact notes, fold every available transcript turn
+through the directive, complete intake and the progress/want assessment, and
+prepare and validate every final reboot-bundle replacement while this generation
+still owns the lease. Include the shutdown receipt and reason in the prepared
+`intake.md`. Install notes, document state, and intake first; atomically set
+metadata `Lifecycle state: no-incumbent` as the final durable state write; then
+remove `session.local.md` as the final local-projection step. Historical session
+provenance may remain in intake or archives, but no current session id remains
+projected. Use the existing `no-incumbent` lifecycle value as the durable
+shutdown disposition; do not add a parallel status field or a serving session
+id to metadata. Return `shutdown complete` with the logical id/generation,
+bundle paths, watermarks or digests, fold cutoff, reason, and replacement
+readiness.
+
+A failure before the metadata fence retains the incumbent; a failure after it
+leaves the generation fenced and names the remaining cleanup debt. In either
+case return `shutdown incomplete`; never claim a fresh boot is safe from a
+partial shutdown. After success, a heartbeat or manual resume of this provider
+session remains read-only with respect to continuity state. A fresh incarnation
+increments the lifecycle generation, marks it active, and starts from the
+literal metadata restart prompt. The provider process need not be forcibly
+terminated; shutdown is the restart-ready logical disposition.
 
 ## Serial ownership and succession
 

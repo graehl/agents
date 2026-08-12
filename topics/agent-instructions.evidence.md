@@ -1803,3 +1803,96 @@ the sweep single-target.
 - **No purposeful-reuse exception yet** — after real or synthetic sign-off,
   “one more thing” receives a new interaction id. It may refer to the earlier
   context naturally; no special link field or syntax is required.
+
+## 2026-08-12 — advisor brackets delimit a multi-turn interaction
+
+- **User clarification** — opening and sign-off brackets are not an atomic-turn
+  wrapper. They may share one requester turn or appear on different requester
+  turns; every requester/advisor back-and-forth turn between them inherits the
+  open interaction id.
+- **Trace** — a one-question consult carries both brackets and closes normally.
+  A rebuttal exchange opens on turn one, continues without repeated prefixes,
+  and signs off on turn four. A signed-off “one more thing” still starts a new
+  id, while an unsigned interaction inactive for more than 24 hours retains the
+  existing synthetic-close rule.
+
+## 2026-08-12 — advisor remembers accidental peer resurrection
+
+- **User direction** — in a metadata-governed program, the advisor may notice
+  an accidental second session with similar responsibility, including one
+  revived by a YA heartbeat. It should tell the second about the established
+  first session, retain the false start's harness/session id and provider log
+  location, and disclose that record to the incumbent at its next consultation
+  rather than interrupting it solely for bookkeeping.
+- **Boundary** — this is supplemental to ordinary `agentctl active` and lease
+  conflict awareness. It does not authorize silent state merging, fencing, or
+  treating advisor inference as a live resource lock. A companion `agentctl`
+  sketch keeps foreign-worker activity machine-scoped and ultimately qualifies
+  each host with its claimed paths/resources; a whole-host wildcard is only a
+  possible coarse first stage.
+- **Trace** — a heartbeat resurrects worker B while worker A still owns the
+  program. The advisor identifies A to B and records B's canonical session id
+  plus JSONL location. A is not disturbed; at its next consultation it receives
+  the record and can inspect whether B changed remote state. If no live overlap
+  evidence exists, the advisor records uncertainty and supplies no fence.
+- **Trace: legitimate parallel work** — two workers share a broad program name
+  but their live item/path claims are disjoint, or metadata does not establish
+  which is accidental. The advisor does not manufacture an incumbent/false-
+  start ordering; ordinary scope coordination continues.
+- **Trace: unreachable remote** — a fleet query cannot reach one AWS worker.
+  Its machine-local state reports `unknown`, so neither `agentctl` nor the
+  advisor treats the resource as clear. A previously observed false start may
+  still be disclosed later as continuity evidence, without becoming a live
+  lock claim.
+
+## 2026-08-12 — every advisor sign-off checkpoints affected state
+
+- **User correction** — full closure was keyed only to the prose command
+  `Conclude advisor interaction ...`; a bare bracketed sign-off merely closed
+  the requester side. Sign-off itself must trigger a continuity checkpoint.
+  Per-turn state rewrites would be premature and distracting, though an advisor
+  may checkpoint early when a meaningful milestone warrants it.
+- **Decision** — after answering the final requester turn, every real or
+  synthetic sign-off updates intake/fold/closure state and reconciles every
+  notes, document, or metadata artifact the interaction actually made stale.
+  Unaffected files need not be rewritten. Failure to finish safely yields a
+  `partial-idle` projection and partial closure receipt rather than a false
+  clean close.
+- **Trace** — a one-turn read-only question carries both brackets and changes no
+  program assessment: intake/fold and `session.local.md` still close, while
+  metadata and document state remain untouched. A four-turn exchange changes a
+  ranked want-to-see: sign-off reconciles notes, intake, fold watermark, and the
+  final projection. A collision prevents safe notes replacement: sign-off
+  records the completed pieces and returns `partial-idle` with the named debt.
+
+## 2026-08-12 — advisor interaction grain and explicit shutdown
+
+- **User refinement** — a consultation covers one coherent bundle of results,
+  claims, or decisions that a worker has chosen to submit for consideration,
+  not mechanically each atomic result. Its clarification, rebuttal, and related
+  evidence may span several turns before one sign-off.
+- **Lifecycle split** — routine sign-off runs the mandatory affected-state
+  checkpoint and retains a continuous incumbent. The exact rare directive
+  `Shutdown advisor` instead retires the serving incarnation before an
+  intentionally fresh boot: save and validate the full reboot bundle, mark the
+  current generation `no-incumbent`, remove its current-session projection, and
+  let the successor increment the generation. A working agent needs explicit
+  user or metadata-policy authority; the user may issue it directly.
+- **Trace: evolving bundle** — a worker submits a result table, answers two
+  advisor questions, and supplies one correcting row. All remain one
+  interaction; only the final requester turn signs off, then the advisor
+  checkpoints affected state and remains the incumbent.
+- **Trace: later distinct bundle** — the same worker later submits a new model
+  comparison. It opens a new interaction id rather than silently extending the
+  closed consultation; the earlier compact assessment remains context.
+- **Trace: intentional fresh advisor** — the user sends `Shutdown advisor`.
+  The incumbent folds all available debt, validates metadata/notes/docs/intake,
+  marks `no-incumbent`, records its receipt, and removes `session.local.md`.
+  A heartbeat resurrection cannot write; a fresh boot advances the generation.
+- **Trace: partial save** — notes replacement collides during shutdown. The
+  advisor retains its incumbent projection and returns `shutdown incomplete`
+  with debt, so no worker mistakes a partly saved state for restart-ready.
+- **Trace: post-fence cleanup failure** — final metadata replacement succeeds
+  but removing `session.local.md` fails. The old generation remains fenced,
+  returns `shutdown incomplete`, and names the stale projection for recovery;
+  it never reactivates metadata merely to make the transaction look atomic.

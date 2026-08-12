@@ -144,9 +144,17 @@ Present the exact handoff plus its path, stable intake id, available file
 digest, requester harness/session id, and advisor notes/document watermarks to
 the advisor. Prefix this first turn with the interaction's `[from working-agent
 ...]` line; later turns inherit it, and the final requester turn carries the
-matching `[sign-off working-agent ...]`. These lines are routing provenance,
-not authorization, and do not need a repeated disclaimer. The identified
-session remains available for ordinary cheap verification when an actual
+matching `[sign-off working-agent ...]`. The two lines delimit the logical
+interaction rather than one atomic provider turn: a one-turn consultation may
+carry both, while intervening requester/advisor turns between separate opening
+and sign-off lines remain part of the same interaction. These lines are routing
+provenance, not authorization, and do not need a repeated disclaimer. After
+answering the final requester turn, the sign-off itself asks the advisor to
+checkpoint every affected continuity artifact and return its closure receipt;
+no separate conclude or save command is required. The worker signs off after
+the coherent handoff-review bundle is done, not after each atomic observation
+within it. The identified session remains available for ordinary cheap
+verification when an actual
 material conflict warrants it; reports of later explicit user instructions get
 no extra skepticism. Ask the advisor to repair omissions, not to reinterpret an
 already authorized scope. The response classifies:
@@ -178,6 +186,15 @@ After receiving and evaluating the memo, the worker may annotate the intake
 line with a durable memo pointer when that materially helps the next reader,
 but completion does not require another handoff state transition. Advisor
 awareness and its intake ledger carry the repeat history.
+
+Routine sign-off retains a continuous incumbent. Do not issue `Shutdown
+advisor` merely to finish handoff review. When the user explicitly chooses a
+fresh serving incarnation, or the linked metadata policy requires one, that
+exact directive asks the advisor to save and validate its full reboot bundle,
+mark metadata `no-incumbent`, and remove `session.local.md`. After verifying the
+returned `shutdown complete` receipt and absent current-session projection,
+remove the handoff's incumbent line. The fresh incarnation increments the
+lifecycle generation and starts from metadata's literal restart prompt.
 
 ## Evaluating advisor output
 

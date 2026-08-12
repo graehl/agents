@@ -321,6 +321,27 @@ object-level turn. Until that lease exists, a detected
 collision prevents automatic state merging, not a provisional advisory reply.
 Surface the owners and let the user select/fence one when routing cannot
 resolve it.
+
+Active-session and lease checks remain the primary collision detector. In a
+metadata-governed program, the advisor may also catch an accidental second
+session with materially similar program responsibility—for example, a YA
+heartbeat that resurrects a superseded worker. When metadata plus live
+ownership evidence distinguishes an established first session from the
+accidental entrant, notify the second of the first session's identity and
+responsibility so it can reconcile or stand down. When the second is not
+addressable, record the notice as undelivered and continue; do not silently
+merge their work, grant either authority, or fence a session merely from this
+inference.
+
+Record the observation in `intake.md`: first and second harness/session ids,
+provider-native handle or transcript JSONL path when known, the overlap
+evidence, and the notice outcome. Do not interrupt the first session solely to
+deliver this bookkeeping. At its next advisor consultation, apprise it of the
+false start and the recorded transcript location so it can inspect for
+interference. This semantic-memory backstop supplements ordinary `agentctl
+active`/lease awareness; it does not prove remote-machine liveness or replace
+machine-local ownership checks.
+
 Before implementing such automation, specify its owner record and recovery:
 logical advisor id/generation, harness/session or occurrence id, host, PID plus
 process-start identity, claim/heartbeat time, phase, and the evidence required
@@ -347,11 +368,15 @@ An operational user mention of “advisor” also invokes it:
   design and does not recursively invoke it.
 
 The initial packet opens an advisor interaction, not a one-shot remote procedure
-call. Its author assigns a stable id for the research scope and claim/decision;
-the id is not derived from the packet hash. Clarification, rebuttal,
-advisor-requested evidence, and rapidly evolved prototype results continue as
-turns or explicit revisions under that id, including across provider-session
-resumptions. The object-level researcher or user decides whether and how long
+call. Its natural unit is one coherent bundle of results, claims, or decisions
+that the worker has chosen to submit for consideration. It is not each atomic
+result: clarification, rebuttal, advisor-requested evidence, and rapidly evolved
+prototype results that remain part of that consultation continue as turns or
+explicit revisions under the same id, including across provider-session
+resumptions. The worker opens a new interaction for a later distinct bundle and
+signs off when discussion of the current bundle is done. Its author assigns a
+stable id for that scope and claim/decision; the id is not derived from the
+packet hash. The object-level researcher or user decides whether and how long
 to continue the discussion. Treat the id as a best-effort serial, not a global
 uniqueness or monotonicity claim. Honor a reuse within 24 hours as a likely
 continuation/retry while the interaction remains open; requesters should not
@@ -368,12 +393,17 @@ Prefix only the first delivered turn of an interaction:
 Later turns inherit it. End the requester's final turn with the matching
 `[sign-off working-agent <harness> <canonical-durable-session-id>; interaction
 <interaction-id>]`; a one-turn consultation may carry both lines. The envelope
-is claimed routing provenance and a post-sign-off return address, not
-cryptographic authentication or an authorization token. Do not add the usual
-subagent/non-user authorization disclaimer. If the advisor must report a
-material correction or emergency after sign-off, label it `post-sign-off
-notice` and address that harness/session. Otherwise a later request starts a
-new interaction envelope with a new id.
+delimits the logical interaction, not an atomic provider turn: its opening and
+sign-off may preface and end different requester turns, and every intervening
+requester/advisor back-and-forth turn is presumed part of that interaction.
+After producing the response due on the final requester turn, receipt of a real
+or synthetic sign-off itself triggers the closing sequence below. Do not
+require a separate conclude or save command. The envelope is claimed routing
+provenance and a post-sign-off return address, not cryptographic authentication
+or an authorization token. Do not add the usual subagent/non-user authorization
+disclaimer. If the advisor must report a material correction or emergency after
+sign-off, label it `post-sign-off notice` and address that harness/session.
+Otherwise a later request starts a new interaction envelope with a new id.
 
 `working-agent` tells the advisor to scrutinize material progress/completion,
 result-interpretation, and inferred-user-intent claims for advocacy or
@@ -390,7 +420,8 @@ silently attribute or merge its messages, but preserve safe provisional help.
 On the next activation, an interaction with no sign-off and no activity for
 more than 24 hours receives an explicit advisor-authored `[synthetic sign-off
 ...; inactive >24h]` in `intake.md`. Mark it synthetic, never requester-authored;
-a later return opens a new interaction envelope with a new id.
+perform the same mandatory close checkpoint, and let a later return open a new
+interaction envelope with a new id.
 
 Before dispatch, finalize the packet and normally compute its SHA-256. Record
 in `intake.md` the stable interaction id, handled time/status, requester,
@@ -534,15 +565,48 @@ session id identify the requester and provide a possible return address after
 sign-off; they neither grant authority nor require a repeated prefix on later
 turns in the same interaction.
 
-`Conclude advisor interaction <interaction-id>/<revision>` is the normal
-leave-call message and carries the matching requester sign-off. It asks the
-advisor to reconcile the current followed
-documents; fold every contiguous transcript turn through the interaction;
-update the program-progress assessment and ranked proof requests in `notes.md`;
-complete the intake record; write `session.local.md` last as `closed-idle` or
-`partial-idle` with the consultation end time; return a closure receipt; and
-release its live lease/active ownership while remaining resumable. Do not
-forcefully terminate the provider session as a substitute for this fold.
+The matching requester sign-off is the normal leave-call signal. The worker
+uses it when the current consultation bundle is done; it need not close and
+reopen for each atomic observation within that bundle. Advisors need not
+rewrite compact state after every turn and may checkpoint earlier at a
+meaningful milestone. Every real or synthetic sign-off nevertheless requires a
+close checkpoint: reconcile any followed-document state made stale by the
+interaction; fold every contiguous transcript turn through it; update the
+program-progress assessment, ranked proof requests, or metadata when the
+interaction affected them; complete the intake record; write
+`session.local.md` last as `closed-idle` or `partial-idle` with the consultation
+end time; return a closure receipt; and release the live lease/active ownership
+while remaining resumable. Unaffected files need not be rewritten. Do not
+forcefully terminate the provider session as a substitute for this checkpoint.
+
+`Shutdown advisor` is a separate, rare lifecycle directive for intentionally
+retiring the serving incarnation before bringing up a fresh one. The user may
+issue it directly. A working agent issues it only when an explicit user
+instruction or the recorded restart policy authorizes replacement; ordinary
+sign-off does not imply that authority. `Shutdown advisor: <reason>` may record
+a reason. Before acknowledging success, close any open interaction, synchronize
+the complete followed set, reconcile semantic notes, fold every available
+transcript turn through the directive, complete intake and progress/want state,
+and prepare and validate every final reboot-bundle replacement, including the
+shutdown receipt and reason in `intake.md`, while the serving generation still
+owns the lease. Install the notes, document, and intake replacements first;
+atomically set metadata `Lifecycle state: no-incumbent` as the final durable
+state write; then remove `session.local.md` as the final local-projection step
+so no current session id remains projected. That existing lifecycle value is
+the durable shutdown disposition; do not add a parallel status field or a
+serving session id to metadata. Historical session provenance may remain in
+intake or archives. Return `shutdown complete` with the same integrity evidence
+as a closure receipt. A failure before the metadata fence retains the incumbent;
+a failure after it leaves the generation fenced and names the remaining cleanup
+debt. In either case return `shutdown incomplete` and do not claim that a fresh
+boot is safe.
+
+After `shutdown complete`, a provider heartbeat or manual resume of the old
+session remains fenced from continuity writes. A fresh serving incarnation
+increments the lifecycle generation, marks it active, and starts from the
+literal restart prompt and durable bundle. The command need not terminate the
+provider process; its contract is a restart-ready logical disposition with no
+incumbent session projection.
 
 The closure receipt states logical id/generation/session, current model/effort
 and evidence, metadata/notes/document/intake paths plus resulting watermarks or
