@@ -1471,3 +1471,80 @@ the sweep single-target.
 - **Status** — user-directed. Scenario traces and installer tests pass; no live
   post-compaction outcome comparison has yet measured whether false `/hi`
   invocations disappear.
+
+## 2026-08-11 — Codex outer output budget hid a project amendment
+
+- **Incident** — `gpt-5.6-sol` at `xhigh`, Codex session
+  `019ff32e-d080-7753-b021-1bfc10996d96`, combined project instructions,
+  user/harness supplements, vocabulary, and a large takeover handoff in one
+  `functions.exec` call. The nested command requested 50,000 output tokens;
+  its source output was about 141,135 tokens. The outer call used its default
+  and reduced the roughly 50,028-token nested result to 10,000 tokens, keeping
+  head and tail and visibly eliding 40,028 middle tokens. Sol followed up on
+  several files but omitted `AGENTS.local.md` until the user prompted an
+  instruction-layout audit.
+- **Position** — the outer elision marker began at byte 20,129 of the
+  40,158-byte model-visible result, about byte 19,723 inside the first
+  57,728-byte project `AGENTS.md`. The following `AGENTS.local.md` therefore
+  lay outside the retained head. Current tool-count measurements put optional
+  `AGENTS.supplemental.md` at 19,699 tokens (9,699 over the default ceiling),
+  `RESEARCH.supplemental.md` at 11,375 (1,375 over), and
+  `RUNS.supplemental.md` at 7,935 (2,065 under). Every other individually read
+  root AGENTS harness/model/user supplement is below 4,100 tokens.
+  Harness-injected files are not this tool-read path.
+- **Decision** — `AGENTS.codex.md` records the harness mechanic: the outer and
+  nested budgets are independent, the unqualified outer default is 10,000
+  tokens, and a truncation notice means the read is incomplete. This is one
+  harness fact, not a general attempt to guard every basic operation. The
+  user's governing judgment is that a typical task relies on roughly 1000
+  little steps of similar difficulty and cannot guard each with 4 additional
+  simple steps.
+- **Packet reorganization** — on 2026-08-12 the user chose canonical
+  condition-routed directories rather than the three supplemental monoliths.
+  After merging each compact main section with its matching detail and
+  removing stale conflicts, the largest independent reads are 7,446 tokens
+  (`AGENTS/change-delivery.md`), 6,074 (`RESEARCH/artifacts.md`), and 4,968
+  (`RUNS/monitoring.md`); the RESEARCH and RUNS routers are 486 and 385. This is
+  a document-boundary mitigation, not an added confirmation step for every
+  tool read. The editing representation and reachability test are recorded in
+  `topics/editing-long-docs.md`.
+- **Reconciliation** — the packet pass did not blindly preserve stale detail.
+  It removed the old RUNS claim that uncontradicted plans, all project edits,
+  and standard Git actions were implicitly authorized; removed timestamp-based
+  ownership guesses and automatic `.gitignore` mutation from research commit
+  advice; generalized one project-specific retraining log example and eval
+  script interface; and reconciled significance decoration with the current
+  binding default.
+- **Trace: newly wired result after compaction** — the injected global route
+  survives and names `RESEARCH/evidence.md` directly. Its 2,837-token read
+  supplies result-sanity, split, significance, and eval-condition rules without
+  first recovering an optional 11,375-token supplemental.
+- **Trace: short GPU import path** — `python tool.py --help` may import Torch
+  even though it is not a long job. The global condition now routes to the
+  2,068-token `RUNS/resources.md`; the former long-running-only route would not
+  reliably have fired.
+- **Trace: tracked session-outliving GPU job** — resource allocation, durable
+  provenance, and monitoring all apply, so the agent reads three separate
+  packets. Total content is similar to the former combined policy, but no
+  individual result exceeds 4,968 tokens and a partial read cannot hide a
+  later packet in the middle.
+- **Trace: paper-only update** — a research paper/log/result-table edit reaches
+  the 6,074-token `RESEARCH/artifacts.md` and does not load evidence, judgment,
+  direction, or workflow packets unless their separate cues also occur.
+- **Trace: ordinary short read** — a required file comfortably below the
+  smaller active budget is read once; the rule adds no confirmation ritual.
+- **Trace: oversized nested result** — `exec_command.max_output_tokens` is
+  50,000 while outer `functions.exec` remains unqualified. A 20,000-token
+  required read visibly truncates at the outer default, so the agent uses a
+  separate call or bounded ranges rather than treating nested success as EOF.
+- **Trace: requested outer budget still capped** — a pragma requests more than
+  10,000 but policy supplies less than the output. The warning/elision clause,
+  not the nominal request, determines that the read remains incomplete.
+- **Trace: other harness** — Claude or another harness does not inherit a
+  numeric Codex limit; its behavior stays unclaimed until directly measured.
+- **Residual** — recurrence probability, size/position boundary effects,
+  urgency-prefix effects, any larger requested outer ceiling, and comparable
+  behavior in other harnesses are unmeasured. The committed gap
+  `gaps/sol-codex-truncated-required-file-reads.md` retains that question; a
+  local monthly `at/` activation reevaluates the current measurement without
+  presuming that further mitigation is worthwhile.

@@ -55,15 +55,15 @@ branches, commits, shared workdirs, or private notes.
 | Path | Purpose |
 | --- | --- |
 | `AGENTS.global.md` | Installable global operating contract: session entry, worktree safety, edit discipline, commits, topics, glossary, and interaction rules. |
-| `AGENTS.supplemental.md` | Optional slow-path clarification preserving the fuller global protocol; never installed or read as routine boot. |
+| `AGENTS/` | Optional slow-path packets grouped by activation concern; never installed or read as a directory sweep. |
 | `AGENTS.md` | Project boot for developing this instruction repository; deliberately distinct from the global install source. |
 | `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md` | Harness-specific mechanics such as session identifiers, log locations, and launcher quirks. |
 | `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier latitude and extra reminders; load-bearing policy still belongs in `AGENTS.global.md`. |
 | `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md` | Model-family behavior patches selected from the harness-recorded model id. |
-| `RESEARCH.md`, `RESEARCH.supplemental.md` | Compact research binding rules plus optional templates, rationale, and edge cases. |
+| `RESEARCH.md`, `RESEARCH/` | Short research router plus binding concern packets that combine rules, templates, rationale, and edge cases. |
 | `research-advisor.md` | Handoff protocol for the long-lived, normally project-wide skeptical research-advisor session. |
 | `advisor/charter.md` | Durable global mandate and operating behavior loaded into every research-advisor session. |
-| `RUNS.md`, `RUNS.supplemental.md` | Compact run-operation binding rules plus optional templates, rationale, and rare mechanics. |
+| `RUNS.md`, `RUNS/` | Short run-operation router plus binding resource, provenance, and monitoring packets. |
 | `feature-branch.md` | Optional branch-per-feature workflow for projects that opt into it. |
 | `GLOSSARY.md` | Project vocabulary that agents should reuse in docs, code, UI copy, and commits. |
 | `TOPICS.md`, `topic-definitions.md` | Topic vocabulary and curated general-domain definitions used when naming project concerns. |

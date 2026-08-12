@@ -21,15 +21,16 @@ repository remains usable without the other.
 
 - `AGENTS.global.md` is the authoritative global policy file and the source
   installed into each harness's global instruction location.
-- `AGENTS.supplemental.md` is optional clarification, never an install target.
-  The main file retains every trigger and binding rule and wins on conflict.
+- `AGENTS/` contains optional clarification packets and is never an install
+  target or routine directory read. `AGENTS.global.md` retains every binding
+  rule and wins on conflict.
 - The root `AGENTS.md` is this checkout's project boot. It must not be used as
   a harness-global install target, or work launched here receives the global
   corpus again as project context.
-- `RUNS.md` and `RESEARCH.md` are compact action-triggered binding layers;
-  their `.supplemental.md` companions retain slow-path detail but are not
-  required reads unless the main file points there or its wording is
-  insufficient for the current action.
+- `RUNS.md` and `RESEARCH.md` are compact action-triggered routers. Their
+  canonical subdirectories contain binding concern packets; observable cues in
+  the routers and selected compaction-protected global routes name which
+  packets to read.
 - Local project instructions may add narrower rules, but global policy changes
   belong here first.
 - Correctness topics are defined by committed `topics/*.md` basenames, and
@@ -147,10 +148,10 @@ compaction/resume; “already read this session” is not sufficient. Under the
 unknown-capability default, skipping that refresh requires verified harness
 reconstruction of the exact current routed packet, not a model's recollection
 that it read the file. A boot-loaded scoped supplement may define another
-evidence-backed cadence under the capability model below. The routed main is
-compact enough to pay the repeat cost when protection is absent. Its optional
-supplemental file preserves recoverability and rare clarification without
-becoming a second mandatory boot.
+evidence-backed cadence under the capability model below. The routed index is
+compact enough to pay the repeat cost when protection is absent. Its
+condition-routed packets preserve the binding bodies and rare clarification
+without becoming a second mandatory boot.
 
 The original narrower case: when a topic doc would benefit from
 referencing a specific `AGENTS.global.md` section, prefer extracting that

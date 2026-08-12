@@ -84,6 +84,20 @@ date a past observation by grepping your own rollout file.
 `queued-anchor` v1 (spec: `topics/helper-scripts.md`) parses only
 Claude transcripts; on Codex, read the timestamps directly.
 
+## Programmatic exec output budget
+
+`functions.exec` and a nested `exec_command` apply independent result
+budgets. Without `functions.exec`'s first-line `// @exec` pragma, the current
+outer default is 10,000 tokens: once exceeded, the model receives roughly the
+first and last 5,000 with the middle elided. A larger nested
+`max_output_tokens` alone cannot raise that outer ceiling.
+
+Treat about 10,000 tokens minus wrapper text as the maximum complete read for
+this default call shape. The pragma may request more, but a harness policy cap
+can still lower it. Required reads approaching the smaller active budget use
+separate calls or bounded ranges; any truncation warning or elision marker
+means the read remains incomplete.
+
 ## Turn-End Is A Dead Stop
 
 Codex has no scheduled wakeup, cron, or background-job completion
@@ -98,7 +112,8 @@ Invariant: do not end a turn while you own unconsumed work — a running
 or queued job whose result you will consume, or an idle-GPU successor
 decision — unless the user explicitly deferred it. Either consume and
 launch now, or end the turn inside the announced foreground `agentctl
-wait`/`watch` at the earned rung (RUNS.md § Wait watchdog discipline).
+wait`/`watch` at the earned rung
+(`RUNS/monitoring.md` § Wait watchdog discipline).
 Interactive questions do not suspend this: answer, then re-enter the
 wait in the same turn. Compaction does not clear the obligation —
 re-verify job state and re-enter the wait.

@@ -22,18 +22,19 @@ Passing: each touched high-risk rule has a traced scenario where
 following it literally produces a *better* outcome than not having it,
 and none produces a worse one.
 
-For main/supplement compression, also verify mechanically and by trace:
+For main/packet compression, also verify mechanically and by trace:
 
-- the pre-compression body remains recoverable in the supplemental file or Git;
-- each governed action still has its trigger, binding action, and
-  post-compaction/resume persistence rule in the main file;
+- the pre-compression body remains recoverable in a mapped packet or Git;
+- each governed action still has an observable trigger and
+  post-compaction/resume persistence rule in a compaction-protected main or
+  short routed index, while its binding action remains in the named packet;
 - the default no-reread exception requires verified exact packet
   reconstruction rather than summarized memory or a once-per-session read;
   any broader harness/model/effort override names its evidence and fallback;
-- every repository citation to a main-file heading still resolves;
-- following only the main file succeeds on ordinary cases, while a rare case
-  reaches the matching supplemental section without treating it as mandatory;
-  and
+- every repository citation to a moved main-file heading resolves to its new
+  packet;
+- ordinary and rare cases reach only their matching packets, with direct
+  compaction-protected routes for narrow high-cost misses; and
 - before/after protected and routed-read byte counts are recorded.
 
 ## Optional / deferred — outcome ablation (expensive)

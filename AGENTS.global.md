@@ -1,9 +1,8 @@
 # Session management
 
-This is the always-loaded, binding global policy. Do not routinely load
-`AGENTS.supplemental.md`: it retains pre-compression rationale, examples, and
-rare mechanics for a matching section when this compact text is insufficient.
-This file wins on conflict.
+This is the always-loaded, binding global policy. Do not routinely load the
+slow-path packets under `AGENTS/`: they retain rationale, examples, and rare
+mechanics for matching named sections. This file wins on conflict.
 
 A routed file read before compaction is not thereby protected. After compaction
 or resume, obey this file's current read trigger at the next governed action
@@ -83,7 +82,7 @@ narrow that wait. Steward sessions add `tending:` and claim through
 Read `topics/agentctl.md` before changing or diagnosing active-session/run
 semantics, `agentctl`, staleness/sweep behavior, launch-depth guards, or plugin
 contracts. Detailed file schema and examples remain there and under “Active
-sessions” in [AGENTS.supplemental.md](AGENTS.supplemental.md).
+sessions” in [AGENTS/session.md](AGENTS/session.md).
 
 ## Resume source priority
 
@@ -188,9 +187,8 @@ continue. Symlink and hardlink aliases to the same source route identically.
 Before writing/editing any agent instruction, global/project rule, supplement,
 skill, glossary row, or instruction topic, read
 `topics/agent-instructions.md` and its evidence ledger; follow
-`topics/evidence-ledger.md` for ledger changes. The full pre-compression global
-text is available only as optional clarification in
-`AGENTS.supplemental.md`.
+`topics/evidence-ledger.md` for ledger changes. Optional pre-compression
+clarification is grouped by activation concern under `AGENTS/`.
 
 ## Point to authored instruction text
 
@@ -255,17 +253,42 @@ missing one once and continue. Re-read the binding main at the governed action
 boundary after compaction/resume unless the harness verifiably reconstructs
 that exact current packet or a boot-loaded scoped supplement explicitly sets an
 evidence-backed cadence; summarized recollection is insufficient.
-Supplemental detail is optional and main wins.
+`AGENTS/` detail is optional and this main wins. Routed RESEARCH/RUNS packets
+are binding for their named conditions; their short indexes own routing and
+win on packet conflict.
 
 - `RESEARCH.md` — before substantive research/experimentation, paper/report,
-  significance, or research-advisor work. It routes surveys, maps, literature,
-  and advisor protocols. `RESEARCH.supplemental.md` is clarification only.
-- `RUNS.md` — before launching, monitoring, or summarizing long-running jobs.
-  `RUNS.supplemental.md` is clarification only.
+  field-survey/prior-art/direction-ranking, significance/comparison, or
+  research-advisor work. It is a short router. Compaction-durable high-value
+  routes are:
+  - research paper/log/program/result-table/progress-report work →
+    `RESEARCH/artifacts.md`;
+  - field survey, prior art, direction ranking, or a material advisor decision
+    → `RESEARCH/direction.md`;
+  - a newly wired experimental result, train/eval/gate summary, comparison, or
+    significance claim → `RESEARCH/evidence.md`; and
+  - an untuned elaborate arm, multi-difference attribution, or closure of a
+    substantial weak/surprising line → `RESEARCH/judgment.md`.
+- `RUNS.md` — before using local accelerators or launching, monitoring, waiting
+  for, or summarizing tracked/long-running jobs. It is a short router:
+  - Python that may import an accelerator stack or GPU-capacity allocation →
+    `RUNS/resources.md`;
+  - an important saved output, in-flight record, or row-wise transformed
+    dataset → `RUNS/provenance.md`; and
+  - a session-outliving launch, foreground wait, monitor/summary, or run-policy
+    failure reconstruction → `RUNS/monitoring.md`.
 - `feature-branch.md` — when project instructions name it or the repo plainly
   uses feature branches; otherwise stay branch-agnostic.
-- `AGENTS.supplemental.md` — only when this main file points to its matching
-  slow-path detail or a rare ambiguity remains.
+- `AGENTS/` — optional slow-path detail only for a matching named section or a
+  rare ambiguity. Do not load the directory indiscriminately:
+  - handoff/session registration/resume/scheduled prompt → `AGENTS/session.md`;
+  - unfamiliar-code investigation/delegation/standalone defect →
+    `AGENTS/investigation.md`;
+  - instruction/topic/glossary/language-policy authoring →
+    `AGENTS/instruction-system.md`;
+  - gated or destructive action/shared-worktree edit/commit/quality mechanics
+    → `AGENTS/change-delivery.md`; and
+  - a named interaction or tool-use edge case → `AGENTS/interaction-tools.md`.
 
 Reusable cross-project policy belongs in `~/agents/` unless dependent on a
 specific repo's data/scripts/schema.
@@ -388,9 +411,9 @@ read requires a reread.
 
 Source escapes such as `\0`, `\n`, `\t`, and `\\` remain two source characters;
 never insert literal control bytes. After a second failure on one file, stop
-guessing: reread the exact range and copy it. Full worked failures are in
+guessing: reread the exact range and copy it. Full worked failures are under
 “Edit anchors: copy, don't compose” in
-[AGENTS.supplemental.md](AGENTS.supplemental.md).
+[AGENTS/change-delivery.md](AGENTS/change-delivery.md).
 
 # Reader-facing summaries
 
@@ -674,7 +697,7 @@ For a large leading N without a quoted anchor, run `queued-anchor <N>`
 anchor/in-flight activity, not the current tail. If unsupported, use timestamp,
 content, and surrounding turns with uncertainty. Detailed separator semantics
 are under “Queued-send time separators” in
-[AGENTS.supplemental.md](AGENTS.supplemental.md).
+[AGENTS/interaction-tools.md](AGENTS/interaction-tools.md).
 
 ## "Don't forget" reminders
 
