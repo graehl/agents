@@ -16,7 +16,8 @@ import tempfile
 import uuid
 from pathlib import Path
 
-HOST_PROTOCOL_VERSION = 2
+HOST_PROTOCOL_VERSION = 3
+SUPPORTED_HOST_PROTOCOL_VERSIONS = (2, HOST_PROTOCOL_VERSION)
 DESCRIPTOR_VERSION = 1
 MAX_TURN_BYTES = 900 * 1024
 MAX_HOST_REQUEST_BYTES = 1024 * 1024
@@ -25,6 +26,13 @@ EXIT_SUCCESS = 0
 EXIT_PROVIDER_FAILURE = 10
 EXIT_TRANSPORT_FAILURE = 11
 EXIT_UNCERTAIN_DELIVERY = 12
+
+SESSION_OPTIONS = {
+    "automaticTitle": False,
+    "automaticRecaps": False,
+    "agentProgressSummaries": False,
+    "promptSuggestions": False,
+}
 
 NATIVE_SESSION_OWNED_ENV_NAMES = (
     "AGENTCTL_SESSION_ID",
@@ -106,7 +114,7 @@ def read_provider_host() -> tuple[dict, str]:
         raise TransportFailure("provider host descriptor is not a JSON object")
     if descriptor.get("descriptorVersion") != DESCRIPTOR_VERSION:
         raise TransportFailure("provider host descriptor version is incompatible")
-    if descriptor.get("hostProtocolVersion") != HOST_PROTOCOL_VERSION:
+    if descriptor.get("hostProtocolVersion") not in SUPPORTED_HOST_PROTOCOL_VERSIONS:
         raise TransportFailure("provider host protocol version is incompatible")
     features = descriptor.get("features")
     if not isinstance(features, list) or "session-turn" not in features:
@@ -141,7 +149,7 @@ def host_request(descriptor: dict, token: str, request: dict) -> dict | None:
         **request,
         "id": request_id,
         "token": token,
-        "protocolVersion": HOST_PROTOCOL_VERSION,
+        "protocolVersion": descriptor["hostProtocolVersion"],
     }
     try:
         with open_host_socket(descriptor) as client:
@@ -169,7 +177,7 @@ def discover_provider_host() -> tuple[dict, str]:
     status = host_request(descriptor, token, {"op": "status"})
     if not isinstance(status, dict):
         raise TransportFailure("provider host status is not an object")
-    if status.get("protocolVersion") != HOST_PROTOCOL_VERSION:
+    if status.get("protocolVersion") != descriptor["hostProtocolVersion"]:
         raise TransportFailure("provider host status protocol is incompatible")
     features = status.get("features")
     if not isinstance(features, list) or "session-turn" not in features:
@@ -202,7 +210,7 @@ def hosted_turn(
     request = {
         "id": request_id,
         "token": token,
-        "protocolVersion": HOST_PROTOCOL_VERSION,
+        "protocolVersion": descriptor["hostProtocolVersion"],
         "op": "sessionTurn",
         "submissionId": submission_id,
         "target": {
@@ -211,6 +219,7 @@ def hosted_turn(
             **({"yaSessionId": args.ya_session_id} if args.ya_session_id else {}),
         },
         "message": {"text": message},
+        "sessionOptions": SESSION_OPTIONS,
         "timeoutMs": int(args.timeout * 1000),
     }
     wire_request = (json.dumps(request) + "\n").encode()
@@ -231,6 +240,21 @@ def hosted_turn(
             if record.get("id") != request_id:
                 raise TransportFailure("provider host stream id does not match")
             record = {**record, **fields}
+            if (
+                record.get("type") == "accepted"
+                and not isinstance(record.get("sessionOptionsResult"), dict)
+            ):
+                record["sessionOptionsResult"] = {
+                    key: {
+                        "requested": value,
+                        "status": "unknown",
+                        "detail": (
+                            "The incumbent provider host did not report "
+                            "session-option enforcement"
+                        ),
+                    }
+                    for key, value in SESSION_OPTIONS.items()
+                }
             if record.get("type") == "error" and (accepted or record.get("accepted")):
                 record["accepted"] = True
                 record.setdefault("receiptLookup", receipt_lookup(submission_id))
@@ -493,6 +517,8 @@ def native_command(args: argparse.Namespace) -> list[str]:
         "--output-format",
         "stream-json",
         "--verbose",
+        "--prompt-suggestions",
+        "false",
     ]
     if args.model:
         command.extend(["--model", args.model])
@@ -556,6 +582,22 @@ def native_turn(
             **fields,
             "forkRisk": "concurrent-native-resume",
             "reason": reason,
+            "sessionOptionsResult": {
+                key: {
+                    "requested": value,
+                    "status": (
+                        "applied"
+                        if args.harness == "claude" and key == "promptSuggestions"
+                        else "unknown"
+                    ),
+                    "detail": (
+                        "Claude CLI was launched with --prompt-suggestions false"
+                        if args.harness == "claude" and key == "promptSuggestions"
+                        else "Native resume exposes no verified control for this option"
+                    ),
+                }
+                for key, value in SESSION_OPTIONS.items()
+            },
         }
     )
     try:
@@ -670,6 +712,8 @@ def turn_parser() -> argparse.ArgumentParser:
             "before acceptance; 12 uncertain delivery after acceptance\n"
             "receipt lookup: session-turn receipt <submission-id>\n"
             "provider limits: host dispatch keeps the incumbent configuration; "
+            "provider-owned title/recap/progress/suggestion generation defaults "
+            "off and each hosted acceptance reports enforcement; "
             "--model/--effort apply only to native resume. Concurrent native "
             "Claude resumes can branch, while native Codex refuses an active "
             "writer. Without overrides, native resume uses the provider CLI's "
