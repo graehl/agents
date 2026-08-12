@@ -2692,3 +2692,35 @@ the sweep single-target.
 - **Status** — directly user-specified; Quarto mechanics verified against its
   current official documentation and scenario-traced, not yet exercised on a
   project paper here.
+
+## 2026-08-12 — research advisors are critical-reader proxies, not approvers
+
+- **User correction** — working agents had become overcompliant with advisor
+  comments and spent real time seeking confirmation that the advisor accepted
+  a rebuttal. The advisor sees monitored documents and immediately adjacent
+  links; the user and working agent normally know the broader program better.
+- **Role decision** — treat the advisor as a skeptical critical reviewer of
+  that bounded reader surface. Its comments first test whether the documents
+  can be made more truthful: repair an inconsistency, or explain why an
+  expected alternative, control, or result is absent. Advice does not revise a
+  user-laid plan without independent evidence or a governing artifact.
+- **Trace: missing baseline** — the advisor asks why baseline X is absent, but
+  the user already rejected it for an access mismatch. The worker adds that
+  consequential reason to the paper and continues. It does not rerun X or ask
+  the advisor to approve the explanation.
+- **Trace: methodological error** — the advisor alleges that the reported
+  interval uses the wrong resampling unit. The worker checks the scorer and
+  saved artifact directly. A confirmed defect is corrected immediately; a
+  false allegation leaves the result unchanged. If the memo does not identify
+  the relevant table or wording, one locating question is allowed before the
+  direct check.
+- **Trace: plan pressure** — a want-to-see proposes a new expensive experiment
+  outside the user's frozen plan. It remains evidence needed for the advisor's
+  confidence, not a work gate. The worker records any useful evidence ceiling
+  in the paper and proceeds under the user plan without a convergence round.
+- **Persistence** — this skepticism/deference calibration is provisional by
+  model generation. Reassess it at the first instruction-policy review after a
+  major frontier-model generation rather than treating current advisor/worker
+  tendencies as permanent.
+- **Status** — directly user-specified and trace-simulated; time saved and
+  decision quality remain unmeasured.

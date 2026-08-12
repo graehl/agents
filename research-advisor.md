@@ -221,6 +221,14 @@ and want-to-sees express its assessment. A want-to-see is a condition for the
 advisor's confidence unless a cited user/governing artifact independently makes
 it a worker gate.
 
+The advisor's epistemic role is a skeptical critical-reviewer proxy for the
+material in its followed set, plus the direct evidence and immediately adjacent
+links needed to interpret that material. It is not presumed to know the live
+program better than the user or working session. A comment therefore most often
+tests whether the tracked document is truthful, complete enough, and explicit
+about why an expected alternative, control, or claim is absent; it does not by
+itself revise the user's research plan.
+
 `metadata.md`, `notes.md`, `docs/state.md`, and `intake.md` are the ordinary
 logical-reboot bundle and follow the project's durable research-document
 tracking policy. `sessions/` is optional cold provenance: it may repair
@@ -448,22 +456,20 @@ An operational user mention of “advisor” also invokes it:
 - discussion of the advisor mechanism, charter, files, or routing is meta-level
   design and does not recursively invoke it.
 
-The initial packet opens an advisor interaction, not a one-shot remote procedure
-call. Its natural unit is one coherent bundle of results, claims, or decisions
-that the worker has chosen to submit for consideration. It is not each atomic
-result: clarification, rebuttal, advisor-requested evidence, and rapidly evolved
-prototype results that remain part of that consultation continue as turns or
-explicit revisions under the same id, including across provider-session
-resumptions. The worker opens a new interaction for a later distinct bundle and
-signs off when discussion of the current bundle is done. Its author assigns a
-stable id for that scope and claim/decision; the id is not derived from the
-packet hash. The object-level researcher or user decides whether and how long
-to continue the discussion. Treat the id as a best-effort serial, not a global
-uniqueness or monotonicity claim. Honor a reuse within 24 hours as a likely
-continuation/retry while the interaction remains open; requesters should not
-intentionally assign it to a distinct interaction during that window. After a
-real or synthetic sign-off, a later request uses a new id and may reference the
-prior interaction naturally.
+The initial packet normally receives one critical memo and a sign-off. Its
+natural unit is one coherent bundle of results, claims, or decisions that the
+worker has chosen to submit for consideration, not each atomic result. Continue
+under the same interaction id only for immediate clarification needed to locate
+or understand a criticism, or for materially new evidence the worker chooses
+to submit. Do not continue merely to rebut the memo, obtain the advisor's
+acceptance, or manufacture consensus. The worker opens a new interaction for a
+later distinct bundle. Its author assigns a stable id for that scope and
+claim/decision; the id is not derived from the packet hash. Treat the id as a
+best-effort serial, not a global uniqueness or monotonicity claim. Honor a reuse
+within 24 hours as a likely continuation/retry while the interaction remains
+open; requesters should not intentionally assign it to a distinct interaction
+during that window. After a real or synthetic sign-off, a later request uses a
+new id and may reference the prior interaction naturally.
 
 Prefix only the first delivered turn of an interaction:
 
@@ -754,8 +760,9 @@ for a specific passage needed to diagnose drift. Add a document to the followed
 set when its future deltas matter to the advisor's trajectory; otherwise leave
 it as a direct evidence link. A live-handoff change updates metadata's current
 scope/path registry without classifying the handoff as a working or followed
-document. Follow-up turns cite the interaction id and send only the question,
-objection, or evidence delta; do not reserialize the initial packet.
+document. A necessary follow-up cites the interaction id and sends only the
+locating/meaning clarification or material evidence delta; do not reserialize
+the initial packet or send a rebuttal for acceptance.
 
 ## Advisor review
 
@@ -779,6 +786,16 @@ output, not only claims emitted during handoff repair. Verified facts and
 non-contradictory adjacent context may repair omissions autonomously; material
 conflicts with user-authorized scope remain tentative until the user resolves
 them, and advice never supplies authorization for rescope.
+
+Default to improving the tracked document, not negotiating with its reviewer.
+If the memo exposes an inconsistency, make the document more truthful. If it
+asks why an expected item is absent, state the consequential reason or scope
+boundary in the document. Verify alleged factual or methodological errors
+against the primary artifact, code, or method contract and correct confirmed
+errors without another consultation. Ask the advisor only when its target text
+or intended meaning is materially unclear. Once the worker has evaluated the
+comment, record a useful rationale where needed and continue; advisor agreement
+with the rebuttal is neither requested nor awaited.
 
 `ask` packets and automatic pre-decision triggers hold the material decision
 until the advisor has answered the current revision or graehl explicitly

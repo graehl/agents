@@ -288,6 +288,16 @@ Prior art grounding that plan <!-- verified: web search 2026-05-29 -->:
   self-correction does not help and can degrade. Direct caution that a
   self-recorded evidence ledger is not self-grounding.
 
+## Frontier-capability review register
+
+Guidance whose appropriate strictness or routing may change with model or
+harness capability is selectively indexed in
+[`frontier-capability-review.md`](frontier-capability-review.md). Its owning
+instruction remains authoritative. A major frontier generation, fresh user
+experience, or the 60-day backstop may trigger review; no-op is valid. Start
+with ordinary traces, use a bounded presumption switch when cheap, and reserve
+controlled instruction ablation for explicitly high-value questions.
+
 ## Harness-, backend-, and model-scoped supplements
 
 `AGENTS.codex.md` and `AGENTS.claude.md` are sibling instruction files for

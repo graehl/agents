@@ -41,6 +41,21 @@ applicable advisor once for each new decision/evidence state that:
   retirement of a live handoff for that program; or
 - operationally addresses the advisor (tell/ask advisor).
 
+Treat the advisor as a proxy for a critical reviewer of the paper or program
+material it follows and the directly linked evidence needed to read that
+material. The user and working session normally have broader program context
+and greater familiarity. Interpret comments first as document-repair evidence:
+correct verified inconsistencies, and state consequential exclusions or
+boundaries when a reviewer asks why something is absent. Preserve user-laid
+plans unless independently verified evidence or a governing artifact changes
+them. Verify alleged factual or methodological errors directly. Ask at most the
+immediate clarification needed to locate or understand a criticism; do not ask
+the advisor to accept a rebuttal or wait for convergence before continuing.
+Track this calibration in the
+[`frontier-capability-review`](../topics/frontier-capability-review.md)
+register and reassess it at the first instruction-policy review after each
+major frontier-model generation.
+
 Load and follow `research-advisor.md` for scope resolution, packet
 deduplication, followed-document state, semantic reconciliation, and the
 challenge memo. Do not substitute “advisor review would help” for invocation.

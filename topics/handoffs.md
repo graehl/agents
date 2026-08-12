@@ -219,6 +219,14 @@ make the advisor a worker supervisor. In particular, an objection or ranked
 want-to-see is a condition for the advisor's confidence, not a task gate unless
 a cited user/governing artifact independently says so.
 
+Read that opinion as a proxy for a skeptical reviewer seeing the advisor's
+followed paper/program material and its immediately adjacent evidence links.
+The user and working agent normally have broader context and greater program
+familiarity. Default interpretation is therefore document repair: make an
+inconsistent claim more truthful, or state the consequential reason and scope
+boundary when the reviewer asks why an expected item is absent. Do not silently
+promote the comment into a change to the user-laid research plan.
+
 Apply this compact check only when a claim could materially change belief,
 scope, acceptance, or the next material action—not on every turn:
 
@@ -238,6 +246,13 @@ repair the handoff, and non-contradictory adjacent context can be accepted;
 neither requires deference to the advisor as an authority. A reported later
 explicit user instruction gets ordinary/default skepticism, not a signature or
 special transcript-proof requirement.
+
+Verify a claimed factual or methodological error directly against the primary
+artifact, code, or method contract. If confirmed, correct it; if not, retain the
+worker's evidence-based conclusion. Ask the advisor only the immediate question
+needed to identify the referenced text or intended criticism. Do not send a
+rebuttal for acceptance, keep the interaction open to obtain agreement, or wait
+for the advisor before continuing after the comment has been evaluated.
 
 No rigid section template is required. Do not include chat/tool chronology,
 empty ceremonial sections, or an `Audience:` line. Collaborator-relevant
