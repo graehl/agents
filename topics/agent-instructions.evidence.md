@@ -1951,3 +1951,60 @@ the sweep single-target.
   a generation-fenced succession from the validated continuity bundle. Minor
   clarification does not force churn. This is not binding until the compiler
   and cross-compaction behavior exist and are tested.
+
+## 2026-08-12 — first end-to-end advisor close and raw YA dispatch
+
+- **Observed interaction** — worker session
+  `019ff3b5-da27-7fd0-9ffc-08ee9d6c0d47` submitted one 298-word Korean/R2
+  bundle with a sign-off envelope to incumbent advisor session
+  `019febc7-07f8-7162-8306-d699ff33508f`. The advisor returned a substantive
+  correction, installed and committed its durable state, projected
+  `closed-idle`, and supplied a receipt that the worker verified.
+- **Local HTTP boundary worked fail-closed** — the worker's first raw POST at
+  04:23:27Z omitted YA's required local-write header and returned `Missing
+  required header`; the advisor transcript shows no turn start from it. The
+  worker searched the installed YA distribution for that exact error, resent
+  the unchanged packet at 04:23:44Z with `X-Yep-Anywhere: true`, and the
+  advisor task began at 04:23:45Z. Transport failure therefore neither opened
+  an intake nor duplicated the interaction.
+- **Unexpected control-path capability** — the worker did not operate YA's
+  JavaScript UI. It inferred `/api/sessions/<id>/messages` directly from the YA
+  URL/session id, used `curl`, and polled `/api/sessions/<id>/process` until
+  completion. No first-class agent session-control tool was present. Ambient
+  YA vocabulary from the global instruction corpus is the best current
+  explanation for the direct guess, but the trace does not prove that causal
+  source. It does disprove the prior expectation that an agent was unlikely to
+  turn a YA URL into effective session control.
+- **Elapsed-time calibration** — the delivered advisor turn ran from
+  04:23:45Z to 04:40:03Z (16m18s). Compaction occurred at 04:37:29Z, after
+  13m44s, leaving about 2m33s afterward. The total includes charter/protocol
+  reload, recovery of roughly 1,100 lines of compact notes, followed-document
+  and handoff drift reconciliation, direct Korean/R2 evidence inspection, a
+  substantive estimand/decision-rule correction, state checkpointing, and a
+  commit. It is evidence that this close was nontrivial, not that the close
+  protocol itself intrinsically costs 16 minutes. Unknown starting proximity
+  to compaction prevents attributing even the post-compaction delay cleanly.
+- **Continuity stress result** — notes were atomically installed and intake
+  closure was being recorded before compaction. After reconstruction, the
+  advisor reread current policy/ownership/state, completed the transport
+  projection and verification, committed the durable bundle, and returned the
+  receipt. Logical continuity survived a mid-close compaction; whether a
+  warmed, no-drift close is lightweight remains unmeasured.
+
+## 2026-08-12 — candidate designs leave routine guidance
+
+- **User requirement** — topic documents that agents read for current
+  governance or guidance should not mix in dormant sketches. Use an adjacent
+  `topicname.sketches.md` companion, with a short pointer from the decision
+  surface when discoverability matters.
+- **Routing decision** — `.sketches.md` joins the unloaded companion vocabulary.
+  It is read when exploring future work, reconsidering a named candidate, or
+  explicitly asked about sketches; presence alone does not activate guidance.
+  Promotion means moving the binding contract into the main topic or an
+  implementation plan.
+- **Migration trace** — the six guidance topics with explicit sketch sections
+  (`agentctl`, `almanac`, `glossary`, `handoffs`,
+  `user-authorization-attestation`, and `web-digest`) retain current contracts
+  in their main files and move candidate bodies into adjacent companions.
+  Glossary regeneration and web-digest routing exclude the new suffix so it is
+  neither indexed as an independent topic nor loaded into routine web context.

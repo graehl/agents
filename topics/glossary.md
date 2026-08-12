@@ -76,8 +76,9 @@ in `~/agents/TOPICS.md`.
 
 ## Regeneration
 
-Scan `topics/*.md` from repo root, excluding `*.evidence.md`
-companion files. For each topic doc, read the `> ` blockquote lede
+Scan main `topics/*.md` docs from repo root, excluding recognized companion
+files (`*.evidence.md`, `*.bearings.md`, `*.testing.md`, and
+`*.sketches.md`). For each topic doc, read the `> ` blockquote lede
 immediately after the H1 — multi-line `> ` lines are space-joined
 into one sentence — and use it as the definition of the row whose
 `topic / refs` column links the corresponding `topics/<name>.md`.
@@ -136,9 +137,7 @@ multi-field reference, deliberately not loaded per conversation.
   ergonomics on mechanical body-preserving normalization (missing
   lede, stray trailer); accepts losing per-edit human review.
 
-## Sketches
-
-**Domain-segregated / conditional glossary loading.** The current model loads one `GLOSSARY.md` per project. As the number of projects grows and spans multiple domains (coding, research, ops, writing, ...), a project's glossary accumulates terms only relevant to some work done in it. A richer model: each project declares the domains it belongs to; each domain maintains its own glossary layer; an agent loads only the intersection of active domains rather than the full root table. Open questions: how domains are declared and discovered; whether domain glossaries live globally (under `~/agents/`) or per-project; how to handle terms that span domains; whether per-conversation context budget is the binding constraint that motivates this at all. No action needed until project count or glossary size makes loading cost visible.
+Candidate extensions are kept in [glossary sketches](glossary.sketches.md).
 
 ## Ambiguity-resolution behavior
 

@@ -56,6 +56,7 @@ partially) in `<topic>.md` or in a still-active README entry.
 
 - `<topic>.md` — surviving interpretations only; terse, citable.
 - `<topic>.evidence.md` — qualitative agent belief notes;
+- `<topic>.sketches.md` — dormant candidate designs;
   append-only, agent's working memory.
 - `<topic>.runs/` — runs plus interpretation digest; rewritable,
   developer-facing.

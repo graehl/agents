@@ -198,8 +198,8 @@ contract it could violate.
 Read `topics/topic-doc-format.md` (repo-local first, else
 `~/agents/topics/topic-doc-format.md`) when creating or normalizing topic
 docs, using companion suffixes (`.evidence.md`, `.runs/`, `.bearings.md`,
-`.testing.md`), maintaining bearings outlines, or applying epistemic
-labels.
+`.testing.md`, `.sketches.md`), maintaining bearings outlines, or applying
+epistemic labels.
 
 ### Alternate directory layouts
 

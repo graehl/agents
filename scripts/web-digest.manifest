@@ -33,4 +33,5 @@ topic-definitions.md
 topics/*.md
 !topics/*.evidence.md
 !topics/*.bearings.md
+!topics/*.sketches.md
 skills/*/SKILL.md

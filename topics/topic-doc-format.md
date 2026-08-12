@@ -2,13 +2,15 @@
 
 > Layout of a `topics/<name>.md` doc — H1, blockquote lede,
 > trailer, body — and the suffix vocabulary for companion
-> artifacts (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`).
+> artifacts (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`,
+> `.sketches.md`).
 > Includes the glyph set for `.bearings.md` plan outlines.
 
 Topic: `topic-doc-format`
 
 Read this topic before creating or normalizing topic docs, using companion
-suffixes (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`),
+suffixes (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`,
+`.sketches.md`),
 maintaining bearings outlines, or applying epistemic labels.
 
 ## Main topic doc
@@ -50,10 +52,14 @@ file or a `.<suffix>/` directory, by convention:
 - `.testing.md` — optional rider: how to check a change to the
   topic's concern before committing. See
   `topics/testing-rider.md`.
+- `.sketches.md` — dormant or candidate designs that are not current
+  guidance. Routine topic reads exclude it; read it when exploring future
+  work, reconsidering a named candidate, or explicitly asked about sketches.
 
-The main topic doc stays free-form prose; concerns with their own
-structure live in suffixed companions rather than dedicated
-sections of the main doc.
+The main topic doc stays free-form prose and may link to its companions. Keep
+current contracts and decision surfaces in the main doc. A sketch that becomes
+binding moves into the main topic or an implementation plan; leaving it only in
+`.sketches.md` does not make it guidance.
 
 ## Bearings outline format
 

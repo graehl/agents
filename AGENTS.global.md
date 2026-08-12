@@ -66,7 +66,8 @@ significant milestones that make its state or next step materially false, not
 between routine edit/build/test actions. When no artifact governs material
 unfinished work, that topic chooses between a project gap and private
 `tasks/auto-handoff-<slug>.md`, while non-blocking candidate improvements stay
-in the owning topic's sketches/plans; `tasks/ROOT` is irrelevant to this choice.
+in the owning topic's `.sketches.md` companion or an established plan;
+`tasks/ROOT` is irrelevant to this choice.
 
 ## Active sessions
 
@@ -586,6 +587,9 @@ Committed `topics/*.md` hold cross-cutting contracts/invariants/project-facing
 knowledge, not module notes or changelogs. Ephemera may live there only while
 active and is cleared when addressed. Create `topics/` on first need.
 Basenames define `Topic:` trailers. Read `TOPICS.md` when choosing granularity.
+Dormant or candidate designs belong in the owning topic's `.sketches.md`
+companion so ordinary topic reads do not mix current guidance with possible
+futures.
 
 Before changing a concern, committing a significant plan, resuming, or
 responding to bearings/orientation language, read its topic and

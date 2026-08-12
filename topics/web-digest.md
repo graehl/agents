@@ -30,8 +30,9 @@ file to drop into one conversation, with riders pre-excluded).
 - The manifest's globs match against `git ls-files`, so only tracked
   files can be included — gitignored private state (`AGENTS.local.md`,
   `tasks/`, `user/`) is excluded by construction, not by listing.
-- `.evidence.md` and `.bearings.md` riders are excluded: rationale
-  ledgers and live orientation state are noise for a web conversation.
+- `.evidence.md`, `.bearings.md`, and `.sketches.md` riders are excluded:
+  rationale ledgers, live orientation state, and dormant candidates are noise
+  for a routine web conversation.
 - The generator is deterministic concatenation — no LLM step — so the
   digest is reproducible from the manifest plus the tree, and runnable
   without any agent.
@@ -86,13 +87,4 @@ have commits newer than the extract's.
   (run script, re-distill when stale, commit, name the manual
   claude.ai steps); accepts that a full refresh needs an agent.
 
-## Sketches
-
-**Sideband transcription of user-specific content.** Some
-user-specific material (gitignored `user/`, `AGENTS.local.md`, or other
-private state) might someday be worth delivering to the web Project
-through a side channel — manual upload, not the GitHub route, so it
-never transits the public repo. Not important at the moment; noted so
-the eventual want has a home. If it materializes, keep it a separate
-artifact from `digest/claude-web.md` so the public/private boundary
-stays the tracked-files boundary.
+Candidate extensions are kept in [web-digest sketches](web-digest.sketches.md).
