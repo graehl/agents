@@ -206,11 +206,31 @@ diagram may live in a `.mmd` or `.dot` file and use the cell's `file:` option.
 
 ## Default quantitative-figure toolchain
 
+### Repository artifact contract
+
+For a claim-bearing generated figure, the strongest repository contract is:
+
+- commit the generator, canonical evidence, and run provenance;
+- commit SVG for HTML, chat, and ordinary review;
+- commit PDF for print/LaTeX fidelity; and
+- omit generated raster images by default. A raster-only consumer justifies
+  producing one, not automatically retaining it: commit the raster only when
+  neither a denser canonical storage form nor a standard, reliable regeneration
+  or conversion path from a smaller committed intermediate is available.
+
+That keeps the checked-in result immediately viewable while preserving exact
+regeneration. Compact SVG and PDF outputs normally earn retention because they
+are directly inspectable in the target media. A project may deliberately
+retain fewer generated outputs, but it must not substitute an untraceable
+screenshot for the evidence and build path above.
+
+### Python default
+
 For a Python-oriented research project, default to Matplotlib 3.8 or later.
 For a custom, reused, or independently validated figure, use the noninteractive
 Agg backend: a committed script reads the canonical tidy CSV/JSON or run-
-produced extract, validates its expected conditions, and emits same-stem SVG
-and PDF in one run. Emit PNG only for a known raster-only consumer.
+produced extract, validates its expected conditions, and emits the repository
+artifacts above in one run.
 
 ```python
 import matplotlib

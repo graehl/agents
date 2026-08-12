@@ -2434,3 +2434,35 @@ the sweep single-target.
   render. The semantic interaction layer, document-to-figure style bridge,
   native qualitative component, and real venue PDF bakeoff remain unimplemented
   in `gaps/result-visualization-templates-research.md`.
+
+## 2026-08-12 — committed vector assets and SVG viewport fidelity
+
+- **User-ratified repository contract** — commit the generator, canonical
+  evidence, and run provenance; commit SVG for HTML/chat/review and PDF for
+  print/LaTeX when those vector outputs are compact. A raster-only consumer
+  justifies producing a raster, not automatically retaining it: commit one
+  only when neither a denser canonical representation nor a standard, reliable
+  regeneration/conversion path from a smaller committed intermediate exists.
+  The purpose is immediate reviewability plus exact regeneration, rather than
+  treating generated outputs and provenance as alternatives.
+- **Terminology refinement** — an SVG `viewBox` carries vector-coordinate
+  bounds and coordinate-to-viewport mapping, not a CSS-pixel size. Absolute
+  root width/height carry suggested display size; `preserveAspectRatio` carries
+  the mapping policy. The shared viewer contract now preserves all three roles
+  instead of compressing them into “natural pixels.”
+- **Existing YA evidence** — `topics/media-rendering-and-routing.md` already
+  defines and the client implements the requested default. SVG files render
+  through inert `<img>` object URLs; declared dimensions govern actual size;
+  viewBox-only files receive a definite container; object-fit preserves the
+  aspect ratio; and Fit may enlarge vectors. `lib/vectorImageSizing.ts`,
+  `ImageViewer.tsx`, and their tests establish the path. No duplicate YA gap or
+  second implementation was added.
+- **Trace: authored bounds** — a plot includes deliberate margin for endpoint
+  labels. Literal application fits the declared viewBox and keeps that margin;
+  an eager tight-bounds pass would clip or crowd the labels and therefore
+  violates the contract. A viewBox-only Mermaid figure receives a container
+  rather than disappearing at zero width. A script-bearing project SVG still
+  renders through an inert surface; “direct” never licenses DOM inlining.
+- **Status** — user-specified general contract with the YA instance verified
+  against current documentation, implementation, and unit tests. Other HTML-
+  style viewers remain an aspiration unless their own paths are inspected.

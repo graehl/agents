@@ -94,10 +94,37 @@ boundary, or outlier example rows in the page. Client-side sorting, filtering,
 paging, column toggles, and download may expose the fuller data. The initial
 rows are selected to explain the result, not merely the first rows in storage.
 
-For a visualization, preserve the central default view as SVG, a raster image,
-or a compact table when JavaScript is unavailable. The static and interactive
-versions use the same data and default selection; otherwise the fallback may
-quietly assert a different result.
+For a visualization, preserve the central default view as SVG when a vector
+asset exists; otherwise use the specific raster image or compact table the
+claim requires. The static and interactive versions use the same data and
+default selection; otherwise the fallback may quietly assert a different
+result.
+
+### SVG viewport contract
+
+An HTML-style document or file viewer displays a committed SVG directly
+through an inert image surface by default, without rasterizing it first. The
+file's root geometry owns the initial mapping:
+
+- `viewBox` declares the vector-coordinate bounds and their mapping into a
+  viewport; it supplies an aspect ratio, not an intrinsic CSS-pixel size;
+- absolute root `width` and `height` declare the suggested displayed size and
+  the reference for **Actual size**; percentages defer to the container;
+- the SVG's `preserveAspectRatio` policy remains authoritative; and
+- **Fit** scales the declared bounds into the available screen area without
+  cropping, rewriting the `viewBox`, or recomputing a tighter content box.
+
+A viewBox-only SVG receives a definite bounded container so its ratio can
+resolve instead of collapsing inside shrink-to-fit layout. A sized SVG starts
+from its declared size and may shrink to fit. A vector may enlarge under
+**Fit** because doing so does not invent raster detail. Authored whitespace and
+out-of-mark annotations remain part of the declared bounds; a viewer does not
+silently trim them.
+
+“Direct” describes fidelity, not an active-content exception. Project-supplied
+SVG stays behind the viewer's active-document policy: prefer an inert `<img>`
+fed by a safe relay/blob URL or an equivalently isolated surface, never inline
+untrusted SVG markup into the document DOM merely to preserve vectors.
 
 ### Math, examples, and annotations
 
