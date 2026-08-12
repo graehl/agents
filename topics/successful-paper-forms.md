@@ -93,8 +93,10 @@ Use one repeated stage cadence:
 2. **Intervention:** state the smallest change being tested and why it addresses
    that defect.
 3. **Evidence:** report a compact fixed scorecard—typically two to six
-   decision-bearing quantities—in the same format and against one declared
-   reference throughout the ladder.
+   decision-bearing quantities—in the same format. Carry one stable external
+   reference throughout for cumulative comparability; when that differs from
+   the matched prior-rung or control contrast, report both. The external delta
+   never substitutes for the isolating contrast needed to credit a technique.
 4. **Residual:** name what remains unsolved and why that motivates the next
    stage rather than merely following it in time.
 

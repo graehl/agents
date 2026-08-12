@@ -2531,3 +2531,17 @@ the sweep single-target.
   form hidden inside the ladder.
 - **Status** — user-grounded and trace-simulated; usefulness will be tested by
   the accompanying PII proposal revision.
+
+## 2026-08-12 — ladder scorecards need stable and causal references
+
+- **Trace catch** — the first operational wording required one declared
+  reference throughout the ladder. Applied literally to the PII case, every
+  rung could report its delta against GLiNER2 while omitting the matched
+  predecessor/control that identifies the rung's effect. The display would be
+  comparable but the attribution would remain unsupported.
+- **Repair** — carry the stable external reference for cumulative progress and
+  also report the local matched contrast when it differs. The two serve
+  separate claims: where the system has arrived and what the current
+  intervention caused.
+- **Counter-trace** — when the external baseline is also the immediate matched
+  control, one comparison serves both roles; the rule does not duplicate it.
