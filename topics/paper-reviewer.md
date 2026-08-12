@@ -35,7 +35,8 @@ program advisor, only a draft-scoped advisor, or both.
 Use the ordinary `research-advisor.md` interaction and challenge memo. Name the
 paper stage and include the proposal or draft as a working-document change;
 request followed-document status when future deltas should remain in the
-advisor's context.
+advisor's context. After proposal selection, apply `technical-writing.md` and
+`paper-writing.md` as the authoring contracts under review.
 
 ## Review stages
 
@@ -44,8 +45,10 @@ advisor's context.
 Test whether each candidate's evidence ceiling supports its governing form and
 reader promise. Scrutinize the matched simple-practitioner baseline, effect
 size, uncertainty, public-data/model-access boundary, practical cost, and
-contribution that survives a failed headline. Prefer a candid narrower paper to
-a rescue narrative.
+contribution that survives a failed headline. If privileged access is part of
+the appeal, distinguish the non-transferable advantage from the evidence,
+knowledge, or community asset readers receive. Prefer a candid narrower paper
+to a rescue narrative.
 
 ### Promoted skeleton
 
@@ -61,7 +64,7 @@ Trace headline numbers to primary evidence; recheck comparison fairness,
 uncertainty, baseline strength, cost and data scope, table/caption contracts,
 and related-work boundaries. Read the paper as an uninterested first-time
 reader. Attraction features should clarify supported findings; flag charged
-framing that needs the honest disclaimer described in the paper-drafting
+framing that needs the honest disclaimer described in the paper-writing
 sketch.
 
 ## Paper-specific review block
@@ -74,6 +77,7 @@ Paper stage: proposal | skeleton | completion
 Publication case: credible now | credible if <evidence> | unsupported
 Evidence ceiling: <strongest claim the record carries>
 Matched-baseline verdict: <win, tie, loss, or missing under named regime>
+Privileged-access yield: <unavailable input and transferable output or none>
 Form / focus fit: <does the reader promise match the evidence?>
 Narrative integrity: <hidden failure, chronology, or selection concern>
 Most valuable missing evidence: <one discriminating result or none>

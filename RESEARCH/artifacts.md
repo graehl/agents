@@ -1,12 +1,13 @@
 # Research artifacts and publication
 
 > Rules, templates, and rationale for research branches, programs, logs, paper
-> proposals, papers, handouts, result tables, and progress reports.
+> proposals, papers, handouts, research blogs, result tables, and progress
+> reports.
 
 Read this packet before creating, reorganizing, or materially updating a
-research branch's paper proposal, paper, handout, log, task structure, program,
-result table, or progress report. `RESEARCH.md` is the router and wins on
-conflict.
+research branch's paper proposal, paper, handout, research blog, log, task
+structure, program, result table, or progress report. `RESEARCH.md` is the
+router and wins on conflict.
 
 ## Binding rules
 
@@ -67,7 +68,8 @@ below under the second “Research log conventions” heading.
 #### Research paper conventions
 
 Use `topics/paper-drafting.md` before selecting or materially changing a
-paper's governing form or focus.
+paper's governing form or focus. After promotion, follow
+`topics/technical-writing.md` and `topics/paper-writing.md` for the manuscript.
 
 When a paper compares at least three systems on quality versus cost, read
 `topics/pareto-figures.md` and commit its required scatter, script, and evidence
@@ -128,10 +130,21 @@ once disseminated; later reports carry corrections.
 #### Handouts
 
 Before creating or substantially revising a research handout, follow
-`topics/handout-writing.md`. A handout is a mutable decision snapshot for an
-effectively uninterested first-time reader, not another chronological research
-log. Its claim-bearing comparisons remain subject to the same evidence,
-result-table, and Pareto-figure rules as a paper.
+`topics/handout-writing.md`. A handout is a mutable, two-speed discussion
+snapshot, not another chronological research log: its opening gives an
+uninvolved participant the work's flavor and one evidence-grounded insight,
+while the whole artifact gives an interested reader the representative full
+picture. Its claim-bearing comparisons remain subject to the same evidence,
+result-table, and Pareto-figure rules as a paper. Its cooperative-review
+presentation bar is lower: show decisive evidence and signal/link the complete
+audit trail instead of reproducing every rigorous detail in the main path.
+
+#### Research blogs
+
+Before drafting or substantially revising a research blog post, follow
+`topics/research-blog-writing.md`. The post may select one cool thing that
+worked rather than represent the program, but every claim it makes retains the
+ordinary evidence and provenance standard.
 
 
 ### Paper, log, and task boundaries

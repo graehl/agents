@@ -2057,3 +2057,127 @@ the sweep single-target.
   the measured population is removed rather than rescued by a disclaimer.
 - **Status** — user-specified and trace-simulated; behavioral usefulness and
   the manuscript mechanics remain unmeasured.
+
+## 2026-08-12 — shared technical writing and reconciled progress reports
+
+- **User-defined split** — `technical-writing` owns the shared cold-reader,
+  whole-document synthesis, terminology, evidence separation, self-decoding
+  display, inline-example, and scan-only contracts. `handout-writing` keeps a
+  mutable decision snapshot; `progress-report` keeps a frozen delta stream;
+  `paper-writing` keeps the form-led durable argument after `paper-drafting`
+  selects a publication case. Handouts and progress reports point to paper
+  writing when they preview a publication claim.
+- **Progress generation** — read the prior report, inventory every thread it
+  left active/planned, inspect what was actually done since, and reconcile each
+  promise. The new report begins with a first-contact `Refresher`; every prior
+  thread gets a self-contained `Previously:` followed by exactly one useful
+  shape: continuing `Now:` + `Planned:`, `Tabled because:`, or `Maybe next
+  time:` with an honest revisit condition/timing and likelihood.
+- **Trace: unattended prior promise** — no work happened on a previously
+  planned experiment. The writer restates the full thread in `Previously:` and
+  uses `Maybe next time:` with the actual revisit condition and weak intent. It
+  does not pad the report with `Now: nothing` / `Planned: nothing` or silently
+  drop the promise.
+- **Trace: deliberate stop** — a prior active line loses on cost and baseline
+  strength. `Tabled because:` records that decision and evidence; the generic
+  pursue/hold/park recap may say park without forcing an empty future action.
+- **Trace: real delta** — a thread gains a result that changes the plan. `Now:`
+  presents the evidence, an effective self-describing table or representative
+  input/output example appears inline, and `Planned:` names the next action and
+  verdict. A final narrative/raw-results section may preserve fuller chronology
+  and secondary displays without hiding the central illustration there.
+- **Trace: third update, first attention** — a reader ignored two reports. The
+  program-level refresher restores goal, baseline, vocabulary, and reader aids;
+  each `Previously:` restates its whole thread rather than requiring the old
+  report. The delta body remains chronological where useful without becoming a
+  raw research log.
+- **Trace: shared advice, distinct artifacts** — the common topic makes all
+  three artifacts define terms and caption displays. The handout may throw away
+  chronology, the report retains curated delta chronology after its refresher,
+  and the paper follows its selected form and evidence spine. The shared base
+  does not collapse their lifecycles or reader promises.
+- **Status** — user-specified and trace-simulated; the first real generated
+  report and paper will test whether the split and labels remain natural.
+
+## 2026-08-12 — handouts use the paper rules at a lower proof bar
+
+- **User-defined relationship** — a handout is essentially paper-governed, but
+  its reviewers are curious and non-adversarial. It should be easy and
+  enjoyable to comprehend, may explain what the program provisionally expects
+  or believes it achieved, and is not rewarded for reproducing every rigorous
+  detail. The main path carries claim status, decisive evidence, representative
+  examples, and consequential limitations; links or stable handles signal the
+  complete run/proof/ablation/raw-result trail.
+- **Trace: extensive evidence exists** — twenty ablations and full per-example
+  outputs support one result. The handout presents the principal comparison and
+  one representative example inline, states the important limitation, and
+  links the complete records. It neither hides that rigor nor makes a curious
+  reader endure it before understanding the result.
+- **Trace: aspirational update** — the program has a coherent promising route
+  but no completed decisive experiment. The handout uses the paper-like form
+  and examples to make the possible achievement legible, labels it provisional
+  or speculative, and identifies the evidence that would settle it. The lower
+  proof bar does not turn the aspiration into a finding.
+- **Status** — user-specified and trace-simulated; actual reader response is
+  unmeasured.
+
+## 2026-08-12 — artifact selection and two-speed handouts
+
+- **Selection contracts** — a serious paper selects a theme and form, then
+  backfills evidence and legitimate interest-building work; a handout
+  retrospectively represents what was done, with only a small prospective
+  coordination layer; a progress report reconciles the prior promised
+  frontier against work since; and a research blog selectively showcases one
+  cool thing that worked. These artifacts share technical-writing rules but do
+  not promise the same coverage.
+- **User-defined handout audience** — the social presentation is two-speed.
+  An interested reader should get a representative full picture from the
+  handout as a whole. An uninvolved participant may only scan or join the
+  discussion, but should leave with the flavor of the work and one concrete
+  evidence-grounded insight: for example, which base model or technique won,
+  what a table shows, or why a particular failure is puzzling.
+- **Trace: rewarding is not positive** — a program has no successful method,
+  but its outputs reject the obvious explanation and expose two plausible
+  failure mechanisms. The handout leads with the failure table and examples,
+  asks “why did this fail?”, and supplies enough evidence to discuss the live
+  explanations. It does not invent a success story or bury the negative in an
+  appendix.
+- **Trace: selective opening, representative whole** — a mixed program leads
+  with its most informative base-model comparison, then accounts for the other
+  major bets, failures, current interpretation, and decisions by theme. The
+  casual participant gets one memorable finding; the interested reader does
+  not mistake a blog-like opening for a blog-like omission of the rest.
+- **Status** — user-specified and trace-simulated; reader response and the
+  research-blog cadence remain unmeasured.
+
+## 2026-08-12 — privileged access must produce transferable yield
+
+- **User observation** — readers are more likely to believe a paper contains
+  otherwise unreachable findings when the authors had a compelling advantage
+  the community cannot obtain. The legitimate reader gift is normally a
+  transferable product of that advantage: anonymized user data, commissioned
+  human labels, an evaluation set, aggregate findings, or another useful
+  token, even when the source access itself cannot be shared. Industrial
+  papers from YouTube and similar platforms are canonical examples.
+- **Naming decision** — `privileged-access yield` names the separation between
+  the inaccessible input and the knowledge or artifact transferred out of it.
+  The glossary row is marked unconfirmed because the term is agent-proposed;
+  the underlying distinction is user-specified.
+- **Trace: useful asymmetry** — a model seller analyzes a proprietary
+  deployment corpus, releases a privacy-reviewed evaluation set and labeling
+  protocol, and reports which aggregate conclusions still depend on the full
+  corpus. Readers receive an asset and a bounded finding they could not cheaply
+  have generated themselves.
+- **Trace: prestige without yield** — a paper repeatedly invokes private data
+  and expensive frontier annotations but releases no derivative artifact,
+  omits the measurement protocol, and gives outsiders no falsifier. The access
+  claim increases mystique, not contribution; the attractiveness guidance
+  requires a narrower claim and a candid boundary rather than awarding credit
+  for scarcity alone.
+- **Trace: privacy-constrained release** — row-level data cannot be shared, but
+  aggregate strata, sanitized examples, annotation instructions, uncertainty,
+  and a reproducible public-data comparison can be. The paper states both the
+  transferable layer and the residual trust boundary instead of calling the
+  work fully reproducible or fully closed.
+- **Status** — user-specified distinction and trace simulation; the proposed
+  term and its effect on reader judgment are unmeasured.

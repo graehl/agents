@@ -1,13 +1,17 @@
 # Progress report
 
-> A progress report (research progress report) is a dated instalment in a
-> project's `research/` stream that restates where the program stands for a
-> reader who will not delve into the repo, emphasizes plan changes over run
-> status, and ends every thread with an explicit triage verdict.
+> A progress report (research progress report) is a dated installment in a
+> project's `research/` stream: a first-contact refresher followed by a
+> self-contained `Previously` and an honest current disposition for every
+> research thread promised by the prior report.
 
 Topic: progress-report
 
 ## Reader model
+
+Follow [`technical-writing`](technical-writing.md) for the common cold-reader,
+terminology, evidence-separation, display, and whole-document revision
+contract.
 
 Write for a manager or peer research organization consuming the *stream* of
 reports. Treat each installment as a possible first contact for an effectively
@@ -25,23 +29,98 @@ project git but are unlikely to delve into it. Consequences:
   eval-condition precision standard (see `RESEARCH.md` § Reporting eval
   conditions precisely) applies to the underlying artifacts, which the
   report cites rather than reproduces.
-- Link the program or project glossary near the opening when one exists. The
-  link is a lookup aid, not a substitute for defining dominant jargon and
-  abbreviations at first use.
 - Polish is unimportant; legibility is paramount.
 
-## Synthesis before dissemination
+## Generate by reconciling the previous report
 
-A progress report naturally begins as a chronological accumulation of runs and
-working-session decisions. Before dissemination, perform a substantial
-whole-document consolidate, review, and revise pass. Lead with why the program
-deserves attention now, the current conclusions, and the plan changes they
-cause. Reorganize the body around those conclusions; move supporting chronology
-to references or a short retrospective only when it explains a decision.
+Read the immediately preceding progress report in full, then inspect what was
+actually done since through the relevant working documents, research log, run
+records, result tables, and decisions. Enumerate every thread the previous
+report left active or planned and account for each one in the new report. Add
+new threads only when work since the previous report made them
+decision-relevant.
 
-Merely prepending a summary to a chronological log does not satisfy this pass.
-The report should remain accurate if it is the first installment the reader
-actually reads.
+For the first report, use the program's starting state and original plan as the
+prior frontier and state that no earlier installment exists.
+
+This is a reconciliation, not transcription. The previous report supplies the
+promised frontier; current evidence says what advanced, changed, stalled, or
+disappeared. Do not silently drop an old active/planned item because another
+thread became more interesting.
+
+## Refresher before the delta
+
+After the `follows <previous-report>` pointer, open every installment with a
+clearly marked `## Refresher` or equivalent first-contact section. Restate why
+the program matters now, its current conclusion or baseline, the minimum shared
+vocabulary, and the decision context needed to understand this installment.
+This section pays the same introductory burden as a standalone handout even
+when a regular reader will skim it.
+
+Use this compact opening shape by default:
+
+```markdown
+## Refresher
+
+Context: <why this program and update matter now>
+Goal: <current program objective and success criterion>
+Prior baseline: <state or decision from which this installment departs>
+Reader aids: <glossary and essential prior-report/paper links>
+```
+
+The body may then be more delta- and chronology-oriented than a handout:
+organize by thread, changed result, or order of discovery when that makes the
+program's movement easiest to follow. It is still a curated report, not a raw
+log. Include chronology that changes evidence, interpretation, or plan; move
+routine run status and debugging elsewhere.
+
+When several threads share a real theme, group their sections under that theme
+so coordinated or potentially unifying work is visible. The report remains an
+account of what was done; prospective coordination belongs in concise,
+explicitly planned or speculative lines rather than becoming a paper-style
+backfill program.
+
+Give each continuing thread or aspect this delta shape:
+
+```markdown
+## <thread>
+
+Previously: <prior evidence, interpretation, and plan>
+Now: <new evidence and what changed, with caveats>
+<inline table or representative input/output example when illuminating>
+Planned: <next action, cost/likelihood when material, and
+          pursue | hold | park | wrapped verdict>
+```
+
+`Previously:` is self-contained: describe the whole thread, why it mattered,
+the prior evidence/state, and what had been active or planned. Do not write only
+“unchanged from the last report” or make the reader follow a link to understand
+the thread.
+
+For every prior active/planned thread, use one of these dispositions:
+
+- continuing — `Now:` plus `Planned:` as above;
+- deliberately parked — `Tabled because: <decision and reason>`; or
+- deferred without a firm table decision — `Maybe next time: <credible revisit
+  condition or timing, plus an honest likelihood/intention>`.
+
+These are alternative successors to `Previously:`. Do not write `Now: nothing
+done` followed by `Planned: nothing`; use `Tabled because:` or `Maybe next
+time:` to communicate the actual disposition.
+
+A newly opened thread may use `Previously: Not in the prior report; <why it
+opened now>`. Routine chronology still belongs in the research log.
+
+A final `## Detailed narrative and raw results` section is allowed for fuller
+chronology, supporting tables, and additional examples. Keep the strongest
+self-describing table or representative input/output example inline in the
+thread when it efficiently explains `Now:`; do not make the reader search a
+long final dump to discover the evidence behind the delta.
+
+When several deltas coalesce into a candidate publication claim, consult
+[`paper-writing`](paper-writing.md) for the form-led claim and evidence spine.
+The report can preview that paper case while retaining its own dated-stream
+contract.
 
 ## Scanability and typography
 
@@ -53,9 +132,8 @@ once or twice. Concretely:
   in prose. Bold the runs/conditions that are **new since the previous
   instalment** — the bolded cells are the stream's visual record of
   exploration progress.
-- Captions and adjacent notes identify the population or split and N, metric
-  direction, compared conditions, principal baseline, and the intended
-  takeaway. A table must not require working-session context to decode.
+- Apply the self-decoding display contract from `technical-writing`; emphasize
+  what is new without making the prior baseline visually disappear.
 - A scanner reading only headings, tables, and bolded text must still
   come away with the correct conclusions and triage verdicts.
 
@@ -79,8 +157,8 @@ itself:
 
 Each report implicitly contains all prior reports in the project. That means:
 
-- A brief restatement for a new reader is still wanted — enough orientation
-  that an instalment can be someone's first.
+- The marked refresher above provides enough orientation that an installment
+  can be someone's first.
 - But not full details: refer to older reports, topic docs, and papers for
   anything already established. Do not re-derive prior conclusions; restate
   them in a sentence and link.
@@ -93,13 +171,15 @@ File naming: `research/progress-YYYY-MM-DD.md` in the project repo.
 
 ## Content emphasis
 
-- **Plan changes, not run status.** Every section ends in a decision (a
-  `Plan change:` line or equivalent), not a number dump. Live run state
-  belongs in run metadata and logs, not here.
-- **Explicit triage.** For each thread: the next concrete cell (experiment
-  or deliverable), its cost, the probability it yields something worth
-  keeping, and a verdict — pursue / hold / park / wrapped. A summary table
-  at the end is the standard form. Rationale: a large-scope program must
+- **Plan changes, not run status.** Every continuing thread ends with the
+  `Planned:` decision, not a number dump. Live run state belongs in run metadata
+  and logs, not here.
+- **Explicit triage.** `Planned:` names the next concrete cell (experiment or
+  deliverable), its cost, the probability it yields something worth keeping,
+  and a pursue / hold / wrapped verdict. `Tabled because:` records a park;
+  `Maybe next time:` makes a noncommittal deferral equally visible. A summary
+  table at the end may recap all four triage states. Rationale: a large-scope
+  program must
   deliberately neglect lesser curiosities unless they are cheap or close to
   a nicely tied-up (even if small) paper-ready finding; the report is where
   that neglect is made explicit and accountable rather than implicit drift.

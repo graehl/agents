@@ -2,9 +2,9 @@
 
 Load this routing index before substantive research or experimentation:
 notebooks, train/eval work, significance or comparison claims, paper/report
-proposal or drafting, handout writing, field surveys, prior-art or direction
-ranking, and research-advisor decisions. Read every packet whose observable
-condition matches the next action.
+proposal or drafting, handout or research-blog writing, field surveys,
+prior-art or direction ranking, and research-advisor decisions. Read every
+packet whose observable condition matches the next action.
 
 After compaction or resume, an earlier read is not proof that this policy
 survived. Re-read this index at the next research action boundary unless the
@@ -19,8 +19,8 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 
 - [`RESEARCH/artifacts.md`](RESEARCH/artifacts.md) — before creating,
   reorganizing, or materially updating a research branch's paper proposal,
-  paper, handout, log, task structure, program, result table, or progress
-  report.
+  paper, handout, research blog, log, task structure, program, result table, or
+  progress report.
 - [`RESEARCH/direction.md`](RESEARCH/direction.md) — before field-survey,
   prior-art, or direction-ranking work, and when a material decision or changed
   evidence state triggers the research advisor; also when an advisor-governed

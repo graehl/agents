@@ -36,6 +36,38 @@ where expensive human feedback becomes a released asset. Unreleased expensive
 labels may strengthen the evidence in one paper, but they do not create the
 same downstream community asset.
 
+## Privileged-access yield
+
+A compelling asymmetry is: the authors have a useful advantage that readers
+cannot acquire, but use it to produce something readers can learn from or use.
+Examples include proprietary deployment data, access to internal model
+behavior, rare expert annotators, a frontier model or instrument, and unusual
+compute. The paper is attractive partly because this access could reveal
+findings the ordinary community could not cheaply have reached.
+
+Convert the inaccessible input into a transferable yield whenever possible:
+an anonymized or aggregate corpus, commissioned labels, an evaluation set, a
+measurement protocol, robust empirical regularities, a failure map, or a
+usable design rule. State separately:
+
+- what access or resource was privileged and why it cannot be transferred;
+- what evidence, artifact, or knowledge is actually transferred;
+- what an outside reader can independently inspect, rerun, or falsify; and
+- which claims still depend on trusting the privileged measurement boundary.
+
+The unavailable advantage is context for the contribution, not the
+contribution by itself. A paper that releases no derivative asset may still
+offer unique findings, but it needs enough protocol, aggregate evidence, and
+boundary disclosure for outsiders to judge them.
+
+[Deep Neural Networks for YouTube
+Recommendations](https://research.google/pubs/deep-neural-networks-for-youtube-recommendations/)
+is a canonical industrial version: non-transferable production scale and
+experimentation yield a system description and practical lessons.
+[YouTube-8M](https://research.google/pubs/youtube-8m-a-large-scale-video-classification-benchmark/)
+shows the asset-release version, converting platform-scale access into a
+benchmark intended for community use.
+
 ## Reproducibility and the access ladder
 
 Openness is not binary. State the highest reproducible layer actually supplied

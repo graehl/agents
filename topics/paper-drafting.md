@@ -91,8 +91,10 @@ Matched baseline: <best simple practitioner baseline and verdict>
 Regime: <task, cost, scenario, public-data, and model-access boundary>
 Contribution that survives: <what remains if the headline weakens>
 Community assets: <what can actually be released>
+Privileged access / yield: <inaccessible advantage and transferable output>
 Load-bearing gaps: <missing controls, evidence, or related work>
 Required TBDs: <measurement and outcome that would change the verdict>
+Backfill case: <evidence or interest-building effort justified by this form>
 Paper-shape sketch: <section cadence implied by the governing form>
 Advisor disposition: <latest review or not yet reviewed>
 ```
@@ -101,6 +103,14 @@ Prefer several genuinely distinct candidates to superficial changes of title.
 A paper normally has one governing form. If two candidates would stand as
 separate papers, keep them separate; use the theory-plus-empirical exception
 only when both support the same central claim.
+
+Rank the backfill case with the proposal. A compelling paper shape can justify
+new effort, but only when the expected evidence or reader value is material
+relative to its cost and the unresolved baseline risk.
+
+When privileged access is part of the attraction case, use
+[`paper-attractiveness`](paper-attractiveness.md) to separate the unavailable
+input from the finding or community asset readers actually receive.
 
 ## Promote a selected proposal
 
@@ -126,6 +136,6 @@ Creating the intended v1 of the proposal portfolio or promoted draft is a
 working-document change under `research-advisor.md`. Notify the program advisor
 and propose it for the followed set when its future revisions matter.
 
-Actual manuscript craft, source-format, and build-platform choices remain an
-explicitly untested design in
-[`paper-drafting.sketches.md`](paper-drafting.sketches.md).
+Continue from a promoted proposal under
+[`paper-writing`](paper-writing.md). Its manuscript mechanics remain an
+explicitly untested sketch rather than a prerequisite for proposal selection.

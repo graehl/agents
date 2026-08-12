@@ -200,10 +200,13 @@ fall back to `~/agents/topics/`:
 
 - paper proposal or proposal portfolio — `paper-drafting.md` and
   `paper-reviewer.md`;
-- paper skeleton, working draft, or completion — `paper-drafting.md` and
-  `paper-reviewer.md`;
-- handout — `handout-writing.md`; and
-- progress report — `progress-report.md`.
+- paper skeleton, working draft, or completion — `technical-writing.md`,
+  `paper-writing.md`, and `paper-reviewer.md`;
+- handout — `technical-writing.md`, `paper-writing.md`, and
+  `handout-writing.md`;
+- progress report — `technical-writing.md` and `progress-report.md`; and
+- research blog post — `technical-writing.md`, `paper-writing.md`, and
+  `research-blog-writing.md`.
 
 These topics supply artifact-specific reader and evidence checks; they do not
 change your authority or replace the question asked. For claim-bearing review,

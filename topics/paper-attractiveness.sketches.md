@@ -16,11 +16,14 @@ mislead the reader about. Likely triggers include:
   distribution or disputed value judgment;
 - a memorable example that is not representative of aggregate behavior;
 - expensive compute or labels invoked as prestige when they are not released
-  and do not strengthen the inference; and
+  and do not strengthen the inference;
+- privileged access invoked to imply otherwise unreachable insight when the
+  transferable evidence or artifact is too thin to support that implication;
+  and
 - reproducibility language that could be mistaken for an access layer the
   authors do not provide.
 
 The disclaimer should be short enough to preserve the expository benefit and
 specific enough to remove the false implication. The extreme-draft manuscript
-guide in `paper-drafting.sketches.md` now consumes this rule; it remains
+guide in `paper-writing.sketches.md` now consumes this rule; it remains
 untested authorship guidance until a real paper exercises it.
