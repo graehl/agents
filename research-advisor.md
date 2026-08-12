@@ -192,6 +192,23 @@ a concrete proceed/select-incumbent path. Store the prompt itself, not a
 description of how to reconstruct it. Update its version and digest whenever
 its text changes.
 
+The exact session title is a presentation invariant, never an advisor identity
+or continuity credential. Harnesses and YA may automatically retitle a session.
+When the provider-visible title is absent, unverified, or different from
+metadata, report the expected and observed values to the user and retain the
+mismatch as repair debt, but continue resume, advice, continuity writes, and
+closure when logical advisor id, lifecycle generation/state, exclusive
+ownership, and durable resume identity agree. A title mismatch alone never
+fences a generation, creates a successor, or blocks a consultation.
+
+Permanent prevention belongs in advisor-specific startup/dispatch around the
+generic `session-turn` transport: apply the metadata title after the hosted or
+native resume has actually started, then verify it through the provider's
+authoritative read surface. For Codex that surface is app-server `thread/read`
+`thread.name`, not an assumed raw SQLite field. The hosted-YA and native-resume
+paths still need one verified convergence; see
+[`gaps/research-advisor-session-title-convergence.md`](gaps/research-advisor-session-title-convergence.md).
+
 An advisor may clarify or amplify scope inside the declared program and record
 that gradual evolution by advancing `Scope revision` with provenance. A
 material widening, contraction, or transfer of authority is proposed to the
@@ -264,6 +281,12 @@ Consultation ended at: <ISO-8601 timestamp or none>
 Verified at: <ISO-8601 timestamp>
 ```
 
+`Exact session title` records the observed provider-visible title, not a copy
+of metadata's expectation without provider evidence. Record `unverified` when
+the provider cannot yet be queried; for a mismatch, include both observed and
+expected values and raise the repair to the user. Neither state changes the
+resumability or continuity disposition by itself.
+
 Do not report launcher-recorded initial model/effort as current after a live
 change; label initial-only evidence explicitly or use `unknown`. After the
 advisor's first turn, and whenever its provider session, model, or effort
@@ -318,9 +341,11 @@ followed document. Start or resume every advisor turn with this ordered bundle:
 On its first response in an incarnation, the advisor states the logical id,
 generation, program name/scope, metadata path, exact session title, harness,
 canonical session id, current model and effort with evidence, and resumability
-status. A binding mismatch blocks conflicting continuity writes, not advice:
-state the uncertainty and obtain user resolution before treating the response
-as folded durable state.
+status. If the provider-visible title differs from metadata, state both and
+continue under the nonblocking presentation rule above. A binding mismatch in
+logical id, generation/state, exclusive ownership, or durable resume identity
+blocks conflicting continuity writes, not advice: state the uncertainty and
+obtain user resolution before treating the response as folded durable state.
 
 The advisor applies any followed-document changes requested by the packet, then
 synchronizes every path in `docs/state.md`—committed, staged, unstaged, and

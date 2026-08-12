@@ -2466,3 +2466,33 @@ the sweep single-target.
 - **Status** — user-specified general contract with the YA instance verified
   against current documentation, implementation, and unit tests. Other HTML-
   style viewers remain an aspiration unless their own paths are inspected.
+
+## 2026-08-12 — advisor title is presentation, not continuity
+
+- **User correction** — a generation-2 advisor bring-up considered blocking
+  continuity on a presentation-title mismatch. The user ruled this out:
+  harnesses and YA may automatically retitle sessions, so the title is mutable
+  presentation metadata. Violations are raised to the user and repaired; they
+  never outweigh agreeing logical id, generation/state, ownership, and durable
+  resume identity.
+- **Provider evidence** — the checked-out Codex app-server contract exposes
+  `thread/name/set`; `thread/read` returns `thread.name`, and upstream tests
+  verify that a set name appears in read, list, and resume wire responses.
+  That provider API, rather than an assumed SQLite column, is the correct
+  verification surface. The YA-hosted and native-resume application timing is
+  not yet unified.
+- **Trace: automatic retitle** — advisor generation 2 resumes under the right
+  durable id and exclusively owns the matching logical id/generation, but the
+  harness replaces `Advisor — PII` with prompt-derived text. Literal use now
+  reports expected versus observed, completes the consultation and continuity
+  checkpoint, and leaves title repair debt. It neither starts generation 3 nor
+  withholds advice.
+- **Counter-trace: wrong identity** — the title matches, but the durable resume
+  id or lifecycle generation does not. The title supplies no compensating
+  evidence; conflicting continuity writes remain blocked under the existing
+  identity/ownership rules.
+- **Implementation boundary** — advisor-specific dispatch will eventually set
+  and verify the required title after hosted/native resume begins. Generic
+  `session-turn` continues to own transport selection and receipts only. The
+  unfinished two-path convergence is recorded in
+  `gaps/research-advisor-session-title-convergence.md`.

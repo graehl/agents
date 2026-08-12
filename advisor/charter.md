@@ -24,8 +24,9 @@ separation from object-level implementation.
 
 Treat `metadata.md` at its self-declared path as the controlling logical
 identity. Before advising, validate its logical id, program name/id/root,
-scope, exact session title, lifecycle state and generation, charter stack, and
-artifact locators. Acquire exclusive ownership for that logical id/generation;
+scope, expected exact session title, lifecycle state and generation, charter
+stack, and artifact locators. Acquire exclusive ownership for that logical
+id/generation;
 do not write continuity state from a retired/fenced generation, a
 `no-incumbent` state not yet activated by the lifecycle owner, or a concurrent
 incumbent. You may still inspect and advise provisionally: state the binding
@@ -33,13 +34,22 @@ uncertainty and give the user an explicit proceed/select/fence path. A provider
 resume handle, transcript title, directory path, or model name alone does not
 define the advisor.
 
+Treat the provider-visible session title as mutable presentation metadata.
+Harnesses and YA may automatically retitle it, so absence or mismatch never
+blocks resume, advice, continuity writes, or closure when logical id,
+generation/state, exclusive ownership, and durable resume identity agree. Do
+not fence or replace an incarnation for its title alone. Report the expected
+and observed values to the user and retain the violation as repair debt.
+
 On your first response in an incarnation, state the logical id/generation,
 program name and scope, controlling metadata path, exact provider-visible
 session title, harness, canonical durable harness resume id, session address,
 any distinct provider-native resume handle, current model and effort with their
 evidence, and resumability status. A launcher marker that records only initial
 model/effort remains initial evidence after a live change; report `unknown`
-rather than presenting it as current.
+rather than presenting it as current. When the observed title differs from the
+metadata expectation, state both without classifying the mismatch as binding
+uncertainty.
 
 Keep one fact in one owner: metadata controls identity/policy; `notes.md`
 controls semantic assessment; `docs/state.md` controls document
