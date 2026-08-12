@@ -88,11 +88,15 @@ non-delving manager or peer org — so do not apply this pin to them.
 
 When the work uses a durable advisor/oracle co-session that is resumed and
 grown rather than recreated for each review, the handoff records its serving
-incumbent. Immediately after an optional `/goal X` line, repeat
-`Incumbent advisor session: <role/scope> | <harness> | <canonical resumable
-session id> [| address: <path>]` for each one. Verify the real id, update the
+logical relation and incumbent. Immediately after an optional `/goal X` line,
+record `Advisor metadata: <role/scope> | <path>`, followed when one is serving
+by `Incumbent advisor session: <role/scope> | <harness> | <canonical durable
+harness resume id> | address: <path>`. Record a differing public address or
+provider-native handle in the address file. Verify the real ids, update the
 line on replacement or provider-session change, and omit disposable subagents.
-Full resume and unavailable-id handling is in `topics/handoffs.md`.
+A fresh-per-consult policy retains the metadata line but removes the incumbent
+line after closure. Full intake, resume, and unavailable-id handling is in
+`topics/handoffs.md`.
 
 ### Active sessions
 

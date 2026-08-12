@@ -50,12 +50,15 @@ When a resumed handoff starts with `/goal X`, process that line as a separate
 user turn immediately preceding the remaining handoff, which is the following
 request.
 
-A handoff that relies on a durable advisor-type co-session records every
-serving incumbent's verified canonical resumable session id immediately after
-the optional `/goal X` line. If the provider exposes no recoverable canonical
-id, record that fact and the best durable address instead.
-`topics/handoffs.md` owns the repeatable header syntax and replacement/resume
-behavior.
+A handoff that relies on a durable advisor-type co-session records its logical
+metadata path and every serving incumbent's verified canonical durable harness
+resume id immediately after the optional `/goal X` line. When a public address
+or provider-native handle differs, the local address records each available
+identity. If the durable id is not yet recoverable, record that fact and the
+best durable address instead. An instruction to consult the advisor also
+carries a stable intake id. `topics/handoffs.md` owns the repeatable syntax,
+session-id check, deduplication, completeness-review packet, and treatment of
+advisor claims.
 
 Before creating or updating a handoff, read `topics/handoffs.md` (repo-local,
 else global). Maintain the handoff already governing the work only at

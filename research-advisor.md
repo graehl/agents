@@ -1,11 +1,12 @@
-# RESEARCH ADVISOR — object-session handoff and routing
+# RESEARCH ADVISOR — logical continuity and object-session routing
 
 This protocol governs the object-level research session and the transport to a
-long-lived, separately resumable advisor. `advisor/charter.md` governs how the
-advisor reasons and responds. Load this protocol when a `RESEARCH.md` invocation
-condition fires or graehl operationally addresses or refers to “the advisor.”
-The advisor is treated as always at hand even though its session is resumed or
-started only on demand.
+durable logical advisor that may outlive any provider session or model.
+`advisor/charter.md` governs how the advisor reasons and responds. Load this
+protocol when a `RESEARCH.md` invocation condition fires or graehl
+operationally addresses or refers to “the advisor.” The advisor is treated as
+always at hand even though its serving session is resumed or started only on
+demand.
 
 ## Scope and continuity
 
@@ -15,11 +16,15 @@ The default unit is one research program. Discover program roots by the
 vocabulary only, so no subdirectory forks an advisor by merely existing. A
 program advisor uses:
 
+- `research/<program>/advisor/metadata.md` for logical identity, program
+  binding, lifecycle, and restart control;
 - `research/<program>/advisor/notes.md` for its compact current assessment;
 - `research/<program>/advisor/docs/state.md` for its followed-document list
   and last-review state;
+- `research/<program>/advisor/intake.md` for handled interaction/revision and
+  handoff-intake deduplication records;
 - `research/<program>/advisor/session.local.md` for its machine-local
-  transport address;
+  current-incarnation transport, model, and effort;
 - `research/<program>/advisor/sessions/` for completed session logs.
 
 The directory basename is the stable program slug. Every paper, report, log,
@@ -31,20 +36,52 @@ fallback under `research/advisor/` with the same layout. A project-wide advisor
 may follow multiple root-level threads; it does not absorb a program merely to
 share context.
 
+Below, `<advisor-dir>` means that resolved program directory or project-wide
+fallback. The logical reboot bundle is
+`<advisor-dir>/{metadata.md,notes.md,docs/state.md,intake.md}`; the current
+incarnation is `<advisor-dir>/session.local.md`; cold transcript provenance is
+under `<advisor-dir>/sessions/`. Handoffs record the exact metadata path rather
+than asking a successor to repeat scope discovery.
+
 Create the advisor directory on first actual handoff, not merely because a
-project has a `research/` directory. The advisor's continuous transcript is the
-v1 working memory: resume the same session rather than starting a clean reviewer
-for each packet. The advisor maintains `notes.md`, in whatever compact structure
-best preserves its current understanding, as a self-contained statement of
-current scope state. It is not a copy of the transcript, a persona prompt, or
-another chronological research log.
+project has a `research/` directory. The logical advisor is the stable
+program-to-advisor relation named in `metadata.md`; a provider session is one
+generation-fenced incarnation. The default policy is one continuous, growing
+session, consulted infrequently at the invocation conditions, rather than a
+clean reviewer per packet. A program may deliberately choose fresh per consult
+or another policy in metadata.
 
-The two durable state files have distinct roles:
+The continuous transcript remains valuable working memory, but logical
+continuity is the durable bundle: metadata, compact semantic notes, document
+cursor, intake ledger, and available post-watermark transcript. This permits a
+failed compaction, lost resume handle, or deliberate model/provider migration
+without silently creating an unrelated advisor. The advisor maintains
+`notes.md`, in whatever compact structure best preserves its current
+understanding, as a self-contained statement of current scope state. It is not
+a copy of the transcript, a persona prompt, or another chronological research
+log.
 
+The durable state files have distinct roles:
+
+- `metadata.md` controls identity, declared scope, artifacts, lifecycle
+  generation, exact session title, literal restart prompt, and policies;
 - `docs/state.md` is the mechanical read cursor: which documents were resolved,
   at what repository revision, plus fingerprints for dirty or untracked text;
 - `notes.md` is the semantic state: the advisor's synthesized understanding of
-  the program after reading through that cursor.
+  the program after reading through that cursor, including its present progress
+  assessment and ranked outstanding proof requests; and
+- `intake.md` is the append-only operational ledger that makes retries and
+  repeated handoff presentations idempotent.
+
+Keep one fact in one owning artifact. `metadata.md` points to the other files
+but does not copy their content; integrity receipts may project their current
+digests/watermarks without restating their claims;
+`docs/state.md` contains no program assessment, decision, objection, or proof
+request; `notes.md` contains no transport address; `intake.md` records the
+packet/memo provenance rather than another program summary; and
+`session.local.md` contains no durable policy. The only deliberate projections
+are the logical advisor id, lifecycle generation fence, and cross-file
+watermark/digest needed to detect a stale or split-brain write.
 
 Do not create a parallel `state-understanding.md`. After every successful
 followed-document synchronization, reconcile `notes.md` against what was read
@@ -65,59 +102,194 @@ standalone work or genuinely cross-program decisions. If scope is ambiguous,
 list the discovered program glossaries and choose from those stable slugs
 rather than inventing another advisor directory.
 
-When an advisor session is deliberately replaced or can no longer be usefully
-resumed, archive its available provider transcript or lossless export under
-`sessions/` before starting the successor. Use a chronological filename and
-preserve the native format rather than rewriting the exchange into a cleaner
-story. If no transcript export is available, archive the best available
-session handoff and label it as a summary. `notes.md` must remain sufficient to
-start the successor without replaying every archive; archived sessions are for
-recovering provenance, exact prior wording, and drift that the compact state may
-have lost.
+## Establishing the logical advisor
 
-`notes.md` follows the project's normal tracking policy for research documents.
-The project may commit or locally retain the much larger `sessions/` archives;
-state that choice in `notes.md`, and never make its current assessment depend on
-an archive unavailable to the next intended reader. Provider resume locators
-are machine-local session metadata, not committed research notes.
+At first use, consciously choose and record the human program name, stable
+program id/slug, declared program root, advisor scope, governing overall
+progress/plan, and advisor metadata site. Normally the declared program's
+`advisor/` directory is the only appropriate site. Use the project-wide
+fallback only for genuinely root-level or cross-program work, and record why
+that broader site is correct. Choose an exact session title derived from the
+program name, normally `Advisor — <Program name>`; generic startup-prompt text
+is not an acceptable durable title.
 
-`<advisor-dir>/session.local.md` is the durable address the object-level
-research session or user uses to resume the advisor. On first creation, exclude
-that exact path through the repository-local Git exclude unless it is already
-ignored; never commit it. Keep this minimal schema:
+Create `<advisor-dir>/metadata.md` from this minimum control schema:
 
 ```markdown
-Advisor scope: <project-root-relative research scope>
-Harness: <provider/harness resume command>
-Session ID: <canonical resumable identifier>
-Reported at: <ISO-8601 timestamp>
+# Advisor metadata
+
+Schema version: 1
+Logical advisor ID: <stable id>
+Program name: <human-readable name>
+Program ID: <stable slug or id>
+Program root: <project-root-relative path or project-wide>
+Advisor scope: <precise program responsibility>
+Scope revision: <monotonic integer>
+Scope provenance: <user decision or non-contradictory clarification source>
+Governing progress/plan: <path(s)>
+Metadata path: <project-root-relative metadata.md path>
+Metadata site rationale: <why this program or fallback site is correct>
+Exact session title: Advisor — <Program name>
+Lifecycle generation: <monotonic integer>
+Lifecycle state: active | no-incumbent | retired
+Predecessor: <logical id/generation/session, or none>
+Replacement reason: <reason, or none>
+Charter stack: <global then project/program amendments>
+Semantic notes: <notes.md path>
+Document state: <docs/state.md path>
+Intake ledger: <intake.md path>
+Session archives: <sessions/ path and tracking/availability policy>
+Consultation policy: <triggers/cadence; normally long-lived and infrequent>
+Restart policy: <resume-continuous | fresh-per-consult | other explicit policy>
+Model/effort policy: <preference or migration rule; current values are local>
+Restart prompt version: <integer>
+Restart prompt SHA-256: <digest of the literal block below>
+
+## Restart prompt
+
+<literal prompt supplied to every fresh incarnation>
 ```
 
-After the advisor's first turn, and whenever its provider session changes, the
-advisor reports its harness and canonical session id; the object-level owner
-verifies and safely updates this file. Lifecycle—continue, close, replace, or
-split—remains controlled by the object-level research session or user. The
-address records that decision; it does not create a standing router.
+The literal restart prompt names the logical advisor id, program name and
+scope, exact metadata path, and expected session title. It instructs the new
+incarnation to validate the metadata generation and acquire exclusive
+ownership; load the charter stack, notes, document state, intake ledger, and
+available post-watermark transcript; reconcile all fold/document/intake debt;
+avoid continuity writes from a retired or fenced generation; and report its
+binding and current transport facts. Binding uncertainty does not suppress a
+useful read-only advisory response: label it, preserve state, and offer the user
+a concrete proceed/select-incumbent path. Store the prompt itself, not a
+description of how to reconstruct it. Update its version and digest whenever
+its text changes.
 
-When a working handoff covers work served by this advisor, copy the verified
-harness, scope, canonical id, and address path into its repeatable
-`Incumbent advisor session:` header from `topics/handoffs.md`. The local address
-remains the transport source of truth; the handoff header makes the serving
-incumbent visible before the successor reads deeper state. Update both when the
-provider session changes.
+An advisor may clarify or amplify scope inside the declared program and record
+that gradual evolution by advancing `Scope revision` with provenance. A
+material widening, contraction, or transfer of authority is proposed to the
+user and recorded only after resolution; advice alone does not authorize it.
 
-On the first handoff, use this protocol to start the advisor. Its first
-transaction creates `notes.md` with its initial scope and assessment, using a
-`none` fold watermark if no turn has yet been folded, and `docs/state.md` with
-the initial followed set and completed-review state. For a program advisor,
-the program's `GLOSSARY.md` is the first required followed document. Start or
-resume every advisor turn with this ordered bundle:
+Validated metadata and charter are sufficient user-established standing for
+ordinary consultation and advisor-owned continuity writes; they do not make
+the advisor a supervisor of object-level work. Its objections, recommendations,
+and want-to-sees express its assessment. A want-to-see is a condition for the
+advisor's confidence unless a cited user/governing artifact independently makes
+it a worker gate.
+
+`metadata.md`, `notes.md`, `docs/state.md`, and `intake.md` are the ordinary
+logical-reboot bundle and follow the project's durable research-document
+tracking policy. `sessions/` is optional cold provenance: it may repair
+post-watermark debt or recover exact wording, but an ordinary reboot must not
+depend on replaying pre-watermark archives. Only `session.local.md`, backups,
+temporary siblings, and a live lease are current-incarnation scratch state.
+
+## Start, resume, repair, and succession
+
+When legacy advisor state lacks `metadata.md`, first ask the still-resumable
+prior advisor for its proposed program binding and scope, current assessment of
+program progress, and ranked outstanding proof requests. Reconstruct and repair
+the logical bundle in place when the program binding and provenance are
+verifiable, the semantic state is usable, and no competing incarnation exists.
+An evolved schema is not by itself a reason to discard continuous context.
+
+Start a successor only when required by recorded policy or when the incumbent
+is unresumable, retired/fenced, irreconcilably wrong-scope, missing/corrupt in
+its semantic state, missing transcript across material fold debt, or one of
+multiple incumbents that cannot be put in a verified order. Before the
+successor starts, archive the available provider transcript or lossless export
+under `sessions/`, fold the contiguous available debt, fence the old
+generation, and increment `Lifecycle generation` in metadata. Publish the
+successor address only after it has loaded and validated that generation. A
+different provider or model may serve the same logical advisor; preserve the
+logical id and record the migration as a new generation. A live model/effort
+change within one still-resumable session may stay in the same generation, but
+its later advice retains the changed provenance.
+
+Use a chronological archive filename and preserve the native format rather
+than rewriting the exchange into a cleaner story. If no transcript export is
+available, archive the best available session handoff and label it as a
+summary. `notes.md` must remain sufficient to start the successor without
+replaying every archive; archives recover provenance, exact prior wording, and
+post-watermark drift that compact state may have lost.
+
+`<advisor-dir>/session.local.md` is the local projection used to resume the
+current incarnation. On first creation, exclude that exact path through the
+repository-local Git exclude unless it is already ignored; never commit it.
+Keep this schema:
+
+```markdown
+Logical advisor ID: <metadata.md logical id>
+Lifecycle generation: <metadata.md generation>
+Advisor scope: <project-root-relative research scope>
+Exact session title: <provider-visible title>
+Harness: <provider/harness resume command>
+Session ID: <canonical durable harness resume identifier, or unavailable>
+Session address: <public URL or other durable address, or unavailable>
+Provider resume ID: <distinct provider handle, same, or unavailable>
+Current model: <verified current model, or unknown>
+Model evidence: <source and observation time>
+Current effort: <verified current effort, or unknown>
+Effort evidence: <source and observation time>
+Resumability: verified | unverified | failed
+Consultation state: open | closed-idle | partial-idle
+Consultation ended at: <ISO-8601 timestamp or none>
+Verified at: <ISO-8601 timestamp>
+```
+
+Do not report launcher-recorded initial model/effort as current after a live
+change; label initial-only evidence explicitly or use `unknown`. After the
+advisor's first turn, and whenever its provider session, model, or effort
+changes, the advisor reports these facts; the object-level owner verifies and
+safely updates this file. Once an expected session id is established, the
+consulting worker checks the local projection before dispatch with:
+
+```bash
+test "$(awk -F': ' '$1 == "Session ID" {print $2}' <advisor-dir>/session.local.md)" = "<expected-session-id>"
+```
+
+This checks the recorded durable harness id; initial establishment or
+replacement also requires evidence that its address and any distinct provider
+resume handle are usable. YA normally puts this durable id at the end of its
+public session URL. A backend whose canonical id or redirect is not yet
+implemented records the available address and `Session ID: unavailable`; do
+not silently promote an alias or backend-native handle. The object-level
+session or user controls lifecycle. The local projection records that decision;
+it does not create a standing router. At consultation close, write this
+projection last. Its filesystem mtime, or the latest mtime among advisor files
+covered by the receipt, is acceptable evidence for the recorded end time; a
+later write makes that closure timestamp stale rather than invalidating prior
+advice.
+
+When a working handoff covers work served by this advisor, record the exact
+`metadata.md` path in its `Advisor metadata:` line and copy the verified
+harness, scope, canonical id, and `session.local.md` path into its repeatable
+`Incumbent advisor session:` line from `topics/handoffs.md`. Update both
+surfaces when the provider session changes. Under a fresh-per-consult policy,
+fence the serving generation and mark metadata `no-incumbent`, then remove
+`session.local.md` and the incumbent line after verified closure while
+retaining the logical metadata line. The next consult increments the generation
+and marks it active before starting its fresh provider session.
+
+On the first handoff, use this protocol to establish metadata before starting
+the provider session. Its first transaction creates `notes.md` with an initial
+progress assessment and ranked proof requests, using a `none` fold
+watermark if no turn has yet been folded; `docs/state.md` with the initial
+followed set and completed-review state; and `intake.md` with its schema header.
+For a program advisor, the program's `GLOSSARY.md` is the first required
+followed document. Start or resume every advisor turn with this ordered bundle:
 
 1. `~/agents/advisor/charter.md`;
 2. optional project-wide and program charter amendments;
-3. the resolved `notes.md`, when it exists;
-4. the resolved `docs/state.md`, when it exists;
-5. the current interaction turn: initial packet or focused follow-up.
+3. the resolved `metadata.md`;
+4. the resolved `notes.md`;
+5. the resolved `docs/state.md`;
+6. the resolved `intake.md`; and
+7. the current interaction turn: initial packet or focused follow-up.
+
+On its first response in an incarnation, the advisor states the logical id,
+generation, program name/scope, metadata path, exact session title, harness,
+canonical session id, current model and effort with evidence, and resumability
+status. A binding mismatch blocks conflicting continuity writes, not advice:
+state the uncertainty and obtain user resolution before treating the response
+as folded durable state.
 
 The advisor applies any followed-document changes requested by the packet, then
 synchronizes every path in `docs/state.md`—committed, staged, unstaged, and
@@ -131,9 +303,13 @@ default to the entire `research/` tree.
 Serial advising is the expected mode. Before processing a packet, the advisor
 registers an active-session scope covering its advisor directory and checks for
 another live session claiming the same scope. If one exists, route the packet to
-that session or wait; do not start a competing advisor. Immediately before
-writing `notes.md` or archiving a session, repeat the peer check and re-read the
-target.
+that session or avoid a competing continuity write. A non-owner may still
+inspect and respond provisionally with the ownership uncertainty visible.
+Immediately before writing any continuity artifact or archiving a session,
+repeat the peer check, re-read the target, and verify that the logical
+id/generation in metadata, session projection, lease, and target projection
+still match. A fenced older generation does not write even if its provider
+session later resumes; it can still advise read-only.
 
 This active-session convention detects ordinary collisions but is not an atomic
 lock: two launches can both pass a check before either registers. A launcher or
@@ -142,11 +318,15 @@ atomic, scope-keyed, stale-recoverable lease before resuming or creating an
 advisor. Hold it for one delivered advisor-turn transaction, including
 note/archive writes, and release it while the advisor awaits the next
 object-level turn. Until that lease exists, a detected
-collision stops rather than merging two advisors' state after the fact.
+collision prevents automatic state merging, not a provisional advisory reply.
+Surface the owners and let the user select/fence one when routing cannot
+resolve it.
 Before implementing such automation, specify its owner record and recovery:
-harness/session or occurrence id, host, PID plus process-start identity,
-claim/heartbeat time, phase, and the evidence required to retire a stale
-lease. PID liveness alone is insufficient.
+logical advisor id/generation, harness/session or occurrence id, host, PID plus
+process-start identity, claim/heartbeat time, phase, and the evidence required
+to retire a stale lease. PID liveness alone is insufficient. This generation
+fence prevents both simultaneous split brain and an old incarnation's later
+ABA-style resurrection after a successor has published.
 
 The charter governs safe note replacement and session archiving. The router
 must ensure its backup/temporary paths are ignored or locally excluded before
@@ -167,20 +347,66 @@ An operational user mention of “advisor” also invokes it:
   design and does not recursively invoke it.
 
 The initial packet opens an advisor interaction, not a one-shot remote procedure
-call. Assign the interaction a stable id for its research scope and
-claim/decision. Clarification, rebuttal, advisor-requested evidence, and rapidly
-evolved prototype results may continue as turns or evidence revisions under
-that id, including across provider-session resumptions. The object-level
-researcher or user decides whether and how long to continue the discussion; the
-router may keep, resume, or split provider sessions at its discretion.
+call. Its author assigns a stable id for the research scope and claim/decision;
+the id is not derived from the packet hash. Clarification, rebuttal,
+advisor-requested evidence, and rapidly evolved prototype results continue as
+turns or explicit revisions under that id, including across provider-session
+resumptions. The object-level researcher or user decides whether and how long
+to continue the discussion.
 
-Reuse the interaction id plus revision when retrying delivery. The advisor
-treats an already completed revision as idempotent and returns its prior memo
-only when both the turn and synchronized followed-document state are unchanged.
-Changed evidence, a followed-document delta, a changed decision, or an explicit
-request to reconsider gets a new revision in the same interaction. Keep the
-latest handled interaction/revision for each live program in compact notes so a
-successor can deduplicate without replaying settled archives.
+Prefix only the first delivered turn of an interaction:
+
+```text
+[from working-agent <harness> <canonical-durable-session-id>; interaction <interaction-id>]
+```
+
+Later turns inherit it. End the requester's final turn with the matching
+`[sign-off working-agent <harness> <canonical-durable-session-id>; interaction
+<interaction-id>]`; a one-turn consultation may carry both lines. The envelope
+is claimed routing provenance and a post-sign-off return address, not
+cryptographic authentication or an authorization token. Do not add the usual
+subagent/non-user authorization disclaimer. If the advisor must report a
+material correction or emergency after sign-off, label it `post-sign-off
+notice` and address that harness/session. Otherwise a later request starts a
+new interaction envelope.
+
+`working-agent` tells the advisor to scrutinize material progress/completion,
+result-interpretation, and inferred-user-intent claims for advocacy or
+self-reinforcement. A factual update that the user explicitly said X, including
+a later superseding instruction, gets ordinary/default skepticism and is
+accepted normally. The identified session/log is merely the usual cheap
+verification option when an actual material conflict independently warrants
+it, not a special proof burden.
+
+Before dispatch, finalize the packet and normally compute its SHA-256. Record
+in `intake.md` the stable interaction id, handled time/status, requester,
+handoff or packet path, digest when available, advisor incarnation, and prior
+memo or durable pointer. A semantic/document watermark is optional context for
+explaining a changed response. Prior completed records are append-only.
+Missing optional provenance is `unavailable`; it does not suppress advice.
+
+The stable interaction id is the primary repeat cue. If the packet digest and
+semantic watermark also match, return or recap the cached memo. If either
+changed, say the interaction was seen before and provide a fresh or delta
+response as useful; do not demand a revision ceremony. A completed duplicate
+delivered by another successor is not by itself a double-agent incident;
+report concurrent ownership only when live session/lease evidence establishes
+it. `topics/handoffs.md` adds handoff-specific completeness-repair fields.
+
+Use this compact append-only record shape; a later status or closure appends a
+linked record:
+
+```markdown
+## <interaction-id> · <packet-sha256-or-unavailable> · <status> · <ISO-8601 time>
+
+Requester: <harness> · <canonical durable session id or unavailable>
+Requester sign-off: open | <ISO-8601 time> | unavailable
+Advisor incarnation: <logical id>/<generation> · <provider session id>
+Source: <handoff/packet path> · SHA-256 <digest or unavailable>
+Status: received | answered | closed | interrupted | superseded
+Response: <exact memo or durable path>
+Related record: <prior/newer record or none>
+```
 
 ## Fold-in debt
 
@@ -233,6 +459,17 @@ reconciliation before it treats compact notes as current. Matching markers mean
 the advisor deliberately considered the synchronized document state; they do
 not imply that every statement in the documents is correct or endorsed.
 
+Near its watermarks, `notes.md` maintains a dated current assessment of program
+progress: what is established, provisional, blocked, or unproven; the strongest
+evidence and missing gates; and the advisor's confidence. It also maintains a
+ranked `Want-to-sees` section for deliverables, gates, or discriminating
+observations the advisor has requested but has not received proof of. Every
+item carries a stable id, current rank, requested proof, the decision it would
+change, what it discriminates, an objective closure criterion, status, and
+originating interaction/revision. Reordering, weakening, satisfying,
+withdrawing, or reopening an item records the evidence or reason; a new
+incarnation does not reset the list.
+
 ## Followed documents
 
 `<advisor-dir>/docs/state.md` is the one authoritative followed-document list
@@ -275,6 +512,41 @@ the current harness cannot address the harness/session pair recorded in
 packet, marked `UNDELIVERED`, for forwarding; never fabricate an advisor
 response.
 
+Use the interaction envelope above for every delivered packet. Its harness and
+session id identify the requester and provide a possible return address after
+sign-off; they neither grant authority nor require a repeated prefix on later
+turns in the same interaction.
+
+`Conclude advisor interaction <interaction-id>/<revision>` is the normal
+leave-call message and carries the matching requester sign-off. It asks the
+advisor to reconcile the current followed
+documents; fold every contiguous transcript turn through the interaction;
+update the program-progress assessment and ranked proof requests in `notes.md`;
+complete the intake record; write `session.local.md` last as `closed-idle` or
+`partial-idle` with the consultation end time; return a closure receipt; and
+release its live lease/active ownership while remaining resumable. Do not
+forcefully terminate the provider session as a substitute for this fold.
+
+The closure receipt states logical id/generation/session, current model/effort
+and evidence, metadata/notes/document/intake paths plus resulting watermarks or
+digests, folded-through turn, remaining debt, consultation state and its end
+timestamp/mtime evidence, and whether the session remains the incumbent. The
+working session verifies the receipt against files and runs the established
+session-id Bash check. Under a fresh-per-consult policy, only after this
+verification does it remove `session.local.md` and the handoff's incumbent
+line; the durable logical bundle remains.
+
+If the advisor hangs or disappears after interaction, the working session
+first attempts resume and requests the same close. Once provider and active/
+lease evidence establish that no serving advisor can complete it, the worker
+may recover continuity in place: archive available transcript, fold only
+verbatim or otherwise verifiable conclusions through a contiguous point,
+record the interrupted intake and remaining debt, and repair lifecycle and
+transport projections. It must not invent an advisor assessment, close an
+unproven proof request, or overwrite a live owner. If the remaining state is
+not safely reconstructable, fence the generation and start a successor under
+the restart rules.
+
 ## Object session → advisor packet
 
 Keep the initial packet short—normally at most 350 words excluding direct
@@ -308,13 +580,24 @@ packet.
 
 The global charter and optional amendments govern the advisor's review,
 challenge-memo format, independence, compact-state maintenance, and succession.
-The object session must not simulate that review when transport is unavailable.
+The object session must not present its own assessment as the advisor's when
+transport is unavailable. It may still give a clearly labeled working-session
+assessment and the exact forwardable packet, plus an explicit user choice to
+proceed without advisor delivery.
+For handoff completeness repair, use `topics/handoffs.md` § Advisor intake for
+handoff repair rather than translating a normal challenge memo ad hoc.
 
 ## Return and durable notes
 
 Return the memo without laundering it into the object session's preferred
 story. Quote or link the advisor memo first; place any object-session rebuttal
 or updated interpretation after it as a separate response.
+
+Evaluate every advisor claim under `topics/handoffs.md` § Evaluating advisor
+output, not only claims emitted during handoff repair. Verified facts and
+non-contradictory adjacent context may repair omissions autonomously; material
+conflicts with user-authorized scope remain tentative until the user resolves
+them, and advice never supplies authorization for rescope.
 
 `ask` packets and automatic pre-decision triggers hold the material decision
 until the advisor has answered the current revision or graehl explicitly

@@ -1603,3 +1603,179 @@ the sweep single-target.
   Codex default complete-result ceiling. Behavioral benefit remains assumed;
   the user explicitly chose judgment and trace simulation rather than new
   experimental validation for this migration.
+
+## 2026-08-12 — logical advisor continuity and handoff repair
+
+- **Trigger** — user-directed design and implementation. A serving advisor is
+  one incarnation of a durable program relationship, not the relationship
+  itself. Resume failure, failed compaction, model migration, or a deliberate
+  fresh-per-consult policy must preserve the accumulated assessment and its
+  outstanding requests. A handoff-taking worker should also be able to ask
+  that advisor once to repair important context the handing-off session omitted.
+- **State ownership** — `metadata.md` owns logical identity, program
+  binding/scope, exact title, generation, restart prompt, and policies;
+  `notes.md` owns semantic assessment, program progress, and ranked
+  want-to-sees; `docs/state.md` owns only the document cursor; `intake.md` owns
+  packet/memo deduplication; `session.local.md` alone projects the current
+  session/model/effort. Logical id, generation, and integrity watermarks are
+  the only deliberate cross-file projections. Cold session archives may repair
+  debt but ordinary reboot cannot require pre-watermark replay.
+- **PII-advisor audit** — the existing PII research advisor was resumed and
+  asked to challenge the generic scheme before authorship. Its consequential
+  additions were generation fencing against split brain/ABA resurrection,
+  explicit program-site/title choice, a literal stored restart prompt,
+  append-only intake provenance, and stable ranked want-to-see ids with closure
+  criteria. Its current local address also supplied a real successful check of
+  the new single-command session-id comparison; that check does not claim
+  provider resumability by itself.
+- **Trace: continuous migration/restart** — a resumable legacy advisor lacks
+  metadata but has usable notes and document state. The worker first asks that
+  advisor for scope, progress assessment, and ranked wants, repairs in place,
+  and retains the incumbent. An unresumable successor preserves logical id,
+  folds contiguous debt, fences and increments the generation, loads the
+  durable bundle with the literal restart prompt, and publishes its address
+  only after validating the binding. Schema age alone never destroys context.
+- **Trace: exact retry and double worker** — the same intake id/revision,
+  packet digest, and semantic watermark returns the cached memo. A retry from a
+  later completed successor is harmless; only live ownership evidence raises a
+  double-agent concern. A changed digest under the same revision is reconciled
+  or deliberately revised rather than being mistaken for the prior packet.
+- **Trace catch: repaired handoff changed its hash** — the first draft left a
+  pending intake line in place after advisor-recommended edits. Those edits
+  changed the file digest, so the next worker would see a conflicting retry.
+  The final contract transitions the line to `Advisor intake completed`,
+  recording the reviewed pre-repair digest and memo; another review requires a
+  deliberate new revision. A crash before this transition remains safe because
+  an exact retry returns the cached memo.
+- **Trace: advice authority** — a verifiable need-to-know omission inside the
+  authorized scope is accepted as a repair; a non-contradictory adjacent fact
+  is accepted with calibrated confidence; attached next work stays advisory;
+  and a material contradiction or rescope is marked tentative and sent to the
+  user without blocking unrelated safe work. The advisor cannot widen worker
+  authorization by describing the broader program.
+- **Trace: interaction close** — continuous policy receives a conclude message,
+  folds documents/transcript/intake, updates progress and wants, returns a
+  verifiable receipt, releases ownership, and remains resumable. Fresh-per-
+  consult additionally fences the generation and removes the local incumbent
+  projection after receipt verification. A hung advisor gets resume/close
+  recovery first; a worker may fold only verifiable contiguous material and
+  cannot invent assessment or close an unproven want.
+- **Status** — user-approved and trace-simulated; behavioral benefit remains
+  `assumed`. The PII advisor migration is the first intended live reboot test.
+
+## 2026-08-12 — advisor guards become advisory evidence, not gates
+
+- **User correction** — the first logical-continuity contract overfit the
+  “only get advice once” goal into an exact `(intake id, fingerprint, semantic
+  watermark)` transaction. It required pending/completed handoff transitions
+  and treated a changed digest under one intake revision as conflicting input.
+  The user judged that a continuous advisor remembering previous starts is
+  enough to raise possible redundancy, and explicitly prioritized useful
+  imperfect compliance over refusal caused by imperfect guards.
+- **Superseding decision** — the stable intake id is now a continuity cue, not
+  a one-shot gate. A matching fingerprint encourages a cached recap; changed
+  handoff or program state gets a stated fresh/delta response. Fingerprints,
+  watermarks, receipts, and optional provenance diagnose what happened but do
+  not suppress advice or demand revision ceremony. The worker need not mutate
+  the handoff through a pending/completed state machine.
+- **Residual hard boundary** — an uncertain or competing lifecycle generation
+  still cannot safely write/merge continuity state automatically. It can
+  inspect and advise read-only with explicit uncertainty, naming the competing
+  state and giving the user a select/fence/proceed path. Thus even the write
+  guard cannot end only in refusal.
+- **Trace: modified handoff** — worker B presents the same intake id after
+  worker A or the user edited the handoff. The advisor says it saw the prior
+  attempt, identifies the meaningful delta if any, and recaps or refreshes its
+  advice. It neither rejects the packet nor requires a new revision id.
+- **Trace: imperfect ledger/receipt** — a digest is unavailable or closure
+  updates notes but misses an optional intake field. The advisor records
+  `unavailable` or returns a partial-closure receipt, preserves remaining debt,
+  and still supplies useful advice plus recovery choices. No optional
+  bookkeeping condition becomes a user-attention dead end.
+- **Cost model** — keep cheap identity/generation projection, one Bash session-
+  id check, stable intake id, and visible provenance. Additional integrity
+  evidence earns its execution and prompt cost only by helping diagnose a
+  concrete mismatch; it is not correctness theater required before advising.
+
+## 2026-08-12 — separate broker and provider advisor identities
+
+- **Live catch** — the PII advisor migration exposed two valid identifiers:
+  YA's canonical public session id, used in URLs and worker-facing continuity,
+  and a distinct Codex provider resume id visible in the serving transcript.
+  Calling either one the sole "canonical resumable id" made a locally correct
+  check capable of validating the wrong surface.
+- **Decision** — `session.local.md` records both when they differ. Handoffs and
+  the one-command check use the broker's canonical public id; provider-native
+  handles remain transport detail in the address. An unbrokered provider may
+  use the same value for both. Missing provider evidence remains explicit and
+  does not suppress read-only advice.
+- **Cost/trace** — this adds one local metadata line only when useful. A worker
+  resumes the YA URL from the handoff while the advisor or recovery path can
+  still reach the Codex incarnation. A stale or missing backend handle lowers
+  resumability confidence and offers recovery choices; it does not invalidate
+  the public session or turn the identity check into an advice gate.
+
+## 2026-08-12 — canonical advisor id is the harness resume id
+
+- **User correction** — YA session URLs already end in the durable harness
+  resume id. The prior entry's generic phrase "broker public id" was too loose:
+  a public alias is not automatically canonical, and another backend may defer
+  canonical-id or redirect support for implementation reasons.
+- **Superseding decision** — handoffs and `Session ID` use the canonical
+  durable harness resume id. `session.local.md` separately records the public
+  URL/address and any provider-native handle. When canonicalization is not yet
+  implemented, preserve the address and state that the id is unavailable; do
+  not guess or block useful advice.
+
+## 2026-08-12 — persistent advisors still close consultations
+
+- **User requirement** — ending one consultation must be visible and timestamped
+  even when the serving session deliberately remains persistent.
+- **Decision/cost** — `session.local.md` gains consultation state and end-time
+  fields and is written last at close. `closed-idle` preserves the incumbent;
+  `partial-idle` preserves named debt. The file's mtime, or the latest mtime
+  among advisor files covered by the receipt, is sufficient cheap timestamp
+  evidence; no separate transaction log or forced session termination is
+  required.
+
+## 2026-08-12 — advisor interactions carry a return address
+
+- **User requirement** — use one simple origin prefix at interaction open and
+  a matching sign-off, not the repeated harness boilerplate that warns
+  subagent messages cannot carry user authorization.
+- **Decision/cost** — the envelope records requester harness, canonical durable
+  session id, and interaction id once; later turns inherit it. Sign-off closes
+  the interaction while leaving a persistent advisor resumable, and preserves
+  an address for a labeled material correction or emergency. The two short
+  lines are provenance only: no authentication or authorization inference.
+
+## 2026-08-12 — advisor standing is not supervisory authority
+
+- **User observation** — a PII worker appeared unusually deferential to its
+  advisor. The advisor's criticisms may have deserved acceptance because their
+  factual flaws were verifiable, but the advisor was never intended to impose
+  hard task requirements merely through objections or ranked requests.
+- **Decision** — validated metadata/charter is sufficient user-transitive
+  standing for consultation and advisor-owned state maintenance. It does not
+  require signed authorization and does not make the advisor a supervisor.
+  Want-to-sees normally state evidence needed for the advisor's confidence;
+  only a cited user/governing artifact turns one into a worker gate.
+- **Compression** — replace per-turn ritual with four questions only at a
+  material boundary: evidence, fact-versus-advice, conflict with governing
+  state, and clarification-versus-new-gate/rescope. Apply the evidence side
+  symmetrically to worker and advisor; keep authority anchored in the user and
+  governing artifacts.
+
+## 2026-08-12 — working-agent envelope scopes advisor skepticism
+
+- **User direction** — advisor interactions opened by an object worker carry a
+  one-time `[from working-agent <harness> <session>; interaction <id>]` and a
+  matching sign-off. The tag tells the advisor that goal/result/intent
+  interpretations may have self-reinforced and warrant explicit skepticism;
+  it also leaves a return address for a post-sign-off emergency notification.
+- **Correction while drafting** — do not extend that skepticism to routine
+  factual updates such as “the user has since said X instead.” Those receive
+  ordinary/default skepticism and are normally accepted. The source session
+  makes transcript verification possible when an actual material conflict
+  independently calls for the usual cheap check; it does not impose a proof
+  burden or introduce signed-message paranoia.

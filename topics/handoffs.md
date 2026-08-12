@@ -64,14 +64,27 @@ Include only what that reader needs to resume accurately:
   the rest of the handoff. When no formal loop exists but a checkable goal would
   usefully govern continuation, the handoff may declare one the same way;
 - immediately after that optional subject-goal line—or as the opening line when
-  none exists—repeat this header for every durable advisor, oracle, or similar
-  co-session that is deliberately resumed and grown across interactions:
-  `Incumbent advisor session: <role/scope> | <harness> | <canonical resumable
-  session id> [| address: <path>]`. Recover and verify the real provider
-  id rather than inventing one. Omit disposable subagents and fresh-per-review
-  sessions; update the header when the incumbent is replaced, split, or moved
-  to another provider session;
-- after the optional goal and incumbent-session lines, the remaining scope,
+  none exists—record `Advisor metadata: <role/scope> | <path>` for every
+  durable advisor, oracle, or similar logical relation on which the handoff
+  relies. Follow it, when an incumbent is serving, with `Incumbent advisor
+  session: <role/scope> | <harness> | <canonical durable harness resume id> |
+  address: <path>`. Record a differing public address or provider-native handle
+  in the address file. Recover and verify the real ids rather than inventing
+  one. Omit disposable subagents; update both surfaces when the incumbent is
+  replaced, split, or moved to another provider session. Under a fresh-per-
+  consult policy, keep the metadata line and remove the incumbent line after a
+  completed consultation;
+- for an advisor-linked program, name the human-readable program, stable slug
+  or id, controlling program-progress/plan artifact, and how this handed-off
+  scope fits that trajectory. A path or project name alone is not this broader
+  context chain;
+- when the handing-off agent judges one completeness review useful, add
+  `Advisor intake: <stable-id> | consult before <boundary>`.
+  Follow it with `Advisor output policy: <path> § Evaluating advisor output`,
+  normally pointing here or to a project-local equivalent. This line
+  requests one logical intake under the redundancy rules below; the mere
+  advisor metadata/incumbent lines do not;
+- after the optional goal and advisor-control lines, the remaining scope,
   acceptance boundary, and current status;
 - compiled understanding that is expensive to reconstruct: the crux,
   load-bearing constraints, and ruled-out paths with reasons;
@@ -83,20 +96,111 @@ Include only what that reader needs to resume accurately:
   deeper recovery.
 
 An opening `/goal X` needs no additional handoff structure by itself;
-applicable incumbent-advisor headers still follow it. On resume, process the
-goal as though the user had entered that command in its own turn immediately
-before entering the remaining handoff. The remainder may therefore include
-later or “after” work retained through the provider's normal goal/plan
-facility. Merely writing or updating the stored handoff still does not begin
-executing it.
+applicable advisor metadata, incumbent, intake, and output-policy lines still
+follow it. On resume, process the goal as though the user had entered that
+command in its own turn immediately before entering the remaining handoff. The
+remainder may therefore include later or “after” work retained through the
+provider's normal goal/plan facility. Merely writing or updating the stored
+handoff still does not begin executing it.
 
-An incumbent-advisor header identifies which accumulated co-session is serving
-the work; it does not authorize contacting or replacing that advisor. On
-resume, reconcile the header with its address file and live provider state,
-then continue the same session. Start a fresh advisor only when the governing
-lifecycle deliberately replaces the incumbent or the recorded session cannot
-be usefully resumed. If the provider exposes no recoverable canonical id, say
-so and preserve the best durable address instead of fabricating one.
+An advisor-metadata line identifies the logical relation and its controlling
+state. An incumbent-advisor header identifies which provider session currently
+serves it. Neither line alone authorizes contacting or replacing the advisor;
+an `Advisor intake:` line or a separate user instruction does. On resume,
+validate the metadata's scope and lifecycle generation, reconcile the header
+with its address file and live provider state, then continue the same logical
+advisor. Start a fresh provider session only when its restart policy requires
+one or the incumbent cannot be usefully resumed. If the provider exposes no
+recoverable canonical id, say so and preserve the best durable address instead
+of fabricating one. A public alias and distinct provider-native resume handle
+belong in that address, not in place of the durable harness resume id.
+
+## Advisor intake for handoff repair
+
+The handing-off agent decides whether a completeness review is useful and
+places the `Advisor intake:` instruction in the handoff. The successor
+does not mint one merely because advisor metadata exists. Before dispatch, it
+reads the linked metadata, follows its restart prompt/policy, verifies the
+current incumbent against the address, and computes SHA-256 over the exact
+handoff file bytes when readily available; otherwise it supplies
+`digest unavailable` and continues. For the established `Session ID: <id>`
+address schema, this is the minimum local consistency check, with the expected
+id taken from the provider session being addressed:
+
+```bash
+test "$(awk -F': ' '$1 == "Session ID" {print $2}' <advisor-dir>/session.local.md)" = "<expected-session-id>"
+```
+
+A successful string check does not prove resumability; establish the usable
+address and any distinct provider resume handle when starting or replacing the
+incumbent. If canonicalization or redirect support is postponed, record the
+available address and unavailable id rather than promoting an alias. On a
+mismatch, report the material state discrepancy and try the metadata restart/
+recovery path. If useful advice can still be given safely, obtain it with the
+binding uncertainty explicit; otherwise present the user with the exact
+mismatch and a proceed/choose-incumbent path rather than ending in refusal.
+
+Present the exact handoff plus its path, stable intake id, available file
+digest, requester harness/session id, and advisor notes/document watermarks to
+the advisor. Prefix this first turn with the interaction's `[from working-agent
+...]` line; later turns inherit it, and the final requester turn carries the
+matching `[sign-off working-agent ...]`. These lines are routing provenance,
+not authorization, and do not need a repeated disclaimer. The identified
+session remains available for ordinary cheap verification when an actual
+material conflict warrants it; reports of later explicit user instructions get
+no extra skepticism. Ask the advisor to repair omissions, not to reinterpret an
+already authorized scope. The response classifies:
+
+- need-to-know facts omitted from the handed-off scope;
+- corrections or conflicts with the handoff;
+- broader program bearings as `required now`, `useful now`, or `later`;
+- attached next steps that could follow the handed-off scope;
+- proposed material rescope; and
+- the minimal concrete handoff repairs it recommends.
+
+The author-chosen intake id is the advisor's primary continuity cue. The file
+digest and synchronized semantic watermark are diagnostic evidence, not gates.
+When the id was handled before, the advisor says so, briefly notes whether the
+handoff or program state changed, and recaps the prior response or supplies a
+fresh/delta response as useful. A modified handoff may be a legitimate new
+worker start and never requires a revision ceremony merely because its digest
+changed. A retry from another completed successor is normally harmless; mention
+possible stale handoff or unintended duplicate work without blocking advice,
+and flag a concrete double-agent concern only when live ownership evidence
+shows two workers concurrently own the same handed-off scope.
+
+After receiving and evaluating the memo, the worker may annotate the intake
+line with a durable memo pointer when that materially helps the next reader,
+but completion does not require another handoff state transition. Advisor
+awareness and its intake ledger carry the repeat history.
+
+## Evaluating advisor output
+
+Validated advisor metadata/charter supplies user-established standing to give
+an independent, long-horizon opinion and maintain advisor state; it does not
+make the advisor a worker supervisor. In particular, an objection or ranked
+want-to-see is a condition for the advisor's confidence, not a task gate unless
+a cited user/governing artifact independently says so.
+
+Apply this compact check only when a claim could materially change belief,
+scope, acceptance, or the next material action—not on every turn:
+
+- cheaply verify checkable claims and calibrate confidence to the evidence;
+- distinguish supported factual context or omission repair from advice such as
+  recommendations, objections, attached next steps, and want-to-sees;
+- mark a material conflict with user-approved scope, criteria, or governing
+  choices tentative and ask the user to resolve it, while continuing unrelated
+  safe work; and
+- accept clarification inside the declared program, but route a new hard gate
+  or material rescope to the user.
+
+The evidence test is symmetric: advisor and worker should assess each other's
+claims by support rather than role. Authority remains anchored in the user and
+governing artifacts. A verified need-to-know fact inside authorized scope can
+repair the handoff, and non-contradictory adjacent context can be accepted;
+neither requires deference to the advisor as an authority. A reported later
+explicit user instruction gets ordinary/default skepticism, not a signature or
+special transcript-proof requirement.
 
 No rigid section template is required. Do not include chat/tool chronology,
 empty ceremonial sections, or an `Audience:` line. Collaborator-relevant
@@ -110,8 +214,13 @@ worktree, recent commits, active sessions, run/on-deck metadata, artifacts, and
 only then provider logs needed to fill a specific gap. State a material
 discrepancy rather than silently forcing live evidence to fit the handoff.
 For every incumbent-advisor header, verify that the recorded id still matches
-the serving address before dispatch; a changed incumbent is material state,
-not incidental session metadata.
+the serving address before dispatch, and verify that the address generation
+matches the logical metadata. `closed-idle` means the prior consultation ended
+while the persistent incumbent remained resumable; `partial-idle` names debt
+to reconcile, not a refusal to consult. The recorded end time may be checked
+against the latest covered advisor-file mtime when its freshness matters. A
+changed incumbent or generation is material state, not incidental session
+metadata.
 
 ## Sketches
 
