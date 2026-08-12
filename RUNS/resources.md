@@ -1,10 +1,12 @@
 # Run resources and launch authority
 
-> Rules and rationale for GPU-visible Python, capacity use, on-deck fillers, and routine run-operation authority.
+> Rules and rationale for GPU-visible Python, storage preflight, capacity use,
+> on-deck fillers, and routine run-operation authority.
 
 Read this packet before a Python command that may import a local accelerator
-stack, before allocating GPU capacity, or before launching an on-deck filler.
-`RUNS.md` is the router and wins on conflict.
+stack, before allocating GPU capacity, before a run with a nontrivial storage
+footprint, or before launching an on-deck filler. `RUNS.md` is the router and
+wins on conflict.
 
 ## Binding rules
 
@@ -28,6 +30,16 @@ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,garbage_collection_threshold:0.
 
 Source a project `env.sh` that sets it or export it explicitly before detached
 jobs. `PYTORCH_ALLOC_CONF` (without `CUDA_`) is silently ineffective.
+
+### Storage preflight
+
+Before a run likely to write substantial outputs, checkpoints, cache entries,
+or temporary files, estimate what it will write and check free space on every
+filesystem it will use. Include output, model/data cache, checkpoint, and temp
+mounts rather than checking only the working directory. Resolve insufficient
+space before launch; remove only artifacts known to be stale under the normal
+deletion and shared-worktree rules. A remote worker also follows its project's
+host/storage runbook.
 
 ### GPU utilization and parallelism policy
 
@@ -73,6 +85,15 @@ only when the remaining alternatives materially differ.
 
 
 ## Retained detail and examples
+
+### Storage preflight
+
+The relevant capacity is the smallest writable filesystem in the run's whole
+path, not the repository volume alone. Model downloads may fill a cache mount,
+checkpoint rotation may temporarily require both old and new checkpoints, and
+package or data staging may consume a worker root volume even when the final
+output goes elsewhere. Record or report a material capacity assumption when a
+long run depends on it.
 
 ### GPU access for Python ML commands
 

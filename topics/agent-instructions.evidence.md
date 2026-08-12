@@ -1574,3 +1574,32 @@ the sweep single-target.
   invent one. If no canonical id is recoverable, the handoff states that fact
   and preserves the best durable address; replacement remains a lifecycle
   decision rather than an accidental fresh start.
+
+## 2026-08-12 — recover generic run invariants from a project boot
+
+- **Trigger** — the draft research repository had accumulated generic RUNS
+  rules alongside narrow Qwen/LoRA/MT defaults in one project boot. The user
+  directed a claim-by-claim migration: generic research/run policy is replaced
+  by the global packet set (or a vendored fallback), while evidence scoped to
+  the original small-open-weight MT adaptation sprint stays behind concrete
+  project cues. No new experiment was authorized or needed for classification.
+- **Generic improvements retained** — two draft rules survived comparison as
+  useful for runs generally: preflight every filesystem a substantial run will
+  write (outputs, checkpoints, caches, and temp), and represent multi-stage
+  workflows as durable atomic run records with runtime estimates when useful.
+  `RUNS.md` now routes the storage condition; `RUNS/resources.md` owns the
+  preflight; `RUNS/provenance.md` owns stage boundaries and estimates.
+- **Trace: CPU data build** — a non-GPU corpus build writes a large cache and
+  temp tree. The storage cue reaches resources even though the accelerator cue
+  does not, preventing a root-volume failure without loading monitoring.
+- **Trace: train/decode/score chain** — separate tracked records expose which
+  stage failed and permit selective restart. A purely mechanical decode may be
+  prequeued; a score-dependent choice waits for interpretation.
+- **Trace: unrelated PII paper** — generic RESEARCH/RUNS remains applicable,
+  but Qwen batch sizes, MT prompt formats, LoRA checkpoint anecdotes, and
+  TRT-LLM blend mechanics do not load unless their project cue matches.
+- **Read cost** — the router grew 104 bytes; resources grew 1,022 bytes and
+  provenance 941 bytes. The largest changed packet remains below the measured
+  Codex default complete-result ceiling. Behavioral benefit remains assumed;
+  the user explicitly chose judgment and trace simulation rather than new
+  experimental validation for this migration.

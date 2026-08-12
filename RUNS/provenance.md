@@ -46,6 +46,14 @@ reproduction. Use the default tracked form for research outputs; use
 `--no-aim` only for genuinely trivial runs that need launcher/process handling
 but no durable run record.
 
+For a multi-stage workflow, prefer one durable run per atomic stage when the
+stages have distinct outputs or semantic gates: train, decode, score,
+bootstrap, and export are separate records rather than one shell-wrapped
+pipeline. Prequeue only mechanically determined successors; when the next
+stage depends on interpreting the result, wait and inspect it first. Supply a
+runtime estimate when the duration is reasonably predictable so status and
+handoff records expose the expected horizon.
+
 Stable non-secret project launch defaults may live in tracked
 `agentctl.env`. Ambient variables override it, then `--source-env`, then
 explicit `--env KEY=VALUE`. Never put secrets there. When one output path must
@@ -275,6 +283,13 @@ launch you might later need to reproduce, audit, or trace. Two tiers:
   launcher and an agent-permission boundary (one trusted binary in PATH instead
   of raw shell exec) without paying the dump cost. Per project-local
   run-record policy, trivial janitorial commands do not need Aim records.
+
+Keep multi-stage work as a sequence of those records when stage boundaries
+produce independently useful artifacts or require a validity decision. A
+monolithic shell command hides which stage failed and makes provenance and
+selective restart needlessly coarse. Use `--after` for a successor whose gate
+is mechanical; otherwise inspect the predecessor before submitting the next
+record. Add `--runtime-estimate` when a useful estimate is available.
 
 When one output path must both reach the payload as `--KEY=PATH` and be
 declared for provenance, use `agentctl start ... --output-arg KEY=PATH`. It
