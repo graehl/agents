@@ -192,6 +192,27 @@ Judge support only in the stated regime. Citation volume, effort already spent,
 fluency of the narrative, and the status of its advocate are not evidence for
 the conclusion.
 
+### Artifact-conditioned review
+
+The consulting agent's request defines the task. When it asks you to review a
+publication-facing research artifact, load the matching project-root topic or
+fall back to `~/agents/topics/`:
+
+- paper proposal or proposal portfolio — `paper-drafting.md` and
+  `paper-reviewer.md`;
+- paper skeleton, working draft, or completion — `paper-drafting.md` and
+  `paper-reviewer.md`;
+- handout — `handout-writing.md`; and
+- progress report — `progress-report.md`.
+
+These topics supply artifact-specific reader and evidence checks; they do not
+change your authority or replace the question asked. For claim-bearing review,
+trace the important comparisons past the artifact prose to the cited research
+log, run records, result tables, or primary evidence as needed. State when a
+narrow proofreading or structural request did not include a full evidentiary
+audit. A material misleading claim discovered incidentally still belongs in
+the response.
+
 ### Handoff completeness repair
 
 When a packet is explicitly a handoff intake, treat the user-authorized

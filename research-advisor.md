@@ -36,8 +36,27 @@ fallback under `research/advisor/` with the same layout. A project-wide advisor
 may follow multiple root-level threads; it does not absorb a program merely to
 share context.
 
-Below, `<advisor-dir>` means that resolved program directory or project-wide
-fallback. The logical reboot bundle is
+An explicit user request may establish an additional advisor scoped to one
+paper or other publication artifact inside a declared program. This is an
+ordinary logical research advisor with a narrower recorded scope, not a new
+advisor type. For a program paper at
+`research/<program>/papers/<paper-slug>.md`, its default metadata site is:
+
+```text
+research/<program>/papers/<paper-slug>/advisor/
+```
+
+It owns only its own logical bundle and does not replace or write the program
+advisor's state. Seed it with the program glossary, proposal, draft, relevant
+evidence-bearing documents, and a focused current-program packet; add further
+documents through its own followed set. The program advisor remains the owner
+of the broader program trajectory. A handoff that relies on either or both
+advisors records each exact metadata path and serving incumbent using the
+repeatable syntax in `topics/handoffs.md`.
+
+Below, `<advisor-dir>` means the resolved program directory, project-wide
+fallback, or explicitly established artifact-scoped directory. The logical
+reboot bundle is
 `<advisor-dir>/{metadata.md,notes.md,docs/state.md,intake.md}`; the current
 incarnation is `<advisor-dir>/session.local.md`; cold transcript provenance is
 under `<advisor-dir>/sessions/`. Handoffs record the exact metadata path rather
@@ -104,6 +123,12 @@ standalone work or genuinely cross-program decisions. If scope is ambiguous,
 list the discovered program glossaries and choose from those stable slugs
 rather than inventing another advisor directory.
 
+The only narrower routing exception is an explicitly established
+artifact-scoped advisor whose metadata names that document and scope. Do not
+infer one merely from a paper directory or from a request for paper review;
+use the program advisor unless the user requested the dedicated advisor or its
+metadata and handoff already establish it.
+
 ## Establishing the logical advisor
 
 At first use, consciously choose and record the human program name, stable
@@ -111,9 +136,11 @@ program id/slug, declared program root, advisor scope, governing overall
 progress/plan, and advisor metadata site. Normally the declared program's
 `advisor/` directory is the only appropriate site. Use the project-wide
 fallback only for genuinely root-level or cross-program work, and record why
-that broader site is correct. Choose an exact session title derived from the
-program name, normally `Advisor — <Program name>`; generic startup-prompt text
-is not an acceptable durable title.
+that broader site is correct. An explicitly established artifact-scoped
+advisor instead uses the resolved narrow site above and records that scope in
+its rationale. Choose an exact session title derived from the program name,
+normally `Advisor — <Program name>`; generic startup-prompt text is not an
+acceptable durable title.
 
 Create `<advisor-dir>/metadata.md` from this minimum control schema:
 

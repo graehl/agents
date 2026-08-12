@@ -1,10 +1,12 @@
 # Research artifacts and publication
 
-> Rules, templates, and rationale for research branches, programs, logs, papers, result tables, and progress reports.
+> Rules, templates, and rationale for research branches, programs, logs, paper
+> proposals, papers, handouts, result tables, and progress reports.
 
 Read this packet before creating, reorganizing, or materially updating a
-research branch's paper, log, task structure, program, result table, or progress
-report. `RESEARCH.md` is the router and wins on conflict.
+research branch's paper proposal, paper, handout, log, task structure, program,
+result table, or progress report. `RESEARCH.md` is the router and wins on
+conflict.
 
 ## Binding rules
 
@@ -40,6 +42,19 @@ declaration scopes vocabulary only; it does not create an advisor/program
 boundary. Declare a program only when its evidence stream and narrative are
 independent enough to benefit from separate advising.
 
+#### Paper proposals and program drafts
+
+Before choosing or pitching a paper form or focus, follow
+`topics/paper-drafting.md`. A multi-paper program keeps the comparative index
+at `research/<program>/paper-proposals.md`, may split developed candidates
+under `research/<program>/paper-proposals/`, and promotes a selected candidate
+to `research/<program>/papers/<paper-slug>.md`. Existing papers directly below
+a program root need no migration.
+
+The intended v1 of a proposal portfolio or promoted draft is a working-document
+change for the program advisor. Use `topics/paper-reviewer.md` when asking the
+advisor to test the publication case.
+
 #### Research log conventions
 
 Prepend entries. Each experiment records what/why, the verbatim command, and
@@ -50,6 +65,9 @@ whenever the paper's headline conclusion changes. The full entry template is
 below under the second “Research log conventions” heading.
 
 #### Research paper conventions
+
+Use `topics/paper-drafting.md` before selecting or materially changing a
+paper's governing form or focus.
 
 When a paper compares at least three systems on quality versus cost, read
 `topics/pareto-figures.md` and commit its required scatter, script, and evidence
@@ -106,6 +124,14 @@ For sizable programs, periodically write a dated
 `topics/progress-report.md`: each installment restates enough for a new reader,
 expands condition names, ends every thread with pursue/hold/park, and freezes
 once disseminated; later reports carry corrections.
+
+#### Handouts
+
+Before creating or substantially revising a research handout, follow
+`topics/handout-writing.md`. A handout is a mutable decision snapshot for an
+effectively uninterested first-time reader, not another chronological research
+log. Its claim-bearing comparisons remain subject to the same evidence,
+result-table, and Pareto-figure rules as a paper.
 
 
 ### Paper, log, and task boundaries

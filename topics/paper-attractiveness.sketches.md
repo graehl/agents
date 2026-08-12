@@ -21,5 +21,6 @@ mislead the reader about. Likely triggers include:
   authors do not provide.
 
 The disclaimer should be short enough to preserve the expository benefit and
-specific enough to remove the false implication. Promote this into the future
-paper-authoring instructions only when that phase is designed.
+specific enough to remove the false implication. The extreme-draft manuscript
+guide in `paper-drafting.sketches.md` now consumes this rule; it remains
+untested authorship guidance until a real paper exercises it.

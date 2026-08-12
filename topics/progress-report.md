@@ -10,8 +10,10 @@ Topic: progress-report
 ## Reader model
 
 Write for a manager or peer research organization consuming the *stream* of
-reports. They may have access to the project git but are unlikely to delve
-into it. Consequences:
+reports. Treat each installment as a possible first contact for an effectively
+uninterested reader: they may have ignored the earlier updates until the
+program demonstrated something worth attention. They may have access to the
+project git but are unlikely to delve into it. Consequences:
 
 - Conclusions must be legible from the report alone. Links to papers, topic
   docs, and run artifacts are optional depth for the rare delving reader,
@@ -23,7 +25,23 @@ into it. Consequences:
   eval-condition precision standard (see `RESEARCH.md` § Reporting eval
   conditions precisely) applies to the underlying artifacts, which the
   report cites rather than reproduces.
+- Link the program or project glossary near the opening when one exists. The
+  link is a lookup aid, not a substitute for defining dominant jargon and
+  abbreviations at first use.
 - Polish is unimportant; legibility is paramount.
+
+## Synthesis before dissemination
+
+A progress report naturally begins as a chronological accumulation of runs and
+working-session decisions. Before dissemination, perform a substantial
+whole-document consolidate, review, and revise pass. Lead with why the program
+deserves attention now, the current conclusions, and the plan changes they
+cause. Reorganize the body around those conclusions; move supporting chronology
+to references or a short retrospective only when it explains a decision.
+
+Merely prepending a summary to a chronological log does not satisfy this pass.
+The report should remain accurate if it is the first installment the reader
+actually reads.
 
 ## Scanability and typography
 
@@ -35,6 +53,9 @@ once or twice. Concretely:
   in prose. Bold the runs/conditions that are **new since the previous
   instalment** — the bolded cells are the stream's visual record of
   exploration progress.
+- Captions and adjacent notes identify the population or split and N, metric
+  direction, compared conditions, principal baseline, and the intended
+  takeaway. A table must not require working-session context to decode.
 - A scanner reading only headings, tables, and bolded text must still
   come away with the correct conclusions and triage verdicts.
 

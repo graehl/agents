@@ -2008,3 +2008,52 @@ the sweep single-target.
   in their main files and move candidate bodies into adjacent companions.
   Glossary regeneration and web-digest routing exclude the new suffix so it is
   neither indexed as an independent topic nor loaded into routine web context.
+
+## 2026-08-12 — evidence-first paper drafting and advisor review
+
+- **User-defined workflow** — a research program first keeps competing,
+  strength-ranked publication cases in `paper-proposals.md`; developed cases
+  may split into taxonomy-named cards, and a selected case promotes to a
+  working draft while its proposal freezes as the candid selection record.
+  The form is chosen only after assessing effect size, uncertainty, matched
+  simple-practitioner baselines, cost, public-data, scenario, and model-access
+  scope. Manuscript mechanics remain an explicitly untested sketch.
+- **Advisor routing** — paper proposal, draft, handout, and progress-report
+  checks are artifact-conditioned capabilities of a full research advisor, not
+  reduced advisor types. The program advisor is the default. An explicitly
+  requested draft-scoped advisor still loads the standard charter and durable
+  startup bundle, uses a manually selected followed set, and owns separate
+  state at the already-defined paper path. Paper-work handoffs identify every
+  advisor on which they rely.
+- **Trace: weak result** — an intervention has a promising point estimate but
+  no uncertainty estimate and has not faced the best cheap public-data
+  baseline. Literal application marks the headline case unsupported and
+  redirects attention to an empirical audit, failure atlas, or `credible-if`
+  proposal. It does not manufacture significance by changing the story.
+- **Trace: real advance** — a stable, practically material gain beats the
+  matched practitioner baseline in the named cost and access regime. The same
+  evidence-ceiling rule permits a headline-result proposal; it does not force
+  every program into a defensive audit form.
+- **Trace: promotion** — one candidate accumulates a substantial skeleton and
+  becomes selected. Its full card moves out of the comparative index, then
+  freezes and links to the new working draft. The proposal remains the
+  selection rationale while the draft becomes the sole evolving narrative.
+- **Trace: advisor scope** — an ordinary paper-review request reaches the
+  program advisor with its full prior context. A user-requested draft-only
+  advisor receives the same standard competence plus its manually chosen
+  program evidence, without writing the program advisor's bundle or requiring
+  another directory convention. A narrow copyedit may disclaim a full evidence
+  audit, while still surfacing a materially misleading claim it encounters.
+- **Trace: cold-reader artifacts** — a third progress handout is mostly a run
+  chronology with internal checkpoint names and unlabeled tables. The
+  handout/progress rules reorganize it around the current claim and decision,
+  link the glossary, define first-use jargon, and make tables self-decoding.
+  Merely prepending an executive summary fails; a mutable handout may be
+  rewritten, while a disseminated dated progress report remains frozen.
+- **Trace: attraction signal** — a representative privacy failure or actual
+  released label set may communicate the supported contribution directly. A
+  charged “safety” label that could imply a broader guarantee receives a short
+  footnote naming the mismatch. An evocative crime example unrepresentative of
+  the measured population is removed rather than rescued by a disclaimer.
+- **Status** — user-specified and trace-simulated; behavioral usefulness and
+  the manuscript mechanics remain unmeasured.
