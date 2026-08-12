@@ -2181,3 +2181,47 @@ the sweep single-target.
   work fully reproducible or fully closed.
 - **Status** — user-specified distinction and trace simulation; the proposed
   term and its effect on reader judgment are unmeasured.
+
+## 2026-08-12 — advisor delivery uses the generic session-turn boundary
+
+- **Trigger** — user directed implementation of the generic advisor-
+  communication helper, required live tests after a full YA provider-host
+  restart, and required waiting for concurrent advisor-governance work to
+  clear before mandating the helper. A first native fallback inherited the
+  launching worker's `AGENTCTL_SESSION_ID` and temporarily overwrote its
+  active-session banner, establishing that direct provider resume is not a
+  safe advisor transport boundary by default.
+- **Decision** — `research-advisor.md` now requires `session-turn` for every
+  delivered advisor turn. The trigger-loaded protocol maps the durable
+  `session.local.md` identities into the generic transport and keeps advisor
+  envelopes, leases, and epistemic evaluation outside the helper. YA HTTP,
+  direct provider resume, worker stdin, and transcript watching are not
+  parallel fallback paths. Submission ids remain per-provider-turn receipt
+  identities rather than being conflated with multi-turn advisor interaction
+  ids.
+- **Trace: hosted incumbent** — a verified idle advisor has a matching YA
+  worker. Literal use reaches that worker's queue, emits acceptance before
+  provider events, and returns one terminal receipt without a second resume.
+  Disposable live Claude and Codex incumbents both passed this trace after the
+  host restart. A separate headless host with no registered Hono generation
+  also resumed disposable Codex, completed a turn, persisted its receipt, and
+  shut down its owned runtime cleanly.
+- **Trace: no incumbent** — the host records no acceptance, so the helper
+  warns and resumes natively. The child receives the target YA identity when
+  supplied, otherwise the durable provider id, plus the target harness; caller
+  provider ids, YA's Bash identity bridge/wake capability, and launch-depth/
+  model markers are removed. Live native Claude and Codex smokes returned the
+  target session ids; the isolated regression test would fail under the
+  reported caller-banner leak or a distinct YA/provider identity mix-up.
+- **Trace: ambiguous post-acceptance disconnect** — the helper receives host
+  acceptance and then loses the stream. Exit 12 plus the exact receipt lookup
+  prevents a direct/native retry from duplicating the advisor turn. A stored
+  terminal status can still recover completion. Both branches are covered by
+  public-interface socket tests.
+- **Trace: unsupported address** — an advisor records an unsupported harness
+  or unavailable canonical id. The mandate does not encourage guessing or a
+  raw transport bypass: it retains the existing `UNDELIVERED` packet path and
+  forbids a fabricated advisor response.
+- **Status** — fifteen isolated behavior tests and five disposable live
+  harness/transport smokes pass. The transport invariants are observed; the
+  effect of the advisor mandate on future agent choice remains `assumed`.

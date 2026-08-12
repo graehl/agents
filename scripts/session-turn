@@ -1,0 +1,719 @@
+#!/usr/bin/env python3
+# acli: 1
+"""Send one turn to a durable provider session and stream JSONL output."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import signal
+import socket
+import stat
+import subprocess
+import sys
+import tempfile
+import uuid
+from pathlib import Path
+
+HOST_PROTOCOL_VERSION = 2
+DESCRIPTOR_VERSION = 1
+MAX_TURN_BYTES = 900 * 1024
+MAX_HOST_REQUEST_BYTES = 1024 * 1024
+
+EXIT_SUCCESS = 0
+EXIT_PROVIDER_FAILURE = 10
+EXIT_TRANSPORT_FAILURE = 11
+EXIT_UNCERTAIN_DELIVERY = 12
+
+NATIVE_SESSION_OWNED_ENV_NAMES = (
+    "AGENTCTL_SESSION_ID",
+    "AGENTCTL_LAUNCH_DEPTH",
+    "AGENTCTL_NO_PROC_SESSION_ID",
+    "BASH_ENV",
+    "CLAUDECODE",
+    "CLAUDE_CODE_SESSION_ID",
+    "CODEX_THREAD_ID",
+    "PI_CODING_AGENT",
+    "YEP_AGENT_HARNESS",
+    "YEP_AGENT_INITIAL_MODEL",
+    "YEP_AGENT_INITIAL_EFFORT",
+    "YEP_ORIGINAL_BASH_ENV",
+    "YEP_SESSION_WAKE_URL",
+    "YEP_SESSION_WAKE_TOKEN",
+)
+
+
+class TransportFailure(Exception):
+    """The selected transport failed before a provider accepted the turn."""
+
+
+class NativeFallback(Exception):
+    """The host proved that native resume cannot duplicate an accepted turn."""
+
+
+def emit(record: dict) -> None:
+    print(json.dumps(record, separators=(",", ":")), flush=True)
+
+
+def provider_host_runtime_dir() -> Path | None:
+    if sys.platform != "linux":
+        return None
+    explicit = os.environ.get("YEP_PROVIDER_HOST_RUNTIME_DIR", "").strip()
+    if explicit:
+        return Path(explicit).resolve()
+    xdg_runtime = os.environ.get("XDG_RUNTIME_DIR", "").strip()
+    if xdg_runtime:
+        return Path(xdg_runtime).resolve() / "yep-anywhere" / "provider-host"
+    return Path(tempfile.gettempdir()) / f"yep-anywhere-{os.getuid()}" / "provider-host"
+
+
+def require_private_path(path: Path, kind: str) -> os.stat_result:
+    info = path.lstat()
+    if info.st_uid != os.getuid():
+        raise TransportFailure(f"provider host {path} is not owned by this user")
+    correct_kind = {
+        "directory": stat.S_ISDIR,
+        "file": stat.S_ISREG,
+        "socket": stat.S_ISSOCK,
+    }[kind]
+    if not correct_kind(info.st_mode):
+        raise TransportFailure(f"provider host {path} is not a {kind}")
+    if stat.S_IMODE(info.st_mode) & 0o077:
+        raise TransportFailure(f"provider host {path} is not private")
+    return info
+
+
+def read_provider_host() -> tuple[dict, str]:
+    runtime = provider_host_runtime_dir()
+    if runtime is None:
+        raise TransportFailure("provider host is unsupported on this platform")
+    descriptor_path = runtime / "host.json"
+    token_path = runtime / "token"
+    socket_path = runtime / "control.sock"
+    try:
+        require_private_path(runtime, "directory")
+        require_private_path(descriptor_path, "file")
+        descriptor = json.loads(descriptor_path.read_text())
+        require_private_path(token_path, "file")
+        require_private_path(socket_path, "socket")
+        token = token_path.read_text().strip()
+    except FileNotFoundError as exc:
+        raise TransportFailure("provider host descriptor is absent") from exc
+    except (OSError, ValueError) as exc:
+        raise TransportFailure(f"cannot read provider host descriptor: {exc}") from exc
+    if not isinstance(descriptor, dict):
+        raise TransportFailure("provider host descriptor is not a JSON object")
+    if descriptor.get("descriptorVersion") != DESCRIPTOR_VERSION:
+        raise TransportFailure("provider host descriptor version is incompatible")
+    if descriptor.get("hostProtocolVersion") != HOST_PROTOCOL_VERSION:
+        raise TransportFailure("provider host protocol version is incompatible")
+    features = descriptor.get("features")
+    if not isinstance(features, list) or "session-turn" not in features:
+        raise TransportFailure("provider host does not advertise session-turn")
+    if descriptor.get("controlSocketPath") != str(socket_path):
+        raise TransportFailure(
+            "provider host descriptor points outside its stable socket"
+        )
+    if descriptor.get("tokenFilePath") != str(token_path):
+        raise TransportFailure(
+            "provider host descriptor points outside its stable token"
+        )
+    if not token:
+        raise TransportFailure("provider host token is empty")
+    return descriptor, token
+
+
+def open_host_socket(descriptor: dict, timeout: float = 1.0) -> socket.socket:
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client.settimeout(timeout)
+    try:
+        client.connect(descriptor["controlSocketPath"])
+    except OSError as exc:
+        client.close()
+        raise TransportFailure(f"provider host connection failed: {exc}") from exc
+    return client
+
+
+def host_request(descriptor: dict, token: str, request: dict) -> dict | None:
+    request_id = str(uuid.uuid4())
+    payload = {
+        **request,
+        "id": request_id,
+        "token": token,
+        "protocolVersion": HOST_PROTOCOL_VERSION,
+    }
+    try:
+        with open_host_socket(descriptor) as client:
+            client.sendall((json.dumps(payload) + "\n").encode())
+            line = client.makefile().readline()
+    except OSError as exc:
+        raise TransportFailure(f"provider host request failed: {exc}") from exc
+    if not line:
+        raise TransportFailure("provider host closed before responding")
+    try:
+        response = json.loads(line)
+    except ValueError as exc:
+        raise TransportFailure("provider host returned invalid JSON") from exc
+    if not isinstance(response, dict):
+        raise TransportFailure("provider host response is not a JSON object")
+    if response.get("id") != request_id:
+        raise TransportFailure("provider host response id does not match")
+    if not response.get("ok"):
+        raise TransportFailure(response.get("error", "provider host request failed"))
+    return response.get("result")
+
+
+def discover_provider_host() -> tuple[dict, str]:
+    descriptor, token = read_provider_host()
+    status = host_request(descriptor, token, {"op": "status"})
+    if not isinstance(status, dict):
+        raise TransportFailure("provider host status is not an object")
+    if status.get("protocolVersion") != HOST_PROTOCOL_VERSION:
+        raise TransportFailure("provider host status protocol is incompatible")
+    features = status.get("features")
+    if not isinstance(features, list) or "session-turn" not in features:
+        raise TransportFailure("provider host status omits session-turn")
+    return descriptor, token
+
+
+def common_fields(args: argparse.Namespace, submission_id: str, transport: str) -> dict:
+    return {
+        "transport": transport,
+        "harness": args.harness,
+        "providerSessionId": args.provider_session_id,
+        "submissionId": submission_id,
+    }
+
+
+def hosted_turn(
+    args: argparse.Namespace,
+    message: str,
+    submission_id: str,
+    *,
+    announce_transport: bool = True,
+    allow_interrupt: bool = True,
+) -> int:
+    descriptor, token = discover_provider_host()
+    fields = common_fields(args, submission_id, "provider-host")
+    if announce_transport:
+        emit({"type": "transport", **fields})
+    request_id = str(uuid.uuid4())
+    request = {
+        "id": request_id,
+        "token": token,
+        "protocolVersion": HOST_PROTOCOL_VERSION,
+        "op": "sessionTurn",
+        "submissionId": submission_id,
+        "target": {
+            "harness": args.harness,
+            "providerSessionId": args.provider_session_id,
+            **({"yaSessionId": args.ya_session_id} if args.ya_session_id else {}),
+        },
+        "message": {"text": message},
+        "timeoutMs": int(args.timeout * 1000),
+    }
+    wire_request = (json.dumps(request) + "\n").encode()
+    if len(wire_request) > MAX_HOST_REQUEST_BYTES:
+        raise NativeFallback("turn cannot fit the provider-host request bound")
+    client = open_host_socket(descriptor)
+    accepted = False
+    try:
+        client.settimeout(None)
+        client.sendall(wire_request)
+        for line in client.makefile():
+            try:
+                record = json.loads(line)
+            except ValueError as exc:
+                raise TransportFailure("provider host streamed invalid JSON") from exc
+            if not isinstance(record, dict):
+                raise TransportFailure("provider host record is not a JSON object")
+            if record.get("id") != request_id:
+                raise TransportFailure("provider host stream id does not match")
+            record = {**record, **fields}
+            if record.get("type") == "error" and (accepted or record.get("accepted")):
+                record["accepted"] = True
+                record.setdefault("receiptLookup", receipt_lookup(submission_id))
+            emit(record)
+            if record.get("type") == "accepted":
+                accepted = True
+            if record.get("type") == "terminal":
+                return terminal_exit(record.get("outcome"))
+            if record.get("type") == "error":
+                if accepted or record.get("accepted"):
+                    return EXIT_UNCERTAIN_DELIVERY
+                raise NativeFallback(record.get("error", "host rejected the turn"))
+    except KeyboardInterrupt:
+        client.close()
+        if not allow_interrupt:
+            return reconcile_host_submission(
+                descriptor,
+                token,
+                fields,
+                submission_id,
+                accepted,
+                "interrupted while waiting for the host terminal record",
+            )
+        try:
+            interruption = host_request(
+                descriptor,
+                token,
+                {
+                    "op": "interruptSessionTurn",
+                    "submissionId": submission_id,
+                },
+            )
+        except TransportFailure as exc:
+            return reconcile_host_submission(
+                descriptor,
+                token,
+                fields,
+                submission_id,
+                accepted,
+                f"interrupt request failed: {exc}",
+            )
+        if not isinstance(interruption, dict):
+            return reconcile_host_submission(
+                descriptor,
+                token,
+                fields,
+                submission_id,
+                accepted,
+                "provider host returned an invalid interrupt result",
+            )
+        emit(
+            {
+                "type": "interruptRequested",
+                **fields,
+                "requested": bool(interruption.get("requested")),
+                "status": interruption.get("status"),
+            }
+        )
+        if interruption.get("requested"):
+            try:
+                return hosted_turn(
+                    args,
+                    message,
+                    submission_id,
+                    announce_transport=False,
+                    allow_interrupt=False,
+                )
+            except (NativeFallback, TransportFailure) as exc:
+                emit(
+                    {
+                        "type": "error",
+                        **fields,
+                        "outcome": "uncertain-after-acceptance",
+                        "accepted": accepted,
+                        "error": f"could not reattach after interrupt: {exc}",
+                        "receiptLookup": receipt_lookup(submission_id),
+                    }
+                )
+                return EXIT_UNCERTAIN_DELIVERY
+        return reconcile_host_submission(
+            descriptor,
+            token,
+            fields,
+            submission_id,
+            accepted,
+            "provider host could not identify an interruptible submitted turn",
+        )
+    except (OSError, TransportFailure) as exc:
+        return reconcile_host_submission(
+            descriptor,
+            token,
+            fields,
+            submission_id,
+            accepted,
+            str(exc),
+        )
+    finally:
+        client.close()
+    return reconcile_host_submission(
+        descriptor,
+        token,
+        fields,
+        submission_id,
+        accepted,
+        "provider host stream ended before a terminal record",
+    )
+
+
+def reconcile_host_submission(
+    descriptor: dict,
+    token: str,
+    fields: dict,
+    submission_id: str,
+    observed_accepted: bool,
+    stream_error: str,
+) -> int:
+    lookup = receipt_lookup(submission_id)
+    try:
+        status = host_request(
+            descriptor,
+            token,
+            {"op": "sessionTurnStatus", "submissionId": submission_id},
+        )
+    except TransportFailure as exc:
+        emit(
+            {
+                "type": "error",
+                **fields,
+                "outcome": "uncertain-after-acceptance",
+                "accepted": observed_accepted,
+                "error": f"{stream_error}; receipt lookup failed: {exc}",
+                "receiptLookup": lookup,
+            }
+        )
+        return EXIT_UNCERTAIN_DELIVERY
+    if status is None and not observed_accepted:
+        raise NativeFallback(f"{stream_error}; host recorded no acceptance receipt")
+    if isinstance(status, dict) and status.get("state") == "terminal":
+        outcome = status.get("outcome", "provider-failed")
+        emit(
+            {
+                "type": "terminal",
+                **fields,
+                "outcome": outcome,
+                "receipt": status.get("receipt"),
+                "reconciledFromStatus": True,
+            }
+        )
+        return terminal_exit(outcome)
+    emit(
+        {
+            "type": "error",
+            **fields,
+            "outcome": "uncertain-after-acceptance",
+            "accepted": bool(observed_accepted or status),
+            "error": stream_error,
+            "receipt": status,
+            "receiptLookup": lookup,
+        }
+    )
+    return EXIT_UNCERTAIN_DELIVERY
+
+
+def receipt_lookup(submission_id: str) -> dict:
+    return {"command": ["session-turn", "receipt", submission_id]}
+
+
+def receipt_status(submission_id: str) -> int:
+    fields = {
+        "transport": "provider-host",
+        "submissionId": submission_id,
+    }
+    try:
+        descriptor, token = discover_provider_host()
+        status = host_request(
+            descriptor,
+            token,
+            {"op": "sessionTurnStatus", "submissionId": submission_id},
+        )
+    except TransportFailure as exc:
+        emit(
+            {
+                "type": "error",
+                **fields,
+                "outcome": "transport-failed-before-acceptance",
+                "accepted": False,
+                "error": str(exc),
+            }
+        )
+        return EXIT_TRANSPORT_FAILURE
+    if status is None:
+        emit(
+            {
+                "type": "receiptStatus",
+                **fields,
+                "state": "missing",
+                "accepted": False,
+            }
+        )
+        return EXIT_TRANSPORT_FAILURE
+    if not isinstance(status, dict):
+        emit(
+            {
+                "type": "error",
+                **fields,
+                "outcome": "transport-failed-before-acceptance",
+                "accepted": False,
+                "error": "provider host returned an invalid receipt status",
+            }
+        )
+        return EXIT_TRANSPORT_FAILURE
+    emit(
+        {
+            "type": "receiptStatus",
+            **fields,
+            "state": status.get("state"),
+            "accepted": bool(status.get("accepted")),
+            "acceptedAt": status.get("acceptedAt"),
+            "terminalAt": status.get("terminalAt"),
+            "outcome": status.get("outcome"),
+            "receipt": status.get("receipt"),
+        }
+    )
+    if status.get("state") == "terminal":
+        return terminal_exit(status.get("outcome"))
+    return EXIT_UNCERTAIN_DELIVERY
+
+
+def terminal_exit(outcome: str | None) -> int:
+    if outcome == "completed":
+        return EXIT_SUCCESS
+    if outcome == "uncertain-after-acceptance":
+        return EXIT_UNCERTAIN_DELIVERY
+    return EXIT_PROVIDER_FAILURE
+
+
+def native_command(args: argparse.Namespace) -> list[str]:
+    if args.harness == "codex":
+        overrides = []
+        if args.model:
+            overrides.extend(["--model", args.model])
+        if args.effort:
+            overrides.extend(["-c", f'model_reasoning_effort="{args.effort}"'])
+        return [
+            "codex",
+            "exec",
+            "resume",
+            "--json",
+            *overrides,
+            args.provider_session_id,
+            "-",
+        ]
+    command = [
+        "claude",
+        "-p",
+        "--resume",
+        args.provider_session_id,
+        "--input-format",
+        "text",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+    ]
+    if args.model:
+        command.extend(["--model", args.model])
+    if args.effort:
+        command.extend(["--effort", args.effort])
+    return command
+
+
+def native_environment(args: argparse.Namespace) -> dict[str, str]:
+    environment = os.environ.copy()
+    for name in NATIVE_SESSION_OWNED_ENV_NAMES:
+        environment.pop(name, None)
+    environment["AGENTCTL_SESSION_ID"] = args.ya_session_id or args.provider_session_id
+    environment["YEP_AGENT_HARNESS"] = args.harness
+    return environment
+
+
+def interrupt_native(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        return
+    try:
+        os.killpg(process.pid, signal.SIGINT)
+    except ProcessLookupError:
+        pass
+
+
+def wait_after_native_interrupt(process: subprocess.Popen) -> int:
+    interrupt_native(process)
+    try:
+        return process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return process.wait()
+    try:
+        return process.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        return process.wait()
+
+
+def native_turn(
+    args: argparse.Namespace, message: str, submission_id: str, reason: str
+) -> int:
+    fields = common_fields(args, submission_id, "native-resume")
+    warning = (
+        "concurrent native resume may create a different-parent branch when "
+        "another writer is active"
+    )
+    print(
+        f"session-turn: warning: {warning}; provider host fallback: {reason}",
+        file=sys.stderr,
+    )
+    emit(
+        {
+            "type": "transport",
+            **fields,
+            "forkRisk": "concurrent-native-resume",
+            "reason": reason,
+        }
+    )
+    try:
+        process = subprocess.Popen(
+            native_command(args),
+            cwd=args.cwd,
+            env=native_environment(args),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            start_new_session=True,
+        )
+    except OSError as exc:
+        emit(
+            {
+                "type": "error",
+                **fields,
+                "outcome": "transport-failed-before-acceptance",
+                "accepted": False,
+                "error": str(exc),
+            }
+        )
+        return EXIT_TRANSPORT_FAILURE
+    assert process.stdin is not None
+    assert process.stdout is not None
+    delivered = True
+    try:
+        process.stdin.write(message)
+        process.stdin.close()
+    except BrokenPipeError:
+        delivered = False
+    record_count = 0
+    last_native_type = None
+    try:
+        for line in process.stdout:
+            if not line.strip():
+                continue
+            record_count += 1
+            if record_count == 1:
+                emit(
+                    {
+                        "type": "accepted",
+                        **fields,
+                        "forkRisk": "concurrent-native-resume",
+                    }
+                )
+            try:
+                provider_record = json.loads(line)
+                if isinstance(provider_record, dict):
+                    last_native_type = provider_record.get("type")
+            except ValueError:
+                provider_record = {"raw": line.rstrip("\n")}
+            emit(
+                {
+                    "type": "providerEvent",
+                    **fields,
+                    "sequence": record_count,
+                    "providerRecord": provider_record,
+                }
+            )
+        return_code = process.wait()
+    except KeyboardInterrupt:
+        emit({"type": "interruptRequested", **fields, "requested": True})
+        return_code = wait_after_native_interrupt(process)
+    if record_count == 0:
+        error = (
+            "native resume closed before accepting the turn body"
+            if not delivered
+            else "native resume exited before producing provider output"
+        )
+        emit(
+            {
+                "type": "error",
+                **fields,
+                "outcome": "transport-failed-before-acceptance",
+                "accepted": False,
+                "providerExitCode": return_code,
+                "error": error,
+            }
+        )
+        return EXIT_TRANSPORT_FAILURE
+    outcome = "completed" if return_code == 0 else "provider-failed"
+    emit(
+        {
+            "type": "terminal",
+            **fields,
+            "outcome": outcome,
+            "providerExitCode": return_code,
+            "receipt": {
+                "watermark": f"native-record:{record_count}",
+                "nativeRecordCount": record_count,
+                "lastNativeType": last_native_type,
+            },
+        }
+    )
+    return EXIT_SUCCESS if return_code == 0 else EXIT_PROVIDER_FAILURE
+
+
+def read_turn() -> str:
+    value = sys.stdin.read(MAX_TURN_BYTES + 1)
+    if len(value.encode()) > MAX_TURN_BYTES:
+        raise SystemExit(f"session-turn: turn exceeds {MAX_TURN_BYTES} bytes")
+    return value
+
+
+def turn_parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(
+        description="Send one turn to a durable provider session and stream JSONL.",
+        epilog=(
+            "exit codes: 0 success; 10 provider failure; 11 transport failure "
+            "before acceptance; 12 uncertain delivery after acceptance\n"
+            "receipt lookup: session-turn receipt <submission-id>\n"
+            "provider limits: host dispatch keeps the incumbent configuration; "
+            "--model/--effort apply only to native resume. Concurrent native "
+            "Claude resumes can branch, while native Codex refuses an active "
+            "writer. Without overrides, native resume uses the provider CLI's "
+            "current model/effort defaults.\n"
+            "acli: 1"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    result.add_argument("harness", choices=("claude", "codex"))
+    result.add_argument("provider_session_id")
+    result.add_argument("--ya-session-id")
+    result.add_argument("--submission-id")
+    result.add_argument("--cwd", default=os.getcwd())
+    result.add_argument("--model", help="native-resume model override")
+    result.add_argument("--effort", help="native-resume effort override")
+    result.add_argument("--timeout", type=float, default=30 * 60)
+    return result
+
+
+def receipt_parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(
+        prog="session-turn receipt",
+        description="Look up one provider-host session-turn receipt.",
+        epilog="acli: 1",
+    )
+    result.add_argument("submission_id")
+    return result
+
+
+def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] == "receipt":
+        args = receipt_parser().parse_args(sys.argv[2:])
+        return receipt_status(args.submission_id)
+    argument_parser = turn_parser()
+    args = argument_parser.parse_args()
+    if not 1 <= args.timeout <= 2 * 60 * 60:
+        argument_parser.error("--timeout must be between 1 and 7200 seconds")
+    message = read_turn()
+    submission_id = args.submission_id or str(uuid.uuid4())
+    try:
+        return hosted_turn(args, message, submission_id)
+    except (NativeFallback, TransportFailure) as exc:
+        return native_turn(args, message, submission_id, str(exc))
+
+
+if __name__ == "__main__":
+    sys.exit(main())

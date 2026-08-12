@@ -610,11 +610,27 @@ boundary named by the question. The object session may continue the resulting
 discussion under the same interaction. Do not answer in the advisor's voice
 from the object session.
 
-Use available session-control transport to resume the designated advisor. If
-the current harness cannot address the harness/session pair recorded in
-`session.local.md`, say once that delivery did not occur and emit the exact
-packet, marked `UNDELIVERED`, for forwarding; never fabricate an advisor
-response.
+Use `session-turn` for every delivered advisor turn. After the
+`session.local.md` consistency check, normalize its `Harness` to `claude` or
+`codex`; pass a distinct usable `Provider resume ID` as the positional
+provider session id, otherwise `Session ID`; and pass
+`--ya-session-id <Session ID>` when the address is a YA session. Use the
+advisor project's root as `--cwd`.
+Pass the verified current model and effort as optional overrides when known;
+they affect only native fallback. Let the helper allocate a fresh submission
+id for each provider turn and retain that id from its JSONL output; an advisor
+interaction id may span several turns and is not a transport submission id.
+
+`session-turn` alone owns host-versus-native selection, acceptance, duplicate
+avoidance, interruption, and receipts. Do not bypass it with YA HTTP, a direct
+provider resume, worker stdin, or transcript watching. Exit 0 with a terminal
+receipt completes the turn. Exit 12 requires the emitted `session-turn
+receipt` lookup and no resubmission; exit 10 means an accepted provider turn
+failed or was interrupted and likewise does not authorize an automatic
+duplicate. Exit 11 means no transport accepted the turn. If the helper is
+unavailable, the recorded harness is unsupported, or delivery ends before
+acceptance, say once that delivery did not occur and emit the exact packet,
+marked `UNDELIVERED`, for forwarding; never fabricate an advisor response.
 
 Use the interaction envelope above for every delivered packet. Its harness and
 session id identify the requester and provide a possible return address after
