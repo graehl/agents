@@ -63,23 +63,40 @@ Include only what that reader needs to resume accurately:
   handoff is resumed, treat that line exactly as a separate user turn preceding
   the rest of the handoff. When no formal loop exists but a checkable goal would
   usefully govern continuation, the handoff may declare one the same way;
-- after that goal line, the remaining scope, acceptance boundary, and current
-  status;
+- immediately after that optional subject-goal line—or as the opening line when
+  none exists—repeat this header for every durable advisor, oracle, or similar
+  co-session that is deliberately resumed and grown across interactions:
+  `Incumbent advisor session: <role/scope> | <harness> | <canonical resumable
+  session id> [| address: <path>]`. Recover and verify the real provider
+  id rather than inventing one. Omit disposable subagents and fresh-per-review
+  sessions; update the header when the incumbent is replaced, split, or moved
+  to another provider session;
+- after the optional goal and incumbent-session lines, the remaining scope,
+  acceptance boundary, and current status;
 - compiled understanding that is expensive to reconstruct: the crux,
   load-bearing constraints, and ruled-out paths with reasons;
 - the single best next action, followed by other live next steps;
 - concrete paths, symbols, commits, artifacts, and task/topic links;
 - active jobs with job/run identity, log and output paths, plus the action to
   take when each finishes; and
-- source-session or environment metadata only when it materially helps deeper
-  recovery.
+- other source-session or environment metadata only when it materially helps
+  deeper recovery.
 
-An opening `/goal X` needs no additional handoff structure. On resume, process
-it as though the user had entered that command in its own turn immediately
+An opening `/goal X` needs no additional handoff structure by itself;
+applicable incumbent-advisor headers still follow it. On resume, process the
+goal as though the user had entered that command in its own turn immediately
 before entering the remaining handoff. The remainder may therefore include
 later or “after” work retained through the provider's normal goal/plan
 facility. Merely writing or updating the stored handoff still does not begin
 executing it.
+
+An incumbent-advisor header identifies which accumulated co-session is serving
+the work; it does not authorize contacting or replacing that advisor. On
+resume, reconcile the header with its address file and live provider state,
+then continue the same session. Start a fresh advisor only when the governing
+lifecycle deliberately replaces the incumbent or the recorded session cannot
+be usefully resumed. If the provider exposes no recoverable canonical id, say
+so and preserve the best durable address instead of fabricating one.
 
 No rigid section template is required. Do not include chat/tool chronology,
 empty ceremonial sections, or an `Audience:` line. Collaborator-relevant
@@ -92,6 +109,9 @@ Treat a handoff as declared state, not current truth. Reconcile it with the
 worktree, recent commits, active sessions, run/on-deck metadata, artifacts, and
 only then provider logs needed to fill a specific gap. State a material
 discrepancy rather than silently forcing live evidence to fit the handoff.
+For every incumbent-advisor header, verify that the recorded id still matches
+the serving address before dispatch; a changed incumbent is material state,
+not incidental session metadata.
 
 ## Sketches
 

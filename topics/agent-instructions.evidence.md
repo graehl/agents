@@ -1548,3 +1548,29 @@ the sweep single-target.
   `gaps/sol-codex-truncated-required-file-reads.md` retains that question; a
   local monthly `at/` activation reevaluates the current measurement without
   presuming that further mitigation is worthwhile.
+
+## 2026-08-12 — preserve serving advisor identity in handoffs
+
+- **Trigger** — user-directed. A durable advisor/oracle co-session is an
+  accumulated collaborator, not an interchangeable fresh review. Its serving
+  provider session is part of the resumable work state even when semantic
+  notes and an address file also exist.
+- **Decision** — every handoff relying on such a co-session opens, immediately
+  after an optional `/goal X`, with one repeatable `Incumbent advisor session:`
+  line per serving advisor. The line names role/scope, harness, verified
+  canonical resumable id, and durable address when available. One-shot
+  subagents and fresh-per-review sessions are excluded.
+- **Trace: goal-governed research** — `/goal finish the comparison` remains the
+  first line and keeps its separate-turn semantics. The incumbent program
+  advisor line follows it, so a successor resumes the same advisor before
+  interpreting the remaining handoff.
+- **Trace: advisor replacement** — the object session deliberately archives and
+  replaces an advisor. The handoff and `session.local.md` change together; the
+  old id cannot silently retain incumbent status.
+- **Trace: ordinary delegation** — a disposable review leaf contributes a
+  result but is not expected to accumulate state, so it adds no header and no
+  handoff ceremony.
+- **Failure handling** — recover the real provider id when possible and never
+  invent one. If no canonical id is recoverable, the handoff states that fact
+  and preserves the best durable address; replacement remains a lifecycle
+  decision rather than an accidental fresh start.

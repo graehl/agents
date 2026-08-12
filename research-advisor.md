@@ -11,9 +11,9 @@ started only on demand.
 
 The default unit is one research program. Discover program roots by the
 `Research program:` declaration in `research/<program>/GLOSSARY.md`
-(`RESEARCH.md` § Research programs); a glossary without one scopes vocabulary
-only, so no subdirectory forks an advisor by merely existing. A program advisor
-uses:
+(`RESEARCH/artifacts.md` § Research programs); a glossary without one scopes
+vocabulary only, so no subdirectory forks an advisor by merely existing. A
+program advisor uses:
 
 - `research/<program>/advisor/notes.md` for its compact current assessment;
 - `research/<program>/advisor/docs/state.md` for its followed-document list
@@ -98,6 +98,13 @@ advisor reports its harness and canonical session id; the object-level owner
 verifies and safely updates this file. Lifecycle—continue, close, replace, or
 split—remains controlled by the object-level research session or user. The
 address records that decision; it does not create a standing router.
+
+When a working handoff covers work served by this advisor, copy the verified
+harness, scope, canonical id, and address path into its repeatable
+`Incumbent advisor session:` header from `topics/handoffs.md`. The local address
+remains the transport source of truth; the handoff header makes the serving
+incumbent visible before the successor reads deeper state. Update both when the
+provider session changes.
 
 On the first handoff, use this protocol to start the advisor. Its first
 transaction creates `notes.md` with its initial scope and assessment, using a

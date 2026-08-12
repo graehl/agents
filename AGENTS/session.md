@@ -86,6 +86,14 @@ This governs resume/handoff artifacts. Outward-facing reports keep their
 own reader model — e.g. `topics/progress-report.md` writes for a
 non-delving manager or peer org — so do not apply this pin to them.
 
+When the work uses a durable advisor/oracle co-session that is resumed and
+grown rather than recreated for each review, the handoff records its serving
+incumbent. Immediately after an optional `/goal X` line, repeat
+`Incumbent advisor session: <role/scope> | <harness> | <canonical resumable
+session id> [| address: <path>]` for each one. Verify the real id, update the
+line on replacement or provider-session change, and omit disposable subagents.
+Full resume and unavailable-id handling is in `topics/handoffs.md`.
+
 ### Active sessions
 
 On the first planning-to-act step in a shared workdir, write
