@@ -11,7 +11,9 @@ Topic: progress-report
 
 Follow [`technical-writing`](technical-writing.md) for the common cold-reader,
 terminology, evidence-separation, display, and whole-document revision
-contract.
+contract. Follow [`research-writing`](research-writing.md) for prior art that
+changes a current interpretation, baseline, decision, or publication claim;
+link the fuller survey or paper instead of copying its bibliography.
 
 Write for a manager or peer research organization consuming the *stream* of
 reports. Treat each installment as a possible first contact for an effectively

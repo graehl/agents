@@ -132,10 +132,26 @@ the speculative-draft, paper/log boundary, result-table, and related-work
 contracts in `RESEARCH/artifacts.md`. A `TBD` names the missing measurement and
 its falsifier; it never impersonates a result.
 
+The `.md` path is the lightweight skeleton form. When the draft first needs a
+renderer, bibliography, local assets, or multiple outputs, follow
+[`document-writing`](document-writing.md) and relocate it—without leaving a
+second editable copy—to:
+
+```text
+research/<program>/papers/<paper-slug>/index.<source-extension>
+```
+
+Use `index.qmd` for the Quarto default; another renderer uses the source name
+selected under `document-writing.md`. The directory then owns its references,
+figures, data, components, styles, and build configuration. Existing papers
+directly below a program root need no migration until they need that document-
+project boundary.
+
 Creating the intended v1 of the proposal portfolio or promoted draft is a
 working-document change under `research-advisor.md`. Notify the program advisor
 and propose it for the followed set when its future revisions matter.
 
 Continue from a promoted proposal under
-[`paper-writing`](paper-writing.md). Its manuscript mechanics remain an
-explicitly untested sketch rather than a prerequisite for proposal selection.
+[`paper-writing`](paper-writing.md). Renderer and output mechanics remain
+irrelevant to proposal selection, but become binding through the document-
+writing topics once the selected draft needs buildable web or print output.

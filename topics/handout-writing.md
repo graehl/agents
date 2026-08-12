@@ -10,10 +10,11 @@ Topic: `handout-writing`
 
 Follow [`technical-writing`](technical-writing.md) for the common cold-reader,
 terminology, evidence-separation, display, and whole-document revision
-contract. Also follow the form-led claim, evidence-spine, and attraction
-guidance in [`paper-writing`](paper-writing.md). A handout is free to discard
-work chronology completely because its purpose is the current decision
-snapshot.
+contract, and [`research-writing`](research-writing.md) for decision-bearing
+prior art and attribution. Also follow the form-led claim, evidence-spine, and
+attraction guidance in [`paper-writing`](paper-writing.md). A handout is free
+to discard work chronology completely because its purpose is the current
+decision snapshot.
 
 Design for two reading speeds. An interested reader should get a representative
 full picture of the work, its evidence, major bets, current interpretation, and
@@ -76,6 +77,13 @@ strong, self-describing result tables, representative input/output examples,
 and repeated comparison layouts, with prose serving as orientation and
 interpretation. A reader scanning the displays should recover the current
 claim and discussion agenda.
+
+Use [`document-writing-figures`](document-writing-figures.md) to turn an
+informal graph request into the nearest faithful Quarto-supported form and to
+select a reproducible external generator when measured data are involved. The
+writer may change layout, annotation density, or interaction to preserve the
+requested information and visual weight across HTML and print; do not require
+the requester to research the package vocabulary first.
 
 Keep the displays inline where the claim is made. A final raw-results section
 may preserve breadth, but the effective illustration does not belong only at

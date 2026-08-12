@@ -11,7 +11,9 @@ Topic: `technical-writing`
 Use this topic before substantially revising a research handout, progress
 report, blog post, or paper for readers outside the working session. The
 artifact-specific topic adds its own purpose, lifecycle, and evidentiary bar;
-this topic owns the advice they share.
+this topic owns the advice they share. When the artifact makes research claims,
+also follow [`research-writing`](research-writing.md) for prior-art,
+attribution, and citation coverage.
 
 Assume a first-time reader whose attention has not yet been earned. They do
 not know the working vocabulary, may have ignored earlier updates, and will
@@ -67,6 +69,11 @@ boundary. Define nonstandard columns and conditions adjacent to the display.
 State the intended takeaway in its caption or nearby prose rather than asking a
 reader to infer it from bold cells.
 
+Before selecting or generating a graph, diagram, or quantitative display,
+follow [`document-writing-figures`](document-writing-figures.md). It maps the
+reader's information need to Quarto-native tables, images, panels, Mermaid, or
+Graphviz and to reproducible external plotting when the claim is quantitative.
+
 Place an effective results table or representative input/output example inline
 beside the claim it illustrates. Give examples enough source, condition, and
 output labeling to stand on their own. An appendix or final raw-results dump may
@@ -80,6 +87,11 @@ qualification, and explanation.
 
 ## Artifact-specific contracts
 
+- [`research-writing`](research-writing.md) adds the research-specific
+  prior-art and citation layer without making citation density a generic
+  technical-writing requirement.
+- [`blog-post-writing`](blog-post-writing.md) owns static-site structure,
+  navigation, rich web elements, and blog-specific citation presentation.
 - [`handout-writing`](handout-writing.md) owns the mutable, paper-like decision
   snapshot and its cooperative-review proof bar.
 - [`progress-report`](progress-report.md) owns the dated, cumulative, frozen

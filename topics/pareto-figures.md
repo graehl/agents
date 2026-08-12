@@ -1,6 +1,14 @@
 # Pareto-frontier figures in comparison reports
 
-Topic: pareto-figures
+> Make quality-versus-cost dominance visible with a reproducible, directly
+> labeled Pareto scatter rather than asking readers to reconstruct a frontier
+> from tables.
+
+Topic: `pareto-figures`
+
+This specialized contract inherits the generation, matched SVG/PDF, Quarto
+inclusion, and release checks in
+[`document-writing-figures`](document-writing-figures.md).
 
 When a handout, paper, or reader-facing comparison reports quality against
 one or more cost axes (latency, throughput, memory, parameters, price) for
@@ -12,8 +20,10 @@ two-system or single-objective comparison does not need one.
 
 ## Rendering contract
 
-- **SVG is the canonical inline format** (`![…](figures/x.svg)` in the
-  `.md`): crisp at any zoom, diffable, and YA's markdown rendering is
+- **SVG is the canonical browser/Markdown format.** In plain `.md`, use
+  `![…](figures/x.svg)`; in Quarto, use the extensionless matched-asset form
+  from `document-writing-figures` so HTML selects SVG and LaTeX selects PDF.
+  SVG is crisp at any zoom, diffable, and YA's markdown rendering is
   confirmed to display it inline sized by the file's own
   `width`/`height` attributes. Keep those attributes in the output —
   matplotlib's SVG backend writes explicit `width`/`height` (pt) plus
@@ -38,13 +48,11 @@ two-system or single-objective comparison does not need one.
 
 ## Default package
 
-**matplotlib (≥3.8), headless Agg backend.** It is already present in
-this ecosystem's project envs, renders identical SVG/PDF/PNG from one
+**matplotlib (≥3.8), headless Agg backend.** It renders SVG/PDF/PNG from one
 script, and its PDF/PGF output is LaTeX-grade (embed fonts; use
-`constrained_layout`). Altair + `vl-convert` is an acceptable
-declarative alternative where pip-installable (its JSON spec is
-committable evidence), but do not make a report's build depend on a
-browser or node toolchain.
+`constrained_layout`). Altair + `vl-convert` is an acceptable declarative
+alternative where pip-installable (its JSON spec is committable evidence), but
+do not make a report's build depend on a browser or node toolchain.
 
 ## Taste rules for the Pareto scatter
 

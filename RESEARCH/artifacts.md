@@ -49,8 +49,12 @@ Before choosing or pitching a paper form or focus, follow
 `topics/paper-drafting.md`. A multi-paper program keeps the comparative index
 at `research/<program>/paper-proposals.md`, may split developed candidates
 under `research/<program>/paper-proposals/`, and promotes a selected candidate
-to `research/<program>/papers/<paper-slug>.md`. Existing papers directly below
-a program root need no migration.
+to a lightweight `research/<program>/papers/<paper-slug>.md` skeleton. When it
+needs a renderer, references, assets, or multiple outputs, relocate it under
+`research/<program>/papers/<paper-slug>/index.<source-extension>` according to
+`topics/document-writing.md` (`index.qmd` for the Quarto default); do not
+maintain both as editable manuscripts.
+Existing papers directly below a program root need no migration.
 
 The intended v1 of a proposal portfolio or promoted draft is a working-document
 change for the program advisor. Use `topics/paper-reviewer.md` when asking the
@@ -69,11 +73,21 @@ below under the second “Research log conventions” heading.
 
 Use `topics/paper-drafting.md` before selecting or materially changing a
 paper's governing form or focus. After promotion, follow
-`topics/technical-writing.md` and `topics/paper-writing.md` for the manuscript.
+`topics/technical-writing.md`, `topics/research-writing.md`, and
+`topics/paper-writing.md` for the manuscript. Once the draft needs buildable
+web or print output, follow `topics/document-writing.md` and its browser-
+interactive and printable companions.
 
 When a paper compares at least three systems on quality versus cost, read
 `topics/pareto-figures.md` and commit its required scatter, script, and evidence
 (SVG for Markdown, PDF for LaTeX).
+
+Before selecting or generating a claim-bearing graph, diagram, or quantitative
+display for a paper, handout, progress report, or research blog, follow
+`topics/document-writing-figures.md`. It owns the Quarto-native vocabulary,
+external plotting choices, matched web/print assets, build commands, and
+freshness checks. Pareto figures inherit it and add their dominance-specific
+contract.
 
 ##### `topics/` vs `research/` placement, and the stub-topic rule
 
@@ -142,9 +156,10 @@ audit trail instead of reproducing every rigorous detail in the main path.
 #### Research blogs
 
 Before drafting or substantially revising a research blog post, follow
+`topics/blog-post-writing.md`, `topics/research-writing.md`, and
 `topics/research-blog-writing.md`. The post may select one cool thing that
 worked rather than represent the program, but every claim it makes retains the
-ordinary evidence and provenance standard.
+ordinary evidence, prior-art, attribution, and provenance standard.
 
 
 ### Paper, log, and task boundaries

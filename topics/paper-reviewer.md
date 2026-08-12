@@ -36,7 +36,8 @@ Use the ordinary `research-advisor.md` interaction and challenge memo. Name the
 paper stage and include the proposal or draft as a working-document change;
 request followed-document status when future deltas should remain in the
 advisor's context. After proposal selection, apply `technical-writing.md` and
-`paper-writing.md` as the authoring contracts under review.
+`research-writing.md` plus `paper-writing.md` as the authoring contracts under
+review.
 
 ## Review stages
 
@@ -62,10 +63,14 @@ has not been smuggled into one manuscript.
 
 Trace headline numbers to primary evidence; recheck comparison fairness,
 uncertainty, baseline strength, cost and data scope, table/caption contracts,
-and related-work boundaries. Read the paper as an uninterested first-time
-reader. Attraction features should clarify supported findings; flag charged
-framing that needs the honest disclaimer described in the paper-writing
-sketch.
+and related-work boundaries. Confirm that the nearest competitors, material
+alternatives, true intellectual parents, borrowed artifacts, and consequential
+counterevidence are represented; a long bibliography does not discharge that
+check. Novelty or void claims should point to the grounded field/frontier map
+and falsification search routed by `research-writing.md`. Read the paper as an
+uninterested first-time reader. Attraction features should clarify supported
+findings; flag charged framing that needs the honest disclaimer described in
+the paper-writing sketch.
 
 ## Paper-specific review block
 
@@ -79,6 +84,7 @@ Evidence ceiling: <strongest claim the record carries>
 Matched-baseline verdict: <win, tie, loss, or missing under named regime>
 Privileged-access yield: <unavailable input and transferable output or none>
 Form / focus fit: <does the reader promise match the evidence?>
+Prior-art fit: <nearest competitors/parents covered; novelty search grounded?>
 Narrative integrity: <hidden failure, chronology, or selection concern>
 Most valuable missing evidence: <one discriminating result or none>
 Narrower viable paper: <best supported fallback or none>

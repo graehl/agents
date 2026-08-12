@@ -8,9 +8,11 @@ Topic: `paper-writing`
 
 ## Enter from a selected publication case
 
-Follow [`technical-writing`](technical-writing.md) for the shared cold-reader,
-terminology, display, and synthesis contract. The proposal portfolio, evidence
-ceiling, form selection, and promotion path remain in
+Follow [`research-writing`](research-writing.md), which inherits the shared
+cold-reader, terminology, display, and synthesis contract from
+[`technical-writing`](technical-writing.md) and adds prior-art, attribution,
+and citation coverage. The proposal portfolio, evidence ceiling, form
+selection, and promotion path remain in
 [`paper-drafting`](paper-drafting.md). Start a paper from its promoted proposal,
 not by treating every prior handout or “paper draft” as manuscript prose.
 
@@ -54,6 +56,36 @@ Consult [`paper-attractiveness`](paper-attractiveness.md) only after this spine
 exists. Use its features to communicate a supported result or real community
 asset, not to manufacture importance.
 
+## Cover the work that determines the claim
+
+Cover the nearest competitive neighborhood completely enough that an informed
+reader can audit the novelty, baseline, and alternative interpretation. Always
+include the closest competing or alternative work and the most influential or
+inspirational intellectual parents. Cite primary sources for borrowed tasks,
+data, metrics, methods, code, theorems, and central results, and include
+counterevidence that materially bounds the claim.
+
+Appropriate density is an outcome, not a quota. Synthesize broader background
+selectively and explain how each cited cluster relates to the paper. A
+cite-heavy venue style does not justify bibliography padding, while a short
+paper is not excused from the one omitted competitor that would change its
+publication case. Use the shared field/frontier survey route in
+`research-writing.md` before making novelty or absence claims.
+
+## Produce browser and submission artifacts
+
+Follow [`document-writing`](document-writing.md) when the draft first needs a
+renderer, bibliography, local assets, or multiple outputs. Start from one
+canonical Markdown-plus source; Quarto is the operational default for ordinary
+static HTML plus working PDF, while MyST or direct Pandoc may better expose a
+future TeX handoff. Direct TeX becomes canonical only through an explicit
+source promotion when a venue template cannot be represented repeatably.
+
+Use [`document-writing-printable`](document-writing-printable.md) for the venue
+and arXiv package. A browser companion follows
+[`document-writing-browser-interactive`](document-writing-browser-interactive.md)
+and supplies a static printable equivalent for every interactive claim.
+
 ## Relationship to shorter research artifacts
 
 A handout inherits these authoring rules at the lower cooperative-review proof
@@ -63,7 +95,7 @@ self-contained manuscript: inherit shared wording and displays deliberately,
 then re-establish the evidence chain and reader promise under the selected
 form.
 
-Manuscript pass candidates, the honest-disclaimer rule, source format,
-Markdown-to-LaTeX/BibTeX conversion, collaboration platform, and build/submission
-mechanics remain explicitly untested in
-[`paper-writing.sketches.md`](paper-writing.sketches.md).
+Manuscript-pass and attraction-feature candidates remain explicitly untested in
+[`paper-writing.sketches.md`](paper-writing.sketches.md). Collaboration
+platform, coauthor workflow, and venue-specific final checklists should be
+decided for the first real paper rather than guessed globally.

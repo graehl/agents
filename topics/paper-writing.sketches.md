@@ -1,7 +1,7 @@
 # Paper-writing sketches
 
-> Extreme-draft, untested guidance for manuscript prose, attraction features,
-> citations, and a buildable submission artifact after a paper case is selected.
+> Extreme-draft, untested guidance for manuscript prose and attraction
+> features after a paper case is selected.
 
 Topic: `paper-writing`
 
@@ -37,11 +37,16 @@ implication, apply the brief honest-footnote rule in
 [`paper-attractiveness.sketches.md`](paper-attractiveness.sketches.md): name the
 specific mismatch without burying the paper's actual point.
 
-## Mechanics still undecided
+## Mechanics delegated to binding topics
 
-The source-of-truth format, Markdown-to-LaTeX/BibTeX conversion, collaborative
-editing platform, citation manager, figure build, venue template, PDF/HTML
-preview, and submission checklist are intentionally unspecified. Choose them
-when a real paper and collaborator set make the tradeoffs concrete. A future
-skill may automate those mechanics; routine paper selection and writing must
-not depend on explicitly invoking one.
+Source of truth, renderer choice, web output, and printable submission
+packaging now live in [`document-writing`](document-writing.md),
+[`document-writing-browser-interactive`](document-writing-browser-interactive.md),
+and [`document-writing-printable`](document-writing-printable.md). Citation
+coverage lives in [`research-writing`](research-writing.md).
+
+Still intentionally undecided: collaborative editing platform, citation
+manager import/deduplication workflow, coauthor review protocol, and the final
+checklist for a specific venue. Choose those when a real paper and collaborator
+set make the tradeoffs concrete. A future skill may automate them; routine
+paper selection and writing must not depend on explicit skill invocation.

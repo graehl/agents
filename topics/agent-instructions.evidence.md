@@ -2225,3 +2225,171 @@ the sweep single-target.
 - **Status** — fifteen isolated behavior tests and five disposable live
   harness/transport smokes pass. The transport invariants are observed; the
   effect of the advisor mandate on future agent choice remains `assumed`.
+
+## 2026-08-12 — research citations and one-source web/print documents
+
+- **User direction** — citation guidance belongs in a research-writing layer
+  that inherits technical writing. Papers and research blogs repeat their own
+  density calibration: the closest competitors/alternatives and the true
+  influential/inspirational parents are always present, while a venue's
+  cite-heavy custom is not a bibliography quota. Prior-art work explicitly
+  routes through the shared field and frontier survey maps. Documentation may
+  use the same provenance principle without inheriting paper-shaped density.
+- **Tool choice** — Quarto is the default canonical source for mixed static
+  web and printable research artifacts: official documentation covers Pandoc-
+  based technical publishing, Observable JavaScript, cross-references,
+  conditional output, blogs/GitHub Pages, and PDF/LaTeX. MyST is the alternative
+  when semantic syntax-tree, JATS, or MECA export dominates. Observable
+  Framework and Astro are web-heavy companion choices rather than manuscript
+  sources. arXiv's current guidance supplies the source-package and clean-build
+  boundary. This is researched descriptive guidance; the repo has not yet run
+  an end-to-end paper through the stack.
+- **Trace: cite-heavy field** — a paper has seventy related references but
+  three genuinely close competitors. Literal application completely covers
+  and distinguishes the three, cites its real parents and borrowed artifacts,
+  and synthesizes the broader territory from the field map. It does not cite
+  all seventy to mimic venue density, and cannot omit one of the three merely
+  because the total bibliography is long.
+- **Trace: lighter research blog** — a post's interactive visualization adapts
+  two prior visual grammars and has one close alternative. Inline links are
+  sufficient presentation, but all three sources remain named and the post
+  attributes its dataset. The lighter surface does not erase provenance.
+- **Trace: novelty from recall** — an author remembers no prior use of a task
+  variation. The research-writing route sends the claim through the shared
+  survey, grounded frontier map, and falsification search before “new problem”
+  prose becomes a novelty claim. Recall alone may still seed a speculative
+  proposal, not a vetted absence statement.
+- **Trace: strict venue template** — a venue requires manual TeX macro work
+  that cannot be expressed as a repeatable Quarto template/filter. The one-
+  source rule explicitly promotes the TeX tree, updates the source declaration,
+  and makes the old `.qmd` derivative or archival. It forbids silently editing
+  generated TeX while both files claim to be current.
+- **Trace: ordinary dual output** — a paper needs a GitHub Pages companion and
+  a conventional PDF. One `.qmd` remains canonical; HTML, PDF, and retained TeX
+  are generated outputs. A requested TeX wording correction is made in the
+  source or renderer template, not patched into the generated file.
+- **Trace: skeleton relocation** — a selected proposal links to
+  `papers/x.md`; the draft later gains references and interactive assets. The
+  source moves to `papers/x/index.qmd`, and the proposal plus companion topic
+  links change in the same edit. No stale editable `.md` remains at the old
+  path.
+- **Trace: semantic export** — a journal workflow makes JATS and MECA packages
+  the principal contract. The selection table chooses MyST rather than forcing
+  Quarto merely because it is the default. Conversely, a full reactive data
+  explorer becomes an Observable Framework companion while the paper remains
+  canonical in its manuscript renderer.
+- **Trace: JavaScript failure** — an example browser fails to initialize on a
+  static host. Its initial HTML still contains the author-written caption and
+  central static view/example rows; the printable output uses the same data and
+  default comparison. Interaction loss reduces exploration, not the paper's
+  claim.
+- **Trace: table enhancement** — a 50,000-row result browser offers sort,
+  filter, paging, and download. Initial HTML includes summary statistics plus
+  representative, boundary, and outlier rows, so a reader without JavaScript
+  still sees why the result matters rather than an arbitrary first page.
+- **Trace: fallback drift** — an interactive default filters to public-data
+  systems while its static figure includes private-data systems. The required
+  comparison check fails: the author must align data/defaults or explicitly
+  caption two different claims before release.
+- **Status** — user-specified and trace-simulated; renderer selection is
+  grounded in current official documentation but locally unexercised.
+
+## 2026-08-12 — Markdown-to-venue-TeX support boundary
+
+- **Correction trigger** — the initial document-writing recommendation
+  established that Quarto and MyST can be customized, but did not answer the
+  narrower question of whether a maintained named ACL/NAACL/ICML adapter
+  already exists. The user distinguished “why would the feature not exist?”
+  from a request to fork Quarto, added print-only Markdown-to-LaTeX refinement
+  workflows to scope, then asked to pause the catalog investigation and retain
+  the unfinished comparison as a gap.
+- **Grounded snapshot** — Quarto's official extension system can package
+  LaTeX classes, template partials, and paired HTML/PDF formats. MyST can emit a
+  self-contained TeX tree and accepts catalog, URL, or local templates. Pandoc
+  exposes direct HTML/LaTeX templates and filters; rticles packages a catalog
+  of publisher-oriented R Markdown formats. The current Quarto journal
+  listing, MyST template catalog, and rticles format list inspected in this
+  pass did not name ACL, NAACL, or ICML. This is a time-sensitive catalog
+  observation, not proof that no isolated community repository exists.
+- **Decision** — portable Markdown-plus, rather than a renderer brand, is the
+  default early authority. Quarto remains the operational web-first default;
+  MyST and direct Pandoc are explicit TeX-handoff candidates. Guidance now
+  distinguishes venue endorsement, a cataloged adapter, a community adapter,
+  a local adapter, and generic TeX output. If repeatable adaptation becomes
+  brittle, a recorded one-way cutover makes an ordinary LaTeX tree canonical;
+  the Markdown source freezes or becomes explicitly derivative.
+- **Trace: extension mistaken for support** — an author finds a generic
+  `template:` option and the venue's official `.sty`. Literal application does
+  not label the combination supported. It records a local adapter and audits
+  review/camera-ready modes, front matter, bibliography, floats, geometry,
+  mandatory sections, and package restrictions against the current call.
+- **Trace: late hard migration** — a nearly complete Markdown manuscript needs
+  direct float and macro surgery. The author pins the last Markdown revision,
+  produces a self-contained compiling tree, records `paper.tex` as canonical,
+  and stops regenerating over it. The old source cannot silently remain a
+  second authoritative manuscript.
+- **Trace: print-first refinement** — a paper expects a strict venue class but
+  benefits from Markdown during exploration. Direct Pandoc or MyST emits and
+  exposes TeX throughout drafting; the team may cut over after the skeleton,
+  after stable results, or at final formatting. The exact timing is a paper
+  decision, while the one-authority invariant remains fixed.
+- **Trace: LaTeX-first web companion** — the official class is canonical from
+  an early cutover. lwarp or make4ht derives HTML, but the author audits that
+  output and supplies static fallbacks; successful PDF compilation does not
+  imply a usable browser artifact.
+- **Status** — instruction change is grounded in official project and venue
+  documentation and trace-simulated. The comparative build remains unexercised
+  and is recorded in `gaps/document-authoring-toolchain-bakeoff.md`.
+
+## 2026-08-12 — Quarto figure vocabulary and reproducible plot generation
+
+- **Trigger** — the shared handout rules encouraged a visual spine and the
+  document-writing topics selected Quarto, but neither told an authoring agent
+  which requests fit Quarto-native Markdown, which require an external plot,
+  or how the outputs stay aligned across HTML and PDF. The only concrete plot
+  contract was Pareto-specific. A PII handout request for overall plus nine
+  language sweep curves would otherwise force the next agent to research the
+  stack during authorship or improvise ten unrelated images.
+- **Decision** — `document-writing-figures` now owns the selection ladder:
+  Markdown tables and figures, Quarto panels, Mermaid, and Graphviz for their
+  native information shapes; a committed Matplotlib generator as the default
+  Python path for measured-data figures; ggplot2, Altair/`vl-convert`, OJS,
+  Plotly, and PGFPlots as bounded alternatives. Quantitative generators emit
+  same-stem SVG and PDF, and Quarto's extensionless image syntax selects SVG
+  for HTML and PDF for LaTeX. A project `pre-render` script makes regeneration
+  explicit, while external-data figures avoid an unexamined `freeze: auto`.
+- **Trace: ten sweep panels** — literal application validates one tidy dataset,
+  then produces a coordinated 2-by-5 small-multiple figure with overall first,
+  one shared scale and legend, observed-point markers, measured peak summaries,
+  and crossings interpolated only across an adjacent sign change. A narrow
+  venue may move overall above a 3-by-3 language grid without changing scales.
+  Ten independently autoscaled sparklines fail because they hide comparative
+  magnitude and surrender shared annotation/legend ownership.
+- **Trace: exact values** — a six-row comparison whose purpose is lookup stays
+  a captioned Markdown table. The rule does not force a chart for visual
+  variety. Conversely, a crossing claim gets a curve even if its sampled
+  values also appear in a compact summary table.
+- **Trace: process and interaction** — a simple evaluation pipeline becomes a
+  Mermaid cell rather than a plotting dependency. A browser language selector
+  uses local-data OJS/Observable Plot only after the same-data static view
+  exists; JavaScript loss therefore removes exploration without removing the
+  claim.
+- **Trace: stale external input** — run data change while `index.qmd` does not.
+  A pre-render generator refreshes or fails, while a blindly frozen executable
+  cell could retain the old claim-bearing output. The rule names that failure
+  without banning freeze for a deliberately cached portable site.
+- **Trace: R-native program** — the existing ggplot2 pipeline keeps its
+  competent stack and emits explicit same-size SVG/PDF through `ggsave`; the
+  Matplotlib default does not create a cross-language dependency merely to
+  satisfy uniformity.
+- **Status** — syntax and tool boundaries are grounded in current official
+  Quarto, Matplotlib, Altair, ggplot2, and Plotly documentation and survived
+  scenario traces. Quarto and the plotting packages are absent from this
+  checkout's current environment, so the end-to-end dual render remains
+  unexercised and is added to the existing document-toolchain bakeoff gap.
+- **In-turn correction** — the first decision wording overgeneralizes the
+  external generator as the default for every measured-data figure. The final
+  contract permits a simple one-document claim-bearing plot to remain a
+  committed executable cell whose HTML and PDF renders are audited. Promotion
+  is the default for custom annotations, coordinated panels, reuse, independent
+  regression checks, or likely LaTeX cutover—the properties the PII sweep has.

@@ -11,11 +11,13 @@ research blogs the user has read, not a blog workflow used in this project.
 
 ## Select for the thing that worked
 
-Follow [`technical-writing`](technical-writing.md) and the form-led authoring
-guidance in [`paper-writing`](paper-writing.md). A research blog post is
-showcase-selective by design: choose the result, behavior, demo, tool, or recipe
-that actually worked and gives a reader the strongest reason to care. It does
-not owe a representative account of the whole research program.
+Follow [`blog-post-writing`](blog-post-writing.md) for the static publishing
+shape, [`research-writing`](research-writing.md) for prior art and attribution,
+and the form-led authoring guidance in [`paper-writing`](paper-writing.md). A
+research blog post is showcase-selective by design: choose the result,
+behavior, demo, tool, or recipe that actually worked and gives a reader the
+strongest reason to care. It does not owe a representative account of the
+whole research program.
 
 The hook must exist. A memorable anecdote may support a qualitative demo, but
 does not become an aggregate effectiveness claim. State whether the showcased
@@ -34,6 +36,14 @@ path was the only path tried, that a selectively chosen example is typical, or
 that the post is a comprehensive research accounting. Use the honest disclaimer
 from `paper-attractiveness.sketches.md` when the selection could create one of
 those impressions.
+
+Keep citations lighter than a venue paper when that improves the reading path,
+usually through direct inline links. Still cite the closest competing or
+alternative work, the parent works that actually inspired the result, and the
+sources of borrowed data, code, metrics, methods, or visual forms. Use formal
+citation keys and a bibliography when the post is dense enough to function as
+a durable research reference. Do not pad the surface to resemble a conference
+paper.
 
 Candidate form preferences and post cadence remain explicitly untested in
 [`research-blog-writing.sketches.md`](research-blog-writing.sketches.md).
