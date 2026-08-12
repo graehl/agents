@@ -2545,3 +2545,38 @@ the sweep single-target.
   intervention caused.
 - **Counter-trace** — when the external baseline is also the immediate matched
   control, one comparison serves both roles; the rule does not duplicate it.
+
+## 2026-08-12 — intervention-ladder motives may be reconstructed
+
+- **User correction** — the earlier refinement made a useful narrative form too
+  rigid and treated its thematic "why" as though every motivating defect needed
+  advisor-grade causal proof. In real research, the choice may follow a cluster
+  of worsening metrics, a preponderance-style hunch, or an undocumented
+  speculative leap. A candid retrospective account of why one might try the
+  intervention is allowed even when it is not the logged historical reason.
+- **Epistemic split** — motivation, outcome, and attribution are different
+  claims. Reconstructed motivation needs candid labeling and true inputs;
+  measured improvement needs a fair result contrast; strong technique-level
+  attribution needs an isolating contrast. Raising the last standard must not
+  falsely raise the first into a causal estimand.
+- **Structural decision** — pressure/intervention/evidence/residual is an
+  optional full-scene template. Empty story beats are cut. The paper chooses one
+  heading logic throughout: mechanism-indexed headings are the navigable
+  default, while consistently thematic or motivational headings are an allowed
+  variation. In the default, section bodies carry the thematic thread.
+- **Trace: undocumented hunch** — several Arabic metrics deteriorate and the
+  team tries locale-aware materialization without a logged diagnosis. The paper
+  may say the pattern led the authors to suspect materialization errors, or
+  retrospectively explain why that intervention was plausible. It may not say
+  the defect was proved first or that this was certainly the contemporaneous
+  reasoning.
+- **Trace: isolated outcome** — the same section may credit the intervention
+  when a matched on/off result isolates it. If the result bundles data and model
+  changes, the looser narrative license does not create causal credit: the paper
+  credits the bundle, marks the attribution unresolved, or supplies an ablation.
+- **Trace: no useful transition** — one stage has a worthwhile controlled gain
+  but no illuminating residual. Its mechanism-indexed section reports the
+  motivation and evidence, then moves on. The form does not manufacture a
+  defect-to-next-stage bridge merely to complete four slots.
+- **Status** — directly user-specified and trace-simulated; the PII proposal is
+  the first intended application.

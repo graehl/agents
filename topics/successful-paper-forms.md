@@ -68,37 +68,53 @@ the natural story-driven form for a long program whose chronology was messier
 than the explanation needs to be.
 
 Construct the ladder backward from the strongest supported end result, not
-forward from the lab chronology. Before drafting, make an intervention evidence
-matrix with one row per candidate rung: prior state and defect; the intervention
-to credit; its intended difference; matched control or smallest isolating
-contrast; result, uncertainty, breadth, and cost; and the residual that motivates
-the next rung. Adaptive hill-climbing supplies candidate interventions, not
-causal evidence. An expected ablation is a backfill specification until it runs.
+forward from the lab chronology. An intervention evidence matrix is a useful
+planning scaffold, not a mandatory paper structure. Candidate rows may record
+the prior state or pressure; intervention; intended difference; matched control
+or smallest isolating contrast; result, uncertainty, breadth, and cost; and any
+residual worth carrying forward. Adaptive hill-climbing supplies candidate
+interventions, not causal evidence. An expected ablation is a backfill
+specification until it runs.
 
-A rung earns technique-level credit only when its evidence isolates the
-intervention well enough for the claimed attribution. When a transition bundles
-several changes, either run the deciding ablations, credit the bundle at system
-level, or demote the transition from the ladder; do not project a clean causal
-step onto an underidentified chronology. Promote a full rung when its effect is
-material, its attribution is informative, it changes a decision, or the field
-would benefit from additional confirmation of a less-reproduced technique.
-Established low-value ingredients get a citation and a brief reproduction-ready
-sketch, usually in a method bridge or appendix, while remaining visible as
-controls when the attribution depends on them.
+Keep motivation, outcome, and attribution epistemically separate. A research
+motivation need not prove that a defect caused the intervention: it may be an
+observed pattern, a preponderance-style hunch ("several metrics worsened here,
+so we suspected ..."), a candid speculative leap, or a retrospective sketch of
+why someone might try the intervention. When the actual reasoning was not
+logged, mark the account as reconstructed rather than implying a contemporaneous
+diagnosis or rigorous proof. The thematic story may be composed after the work;
+its factual observations and claims about history may not be invented.
 
-Use one repeated stage cadence:
+Stronger standards attach to technique-level credit. A rung earns such credit
+only when its outcome evidence isolates the intervention well enough for the
+claimed attribution. When a transition bundles several changes, either run the
+deciding ablations, credit the bundle at system level, or present it as a useful
+unresolved intervention rather than projecting a clean causal step onto an
+underidentified chronology. Promote a full rung when its effect is material,
+its attribution is informative, it changes a decision, or the field would
+benefit from additional confirmation of a less-reproduced technique. Established
+low-value ingredients get a citation and a brief reproduction-ready sketch,
+usually in a method bridge or appendix, while remaining visible as controls when
+the attribution depends on them.
 
-1. **Pressure:** show the prior system's concrete defect, optionally with one
-   representative example.
-2. **Intervention:** state the smallest change being tested and why it addresses
-   that defect.
-3. **Evidence:** report a compact fixed scorecard—typically two to six
-   decision-bearing quantities—in the same format. Carry one stable external
-   reference throughout for cumulative comparability; when that differs from
-   the matched prior-rung or control contrast, report both. The external delta
-   never substitutes for the isolating contrast needed to credit a technique.
-4. **Residual:** name what remains unsolved and why that motivates the next
-   stage rather than merely following it in time.
+Choose one section-heading system for the whole paper:
+
+- **Mechanism-indexed (default):** each heading names the intervention or its
+  technical meaning so the table of contents is directly navigable. The body
+  carries the motivation or thematic thread, then the result.
+- **Story-indexed variation:** each heading names the motivating pressure,
+  question, or turn. The body introduces the intervention. Use this variation
+  consistently rather than alternating heading logics by section.
+
+Within either system, pressure, intervention, evidence, and residual form a
+full-scene template, not compulsory slots. Include a pressure or representative
+example when it makes the choice intelligible; report a compact fixed
+scorecard—typically two to six decision-bearing quantities—for a credited
+result; name a residual when it creates a useful handoff. If a story element is
+not worth reading, cut directly to the next scene. Carry one stable external
+reference throughout for cumulative comparability; when that differs from the
+matched prior-rung or control contrast, report both. The external delta never
+substitutes for the isolating contrast needed for strong technique-level credit.
 
 Open with the terminal result, the task-level reference baseline, and a preview
 of the ladder; let the repeated cadence establish credit. Close by comparing
@@ -112,8 +128,9 @@ The form boundary is the reader gift. Use recipe synthesis when the useful
 product is a modular checklist whose ingredients need not occur in order. Use a
 headline-result paper when the terminal result carries the paper and the stages
 are merely implementation detail. Use an intervention ladder when understanding
-the successive defects, credited fixes, and residuals is itself the transferable
-result. Keep one paper when the rungs share a central task, testbed, and
+the successive intervention choices, their evidence, and what they make worth
+trying next is itself the transferable result. Keep one paper when the rungs
+share a central task, testbed, and
 comparison language; split a rung whose reader promise, evidence neighborhood,
 or evaluation regime can stand on its own.
 
@@ -122,10 +139,13 @@ Examples: [A ConvNet for the
 and, in a more modular register, [Bag of
 Tricks](https://openaccess.thecvf.com/content_CVPR_2019/html/He_Bag_of_Tricks_for_Image_Classification_with_Convolutional_Neural_Networks_CVPR_2019_paper.html).
 
-It is legitimate to select the clearest true narrative after the work. It is
-not legitimate to hide a failed attempt when that failure changes validity,
-scope, expense, or causal attribution. Incidental dead ends can move to an
-appendix; load-bearing negative evidence stays in the main account.
+It is legitimate to select the clearest true narrative after the work and to
+use an explicitly reconstructed "why one might try this" rationale where the
+original thought process was not logged. It is not legitimate to present that
+rationale as historical fact, or to hide a failed attempt when that failure
+changes validity, scope, expense, or causal attribution. Incidental dead ends
+can move to an appendix; load-bearing negative evidence stays in the main
+account.
 
 ### Empirical-audit paper
 
