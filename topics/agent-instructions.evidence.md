@@ -2580,3 +2580,29 @@ the sweep single-target.
   defect-to-next-stage bridge merely to complete four slots.
 - **Status** — directly user-specified and trace-simulated; the PII proposal is
   the first intended application.
+
+## 2026-08-12 — challenge maps and attempt ledgers are ladder defaults
+
+- **User specification** — a ladder should normally name its broad recurring
+  challenges in advance, preferably in a glossary-like table, rather than open
+  with a laundry-list paragraph or invent a new pressure for each intervention.
+  Every challenge-bearing technique section should also have a corresponding
+  appendix account of less-effective attempts and current guesses about why.
+- **Form decision** — when pressures recur, the opening defaults to a compact
+  challenge/meaning/response map and later sections refer back to it. Each
+  challenge-bearing technique defaults to a technique-indexed appendix
+  subsection containing attempt, observed outcome, explanation hypothesis, and
+  evidence status.
+- **Trace: shared scarcity** — four data interventions all respond primarily to
+  scarce supervision. The introduction defines that challenge once; the four
+  mechanism-indexed sections do not fabricate four distinct diagnoses merely to
+  sound story-driven.
+- **Trace: failed versus untried** — deeper heads lost in measured comparisons,
+  while a multi-encoder representation has never run. The paired appendix lists
+  the former as less-effective attempts with causal guesses marked as
+  hypotheses, and the latter in an explicitly untried box. It does not turn an
+  expectation into negative evidence.
+- **Main-path boundary** — a failed attempt that changes the selected method's
+  meaning, expense, scope, or validity remains in the main section. Routine
+  search history moves to the appendix without being erased.
+- **Status** — directly user-specified and instantiated in the PII proposal.

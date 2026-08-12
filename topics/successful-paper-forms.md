@@ -106,6 +106,13 @@ Choose one section-heading system for the whole paper:
   question, or turn. The body introduces the intervention. Use this variation
   consistently rather than alternating heading logics by section.
 
+Default to a compact named challenge map near the opening when several
+interventions answer a recurring set of pressures. Define each challenge in the
+paper's vocabulary and state the response it organizes, preferably as a short
+challenge/meaning/response table. Later sections refer back to those names
+instead of inventing a fresh defect narrative for every technique. A paper with
+one obvious pressure can state it once without forcing a table.
+
 Within either system, pressure, intervention, evidence, and residual form a
 full-scene template, not compulsory slots. Include a pressure or representative
 example when it makes the choice intelligible; report a compact fixed
@@ -123,6 +130,15 @@ resource regimes from proposals that would become attractive with more data,
 teacher compute, or stronger models. Fair-comparison mechanics, full sweeps,
 and secondary breakdowns may move to appendices, but the main path retains
 enough evidence to understand and trust each credited delta.
+
+By default, pair every challenge-bearing technique section with a
+technique-indexed appendix subsection. Record less-effective attempts, their
+observed outcomes, the current hypotheses for why they underperformed, and the
+evidence status of those explanations. Mark an untried proposal as untried
+rather than mixing it with failed ablations. Keep a negative result in the main
+path when it changes validity, scope, cost, causal credit, or the interpretation
+of the selected intervention; move the remaining attempt ledger to its paired
+appendix.
 
 The form boundary is the reader gift. Use recipe synthesis when the useful
 product is a modular checklist whose ingredients need not occur in order. Use a
