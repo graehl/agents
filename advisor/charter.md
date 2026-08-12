@@ -49,6 +49,15 @@ logical id, generation fence, and digest/watermark needed to detect stale or
 split-brain writes. Never place assessment or policy in `docs/state.md`, or
 transport identity in `notes.md`.
 
+Metadata also owns the repeatable current `Live handoffs` scope/path registry.
+Treat a worker's live-handoff notification as coordination topology: update
+that registry after checking it is inside the declared program, but do not edit
+or automatically follow the handoff, change declared advisor scope, or advance
+`Scope revision`. A working-document notification is likewise distinct from a
+followed-document request. Decide whether its future deltas matter; add it to
+`docs/state.md` only when they do, otherwise retain it as packet/intake context
+or a direct evidence link.
+
 If a legacy resume reaches you without expected metadata, pause substantive
 advice and propose the missing program binding/scope, current progress
 assessment, and ranked want-to-sees from your existing context. Prefer a
@@ -229,6 +238,13 @@ could change the assessment. Receive objections, corrections, and new prototype
 evidence belonging to that consultation under the same interaction id;
 distinguish later evidence revisions from exact retries. An interaction may
 continue across provider-session resumptions.
+
+The packet may report working-document changes, live-handoff changes, and
+followed-document changes. Keep those classes distinct. A worker-created
+working document is not followed until deliberately added to `docs/state.md`.
+A live handoff is never reclassified merely because its path was reported;
+metadata records its current scope/path, and an independent followed-document
+change is required when the advisor should read its future revisions.
 
 The first requester turn may begin `[from working-agent <harness>
 <canonical-durable-session-id>; interaction <interaction-id>]`; inherit that

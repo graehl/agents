@@ -35,14 +35,22 @@ applicable advisor once for each new decision/evidence state that:
 - changes the causal story after a surprising, weak, or null result;
 - promotes a provisional claim or uses it to justify a material next step;
 - consolidates local results into a paper, progress report, or portfolio
-  narrative; or
+  narrative;
+- completes the intended v1, rename, retirement, or role change of a program
+  working document, or completes the intended v1, scope/path change, or
+  retirement of a live handoff for that program; or
 - operationally addresses the advisor (tell/ask advisor).
 
 Load and follow `research-advisor.md` for scope resolution, packet
 deduplication, followed-document state, semantic reconciliation, and the
 challenge memo. Do not substitute “advisor review would help” for invocation.
 Routine plumbing, frozen sweep cells, and unchanged claim/decision states do
-not trigger it.
+not trigger it. A topology-only notification is a `tell`. The trigger is the
+coherent intended-v1 or completed-change boundary, not file creation, first
+touch, or first line. Deliver promptly—normally in the next advisor interaction,
+or as its own `tell` when none is otherwise due. It may be bundled or briefly
+deferred, but remains owed and is delivered before the working session ends or
+transfers its scope.
 
 
 ## Retained detail and examples
@@ -106,9 +114,23 @@ decision/evidence state satisfying any of these conditions:
   to justify a material next step;
 - when a paper, progress report, or portfolio synthesis consolidates several
   local results into one research narrative;
+- when the session completes the intended v1, rename, retirement, or role
+  change of a human-readable program working document, or completes the
+  intended v1, scope/path change, or retirement of a live handoff for that
+  program; and
 - whenever graehl operationally addresses or refers to the advisor, including
   `tell advisor ...`, `tell the advisor ...`, `ask advisor ...`, and
   `ask the advisor ...`.
+
+Working documents and live handoffs are separate classes. Report both through
+the packet fields in `research-advisor.md`; neither notification automatically
+makes its path a followed document. The advisor records current live-handoff
+scope/path entries in metadata for reboot visibility, while `docs/state.md`
+remains the sole followed-document registry. The notification boundary is a
+coherent intended v1 or completed topology change, not the first write. Send it
+promptly enough not to lose it—normally in the next interaction, otherwise as a
+`tell`—and no later than session end or transfer. Several changes at the same
+natural boundary may share one interaction.
 
 Load and follow `research-advisor.md` to resolve the program or project-wide
 advisor, deduplicate unchanged packet states, compose its

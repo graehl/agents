@@ -53,6 +53,21 @@ Updating a handoff records state; it does not authorize executing its next
 steps. A session doing the work owns keeping its known handoff truthful rather
 than leaving predictable cleanup for the next `/hi`.
 
+When the work is served by a durable advisor, the coherent intended v1 of a
+live handoff, a completed change to its covered scope/path, or its retirement
+triggers an advisor `tell`. Notify promptly—normally in the next advisor
+interaction—because feedback may correct the handoff role while cheap and an
+early boundary avoids forgetting. Do not notify on file creation, first touch,
+or first line. Brief deferral and bundling are allowed, but delivery remains
+owed and occurs before the working session ends or transfers the scope.
+
+Report this as a live-handoff change, distinct from working-document and
+followed-document changes. The advisor records current scope/path in metadata
+for logical reboot visibility; it does not create, edit, or automatically
+follow the handoff. Several changes at one natural boundary may share one
+coherent advisor interaction. This rule never requires creating a handoff where
+the user/session chose none.
+
 ## Contents
 
 Write for the user and a fresh peer-capability agent with no session memory.
@@ -245,6 +260,49 @@ changed incumbent or generation is material state, not incidental session
 metadata.
 
 ## Sketches
+
+### Capability-asymmetric advisor standing
+
+This is dormant: no underpowered-research-worker deployment is anticipated,
+and the safe calibration between today's symmetric verification stance and
+“trust absolutely” is unresolved. If a future program deliberately uses
+workers known to be materially lower-capability than its advisor, reconsider
+the current “assess each other's claims by support rather than role” default.
+Metadata could attest the intended capability ordering and shift the worker's
+epistemic prior toward the advisor, reducing the failure where a weaker worker
+confidently re-litigates and degrades stronger advice. Do not yet prescribe how
+far that shift goes.
+
+That trust shift would remain epistemic, not an authority transfer. Advisor
+recommendations, want-to-sees, new gates, and rescope would retain their current
+authorization treatment. Do not activate the shift from role labels, model
+self-report, or ordinary disagreement; require a deliberate program policy,
+credible model/effort/capability provenance, and an explicit moderation rule.
+Before making this binding, trace the opposite failure: a stronger advisor can
+still be stale, wrong about live object state, or overgeneralize outside its
+evidence, while a weaker worker may possess the decisive fresh observation.
+
+### Compiled durable boot for a long-running advisor
+
+A long-running advisor is a strong candidate for the proposed compiled-AGENTS
+facility in
+[`gaps/agent-specific-durable-boot-compilation.md`](../gaps/agent-specific-durable-boot-compilation.md).
+Its generated profile could place the exact current charter stack, declared
+program scope, authorization/epistemic stance, restart policy, and selected
+program instructions in the harness state preserved across compaction. The
+source metadata and charter remain authoritative; the compiled profile is a
+manifested snapshot of those inputs, never a second place to edit policy.
+
+Routine semantic progress does not justify recompilation or restart. Program
+assessment, ranked want-to-sees, document cursors, and intake history continue
+to evolve in the advisor's logical-continuity bundle. A material change to the
+declared program scope, charter stack, authorization/epistemic policy, or
+restart behavior should instead mark the compiled profile stale and advise a
+recompile plus clean serving-incarnation restart. That succession validates the
+saved bundle, uses the ordinary generation fence, and starts the successor from
+the new compiled-input digest. Minor clarification or ordinary evidence
+updates leave the incumbent running. This remains a design sketch until the
+compiler and its compaction behavior are implemented and tested.
 
 If bare `/hi` repeatedly fails to discover important simultaneous work, consider
 a plain `tasks/OPEN` manifest naming `tasks/ROOT` plus other open tasks. Do not

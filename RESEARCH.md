@@ -22,7 +22,9 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
   structure, program, result table, or progress report.
 - [`RESEARCH/direction.md`](RESEARCH/direction.md) — before field-survey,
   prior-art, or direction-ranking work, and when a material decision or changed
-  evidence state triggers the research advisor.
+  evidence state triggers the research advisor; also when an advisor-governed
+  program completes the intended v1 of a working document or live handoff, or
+  completes a later role/scope/path change or retirement.
 - [`RESEARCH/evidence.md`](RESEARCH/evidence.md) — before presenting a newly
   wired experimental result, making a comparison or significance claim, or
   summarizing train/eval/gate conditions.

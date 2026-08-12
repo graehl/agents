@@ -43,8 +43,9 @@ incarnation is `<advisor-dir>/session.local.md`; cold transcript provenance is
 under `<advisor-dir>/sessions/`. Handoffs record the exact metadata path rather
 than asking a successor to repeat scope discovery.
 
-Create the advisor directory on first actual handoff, not merely because a
-project has a `research/` directory. The logical advisor is the stable
+Create the advisor directory on the first actual advisor consultation, not
+merely because a project has a `research/` directory or a working handoff. The
+logical advisor is the stable
 program-to-advisor relation named in `metadata.md`; a provider session is one
 generation-fenced incarnation. The default policy is one continuous, growing
 session, consulted infrequently at the invocation conditions, rather than a
@@ -63,8 +64,9 @@ log.
 
 The durable state files have distinct roles:
 
-- `metadata.md` controls identity, declared scope, artifacts, lifecycle
-  generation, exact session title, literal restart prompt, and policies;
+- `metadata.md` controls identity, declared scope, artifacts, current live
+  handoff scope/path registry, lifecycle generation, exact session title,
+  literal restart prompt, and policies;
 - `docs/state.md` is the mechanical read cursor: which documents were resolved,
   at what repository revision, plus fingerprints for dirty or untracked text;
 - `notes.md` is the semantic state: the advisor's synthesized understanding of
@@ -127,6 +129,7 @@ Advisor scope: <precise program responsibility>
 Scope revision: <monotonic integer>
 Scope provenance: <user decision or non-contradictory clarification source>
 Governing progress/plan: <path(s)>
+Live handoffs: <none, or repeatable <scope> | <project-relative path> entries>
 Metadata path: <project-root-relative metadata.md path>
 Metadata site rationale: <why this program or fallback site is correct>
 Exact session title: Advisor — <Program name>
@@ -268,11 +271,12 @@ fence the serving generation and mark metadata `no-incumbent`, then remove
 retaining the logical metadata line. The next consult increments the generation
 and marks it active before starting its fresh provider session.
 
-On the first handoff, use this protocol to establish metadata before starting
-the provider session. Its first transaction creates `notes.md` with an initial
-progress assessment and ranked proof requests, using a `none` fold
-watermark if no turn has yet been folded; `docs/state.md` with the initial
-followed set and completed-review state; and `intake.md` with its schema header.
+On the first advisor consultation, use this protocol to establish metadata
+before starting the provider session. Its first transaction creates `notes.md`
+with an initial progress assessment and ranked proof requests, using a `none`
+fold watermark if no turn has yet been folded; `docs/state.md` with the initial
+followed set and completed-review state; and `intake.md` with its schema
+header.
 For a program advisor, the program's `GLOSSARY.md` is the first required
 followed document. Start or resume every advisor turn with this ordered bundle:
 
@@ -358,6 +362,31 @@ the advisor's first state update.
 `RESEARCH.md` owns the automatic invocation conditions. When several conditions
 describe the same decision/evidence state, send one packet naming all relevant
 reasons, not one packet per bullet.
+
+In an advisor-governed program, completed changes to working-document and live-
+handoff topology are also invocation conditions. A working document is a
+human-readable document intentionally introduced to govern, organize, or carry
+evolving program work; transient scratch, binary artifacts, model outputs, and
+ordinary generated logs do not qualify merely by existing. Notify the advisor
+when the intended v1, rename, retirement, or role change is coherent. Notify it
+separately when a live handoff's intended v1, covered scope/path change, or
+retirement is complete. The boundary is not file creation, first touch, or
+first line.
+
+Prompt notification can expose a mistaken document role or handoff scope while
+correction is cheap; the no-later-than-session-end/transfer boundary prevents
+the notification from being forgotten. Normally include it in the next advisor
+interaction, or open a `tell` when none is otherwise due. Brief deferral and
+bundling at one natural boundary are allowed, but the delivery remains owed.
+Creating the file or recording its path locally is not delivery.
+
+The advisor assesses whether future deltas to a reported working document merit
+adding it to `docs/state.md`; notification alone does not follow it. A live
+handoff is coordination state, not a working document. The advisor updates
+metadata's repeatable `Live handoffs` scope/path registry from the worker's
+notification, but does not thereby follow or edit that handoff, change the
+advisor's declared scope, or advance `Scope revision`. Use the separate
+followed-document field when its future contents should also be read.
 
 An operational user mention of “advisor” also invokes it:
 
@@ -641,6 +670,8 @@ Question: <only for ask, or the decision to review>
 Claim / decision: <one sentence>
 Current status: <object session's evidence status and confidence>
 Prior commitments: <predictions or decision criteria recorded before the result>
+Working-document changes: <introduced/renamed/retired paths and roles, or none>
+Live-handoff changes: <started/changed/retired scope and path entries, or none>
 Followed-document changes: <paths/globs to add or remove, or none>
 Evidence: <direct artifact, run, diff, paper, or result-table links>
 Alternatives: <live alternatives actually considered, including stop/incumbent>
@@ -653,9 +684,10 @@ pre-registered prediction as `none recorded`; do not reconstruct one after
 seeing the result. Do not send the advocacy transcript unless the advisor asks
 for a specific passage needed to diagnose drift. Add a document to the followed
 set when its future deltas matter to the advisor's trajectory; otherwise leave
-it as a direct evidence link. Follow-up turns cite the interaction id and send
-only the question, objection, or evidence delta; do not reserialize the initial
-packet.
+it as a direct evidence link. A live-handoff change updates metadata's current
+scope/path registry without classifying the handoff as a working or followed
+document. Follow-up turns cite the interaction id and send only the question,
+objection, or evidence delta; do not reserialize the initial packet.
 
 ## Advisor review
 

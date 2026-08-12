@@ -1896,3 +1896,58 @@ the sweep single-target.
   but removing `session.local.md` fails. The old generation remains fenced,
   returns `shutdown incomplete`, and names the stale projection for recovery;
   it never reactivates metadata merely to make the transaction look atomic.
+
+## 2026-08-12 — advisor learns working documents and live handoffs
+
+- **User requirement** — an advisor-governed working session consults the
+  advisor when it introduces new working documents. Starting a new live
+  handoff scope is also communicated, but handoffs are a distinct class rather
+  than another working/followed document.
+- **Timing rationale** — notification does not fire on file creation, first
+  touch, or first line. It fires once the intended v1 or later topology change
+  is coherent: prompt delivery can earn useful role/scope feedback while edits
+  are cheap, and the hard latest boundary before session end/transfer prevents
+  forgetting. Brief deferral and bundling remain allowed.
+- **Decision** — packet topology now has three independent fields: working-
+  document changes, live-handoff changes, and followed-document changes. The
+  first informs and lets the advisor decide whether future deltas matter; the
+  second updates a repeatable metadata scope/path registry; only the third
+  changes `docs/state.md`. A topology-only notification is a `tell`.
+- **Trace: new evolving plan** — a worker completes the intended v1 of a
+  human-readable research plan that will govern several result decisions. It
+  tells the advisor of the path and role; the advisor elects to add it to the
+  followed set. Starting the file did not prematurely interrupt drafting.
+- **Trace: one-off evidence** — a worker emits a static adjudication receipt.
+  It reports the artifact as evidence, not a working-document topology change,
+  and the advisor does not grow its followed set.
+- **Trace: new live handoff** — a large session completes a private handoff for
+  a named scope. The worker tells the advisor; metadata records scope/path,
+  while `docs/state.md` stays unchanged. A separate followed-document change is
+  needed if the advisor should track its contents, as the PII advisor
+  deliberately did.
+- **Trace: no handoff** — a small session has no handoff. Advisor consultation
+  proceeds with `Live-handoff changes: none`; no file or metadata entry is
+  invented merely to satisfy the protocol.
+- **Trace: rename and retirement** — a handoff moves or ceases to govern work.
+  The worker reports the completed old/new scope/path or retirement before
+  ending; the advisor replaces/removes the metadata entry without interpreting
+  it as program rescope or editing the handoff.
+
+## 2026-08-12 — compiled boot as an advisor compaction boundary
+
+- **Dormant sketch** — a long-running advisor is a strong candidate for the
+  proposed compiled-AGENTS facility because exact charter, scope,
+  authorization/epistemic stance, and restart policy should survive repeated
+  compaction. The authoritative sources remain metadata and charter files; the
+  compiled profile is a generated, input-hashed snapshot rather than another
+  policy owner.
+- **Trace: ordinary progress** — a new result changes program assessment,
+  ranked want-to-sees, intake history, or the document cursor. The advisor
+  checkpoints its continuity bundle and continues in the same serving session;
+  recompiling policy or restarting would spend context for no semantic gain.
+- **Trace: material scope change** — the declared program scope or charter
+  policy changes enough that the old protected boot would steer differently.
+  Its manifest becomes stale; the program is advised to recompile and perform
+  a generation-fenced succession from the validated continuity bundle. Minor
+  clarification does not force churn. This is not binding until the compiler
+  and cross-compaction behavior exist and are tested.
