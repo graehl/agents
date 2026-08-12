@@ -352,7 +352,12 @@ the id is not derived from the packet hash. Clarification, rebuttal,
 advisor-requested evidence, and rapidly evolved prototype results continue as
 turns or explicit revisions under that id, including across provider-session
 resumptions. The object-level researcher or user decides whether and how long
-to continue the discussion.
+to continue the discussion. Treat the id as a best-effort serial, not a global
+uniqueness or monotonicity claim. Honor a reuse within 24 hours as a likely
+continuation/retry while the interaction remains open; requesters should not
+intentionally assign it to a distinct interaction during that window. After a
+real or synthetic sign-off, a later request uses a new id and may reference the
+prior interaction naturally.
 
 Prefix only the first delivered turn of an interaction:
 
@@ -368,7 +373,7 @@ cryptographic authentication or an authorization token. Do not add the usual
 subagent/non-user authorization disclaimer. If the advisor must report a
 material correction or emergency after sign-off, label it `post-sign-off
 notice` and address that harness/session. Otherwise a later request starts a
-new interaction envelope.
+new interaction envelope with a new id.
 
 `working-agent` tells the advisor to scrutinize material progress/completion,
 result-interpretation, and inferred-user-intent claims for advocacy or
@@ -378,6 +383,15 @@ accepted normally. The identified session/log is merely the usual cheap
 verification option when an actual material conflict independently warrants
 it, not a special proof burden.
 
+Consultations are serial by default. If another party enters while one
+requester interaction is open and its origin is ambiguous, state the confusion
+and ask the entrant to begin its own `[from working-agent ...]` envelope; do not
+silently attribute or merge its messages, but preserve safe provisional help.
+On the next activation, an interaction with no sign-off and no activity for
+more than 24 hours receives an explicit advisor-authored `[synthetic sign-off
+...; inactive >24h]` in `intake.md`. Mark it synthetic, never requester-authored;
+a later return opens a new interaction envelope with a new id.
+
 Before dispatch, finalize the packet and normally compute its SHA-256. Record
 in `intake.md` the stable interaction id, handled time/status, requester,
 handoff or packet path, digest when available, advisor incarnation, and prior
@@ -385,13 +399,15 @@ memo or durable pointer. A semantic/document watermark is optional context for
 explaining a changed response. Prior completed records are append-only.
 Missing optional provenance is `unavailable`; it does not suppress advice.
 
-The stable interaction id is the primary repeat cue. If the packet digest and
-semantic watermark also match, return or recap the cached memo. If either
-changed, say the interaction was seen before and provide a fresh or delta
-response as useful; do not demand a revision ceremony. A completed duplicate
-delivered by another successor is not by itself a double-agent incident;
-report concurrent ownership only when live session/lease evidence establishes
-it. `topics/handoffs.md` adds handoff-specific completeness-repair fields.
+The stable interaction id is the primary repeat cue within its origin and time
+context, not proof of global uniqueness. If the packet digest and semantic
+watermark also match, return or recap the cached memo. If either changed, say
+the interaction was seen before and provide a fresh or delta response as
+useful; do not demand a revision ceremony. An ambiguous reuse asks for
+clarification without suppressing advice. A completed duplicate delivered by
+another successor is not by itself a double-agent incident; report concurrent
+ownership only when live session/lease evidence establishes it.
+`topics/handoffs.md` adds handoff-specific completeness-repair fields.
 
 Use this compact append-only record shape; a later status or closure appends a
 linked record:
@@ -400,7 +416,8 @@ linked record:
 ## <interaction-id> · <packet-sha256-or-unavailable> · <status> · <ISO-8601 time>
 
 Requester: <harness> · <canonical durable session id or unavailable>
-Requester sign-off: open | <ISO-8601 time> | unavailable
+Requester sign-off: open | received <ISO-8601 time> | unavailable
+  | synthetic <ISO-8601 time> after >24h inactivity
 Advisor incarnation: <logical id>/<generation> · <provider session id>
 Source: <handoff/packet path> · SHA-256 <digest or unavailable>
 Status: received | answered | closed | interrupted | superseded

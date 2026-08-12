@@ -1779,3 +1779,27 @@ the sweep single-target.
   makes transcript verification possible when an actual material conflict
   independently calls for the usual cheap check; it does not impose a proof
   burden or introduce signed-message paranoia.
+
+## 2026-08-12 — advisor requester origins remain serial
+
+- **User direction** — serial consultation is the expected case. A surprising
+  second entrant should not be silently merged with the open requester; the
+  advisor names its confusion and asks the entrant for its own origin prefix,
+  while retaining safe provisional usefulness.
+- **Stale close** — on the next advisor activation, an interaction inactive for
+  more than 24 hours without sign-off receives an explicit advisor-authored
+  synthetic sign-off. The intake ledger labels it synthetic rather than
+  forging requester provenance, and a later return starts a new envelope.
+
+## 2026-08-12 — interaction ids are best-effort serials
+
+- **User decision** — advisors honor the interaction serial by default, while
+  making no absolute uniqueness or monotonicity claim. A requester should not
+  intentionally assign one id to two distinct interactions within 24 hours.
+- **Failure handling** — reuse inside the window presumptively means
+  continuation/retry. Origin, timestamp, digest, and intake history can expose
+  ambiguity; the advisor asks for clarification and still gives safe useful
+  advice instead of rejecting the interaction.
+- **No purposeful-reuse exception yet** — after real or synthetic sign-off,
+  “one more thing” receives a new interaction id. It may refer to the earlier
+  context naturally; no special link field or syntax is required.

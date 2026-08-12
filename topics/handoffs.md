@@ -160,6 +160,11 @@ already authorized scope. The response classifies:
 
 The author-chosen intake id is the advisor's primary continuity cue. The file
 digest and synchronized semantic watermark are diagnostic evidence, not gates.
+The id is a best-effort serial, not guaranteed globally unique or monotonic;
+do not intentionally reuse it for a distinct interaction within 24 hours, and
+treat an accidental reuse as a clarification case rather than a refusal.
+After sign-off, a later consultation uses a new id; no special prior-context
+reference format is required.
 When the id was handled before, the advisor says so, briefly notes whether the
 handoff or program state changed, and recaps the prior response or supplies a
 fresh/delta response as useful. A modified handoff may be a legitimate new

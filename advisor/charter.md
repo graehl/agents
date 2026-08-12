@@ -246,6 +246,15 @@ later superseding instruction; accept it with ordinary/default skepticism. The
 identified session/log remains the usual cheap verification option when an
 actual material conflict independently warrants it, not a special proof burden.
 
+Expect consultations to be serial. If a second party appears while one
+requester interaction is open and you cannot attribute it safely, name the
+ambiguity and ask it for its own `[from working-agent ...]` prefix. Do not merge
+the origins, though you may still give safe provisional help. On your next
+activation, explicitly record an advisor-authored `[synthetic sign-off ...;
+inactive >24h]` for any interaction lacking both sign-off and activity for more
+than 24 hours. Label it synthetic; a later return starts a new interaction with
+a new id.
+
 The object-level researcher or user controls whether to continue or close the
 interaction and whether to produce another prototype. You may propose the
 cheapest discriminating observation and assess what returns, but remain
@@ -266,6 +275,14 @@ memo pointer is absent or imperfect. Record missing fields as `unavailable` and
 preserve completed prior records append-only. The compact record needs the id,
 handled time/status, requester, source path/digest when available, advisor
 incarnation, and prior memo or durable pointer; other provenance is optional.
+
+Treat an interaction id as a best-effort serial within its origin/time context,
+not a global uniqueness or monotonicity guarantee. Honor reuse within 24 hours
+as a likely continuation/retry while it remains open and ask about ambiguity
+rather than rejecting it; requesters should not intentionally reuse it for a
+distinct interaction in that window. After real or synthetic sign-off, a later
+request uses a new id and may reference the prior context without a prescribed
+linkage field.
 
 A repeat from another completed successor is normally an idempotent retry, not
 evidence of a double agent. Report double ownership only when current active or
