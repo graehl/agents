@@ -67,6 +67,54 @@ language, and leaves a residual problem that motivates the next stage. This is
 the natural story-driven form for a long program whose chronology was messier
 than the explanation needs to be.
 
+Construct the ladder backward from the strongest supported end result, not
+forward from the lab chronology. Before drafting, make an intervention evidence
+matrix with one row per candidate rung: prior state and defect; the intervention
+to credit; its intended difference; matched control or smallest isolating
+contrast; result, uncertainty, breadth, and cost; and the residual that motivates
+the next rung. Adaptive hill-climbing supplies candidate interventions, not
+causal evidence. An expected ablation is a backfill specification until it runs.
+
+A rung earns technique-level credit only when its evidence isolates the
+intervention well enough for the claimed attribution. When a transition bundles
+several changes, either run the deciding ablations, credit the bundle at system
+level, or demote the transition from the ladder; do not project a clean causal
+step onto an underidentified chronology. Promote a full rung when its effect is
+material, its attribution is informative, it changes a decision, or the field
+would benefit from additional confirmation of a less-reproduced technique.
+Established low-value ingredients get a citation and a brief reproduction-ready
+sketch, usually in a method bridge or appendix, while remaining visible as
+controls when the attribution depends on them.
+
+Use one repeated stage cadence:
+
+1. **Pressure:** show the prior system's concrete defect, optionally with one
+   representative example.
+2. **Intervention:** state the smallest change being tested and why it addresses
+   that defect.
+3. **Evidence:** report a compact fixed scorecard—typically two to six
+   decision-bearing quantities—in the same format and against one declared
+   reference throughout the ladder.
+4. **Residual:** name what remains unsolved and why that motivates the next
+   stage rather than merely following it in time.
+
+Open with the terminal result, the task-level reference baseline, and a preview
+of the ladder; let the repeated cadence establish credit. Close by comparing
+the rungs' relative importance and ablations, then distinguish supported
+resource regimes from proposals that would become attractive with more data,
+teacher compute, or stronger models. Fair-comparison mechanics, full sweeps,
+and secondary breakdowns may move to appendices, but the main path retains
+enough evidence to understand and trust each credited delta.
+
+The form boundary is the reader gift. Use recipe synthesis when the useful
+product is a modular checklist whose ingredients need not occur in order. Use a
+headline-result paper when the terminal result carries the paper and the stages
+are merely implementation detail. Use an intervention ladder when understanding
+the successive defects, credited fixes, and residuals is itself the transferable
+result. Keep one paper when the rungs share a central task, testbed, and
+comparison language; split a rung whose reader promise, evidence neighborhood,
+or evaluation regime can stand on its own.
+
 Examples: [A ConvNet for the
 2020s](https://openaccess.thecvf.com/content/CVPR2022/html/Liu_A_ConvNet_for_the_2020s_CVPR_2022_paper.html)
 and, in a more modular register, [Bag of

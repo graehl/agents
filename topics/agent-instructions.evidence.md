@@ -2496,3 +2496,38 @@ the sweep single-target.
   `session-turn` continues to own transport selection and receipts only. The
   unfinished two-path convergence is recorded in
   `gaps/research-advisor-session-title-convergence.md`.
+
+## 2026-08-12 — intervention ladders are reconstructed causal arguments
+
+- **User feedback** — a PII publication sketch proposed starting from the most
+  valuable discovered results, projecting backward to the ablations or
+  hill-climb evidence that can credit specific techniques, repeating a compact
+  benchmark summary at each stage, giving less-reproduced techniques full
+  treatment, and compressing standard steps to reproduction-ready sketches.
+  The intended work was first an agent-instruction refinement, then an
+  application to the PII proposal—not merely a one-off rewrite of the proposal.
+- **Form decision** — this is an intervention-ladder paper when the transferable
+  gift is the chain of defect, credited fix, controlled delta, and residual.
+  The strongest terminal result may supply a headline-result opening and the
+  interventions may have recipe value without changing the governing form.
+- **Trace: adaptive chronology** — three changes landed together before a large
+  gain. The matrix exposes that no technique-level credit is identified; the
+  writer must run an ablation, credit the bundle, or omit the rung. Merely
+  arranging the changes into a plausible sequence fails the rule.
+- **Trace: standard ingredient** — a common affine token-classifier projection
+  is necessary but neither novel nor decision-changing. It receives a citation
+  and short reproduction-ready sketch, while a less-reproduced teacher or data
+  intervention with a controlled material delta receives the full rung. The
+  form does not inflate every implementation choice into a contribution.
+- **Trace: adjacent forms** — a bag of independently useful tricks becomes
+  recipe synthesis; one decisive endpoint whose path teaches nothing remains a
+  headline-result paper; successive measured residuals that determine the next
+  intervention remain an intervention ladder. The boundary follows the reader
+  promise rather than the chronology or the opening paragraph.
+- **Trace: paper split** — two candidate stages share task, testbed, comparator,
+  and repeated scorecard, so one ladder improves cumulative understanding. A
+  diagnostic stage that needs a different estimand, related-work neighborhood,
+  and reader promise becomes a separate paper rather than a second governing
+  form hidden inside the ladder.
+- **Status** — user-grounded and trace-simulated; usefulness will be tested by
+  the accompanying PII proposal revision.
