@@ -45,6 +45,13 @@ own commit). Capture without this read side is write-only memory.
   deliberately not fixing now, or when a partially committed unit needs an
   honest visible account of what remains. Check existing entries first; extend
   the file covering the same incompleteness rather than filing a duplicate.
+- **Choose useful granularity.** Default to one running gap for a topic when
+  several missing capabilities share one purpose or must be evaluated
+  together. A per-capability file is also appropriate when it stays
+  self-contained enough to remain intelligible. A capability-gated
+  `topics/<name>.sketches.md` and its gap link both ways; do not create an
+  alternate `*.gaps.md` discovery namespace or require routine scans of every
+  topic companion.
 - **Remove** `gaps/<slug>.md` in the same commit that fixes the gap. Do not
   archive it — git history is the record, and the commit message narrates
   the closure.

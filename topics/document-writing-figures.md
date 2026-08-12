@@ -10,7 +10,10 @@ Use this topic when a paper, handout, progress report, or research blog asks
 for a graph, diagram, visual summary, or unusually rich table. It translates
 the request's information and visual-weight intent into Quarto's authoring
 vocabulary and a reproducible external plotting path. The requester need not
-name a plotting library or exact layout.
+name a plotting library or exact layout. When the information shape recurs,
+choose and name it through
+[`result-visualization-templates`](result-visualization-templates.md) before
+selecting the renderer.
 
 ## Select the display before selecting the tool
 
@@ -69,6 +72,37 @@ Use an explicit extension only when the same asset is genuinely correct for
 every target or no matched form exists. Keep the caption in the document and
 make the `fig-alt` description complementary rather than a caption copy.
 
+Treat the document fields as separate semantics:
+
+- the visible figure caption and any subcaptions state the claim, context, and
+  panel meaning;
+- `fig-alt` describes what a reader who cannot inspect the image needs to know;
+- a Markdown image title (`"..."` after the path) becomes an HTML image-title
+  attribute, but is optional mouse-hover metadata rather than an accessibility
+  substitute; and
+- axes, units, facet identifiers, data annotations, and mark/linestyle legends
+  stay in the generated asset because they decode the marks. Figure titles,
+  captions, sources, and prose codas stay in Quarto.
+
+Quarto accepts Markdown footnote references inside figure-div captions and
+ordinary image captions. Keep qualifications as document footnotes so they
+remain visible in the endnote stream and printable output. For HTML, enable
+the native supplemental popups without making them the sole disclosure:
+
+```yaml
+format:
+  html:
+    footnotes-hover: true
+    crossrefs-hover: true
+    citations-hover: true
+```
+
+Quarto's documented
+[`footnotes-hover` and `crossrefs-hover`](https://quarto.org/docs/reference/formats/html.html#footnotes)
+cover document references, not arbitrary regions inside a plotted SVG.
+Mark/subregion tooltips and legend-decoding interaction remain a researched integration in
+[`result-visualization-templates.sketches.md`](result-visualization-templates.sketches.md).
+
 For separately meaningful subfigures, use a figure div. Blank lines between
 the div, images, and caption are significant:
 
@@ -86,6 +120,37 @@ Representative error modes.
 Do not split one coordinated small-multiple chart into independent Markdown
 images merely to obtain layout; one generator should own its shared axes,
 legend, annotations, and geometry.
+
+When the evidence is textual, keep it native rather than rendering it through
+a plotting library. A cross-referenceable figure div may lay out ordinary
+Markdown blocks:
+
+````markdown
+:::: {#fig-output-contrast layout-ncol=2}
+
+::: {.condition-card}
+**Baseline output**
+
+Role: assistant
+
+The exact selectable output, with **the claim-bearing span** marked.
+:::
+
+::: {.condition-card}
+**Intervention output**
+
+Role: assistant
+
+The matched selectable output, with **the changed span** marked.
+:::
+
+Matched outputs for the same input; bold is redundant to the condition label.
+::::
+````
+
+Supply responsive HTML and LaTeX styling for `.condition-card` only when the
+ordinary block layout is insufficient. Keep literal condition/role labels and
+print-safe underline, border, or weight cues even when HTML also uses color.
 
 ### Tables
 
@@ -154,11 +219,14 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 
-fig, axes = plt.subplots(
-    2, 5, figsize=(11.0, 4.8), sharex=True, sharey=True,
-    constrained_layout=True,
-)
-# Read and validate data; draw on axes.
+fig = plt.figure(figsize=(10.5, 5.6), constrained_layout=True)
+grid = fig.add_gridspec(9, 2, width_ratios=(3.2, 1.7))
+main_ax = fig.add_subplot(grid[:, 0])
+breakout_axes = [
+    fig.add_subplot(grid[row, 1], sharex=main_ax) for row in range(9)
+]
+# Read and validate data; draw the overall result on main_ax and one
+# language on each breakout axis. Apply the declared y-range policy.
 fig.savefig("figures/swept-curves.svg", bbox_inches="tight", facecolor="white")
 fig.savefig("figures/swept-curves.pdf", bbox_inches="tight", facecolor="white")
 ```
@@ -258,21 +326,25 @@ changes, so changed external inputs can leave frozen output stale. Prefer an
 explicit generator/pre-render step. If a site deliberately commits `_freeze`
 for portability, document how external-data changes invalidate and refresh it.
 
-## Worked pattern: V11 versus GLiNER2 sweep curves
+## Worked pattern: V11 versus GLiNER2 main-and-breakout curves
 
 Interpret “a small graph of the swept curves for each of nine languages and
 overall, spark style with peak/crossing labels, usual scale” as an information
 and visual-weight request, not a demand for a particular library. The nearest
-faithful default is one compact 2-by-5 small-multiple figure:
+faithful default is the **main-and-breakout figure** defined in
+[`result-visualization-templates`](result-visualization-templates.md): the
+weighted overall curve is a full-height main panel on the left, while nine
+short rectangular language panels stack in a breakout column on the right.
 
-- panels are `overall` first, then the nine languages in a stable stated order;
-- every panel uses the same x and y limits, ticks, metric direction, and sweep
-  definition; use the metric's ordinary full scale or one defensible common
-  comparison range, never per-panel autoscaling;
+- the main `overall` panel keeps the ordinary full metric scale and reading
+  priority; language panels use one shared truncated linear range where
+  possible, or clearly label their different ranges if local shape rather than
+  cross-language level is the intended comparison;
+- keep language panels short and wide, put their y ticks on the outer right
+  edge, and use an unmistakable break mark only when a separated low point
+  makes simple truncation impossible;
 - V11 and GLiNER2 keep the same color, line style, marker, and order in every
   panel; show markers at sampled sweep values and use one shared legend;
-- visually emphasize `overall` through its panel border or header weight, not
-  a different scale;
 - each panel header carries a compact literal summary, for example
   `V11 .91@.30 · G2 .89@.25 · cross ≈.18`, leaving the plot area uncluttered;
 - peak labels give the measured maximum and sampled sweep value; ties follow
@@ -290,29 +362,32 @@ faithful default is one compact 2-by-5 small-multiple figure:
 The generator consumes tidy rows with at least `language`, `system`, sweep
 parameter, metric, split, and N (plus seed/interval fields when applicable).
 Before plotting, assert exactly the expected ten panels and two systems,
-unique condition keys, sorted sweep values, and the intended common scale.
+unique condition keys, sorted sweep values, and the intended main/breakout
+scale policies.
 Emit a compact summary CSV or table of peaks and crossings when exact lookup
 matters.
 
-If a two-column venue makes 2-by-5 illegible, keep the same scale and visual
-grammar but place `overall` full-width above a 3-by-3 language grid, or use a
-full-width figure environment. For a Quarto-to-LaTeX target whose class uses
-the conventional two-column float, add `fig-env="figure*"` to the figure
-attributes and verify the venue output. A lower-weight fallback may reduce tick labels
-and annotate only the peaks/crossings that affect the conclusion. Do not
-replace the comparison with ten independent rescaled sparklines. If the common
-scale hides important local structure, add an explicitly labeled zoom or
-difference companion while retaining the common-scale main figure.
+If a two-column venue makes the asymmetric composition illegible, place
+`overall` full-width above a 3-by-3 language grid, or use a full-width figure
+environment. For a Quarto-to-LaTeX target whose class uses the conventional
+two-column float, add `fig-env="figure*"` to the figure attributes and verify
+the venue output. A lower-weight fallback may reduce tick labels and annotate
+only the peaks/crossings that affect the conclusion. Do not silently make each
+language panel a differently autoscaled sparkline; every local range is visible
+and the caption states what cross-panel comparisons remain valid.
 
 ## Interactive variant
 
-Interaction is optional enhancement for this example. An HTML reader may use
-an OJS dropdown to enlarge one language, inspect exact points, or toggle
-uncertainty, reading the same local CSV with `FileAttachment`. Observable Plot
-is already available in Quarto OJS cells. The static small multiples remain in
-initial HTML and PDF and carry the claim; do not make hover the only source of
-peak or crossing values. Third-party OJS `require()` imports normally load from
-a content delivery network, so use built-ins or local modules for a durable,
+Interaction is optional enhancement for this example. For a static generated
+image, Quarto's HTML [`lightbox: true` or image class
+`.lightbox`](https://quarto.org/docs/output-formats/html-lightbox-figures.html)
+supplies a supported click-to-enlarge path and carries its document caption
+into the lightbox. An OJS selector may instead enlarge one language, inspect
+exact points, or toggle uncertainty, reading the same local CSV with
+`FileAttachment`. The static main-and-breakout display remains in initial HTML
+and PDF and carries the claim; do not make hover the only source of peak or
+crossing values. Third-party OJS `require()` imports normally load from a
+content delivery network, so use built-ins or local modules for a durable,
 simple-host artifact unless an online dependency is explicitly accepted.
 
 ## Release check
@@ -323,8 +398,9 @@ Before dissemination:
 2. render HTML and PDF using the recorded commands;
 3. compare values, scales, defaults, captions, and selection between the
    figure, summary table, interactive view, and source rows;
-4. inspect SVG at browser width and PDF at actual print size for clipped text,
-   unreadable panels, missing glyphs, or rasterized vector content; and
+4. inspect SVG at browser width and PDF at actual print size in color and
+   grayscale for clipped text, disappearing distinctions, unreadable panels,
+   missing glyphs, or rasterized vector content; and
 5. run the cold-reader scan from [`technical-writing`](technical-writing.md).
 
 For quality-versus-cost comparisons of three or more systems, also follow the

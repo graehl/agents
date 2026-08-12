@@ -2393,3 +2393,44 @@ the sweep single-target.
   committed executable cell whose HTML and PDF renders are audited. Promotion
   is the default for custom annotations, coordinated panels, reuse, independent
   regression checks, or likely LaTeX cutover—the properties the PII sweep has.
+
+## 2026-08-12 — named visualization layouts and linked sketch gaps
+
+- **User-designed pattern** — `main-and-breakout figure` names an asymmetric
+  overview/detail composition: a reading-priority main panel on the left and a
+  vertical stack of compact subgroup panels on the right, with main-above-grid
+  as the narrow-print reflow. The PII instance keeps the overall weighted
+  curve full-scale while language breakouts use visibly stated local ranges
+  and outward right-side ticks. The term is provisional; the information
+  structure, scale honesty, and reading priority are user-specified.
+- **Registry decision** — result displays now have a separate named-template
+  topic rather than accumulating as plotting-library recipes. It covers the
+  main-and-breakout, shared-scale small multiples, annotated transcript
+  contrast, representative-example gallery, distribution-and-exemplars,
+  task–method–evidence teaser, and empirical-law grid. Foundational
+  visualization guidance and inspected ML papers/blogs support the patterns as
+  recurring forms; publication success does not establish a causal style
+  effect.
+- **Quarto probe** — a local Quarto 1.9.38 render verified that Markdown and
+  figure-div captions remain real `figcaption` text; caption footnotes produce
+  endnotes plus hover hooks; `fig-alt` reaches the image `alt`; the optional
+  image title remains a distinct HTML attribute; cross-references, subfigures,
+  and lightbox links retain their document semantics. This supports keeping
+  title/caption/coda outside plot pixels while leaving axes, facet labels,
+  mark annotations, and legends inside the generated asset.
+- **Gap-routing decision** — a capability-gated `.sketches.md` links to a
+  committed gap and the gap links back. Default granularity is one running gap
+  per topic when capabilities must be evaluated together; contextualized
+  per-capability gaps remain valid. No arbitrary `*.gaps.md` companion or
+  routine scan is introduced, avoiding extra discovery cost and a second gap
+  namespace.
+- **Trace: ordinary dormant sketch** — a possible alternative with no current
+  incompleteness stays only in `.sketches.md`; the linking rule does not mint a
+  gap for every idea. A promised but missing interactive/print capability uses
+  the topic's existing gap, preserving both discovery directions. Two
+  independent missing capabilities may split only when each gap explains the
+  shared purpose instead of becoming a context-free checkbox.
+- **Status** — user-specified, grounded reconnaissance, and one local HTML
+  render. The semantic interaction layer, document-to-figure style bridge,
+  native qualitative component, and real venue PDF bakeoff remain unimplemented
+  in `gaps/result-visualization-templates-research.md`.

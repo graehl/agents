@@ -35,3 +35,11 @@ changed before it becomes an ordinary compiling working paper. Separately test
 lwarp or make4ht after a direct-LaTeX cutover. Close this gap by recording the
 reproducible sample, versions, template revisions, output diffs, maintenance
 burden, and selected default/cutover criteria in the document-writing topics.
+
+**Partial progress, 2026-08-12:** Quarto 1.9.38 is now installed in the user's
+home-scoped command path. A disposable HTML render exercised a caption
+footnote, `fig-alt`, image title, cross-references, subfigures, and lightbox;
+the expected semantic HTML was present and the basic installation check
+passed. This narrows the remaining gap but does not exercise PDF/LaTeX, a real
+venue class, external plotting packages, source freshness, or the comparative
+MyST/Pandoc paths above.
