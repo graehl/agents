@@ -2606,3 +2606,89 @@ the sweep single-target.
   meaning, expense, scope, or validity remains in the main section. Routine
   search history moves to the appendix without being erased.
 - **Status** — directly user-specified and instantiated in the PII proposal.
+
+## 2026-08-12 — branched programs require a lineage-and-credit map
+
+- **Live catch** — the first PII application grouped three useful intervention
+  results under one v11 ladder. Saved lineage showed that low-dose MLM produced
+  a separate v4 release, while v7 through v11 were controlled fresh starts from
+  a common v3 parent rather than serial continuations. A technique could be
+  present in the terminal substrate or strongly supported on a parallel branch
+  without its measured delta being a cumulative v11 rung.
+- **Form decision** — a branched program defaults to a lineage-and-credit map
+  before ladder promotion. It classifies exact parents and checkpoints as
+  terminal ancestors, common-parent contrasts, parallel branches, or method
+  bridges and records each result's control, external comparison, claim ceiling,
+  and manuscript role. Only verified ancestry receives combined or cumulative
+  language. Valuable parallel evidence remains a labeled case study.
+- **Trace: sibling dose search** — four releases each restart from one parent at
+  different teacher doses. Their pairwise comparisons can select the terminal
+  recipe and support a dose-response claim, but the paper may not draw the
+  releases as weights accumulated in sequence. The common parent is visible.
+- **Trace: terminal ingredient, parallel attribution** — translated data are in
+  the terminal parent's mix, while their clean matched effect comes from another
+  branch. The paper may say the terminal system uses translated data and cite
+  the parallel replication as evidence for the bundle; it may not call that
+  local delta the terminal checkpoint's cumulative gain.
+- **Fallback** — if classification leaves too few genuine rungs, the same
+  one-paper package becomes a headline-result paper with intervention case
+  studies. This preserves the findings without inventing a staircase.
+- **Status** — user-directed PII application plus saved-artifact lineage check;
+  generalized and trace-simulated.
+
+## 2026-08-12 — abstracts and resource accounting are cross-form paper defaults
+
+- **User specification** — every paper begins with an abstract. An empirical
+  paper may also carry a compute section estimating electricity use, actual AWS
+  Spot expenditure, and the AWS Spot-equivalent value of local L40 use.
+  Efficiency belongs in the abstract or introduction only when the achievement
+  is strong relative to a fair critical-path energy or dollar denominator.
+- **Accounting split** — terminal reproduction, the result's critical research
+  path, and the full exploratory program are different scopes. Hardware-hours,
+  elapsed time, power assumptions, energy, actual spend, and counterfactual
+  local-compute value remain separate columns rather than being collapsed into
+  one impressive-looking cost.
+- **Trace: local L40 use** — a paper used twenty local L40 device-hours and paid
+  no cloud bill. It reports zero actual AWS spend and a separately labeled Spot
+  equivalent based on a named region, date, allocation rule, and nearest
+  comparable instance; an L40S comparison names the hardware mismatch.
+- **Trace: unmetered energy** — only device thermal design power and elapsed
+  time survive. Their product may bound or estimate device energy with that
+  basis stated, but the paper may not call it measured wall energy or infer
+  carbon without a sourced electricity mix.
+- **Trace: efficient headline** — a small run is not automatically an
+  efficiency contribution. Abstract emphasis requires a fair quality/coverage
+  comparison per critical-path kWh or dollar and states both numerator and
+  denominator. Otherwise the resource table remains useful secondary context.
+- **Status** — directly user-specified and trace-simulated; no empirical claim
+  that resource disclosure improves paper outcomes.
+
+## 2026-08-12 — very long documents use ordered source fragments
+
+- **User specification** — fragment organization is a proposal for all writing
+  expected to have great length, with one file per section, sequence-numbered
+  names that make adjacency obvious, and preprocessor-like textual assembly.
+  `document-writing` owns the rule because it already owns source authority and
+  renderer mechanics.
+- **Mechanism check** — Quarto's official `include` shortcode performs textual
+  insertion. Its documentation requires the directive on its own line with
+  blank lines around it, recommends underscore-prefixed fragment names so they
+  are not rendered independently, and says relative references resolve from
+  the including root rather than the fragment.
+- **Trace: short note** — a five-page handout stays in one file; the expected-
+  great-length trigger does not impose directory and include overhead on every
+  document.
+- **Trace: reordered long draft** — numeric names make neighboring sections
+  easy to find, while the root include manifest remains authoritative. Reorder
+  changes that manifest explicitly rather than relying on a glob whose lexical
+  behavior silently becomes document structure.
+- **Trace: scattered edits** — independent section passes improve local prose
+  but duplicate one definition and contradict a limitation. The required
+  whole-document gather review catches both before the root render; fragments
+  do not waive global coherence.
+- **Trace: second source of truth** — an assembled Markdown file is generated
+  from fragments. It remains an output and is never hand-edited alongside
+  them, preserving the existing one-editable-manuscript contract.
+- **Status** — directly user-specified; Quarto mechanics verified against its
+  current official documentation and scenario-traced, not yet exercised on a
+  project paper here.

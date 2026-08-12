@@ -23,6 +23,14 @@ cadence. A paper normally has one governing form. A theoretical result may
 support the same central empirical claim; an independent reader promise usually
 deserves a separate paper.
 
+Put an abstract at the beginning of every paper, immediately after its front
+matter and before the body. Draft it early as part of the evidence-bearing
+spine, then revise it after the body stabilizes. It states the problem and
+regime, intervention or finding, principal quantitative result, and most
+important scope boundary or community asset. A paper skeleton still begins
+with an abstract; unsupported quantities remain explicit `TBD`s rather than
+being omitted or made fluent.
+
 ## Backfill the selected paper case
 
 A serious paper is prospective after theme and form selection: use its skeleton
@@ -55,6 +63,32 @@ even when routine chronology moves to the log or appendix.
 Consult [`paper-attractiveness`](paper-attractiveness.md) only after this spine
 exists. Use its features to communicate a supported result or real community
 asset, not to manufacture importance.
+
+## Account for compute, energy, and dollar cost
+
+Consider a compact compute, energy, and cost section for every empirical paper;
+include it when the quantities are material and can be estimated honestly.
+Separate the terminal reproduction run, the critical path that produced and
+validated the reported result, and the full research program when more than one
+is available. For each reported scope, give hardware, accelerator- or
+device-hours, elapsed time, the measured or assumed average power in watts,
+estimated energy in kilowatt-hours, and the uncertainty or estimation basis.
+Do not present thermal design power as a meter reading.
+
+Report actual AWS Spot expenditure separately from a local-compute equivalent.
+For local accelerator use, estimate the AWS Spot-equivalent cost from a named
+comparable instance, region, price observation date, and per-device allocation;
+state hardware mismatches such as L40 versus L40S. Keep that counterfactual
+distinct from money actually spent. A useful compact table is `scope | stage |
+hardware | device-hours | power basis | kWh | actual cloud spend | local
+cloud-equivalent cost`.
+
+Promote efficiency into the abstract or introduction only when the paper has a
+fair comparison showing an unusually strong result per critical-path energy or
+dollar—not merely a small absolute run. Name the quality, coverage, or other
+achievement held in the numerator and the critical-path boundary used in the
+denominator. Energy, money, and carbon are different quantities; estimate
+carbon only with a sourced time-and-region electricity-intensity assumption.
 
 ## Cover the work that determines the claim
 

@@ -76,6 +76,17 @@ residual worth carrying forward. Adaptive hill-climbing supplies candidate
 interventions, not causal evidence. An expected ablation is a backfill
 specification until it runs.
 
+When the experimental program branched, default to a lineage-and-credit map
+before promoting the paper as a ladder. For each proposed rung, distinguish an
+ancestor of the terminal result, a sibling or other parallel branch, a
+common-parent comparison, and a method bridge; record the exact checkpoint and
+parent, isolating control, independent evaluation, external-reference delta on
+fair support, attribution ceiling, and manuscript role. Reserve "combined,"
+"cumulative," and terminal-lineage language for verified ancestry. Parallel
+results may remain valuable intervention case studies, but if too few genuine
+rungs remain, govern the package as a headline-result paper with clearly
+labeled case studies rather than drawing a fictitious staircase.
+
 Keep motivation, outcome, and attribution epistemically separate. A research
 motivation need not prove that a defect caused the intervention: it may be an
 observed pattern, a preponderance-style hunch ("several metrics worsened here,

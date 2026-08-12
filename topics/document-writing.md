@@ -99,6 +99,47 @@ Use relative links and paths so the project renders from a clean checkout and
 under a GitHub Pages subpath. Update the frozen proposal and companion topic's
 draft links in the relocation change.
 
+## Assemble very long documents from ordered fragments
+
+For writing expected to have great length, default to one source fragment per
+section and one explicit root file that assembles them in reading order. This
+keeps focused section edits cheap while preserving one manuscript authority.
+Use zero-padded sequence prefixes with gaps so adjacent files are obvious and a
+new section can be inserted without immediate renumbering, for example:
+
+```text
+index.qmd
+sections/
+  _00-abstract.qmd
+  _10-introduction.qmd
+  _20-method.qmd
+  _30-results.qmd
+```
+
+The root file, not a filename glob, owns the definitive order. Under Quarto,
+use its text-inserting
+[`include` shortcode](https://quarto.org/docs/authoring/includes.html):
+
+```markdown
+{{< include sections/_00-abstract.qmd >}}
+
+{{< include sections/_10-introduction.qmd >}}
+```
+
+Keep each directive alone on a line with blank lines around it, omit metadata
+blocks from included fragments, and resolve fragment links and assets from the
+root document's directory. Retain the underscore prefix so a project-wide
+Quarto render does not treat fragments as standalone documents.
+
+Fragments are editing units, not independent documents. Focused or
+scatter/gather revision passes may work section by section, but every such pass
+ends with a whole-document gather review for duplicated definitions,
+contradictory claims, terminology drift, cross-references, transitions, and
+reader-order failures, followed by a render of the root. Shorter documents stay
+in one file. A renderer without native includes uses fragments only with one
+documented deterministic assembly step; never keep both the fragments and an
+assembled output as editable manuscript sources.
+
 ## One editable manuscript
 
 The Markdown-plus file is canonical until an external requirement cannot be
