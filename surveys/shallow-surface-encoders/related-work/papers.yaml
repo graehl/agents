@@ -1,0 +1,258 @@
+# Metadata manifest for surveys/shallow-surface-encoders.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: shallow-surface-encoders
+  coverage_cutoff: 2026-08-13
+  grounding_mode: grounded
+
+papers:
+  - key: yu2018-character-lm-ner
+    short: name-likelihood-features
+    concept_page: concepts/name-likelihood-features.md
+    title: "On the Strength of Character Language Models for Multilingual Named Entity Recognition"
+    authors: ["Xiaodong Yu", "Stephen Mayhew", "Mark Sammons", "Dan Roth"]
+    venue: "EMNLP"
+    year: 2018
+    url: "https://aclanthology.org/D18-1345.pdf"
+    doi: "10.18653/v1/D18-1345"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: A
+
+  - key: akbik2018-flair
+    short: contextual-string-lm
+    concept_page: concepts/contextual-string-lm.md
+    title: "Contextual String Embeddings for Sequence Labeling"
+    authors: ["Alan Akbik", "Duncan Blythe", "Roland Vollgraf"]
+    venue: "COLING"
+    year: 2018
+    url: "https://aclanthology.org/C18-1139.pdf"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: A
+
+  - key: elboukkouri2020-characterbert
+    short: character-cnn
+    concept_page: concepts/character-cnn.md
+    title: "CharacterBERT: Reconciling ELMo and BERT for Word-Level Open-Vocabulary Representations From Characters"
+    authors: ["Hicham El Boukkouri", "Olivier Ferret", "Thomas Lavergne", "Hiroshi Noji", "Pierre Zweigenbaum", "Jun'ichi Tsujii"]
+    venue: "COLING"
+    year: 2020
+    url: "https://aclanthology.org/2020.coling-main.609.pdf"
+    doi: "10.18653/v1/2020.coling-main.609"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: A
+
+  - key: ma2020-charbert
+    short: dual-channel-character-subword
+    concept_page: concepts/dual-channel-character-subword.md
+    title: "CharBERT: Character-aware Pre-trained Language Model"
+    authors: ["Wentao Ma", "Yiming Cui", "Chenglei Si", "Ting Liu", "Shijin Wang", "Guoping Hu"]
+    venue: "COLING"
+    year: 2020
+    url: "https://aclanthology.org/2020.coling-main.4.pdf"
+    doi: "10.18653/v1/2020.coling-main.4"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: D
+
+  - key: pinter2021-xrayemb
+    short: retrofit-character-embeddings
+    concept_page: concepts/retrofit-character-embeddings.md
+    title: "Learning to Look Inside: Augmenting Token-Based Encoders with Character-Level Information"
+    authors: ["Yuval Pinter", "Amanda Stent", "Mark Dredze", "Jacob Eisenstein"]
+    venue: "arXiv"
+    year: 2021
+    arxiv: "2108.00391"
+    grounded: true
+    verified: true
+    source: "arXiv metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: D
+
+  - key: kaushal2022-token-characters
+    short: token-embedding-orthography
+    concept_page: concepts/token-embedding-orthography.md
+    title: "What do tokens know about their characters and how do they know it?"
+    authors: ["Ayush Kaushal", "Kyle Mahowald"]
+    venue: "NAACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.naacl-main.179.pdf"
+    doi: "10.18653/v1/2022.naacl-main.179"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: A
+
+  - key: itzhak2022-spelling-bee
+    short: token-embedding-orthography
+    concept_page: concepts/token-embedding-orthography.md
+    title: "Models In a Spelling Bee: Language Models Implicitly Learn the Character Composition of Tokens"
+    authors: ["Itay Itzhak", "Omer Levy"]
+    venue: "NAACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.naacl-main.373.pdf"
+    doi: "10.18653/v1/2022.naacl-main.373"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: A
+
+  - key: clark2022-canine
+    short: local-downsampling
+    concept_page: concepts/local-downsampling.md
+    title: "CANINE: Pre-training an Efficient Tokenization-Free Encoder for Language Representation"
+    authors: ["Jonathan H. Clark", "Dan Garrette", "Iulia Turc", "John Wieting"]
+    venue: "TACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.tacl-1.5.pdf"
+    doi: "10.1162/tacl_a_00448"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: B
+
+  - key: tay2022-charformer
+    short: local-downsampling
+    concept_page: concepts/local-downsampling.md
+    title: "Charformer: Fast Character Transformers via Gradient-based Subword Tokenization"
+    authors: ["Yi Tay", "Vinh Q. Tran", "Sebastian Ruder", "Jai Gupta", "Hyung Won Chung", "Dara Bahri", "Zhen Qin", "Simon Baumgartner", "Cong Yu", "Donald Metzler"]
+    venue: "ICLR"
+    year: 2022
+    arxiv: "2106.12672"
+    grounded: true
+    verified: true
+    source: "ICLR paper and arXiv metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: B
+
+  - key: cao2023-recipe
+    short: encoder-recipe
+    concept_page: concepts/encoder-recipe.md
+    title: "What is the best recipe for character-level encoder-only modelling?"
+    authors: ["Kris Cao"]
+    venue: "ACL"
+    year: 2023
+    url: "https://aclanthology.org/2023.acl-long.326.pdf"
+    doi: "10.18653/v1/2023.acl-long.326"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: B
+
+  - key: sun2023-hierarchical
+    short: shallow-hierarchy
+    concept_page: concepts/shallow-hierarchy.md
+    title: "From Characters to Words: Hierarchical Pre-trained Language Model for Open-vocabulary Language Understanding"
+    authors: ["Li Sun", "Florian Luisier", "Kayhan Batmanghelich", "Dinei Florencio", "Cha Zhang"]
+    venue: "ACL"
+    year: 2023
+    url: "https://aclanthology.org/2023.acl-long.200.pdf"
+    doi: "10.18653/v1/2023.acl-long.200"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: C
+
+  - key: wang2024-entanglement
+    short: dual-stream-fusion
+    concept_page: concepts/dual-stream-fusion.md
+    title: "Learning Mutually Informed Representations for Characters and Subwords"
+    authors: ["Yilin Wang", "Xinyi Hu", "Matthew Gormley"]
+    venue: "Findings of NAACL"
+    year: 2024
+    url: "https://aclanthology.org/2024.findings-naacl.202.pdf"
+    doi: "10.18653/v1/2024.findings-naacl.202"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: D
+
+  - key: popovic2024-ember
+    short: late-task-fusion
+    concept_page: concepts/late-task-fusion.md
+    title: "Embedded Named Entity Recognition using Probing Classifiers"
+    authors: ["Nicholas Popovic", "Michael Färber"]
+    venue: "EMNLP"
+    year: 2024
+    url: "https://aclanthology.org/2024.emnlp-main.988.pdf"
+    doi: "10.18653/v1/2024.emnlp-main.988"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: E
+
+  - key: cosma2025-strawberry
+    short: token-character-crossattention
+    concept_page: concepts/token-character-crossattention.md
+    title: "The Strawberry Problem: Emergence of Character-level Understanding in Tokenized Language Models"
+    authors: ["Adrian Cosma", "Stefan Ruseti", "Emilian Radoi", "Mihai Dascalu"]
+    venue: "EMNLP"
+    year: 2025
+    url: "https://aclanthology.org/2025.emnlp-main.1434.pdf"
+    doi: "10.18653/v1/2025.emnlp-main.1434"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: C
+
+  - key: pagnoni2025-blt
+    short: byte-local-global
+    concept_page: concepts/byte-local-global.md
+    title: "Byte Latent Transformer: Patches Scale Better Than Tokens"
+    authors: ["Artidoro Pagnoni", "Ramakanth Pasunuru", "Pedro Rodriguez", "John Nguyen", "Benjamin Muller", "Margaret Li", "Chunting Zhou", "Lili Yu", "Jason E. Weston", "Luke Zettlemoyer", "Gargi Ghosh", "Mike Lewis", "Ari Holtzman", "Srini Iyer"]
+    venue: "ACL"
+    year: 2025
+    url: "https://aclanthology.org/2025.acl-long.453.pdf"
+    doi: "10.18653/v1/2025.acl-long.453"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: F
+
+  - key: wang2024-mambabyte
+    short: byte-ssm
+    concept_page: concepts/byte-ssm.md
+    title: "MambaByte: Token-free Selective State Space Model"
+    authors: ["Junxiong Wang", "Tushaar Gangavarapu", "Jing Nathan Yan", "Alexander M. Rush"]
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2401.13660"
+    grounded: true
+    verified: true
+    source: "arXiv metadata checked 2026-08-13"
+    fetched: 2026-08-13
+    cluster: F
