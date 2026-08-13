@@ -1,9 +1,9 @@
 # Topic: testing-rider
 
-> An optional `topics/<name>.testing.md` companion that specifies how to
-> check a change to that topic's concern before committing it: the
-> cheap always-run checks and the expensive optional ones, which are
-> mandatory, and what counts as passing.
+> An optional `<topic-collection>/<name>.testing.md` companion that specifies
+> how to check a change to that topic's concern before committing it: the cheap
+> always-run checks and the expensive optional ones, which are mandatory, and
+> what counts as passing.
 
 Topic: `testing-rider`
 
@@ -22,9 +22,9 @@ This is a companion convention alongside `.evidence.md`, `.bearings.md`,
 ## Contract
 
 - **Trigger.** Before committing a change to a topic's concern (code or
-  the topic doc itself), check for `topics/<name>.testing.md`. If it
-  exists, run the checks it marks mandatory and report the result in the
-  commit or status; skip the optional ones with a one-line reason.
+  the topic doc itself), check for its adjacent `.testing.md` companion. If it
+  exists, run the checks it marks mandatory and report the result in the commit
+  or status; skip the optional ones with a one-line reason.
 - **Content.** A rider lists checks cheapest-first, each tagged
   **mandatory** (always run; a change is not done until it passes) or
   **optional/deferred** (run when the change is significant enough or

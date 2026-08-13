@@ -13,12 +13,13 @@ paper proposal, or promoting one into a working draft. Load the applicable
 `RESEARCH.md` packets first, especially evidence and judgment when the proposal
 compares results or rests on a simple-baseline claim.
 
-For a declared research program, begin with its glossary and durable advisor
-bundle: the advisor's compact notes, followed-document state, and the narrow
-set of working documents relevant to the candidate. Then inspect the cited
-papers, handouts, research logs, result tables, run metadata, and primary
-artifacts. Earlier “paper drafts” are useful records of directions and attempted
-narratives, but their claims remain hypotheses until traced to evidence.
+For a declared research program, begin with its `PROGRAM.md`, glossary, and
+durable advisor bundle: the advisor's compact notes, followed-document state,
+and the narrow set of working documents relevant to the candidate. Then inspect
+the cited papers, handouts, research logs, result tables, run metadata, and
+primary artifacts. Earlier “paper drafts” are useful records of directions and
+attempted narratives, but their claims remain hypotheses until traced to
+evidence.
 
 Do not turn the advisor transcript or research chronology into the paper. The
 program record is an evidence index from which to recover a current case.
@@ -127,10 +128,10 @@ continues to explain why that narrative was considered supportable. Existing
 papers directly below a program root need no migration.
 
 The new draft starts with an explicit epistemic status and links back to the
-proposal, program glossary, and its companion `topics/<paper-slug>.md`. Follow
-the speculative-draft, paper/log boundary, result-table, and related-work
-contracts in `RESEARCH/artifacts.md`. A `TBD` names the missing measurement and
-its falsifier; it never impersonates a result.
+proposal, `PROGRAM.md`, program glossary, and canonical internal topic when one
+exists. Follow the speculative-draft, paper/log boundary, result-table, and
+related-work contracts in `RESEARCH/artifacts.md`. A `TBD` names the missing
+measurement and its falsifier; it never impersonates a result.
 
 The `.md` path is the lightweight skeleton form. When the draft first needs a
 renderer, bibliography, local assets, or multiple outputs, follow

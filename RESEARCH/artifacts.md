@@ -31,17 +31,15 @@ each subtask separately.
 ### Research programs
 
 A research program is a declared, durable line of inquiry containing multiple
-papers or artifacts under `research/<program>/`. Its
-`research/<program>/GLOSSARY.md` applies by path and declares:
-
-```text
-Research program: <slug>
-```
-
-The directory basename is the slug. A directory or glossary without that
-declaration scopes vocabulary only; it does not create an advisor/program
-boundary. Declare a program only when its evidence stream and narrative are
-independent enough to benefit from separate advising.
+papers or artifacts under `research/<program>/`. Declare it with
+`research/<program>/PROGRAM.md`, whose concise narrative states
+the program's durable aspirations, themes, and boundaries. The directory
+basename is the slug. Its sibling `GLOSSARY.md` applies by path. `PROGRAM.md`
+is the sole declaration used for program/advisor discovery; an old
+`Research program:` glossary header may coexist but is inert. A directory or
+glossary without `PROGRAM.md` scopes vocabulary only; it does not create an
+advisor/program boundary. Declare a program only when its evidence stream and
+narrative are independent enough to benefit from separate advising.
 
 #### Paper proposals and program drafts
 
@@ -89,29 +87,40 @@ external plotting choices, matched web/print assets, build commands, and
 freshness checks. Pareto figures inherit it and add their dominance-specific
 contract.
 
-##### `topics/` vs `research/` placement, and the stub-topic rule
+##### `topics/` vs `research/` placement, and canonical topic surfaces
 
 Placement is an audience/plan distinction, not a rigor distinction:
 `research/` is on a path toward external publication; `topics/` owns internal
 cross-cutting contracts, mechanisms, and live project knowledge.
 
-Every active publication thread keeps a companion `topics/<name>.md`, at least
-a bidirectional stub pointing to `research/<paper>.md`. The topic basename
-remains the `Topic:` trailer namespace and the discoverable home for mechanisms,
+Every active publication thread has one canonical topic-like surface named in
+its owning glossary. An existing proposal, paper, handoff, or other program doc
+may serve directly; do not create a stub merely to put it under `topics/`. If no
+canonical doc exists, create a formal topic in the owning glossary's collection
+— normally `research/<program>/topics/<name>.md` for a declared program, or the
+project-wide topic collection for a standalone paper. A formal program topic's
+commit name is `research/<program>/<name>`.
+
+When the internal topic and publication draft are distinct, link them in both
+directions. The internal topic remains the discoverable home for mechanisms,
 live status, exploratory/negative findings, parked variants, and detailed
 experiment specifications. Promote publication-worthy material into the paper;
 do not move durable system contracts out of the topic merely because a paper
-cites them.
+cites them. If such internal material first accumulates while the paper itself
+is the only canonical doc, that is the point to create and link a separate
+formal topic rather than requiring one preemptively.
 
 ##### Speculative drafts
 
 A paper may be drafted before evidence to establish vision and experiment
 targets, but it is unmistakably speculative: top-level status plus per-claim
 markers for unsupported assertions. A concise placeholder names the
-measurement and points to the companion topic, where the full spec and
-falsifier live. Tactical work and debugging stay in the topic/log. When
-evidence lands, replace the placeholder and mark the claim confirmed, partial,
-or refuted, including cutting framing the evidence killed.
+measurement and points to the canonical internal topic, where the full spec and
+falsifier live; create that internal topic once this material exists if the
+paper was previously the only canonical surface. Tactical work and debugging
+stay in the topic/log. When evidence lands, replace the placeholder and mark
+the claim confirmed, partial, or refuted, including cutting framing the
+evidence killed.
 
 ##### First-contact public-facing sections
 
@@ -208,20 +217,16 @@ authors need not repeat the association in each file. Define a term in the
 program glossary when multiple program artifacts use it, while paper-local
 notation that does not recur stays in the paper.
 
-A program glossary **declares** the program on its own line above the table:
-
-```markdown
-Research program: <slug>
-```
-
-The slug is the directory basename, and the declaration is what makes the
-directory a program root — for advisor scope, for followed-document defaults,
-and for everything else keyed on programs. Declare deliberately, once the
+A sibling `PROGRAM.md` declares the directory as a program root, states its
+durable spanning aspirations/themes/boundaries, and uses the directory basename
+as the slug. It is the sole declaration for advisor scope, followed-document
+defaults, and everything else keyed on programs. An old `Research program:`
+glossary header may coexist but is inert. Declare deliberately, once the
 program's evidence stream and narrative are independent enough that separate
 advising beats shared context. A directory existing under `research/`, holding
-papers, or holding a glossary is not by itself a program: `topics/glossary.md`
-has every subtree create a `GLOSSARY.md` as soon as local jargon recurs, so an
-undeclared glossary under `research/` scopes vocabulary and nothing more.
+papers, or holding only a glossary is not by itself a program:
+`topics/glossary.md` permits subtree glossaries whenever local jargon recurs,
+so an undeclared glossary under `research/` scopes vocabulary and nothing more.
 
 #### Research log conventions
 
@@ -261,7 +266,7 @@ cost axis, read [`topics/pareto-figures.md`](../topics/pareto-figures.md) and
 include the mandated Pareto scatter (SVG for the `.md`, PDF for LaTeX,
 script + evidence committed together).
 
-#### `topics/` vs `research/` placement, and the stub-topic rule
+#### `topics/` vs `research/` placement, and canonical topic surfaces
 
 `topics/` vs `research/` is fundamentally an **audience/plan axis, not a rigor
 axis**: `research/` means the work is on a path toward external publication;
@@ -271,28 +276,30 @@ provenance, sanity checks — applies either way. A clean finding can graduate
 from a `topics/` thread into a standalone `research/<paper>.md` when it earns a
 publication path.
 
-But `topics/` carries **machinery that `research/` does not**: the
-"search/read `topics/*.md`" read-triggers, the `Topic:` commit-trailer namespace
-(keyed to topic *basenames*), and the read-before-touching-an-area rule (see
-`AGENTS.md`). Content that lives only in `research/` is invisible to all of it.
+The topic system's machinery is glossary-scoped: named terms, canonical
+`topic / refs` links, read-before-touching triggers, and collision-safe
+`Topic:` names. Content named and linked by the owning program glossary is
+therefore topic-like even when its canonical file lives under `research/`.
 
-Rule: **every active thread keeps a `topics/<name>.md`, even when the narrative
-moves to `research/`** — create it if it does not exist yet. At minimum a stub
-that points at the `research/<paper>.md` path; usually the topic doc remains the
-home for the cross-cutting mechanism/contract + live status. The link is
-**bidirectional**: the `research/` draft links to its companion topic, and the
-topic links to the draft. The topic basename stays the `Topic:` trailer
-namespace regardless.
+Rule: **every active thread has one canonical topic-like surface named in its
+owning glossary**. Reuse an existing proposal, draft, handoff, or other
+well-placed doc; do not manufacture a `topics/` stub solely for discoverability.
+When no canonical doc exists, create a formal topic in the glossary-owned
+collection. For a declared program this is normally
+`research/<program>/topics/<name>.md`, whose commit-facing name is
+`research/<program>/<name>`; standalone work normally uses the project-wide
+topic collection. If a separate internal topic and external draft both exist,
+link them **bidirectionally**.
 
-The companion topic is also the **holding area for material not (yet) suitable
-for the draft paper** — exploratory findings, parked variants, mechanism detail,
-negative results, and caveats that the external-facing narrative should not carry
-yet. Promote into the paper when a piece earns its place; until then it stays
-discoverable in the topic rather than lost in chat or a task file. Correspondingly,
-do not migrate durable mechanism/contract content *out* of `topics/` into
-`research/` — consistent with the per-repo "a code/system proposal goes in
-`topics/` even if a paper later cites it" convention; the paper references the
-topic, it does not replace it.
+A separate internal topic is the **holding area for material not (yet) suitable
+for the draft paper** — exploratory findings, parked variants, mechanism
+detail, negative results, and caveats that the external-facing narrative should
+not carry yet. Its absence is acceptable only while there is no such internal
+decision surface to hold. Create and link it when that need appears. Promote
+into the paper when a piece earns its place; until then it stays discoverable
+in the topic rather than lost in chat or a task file. Correspondingly, do not
+migrate durable mechanism/contract content *out* of a topic into a publication
+draft merely because the paper cites it.
 
 #### Speculative drafts (vision-first, evidence-pending)
 
@@ -311,17 +318,21 @@ Discipline that keeps this honest rather than self-deceiving:
   vision-first prose be mined later as an established finding. This is the *inverse* of
   the overselling prior in *Reproduce before comparing*: there the risk is overstating a
   real number; here it is mistaking an aspiration for a number at all.
-- **Evidence placeholders double as experiment specs — but the spec lives in the topic.** A
-  `TBD`/`TODO` table cell, figure slot, or result sentence should *name* what would be measured,
-  on what data, and the outcome that would **confirm or falsify** the surrounding claim. Keep the
-  paper's placeholder concise (a claim + speculative marker + pointer); the full spec, the run
-  queue, and the falsifier live in the companion `topics/` doc. The topic, not the paper, is the
-  generator of the experiment queue.
-- **Keep tactical content out of the paper — it is not a diary.** The draft carries vision,
-  framing, and (eventually) settled evidence; the tactical layer — detailed experiment specs,
-  intermediate and negative results, debugging, run mechanics — belongs in the companion
-  `topics/` doc and the timestamped `research/<branch>.log.md` running log, not the paper. Push
-  it there as it accrues so the draft stays a coherent narrative rather than a work journal.
+- **Evidence placeholders double as experiment specs — but the spec lives in
+  the internal topic.** A `TBD`/`TODO` table cell, figure slot, or result
+  sentence should *name* what would be measured, on what data, and the outcome
+  that would **confirm or falsify** the surrounding claim. Keep the paper's
+  placeholder concise (a claim + speculative marker + pointer); the full spec,
+  run queue, and falsifier live in the canonical internal topic doc. Create one
+  in the owning glossary's collection when this need first appears. The topic,
+  not the paper, is the generator of the experiment queue.
+- **Keep tactical content out of the paper — it is not a diary.** The draft
+  carries vision, framing, and (eventually) settled evidence; the tactical
+  layer — detailed experiment specs, intermediate and negative results,
+  debugging, run mechanics — belongs in the internal topic doc and the
+  timestamped `research/<branch>.log.md` running log, not the paper. Push it
+  there as it accrues so the draft stays a coherent narrative rather than a
+  work journal.
 - **Settle placeholders explicitly.** When a measurement lands, replace the placeholder and
   adjust the marker (confirmed / partial / refuted) — including downgrading or cutting
   framing the evidence killed. A speculative draft is a hypothesis to be disproved, not a

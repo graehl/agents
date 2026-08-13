@@ -79,18 +79,20 @@ onboarding line immediately after the subject, before the explanatory body:
 Onboarding: topics/commits.md
 ```
 
-Use the plain path, not a markdown link — git log, GitHub, and Gerrit
-render commit messages as raw text, so a markdown link just doubles the
-path. This deliberately overlaps with `Topic:` trailers without replacing
-them. The early line is for a human reader scanning the front of the message;
-the trailer is for series membership and search. If the commit wants more
-background that will remain useful after review, expand the topic doc and let
-the commit message point at it instead of duplicating the lasting context in
-the body. The named topic is read before the diff by the same fresh human
-reviewer. It must explain its context, basic terms, and governing decisions
-without relying on session memory or prior immersion in the changes; a topic
-that becomes legible only after reading the implementation is not an onboarding
-document.
+Use the actual project-relative canonical-doc path, including a scoped path
+such as `research/pii/topics/redaction.md`; unlike the `Topic:` shorthand,
+`Onboarding:` never elides `topics/`. Use the plain path, not a markdown link —
+git log, GitHub, and Gerrit render commit messages as raw text, so a markdown
+link just doubles the path. This deliberately overlaps with `Topic:` trailers
+without replacing them. The early line is for a human reader scanning the
+front of the message; the trailer is for series membership and search. If the
+commit wants more background that will remain useful after review, expand the
+topic doc and let the commit message point at it instead of duplicating the
+lasting context in the body. The named topic is read before the diff by the
+same fresh human reviewer. It must explain its context, basic terms, and
+governing decisions without relying on session memory or prior immersion in
+the changes; a topic that becomes legible only after reading the implementation
+is not an onboarding document.
 
 Consider splitting unrelated changes into independent commits (e.g.
 implementation vs. research finding). When a directive grants
@@ -104,13 +106,24 @@ by count.
 ## Topic trailers
 
 A commit in a related series gets one or more `Topic: <string>` trailers.
-The string is the basename of the relevant `topics/<topic>.md` (`ls
-topics/*.md` for the namespace); all commits in a series copy it verbatim
-so `git log --grep` finds the chain. Use multiple `Topic:` lines for a
-commit spanning topics. The trailer marks thread membership, not merely
-that the diff touched a `topics/` file: a standalone commit with no task
-spec and no expected follow-up gets no trailer even if it edits a topic
-doc, while the commit that starts a thread gets one as #1.
+The string is the glossary-scoped topic name. A project-root topic keeps the
+basename (`topics/redaction.md` -> `redaction`). A scoped topic prefixes the
+basename with the owning glossary's project-relative directory and omits the
+mechanical `topics/` segment (`research/pii/topics/redaction.md` ->
+`research/pii/redaction`). The root `docs/topics/` alternate remains the root
+namespace and therefore also uses the basename. Basenames need not be unique
+across scopes.
+
+An arbitrary canonical doc linked from a glossary is still topic-like. When it
+deliberately governs a commit series, use the same owner-scope prefix with a
+stable glossary term in the basename position; its filesystem location does
+not invent a second topic name. Existing series copy their chosen string
+verbatim, and historical root names are not migrated, so `git log --grep`
+continues to find the chain. Use multiple `Topic:` lines for a commit spanning
+topics. The trailer marks thread membership, not merely that the diff touched
+a topic doc: a standalone commit with no task spec and no expected follow-up
+gets no trailer even if it edits one, while the commit that starts a thread
+gets one as #1.
 
 ## Contributing-model trailer
 

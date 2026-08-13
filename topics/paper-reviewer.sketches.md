@@ -15,11 +15,12 @@ mechanics are not.
    skeleton, and completion packets through the existing advisor interaction.
    This preserves prior objections and avoids reconstructing program context.
 2. **Draft-scoped advisor.** When the user requests one, give it its own
-   ordinary advisor bundle, the program glossary, proposal, draft, and direct
-   evidence. It must not write the program advisor's continuity bundle. Return
-   its memo to the author and, when material, to the program advisor as ordinary
-   evidence. Its manually chosen followed set supplies any broader program
-   record it needs; this introduces no additional path convention.
+   ordinary advisor bundle, `PROGRAM.md`, the program glossary, proposal,
+   draft, and direct evidence. It must not write the program advisor's
+   continuity bundle. Return its memo to the author and, when material, to the
+   program advisor as ordinary evidence. Its manually chosen followed set
+   supplies any broader program record it needs; this introduces no additional
+   path convention.
 3. **Review inside the writing session.** Useful for rapid structural passes,
    but not independent. Label it as the author's self-review and still use the
    program advisor at material proposal or release boundaries.

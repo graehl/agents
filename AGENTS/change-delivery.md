@@ -333,8 +333,8 @@ change. If implementation detail deserves a durable record but would crowd
 the message, condense it under the journal publication rules (§ Delegation)
 into `topics/journals/<task-or-topic>.md`; otherwise discard it.
 
-When work is largely governed by a committed `topics/<name>.md` doc, start
-the body just after the subject with that doc's relative path as the
+When work is largely governed by a committed topic doc, start the body just
+after the subject with that canonical doc's actual project-relative path as the
 onboarding path for new readers. That topic must be self-contained for the
 fresh human reviewer before they inspect the changes: it cannot rely on the
 session or implementation being familiar. Keep `Topic:` trailers for
@@ -386,10 +386,12 @@ lock). Banner schema: `topics/agentctl.md`.
 #### Topic trailers
 
 A commit in a related series gets one or more `Topic: <string>` trailers.
-Use the basename of the relevant `topics/<topic>.md`, copy it verbatim
-across the series, and use multiple trailers when a commit spans topics.
-The trailer marks thread membership, not merely that the diff touched a
-topic doc; details live in `topics/commits.md`.
+Use the glossary-scoped topic name: root topics keep their basename, while a
+scoped topic prefixes the basename with its owning glossary directory and
+omits the mechanical `topics/` segment (`research/pii/redaction`). Copy it
+verbatim across the series, and use multiple trailers when a commit spans
+topics. The trailer marks thread membership, not merely that the diff touched
+a topic doc; details live in `topics/commits.md`.
 
 #### Contributing-model trailer
 

@@ -27,8 +27,8 @@ Use this shape:
    artifact families when the repository is data/config heavy.
 4. `## Flow Slices` — 2-5 end-to-end traces through user-facing operations
    or core lifecycles.
-5. `## Contracts And Seams` — relevant `topics/*.md` contracts, natural edit
-   seams, and where tests should attach.
+5. `## Contracts And Seams` — relevant glossary-owned topic contracts,
+   natural edit seams, and where tests should attach.
 6. `## Blind Spots` — dynamic imports, generated code, framework routing, or
    paths not proved by traversal.
 7. `## Reproduce / Refresh` — exact commands/search roots used.
@@ -48,8 +48,9 @@ over broad HTML comments unless a claim would otherwise mislead.
 
 ## Workflow
 
-1. **Load repo vocabulary.** Read project instructions and `GLOSSARY.md` if
-   present. Prefer glossary terms in headings, prose, and flow names.
+1. **Load repo vocabulary.** Read project instructions and the active glossary
+   chain for the mapped paths. Prefer glossary terms in headings, prose, and
+   flow names.
 2. **Static inventory first.** Use `rg --files`, manifests, package files,
    entrypoints, CLI parsers, route tables, tests, and README references.
    For very large data/config/artifact trees, first count and sample by
@@ -62,9 +63,10 @@ over broad HTML comments unless a claim would otherwise mislead.
 4. **Traverse only enough.** Follow callers/callees and imports enough to
    validate the module index, flow slices, seams, and blind spots. Do not
    exhaustively summarize every leaf file.
-5. **Connect contracts.** Link relevant `topics/*.md` docs where flows touch
-   cross-cutting invariants. Do not create a new topic doc unless the map
-   exposes a genuine cross-cutting contract that needs one.
+5. **Connect contracts.** Resolve and link relevant canonical topic docs where
+   flows touch cross-cutting invariants, including scoped collections. Do not
+   create a new topic doc unless the map exposes a genuine cross-cutting
+   contract that needs one.
 6. **Write the report.** Keep orientation high-signal for a new developer.
    Make flow traces concrete: `file -> function/class -> file`, with the
    behavior each hop owns.

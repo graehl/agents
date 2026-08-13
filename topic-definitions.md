@@ -10,8 +10,8 @@ exactly two markdown tables separated by a blank line:
 
 **Table 1 — Topics** (header: `| topic | definition |`)
 List every term that appears under that domain heading in `TOPICS.md`.
-These are cross-cutting enough to warrant a `topics/<name>.md` file in
-the right project. One-line definitions only.
+These are cross-cutting enough to warrant a formal topic doc in the right
+project and owning glossary scope. One-line definitions only.
 
 **Table 2 — Vernacular** (header: `| vernacular | definition |`)
 Additional field jargon for that domain: terms expected in agent/LLM

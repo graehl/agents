@@ -36,6 +36,10 @@ fruitful projects for autonomous research/tending. Read it before choosing such
 work. Routine detail/progress may update it; reversing which projects are
 fruitful requires explicit user consent.
 
+This is distinct from a program's `PROGRAM.md`: `ROOT.md` is current
+cross-program triage for autonomous effort, while `PROGRAM.md` is the durable
+aspiration and thematic boundary of one program.
+
 #### Research document paths and resume
 
 Derive paper/log names from the Git branch. A branch paper requires a
@@ -130,6 +134,11 @@ which project(s) are fruitful — the standing triage that governs autonomous
 research and tending work (the "autoresearch" / "tend" context). It is a
 recommended resume-context read: skim it before starting or continuing that
 work so effort lands on a project the user still considers worth pursuing.
+
+Do not use it as a program charter. A program's `PROGRAM.md` records the
+durable aspiration/themes/boundaries that survive changes in current priority;
+`research/ROOT.md` decides which such programs autonomous effort should favor
+now.
 
 Create or edit it as the record evolves, but it encodes an **established**
 direction: routine updates (adding detail, recording progress against the

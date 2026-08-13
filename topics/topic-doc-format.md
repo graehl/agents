@@ -1,7 +1,7 @@
 # Topic-doc format and companion vocabulary
 
-> Layout of a `topics/<name>.md` doc — H1, blockquote lede,
-> trailer, body — and the suffix vocabulary for companion
+> Layout of a glossary-owned `topics/<name>.md` doc — H1, blockquote
+> lede, scoped topic name, body — and the suffix vocabulary for companion
 > artifacts (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`,
 > `.sketches.md`).
 > Includes the glyph set for `.bearings.md` plan outlines.
@@ -13,13 +13,34 @@ suffixes (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`,
 `.sketches.md`),
 maintaining bearings outlines, or applying epistemic labels.
 
+## Topic scope and name
+
+Every `GLOSSARY.md` owns a formal-topic collection. The project glossary owns
+root `topics/` (or the established `docs/topics/` alternate); a scoped glossary
+owns the sibling `topics/` directory. A glossary may also link a canonical doc
+elsewhere. That doc is topic-like but is not thereby required to use this
+formal-topic layout.
+
+A formal topic's commit-facing name keeps the owning glossary scope and omits
+the mechanical collection directory. Root topics retain their basenames.
+Scoped topics use `<project-relative-glossary-directory>/<basename>`:
+
+```text
+topics/redaction.md              -> redaction
+research/pii/topics/redaction.md -> research/pii/redaction
+```
+
+This makes basename collisions harmless and communicates program context.
+Existing root identifiers and historical trailers remain valid; adopting
+scoped collections does not trigger migration.
+
 ## Main topic doc
 
 H1 stating the topic, then a `> ` blockquote lede (one or more `> `
 lines, no other content between H1 and lede; multi-line `> ` lines
 are space-joined when consumed by glossary regeneration). The lede
 is the canonical one-sentence definition consumed by `GLOSSARY.md`.
-Then optional metadata such as a `Topic: <name>` trailer, then
+Then optional metadata such as a `Topic: <topic-name>` line, then
 body sections.
 
 The agent may auto-edit existing topic docs to bring them into
@@ -42,7 +63,7 @@ clickable and it is discarded — but a committed doc must not.
 ## Companions
 
 Structured ancillaries ride alongside the main topic doc as
-`topics/<name>.<suffix>`. The suffix is either a `.<suffix>.md`
+`<topic-collection>/<name>.<suffix>`. The suffix is either a `.<suffix>.md`
 file or a `.<suffix>/` directory, by convention:
 
 - `.evidence.md` — verification ledger, append-only. See
@@ -68,7 +89,7 @@ retains enough shared context to preserve the interaction and purpose.
 
 ## Bearings outline format
 
-`topics/<name>.bearings.md` is a nested outline of plan items.
+`<topic-collection>/<name>.bearings.md` is a nested outline of plan items.
 Each non-leaf node carries `> why: <one line>` so the chain of
 "why we opened this" reconstructs by reading parent → child whys.
 `> why:` is required where non-obvious, optional on self-evident

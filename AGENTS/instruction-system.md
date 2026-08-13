@@ -53,7 +53,7 @@ conventions are in `~/agents/topics/evidence-ledger.md`.
 ### Point to authored instruction text
 
 When authoring or editing instruction text — `AGENTS.global.md`, `AGENTS.md`,
-supplements, `topics/*.md`, glossary rows, skills — identify each important
+supplements, topic docs, glossary rows, skills — identify each important
 edit in the reply by project-relative path and the line where the rewritten
 range begins (`path:line`). Prefer a browseable read-range tool result for each
 rewritten range when the harness supports one; the user is reviewing what was
@@ -91,7 +91,8 @@ agent would not need it.
 Before using tools in a repo for the first time in a session — at
 launch or when work pivots into another project mid-session — read its
 root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, any `README.md` they
-name as an instruction source, and `GLOSSARY.md` if present. The duty
+name as an instruction source, and every project-owned `PROGRAM.md` found
+after those instruction reads. The duty
 binds to the repo being acted on, not the launch cwd; the harness
 injects nothing for a foreign repo, so these reads are the only way
 its rules load. Copy this list rather than recalling it — a
@@ -102,6 +103,11 @@ sliced excerpt does not satisfy the read; files already read this
 session are not re-read on later returns. Task files do not
 substitute for this. If a file is unreadable or a symlink is broken,
 report once and continue.
+
+Every project-owned program charter is deliberately part of project
+orientation. Locate and fully read all of them; a root charter may list
+significant subprograms for navigation, but that optional list is not a
+discovery index. Exclude vendored dependencies and nested external repositories.
 
 When a request targets a project other than the one this session was
 launched in, weigh where the work lands best: a fresh agent launched
@@ -162,16 +168,48 @@ occasion to enforce the default.
 
 ### Project topics
 
-For git projects, maintain committed `topics/*.md` docs for cross-cutting
-contracts: shared invariants, integration boundaries, and system-level
-concerns, not module notes or changelogs. A topic doc holds the repo's
-evolved truth — contracts, invariants, knowledge state — and may also
-carry live plans or ephemera, so long as they are cleared when addressed
-rather than accreted; permanence is not what separates a topic from
-`tasks/` (§ Session management), collaborator value is. Create `topics/`
-when first needed, not proactively. Basenames are the `Topic:` trailer namespace; read
-`~/agents/TOPICS.md` when creating or assessing a topic's granularity
-or choosing a landing site for a durable note.
+For git projects, maintain committed topic docs for cross-cutting contracts:
+shared invariants, integration boundaries, and system-level concerns, not
+module notes or changelogs. A topic doc holds the repo's evolved truth —
+contracts, invariants, knowledge state — and may also carry live plans or
+ephemera, so long as they are cleared when addressed rather than accreted;
+permanence is not what separates a topic from `tasks/` (§ Session management),
+collaborator value is.
+
+Each `GLOSSARY.md` defines a topic scope. The project-root glossary owns
+`topics/*.md` (or the alternate `docs/topics/*.md`); a scoped glossary owns
+the `topics/*.md` collection beside it. Every named glossary term is
+topic-like, including one whose `topic / refs` cell points to an already
+located proposal, draft, handoff, or other canonical doc. Resolve that doc
+before creating anything. If none exists, create a formal topic doc in the
+owning glossary's collection. Create a collection when first needed, not
+proactively.
+
+Choose the broadest active glossary scope that naturally owns the concern,
+while defaulting creation to the current project. A subtree/program remains
+the right owner when a parent-scope doc would mostly use qualified local names
+or paths. Promote to a parent glossary only when the concern's real utility
+widens across child scopes, and promote to `~/agents` only for clearly reusable
+general agent workflow or explicit user direction. Read `~/agents/TOPICS.md`
+when creating or assessing a topic's granularity, scope, or durable landing
+site.
+
+An optional `PROGRAM.md` beside a `GLOSSARY.md` is that scope's concise charter:
+the durable aspirations, themes, and boundaries that explain why its topics
+belong together. It is not a plan, progress report, topic index, or activity
+log. A nested charter narrows or specializes its parent without restating it.
+Read it for scope choice and program-wide orientation. At project entry, read
+every project-owned charter, not only the root one. A root charter may point to
+significant children but need not maintain an exhaustive index.
+
+“Update program scope” selects the nearest applicable glossary scope, reads an
+existing charter or infers the probable one from recent user direction,
+glossary terms, canonical topic docs, and repository evidence, then creates or
+revises `PROGRAM.md`. “Update all program scopes” discovers existing charters
+and glossary scopes whose artifacts support a coherent spanning program, and
+applies the same reconciliation independently. Do not manufacture a charter
+for a mere vocabulary scope with no inferable program, and do not let the
+latest tactical activity silently narrow a durable aspiration.
 
 Read the relevant topic doc and its `.bearings.md` companion if present
 before touching code for a bug, committing to a significant plan, entering
@@ -204,30 +242,36 @@ epistemic labels.
 ### Alternate directory layouts
 
 A repo may keep these conventions under `docs/`: `docs/topics/` in
-place of root `topics/`, and `docs/tactical/` in place of `tasks/`
-and/or `gaps/`. When the root form is absent and the `docs/` form
-exists, use the `docs/` form wherever these instructions name the
-root one — same duties, read-triggers, and `Topic:` trailer
-namespace — rather than creating a parallel root directory. Content
-routed to `docs/tactical/` is committed (the tracked variant of
-`tasks/`) and follows the local files' format where it differs from
-the formats given here.
+place of the project-wide root `topics/`, and `docs/tactical/` in place of
+`tasks/` and/or `gaps/`. When the root form is absent and the `docs/` form
+exists, use the `docs/` form wherever these instructions name the root one —
+same duties, read-triggers, and root topic-name namespace — rather than
+creating a parallel root directory. Scoped glossaries still own their sibling
+`topics/` collections. Content routed to `docs/tactical/` is committed (the
+tracked variant of `tasks/`) and follows the local files' format where it
+differs from the formats given here.
 
 ### Project glossary
 
 `GLOSSARY.md` is the project's shared, prescriptive vocabulary
-for talk, planning, code, UI copy, and commits. Read it on first repo use
-alongside `AGENTS.md`; if it has fallen out of context, `rg` it before
-proposing a new row. When naming a symbol, UI element, doc heading, or
-commit topic — or when prose starts spelling out what one term could
-carry — reuse glossary terms instead of introducing synonyms. When a
+for talk, planning, code, UI copy, and commits. Before interpreting or changing
+a file at a newly entered project work site, locate its nearest-enclosing
+glossary and the active chain outward through the project glossary. A targeted
+`rg` or row read is sufficient for awareness; defer a full read until broad
+vocabulary is relevant. On a glossary read, ensure its sibling `PROGRAM.md`,
+when present, has been read this session. When naming a symbol, UI element,
+doc heading, or commit topic — or when prose starts spelling out what one term
+could carry — reuse glossary terms instead of introducing synonyms. When a
 user phrase or pasted log drifts from a glossary term, prefer the glossary's
 wording.
 
 In new-reader-accessible docs, briefly spell out project-specific terms at
 first use when they could be mistaken for ordinary English. A term lives in
-the `GLOSSARY.md` at the narrowest enclosing directory; consult that file
-before naming or paraphrasing in a subtree.
+the broadest active glossary scope that naturally contains its uses, while a
+nearer row overrides the same term in its subtree. Consult the active glossary
+chain before naming or paraphrasing there. The project glossary is the default
+creation ceiling; `~/agents/GLOSSARY.md` is the outer scope only for clearly
+general agent-workflow vocabulary or explicit user direction.
 
 When a user phrase is ambiguous and the resolution would change
 action, emit an interruptible checkpoint with the inferred meaning

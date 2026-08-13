@@ -137,10 +137,10 @@ symlink merely present under `docs/` is not followed unless `state.md` lists the
 file or the symlink's resolved target.
 
 When the scope is a research program, its root is the nearest
-`research/<program>/GLOSSARY.md` carrying a `Research program:` declaration;
-that glossary is mandatory in the followed set and governs every document below
-the program root. An undeclared subtree glossary is vocabulary scope, not a
-program root, and never narrows an advisor's scope. The program directory
+`research/<program>/PROGRAM.md`; that charter and its sibling `GLOSSARY.md` are
+mandatory in the followed set, and the glossary governs every document below
+the program root. A subtree glossary without `PROGRAM.md` is vocabulary scope,
+not a program root, and never narrows an advisor's scope. The program directory
 basename is the stable program slug. A project-wide advisor is the fallback for
 root-level standalone or cross-program work, not the default owner of program
 subtrees.

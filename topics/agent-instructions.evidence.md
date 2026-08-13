@@ -2858,3 +2858,104 @@ the sweep single-target.
   advisor-specific sources in the default manifest. A stable second hash pass
   closes the race in which a governance file changes between its initial hash
   and full read.
+
+## 2026-08-13 — glossary-owned topic scopes and names
+
+- **User-defined model** — every named term in an active glossary is
+  inherently topic-like, whether its canonical surface is a formal topic doc,
+  proposal, draft, handoff, or another linked document. Projects may have
+  multiple real `topics/` collections corresponding to multiple glossary
+  scopes; root `topics/` is not the only semantic collection.
+- **Resolution and creation** — “the topic for X” first resolves the nearest
+  active glossary row and follows its existing canonical reference. If no doc
+  exists, creation defaults to the current project and the broadest active
+  glossary scope where the concern stays natural without pervasive qualified
+  subtree names. A scoped owner creates sibling `topics/<name>.md`; promotion
+  follows actual widening utility. `~/agents` is reserved for clearly reusable
+  general agent workflow or explicit user direction.
+- **Commit name** — preserve owner context while omitting the mechanical
+  collection directory: `research/pii/topics/redaction.md` becomes
+  `Topic: research/pii/redaction`, while root `topics/redaction.md` remains
+  `Topic: redaction`. This generalizes the existing root basename rule, makes
+  cross-scope collisions harmless, and avoids imposing preventive global
+  naming discipline. `Onboarding:` continues to use the actual doc path.
+- **Research consequence** — active publication threads need one
+  glossary-named canonical topic surface, not a duplicate root stub. An
+  existing proposal or draft satisfies discovery. A separate formal internal
+  topic appears once mechanisms, live status, negative results, or experiment
+  specifications need an internal decision surface, and is then linked
+  bidirectionally to the publication draft.
+- **Trace: local program term** — PII-only `redaction` with no existing doc
+  creates `research/pii/topics/redaction.md`; its trailer communicates program
+  context and does not collide with a root `redaction` topic.
+- **Trace: existing arbitrary doc** — a program glossary links `calibration`
+  to `papers/calibration-proposal.md`. A request for its topic opens that file
+  and creates nothing. If the proposal later accumulates internal run-control
+  detail, a program topic may be split out and linked then.
+- **Trace: widening audience** — a concern begins program-local but later
+  governs several project programs. It promotes to the project glossary and
+  root topic collection. Historical scoped trailers remain valid; the new
+  series uses the promoted name without rewriting history.
+- **Trace: global temptation** — two projects could plausibly reuse a term,
+  but its current content names project data and paths. It remains at project
+  scope. Only clearly general agent-workflow guidance or explicit direction
+  promotes it to `~/agents`.
+- **Status** — directly user-specified and scenario-traced. Lookup and naming
+  are convention-level behavior; no automated glossary regenerator currently
+  enforces the hierarchy.
+
+## 2026-08-13 — PROGRAM.md is the program declaration and charter
+
+- **User-defined surface** — a glossary directory may carry `PROGRAM.md`, a
+  concise statement of the durable aspirations, themes, and boundaries that
+  span its topics. It deliberately excludes current plans, progress, topic
+  inventory, and handoff state. A nested charter specializes its parent rather
+  than duplicating it.
+- **Discovery decision** — `PROGRAM.md` presence alone declares a program and
+  the directory basename supplies its slug. The older `Research program:`
+  glossary header may remain but is inert; all instruction consumers now
+  discover only `PROGRAM.md`. This keeps `GLOSSARY.md` purely vocabulary and
+  avoids splitting narrative scope across a table preamble and a charter.
+- **Update verb** — “update program scope” reads or infers the nearest charter
+  from explicit recent user direction, its prior text, glossary definitions,
+  canonical topic docs, and repository evidence. “Update all program scopes”
+  repeats that reconciliation project-wide. Tactical recency must not silently
+  narrow the durable aspiration, and a merely lexical glossary scope need not
+  receive a charter unless a coherent program is inferable or explicitly
+  requested.
+- **Trace: inferred charter** — a research directory has a glossary, several
+  mutually supporting papers, and repeated user framing but no `PROGRAM.md`.
+  An update request creates a short charter from their shared aspiration and
+  marks a consequential uncertainty rather than inventing certainty.
+- **Trace: priority change** — `research/ROOT.md` favors another program this
+  month. The program charter stays unchanged because ROOT is current
+  cross-program triage, while PROGRAM is durable scope.
+- **Status** — directly user-specified. The active-project migration supplies
+  the first repository-wide exercise of inference and declaration discovery.
+
+## 2026-08-13 — program-map boot and path-local glossary awareness
+
+- **User correction** — program charters are not only declarations consulted
+  after a program is named; their concise spanning aspirations are the useful
+  project map. A root charter may optionally name major children, but relying
+  on that list would make omission or staleness hide a real subprogram.
+- **Boot decision** — after loading project instructions, locate and fully read
+  every project-owned `PROGRAM.md`, excluding vendored or nested external
+  repositories. This replaces the unconditional root-glossary read. Charters
+  are intentionally short enough for full project-entry orientation.
+- **Glossary decision** — before interpreting or changing a file at a new work
+  site, identify its nearest-enclosing glossary and active parent chain.
+  Targeted row search is sufficient until the work actually needs broader
+  vocabulary; unknown terms, naming, and paraphrase trigger consultation. Any
+  glossary read ensures its sibling charter has been read once that session,
+  joining local vocabulary to the program aspiration that gives it context
+  without turning repeated term lookup into repeated charter reads.
+- **Trace: nested program omitted at root** — a root charter says nothing about
+  `research/pii/PROGRAM.md`. Project entry still finds and reads the child, so
+  the agent knows the program exists before choosing a scope.
+- **Trace: unfamiliar local term** — an agent enters `sdl/AwesomeAlign/` to
+  understand a file, locates the subtree glossary, and searches the term it
+  encounters. It need not spend a full-table read before any vocabulary is
+  relevant, but cannot assume the root glossary is the only authority.
+- **Status** — directly user-specified and scenario-traced; discovery remains
+  convention-level rather than mechanically enforced.

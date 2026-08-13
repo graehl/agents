@@ -49,9 +49,9 @@ own commit). Capture without this read side is write-only memory.
   several missing capabilities share one purpose or must be evaluated
   together. A per-capability file is also appropriate when it stays
   self-contained enough to remain intelligible. A capability-gated
-  `topics/<name>.sketches.md` and its gap link both ways; do not create an
-  alternate `*.gaps.md` discovery namespace or require routine scans of every
-  topic companion.
+  `.sketches.md` companion beside the owning formal topic and its gap link both
+  ways; do not create an alternate `*.gaps.md` discovery namespace or require
+  routine scans of every topic companion.
 - **Remove** `gaps/<slug>.md` in the same commit that fixes the gap. Do not
   archive it — git history is the record, and the commit message narrates
   the closure.

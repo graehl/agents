@@ -20,12 +20,12 @@ The user may instead request an ordinary research advisor scoped only to one
 draft. That is a scope choice, not a paper-specific advisor type. Establish its
 independent logical bundle at
 `research/<program>/papers/<paper-slug>/advisor/` under
-`research-advisor.md`; give it the program glossary, frozen proposal, current
-draft, and the evidence-bearing documents needed for review. It loads the full
-standard research-advisor charter and startup bundle; the paper-specific topics
-are additive checks, not a reduced competency or context. Its followed set is
-chosen manually under the ordinary advisor protocol. It does not write the
-broader program advisor's state.
+`research-advisor.md`; give it `PROGRAM.md`, the program glossary, frozen
+proposal, current draft, and the evidence-bearing documents needed for review.
+It loads the full standard research-advisor charter and startup bundle; the
+paper-specific topics are additive checks, not a reduced competency or context.
+Its followed set is chosen manually under the ordinary advisor protocol. It
+does not write the broader program advisor's state.
 
 A live handoff for paper work identifies every advisor it relies on with the
 exact `Advisor metadata:` and repeatable `Incumbent advisor session:` lines

@@ -33,8 +33,8 @@ layer on top of `/goal`.
 Do not start grinding on the literal words. First write a **wish
 contract** (explicit goal contract / done-condition record) in the
 narrowest durable place that matches the audience: prefer a
-`topics/<name>.bearings.md` outline when the work is about a
-project-facing topic; use a private `tasks/wish-<slug>.md` when
+`.bearings.md` companion beside the canonical formal topic when the work is
+about a project-facing topic; use a private `tasks/wish-<slug>.md` when
 ephemeral direction-setting, acceptance notes, or session/agent
 coordination would help. It holds:
 

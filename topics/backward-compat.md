@@ -21,3 +21,8 @@ Topic: `backward-compat`
   collides with `topics/glossary.md` telling every subtree to create a
   `GLOSSARY.md` as soon as local jargon recurs — the two rules cannot both
   hold, and a one-day-old convention is cheaper to migrate than to alias.
+- 2026-08-13 research-program discovery — `research/<program>/PROGRAM.md` is
+  now the sole program declaration and canonical narrative charter; the
+  directory basename remains the slug. A legacy `Research program:` glossary
+  header may coexist but no longer declares a program. Listed active projects
+  are migrated in the same change so header-only discovery needs no shim.

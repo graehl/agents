@@ -33,8 +33,9 @@ repository remains usable without the other.
   packets to read.
 - Local project instructions may add narrower rules, but global policy changes
   belong here first.
-- Correctness topics are defined by committed `topics/*.md` basenames, and
-  related commit series use matching `Topic:` trailers.
+- Correctness topics are defined through glossary-owned canonical docs. Formal
+  topic docs live in the owning glossary's `topics/` collection, and related
+  commit series use collision-safe glossary-scoped `Topic:` names.
 - Task files may track work, but they are not the durable source of global
   correctness arguments.
 
@@ -71,8 +72,9 @@ repository remains usable without the other.
 
 ## Contract Notes
 
-- The topic namespace depends on `ls topics/*.md`, so agents have one
-  committed place to inspect both the topic name and its correctness model.
+- A topic name preserves its owning glossary scope while omitting the
+  mechanical `topics/` path segment. Root names therefore stay compatible,
+  while program-local basenames may repeat without losing context.
 - The `agent-instructions` topic spans commit policy, task cross-references,
   and theory docs because all three determine how future agents recover the
   intended policy from repository state.

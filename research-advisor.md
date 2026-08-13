@@ -11,10 +11,9 @@ demand.
 ## Scope and continuity
 
 The default unit is one research program. Discover program roots by the
-`Research program:` declaration in `research/<program>/GLOSSARY.md`
-(`RESEARCH/artifacts.md` § Research programs); a glossary without one scopes
-vocabulary only, so no subdirectory forks an advisor by merely existing. A
-program advisor uses:
+presence of `research/<program>/PROGRAM.md` (`RESEARCH/artifacts.md` § Research
+programs); a glossary without that sibling scopes vocabulary only, so no
+subdirectory forks an advisor by merely existing. A program advisor uses:
 
 - `research/<program>/advisor/metadata.md` for logical identity, program
   binding, lifecycle, and restart control;
@@ -158,7 +157,7 @@ Route work on a document below a program root to that program's advisor. Route
 work that names a program to the matching program root even when the immediate
 artifact is outside it. Use the project-wide fallback only for root-level
 standalone work or genuinely cross-program decisions. If scope is ambiguous,
-list the discovered program glossaries and choose from those stable slugs
+list the discovered program charters and choose from those stable slugs
 rather than inventing another advisor directory.
 
 The only narrower routing exception is an explicitly established

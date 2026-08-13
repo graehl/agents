@@ -123,8 +123,7 @@ understanding-page tier defined in `topics/research-survey.md`.
 
 Use one durable logical research advisor per research program; its provider
 session is a replaceable serving incarnation.
-Discover programs by the `Research program:` declaration in
-`research/<program>/GLOSSARY.md`; their advisors live at
+Discover programs by `research/<program>/PROGRAM.md`; their advisors live at
 `research/<program>/advisor/`. Root-level standalone papers and cross-program
 syntheses use the project-wide fallback at `research/advisor/`. The object-level
 research session **must invoke the applicable advisor once** for each new

@@ -29,11 +29,15 @@ gradient*).
 ## Targets
 
 If the user names a target (a directory, a doc set), use it. With no
-target, default to the project's convention surface: `GLOSSARY.md` and
-any scoped sub-glossaries, plus `topics/*.md` and their `.bearings.md`
-companions. That surface is home turf — it exists to be kept
-consistent, and this is where the pass should be most thorough and most
-opinionated.
+target, default to the project's convention surface: every active
+`GLOSSARY.md`, every formal-topic collection those glossaries own, and the
+topics' `.bearings.md` companions, plus sibling `PROGRAM.md` charters when
+present. The project glossary owns root `topics/` (or the established
+`docs/topics/` alternate); each scoped glossary owns its sibling `topics/`.
+Follow arbitrary canonical docs linked by glossary rows as part of the surface
+without treating them as formal topic docs. This surface is home turf — it
+exists to be kept consistent, and this is where the pass should be most
+thorough and most opinionated.
 
 **Instruction repos are a special case where the instructions are the
 code.** In an agent-instruction repo (the authoritative `AGENTS.md` and
@@ -61,8 +65,9 @@ recoverable from git.
 
 2. **Find conflicts and duplicates.** Flag pairs of claims that
    contradict or restate each other. For each, propose a single
-   canonical home (prefer the narrowest-scope doc that owns the concern;
-   for glossary terms, the nearest enclosing `GLOSSARY.md`).
+   canonical home. For glossary terms, resolve the nearest existing row and
+   reference first; otherwise prefer the broadest active glossary scope where
+   the concern remains natural without pervasive subtree qualification.
 
 3. **Find stale.** Flag claims the current tree falsifies — a named
    file, flag, function, or command that no longer exists, or a contract
@@ -73,7 +78,8 @@ recoverable from git.
    and dirty files for facts that were established but appear in no doc —
    a decided convention, a contract, a ruled-out approach, a non-obvious
    constraint. Propose where each belongs (a glossary row, a topic
-   section, a new topic only if it clears the cross-cutting-concern bar).
+   section, a new topic in the owning glossary's collection only if it clears
+   the cross-cutting-concern bar).
    Do not re-derive from the code what the code already records; capture
    what was *decided*, not what is *visible*.
 

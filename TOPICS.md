@@ -1,8 +1,9 @@
 # Topic vocabulary reference
 
-This file is a granularity anchor for `topics/` docs in any project.
-Read it when creating a new topic, reviewing whether an existing topic
-is scoped correctly, or doing a periodic global-consistency pass.
+This file is a granularity and scope anchor for topic docs in any project.
+Read it when creating a new topic, reviewing whether an existing topic is
+scoped correctly, choosing its owning glossary, or doing a periodic
+global-consistency pass.
 
 The names below are examples of the right level of abstraction: each
 spans multiple files and has at least one external consumer. Using
@@ -26,8 +27,70 @@ Where a durable note lands — which doc, which section:
   (boot or topic), rationale and mental models in `.evidence.md`, dormant
   candidate designs in `.sketches.md`, and private working state in `tasks/`.
 - One home plus pointers, never two homes for the same claim.
-- Narrowest scope that contains the fact's users (project over
-  global, subtree over root); promote when scope provably widens.
+- Prefer the broadest active glossary scope where the note remains natural and
+  unqualified. Default to the current project, retain subtree/program scope
+  when a parent doc would mostly name qualified local paths or concepts, and
+  promote when real utility widens. `~/agents` is reserved for clearly reusable
+  general agent workflow or explicit user direction.
+
+## Glossary-owned topic scopes
+
+Every named term in an active `GLOSSARY.md` is topic-like. Its `topic / refs`
+cell may point to any canonical doc; an existing proposal, draft, handoff, or
+other doc wins over layout normalization. “The topic for X” therefore means:
+resolve X through the nearest applicable glossary row, then follow its
+canonical reference. Search outward through enclosing glossary scopes only
+when the nearer scope does not define X.
+
+When X needs a new formal topic doc, place it in the `topics/` collection owned
+by the selected glossary. The project-root glossary owns root `topics/` (or
+the established `docs/topics/` alternate); a scoped glossary owns the sibling
+`topics/` directory. A research-program glossary at `research/pii/GLOSSARY.md`,
+for example, owns `research/pii/topics/`.
+
+Topic names keep owner context without exposing the mechanical collection
+directory. A root topic uses its basename, while a scoped topic prefixes the
+basename with the owning glossary's project-relative directory:
+
+```text
+topics/redaction.md              -> redaction
+research/pii/topics/redaction.md -> research/pii/redaction
+```
+
+These names are used in `Topic:` commit trailers. Basenames need not be
+project-wide unique, and an existing root topic name or historical trailer is
+not migrated merely because scoped topics become available.
+
+## Program scope charters
+
+A glossary scope may have a sibling `PROGRAM.md`. It is a concise durable
+statement of the aspirations, themes, and boundaries spanning that scope—the
+reason its topics form one program. Its presence declares a program scope and
+is the sole declaration used for program discovery. Keep plans, current
+status, per-topic summaries, run history, and handoff state in their existing
+owners.
+
+A nested `PROGRAM.md` specializes the nearest parent charter and should not
+repeat it. Read the parent when interpreting or updating the child. An old
+`Research program: <slug>` glossary header may coexist as inert compatibility
+metadata, but program discovery uses `PROGRAM.md` only. The directory basename
+supplies the slug.
+
+At project entry, locate and fully read every project-owned `PROGRAM.md` so the
+set of program scopes forms a compact map of the project. A root charter may
+list significant subprograms for navigation, but the list is optional and not
+authoritative; discovery still scans for charters. Exclude vendored dependencies
+and nested external repositories.
+
+On “update program scope,” choose the nearest applicable glossary scope and
+reconcile its charter against, in order: explicit recent user direction, the
+existing charter, glossary definitions and canonical topic docs, and current
+repository evidence. If the file is absent, infer and create the probable
+charter when those sources support a coherent program. Mark a consequential
+uncertainty rather than converting it into false certainty. “Update all
+program scopes” repeats this for every existing charter and every glossary
+scope whose artifacts support such a program; a plain vocabulary scope does
+not gain a charter merely to make the sweep exhaustive.
 
 ## By domain
 

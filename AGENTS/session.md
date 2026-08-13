@@ -46,7 +46,8 @@ subtask files.
 
 For implementation or bugfix work, search `tasks/*.md` when that directory
 exists, and cite the relevant file(s) in planning and conclusion. Task
-files should cross-reference relevant `topics/*.md`.
+files should cross-reference the relevant canonical topic docs, including
+glossary-scoped collections.
 
 Dated progress entries — a `tasks/*.md` or `docs/tactical/` status or
 plan note, a journal append — name the contributing model, in the same

@@ -234,10 +234,14 @@ repo—fully read, when present:
 2. `AGENTS.local.md`;
 3. `CLAUDE.md`;
 4. any README named by those as instruction source; and
-5. `GLOSSARY.md`.
+5. every project-owned `PROGRAM.md`, located after reading the instruction
+   files above.
 
-An existence probe/slice and task files do not satisfy this. Do not reread on
-later returns in the same session. Report an unreadable/broken file once.
+Program charters are concise project orientation; fully read all of them rather
+than assuming a root charter lists every subprogram. Exclude vendored/external
+repositories. An existence probe/slice and task files do not satisfy these
+reads. Do not reread on later returns in the same session. Report an
+unreadable/broken file once.
 
 When an unfamiliar subdirectory's purpose, placement rules, or local
 conventions remain unclear, read the nearest `README.md` in that directory or
@@ -461,8 +465,9 @@ implementation detail belongs, after journal review, in
 `topics/journals/<task-or-topic>.md`.
 
 When a committed topic governs the work, put
-`Onboarding: topics/<name>.md` immediately after the subject. That topic must be
-self-contained for the fresh reviewer before the diff. Keep `Topic:` trailers.
+`Onboarding: <project-relative-topic-path>` immediately after the subject. That
+topic must be self-contained for the fresh reviewer before the diff. Keep
+`Topic:` trailers.
 Split thematically unrelated large work; keep closely related work together.
 Read `topics/commits.md` before any non-trivial message or history rewrite.
 
@@ -484,9 +489,12 @@ Full preservation/filter mechanics: `topics/commits.md`.
 
 ### Topic trailers
 
-Related-series commits carry `Topic: <topics-basename>`, copied verbatim across
-the series; multiple topics mean multiple trailers. It marks thread membership,
-not merely a touched topic file.
+Related-series commits carry `Topic: <topic-name>`, copied verbatim across the
+series; multiple topics mean multiple trailers. A project-wide topic keeps its
+basename. A glossary-scoped topic prefixes that basename with the owning
+glossary directory, omitting the mechanical `topics/` segment: for example,
+`research/pii/topics/redaction.md` is `Topic: research/pii/redaction`. It marks
+thread membership, not merely a touched topic file.
 
 ### Contributing-model trailer
 
@@ -583,13 +591,31 @@ for a directory that already existed unless the user asks.
 
 ## Project topics
 
-Committed `topics/*.md` hold cross-cutting contracts/invariants/project-facing
-knowledge, not module notes or changelogs. Ephemera may live there only while
-active and is cleared when addressed. Create `topics/` on first need.
-Basenames define `Topic:` trailers. Read `TOPICS.md` when choosing granularity.
-Dormant or candidate designs belong in the owning topic's `.sketches.md`
-companion so ordinary topic reads do not mix current guidance with possible
-futures.
+Every `GLOSSARY.md` defines a topic scope. Its named terms are topic-like even
+when their canonical docs live elsewhere. Existing glossary-linked docs win;
+do not move or duplicate one merely to fit the layout. Formal topic docs hold
+cross-cutting contracts/invariants/project-facing knowledge, not module notes
+or changelogs. The project-root glossary owns root `topics/*.md` (or the
+alternate `docs/topics/*.md`); a scoped glossary owns its sibling
+`topics/*.md`.
+
+When creating a topic doc, default to the current project and choose the
+broadest active glossary scope that naturally owns the concern. Keep it local
+when a parent-scope doc would mostly speak in qualified subtree/program names;
+promote it as its real audience widens. Use `~/agents` only for clearly
+reusable general agent workflow or explicit user direction. Create `topics/`
+on first need, not proactively. Read `TOPICS.md` when choosing granularity or
+scope. Dormant or candidate designs belong in the owning topic's
+`.sketches.md` companion so ordinary topic reads do not mix current guidance
+with possible futures.
+
+An optional `PROGRAM.md` beside a `GLOSSARY.md` states that scope's durable
+spanning aspirations, themes, and boundaries—not plans or current status—and
+its presence declares a program scope. On
+“update program scope,” revise or infer the nearest applicable charter from
+recent user direction and repository evidence; “all program scopes” applies
+that pass project-wide. Do not create one where no coherent program is
+inferable. Read `TOPICS.md` for scope and parent/child mechanics.
 
 Before changing a concern, committing a significant plan, resuming, or
 responding to bearings/orientation language, read its topic and
@@ -610,9 +636,15 @@ When root `topics/`/`tasks/`/`gaps/` is absent but `docs/topics/` or
 ## Project glossary
 
 `GLOSSARY.md` is prescriptive vocabulary for talk, planning, symbols, docs, UI,
-and commits. Read it on first repo use and search before coining a term.
-Subtree glossaries govern their paths. Define project-specific terms on first
-use in new-reader docs.
+and commits. Before interpreting or changing a file in a newly entered
+subtree, identify its nearest-enclosing glossary and the active parent glossary
+chain. Targeted row lookup/search is sufficient; fully read a glossary only
+when broader vocabulary is relevant. When reading a glossary, ensure its
+sibling `PROGRAM.md`, when present, has been read this session. Consult the
+chain for unfamiliar terms and before naming or paraphrasing. A named term is
+inherently topic-like; when asked for “the topic” for it, follow its existing
+`topic / refs` link before considering creation. Define project-specific terms
+on first use in new-reader docs.
 
 If user phrasing is ambiguous and resolution changes action, state the inferred
 meaning plus one or two alternatives at an interruptible checkpoint. After

@@ -5,9 +5,10 @@
 `~/agents` is a **policy-and-tooling repository for filesystem-first coding
 agents** — not an app or framework. Its center of gravity is prose: a layered
 instruction contract (`AGENTS.global.md` + project/provider supplements), a
-`topics/*.md` contract library, a `GLOSSARY.md`, and a `skills/` workflow set. A small
-dependency-free Python layer (`agentctl.py`, `artifact_meta.py`, the `aim`
-plugin) gives agents local job tracking and run provenance.
+glossary-owned topic-contract library, a prescriptive glossary hierarchy, and
+a `skills/` workflow set. A small dependency-free Python layer (`agentctl.py`,
+`artifact_meta.py`, the `aim` plugin) gives agents local job tracking and run
+provenance.
 
 Three flows orient a new reader fastest:
 
@@ -39,9 +40,10 @@ counter, so jobs never masquerade as the agent.
 | `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier supplements: judgment latitude for frontier models and extra scaffolding for weak models. | In: harness-recorded model tier. Out: tier-specific behavior. | Routed by provider supplements. | verified: `cat AGENTS.frontier.md AGENTS.weak.md` |
 | `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md` | Model-family behavior patches for observed model-specific failure modes. | In: harness-recorded model id. Out: narrower behavioral constraints. | Routed by provider supplements; family and subtype patches may stack. | verified: `cat AGENTS.anthropic.md AGENTS.opus.md AGENTS.sol.md` |
 | `README.md`, `RESEARCH.md`, `RUNS.md`, `feature-branch.md` | Repo intro + opt-in companion policy (research method, run ops, branch-per-feature). | In: triggering work mode. Out: scoped extra rules. | `AGENTS.global.md` "Optional supplements" loads on trigger. | verified: `cat README.md` |
-| `GLOSSARY.md` | Single prescriptive vocabulary table. | In: curated rows + topic ledes. Out: reused terms. | Rules in `topics/glossary.md`. | verified: `cat GLOSSARY.md` |
+| `GLOSSARY.md`, scoped `GLOSSARY.md` files | Prescriptive vocabulary and topic-scope hierarchy. | In: curated rows, arbitrary canonical refs, and owned topic ledes. Out: reused terms and topic resolution. | Rules in `topics/glossary.md`. | verified: `cat GLOSSARY.md topics/glossary.md` |
+| `PROGRAM.md`, scoped `PROGRAM.md` files | Durable aspirations, themes, and boundaries for program-bearing glossary scopes. | In: explicit user direction and stable repository evidence. Out: program scope for topics, research artifacts, and advisors. | Presence declares a program; tactical status belongs elsewhere. | verified: `find . -name PROGRAM.md -print` |
 | `TOPICS.md`, `topic-definitions.md` | Topic-granularity guidance and curated jargon namespace. | In/Out: vocabulary calibration. | Consulted when creating/assessing topics. | verified: `rg --files` |
-| `topics/*.md` | Cross-cutting concern docs (contracts, invariants), method docs (`debugging`, `testing`, `prototyping`), and companions (`.evidence.md`, `.bearings.md`, `.testing.md`, `.sketches.md`). Basenames = `Topic:` trailer namespace. | In: concern contracts. Out: ledes, trailer vocabulary, verification and candidate-design riders. | `AGENTS.global.md` routes significant work/commits through them. | verified: `ls topics/` |
+| Glossary-owned `topics/*.md` | Cross-cutting concern docs (contracts, invariants), method docs (`debugging`, `testing`, `prototyping`), and companions (`.evidence.md`, `.bearings.md`, `.testing.md`, `.sketches.md`). Root topics use basename identifiers; scoped topics retain their glossary-directory prefix. | In: concern contracts. Out: ledes, trailer vocabulary, verification and candidate-design riders. | `AGENTS.global.md` routes significant work/commits through them. | verified: `find . -name GLOSSARY.md -o -path '*/topics/*.md'` |
 | `skills/*/SKILL.md` | Reusable workflows including `hi`, `start-task`, `ship`, `review`, `harsh-review`, `doubt`, `rep`, `wish`, `others`, and `code-map`. | In: user skill trigger. Out: scoped workflow steps. | Invoked by harness skill loader. | verified: per-skill `name:`/`description:` read |
 | `skills/others/SKILL.md` | Reads `.agentctl/active/` to report own status, live peers, recent DONE, stale entries. | In: register files + mtimes. Out: peer summary. | Pure reader of the convention `AGENTS.global.md` defines. | verified: `rg -n 'find .agentctl\|DONE\|mmin' skills/others/SKILL.md` |
 | `tasks/*.md` | Git-ignored active-work scratchpads / handoff state. | In: per-feature direction. Out: private resume context. | Read on resume; not durable project authority. | verified: `ls tasks` (git-ignored) |
@@ -65,12 +67,12 @@ counter, so jobs never masquerade as the agent.
 4. Capability and model supplements add tier latitude or tighten behavior for
    observed model-family failure modes.
 5. Triggered companions (`RESEARCH.md`, `RUNS.md`, `feature-branch.md`) and
-   relevant `topics/*.md` load on demand.
+   relevant glossary-owned topic docs load on demand.
 
 Seams: global rules → `AGENTS.global.md`; repository authoring rules →
 `AGENTS.md`; provider mechanics → `AGENTS.<provider>.md`;
 model behavior → `AGENTS.<model-family>.md`; personal prefs → `AGENTS.user.md`;
-concern contracts → `topics/<name>.md`.
+concern contracts → the owning glossary's canonical topic doc.
 Evidence: verified: `cat AGENTS.md AGENTS.user.md AGENTS.claude.md
 AGENTS.anthropic.md`.
 
@@ -148,16 +150,17 @@ observed: `python3 tests/test_agentctl.py -k active`.
 
 ### Topic And Glossary Maintenance
 
-1. `topics/*.md` define cross-cutting contracts/ledes; basenames are the
-   `Topic:` trailer namespace.
-2. `GLOSSARY.md` keeps one sorted table; topic-linked rows derive from ledes,
-   vernacular rows are curated.
+1. Every `GLOSSARY.md` defines a topic scope; named rows may link arbitrary
+   canonical docs, and each glossary owns a formal `topics/` collection.
+2. Owned topic rows derive from ledes; other rows and arbitrary refs are
+   curated.
 3. `topics/glossary.md` owns contribution/regeneration rules; `TOPICS.md`
-   calibrates topic granularity.
+   calibrates topic granularity, scope, and collision-safe names.
 4. Tasks may point to topics but never replace them for durable knowledge.
 
-Seams: contracts → `topics/<name>.md`; vocabulary rules → `topics/glossary.md`;
-rows → `GLOSSARY.md`.
+Seams: formal contracts → the owning glossary's `topics/<name>.md`; vocabulary
+rules → `topics/glossary.md`; rows and arbitrary canonical refs → the owning
+`GLOSSARY.md`.
 Evidence: verified: `cat GLOSSARY.md topics/glossary.md`.
 
 ## Contracts And Seams
@@ -172,8 +175,10 @@ Evidence: verified: `cat GLOSSARY.md topics/glossary.md`.
 - `provenance-tracking`: `runs/aim/` dumps + `<output>.meta.json` sidecars
   form the provenance graph; no workflow DSL or auto dependency discovery.
   Evidence: verified: `cat topics/provenance-tracking.md`.
-- `glossary`: `GLOSSARY.md` is one sorted table; topic-linked rows derive from
-  ledes; scoped sub-glossaries sit at the narrowest enclosing dir.
+- `glossary`: each `GLOSSARY.md` is one sorted table and owns a formal topic
+  collection; owned rows derive from ledes, while arbitrary canonical refs are
+  curated and scoped terms stay local when parent scope would require pervasive
+  qualification.
   Evidence: verified: `cat topics/glossary.md`.
 - Active-sessions contract (documented in `topics/agentctl.md` + `AGENTS.global.md`
   prose): `.agentctl/active/` files are present-tense status, `DONE`-prefixed
