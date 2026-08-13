@@ -23,7 +23,7 @@ def _assert(condition, message="assertion failed"):
 
 
 class FakeProviderHost:
-    def __init__(self, responses):
+    def __init__(self, responses, host_protocol_version=2):
         self.runtime = Path(tempfile.mkdtemp(prefix="session-turn-host-"))
         self.runtime.chmod(0o700)
         self.socket_path = self.runtime / "control.sock"
@@ -39,7 +39,7 @@ class FakeProviderHost:
         descriptor = {
             "descriptorVersion": 1,
             "descriptorId": "test-host",
-            "hostProtocolVersion": 2,
+            "hostProtocolVersion": host_protocol_version,
             "features": ["runtime-control", "session-turn"],
             "controlSocketPath": str(self.socket_path),
             "tokenFilePath": str(self.token_path),
@@ -203,6 +203,78 @@ def test_hosted_codex_uses_the_same_provider_host_protocol():
             "providerSessionId": "codex-session-1",
         }
     )
+    _assert("launch" not in host.requests[1], host.requests[1])
+
+
+def test_protocol_v3_atomically_resumes_an_absent_provider_runtime():
+    project = Path(tempfile.mkdtemp(prefix="session-turn-project-"))
+
+    def status(request):
+        return [
+            {
+                "id": request["id"],
+                "ok": True,
+                "result": {
+                    "protocolVersion": 3,
+                    "features": ["runtime-control", "session-turn"],
+                },
+            }
+        ]
+
+    def completed(request):
+        _assert(
+            request["launch"]
+            == {
+                "providerName": "codex",
+                "projectPath": str(project),
+                "options": {
+                    "model": "codex-smoke-model",
+                    "effort": "high",
+                },
+                "reattach": {
+                    "model": "codex-smoke-model",
+                    "effort": "high",
+                },
+            },
+            request,
+        )
+        return [
+            {
+                "id": request["id"],
+                "type": "accepted",
+                "submissionId": request["submissionId"],
+                "runtimeId": "resumed-runtime",
+            },
+            {
+                "id": request["id"],
+                "type": "terminal",
+                "submissionId": request["submissionId"],
+                "outcome": "completed",
+                "receipt": {"lastProviderEventSequence": 0},
+            },
+        ]
+
+    host = FakeProviderHost([status, completed], host_protocol_version=3)
+    proc = _run(
+        host,
+        "codex",
+        "codex-session-1",
+        "--ya-session-id",
+        "ya-session-1",
+        "--cwd",
+        str(project),
+        "--model",
+        "codex-smoke-model",
+        "--effort",
+        "high",
+        extra_env={"PATH": tempfile.mkdtemp(prefix="session-turn-no-native-")},
+    )
+
+    _assert(proc.returncode == 0, proc.stderr)
+    records = _records(proc)
+    _assert(records[0]["transport"] == "provider-host", records)
+    _assert(records[0]["resumeIfAbsent"] is True, records[0])
+    _assert(host.requests[1]["target"]["yaSessionId"] == "ya-session-1")
 
 
 def test_host_rejection_before_acceptance_falls_back_to_native_codex():
@@ -525,6 +597,8 @@ raise SystemExit(7)
             "--output-format",
             "stream-json",
             "--verbose",
+            "--prompt-suggestions",
+            "false",
             "--model",
             "claude-smoke-model",
             "--effort",

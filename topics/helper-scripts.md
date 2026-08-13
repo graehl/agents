@@ -195,22 +195,28 @@ not select a research advisor or impose an advisor protocol.
 [--model <name>] [--effort <level>] [--timeout <seconds>]`; receipt lookup is
 `session-turn receipt <submission-id>`. The turn body is stdin. `--timeout`
 defaults to 30 minutes, accepts 1 second through 2 hours, and bounds a hosted
-turn; a native provider CLI owns its own duration. `--cwd` applies to native
-resume; `--model` and `--effort` override only native resume. An incumbent
-provider-host worker retains its owning project and configuration. stdout is
-compact JSONL and flushes after every record; warnings and native provider
-diagnostics go to stderr.
+turn; a native provider CLI owns its own duration. `--cwd`, `--model`, and
+`--effort` apply when protocol 3 resumes an absent worker and when native
+resume is required. An incumbent provider-host worker retains its owning
+project and configuration. stdout is compact JSONL and flushes after every
+record; warnings and native provider diagnostics go to stderr.
 
 **Transport selection**:
 
 1. On Linux, resolve YA's stable same-user provider-host descriptor, require
    private owner-only descriptor/token/socket paths, and negotiate descriptor
-   version 1 plus host protocol 2 with the `session-turn` feature.
-2. Submit to a matching incumbent through the host-owned worker queue. A
-   supplied YA session id is an additional ownership cross-check.
-3. If no compatible usable host runtime accepts the turn, invoke the harness's
-   native resume command. Never use YA HTTP. Native resume emits a stderr
-   warning and `forkRisk:"concurrent-native-resume"` because another writer
+   version 1 plus host protocol 2 or 3 with the `session-turn` feature.
+2. Submit one `sessionTurn` request to a matching incumbent through the
+   host-owned worker queue. Under protocol 3 that same request carries a
+   `launch` option: if no incumbent exists, the host atomically reserves the
+   target, resumes an auxiliary worker, verifies its durable provider id, and
+   only then offers the message for acceptance. A supplied YA session id is an
+   additional ownership cross-check. Hono may claim the reserved worker but is
+   not in this transaction's delivery path.
+3. If protocol 2 has no incumbent, or no compatible usable host accepts the
+   turn, invoke the harness's native resume command. Never use YA HTTP. The
+   stderr warning names the rejected host path, target, reason, and native
+   fallback. `forkRisk:"concurrent-native-resume"` records that another writer
    can produce a different-parent branch.
 
 The stable wrapper records are `transport`, `accepted`, `providerEvent`,
@@ -218,7 +224,10 @@ The stable wrapper records are `transport`, `accepted`, `providerEvent`,
 the selected `transport`, `harness`, durable `providerSessionId`, and
 `submissionId`. Host-normalized provider events retain their `message`; native
 JSONL records live under `providerRecord`. Terminal records carry the host
-receipt or a native `native-record:<count>` watermark.
+receipt or a native `native-record:<count>` watermark. `transport` records
+report `resumeIfAbsent`; a caller has not received the result until it reads a
+terminal `terminal` or `error` record. A shell or tool yielding partial JSONL
+while the helper remains running is not completion.
 
 **Exit codes**: 0 completed; 10 provider failed or the submitted turn was
 interrupted; 11 transport failed before acceptance; 12 delivery is uncertain
@@ -229,6 +238,9 @@ after acceptance; 2 argparse usage.
 - Host dispatch uses only the documented host control socket and
   `sessionTurn`; it never attaches as a Hono controller, opens a worker socket,
   or writes provider-child stdin.
+- Protocol 3 incumbent selection, absent-worker resume, and message offer are
+  one receipt-keyed `sessionTurn` transaction. The helper does not first
+  provoke an unavailable result and then issue a separate launch request.
 - One client-generated submission id follows the turn across host receipt
   lookup and native fallback. A host error explicitly marked unaccepted, or a
   post-disconnect `sessionTurnStatus` result proving no receipt, permits native
@@ -243,7 +255,8 @@ after acceptance; 2 argparse usage.
   agentctl launch-depth state; unrelated configuration remains inherited.
 - Native acceptance is emitted only after the first provider JSONL record. A
   process that exits without provider output is a transport failure before
-  acceptance, even when its stdin pipe accepted the turn body.
+  acceptance, even when its stdin pipe accepted the turn body; stderr states
+  that an active writer or invalid resume handle may be the blocking cause.
 - Provider output is consumed and emitted line by line. A compaction event is
   an ordinary provider event and does not replace terminal receipt tracking.
 - The wrapper accepts at most 900 KiB for one turn and never loads or replays a
@@ -254,12 +267,17 @@ after acceptance; 2 argparse usage.
 1. `session-turn claude <provider-id> < review.md` with a compatible incumbent
    emits `transport:provider-host`, `accepted`, provider events, then a terminal
    receipt without starting a second Claude resume.
-2. The same command with no descriptor emits the native-resume fork-risk
+2. With protocol 3 and no incumbent, the same command resumes an auxiliary
+   worker inside that `sessionTurn` request, reports `resumeIfAbsent:true`, and
+   reaches acceptance without Hono. Explicit cwd/model/effort values become
+   launch and reattachment facts; the host reaps an unclaimed auxiliary worker
+   after its idle deadline.
+3. The same command with no descriptor emits the native-resume fork-risk
    warning, wraps Claude's stream JSON, and exits according to the native
    process result. Native Claude can form a different-parent branch under
    concurrent resume; native Codex refuses an active writer. Without explicit
    overrides, either native CLI may use its current model/effort defaults.
-3. A socket disconnect after `accepted` never starts native resume. The helper
+4. A socket disconnect after `accepted` never starts native resume. The helper
    checks `sessionTurnStatus`; if no terminal receipt is reachable it emits
    `uncertain-after-acceptance`, includes the exact `session-turn receipt`
    command, and exits 12.

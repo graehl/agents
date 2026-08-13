@@ -204,9 +204,13 @@ def hosted_turn(
 ) -> int:
     descriptor, token = discover_provider_host()
     fields = common_fields(args, submission_id, "provider-host")
+    resume_if_absent = descriptor["hostProtocolVersion"] >= 3
     if announce_transport:
-        emit({"type": "transport", **fields})
+        emit({"type": "transport", **fields, "resumeIfAbsent": resume_if_absent})
     request_id = str(uuid.uuid4())
+    launch_options = {
+        key: value for key in ("model", "effort") if (value := getattr(args, key))
+    }
     request = {
         "id": request_id,
         "token": token,
@@ -222,6 +226,13 @@ def hosted_turn(
         "sessionOptions": SESSION_OPTIONS,
         "timeoutMs": int(args.timeout * 1000),
     }
+    if resume_if_absent:
+        request["launch"] = {
+            "providerName": args.harness,
+            "projectPath": str(Path(args.cwd).resolve()),
+            **({"options": launch_options} if launch_options else {}),
+            **({"reattach": launch_options} if launch_options else {}),
+        }
     wire_request = (json.dumps(request) + "\n").encode()
     if len(wire_request) > MAX_HOST_REQUEST_BYTES:
         raise NativeFallback("turn cannot fit the provider-host request bound")
@@ -240,9 +251,8 @@ def hosted_turn(
             if record.get("id") != request_id:
                 raise TransportFailure("provider host stream id does not match")
             record = {**record, **fields}
-            if (
-                record.get("type") == "accepted"
-                and not isinstance(record.get("sessionOptionsResult"), dict)
+            if record.get("type") == "accepted" and not isinstance(
+                record.get("sessionOptionsResult"), dict
             ):
                 record["sessionOptionsResult"] = {
                     key: {
@@ -568,12 +578,11 @@ def native_turn(
     args: argparse.Namespace, message: str, submission_id: str, reason: str
 ) -> int:
     fields = common_fields(args, submission_id, "native-resume")
-    warning = (
-        "concurrent native resume may create a different-parent branch when "
-        "another writer is active"
-    )
     print(
-        f"session-turn: warning: {warning}; provider host fallback: {reason}",
+        "session-turn: warning: provider host did not accept the turn; "
+        f"falling back to native {args.harness} resume for "
+        f"{args.provider_session_id}; reason: {reason}; concurrent native "
+        "resume may create a different-parent branch when another writer is active",
         file=sys.stderr,
     )
     emit(
@@ -669,6 +678,12 @@ def native_turn(
             if not delivered
             else "native resume exited before producing provider output"
         )
+        print(
+            "session-turn: error: native resume did not accept the turn; "
+            "provider diagnostics above may identify an active writer or an "
+            "invalid resume handle",
+            file=sys.stderr,
+        )
         emit(
             {
                 "type": "error",
@@ -711,10 +726,12 @@ def turn_parser() -> argparse.ArgumentParser:
             "exit codes: 0 success; 10 provider failure; 11 transport failure "
             "before acceptance; 12 uncertain delivery after acceptance\n"
             "receipt lookup: session-turn receipt <submission-id>\n"
-            "provider limits: host dispatch keeps the incumbent configuration; "
+            "provider limits: host dispatch keeps an incumbent configuration; "
+            "protocol 3 atomically resumes an absent worker before acceptance; "
             "provider-owned title/recap/progress/suggestion generation defaults "
             "off and each hosted acceptance reports enforcement; "
-            "--model/--effort apply only to native resume. Concurrent native "
+            "--cwd/--model/--effort apply to a host-launched absent worker or "
+            "native resume, but not an incumbent. Concurrent native "
             "Claude resumes can branch, while native Codex refuses an active "
             "writer. Without overrides, native resume uses the provider CLI's "
             "current model/effort defaults.\n"
@@ -727,8 +744,8 @@ def turn_parser() -> argparse.ArgumentParser:
     result.add_argument("--ya-session-id")
     result.add_argument("--submission-id")
     result.add_argument("--cwd", default=os.getcwd())
-    result.add_argument("--model", help="native-resume model override")
-    result.add_argument("--effort", help="native-resume effort override")
+    result.add_argument("--model", help="absent-session model override")
+    result.add_argument("--effort", help="absent-session effort override")
     result.add_argument("--timeout", type=float, default=30 * 60)
     return result
 
