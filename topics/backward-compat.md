@@ -26,3 +26,7 @@ Topic: `backward-compat`
   directory basename remains the slug. A legacy `Research program:` glossary
   header may coexist but no longer declares a program. Listed active projects
   are migrated in the same change so header-only discovery needs no shim.
+- 2026-08-13 program identity — a program's directory path is its canonical
+  locator; an optional first-line H1 is an alternative formal name. A research
+  program's directory basename remains its local slug but does not replace the
+  path locator.

@@ -104,10 +104,11 @@ session are not re-read on later returns. Task files do not
 substitute for this. If a file is unreadable or a symlink is broken,
 report once and continue.
 
-Every project-owned program charter is deliberately part of project
-orientation. Locate and fully read all of them; a root charter may list
-significant subprograms for navigation, but that optional list is not a
-discovery index. Exclude vendored dependencies and nested external repositories.
+Every project-owned `PROGRAM.md` is deliberately part of project orientation
+and may also contain binding program instructions. Locate and fully read all of
+them; a root charter may list significant subprograms for navigation, but that
+optional list is not a discovery index. Exclude vendored dependencies and
+nested external repositories.
 
 When a request targets a project other than the one this session was
 launched in, weigh where the work lands best: a fresh agent launched
@@ -202,14 +203,24 @@ Read it for scope choice and program-wide orientation. At project entry, read
 every project-owned charter, not only the root one. A root charter may point to
 significant children but need not maintain an exhaustive index.
 
+The title is optional. A first-line `# Program <short name>` is an alternative
+formal name, while the containing directory path remains the canonical
+locator. A Markdown section headed exactly `Program instructions`, at any
+level, is binding for work in that directory subtree. Its nested subsections
+remain binding until the next heading of equal or higher level. Ancestor
+program instructions apply inward and nearer rules win their conflicts, but
+applicable global and project agent instruction files retain precedence. All
+other `PROGRAM.md` text is descriptive.
+
 “Update program scope” selects the nearest applicable glossary scope, reads an
 existing charter or infers the probable one from recent user direction,
 glossary terms, canonical topic docs, and repository evidence, then creates or
-revises `PROGRAM.md`. “Update all program scopes” discovers existing charters
-and glossary scopes whose artifacts support a coherent spanning program, and
-applies the same reconciliation independently. Do not manufacture a charter
-for a mere vocabulary scope with no inferable program, and do not let the
-latest tactical activity silently narrow a durable aspiration.
+revises only the descriptive charter. “Update all program scopes” discovers
+existing charters and glossary scopes whose artifacts support a coherent
+spanning program, and applies the same reconciliation independently. Do not
+manufacture a charter for a mere vocabulary scope with no inferable program,
+let the latest tactical activity silently narrow a durable aspiration, or
+infer or revise program instructions without explicit user direction.
 
 Read the relevant topic doc and its `.bearings.md` companion if present
 before touching code for a bug, committing to a significant plan, entering

@@ -21,8 +21,8 @@ Topic: `glossary`
   blockquote ledes.
 - Other rows are curated. They survive regeneration verbatim, including
   arbitrary references and any `<!-- unconfirmed: YYYY-mm-dd -->` markers.
-- A scope may carry an optional sibling `PROGRAM.md` stating the durable
-  aspirations, themes, and boundaries spanning its topics. It is authored,
+- A scope may carry an optional sibling `PROGRAM.md` containing its descriptive
+  charter and optional binding `Program instructions` section. It is authored,
   never glossary-regenerated.
 - Bar for a vernacular row: meaning in this repo is distinct from
   default agent usage. Generic terms an agent already understands
@@ -78,7 +78,8 @@ program-level aspiration. Its absence does not invalidate the glossary or topic
 collection. Old research-program headers may remain in a glossary, but they do
 not declare a program; discovery uses `PROGRAM.md` only. See
 `~/agents/TOPICS.md § Program scope charters` for inference, update verbs, and
-parent/child behavior.
+parent/child behavior. The directory path is the canonical program locator; an
+optional first-line H1 supplies an alternative formal name.
 
 ## Topic-doc format the spec relies on
 

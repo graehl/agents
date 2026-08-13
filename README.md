@@ -65,7 +65,7 @@ branches, commits, shared workdirs, or private notes.
 | `advisor/charter.md` | Durable global mandate and operating behavior loaded into every research-advisor session. |
 | `RUNS.md`, `RUNS/` | Short run-operation router plus binding resource, provenance, and monitoring packets. |
 | `feature-branch.md` | Optional branch-per-feature workflow for projects that opt into it. |
-| `PROGRAM.md` | Durable aspirations, themes, and boundaries spanning this repository's glossary scope. |
+| `PROGRAM.md` | A scope's descriptive charter plus optional binding program instructions for its directory subtree. |
 | `GLOSSARY.md` | Project vocabulary that agents should reuse in docs, code, UI copy, and commits. |
 | `TOPICS.md`, `topic-definitions.md` | Topic vocabulary and curated general-domain definitions used when naming project concerns. |
 | `topics/` | Committed cross-cutting contracts and rationale: debugging, testing, agent instructions, run provenance, UI verification, and more. |

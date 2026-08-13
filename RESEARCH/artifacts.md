@@ -32,10 +32,13 @@ each subtask separately.
 
 A research program is a declared, durable line of inquiry containing multiple
 papers or artifacts under `research/<program>/`. Declare it with
-`research/<program>/PROGRAM.md`, whose concise narrative states
-the program's durable aspirations, themes, and boundaries. The directory
-basename is the slug. Its sibling `GLOSSARY.md` applies by path. `PROGRAM.md`
-is the sole declaration used for program/advisor discovery; an old
+`research/<program>/PROGRAM.md`, whose descriptive charter states the
+program's durable aspirations, themes, and boundaries and whose optional
+`Program instructions` section is binding in that subtree. The directory path
+is the canonical locator; `<program>` remains its research slug, and an
+optional first-line H1 may supply an alternative formal name. Its sibling
+`GLOSSARY.md` applies by path. `PROGRAM.md` is the sole declaration used for
+program/advisor discovery; an old
 `Research program:` glossary header may coexist but is inert. A directory or
 glossary without `PROGRAM.md` scopes vocabulary only; it does not create an
 advisor/program boundary. Declare a program only when its evidence stream and
@@ -217,14 +220,16 @@ authors need not repeat the association in each file. Define a term in the
 program glossary when multiple program artifacts use it, while paper-local
 notation that does not recur stays in the paper.
 
-A sibling `PROGRAM.md` declares the directory as a program root, states its
-durable spanning aspirations/themes/boundaries, and uses the directory basename
-as the slug. It is the sole declaration for advisor scope, followed-document
-defaults, and everything else keyed on programs. An old `Research program:`
-glossary header may coexist but is inert. Declare deliberately, once the
-program's evidence stream and narrative are independent enough that separate
-advising beats shared context. A directory existing under `research/`, holding
-papers, or holding only a glossary is not by itself a program:
+A sibling `PROGRAM.md` declares the directory as a program root, provides its
+descriptive charter, and may carry binding `Program instructions` for that
+subtree. The directory path is the canonical locator; its basename remains the
+research slug, and an optional first-line H1 may supply an alternative formal
+name. It is the sole declaration for advisor scope, followed-document defaults,
+and everything else keyed on programs. An old `Research program:` glossary
+header may coexist but is inert. Declare deliberately, once the program's
+evidence stream and narrative are independent enough that separate advising
+beats shared context. A directory existing under `research/`, holding papers,
+or holding only a glossary is not by itself a program:
 `topics/glossary.md` permits subtree glossaries whenever local jargon recurs,
 so an undeclared glossary under `research/` scopes vocabulary and nothing more.
 

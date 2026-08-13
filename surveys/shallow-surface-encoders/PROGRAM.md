@@ -1,5 +1,3 @@
-# Program
-
 Determine when inexpensive orthographic, lexical, and local sequence evidence
 can complement a strong semantic token encoder, especially for multilingual
 PII span labeling.

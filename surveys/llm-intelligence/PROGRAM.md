@@ -1,5 +1,3 @@
-# Program
-
 Map the mechanisms and evidence bearing on what language models represent,
 compute, use, and can report about their internal state.
 

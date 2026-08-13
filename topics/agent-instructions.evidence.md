@@ -2959,3 +2959,44 @@ the sweep single-target.
   relevant, but cannot assume the root glossary is the only authority.
 - **Status** — directly user-specified and scenario-traced; discovery remains
   convention-level rather than mechanically enforced.
+
+## 2026-08-13 — PROGRAM.md can carry scoped binding instructions
+
+- **User-defined surface** — descriptive charter text remains the default in
+  `PROGRAM.md`. A Markdown section headed exactly `Program instructions`, at
+  any level, is binding for activity in the containing directory subtree; its
+  nested subsections remain in the section until the next equal- or
+  higher-level heading. Applicable global and project agent instruction files
+  keep precedence. Ancestor program instructions inherit inward and a nearer
+  rule wins only when they conflict.
+- **Identity decision** — `# Program <short name>` is an optional first-line
+  alternative formal name. The directory path remains the canonical locator,
+  so a missing title changes nothing and discovery never depends on a
+  project-wide name registry. Generic `# Program` headings in this repository
+  were removed rather than pretending the formal name was “Program.”
+- **Inference boundary** — “update program scope” and inferred-charter creation
+  operate only on descriptive material. Program instructions are created or
+  revised only from explicit user direction; repository evidence cannot
+  silently promote a convention into a binding rule.
+- **Trace: short-term topic** — a program instruction requires every proposed
+  topic, even short-term work, to appear in a paper's Future Work section. An
+  agent adding such a topic in that subtree also adds the reference; an agent
+  working in a sibling program does not inherit the rule.
+- **Trace: imperative charter prose** — a descriptive paragraph says the
+  program favors cheap matched baselines. It guides orientation but is not
+  parsed as a mandatory action because it lies outside a `Program
+  instructions` section.
+- **Trace: nested program and scope refresh** — a child program inherits a
+  compatible parent rule and overrides only a conflicting program rule. A
+  later “update all program scopes” rewrites stale aspirations while preserving
+  both binding sections byte-for-byte unless the user explicitly changes them.
+- **Trace: optional name** — `research/pii/PROGRAM.md` with no H1 is still the
+  program at `research/pii`. Adding `# Program PII` supplies another formal
+  name without changing discovery or scope; an identically titled program at a
+  different path remains distinct.
+- **Trace: section extent** — under `## Program instructions`, a nested
+  `### Paper additions` subsection remains binding, while the next `## Notes`
+  returns to descriptive charter text. The rule does not leak through the rest
+  of the file or demote the nested subsection to commentary.
+- **Status** — directly user-specified and already instantiated in `~/draft`;
+  behavioral effect remains unmeasured.

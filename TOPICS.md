@@ -70,11 +70,29 @@ is the sole declaration used for program discovery. Keep plans, current
 status, per-topic summaries, run history, and handoff state in their existing
 owners.
 
+A title is optional. When the first line is an H1 of the form
+`# Program <short name>`, it supplies an alternative formal name. The containing
+directory path remains the program's canonical locator, and discovery never
+depends on the title.
+
 A nested `PROGRAM.md` specializes the nearest parent charter and should not
 repeat it. Read the parent when interpreting or updating the child. An old
 `Research program: <slug>` glossary header may coexist as inert compatibility
-metadata, but program discovery uses `PROGRAM.md` only. The directory basename
-supplies the slug.
+metadata, but program discovery uses `PROGRAM.md` only.
+
+### Program instructions
+
+A Markdown heading at any level named exactly `Program instructions` marks a
+binding section of `PROGRAM.md`. Its content and nested subsections govern work
+in the directory containing that file and its descendants; the section ends at
+the next heading of equal or higher level. Program instructions in ancestor
+directories apply inward, and the nearer rule wins when two conflict. They do
+not override applicable global or project agent instruction files. All content
+outside such sections remains descriptive.
+
+Create or revise program instructions only from explicit user direction. In
+particular, inferring a missing charter or handling “update program scope” must
+not invent, remove, or reinterpret them.
 
 At project entry, locate and fully read every project-owned `PROGRAM.md` so the
 set of program scopes forms a compact map of the project. A root charter may
@@ -83,14 +101,14 @@ authoritative; discovery still scans for charters. Exclude vendored dependencies
 and nested external repositories.
 
 On “update program scope,” choose the nearest applicable glossary scope and
-reconcile its charter against, in order: explicit recent user direction, the
-existing charter, glossary definitions and canonical topic docs, and current
-repository evidence. If the file is absent, infer and create the probable
-charter when those sources support a coherent program. Mark a consequential
-uncertainty rather than converting it into false certainty. “Update all
-program scopes” repeats this for every existing charter and every glossary
-scope whose artifacts support such a program; a plain vocabulary scope does
-not gain a charter merely to make the sweep exhaustive.
+reconcile its descriptive charter against, in order: explicit recent user
+direction, the existing charter, glossary definitions and canonical topic docs,
+and current repository evidence. If the file is absent, infer and create the
+probable charter when those sources support a coherent program. Mark a
+consequential uncertainty rather than converting it into false certainty.
+“Update all program scopes” repeats this for every existing charter and every
+glossary scope whose artifacts support such a program; a plain vocabulary
+scope does not gain a charter merely to make the sweep exhaustive.
 
 ## By domain
 

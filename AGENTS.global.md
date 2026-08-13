@@ -237,11 +237,11 @@ repo—fully read, when present:
 5. every project-owned `PROGRAM.md`, located after reading the instruction
    files above.
 
-Program charters are concise project orientation; fully read all of them rather
-than assuming a root charter lists every subprogram. Exclude vendored/external
-repositories. An existence probe/slice and task files do not satisfy these
-reads. Do not reread on later returns in the same session. Report an
-unreadable/broken file once.
+Program files are concise project orientation and may contain scoped binding
+instructions; fully read all of them rather than assuming a root charter lists
+every subprogram. Exclude vendored/external repositories. An existence
+probe/slice and task files do not satisfy these reads. Do not reread on later
+returns in the same session. Report an unreadable/broken file once.
 
 When an unfamiliar subdirectory's purpose, placement rules, or local
 conventions remain unclear, read the nearest `README.md` in that directory or
@@ -609,13 +609,22 @@ scope. Dormant or candidate designs belong in the owning topic's
 `.sketches.md` companion so ordinary topic reads do not mix current guidance
 with possible futures.
 
-An optional `PROGRAM.md` beside a `GLOSSARY.md` states that scope's durable
-spanning aspirations, themes, and boundaries—not plans or current status—and
-its presence declares a program scope. On
-“update program scope,” revise or infer the nearest applicable charter from
-recent user direction and repository evidence; “all program scopes” applies
-that pass project-wide. Do not create one where no coherent program is
-inferable. Read `TOPICS.md` for scope and parent/child mechanics.
+An optional `PROGRAM.md` beside a `GLOSSARY.md` declares a program scope and
+states its durable spanning aspirations, themes, and boundaries—not plans or
+current status. The directory path is its canonical locator; an optional
+first-line `# Program <short name>` supplies an alternative formal name. A
+Markdown section headed exactly `Program instructions` is binding for work in
+that directory subtree, including its nested subsections until the next heading
+of equal or higher level. Applicable global and project agent instruction files
+win; ancestor program instructions apply inward and the nearer rule wins on a
+conflict. Other `PROGRAM.md` content is descriptive.
+
+On “update program scope,” revise or infer only the nearest applicable
+descriptive charter from recent user direction and repository evidence; “all
+program scopes” applies that pass project-wide. Do not infer or revise program
+instructions without explicit user direction, or create a charter where no
+coherent program is inferable. Read `TOPICS.md` for full scope and parent/child
+mechanics.
 
 Before changing a concern, committing a significant plan, resuming, or
 responding to bearings/orientation language, read its topic and

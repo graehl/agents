@@ -1,5 +1,3 @@
-# Program
-
 Develop a compact, empirical operating layer that helps capable
 filesystem-first agents pursue user goals reliably across projects, harnesses,
 and interrupted sessions.
