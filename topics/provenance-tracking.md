@@ -65,23 +65,29 @@ whether to extend the system or to introduce something parallel.
   `md5(run_id)[:24]` — same width as a real Aim hash, deterministic from
   `run_id`, collision-safe within agentctl-generated dumps. No SDK
   round-trip required to produce records.
-- **Reproducibility-grade fingerprinting where it matters.** Scripts are
-  always sha256-fingerprinted (small, cheap, edits are exactly what matters
-  for "did I change this between runs?"). Inputs and outputs are sha256
-  opt-in (large weights tensors are expensive). Git branch + commit
-  captured at launch.
+- **Committed source is the tracked-run admission rule.** The launcher records
+  Git branch + commit, requires a clean tracked/index state, rejects
+  non-ignored untracked Python, and proves the entry script and recognized
+  environment controls are recoverable from that commit. SHA-256 remains a
+  useful byte identity, but an off-Git hash diagnoses non-reproducibility
+  rather than curing it. Inputs and outputs remain SHA-256 opt-in because
+  large tensors are expensive.
 
 ## Bounded scope (non-goals stated up front)
 
 - **No workflow DSL.** Agents (or humans) orchestrate steps imperatively —
   `agentctl start` per step, `--depends-on` for declared ordering, the runs
   DB is the durable propagation graph. We are not building Snakemake.
-- **No automated dependency discovery.** A step that doesn't declare its
-  inputs is a graph leaf — fine for trivial commands. We don't strace, we
-  don't intercept opens, we don't parse `--K=V` heuristically.
+- **No exact runtime dependency discovery.** A clean commit binds tracked
+  project files; the coarse near-term closure additionally forbids
+  non-ignored untracked `*.py` and binds recognized environment manifests,
+  locks, and launch-env files. We do not strace, intercept opens, trace Python
+  imports, or infer arbitrary external/native/ignored dependencies. A step
+  that does not declare its data inputs is still a graph leaf.
 - **No deterministic replay.** True bit-for-bit reproducibility is the
-  containerization problem (nix/docker). We capture enough provenance to
-  rerun by hand and to debug *why* outputs differ.
+  containerization problem (nix/docker). OS/distro, GPU, and cloud image
+  identity are recorded best-effort but do not gate launch. We capture enough
+  provenance to rerun by hand and to debug *why* outputs differ.
 - **No per-program library coupling required.** Wrapper-side declaration
   via `agentctl start --input KEY=PATH ...` is the baseline and works for
   any program. The cooperative `declared.json` path exists for programs
@@ -184,6 +190,8 @@ shown; full set documented inline in `agentctl.py:start()`.
   "depends_on": [],
   "git_branch": "...",
   "git_commit": "...",
+  "source_snapshot": { /* committed-source record; see below */ },
+  "machine_snapshot": { /* best-effort host identity; see below */ },
   "inputs":  { /* see below */ },
   "outputs": { /* see below */ },
   "script":  { /* see below */ },
@@ -267,11 +275,44 @@ reproducibility cares about.
 ```json
 "script": {
   "path":   "/abs/path/do.translate.sh",
+  "git_path": "scripts/do.translate.sh",
+  "git_blob": "<Git object id>",
   "size":   1234,
   "mtime":  "...",
   "sha256": "abc..."
 }
 ```
+
+### `source_snapshot` and `machine_snapshot`
+
+Tracked runs carry an `agentctl-source-v1` snapshot with status `committed`,
+the Git root/branch/commit, the clean-tree decision, and a `files` map. Each
+selected file records absolute path, project-relative Git path, Git blob,
+SHA-256, and size. Selected files include the detected/explicit entry script,
+`agentctl.env`, every `--source-env` script, root environment controls, and
+controls for a selected Pixi manifest. Pixi selection requires both
+`pixi.toml` and `pixi.lock`.
+
+Admission rejects a missing Git checkout or committed `HEAD`, tracked/index
+drift, any non-ignored untracked `*.py`, an off-checkout experiment script or
+environment, and selected bytes not recoverable from the recorded commit.
+The detached child repeats the commit, cleanliness, untracked-Python, and file
+checks after dependency/GPU waits and immediately before payload launch. Thus
+a queued run cannot silently execute against a later working-tree revision.
+
+This is a source-control contract, not a demand that the full worker filesystem
+be committed. `git ls-files --others --exclude-standard` defines the Python
+tripwire, so files covered by `.gitignore`, `.git/info/exclude`, or standard
+global excludes are exempt. A derived `.pixi/` environment may therefore stay
+unchecked-in while its selected manifest and lock are commit-bound. Untracked
+intermediate data is also allowed and uses the existing declared input/output,
+hash, producer-sidecar, and run-record provenance paths.
+
+`machine_snapshot` is deliberately observational: hostname, architecture,
+kernel, Python executable/version, `/etc/os-release`, `nvidia-smi` GPU
+identity, and cloud-init AMI/instance/region metadata are recorded when the
+ordinary local query works. Missing or different machine fields never reject a
+run.
 
 ## Dump schema (`runs/aim/<experiment>/runs/<ref>.json`)
 
@@ -298,7 +339,7 @@ Matches `aim-text-dump-v1` — the same shape produced by
   "agentctl":   {"job", "mode", "run_id", "headline_file", "output", "step_id"},
   "command":    {"argv": [...], "cwd", "text"},
   "inputs":     { /* same as state.inputs, with flat source_* recap keys */ },
-  "machine":    {"git_branch", "git_commit", "pid", "started_at"},
+  "machine":    {"git_branch", "git_commit", "pid", "started_at", "hostname", "architecture", "kernel", "python_executable", "python_version", "os", "gpus", "cloud"},
   "meta":       {"format": "artifact_meta.md", "path"},
   "notes":      ["Created by agentctl at launch; ..."],
   "output":     {"log_path", "meta_path", "path", "title"},
@@ -307,6 +348,7 @@ Matches `aim-text-dump-v1` — the same shape produced by
   "request_plan": [],
   "result":     {},
   "script":     { /* same as state.script */ },
+  "source":     { /* same as state.source_snapshot */ },
   "setup":      {"job", "launch_status", "run_id"}
 }
 ```
@@ -513,7 +555,9 @@ DB query "what's inside run X?" becomes trivial. No DSL required.
 ### Trivial / leaf runs
 
 `agentctl start --no-aim ... -- some-cmd` writes nothing under `runs/aim/`
-and writes no sidecars. The run is a graph leaf. Useful when:
+and writes no sidecars. It also bypasses committed-source admission, so it is
+not an alternate route for experimental evidence. The run is a graph leaf.
+Useful when:
 - The launch is genuinely trivial (one-off janitorial command)
 - The agent benefits from agentctl as a launcher / permission boundary
   without paying the dump cost
@@ -523,23 +567,27 @@ and writes no sidecars. The run is a graph leaf. Useful when:
 ## Reproducibility scope
 
 Captured automatically:
-- Git branch + commit at launch
-- Script path + sha256 (at launch)
+- Clean Git branch + commit at submission and again before payload launch
+- Script and recognized environment-control Git path/blob + SHA-256
+- Root/selected Pixi manifest and lock, when Pixi is configured
+- Project and explicitly sourced launch-env file identities (never values)
+- Best-effort OS/distro, GPU, interpreter, and cloud machine identity
 - All declared inputs' size/mtime (and sha256 if `--input-hash`)
 - All declared outputs' size/mtime at completion (and sha256 if
   `--output-hash`)
 - Full argv + cwd + command text
 
 Deliberately not captured (in v1):
-- **Env vars.** Projects typically specify env explicitly (via shell
-  scripts, conda/venv/pixi activation, or `--env KEY=VALUE`); auto-capture
-  rarely earns its keep. May become important if nested-flow scenarios
-  emerge that need to inherit parent env, but agent-driven orchestration
-  hopefully sidesteps the need entirely. Addable later via a hook if a
-  concrete case justifies it.
-- Kernel version, GPU model, library versions. Out of scope; could be
-  added to `params.machine` cheaply if needed.
-- Process tree, syscalls, opened files. Out of scope.
+- **Environment values.** Manifest/lock and launch-env file identities are
+  bound, but ambient and explicit variable values remain excluded because
+  they may contain secrets. Named non-secret values needed for reproduction
+  belong in tracked configuration or declared run parameters.
+- Runtime package enumeration beyond recognized manifests/locks. The lock is
+  the authority where available; no claim is made that a live environment is
+  bit-identical to it.
+- Process tree, syscalls, opened files, import tracing, and ignored/off-repo
+  transitive dependencies. These remain candidates for a later audit mode,
+  not the normal submit-time guard.
 - Bit-for-bit input/output equality. Use `--input-hash` / `--output-hash`
   for content fingerprints; bit-for-bit replay is the
   containerization/nix problem.

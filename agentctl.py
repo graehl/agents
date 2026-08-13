@@ -4,9 +4,11 @@ from __future__ import annotations
 import argparse
 import atexit
 import datetime as dt
+import hashlib
 import importlib
 import json
 import os
+import platform
 import re
 import shlex
 import signal
@@ -65,6 +67,18 @@ PROPAGATE_FILENAME = "propagate.json"
 PROJECT_ENV_FILENAME = "agentctl.env"
 LIVE_JOB_STATUSES = {"running", "waiting"}
 DEFAULT_LIST_SHOW_LAST = 6
+ENVIRONMENT_CONTROL_FILES = (
+    "pixi.toml",
+    "pixi.lock",
+    "pyproject.toml",
+    "uv.lock",
+    "poetry.lock",
+    "requirements.txt",
+    "environment.yml",
+    "environment.yaml",
+    "conda-lock.yml",
+    "conda-lock.yaml",
+)
 
 
 # ---- Plugin loader ----
@@ -2016,7 +2030,9 @@ def load_project_env(
                 f"invalid project env entry {path}:{line_number}: expected KEY=VALUE"
             )
         if key in seen:
-            raise SystemExit(f"duplicate project env key {key!r} at {path}:{line_number}")
+            raise SystemExit(
+                f"duplicate project env key {key!r} at {path}:{line_number}"
+            )
         seen.add(key)
         value = value.strip().replace("${AGENTCTL_ROOT}", str(ROOT))
         updated.setdefault(key, value)
@@ -2080,6 +2096,304 @@ def git_value(args: list[str]) -> str:
     return out.strip()
 
 
+def git_output(args: list[str], *, cwd: Path = ROOT, text: bool = True):
+    try:
+        return subprocess.check_output(
+            ["git", *args], cwd=cwd, text=text, stderr=subprocess.DEVNULL
+        )
+    except (OSError, subprocess.SubprocessError, UnicodeError):
+        return "" if text else b""
+
+
+def committed_file_record(path: str | Path, *, git_root: Path, commit: str) -> dict:
+    p = Path(path).expanduser().resolve()
+    try:
+        relative = p.relative_to(git_root)
+    except ValueError as exc:
+        raise SystemExit(
+            f"reproducibility guard: source/control file is outside the Git checkout: {p}"
+        ) from exc
+    rel = relative.as_posix()
+    blob = git_output(["rev-parse", f"{commit}:{rel}"], cwd=git_root).strip()
+    if not blob:
+        fingerprint = compute_sha256(p) if p.is_file() else "unavailable"
+        raise SystemExit(
+            "reproducibility guard: file bytes are not recoverable from the recorded "
+            f"commit: {rel} sha256={fingerprint}"
+        )
+    committed_bytes = git_output(["show", f"{commit}:{rel}"], cwd=git_root, text=False)
+    current_sha256 = compute_sha256(p)
+    committed_sha256 = hashlib.sha256(committed_bytes).hexdigest()
+    if current_sha256 != committed_sha256:
+        raise SystemExit(
+            "reproducibility guard: file differs from the recorded commit: "
+            f"{rel} current_sha256={current_sha256} committed_sha256={committed_sha256}"
+        )
+    st = p.stat()
+    return {
+        "path": str(p),
+        "git_path": rel,
+        "git_blob": blob,
+        "sha256": current_sha256,
+        "size": st.st_size,
+    }
+
+
+def pixi_roots_from_argv(argv: list[str]) -> set[Path]:
+    roots: set[Path] = set()
+    if argv and Path(argv[0]).name == "pixi":
+        roots.add(ROOT)
+    for index, arg in enumerate(argv):
+        manifest_value = ""
+        if arg in {"--manifest-path", "-m"} and index + 1 < len(argv):
+            manifest_value = argv[index + 1]
+        elif arg.startswith("--manifest-path="):
+            manifest_value = arg.partition("=")[2]
+        if manifest_value:
+            manifest = Path(manifest_value).expanduser()
+            if not manifest.is_absolute():
+                manifest = ROOT / manifest
+            roots.add(manifest.resolve(strict=False).parent)
+        value = arg.partition("=")[2] if "=" in arg else arg
+        if ".pixi" not in value:
+            continue
+        p = Path(value).expanduser()
+        if not p.is_absolute():
+            p = ROOT / p
+        parts = p.resolve(strict=False).parts
+        try:
+            index = parts.index(".pixi")
+        except ValueError:
+            continue
+        roots.add(Path(*parts[:index]))
+    return roots
+
+
+def environment_control_paths(
+    argv: list[str], project_env: dict | None, source_env: list[str]
+) -> dict[str, Path]:
+    paths: dict[str, Path] = {}
+    roots = {ROOT, *pixi_roots_from_argv(argv)}
+    for env_root in sorted(roots):
+        try:
+            env_relative = env_root.relative_to(ROOT)
+        except ValueError as exc:
+            raise SystemExit(
+                "reproducibility guard: selected environment is outside the project "
+                f"checkout: {env_root}"
+            ) from exc
+        manifest = env_root / "pixi.toml"
+        lock = env_root / "pixi.lock"
+        if (env_root != ROOT or manifest.exists() or lock.exists()) and (
+            not manifest.is_file() or not lock.is_file()
+        ):
+            raise SystemExit(
+                "reproducibility guard: a selected Pixi environment requires both "
+                f"{manifest} and {lock}"
+            )
+        for name in ENVIRONMENT_CONTROL_FILES:
+            path = env_root / name
+            if path.is_file():
+                paths[f"environment:{env_relative / name}"] = path
+    if project_env:
+        paths["project_env"] = Path(project_env["path"])
+    for index, spec in enumerate(source_env):
+        path = Path(spec).expanduser()
+        if not path.is_absolute():
+            path = ROOT / path
+        paths[f"source_env:{index}"] = path.resolve(strict=False)
+    return paths
+
+
+def build_source_snapshot(
+    *,
+    argv: list[str],
+    script: dict,
+    explicit_script: bool,
+    project_env: dict | None,
+    source_env: list[str],
+) -> dict:
+    git_root_text = git_output(["rev-parse", "--show-toplevel"]).strip()
+    commit = git_output(["rev-parse", "HEAD"]).strip()
+    if not git_root_text or not commit:
+        raise SystemExit(
+            "reproducibility guard: tracked runs require a Git checkout with a committed HEAD; "
+            "an rsynced source tree without .git is not an experiment source"
+        )
+    git_root = Path(git_root_text).resolve()
+    dirty = git_output(
+        [
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=no",
+            "--ignore-submodules=none",
+        ],
+        cwd=git_root,
+    ).strip()
+    if dirty:
+        first = dirty.splitlines()[0]
+        raise SystemExit(
+            "reproducibility guard: tracked/index changes must be committed before a tracked "
+            f"run; first change: {first}"
+        )
+    untracked_python = git_output(
+        ["ls-files", "--others", "--exclude-standard", "--", "*.py"], cwd=git_root
+    ).splitlines()
+    if untracked_python:
+        preview = ", ".join(untracked_python[:5])
+        suffix = (
+            f" (+{len(untracked_python) - 5} more)" if len(untracked_python) > 5 else ""
+        )
+        raise SystemExit(
+            "reproducibility guard: all non-ignored Python source must be committed before a "
+            f"tracked run: {preview}{suffix}"
+        )
+
+    files = environment_control_paths(argv, project_env, source_env)
+    script_path = Path(script["path"]).resolve() if script.get("path") else None
+    if script_path is not None:
+        try:
+            script_path.relative_to(git_root)
+        except ValueError:
+            if explicit_script or script_path.suffix in {".py", ".sh", ".bash", ".zsh"}:
+                raise SystemExit(
+                    "reproducibility guard: experiment scripts must be committed in the "
+                    f"project checkout: {script_path}"
+                )
+        else:
+            files["script"] = script_path
+
+    records = {
+        label: committed_file_record(path, git_root=git_root, commit=commit)
+        for label, path in sorted(files.items())
+    }
+    if "script" in records:
+        script.update({key: records["script"][key] for key in ("git_path", "git_blob")})
+    return {
+        "schema": "agentctl-source-v1",
+        "status": "committed",
+        "git_root": str(git_root),
+        "git_branch": git_output(["branch", "--show-current"], cwd=git_root).strip(),
+        "git_commit": commit,
+        "tracked_clean": True,
+        "untracked_python_count": 0,
+        "files": records,
+    }
+
+
+def revalidate_source_snapshot(snapshot: dict) -> None:
+    git_root = Path(snapshot["git_root"])
+    commit = snapshot["git_commit"]
+    if git_output(["rev-parse", "HEAD"], cwd=git_root).strip() != commit:
+        raise SystemExit(
+            "reproducibility guard: checkout HEAD changed after submission; refusing payload launch"
+        )
+    dirty = git_output(
+        [
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=no",
+            "--ignore-submodules=none",
+        ],
+        cwd=git_root,
+    ).strip()
+    if dirty:
+        raise SystemExit(
+            "reproducibility guard: checkout became dirty after submission; refusing payload launch"
+        )
+    untracked_python = git_output(
+        ["ls-files", "--others", "--exclude-standard", "--", "*.py"], cwd=git_root
+    ).splitlines()
+    if untracked_python:
+        raise SystemExit(
+            "reproducibility guard: untracked Python appeared after submission; refusing payload launch"
+        )
+    for expected in (snapshot.get("files") or {}).values():
+        current = committed_file_record(
+            expected["path"], git_root=git_root, commit=commit
+        )
+        if (
+            current["sha256"] != expected["sha256"]
+            or current["git_blob"] != expected["git_blob"]
+        ):
+            raise SystemExit(
+                "reproducibility guard: source/control fingerprint changed after submission: "
+                f"{expected['git_path']}"
+            )
+
+
+def machine_snapshot() -> dict:
+    snapshot: dict = {
+        "hostname": platform.node(),
+        "architecture": platform.machine(),
+        "kernel": platform.release(),
+        "python_executable": sys.executable,
+        "python_version": platform.python_version(),
+    }
+    os_release = Path("/etc/os-release")
+    try:
+        if os_release.is_file():
+            values = {}
+            for raw in os_release.read_text(
+                encoding="utf-8", errors="replace"
+            ).splitlines():
+                key, sep, value = raw.partition("=")
+                if sep and key in {"ID", "VERSION_ID", "PRETTY_NAME"}:
+                    values[key.lower()] = value.strip().strip('"')
+            if values:
+                snapshot["os"] = values
+    except OSError:
+        pass
+    try:
+        output = subprocess.check_output(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,uuid,driver_version,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=3,
+        )
+        gpus = []
+        for line in output.splitlines():
+            fields = [field.strip() for field in line.split(",", 3)]
+            if len(fields) == 4:
+                gpus.append(
+                    dict(
+                        zip(
+                            ("name", "uuid", "driver_version", "memory_total_mib"),
+                            fields,
+                        )
+                    )
+                )
+        if gpus:
+            snapshot["gpus"] = gpus
+    except (OSError, subprocess.SubprocessError):
+        pass
+    cloud_init = Path("/run/cloud-init/instance-data.json")
+    try:
+        if cloud_init.is_file():
+            metadata = (
+                json.loads(cloud_init.read_text(encoding="utf-8"))
+                .get("ds", {})
+                .get("meta_data", {})
+            )
+            cloud = {
+                key: metadata[key]
+                for key in ("ami_id", "instance_id", "instance_type", "region")
+                if metadata.get(key)
+            }
+            placement = metadata.get("placement") or {}
+            if placement.get("availability-zone"):
+                cloud["availability_zone"] = placement["availability-zone"]
+            if cloud:
+                snapshot["cloud"] = cloud
+    except (OSError, UnicodeError, json.JSONDecodeError, AttributeError):
+        pass
+    return snapshot
+
+
 # ---- Input/output declaration helpers ----
 
 _INTERPRETERS = frozenset(
@@ -2091,9 +2405,7 @@ def compute_sha256(path: str | Path) -> str:
     """SHA256 of a file's bytes, hex-encoded. Streams in chunks (large tensors
     don't fit in memory). Caller is responsible for whether the cost is justified
     — used by --input-hash, --output-hash, and the script fingerprint."""
-    import hashlib as _hashlib
-
-    h = _hashlib.sha256()
+    h = hashlib.sha256()
     with open(path, "rb") as fh:
         for chunk in iter(lambda: fh.read(65536), b""):
             h.update(chunk)
@@ -2550,9 +2862,20 @@ def write_meta(state: dict) -> dict:
     machine = [
         ("git_branch", state.get("git_branch", "")),
         ("git_commit", state.get("git_commit", "")),
+        (
+            "source_status",
+            str((state.get("source_snapshot") or {}).get("status", "")),
+        ),
         ("started_at", state["started_at"]),
         ("pid", str(state["pid"])),
     ]
+    machine_snapshot_record = state.get("machine_snapshot") or {}
+    for key in ("hostname", "architecture", "kernel", "python_version"):
+        if machine_snapshot_record.get(key):
+            machine.append((key, str(machine_snapshot_record[key])))
+    gpu_names = [gpu.get("name", "") for gpu in machine_snapshot_record.get("gpus", [])]
+    if any(gpu_names):
+        machine.append(("gpus", ",".join(name for name in gpu_names if name)))
     related = [("agentctl-state", Path(state["state_path"]))]
     for dep in depends_on:
         dep_current = current_path(dep)
@@ -2997,8 +3320,6 @@ def start(args: argparse.Namespace) -> int:
     project_env = None
     if not args.no_project_env:
         env, project_env = load_project_env(env, args.project_env)
-    for script in args.source_env:
-        env = source_env_script(env, script)
     env.setdefault("PYTHONUNBUFFERED", "1")
     # Count-down-once: mark the child as one hop deeper into an agentctl launch
     # so neither the job nor any agentctl it shells adopts the launching agent's
@@ -3064,6 +3385,18 @@ def start(args: argparse.Namespace) -> int:
     else:
         script_rec = detect_script(final_argv) or {}
 
+    source_snapshot = None
+    if not getattr(args, "no_aim", False):
+        source_snapshot = build_source_snapshot(
+            argv=final_argv,
+            script=script_rec,
+            explicit_script=bool(args.script),
+            project_env=project_env,
+            source_env=list(args.source_env),
+        )
+    for script in args.source_env:
+        env = source_env_script(env, script)
+
     # Pre-launch state: canonical fields plugins can read/extend.
     state = {
         "context_note": args.context_note,
@@ -3072,8 +3405,10 @@ def start(args: argparse.Namespace) -> int:
         "exit_status_path": str(exit_status_path),
         "argv": final_argv,
         "cwd": str(ROOT),
-        "git_branch": git_value(["branch", "--show-current"]),
-        "git_commit": git_value(["rev-parse", "HEAD"]),
+        "git_branch": (source_snapshot or {}).get("git_branch")
+        or git_value(["branch", "--show-current"]),
+        "git_commit": (source_snapshot or {}).get("git_commit")
+        or git_value(["rev-parse", "HEAD"]),
         "headline_path": str(headline_path),
         "inputs": declared_inputs,
         "user_argv": list(args.argv),
@@ -3092,10 +3427,12 @@ def start(args: argparse.Namespace) -> int:
         "run_id": rid,
         "runtime_estimate": runtime_estimate,
         "runtime_estimate_seconds": runtime_estimate_seconds,
+        "machine_snapshot": machine_snapshot(),
         "project_env": project_env,
         "script": script_rec,
         "serial": serial,
         "source_env": list(args.source_env),
+        "source_snapshot": source_snapshot,
         "state_path": str(state_path),
     }
     if wait_after:
@@ -3240,6 +3577,19 @@ def run_child(args: argparse.Namespace) -> int:
         )
         mark_wait_failed(state_path, current, exit_status_path, 1)
         return 1
+    try:
+        state = read_json(state_path)
+        source_snapshot = state.get("source_snapshot")
+        if source_snapshot:
+            revalidate_source_snapshot(source_snapshot)
+    except (OSError, KeyError, TypeError, ValueError, SystemExit) as exc:
+        detail = exc.code if isinstance(exc, SystemExit) else str(exc)
+        print(
+            f"reproducibility guard failed before payload launch: {detail}",
+            file=sys.stderr,
+        )
+        mark_wait_failed(state_path, current, exit_status_path, 2)
+        return 2
     # Pre-launch: write meta + dump record now (serialized inside the child so
     # there's no race between start()'s post-Popen writes and our completion read).
     try:

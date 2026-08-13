@@ -41,6 +41,36 @@ For tracked `agentctl` work, the canonical record is the JSON run dump under
 The record owns argv/cwd, declared inputs and outputs, script fingerprint, Git
 state, and producer propagation.
 
+The default tracked form is also a source-admission gate. It requires a Git
+checkout with a committed `HEAD`, rejects tracked/index changes and any
+non-ignored untracked `*.py`, and verifies that the detected or explicit entry
+script, `agentctl.env`, each `--source-env` file, and recognized environment
+control files are byte-identical to files recoverable from the recorded
+commit. A selected Pixi environment must have both `pixi.toml` and `pixi.lock`.
+Queued work repeats the check after its waits and before the payload starts. A
+SHA-256 for bytes absent from Git is diagnostic evidence of the
+non-reproducible submission, not permission to run it.
+
+This makes an exact Git checkout the normal remote staging unit. An rsynced
+source tree without `.git`, or one changed after checkout, cannot launch a
+tracked experiment. Named data inputs may remain outside Git, but declare them
+with `--input`/`--input-hash` and follow their project-specific provenance
+contract. `--no-aim` bypasses this source gate and is therefore unsuitable for
+evidence-producing work.
+
+The checkout rule governs source-controlled bytes, not realized runtime state.
+Derived environments such as `.pixi/` may remain unchecked-in when a standard
+Git ignore/exclude rule hides them and the manifests/locks that define them are
+committed. Likewise, intermediate data and artifacts may remain unchecked-in
+under their ordinary declared-input/output and sidecar provenance. The
+untracked-Python tripwire applies only to non-ignored/non-excluded paths.
+
+Machine context is best-effort and nonblocking: the record may include
+hostname, architecture, kernel, OS/distro, Python executable/version, GPU
+name/UUID/driver/memory, and cloud-init AMI/instance/region fields. Hardware,
+image, distro, and OS differences remain ordinary reproduction qualifications,
+not launch failures.
+
 Prefer `agentctl start ... -- <command>` for launches that may need audit or
 reproduction. Use the default tracked form for research outputs; use
 `--no-aim` only for genuinely trivial runs that need launcher/process handling
@@ -242,8 +272,9 @@ When a project tracks runs through `agentctl`, the canonical run record is the
 JSON dump under `runs/aim/<experiment>/runs/<run-id>.json`, using the
 `artifact_meta.find_aim_run_record/text` lookup path. Refer to that record
 rather than reconstructing run history from logs or `.meta.md` content alone: the
-dump carries the structured argv/cwd, declared inputs and outputs, the script
-fingerprint, git branch+commit, and any producer-tagged propagation facts.
+dump carries the structured argv/cwd, declared inputs and outputs, the
+commit-bound source snapshot, best-effort machine identity, and any
+producer-tagged propagation facts.
 
 Output files produced under tracked runs get a `<output>.meta.json` sidecar next
 to them, containing `agentctl_run_id` and `run_dump` pointing back at the

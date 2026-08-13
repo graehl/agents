@@ -91,6 +91,13 @@ def _build_record(state: dict, meta_text: str) -> dict:
     tags = ["agentctl", *state.get("tags", [])]
     output_path = state.get("output_path", "")
     meta_path = state.get("meta_path", "")
+    machine = {
+        "git_branch": state.get("git_branch", ""),
+        "git_commit": state.get("git_commit", ""),
+        "pid": str(state["pid"]),
+        "started_at": state["started_at"],
+    }
+    machine.update(dict(state.get("machine_snapshot") or {}))
     record = {
         "identity": {
             "agentctl_run_id": state["run_id"],
@@ -114,12 +121,7 @@ def _build_record(state: dict, meta_text: str) -> dict:
                 "text": agentctl.command_string(state["argv"]),
             },
             "inputs": dict(state.get("inputs") or {}),
-            "machine": {
-                "git_branch": state.get("git_branch", ""),
-                "git_commit": state.get("git_commit", ""),
-                "pid": str(state["pid"]),
-                "started_at": state["started_at"],
-            },
+            "machine": machine,
             "meta": {
                 "format": "artifact_meta.md",
                 "path": meta_path,
@@ -140,6 +142,7 @@ def _build_record(state: dict, meta_text: str) -> dict:
             "request_plan": [],
             "result": {},
             "script": dict(state.get("script") or {}),
+            "source": dict(state.get("source_snapshot") or {}),
             "setup": {
                 "job": state["job"],
                 "launch_status": state.get("status", "running"),
@@ -202,7 +205,10 @@ def register_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--no-aim",
         action="store_true",
-        help="Skip writing the Aim-format run-record dump under runs/aim/.",
+        help=(
+            "Skip the Aim run dump and committed-source guard; use only for "
+            "trivial, non-evidence-producing runs."
+        ),
     )
     parser.add_argument(
         "--experiment",

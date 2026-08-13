@@ -127,6 +127,15 @@ window.
   resolved path, file hash, and key names, never values. `restart` preserves
   the original launch's selected file or disabled state rather than adopting
   a newly created default.
+- A default tracked `start`/`smoke` requires a Git checkout at committed
+  `HEAD`. It rejects tracked/index changes, non-ignored untracked `*.py`, and
+  selected script/environment-control bytes that are not recoverable from the
+  recorded commit. Pixi requires a committed manifest+lock pair. A detached or
+  queued child repeats the guard immediately before payload launch. `--no-aim`
+  deliberately bypasses this admission rule and is limited to trivial,
+  non-evidence-producing work. Standard Git ignores/excludes exempt derived
+  Python trees such as `.pixi/`; unchecked-in intermediate data remains valid
+  when declared and tracked through the ordinary run-provenance surface.
 - `start --after <job-or-output>` is a mechanical launch gate, not a
   result-interpretation scheduler. It records the new job as `waiting`, then
   starts the payload only after each named `agentctl` job exits cleanly or
@@ -420,6 +429,14 @@ is executable, or `agentctl` is on the remote `PATH`, native job state is
 added; asking for a named job without either is an error rather than a
 silent downgrade.
 
+A remote that launches tracked work has a stronger precondition: its project
+root is an exact Git checkout with the recorded commit available and a clean
+working tree. Copying `agentctl` alone is enough for monitoring, but an rsynced
+source snapshot without `.git` is intentionally rejected as an experiment
+source. Transfer named data/artifacts separately and declare them as inputs;
+use a checkout (or a future verified snapshot materialization), not a mutable
+source rsync, for code.
+
 This verb is a wake point, not a scheduler. Worker provisioning, staging,
 successor choice, launch, result interpretation, and artifact copy-back
 remain explicit agent actions after it returns. A copied remote `agentctl`
@@ -473,7 +490,8 @@ The base writes a flat dict to `state.json`. Canonical keys (read freely):
 `runtime_estimate`, `runtime_estimate_seconds`, `context_note`,
 `pre_run_note`, `post_run_note`, `post_run_noted_at`, `analysis_notes`,
 `depends_on`, `wait_on`, `wait_after`, `queued_at`, `source_env`,
-`project_env`, `git_branch`, `git_commit`, `launch_gpu_stats`.
+`project_env`, `git_branch`, `git_commit`, `source_snapshot`,
+`machine_snapshot`, `launch_gpu_stats`.
 
 `project_env` is null when project defaults were absent or disabled. Otherwise
 it contains `path`, `sha256`, and `keys`; values are deliberately excluded.
@@ -495,12 +513,15 @@ Two intended use cases for `agentctl`, both first-class:
    under `runs/aim/<experiment>/` (see `aim` plugin and the
    `aim-text-dump-v1` schema). These dumps are the authoritative branch
    record for the run; live `.aim/` is a rebuildable materialization,
-   produced by downstream tooling like `import_aim_text.py`.
+   produced by downstream tooling like `import_aim_text.py`. The tracked form
+   also enforces committed-source admission and records the selected source
+   snapshot plus best-effort host/OS/GPU/cloud identity.
 2. **Trivial / untracked runs.** `--no-aim` opts out of dump writing.
    Useful when the value of running through `agentctl` is just the launcher
    + state-tracking + permission story (an agent with `agentctl` in `PATH`
    does not need raw shell exec rights for routine launches), not the
-   research-record story.
+   research-record story. It bypasses committed-source admission and must not
+   produce experimental evidence.
 
 The Aim SDK is **not** required. The plugin writes JSON dumps directly. If
 the SDK is installed, users can run `aim up` to browse the materialized view

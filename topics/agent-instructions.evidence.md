@@ -2724,3 +2724,57 @@ the sweep single-target.
   tendencies as permanent.
 - **Status** — directly user-specified and trace-simulated; time saved and
   decision quality remain unmeasured.
+
+## 2026-08-13 — tracked runs admit only committed project source
+
+- **User correction** — recording a Git SHA and a hash of an rsynced script did
+  not establish reproducibility: the bytes could be dirty, absent from the
+  named commit, or submitted from a remote snapshot with no Git objects. The
+  desired default is tool-enforced at the common `agentctl` surface.
+- **Rule** — a tracked launch requires a committed Git checkout, rejects
+  tracked/index drift and all non-ignored untracked Python, and proves selected
+  script and environment-control bytes recoverable from the recorded commit.
+  A queued launch repeats the check after waiting and before executing the
+  payload. `--no-aim` remains a deliberate trivial-run escape, not a research
+  submission path.
+- **Trace: clean local checkout** — the entry script and Pixi manifest+lock are
+  committed and unchanged. Admission passes; state and the durable dump record
+  commit, Git paths/blobs, byte hashes, and ordinary machine identity.
+- **Trace: rsynced remote** — code bytes exist and have a SHA-256, but `.git`
+  and the named commit are absent. Admission fails. The hash is printed as
+  diagnostic identity where a selected file is off-commit, but never upgrades
+  the run to reproducible.
+- **Trace: source drift** — either a tracked file changes, an untracked `.py`
+  appears, or `HEAD` advances while a job is queued. The initial or pre-payload
+  check fails and the payload does not run.
+- **Trace: named data** — an uncommitted dataset declared with `--input` is not
+  treated as program source. Its data-provenance contract and optional input
+  hash remain separate from the committed-code gate.
+- **Trace: different worker** — OS/distro, AMI, instance type, or GPU identity
+  differs. Available identity is recorded best-effort, but the difference does
+  not block because machine-level equivalence is not the present contract.
+- **Residual** — the coarse closure binds tracked project files and forbids
+  untracked Python; it does not trace imports, syscalls, ignored/off-repo code,
+  native libraries, or validate the live environment against its lock. A
+  heavyweight trace/audit mode remains a candidate only if this residual
+  proves valuable.
+- **Status** — directly user-specified, implemented, and scenario-tested;
+  external reproduction benefit remains unmeasured.
+
+## 2026-08-13 — source admission does not require checked-in runtime state
+
+- **User clarification** — the tracked-run guard verifies source-controlled
+  files against the stated commit. It does not require a realized Pixi
+  environment, intermediate dataset, or other normally provenance-tracked
+  runtime artifact to enter Git.
+- **Boundary** — standard Git ignore/exclude mechanisms exempt Python under
+  derived trees such as `.pixi/`; their checked-in manifests and locks remain
+  the reproducible authority. Non-ignored untracked Python remains the coarse
+  near-term source-closure tripwire. Intermediate data remains eligible as a
+  declared input/output with its usual hashes and producer links.
+- **Trace** — a clean checkout contains committed `pixi.toml`, `pixi.lock`, and
+  an ignore for `.pixi/`; the realized environment contains Python packages and
+  an untracked JSONL intermediate is declared as input. Admission passes and
+  records the pins plus data provenance without enumerating environment files.
+- **Status** — directly user-specified and regression-tested; no claim that the
+  realized environment byte-for-byte matches its lock.

@@ -41,7 +41,7 @@ AGENTCTL_DIRS = ("agentctl_plugins", "acli")
 class Workspace:
     """Isolated agentctl workspace under a tmp dir; auto-cleans on context exit."""
 
-    def __init__(self):
+    def __init__(self, *, git: bool = True):
         self.tmp = Path(tempfile.mkdtemp(prefix="agentctl-test-"))
         for f in AGENTCTL_FILES:
             shutil.copy2(REPO_ROOT / f, self.tmp / f)
@@ -51,6 +51,35 @@ class Workspace:
         # Sandbox for test artifacts (separate from the agentctl source)
         self.scratch = self.tmp / "_scratch"
         self.scratch.mkdir()
+        if git:
+            subprocess.run(["git", "init", "-q"], cwd=self.tmp, check=True)
+            subprocess.run(
+                ["git", "config", "user.email", "agentctl-test@example.invalid"],
+                cwd=self.tmp,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "agentctl test"],
+                cwd=self.tmp,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "add", "--", *AGENTCTL_FILES, *AGENTCTL_DIRS],
+                cwd=self.tmp,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "commit", "-qm", "fixture"], cwd=self.tmp, check=True
+            )
+
+    def commit(self, *paths: Path | str) -> None:
+        relative = [str(Path(path).resolve().relative_to(self.tmp)) for path in paths]
+        subprocess.run(["git", "add", "--", *relative], cwd=self.tmp, check=True)
+        subprocess.run(
+            ["git", "commit", "-qm", f"test fixture {time.time_ns()}"],
+            cwd=self.tmp,
+            check=True,
+        )
 
     def cleanup(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
@@ -862,9 +891,7 @@ def test_project_env_defaults_are_portable_and_overridable():
         _assert(res.returncode == 0, res.stderr)
         state = ws.wait_finished("projectenv")
         values = json.loads(out.read_text())
-        _assert(
-            values["PII_EVAL_HOME"] == str(ws.tmp / "untracked/pii-eval"), values
-        )
+        _assert(values["PII_EVAL_HOME"] == str(ws.tmp / "untracked/pii-eval"), values)
         _assert(values["CALLER_WINS"] == "ambient", values)
         _assert(values["EXPLICIT_WINS"] == "explicit", values)
         _assert(state["project_env"]["path"] == str(ws.tmp / "agentctl.env"), state)
@@ -1049,16 +1076,13 @@ def test_output_arg_translates_and_declares_output():
             "output arg marker missing",
         )
         _assert(
-            s["outputs"]["output"].get("sha256")
-            == hashlib.sha256(b"ok").hexdigest(),
+            s["outputs"]["output"].get("sha256") == hashlib.sha256(b"ok").hexdigest(),
             "translated output hash missing",
         )
         _assert(
             out.read_text() == "ok", "translated output argument did not reach payload"
         )
-        _assert(
-            Path(f"{out}.meta.json").exists(), "translated output sidecar missing"
-        )
+        _assert(Path(f"{out}.meta.json").exists(), "translated output sidecar missing")
     finally:
         ws.cleanup()
 
@@ -1548,6 +1572,7 @@ def test_nested_agentctl_parent_run():
             "sleep 1\n"
         )
         inner_script.chmod(0o755)
+        ws.commit(inner_script)
         _start(ws, "--experiment", "nest", "outer", "--", str(inner_script))
         outer = ws.wait_finished("outer")
         inner = ws.wait_finished("inner")
@@ -2415,6 +2440,7 @@ def test_script_override():
     try:
         sc = ws.scratch / "code.py"
         sc.write_bytes(b"# hello")
+        ws.commit(sc)
         _start(
             ws,
             "--experiment",
@@ -2434,6 +2460,167 @@ def test_script_override():
         )
         expected = hashlib.sha256(b"# hello").hexdigest()
         _assert(s["script"]["sha256"] == expected, "script sha256 mismatch")
+        _assert(s["script"]["git_path"] == "_scratch/code.py", s["script"])
+        _assert(len(s["script"]["git_blob"]) in {40, 64}, s["script"])
+    finally:
+        ws.cleanup()
+
+
+def test_tracked_run_requires_git_but_no_aim_does_not():
+    ws = Workspace(git=False)
+    try:
+        rejected = ws.run("start", "tracked", "--", "true")
+        _assert(rejected.returncode != 0, rejected)
+        _assert("require a Git checkout" in rejected.stderr, rejected.stderr)
+
+        _start(ws, "--no-aim", "trivial", "--", "true")
+        state = ws.wait_finished("trivial")
+        _assert(state["returncode"] == 0, state)
+        _assert(state["source_snapshot"] is None, state)
+    finally:
+        ws.cleanup()
+
+
+def test_tracked_run_rejects_dirty_tracked_source():
+    ws = Workspace()
+    try:
+        with (ws.tmp / "agentctl.py").open("a", encoding="utf-8") as handle:
+            handle.write("\n# dirty test\n")
+        rejected = ws.run("start", "dirty", "--", "true")
+        _assert(rejected.returncode != 0, rejected)
+        _assert(
+            "tracked/index changes must be committed" in rejected.stderr,
+            rejected.stderr,
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_tracked_run_rejects_untracked_python_source():
+    ws = Workspace()
+    try:
+        (ws.scratch / "helper.py").write_text("VALUE = 1\n", encoding="utf-8")
+        rejected = ws.run("start", "untracked", "--", "true")
+        _assert(rejected.returncode != 0, rejected)
+        _assert("all non-ignored Python source must be committed" in rejected.stderr)
+        _assert("_scratch/helper.py" in rejected.stderr, rejected.stderr)
+    finally:
+        ws.cleanup()
+
+
+def test_tracked_run_allows_ignored_environment_and_declared_data():
+    ws = Workspace()
+    try:
+        ignore = ws.tmp / ".gitignore"
+        manifest = ws.tmp / "pixi.toml"
+        lock = ws.tmp / "pixi.lock"
+        ignore.write_text(".pixi/\n", encoding="utf-8")
+        manifest.write_text("[project]\nname = 'test'\n", encoding="utf-8")
+        lock.write_text("version: 6\nenvironments: {}\n", encoding="utf-8")
+        ws.commit(ignore, manifest, lock)
+
+        derived_python = ws.tmp / ".pixi/envs/default/lib/site.py"
+        derived_python.parent.mkdir(parents=True)
+        derived_python.write_text("DERIVED = True\n", encoding="utf-8")
+        intermediate = ws.scratch / "intermediate.jsonl"
+        intermediate.write_text('{"row": 1}\n', encoding="utf-8")
+
+        _start(
+            ws,
+            "--input-raw",
+            f"intermediate={intermediate}",
+            "derivedstate",
+            "--",
+            "true",
+        )
+        state = ws.wait_finished("derivedstate")
+        _assert(state["returncode"] == 0, state)
+        _assert(
+            state["inputs"]["intermediate"]["path"] == str(intermediate),
+            state["inputs"],
+        )
+        _assert(state["source_snapshot"]["untracked_python_count"] == 0, state)
+    finally:
+        ws.cleanup()
+
+
+def test_uncommitted_explicit_script_hash_is_diagnostic_only():
+    ws = Workspace()
+    try:
+        script = ws.scratch / "experiment.sh"
+        script.write_text("#!/usr/bin/env bash\ntrue\n", encoding="utf-8")
+        expected = hashlib.sha256(script.read_bytes()).hexdigest()
+        rejected = ws.run(
+            "start", "--script", str(script), "offgit", "--", "bash", str(script)
+        )
+        _assert(rejected.returncode != 0, rejected)
+        _assert("not recoverable from the recorded commit" in rejected.stderr)
+        _assert(f"sha256={expected}" in rejected.stderr, rejected.stderr)
+    finally:
+        ws.cleanup()
+
+
+def test_pixi_lock_and_machine_identity_are_recorded():
+    ws = Workspace()
+    try:
+        manifest = ws.tmp / "pixi.toml"
+        manifest.write_text("[project]\nname = 'test'\n", encoding="utf-8")
+        ws.commit(manifest)
+        rejected = ws.run("start", "missinglock", "--", "true")
+        _assert(rejected.returncode != 0, rejected)
+        _assert("requires both" in rejected.stderr, rejected.stderr)
+
+        lock = ws.tmp / "pixi.lock"
+        lock.write_text("version: 6\nenvironments: {}\n", encoding="utf-8")
+        ws.commit(lock)
+        _start(ws, "--experiment", "repro", "captured", "--", "true")
+        state = ws.wait_finished("captured")
+        source = state["source_snapshot"]
+        _assert(source["status"] == "committed", source)
+        _assert(source["git_commit"], source)
+        _assert("environment:pixi.toml" in source["files"], source)
+        _assert("environment:pixi.lock" in source["files"], source)
+        _assert(state["machine_snapshot"]["hostname"], state["machine_snapshot"])
+        _assert(state["machine_snapshot"]["python_version"], state["machine_snapshot"])
+
+        dump = json.loads(ws.dump_path("repro", state["run_id"]).read_text())
+        _assert(dump["params"]["source"] == source, dump["params"]["source"])
+        _assert(
+            dump["params"]["machine"]["hostname"]
+            == state["machine_snapshot"]["hostname"],
+            dump["params"]["machine"],
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_queued_run_revalidates_source_before_payload():
+    ws = Workspace()
+    try:
+        output = ws.scratch / "must-not-exist.txt"
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.5")
+        _start(
+            ws,
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "guarded",
+            "--",
+            "bash",
+            "-c",
+            f"echo ran > {output}",
+        )
+        with (ws.tmp / "agentctl.py").open("a", encoding="utf-8") as handle:
+            handle.write("\n# changed after submission\n")
+
+        state = ws.wait_finished("guarded")
+        _assert(state["returncode"] == 2, state)
+        _assert(not output.exists(), f"payload ran despite source drift: {output}")
+        log = Path(state["log_path"]).read_text(encoding="utf-8")
+        _assert("reproducibility guard failed before payload launch" in log, log)
     finally:
         ws.cleanup()
 
