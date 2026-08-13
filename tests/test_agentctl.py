@@ -46,7 +46,11 @@ class Workspace:
         for f in AGENTCTL_FILES:
             shutil.copy2(REPO_ROOT / f, self.tmp / f)
         for d in AGENTCTL_DIRS:
-            shutil.copytree(REPO_ROOT / d, self.tmp / d)
+            shutil.copytree(
+                REPO_ROOT / d,
+                self.tmp / d,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+            )
         (self.tmp / "agentctl").chmod(0o755)
         # Sandbox for test artifacts (separate from the agentctl source)
         self.scratch = self.tmp / "_scratch"
@@ -2460,6 +2464,7 @@ def test_script_override():
         )
         expected = hashlib.sha256(b"# hello").hexdigest()
         _assert(s["script"]["sha256"] == expected, "script sha256 mismatch")
+        _assert(s["script"]["selection"] == "explicit", s["script"])
         _assert(s["script"]["git_path"] == "_scratch/code.py", s["script"])
         _assert(len(s["script"]["git_blob"]) in {40, 64}, s["script"])
     finally:
@@ -2637,6 +2642,7 @@ def test_script_autodetect_ignores_long_inline_program():
             state["script"]["path"] == str(Path(sys.executable).resolve()),
             f"fallback script path: {state['script']!r}",
         )
+        _assert(state["script"]["selection"] == "detected", state["script"])
     finally:
         ws.cleanup()
 
@@ -2650,6 +2656,7 @@ def test_restart_preserves_declarations():
         sc = ws.scratch / "s.sh"
         sc.write_text("#!/bin/sh\nexit 0\n")
         sc.chmod(0o755)
+        ws.commit(sc)
         _start(
             ws,
             "--experiment",
@@ -2683,6 +2690,7 @@ def test_restart_preserves_declarations():
         _assert(
             s2["script"]["path"] == s1["script"]["path"], "script path drift on restart"
         )
+        _assert(s2["script"]["selection"] == "explicit", s2["script"])
         _assert(s2["propagate"] == {"k": "v"}, f"propagate lost: {s2['propagate']!r}")
     finally:
         ws.cleanup()
@@ -2709,6 +2717,7 @@ def test_restart_preserves_translated_output_once():
             command,
         )
         s1 = ws.wait_finished("rsoutput")
+        _assert(s1["script"]["selection"] == "detected", s1["script"])
         rc = ws.run("restart", "rsoutput")
         _assert(rc.returncode == 0, f"restart failed: {rc.stderr}")
         s2 = ws.wait_finished("rsoutput", since_run_id=s1["run_id"])
@@ -2721,6 +2730,7 @@ def test_restart_preserves_translated_output_once():
             s2["outputs"]["output"].get("arg") is True,
             "restart lost output arg marker",
         )
+        _assert(s2["script"]["selection"] == "detected", s2["script"])
     finally:
         ws.cleanup()
 

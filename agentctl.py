@@ -3382,8 +3382,11 @@ def start(args: argparse.Namespace) -> int:
     # Script: explicit --script PATH override wins; otherwise heuristic on argv.
     if args.script:
         script_rec = script_fingerprint(args.script)
+        script_rec["selection"] = "explicit"
     else:
         script_rec = detect_script(final_argv) or {}
+        if script_rec:
+            script_rec["selection"] = "detected"
 
     source_snapshot = None
     if not getattr(args, "no_aim", False):

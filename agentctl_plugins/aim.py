@@ -390,9 +390,21 @@ def on_restart(state, args) -> None:
             args.output.append(spec)
         if hashed:
             args.output_hash.append(spec)
-    # Script override: if state has a recorded script with an explicit path,
-    # pass it through as --script PATH on restart so the same file is fingerprinted.
-    args.script = (state.get("script") or {}).get("path", "")
+    # Preserve whether the script path was explicit or heuristic. Treating an
+    # auto-detected executable as --script on restart would incorrectly subject
+    # an external interpreter to the committed-project-script admission rule.
+    script = state.get("script") or {}
+    selection = script.get("selection")
+    if selection not in {"explicit", "detected"}:
+        detected = agentctl.detect_script(
+            list(state.get("user_argv") or state.get("argv") or [])
+        )
+        selection = (
+            "detected"
+            if detected and detected.get("path") == script.get("path")
+            else "explicit"
+        )
+    args.script = script.get("path", "") if selection == "explicit" else ""
     # Producer-flagged propagation: re-pass static facts via --propagate-json so the
     # restarted run has the same baseline. Cooperative file (if any) was per-run-dir
     # so a fresh run starts with an empty propagate.json again.

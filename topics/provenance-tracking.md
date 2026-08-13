@@ -274,7 +274,8 @@ reproducibility cares about.
 
 ```json
 "script": {
-  "path":   "/abs/path/do.translate.sh",
+  "path": "/abs/path/do.translate.sh",
+  "selection": "explicit",
   "git_path": "scripts/do.translate.sh",
   "git_blob": "<Git object id>",
   "size":   1234,
@@ -513,7 +514,10 @@ At launch, scan `argv`:
 User can override with `--script PATH` when the heuristic picks
 wrong, when no candidate exists (e.g. `bash -c '...'`), or when a
 multi-word launcher hides the actual code (e.g. `pixi run script.py`,
-`conda run -n env python ...`).
+`conda run -n env python ...`). The script record retains `selection` as
+`explicit` or `detected`; restart preserves that distinction so a heuristic
+external executable is not reclassified as an explicitly selected project
+script.
 
 ## Composability
 
