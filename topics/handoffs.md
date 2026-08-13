@@ -219,6 +219,12 @@ make the advisor a worker supervisor. In particular, an objection or ranked
 want-to-see is a condition for the advisor's confidence, not a task gate unless
 a cited user/governing artifact independently says so.
 
+Do not outsource your decisions. Unless the user or a governing artifact
+explicitly delegated one, state the worker's proposed choice and rationale and
+ask the advisor for findings and arguments for and against it. Do not ask the
+advisor to choose or rank what the worker should do, grant permission, or
+supply the decision. The worker evaluates the response and decides.
+
 Read that opinion as a proxy for a skeptical reviewer seeing the advisor's
 followed paper/program material and its immediately adjacent evidence links.
 The user and working agent normally have broader context and greater program

@@ -2778,3 +2778,83 @@ the sweep single-target.
   records the pins plus data provenance without enumerating environment files.
 - **Status** — directly user-specified and regression-tested; no claim that the
   realized environment byte-for-byte matches its lock.
+
+## 2026-08-13 — advisor packets retain worker authority and watch governance
+
+- **Incident** — Codex `gpt-5.6-sol` worker session
+  `019ff3b5-da27-7fd0-9ffc-08ee9d6c0d47` asked a research advisor to rank the
+  next actions, decide whether an idle GPU should be used, and later say whether
+  implementation readiness changed the prior ordering. The advisor answered
+  the requested questions; the worker then described the response as not
+  authorizing an accelerator run and adopted the advisor's ordering. The user
+  diagnosed a submissive worker stance: an advisor generally does what the
+  packet asks, so the primary correction belongs in guidance for composing and
+  evaluating consultations, not another assertion that the advisor is a
+  reviewer.
+- **Decision ownership** — an advisor packet now identifies the decision owner
+  and a review target. Unless a cited user instruction or governing artifact
+  explicitly delegates the choice, resource allocation, run launch, priority,
+  acceptance, execution, and research direction stay with the user or working
+  session. A recommendation or ranking is valid advisory input when the packet
+  states the worker's intended decision and rationale. The worker separates
+  checkable claims from advice, makes its own decision, and never reports that
+  the advisor authorized, denied, permitted, or vetoed object-level work.
+- **Governance currentness** — the user also required possibly changed
+  `~/agents` advisor governance to become an explicitly watched, fully read
+  source set across projects. Metadata owns the portable source spellings;
+  `docs/state.md` records resolved paths, SHA-256 hashes, and the provider
+  context of the last full read. The default core is
+  `advisor/charter.md`, `research-advisor.md`, and `RESEARCH/direction.md`, plus
+  project/program charter amendments. Every interaction hashes the stack and
+  fully reads new or changed sources. An unchanged receipt waives rereading
+  only in the same verifiably uncompacted context; a durable hash cannot prove
+  that text survived a later compaction.
+- **Trace: resource recommendation** — a worker intends to launch a matched
+  pair and asks what publication risk it would address. The packet names the
+  worker as decision owner and its rationale. The advisor may oppose the run or
+  find its evidence value weak; the worker verifies factual claims, weighs the
+  broader program and resource state, and decides without converting the memo
+  into permission.
+- **Trace: factual correction** — an advisor says a confidence interval used
+  the wrong resampling unit. The worker checks the scorer and artifact and
+  corrects a confirmed error. Decision ownership does not soften evidence or
+  protect the worker from a valid review finding.
+- **Trace: explicit delegation** — the user explicitly asks the advisor to
+  choose between two paper forms. The packet cites that delegation, so the
+  advisor may make the delegated choice; the default non-authority rule does
+  not override the user.
+- **Trace: governance drift and compaction** — a program advisor remains in
+  one uncompacted context while all source hashes match, so it skips redundant
+  full reads. A later charter edit changes one hash, so the next interaction
+  fully reads that source before advising. After an unprotected compaction, it
+  rereads the complete stack even though the durable hashes still match; exact
+  harness reconstruction is the only waiver.
+- **Status** — directly user-specified and trace-simulated. The currentness
+  cursor is an instruction-level invariant rather than a mechanically enforced
+  `session-turn` feature; behavioral effect remains assumed.
+- **In-turn wording refinement** — the user supplied the governing principle
+  `do not outsource your decisions` and the corresponding packet shape: ask
+  for findings and arguments for and against the worker's proposed choice.
+  This supersedes the draft's allowance for asking the advisor to rank what
+  the worker should do. A recommendation is no longer the default request;
+  explicit user or governing-artifact delegation remains the exception.
+- **Watch-set bootstrap refinement** — `~/agents/topics/handoffs.md` joins the
+  default core because its advisor-output evaluation rules govern the same
+  flow. Before dispatch, the worker reconciles metadata with the protocol's
+  current defaults, preventing a legacy metadata list from hiding a newly
+  added governance source from the advisor that needs to learn about it.
+- **Refined trace: legacy decision packet** — a packet asks the advisor to rank
+  GPU uses but supplies no worker proposal. The advisor provides the findings
+  that apply across plausible choices and asks one focused question only if it
+  would change the assessment; it does not withhold useful review or silently
+  become the decision maker. The worker then states and owns its choice.
+- **Refined trace: newly governed source** — a continuous advisor's metadata
+  predates addition of `topics/handoffs.md` to the default core. The worker's
+  current protocol read repairs the manifest before dispatch; the advisor then
+  sees a new source, fully reads it, and records its resolved hash. Requiring
+  the advisor alone to discover the addition would fail this bootstrap case.
+- **Complete watched core** — `AGENTS.global.md`, `AGENTS.user.md`, and the
+  `RESEARCH.md` router also govern a long-lived advisor and therefore join the
+  advisor-specific sources in the default manifest. A stable second hash pass
+  closes the race in which a governance file changes between its initial hash
+  and full read.

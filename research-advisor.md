@@ -19,8 +19,8 @@ program advisor uses:
 - `research/<program>/advisor/metadata.md` for logical identity, program
   binding, lifecycle, and restart control;
 - `research/<program>/advisor/notes.md` for its compact current assessment;
-- `research/<program>/advisor/docs/state.md` for its followed-document list
-  and last-review state;
+- `research/<program>/advisor/docs/state.md` for its governance-source
+  currentness, followed-document list, and last-review state;
 - `research/<program>/advisor/intake.md` for handled interaction/revision and
   handoff-intake deduplication records;
 - `research/<program>/advisor/session.local.md` for its machine-local
@@ -85,9 +85,9 @@ The durable state files have distinct roles:
 
 - `metadata.md` controls identity, declared scope, artifacts, current live
   handoff scope/path registry, lifecycle generation, exact session title,
-  literal restart prompt, and policies;
-- `docs/state.md` is the mechanical read cursor: which documents were resolved,
-  at what repository revision, plus fingerprints for dirty or untracked text;
+  literal restart prompt, governance-source stack, and policies;
+- `docs/state.md` is the mechanical read cursor: which governance and research
+  documents were resolved and fully read, at what revision or content hash;
 - `notes.md` is the semantic state: the advisor's synthesized understanding of
   the program after reading through that cursor, including its present progress
   assessment and ranked outstanding proof requests; and
@@ -115,6 +115,44 @@ The durable default advisor behavior is `~/agents/advisor/charter.md`. A project
 may add `research/advisor/charter.md` as a project-wide amendment, and a program
 may add `research/<program>/advisor/charter.md`. Amendments are loaded broadest
 to narrowest; they supplement rather than silently replace the global charter.
+
+Every logical advisor watches a cross-repository governance-source stack. Its
+default core is:
+
+- `~/agents/advisor/charter.md`;
+- `~/agents/AGENTS.global.md`;
+- `~/agents/AGENTS.user.md`;
+- `~/agents/RESEARCH.md`;
+- `~/agents/research-advisor.md`;
+- `~/agents/RESEARCH/direction.md`; and
+- `~/agents/topics/handoffs.md`.
+
+Add the project-wide and program charter amendments from metadata. Store these
+source spellings in metadata so `~/agents` remains portable across projects;
+record their resolved paths and SHA-256 content hashes in the governance
+section of `docs/state.md`. An existing advisor without the field adds the
+default stack at its next consultation; this in-place schema repair does not
+require succession.
+
+Before every dispatch, the consulting worker reconciles metadata's governance
+sources with this protocol's current default core and the applicable charter
+amendments. A newly added default is schema maintenance, not consultation
+rescope. This worker-side bootstrap prevents an old advisor from relying on a
+stale metadata list that omits the very source announcing the addition.
+
+At the start of every interaction, resolve and hash the complete governance
+stack. On first activation, establish a complete read receipt; exact current
+bytes already verifiably resident in that context satisfy the corresponding
+read. Fully read every other new or changed source before substantive advice.
+An unchanged prior read discharges the reread only when the exact source is
+still verifiably resident in the same uncompacted provider context. After
+compaction or resume, fully reread the stack unless the harness verifiably
+reconstructs the exact current sources. A durable hash receipt proves which
+version was read; it never proves that the text survived a later compaction.
+Rehash the complete stack after the required reads and repeat any source that
+changed during the pass; record only a stable manifest. If a source is
+unreadable, report governance currentness as incomplete and do not claim to be
+fully read up; useful provisional read-only advice remains allowed when safe.
 
 Route work on a document below a program root to that program's advisor. Route
 work that names a program to the matching program root even when the immediate
@@ -165,6 +203,7 @@ Lifecycle state: active | no-incumbent | retired
 Predecessor: <logical id/generation/session, or none>
 Replacement reason: <reason, or none>
 Charter stack: <global then project/program amendments>
+Governance sources: <default ~/agents core then project/program amendments>
 Semantic notes: <notes.md path>
 Document state: <docs/state.md path>
 Intake ledger: <intake.md path>
@@ -183,8 +222,9 @@ Restart prompt SHA-256: <digest of the literal block below>
 The literal restart prompt names the logical advisor id, program name and
 scope, exact metadata path, and expected session title. It instructs the new
 incarnation to validate the metadata generation and acquire exclusive
-ownership; load the charter stack, notes, document state, intake ledger, and
-available post-watermark transcript; reconcile all fold/document/intake debt;
+ownership; synchronize and fully read the current governance stack; load the
+notes, document state, intake ledger, and available post-watermark transcript;
+reconcile all governance/fold/document/intake debt;
 avoid continuity writes from a retired or fenced generation; and report its
 binding and current transport facts. Binding uncertainty does not suppress a
 useful read-only advisory response: label it, preserve state, and offer the user
@@ -333,18 +373,25 @@ On the first advisor consultation, use this protocol to establish metadata
 before starting the provider session. Its first transaction creates `notes.md`
 with an initial progress assessment and ranked proof requests, using a `none`
 fold watermark if no turn has yet been folded; `docs/state.md` with the initial
-followed set and completed-review state; and `intake.md` with its schema
-header.
+governance receipt, followed set, and completed-review state; and `intake.md`
+with its schema header.
 For a program advisor, the program's `GLOSSARY.md` is the first required
-followed document. Start or resume every advisor turn with this ordered bundle:
+followed document. Start or resume every advisor turn by reading metadata and
+the governance cursor in `docs/state.md` far enough to resolve the current
+source stack. Then load this ordered bundle:
 
-1. `~/agents/advisor/charter.md`;
-2. optional project-wide and program charter amendments;
-3. the resolved `metadata.md`;
-4. the resolved `notes.md`;
-5. the resolved `docs/state.md`;
-6. the resolved `intake.md`; and
-7. the current interaction turn: initial packet or focused follow-up.
+1. every governance source whose exact current bytes are not verifiably
+   resident in the same uncompacted context, including the full stack after an
+   unprotected compaction or resume;
+2. the resolved `metadata.md`;
+3. the resolved `notes.md`;
+4. the resolved `docs/state.md`;
+5. the resolved `intake.md`; and
+6. the current interaction turn: initial packet or focused follow-up.
+
+The preliminary locator read does not count as fully reading a governance
+source. Record the completed governance observation in `docs/state.md` before
+claiming the advisor is current.
 
 On its first response in an incarnation, the advisor states the logical id,
 generation, program name/scope, metadata path, exact session title, harness,
@@ -455,6 +502,15 @@ An operational user mention of “advisor” also invokes it:
   `ask`;
 - discussion of the advisor mechanism, charter, files, or routing is meta-level
   design and does not recursively invoke it.
+
+Neither `ask` nor an automatic pre-decision trigger transfers object-level
+decision ownership. Unless a cited user instruction or governing artifact
+explicitly delegates the decision, the worker owns research direction,
+resource allocation, run launch, priority, acceptance, and execution. Do not
+outsource your decisions. State the worker's proposed choice and rationale,
+then ask for findings and arguments for and against it. Do not ask the advisor
+to choose or rank what the worker should do, or to authorize, permit, deny, or
+veto those actions.
 
 The initial packet normally receives one critical memo and a sign-off. Its
 natural unit is one coherent bundle of results, claims, or decisions that the
@@ -608,10 +664,11 @@ incarnation does not reset the list.
 ## Followed documents
 
 `<advisor-dir>/docs/state.md` is the one authoritative followed-document list
-and last-review ledger for that advisor. Its list contains project-root-relative
-paths or anchored globs, with a reason where inclusion is not obvious. Direct
-paths to canonical project documents are preferred; no symlink farm is
-required.
+and the mechanical governance/research review ledger for that advisor. Its
+followed list contains project-root-relative paths or anchored globs, with a
+reason where inclusion is not obvious. Governance sources occupy their separate
+section. Direct paths to canonical project documents are preferred; no symlink
+farm is required.
 
 A document or symlink placed under `docs/` has no implicit status. If useful,
 list a regular document there or the symlink's resolved target in `state.md`;
@@ -712,13 +769,14 @@ provider process; its contract is a restart-ready logical disposition with no
 incumbent session projection.
 
 The closure receipt states logical id/generation/session, current model/effort
-and evidence, metadata/notes/document/intake paths plus resulting watermarks or
-digests, folded-through turn, remaining debt, consultation state and its end
-timestamp/mtime evidence, and whether the session remains the incumbent. The
-working session verifies the receipt against files and runs the established
-session-id Bash check. Under a fresh-per-consult policy, only after this
-verification does it remove `session.local.md` and the handoff's incumbent
-line; the durable logical bundle remains.
+and evidence, governance-currentness status and manifest digest, metadata/
+notes/document/intake paths plus resulting watermarks or digests,
+folded-through turn, remaining debt, consultation state and its end timestamp/
+mtime evidence, and whether the session remains the incumbent. The working
+session verifies the receipt against files and runs the established session-id
+Bash check. Under a fresh-per-consult policy, only after this verification does
+it remove `session.local.md` and the handoff's incumbent line; the durable
+logical bundle remains.
 
 If the advisor hangs or disappears after interaction, the working session
 first attempts resume and requests the same close. Once provider and active/
@@ -740,8 +798,11 @@ evidence links. Omit inapplicable fields rather than padding them.
 ## Advisor packet: <project>/<thread>/<interaction-id>/<revision>
 
 Mode: tell | ask
-Question: <only for ask, or the decision to review>
-Claim / decision: <one sentence>
+Decision owner: <user, working session, or cited governing artifact>
+Proposed choice and rationale: <worker's position, or omit when no choice is under review>
+Review request: <findings and arguments for/against the claim or proposed choice—not the decision or permission>
+Question: <only for ask>
+Claim: <one sentence, or omit when only a choice is under review>
 Current status: <object session's evidence status and confidence>
 Prior commitments: <predictions or decision criteria recorded before the result>
 Working-document changes: <introduced/renamed/retired paths and roles, or none>
@@ -781,6 +842,13 @@ Return the memo without laundering it into the object session's preferred
 story. Quote or link the advisor memo first; place any object-session rebuttal
 or updated interpretation after it as a separate response.
 
+For every material comment, distinguish a checkable factual or methodological
+claim from advice. State the working session's resulting decision and evidence;
+do not replace that judgment with the advisor's conclusion or confidence. Say
+the advisor found support, opposed the proposed choice, or found evidence
+insufficient—never that it authorized, permitted, denied, or vetoed
+object-level work.
+
 Evaluate every advisor claim under `topics/handoffs.md` § Evaluating advisor
 output, not only claims emitted during handoff repair. Verified facts and
 non-contradictory adjacent context may repair omissions autonomously; material
@@ -799,10 +867,13 @@ with the rebuttal is neither requested nor awaited.
 
 `ask` packets and automatic pre-decision triggers hold the material decision
 until the advisor has answered the current revision or graehl explicitly
-proceeds without it. Reversible prototype work may occur inside the open
-interaction and return as evidence. A `tell` packet is non-blocking, but only
-reversible preparation should outrun an unreturned challenge on the same
-decision.
+proceeds without it. This is only a response-latency hold: the answer neither
+delegates the decision nor creates a requirement for advisor assent. After the
+answer, the worker evaluates it and decides under the authority established by
+the user and governing artifacts. Reversible prototype work may occur inside
+the open interaction and return as evidence. A `tell` packet is non-blocking,
+but only reversible preparation should outrun an unreturned challenge on the
+same decision.
 
 The advisor updates compact notes and archives completed transcripts according
 to its charter. Ordinary interaction traffic remains in its continuous

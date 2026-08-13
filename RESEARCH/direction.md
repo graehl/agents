@@ -51,6 +51,15 @@ plans unless independently verified evidence or a governing artifact changes
 them. Verify alleged factual or methodological errors directly. Ask at most the
 immediate clarification needed to locate or understand a criticism; do not ask
 the advisor to accept a rebuttal or wait for convergence before continuing.
+Do not outsource your decisions. The user or working session retains
+object-level decisions unless a cited user instruction or governing artifact
+explicitly delegates one. State the worker's proposed choice and rationale,
+then ask the advisor for findings and arguments for and against it. Do not ask
+the advisor to choose or rank what the worker should do, or to authorize,
+permit, deny, or veto a run, resource allocation, priority, acceptance
+decision, or plan. After the memo, the worker separates verifiable claims from
+advice and makes its own decision. Report that the advisor supported or
+opposed an action, never that it authorized or denied one.
 Track this calibration in the
 [`frontier-capability-review`](../topics/frontier-capability-review.md)
 register and reassess it at the first instruction-policy review after each
@@ -136,6 +145,16 @@ decision/evidence state satisfying any of these conditions:
 - whenever graehl operationally addresses or refers to the advisor, including
   `tell advisor ...`, `tell the advisor ...`, `ask advisor ...`, and
   `ask the advisor ...`.
+
+Invocation obtains a bounded critical review; it does not delegate the
+decision. Do not outsource your decisions. Unless a cited user instruction or
+governing artifact explicitly says otherwise, the worker owns research
+direction, run and resource choices, priority, acceptance, and execution. A
+packet states the worker's proposed choice and rationale, then asks for
+findings and arguments for and against it. It does not ask the advisor to
+choose or rank what the worker should do, or for permission or a veto. The
+worker evaluates the answer as advisory input rather than reporting that the
+advisor authorized or denied the action.
 
 Working documents and live handoffs are separate classes. Report both through
 the packet fields in `research-advisor.md`; neither notification automatically
