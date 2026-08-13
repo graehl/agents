@@ -6,13 +6,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
+import shlex
 import signal
 import socket
 import stat
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
@@ -26,6 +29,7 @@ EXIT_SUCCESS = 0
 EXIT_PROVIDER_FAILURE = 10
 EXIT_TRANSPORT_FAILURE = 11
 EXIT_UNCERTAIN_DELIVERY = 12
+EXIT_OBSERVER_TIMEOUT = 13
 
 SESSION_OPTIONS = {
     "automaticTitle": False,
@@ -172,7 +176,7 @@ def host_request(descriptor: dict, token: str, request: dict) -> dict | None:
     return response.get("result")
 
 
-def discover_provider_host() -> tuple[dict, str]:
+def discover_provider_host(required_feature: str | None = None) -> tuple[dict, str]:
     descriptor, token = read_provider_host()
     status = host_request(descriptor, token, {"op": "status"})
     if not isinstance(status, dict):
@@ -182,6 +186,20 @@ def discover_provider_host() -> tuple[dict, str]:
     features = status.get("features")
     if not isinstance(features, list) or "session-turn" not in features:
         raise TransportFailure("provider host status omits session-turn")
+    descriptor_features = descriptor.get("features")
+    if required_feature and (
+        not isinstance(descriptor_features, list)
+        or required_feature not in descriptor_features
+        or required_feature not in features
+    ):
+        raise TransportFailure(f"provider host does not advertise {required_feature}")
+    if isinstance(descriptor_features, list):
+        descriptor = {
+            **descriptor,
+            "features": [
+                feature for feature in descriptor_features if feature in features
+            ],
+        }
     return descriptor, token
 
 
@@ -194,6 +212,44 @@ def common_fields(args: argparse.Namespace, submission_id: str, transport: str) 
     }
 
 
+def observer_resume_command(
+    submission_id: str, cursor: int, timeout: float
+) -> list[str]:
+    command = [
+        "session-turn",
+        "await",
+        submission_id,
+        "--after-cursor",
+        str(cursor),
+    ]
+    if timeout > 0:
+        command.extend(["--timeout", str(timeout)])
+    return command
+
+
+def observer_timeout(
+    fields: dict, submission_id: str, cursor: int, timeout: float
+) -> int:
+    command = observer_resume_command(submission_id, cursor, timeout)
+    emit(
+        {
+            "type": "waitExpired",
+            **fields,
+            "outcome": "observer-timeout",
+            "accepted": True,
+            "cursor": cursor,
+            "terminal": False,
+            "resume": {"command": command},
+        }
+    )
+    print(
+        "session-turn: observer deadline expired; the accepted turn remains "
+        f"active or awaiting terminal observation; continue with: {shlex.join(command)}",
+        file=sys.stderr,
+    )
+    return EXIT_OBSERVER_TIMEOUT
+
+
 def hosted_turn(
     args: argparse.Namespace,
     message: str,
@@ -201,12 +257,30 @@ def hosted_turn(
     *,
     announce_transport: bool = True,
     allow_interrupt: bool = True,
+    stop_after_acceptance: bool = False,
 ) -> int:
-    descriptor, token = discover_provider_host()
+    wait_timeout = float(getattr(args, "wait_timeout", 0))
+    required_feature = (
+        "session-turn-await" if stop_after_acceptance or wait_timeout > 0 else None
+    )
+    descriptor, token = discover_provider_host(required_feature)
     fields = common_fields(args, submission_id, "provider-host")
     resume_if_absent = descriptor["hostProtocolVersion"] >= 3
+    resume_recent_runtime = (
+        resume_if_absent
+        and "recent-runtime-recovery" in descriptor.get("features", [])
+        and not args.model
+        and not args.effort
+    )
     if announce_transport:
-        emit({"type": "transport", **fields, "resumeIfAbsent": resume_if_absent})
+        emit(
+            {
+                "type": "transport",
+                **fields,
+                "resumeIfAbsent": resume_if_absent,
+                "resumeRecentRuntime": resume_recent_runtime,
+            }
+        )
     request_id = str(uuid.uuid4())
     launch_options = {
         key: value for key in ("model", "effort") if (value := getattr(args, key))
@@ -225,6 +299,7 @@ def hosted_turn(
         "message": {"text": message},
         "sessionOptions": SESSION_OPTIONS,
         "timeoutMs": int(args.timeout * 1000),
+        **({"resumeRecentRuntime": True} if resume_recent_runtime else {}),
     }
     if resume_if_absent:
         request["launch"] = {
@@ -238,10 +313,22 @@ def hosted_turn(
         raise NativeFallback("turn cannot fit the provider-host request bound")
     client = open_host_socket(descriptor)
     accepted = False
+    cursor = 0
+    stream = None
     try:
         client.settimeout(None)
         client.sendall(wire_request)
-        for line in client.makefile():
+        stream = client.makefile()
+        wait_deadline = None
+        while True:
+            if wait_deadline is not None:
+                remaining = wait_deadline - time.monotonic()
+                if remaining <= 0:
+                    return observer_timeout(fields, submission_id, cursor, wait_timeout)
+                client.settimeout(remaining)
+            line = stream.readline()
+            if not line:
+                break
             try:
                 record = json.loads(line)
             except ValueError as exc:
@@ -250,6 +337,8 @@ def hosted_turn(
                 raise TransportFailure("provider host record is not a JSON object")
             if record.get("id") != request_id:
                 raise TransportFailure("provider host stream id does not match")
+            if isinstance(record.get("cursor"), int):
+                cursor = record["cursor"]
             record = {**record, **fields}
             if record.get("type") == "accepted" and not isinstance(
                 record.get("sessionOptionsResult"), dict
@@ -271,12 +360,27 @@ def hosted_turn(
             emit(record)
             if record.get("type") == "accepted":
                 accepted = True
+                if stop_after_acceptance:
+                    return EXIT_SUCCESS
+                if wait_timeout > 0:
+                    wait_deadline = time.monotonic() + wait_timeout
             if record.get("type") == "terminal":
                 return terminal_exit(record.get("outcome"))
             if record.get("type") == "error":
                 if accepted or record.get("accepted"):
                     return EXIT_UNCERTAIN_DELIVERY
                 raise NativeFallback(record.get("error", "host rejected the turn"))
+    except TimeoutError:
+        if accepted and wait_timeout > 0:
+            return observer_timeout(fields, submission_id, cursor, wait_timeout)
+        return reconcile_host_submission(
+            descriptor,
+            token,
+            fields,
+            submission_id,
+            accepted,
+            "provider host stream timed out before acceptance",
+        )
     except KeyboardInterrupt:
         client.close()
         if not allow_interrupt:
@@ -362,6 +466,8 @@ def hosted_turn(
             str(exc),
         )
     finally:
+        if stream is not None:
+            stream.close()
         client.close()
     return reconcile_host_submission(
         descriptor,
@@ -491,6 +597,108 @@ def receipt_status(submission_id: str) -> int:
     if status.get("state") == "terminal":
         return terminal_exit(status.get("outcome"))
     return EXIT_UNCERTAIN_DELIVERY
+
+
+def await_submission(args: argparse.Namespace) -> int:
+    submission_id = args.submission_id
+    fields = {
+        "transport": "provider-host",
+        "submissionId": submission_id,
+    }
+    try:
+        descriptor, token = discover_provider_host("session-turn-await")
+        request_id = str(uuid.uuid4())
+        request = {
+            "id": request_id,
+            "token": token,
+            "protocolVersion": descriptor["hostProtocolVersion"],
+            "op": "awaitSessionTurn",
+            "submissionId": submission_id,
+            "afterCursor": args.after_cursor,
+        }
+        emit(
+            {
+                "type": "transport",
+                **fields,
+                "afterCursor": args.after_cursor,
+            }
+        )
+        client = open_host_socket(descriptor)
+    except TransportFailure as exc:
+        emit(
+            {
+                "type": "error",
+                **fields,
+                "outcome": "transport-failed-before-acceptance",
+                "accepted": False,
+                "error": str(exc),
+            }
+        )
+        return EXIT_TRANSPORT_FAILURE
+
+    cursor = args.after_cursor
+    deadline = time.monotonic() + args.timeout if args.timeout > 0 else None
+    stream = None
+    try:
+        client.settimeout(None)
+        client.sendall((json.dumps(request) + "\n").encode())
+        stream = client.makefile()
+        while True:
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return observer_timeout(fields, submission_id, cursor, args.timeout)
+                client.settimeout(remaining)
+            line = stream.readline()
+            if not line:
+                break
+            try:
+                record = json.loads(line)
+            except ValueError as exc:
+                raise TransportFailure(
+                    "provider host streamed invalid await JSON"
+                ) from exc
+            if not isinstance(record, dict):
+                raise TransportFailure(
+                    "provider host await record is not a JSON object"
+                )
+            if record.get("id") != request_id:
+                raise TransportFailure("provider host await stream id does not match")
+            if isinstance(record.get("cursor"), int):
+                cursor = record["cursor"]
+            record = {**record, **fields}
+            emit(record)
+            if record.get("type") == "terminal":
+                return terminal_exit(record.get("outcome"))
+            if record.get("type") == "error":
+                return (
+                    EXIT_UNCERTAIN_DELIVERY
+                    if record.get("accepted")
+                    else EXIT_TRANSPORT_FAILURE
+                )
+    except TimeoutError:
+        return observer_timeout(fields, submission_id, cursor, args.timeout)
+    except (OSError, TransportFailure) as exc:
+        return reconcile_host_submission(
+            descriptor,
+            token,
+            fields,
+            submission_id,
+            True,
+            f"await stream failed: {exc}",
+        )
+    finally:
+        if stream is not None:
+            stream.close()
+        client.close()
+    return reconcile_host_submission(
+        descriptor,
+        token,
+        fields,
+        submission_id,
+        True,
+        "provider host await stream ended before terminal",
+    )
 
 
 def terminal_exit(outcome: str | None) -> int:
@@ -719,12 +927,13 @@ def read_turn() -> str:
     return value
 
 
-def turn_parser() -> argparse.ArgumentParser:
+def turn_parser(*, include_wait_timeout: bool = True) -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
         description="Send one turn to a durable provider session and stream JSONL.",
         epilog=(
             "exit codes: 0 success; 10 provider failure; 11 transport failure "
-            "before acceptance; 12 uncertain delivery after acceptance\n"
+            "before acceptance; 12 uncertain delivery after acceptance; "
+            "13 observer deadline expired while the accepted turn continues\n"
             "receipt lookup: session-turn receipt <submission-id>\n"
             "provider limits: host dispatch keeps an incumbent configuration; "
             "protocol 3 atomically resumes an absent worker before acceptance; "
@@ -746,7 +955,52 @@ def turn_parser() -> argparse.ArgumentParser:
     result.add_argument("--cwd", default=os.getcwd())
     result.add_argument("--model", help="absent-session model override")
     result.add_argument("--effort", help="absent-session effort override")
-    result.add_argument("--timeout", type=float, default=30 * 60)
+    result.add_argument(
+        "--timeout",
+        type=float,
+        default=30 * 60,
+        help="provider-turn deadline in seconds (default: 1800)",
+    )
+    if include_wait_timeout:
+        result.add_argument(
+            "--wait-timeout",
+            type=float,
+            default=0,
+            help=(
+                "observer deadline after host acceptance; 0 waits through terminal "
+                "(hosted turns only)"
+            ),
+        )
+    return result
+
+
+def send_parser() -> argparse.ArgumentParser:
+    result = turn_parser(include_wait_timeout=False)
+    result.prog = "session-turn send"
+    result.description = (
+        "Send one hosted provider turn and detach after durable acceptance."
+    )
+    return result
+
+
+def await_parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(
+        prog="session-turn await",
+        description="Replay and follow one accepted provider-host submission.",
+        epilog=(
+            "exit code 13 means the observer deadline expired without "
+            "interrupting the provider turn\nacli: 1"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    result.add_argument("submission_id")
+    result.add_argument("--after-cursor", type=int, default=0)
+    result.add_argument(
+        "--timeout",
+        type=float,
+        default=0,
+        help="observer deadline in seconds; 0 waits through terminal",
+    )
     return result
 
 
@@ -764,15 +1018,52 @@ def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1] == "receipt":
         args = receipt_parser().parse_args(sys.argv[2:])
         return receipt_status(args.submission_id)
-    argument_parser = turn_parser()
-    args = argument_parser.parse_args()
-    if not 1 <= args.timeout <= 2 * 60 * 60:
+    if len(sys.argv) > 1 and sys.argv[1] == "await":
+        argument_parser = await_parser()
+        args = argument_parser.parse_args(sys.argv[2:])
+        if args.after_cursor < 0:
+            argument_parser.error("--after-cursor must be non-negative")
+        if not math.isfinite(args.timeout) or args.timeout < 0:
+            argument_parser.error("--timeout must be non-negative")
+        return await_submission(args)
+    send_only = len(sys.argv) > 1 and sys.argv[1] == "send"
+    parser_args = sys.argv[2:] if send_only else None
+    argument_parser = send_parser() if send_only else turn_parser()
+    args = argument_parser.parse_args(parser_args)
+    if not math.isfinite(args.timeout) or not 1 <= args.timeout <= 2 * 60 * 60:
         argument_parser.error("--timeout must be between 1 and 7200 seconds")
+    if (
+        not math.isfinite(getattr(args, "wait_timeout", 0))
+        or getattr(args, "wait_timeout", 0) < 0
+    ):
+        argument_parser.error("--wait-timeout must be non-negative")
     message = read_turn()
     submission_id = args.submission_id or str(uuid.uuid4())
     try:
-        return hosted_turn(args, message, submission_id)
+        return hosted_turn(
+            args,
+            message,
+            submission_id,
+            stop_after_acceptance=send_only,
+        )
     except (NativeFallback, TransportFailure) as exc:
+        if send_only or args.wait_timeout > 0:
+            fields = common_fields(args, submission_id, "provider-host")
+            print(
+                "session-turn: provider host did not accept a detach-capable "
+                f"turn: {exc}",
+                file=sys.stderr,
+            )
+            emit(
+                {
+                    "type": "error",
+                    **fields,
+                    "outcome": "transport-failed-before-acceptance",
+                    "accepted": False,
+                    "error": str(exc),
+                }
+            )
+            return EXIT_TRANSPORT_FAILURE
         return native_turn(args, message, submission_id, str(exc))
 
 

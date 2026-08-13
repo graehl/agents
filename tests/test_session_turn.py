@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import traceback
 from pathlib import Path
 
@@ -23,7 +24,7 @@ def _assert(condition, message="assertion failed"):
 
 
 class FakeProviderHost:
-    def __init__(self, responses, host_protocol_version=2):
+    def __init__(self, responses, host_protocol_version=2, features=None):
         self.runtime = Path(tempfile.mkdtemp(prefix="session-turn-host-"))
         self.runtime.chmod(0o700)
         self.socket_path = self.runtime / "control.sock"
@@ -36,11 +37,12 @@ class FakeProviderHost:
         self.server.bind(str(self.socket_path))
         self.socket_path.chmod(0o600)
         self.server.listen()
+        self.features = features or ["runtime-control", "session-turn"]
         descriptor = {
             "descriptorVersion": 1,
             "descriptorId": "test-host",
             "hostProtocolVersion": host_protocol_version,
-            "features": ["runtime-control", "session-turn"],
+            "features": self.features,
             "controlSocketPath": str(self.socket_path),
             "tokenFilePath": str(self.token_path),
             "owner": {"pid": os.getpid(), "startTime": "test"},
@@ -275,6 +277,292 @@ def test_protocol_v3_atomically_resumes_an_absent_provider_runtime():
     _assert(records[0]["transport"] == "provider-host", records)
     _assert(records[0]["resumeIfAbsent"] is True, records[0])
     _assert(host.requests[1]["target"]["yaSessionId"] == "ya-session-1")
+
+
+def test_protocol_v3_prefers_a_recent_exact_recipe_with_launch_fallback():
+    features = [
+        "runtime-control",
+        "session-turn",
+        "recent-runtime-recovery",
+    ]
+
+    def status(request):
+        return [
+            {
+                "id": request["id"],
+                "ok": True,
+                "result": {"protocolVersion": 3, "features": features},
+            }
+        ]
+
+    def completed(request):
+        _assert(request["resumeRecentRuntime"] is True, request)
+        _assert(request["launch"]["providerName"] == "codex", request)
+        return [
+            {
+                "id": request["id"],
+                "type": "accepted",
+                "submissionId": request["submissionId"],
+                "runtimeId": "recent-runtime",
+                "cursor": 1,
+            },
+            {
+                "id": request["id"],
+                "type": "terminal",
+                "submissionId": request["submissionId"],
+                "outcome": "completed",
+                "cursor": 2,
+            },
+        ]
+
+    host = FakeProviderHost(
+        [status, completed],
+        host_protocol_version=3,
+        features=features,
+    )
+    proc = _run(host, "codex", "codex-session-1")
+
+    _assert(proc.returncode == 0, proc.stderr)
+    _assert(_records(proc)[0]["resumeRecentRuntime"] is True, _records(proc))
+
+
+def test_send_detaches_after_acceptance_and_await_resumes_from_cursor():
+    submission_id = "detached-submission"
+    features = ["runtime-control", "session-turn", "session-turn-await"]
+
+    def status(request):
+        return [
+            {
+                "id": request["id"],
+                "ok": True,
+                "result": {"protocolVersion": 3, "features": features},
+            }
+        ]
+
+    def accepted(request):
+        _assert(request["op"] == "sessionTurn", request)
+        return [
+            {
+                "id": request["id"],
+                "type": "accepted",
+                "submissionId": request["submissionId"],
+                "runtimeId": "runtime-1",
+                "cursor": 1,
+            }
+        ]
+
+    def resumed(request):
+        _assert(request["op"] == "awaitSessionTurn", request)
+        _assert(request["submissionId"] == submission_id, request)
+        _assert(request["afterCursor"] == 1, request)
+        return [
+            {
+                "id": request["id"],
+                "type": "providerEvent",
+                "submissionId": submission_id,
+                "cursor": 2,
+                "sequence": 1,
+                "message": {"type": "assistant", "content": "Done"},
+            },
+            {
+                "id": request["id"],
+                "type": "terminal",
+                "submissionId": submission_id,
+                "cursor": 3,
+                "outcome": "completed",
+                "receipt": {"lastProviderEventSequence": 1},
+            },
+        ]
+
+    host = FakeProviderHost(
+        [status, accepted, status, resumed],
+        host_protocol_version=3,
+        features=features,
+    )
+    sent = _run(
+        host,
+        "send",
+        "codex",
+        "codex-session-1",
+        "--submission-id",
+        submission_id,
+    )
+    _assert(sent.returncode == 0, sent.stderr)
+    _assert(_records(sent)[-1]["type"] == "accepted", _records(sent))
+    _assert(_records(sent)[-1]["cursor"] == 1, _records(sent))
+
+    awaited = _run(
+        host,
+        "await",
+        submission_id,
+        "--after-cursor",
+        "1",
+        "--timeout",
+        "1",
+        stdin="",
+    )
+    _assert(awaited.returncode == 0, awaited.stderr)
+    _assert(
+        [record["type"] for record in _records(awaited)]
+        == ["transport", "providerEvent", "terminal"],
+        _records(awaited),
+    )
+    _assert(_records(awaited)[-1]["cursor"] == 3, _records(awaited))
+
+
+def test_blocking_wait_timeout_streams_partial_output_and_prints_resume_hint():
+    submission_id = "wait-timeout-submission"
+    features = ["runtime-control", "session-turn", "session-turn-await"]
+
+    def status(request):
+        return [
+            {
+                "id": request["id"],
+                "ok": True,
+                "result": {"protocolVersion": 3, "features": features},
+            }
+        ]
+
+    def slow_turn(request):
+        yield {
+            "id": request["id"],
+            "type": "accepted",
+            "submissionId": submission_id,
+            "runtimeId": "runtime-1",
+            "cursor": 1,
+        }
+        yield {
+            "id": request["id"],
+            "type": "providerEvent",
+            "submissionId": submission_id,
+            "cursor": 2,
+            "sequence": 1,
+            "message": {"type": "assistant", "content": "partial"},
+        }
+        time.sleep(0.2)
+        yield {
+            "id": request["id"],
+            "type": "terminal",
+            "submissionId": submission_id,
+            "cursor": 3,
+            "outcome": "completed",
+        }
+
+    host = FakeProviderHost(
+        [status, slow_turn],
+        host_protocol_version=3,
+        features=features,
+    )
+    proc = _run(
+        host,
+        "codex",
+        "codex-session-1",
+        "--submission-id",
+        submission_id,
+        "--wait-timeout",
+        "0.05",
+    )
+
+    _assert(proc.returncode == 13, proc.stderr)
+    records = _records(proc)
+    _assert(
+        [record["type"] for record in records]
+        == ["transport", "accepted", "providerEvent", "waitExpired"],
+        records,
+    )
+    _assert(records[-1]["cursor"] == 2, records[-1])
+    _assert(records[-1]["accepted"] is True, records[-1])
+    _assert("session-turn await wait-timeout-submission" in proc.stderr, proc.stderr)
+    _assert("--after-cursor 2" in proc.stderr, proc.stderr)
+
+
+def test_await_timeout_streams_new_records_and_prints_next_cursor():
+    submission_id = "await-timeout-submission"
+    features = ["runtime-control", "session-turn", "session-turn-await"]
+
+    def status(request):
+        return [
+            {
+                "id": request["id"],
+                "ok": True,
+                "result": {"protocolVersion": 3, "features": features},
+            }
+        ]
+
+    def slow_await(request):
+        _assert(request["op"] == "awaitSessionTurn", request)
+        _assert(request["afterCursor"] == 1, request)
+        yield {
+            "id": request["id"],
+            "type": "providerEvent",
+            "submissionId": submission_id,
+            "cursor": 2,
+            "sequence": 1,
+            "message": {"type": "assistant", "content": "new partial output"},
+        }
+        time.sleep(0.2)
+        yield {
+            "id": request["id"],
+            "type": "terminal",
+            "submissionId": submission_id,
+            "cursor": 3,
+            "outcome": "completed",
+        }
+
+    host = FakeProviderHost(
+        [status, slow_await],
+        host_protocol_version=3,
+        features=features,
+    )
+    proc = _run(
+        host,
+        "await",
+        submission_id,
+        "--after-cursor",
+        "1",
+        "--timeout",
+        "0.05",
+        stdin="",
+    )
+
+    _assert(proc.returncode == 13, proc.stderr)
+    records = _records(proc)
+    _assert(
+        [record["type"] for record in records]
+        == ["transport", "providerEvent", "waitExpired"],
+        records,
+    )
+    _assert(records[-1]["cursor"] == 2, records[-1])
+    _assert("session-turn await await-timeout-submission" in proc.stderr, proc.stderr)
+    _assert("--after-cursor 2" in proc.stderr, proc.stderr)
+
+
+def test_blocking_wait_timeout_never_detaches_a_native_fallback():
+    host = FakeProviderHost([])
+    (host.runtime / "host.json").unlink()
+    fake_bin = Path(tempfile.mkdtemp(prefix="session-turn-no-native-detach-"))
+    marker = fake_bin / "native-was-run"
+    executable = fake_bin / "codex"
+    executable.write_text(
+        '#!/bin/sh\nprintf invoked > "$FAKE_NATIVE_MARKER"\nexit 99\n'
+    )
+    executable.chmod(0o755)
+
+    proc = _run(
+        host,
+        "codex",
+        "provider-session-1",
+        "--wait-timeout",
+        "0.05",
+        extra_env={
+            "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+            "FAKE_NATIVE_MARKER": str(marker),
+        },
+    )
+
+    _assert(proc.returncode == 11, proc.stderr)
+    _assert(not marker.exists(), "finite observer waits must stay host-owned")
+    _assert(_records(proc)[-1]["accepted"] is False, _records(proc))
 
 
 def test_host_rejection_before_acceptance_falls_back_to_native_codex():

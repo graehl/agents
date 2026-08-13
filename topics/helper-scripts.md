@@ -190,16 +190,29 @@ Sends one user turn to a durable provider session and streams one compact JSON
 record per lifecycle event. This is a generic cross-session transport; it does
 not select a research advisor or impose an advisor protocol.
 
-**CLI**: `session-turn <claude|codex> <provider-session-id>
-[--ya-session-id <id>] [--submission-id <id>] [--cwd <path>]
-[--model <name>] [--effort <level>] [--timeout <seconds>]`; receipt lookup is
-`session-turn receipt <submission-id>`. The turn body is stdin. `--timeout`
-defaults to 30 minutes, accepts 1 second through 2 hours, and bounds a hosted
-turn; a native provider CLI owns its own duration. `--cwd`, `--model`, and
-`--effort` apply when protocol 3 resumes an absent worker and when native
-resume is required. An incumbent provider-host worker retains its owning
-project and configuration. stdout is compact JSONL and flushes after every
-record; warnings and native provider diagnostics go to stderr.
+**CLI**:
+
+- `session-turn <claude|codex> <provider-session-id> [options]` sends and
+  normally waits through terminal;
+- `session-turn send <claude|codex> <provider-session-id> [options]` detaches
+  after durable host acceptance;
+- `session-turn await <submission-id> [--after-cursor <n>] [--timeout
+  <seconds>]` replays and follows that accepted submission; and
+- `session-turn receipt <submission-id>` performs a point-in-time receipt
+  lookup.
+
+Turn options are `[--ya-session-id <id>] [--submission-id <id>] [--cwd
+<path>] [--model <name>] [--effort <level>] [--timeout <seconds>]`; the
+combined form additionally accepts `[--wait-timeout <seconds>]`. The turn body
+is stdin. Turn `--timeout` defaults to 30 minutes, accepts 1 second through 2
+hours, and bounds provider work; a native provider CLI owns its own duration.
+Combined `--wait-timeout` begins after host acceptance, defaults to zero (wait
+through terminal), and bounds only observation. Await `--timeout` has the same
+observer meaning and zero means unbounded. `--cwd`, `--model`, and `--effort`
+apply when protocol 3 resumes an absent worker and when native resume is
+required. An incumbent provider-host worker retains its owning project and
+configuration. stdout is compact JSONL and flushes after every record;
+warnings, continuation commands, and native provider diagnostics go to stderr.
 
 **Transport selection**:
 
@@ -212,26 +225,52 @@ record; warnings and native provider diagnostics go to stderr.
    target, resumes an auxiliary worker, verifies its durable provider id, and
    only then offers the message for acceptance. A supplied YA session id is an
    additional ownership cross-check. Hono may claim the reserved worker but is
-   not in this transaction's delivery path.
+   not in this transaction's delivery path. When the host advertises
+   `recent-runtime-recovery` and no model/effort override was supplied, the
+   request also prefers an exact recipe consumed from the predecessor's recent
+   orderly shutdown; its caller-generated `launch` remains the atomic fallback
+   when no eligible recipe exists.
 3. If protocol 2 has no incumbent, or no compatible usable host accepts the
    turn, invoke the harness's native resume command. Never use YA HTTP. The
    stderr warning names the rejected host path, target, reason, and native
    fallback. `forkRisk:"concurrent-native-resume"` records that another writer
    can produce a different-parent branch.
 
+Detached `send` and finite combined observation require a host advertising
+`session-turn-await`; they never start a helper-owned native process that would
+be orphaned on detach. If the host is absent, incompatible, or rejects before
+acceptance, they emit the blocking cause and exit 11. The default unbounded
+combined form retains native fallback.
+
 The stable wrapper records are `transport`, `accepted`, `providerEvent`,
-`interruptRequested`, and terminal `terminal` or `error`. Every record names
-the selected `transport`, `harness`, durable `providerSessionId`, and
-`submissionId`. Host-normalized provider events retain their `message`; native
-JSONL records live under `providerRecord`. Terminal records carry the host
-receipt or a native `native-record:<count>` watermark. `transport` records
-report `resumeIfAbsent`; a caller has not received the result until it reads a
-terminal `terminal` or `error` record. A shell or tool yielding partial JSONL
-while the helper remains running is not completion.
+`interruptRequested`, `waitExpired`, and terminal `terminal` or `error`. Turn
+records name the selected `transport`, `harness`, durable `providerSessionId`,
+and `submissionId`; await records necessarily identify transport and
+submission. Host records include a cursor equal to the retained record count
+through that record. Host-normalized provider events retain their `message`;
+native JSONL records live under `providerRecord`. Terminal records carry the
+host receipt or a native `native-record:<count>` watermark. `transport`
+records report `resumeIfAbsent` and `resumeRecentRuntime` where applicable. A
+caller has not received the result until it reads a terminal `terminal` or
+`error` record. A shell or tool yielding partial JSONL while the helper remains
+running is not completion.
+
+One send creates exactly one logical provider turn with one terminal boundary,
+although any number of provider events, tool cycles, status records, or
+compaction boundaries may precede it. `await` addresses that submission, never
+all activity on a session. Omitting `--after-cursor` replays from record zero;
+supplying the last observed cursor drains only later records. After the host
+has pruned the in-memory stream or restarted, await can return its durable
+terminal receipt but cannot recreate discarded provider events.
 
 **Exit codes**: 0 completed; 10 provider failed or the submitted turn was
 interrupted; 11 transport failed before acceptance; 12 delivery is uncertain
-after acceptance; 2 argparse usage.
+after acceptance; 13 the observer deadline expired while the accepted turn
+remains active or available for later observation; 2 argparse usage. Exit 13
+emits a nonterminal `waitExpired` record with the latest cursor and prints the
+exact `session-turn await ... --after-cursor ...` continuation command to
+stderr. It does not interrupt, cancel, or resubmit the provider turn. The
+session can remain busy until that already accepted turn reaches terminal.
 
 **Post-conditions**:
 
@@ -245,6 +284,10 @@ after acceptance; 2 argparse usage.
   lookup and native fallback. A host error explicitly marked unaccepted, or a
   post-disconnect `sessionTurnStatus` result proving no receipt, permits native
   fallback. Any accepted or uncheckable delivery blocks fallback and exits 12.
+- `send` stays connected through `accepted`, then closes only its listener.
+  `await` uses `awaitSessionTurn` with an explicit or zero cursor and follows
+  only that receipt-keyed submission. Neither observer disconnect nor exit 13
+  cancels host-owned work.
 - Ctrl-C requests `interruptSessionTurn` for a hosted submission. On native
   fallback it signals only the helper-created process group, with bounded
   escalation; neither path kills an unrelated incumbent session.
@@ -281,6 +324,14 @@ after acceptance; 2 argparse usage.
    checks `sessionTurnStatus`; if no terminal receipt is reachable it emits
    `uncertain-after-acceptance`, includes the exact `session-turn receipt`
    command, and exits 12.
+5. `session-turn send codex <provider-id> --submission-id S` emits acceptance
+   and returns. `session-turn await S --after-cursor 1 --timeout 30` drains
+   later records. If that observer deadline expires, exit 13 and stderr provide
+   the next cursor-bearing await command while the original turn continues.
+6. After an orderly host restart, a feature-capable combined/send request with
+   no explicit model/effort asks the host to prefer the predecessor's exact
+   launch recipe. The same request carries its ordinary launch recipe as an
+   atomic fallback; no failed lookup or Hono round trip comes first.
 
 **Canonical source**: `scripts/session-turn` (in this repo).
 **Install target**: `~/bin/session-turn` (symlink by default).
