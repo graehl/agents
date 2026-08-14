@@ -505,3 +505,62 @@ papers:
     source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
     fetched: 2026-08-14
     cluster: H
+
+  - key: steinberger2011-jrc-names
+    short: entity-surface-resources
+    concept_page: concepts/entity-surface-resources.md
+    title: "JRC-NAMES: A Freely Available, Highly Multilingual Named Entity Resource"
+    authors: ["Ralf Steinberger", "Bruno Pouliquen", "Mijail Kabadjov", "Jenya Belyaeva", "Erik van der Goot"]
+    venue: "RANLP"
+    year: 2011
+    url: "https://aclanthology.org/R11-1015.pdf"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and current JRC catalogue checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: I
+
+  - key: tedeschi2022-multinerd
+    short: entity-surface-resources
+    concept_page: concepts/entity-surface-resources.md
+    title: "MultiNERD: A Multilingual, Multi-Genre and Fine-Grained Dataset for Named Entity Recognition (and Disambiguation)"
+    authors: ["Simone Tedeschi", "Roberto Navigli"]
+    venue: "Findings of NAACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.findings-naacl.60.pdf"
+    doi: "10.18653/v1/2022.findings-naacl.60"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and dataset repository checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: I
+
+  - key: fetahu2023-multiconer-v2
+    short: entity-surface-resources
+    concept_page: concepts/entity-surface-resources.md
+    title: "MultiCoNER v2: a Large Multilingual dataset for Fine-grained and Noisy Named Entity Recognition"
+    authors: ["Besnik Fetahu", "Zhiyu Chen", "Sudipta Kar", "Oleg Rokhlenko", "Shervin Malmasi"]
+    venue: "Findings of EMNLP"
+    year: 2023
+    url: "https://aclanthology.org/2023.findings-emnlp.134.pdf"
+    doi: "10.18653/v1/2023.findings-emnlp.134"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and AWS Open Data registry checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: I
+
+  - key: mayhew2024-uner
+    short: entity-surface-resources
+    concept_page: concepts/entity-surface-resources.md
+    title: "Universal NER: A Gold-Standard Multilingual Named Entity Recognition Benchmark"
+    authors: ["Stephen Mayhew", "Terra Blevins", "Shuheng Liu", "Marek Šuppa", "Hila Gonen", "Joseph Marvin Imperial", "Börje F. Karlsson", "Peiqin Lin", "Nikola Ljubešić", "LJ Miranda", "Barbara Plank", "Arij Riabi", "Yuval Pinter"]
+    venue: "NAACL"
+    year: 2024
+    url: "https://aclanthology.org/2024.naacl-long.243.pdf"
+    doi: "10.18653/v1/2024.naacl-long.243"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: I

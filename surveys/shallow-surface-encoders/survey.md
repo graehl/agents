@@ -6,8 +6,8 @@
 
 ## Grounding and coverage
 
-- **Grounding mode: `grounded`.** Thirty-three primary papers were fetched and read;
-  sixteen concept pages distill them below. Effectiveness claims are
+- **Grounding mode: `grounded`.** Thirty-seven primary papers were fetched and read;
+  seventeen concept pages distill them below. Effectiveness claims are
   `single-source` unless a row explicitly says otherwise.
 - **Coverage cutoff: 2026-08-14.** Search scope: ACL Anthology, arXiv,
   OpenReview, and OpenAlex forward citations; queries covered character-aware
@@ -16,7 +16,8 @@
   Unicode character encodings, exchangeability, distributional character
   embeddings, Brown/PPMI character clustering, raw-byte versus codepoint
   modeling, byte-subword and morphology-driven compression, and fixed or
-  learned entropy-coded text views.
+  learned entropy-coded text views, multilingual named-entity corpora,
+  gazetteers, and locale/identifier registries for authentic entity surfaces.
 - **Anchor set:** CharacterBERT, CANINE, Cao's controlled character-encoder
   comparison, SCRIPT, and Tsai's exchangeability classes. Forward citations
   were sorted by both recency and citation count; direct recent-paper searches
@@ -49,6 +50,7 @@ the regenerable manifest is
 | F | [byte state-space model](concepts/byte-ssm.md) | MambaByte | fixed-state causal byte modeling is efficient, but supplies no encoder-NER evidence |
 | G | [character projections](concepts/character-projections.md) | SCRIPT; Tsai; Boldsen; Mayer; Kashioka; Liu | structural Unicode addresses and distributional substitutability classes solve different problems; no fixed Unicode-wide substitute map was located |
 | H | [byte/codepoint compute](concepts/byte-codepoint-compute.md) | Gillick; Costa-jussà; Cherry; Wang; Khan; Shaham; ByT5; Libovický; Wolleb; MYTE; Zheng | bytes buy fixed-alphabet coverage and noise tolerance but lengthen non-Latin paths; full-codepoint composition and reversible compression are the supported remedies |
+| I | [entity-surface resources](concepts/entity-surface-resources.md) | JRC-NAMES; MultiNERD; MultiCoNER v2; UNER | authentic carriers, structured seeds, and locale validators are complementary; none supplies representative PII surfaces across the target languages |
 
 ## Map: what each family buys
 
@@ -179,6 +181,25 @@ views are unstable and weak. For fixed-compute comparisons, measure actual
 bytes per codepoint by language, match effective codepoint receptive field, and
 report measured throughput as well as quality.
 
+### I. Entity-surface data must preserve source role `[G]`
+
+JRC-NAMES and Wikidata provide multilingual person/organization aliases;
+GeoNames provides language-tagged place-name variants; CLDR, libphonenumber,
+and the SWIFT IBAN registry provide locale or region validity constraints.
+These are seeds and validators, not contextual span supervision. MultiNERD,
+MultiCoNER v2, and UNER provide authentic or corpus-derived carriers, but their
+language sets, annotation construction, entity types, and licenses differ.
+MultiNERD is noncommercial, MultiCoNER's paper and AWS registry disagree on
+ShareAlike, and UNER covers only person/organization/location under CC BY-SA.
+
+The resulting acquisition contract is layered: human gold, mapped authentic
+NER carriers, structured seeds, high-precision mining from authentic text, and
+locale-audited synthetic data remain separately attributable. A source-blind
+human audit samples both occurrence-weighted exposure and distinct surfaces.
+The proposed fifteen-language extension owes the same acquisition and fluent-
+review pass as the incumbent twenty; incidental corpus overlap does not close
+that debt. See the digest for the exact language matrix and admission fields.
+
 ## Recommended pilot for multilingual PII
 
 The first experiment should answer one question: **does cheap surface/local
@@ -263,6 +284,11 @@ inputs; only the sidecar and residual scale need train during this pilot.
   gzip-like codes may save storage while lengthening dependency paths or making
   nearby strings discontinuous; structured token/neural proxies transfer more
   reliably only in much larger causal models.
+- **Named-entity coverage is not PII-surface coverage.** The located multilingual
+  corpora concentrate on person, organization, location, and public entities;
+  dates, phones, addresses, and identifiers still require locale standards,
+  authentic mining, and direct review. License and translated/silver provenance
+  also prevent treating raw corpus overlap as production-ready supervision.
 
 ## Baseline sensitivity and prior-art boundary
 
