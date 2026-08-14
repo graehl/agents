@@ -2501,6 +2501,49 @@ def test_tracked_run_rejects_dirty_tracked_source():
         ws.cleanup()
 
 
+def test_tracked_run_allows_dirty_aim_bookkeeping():
+    ws = Workspace()
+    try:
+        manifest = ws.tmp / "runs/aim/prior/manifest.jsonl"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text('{"ref": "prior"}\n', encoding="utf-8")
+        ws.commit(manifest)
+        with manifest.open("a", encoding="utf-8") as handle:
+            handle.write('{"ref": "failed-audit"}\n')
+
+        _start(ws, "--experiment", "prior", "after-audit", "--", "true")
+        state = ws.wait_finished("after-audit")
+        _assert(state["returncode"] == 0, state)
+        visible = subprocess.check_output(
+            ["git", "status", "--short", "--", "runs/aim"],
+            cwd=ws.tmp,
+            text=True,
+        )
+        _assert("runs/aim/prior/manifest.jsonl" in visible, visible)
+    finally:
+        ws.cleanup()
+
+
+def test_tracked_run_rejects_source_moved_into_aim_bookkeeping():
+    ws = Workspace()
+    try:
+        source = ws.tmp / "tracked-source.txt"
+        source.write_text("source\n", encoding="utf-8")
+        ws.commit(source)
+        destination = ws.tmp / "runs/aim/prior/tracked-source.txt"
+        destination.parent.mkdir(parents=True)
+        source.rename(destination)
+
+        rejected = ws.run("start", "moved-source", "--", "true")
+        _assert(rejected.returncode != 0, rejected)
+        _assert(
+            "tracked/index changes must be committed" in rejected.stderr,
+            rejected.stderr,
+        )
+    finally:
+        ws.cleanup()
+
+
 def test_tracked_run_rejects_untracked_python_source():
     ws = Workspace()
     try:
@@ -2626,6 +2669,40 @@ def test_queued_run_revalidates_source_before_payload():
         _assert(not output.exists(), f"payload ran despite source drift: {output}")
         log = Path(state["log_path"]).read_text(encoding="utf-8")
         _assert("reproducibility guard failed before payload launch" in log, log)
+    finally:
+        ws.cleanup()
+
+
+def test_queued_run_allows_aim_bookkeeping_changes_before_payload():
+    ws = Workspace()
+    try:
+        manifest = ws.tmp / "runs/aim/prior/manifest.jsonl"
+        manifest.parent.mkdir(parents=True)
+        manifest.write_text('{"ref": "prior"}\n', encoding="utf-8")
+        ws.commit(manifest)
+        output = ws.scratch / "ran.txt"
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.5")
+        _start(
+            ws,
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "guarded-aim",
+            "--",
+            "bash",
+            "-c",
+            f"echo ran > {output}",
+        )
+        _wait_status(ws, "guarded-aim", "waiting")
+        with manifest.open("a", encoding="utf-8") as handle:
+            handle.write('{"ref": "failed-audit"}\n')
+
+        state = ws.wait_finished("guarded-aim")
+        _assert(state["returncode"] == 0, state)
+        _assert(output.read_text(encoding="utf-8").strip() == "ran", output)
     finally:
         ws.cleanup()
 

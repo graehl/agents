@@ -2105,6 +2105,29 @@ def git_output(args: list[str], *, cwd: Path = ROOT, text: bool = True):
         return "" if text else b""
 
 
+def tracked_source_status(git_root: Path) -> str:
+    aim_records = ROOT / "runs" / "aim"
+    try:
+        aim_records_rel = aim_records.relative_to(git_root).as_posix()
+    except ValueError:
+        pathspecs = ["."]
+    else:
+        # Aim records remain visible to ordinary Git status for later triage,
+        # but they are run bookkeeping rather than experiment source.
+        pathspecs = [".", f":(top,exclude){aim_records_rel}/**"]
+    return git_output(
+        [
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=no",
+            "--ignore-submodules=none",
+            "--",
+            *pathspecs,
+        ],
+        cwd=git_root,
+    ).strip()
+
+
 def committed_file_record(path: str | Path, *, git_root: Path, commit: str) -> dict:
     p = Path(path).expanduser().resolve()
     try:
@@ -2221,15 +2244,7 @@ def build_source_snapshot(
             "an rsynced source tree without .git is not an experiment source"
         )
     git_root = Path(git_root_text).resolve()
-    dirty = git_output(
-        [
-            "status",
-            "--porcelain=v1",
-            "--untracked-files=no",
-            "--ignore-submodules=none",
-        ],
-        cwd=git_root,
-    ).strip()
+    dirty = tracked_source_status(git_root)
     if dirty:
         first = dirty.splitlines()[0]
         raise SystemExit(
@@ -2288,15 +2303,7 @@ def revalidate_source_snapshot(snapshot: dict) -> None:
         raise SystemExit(
             "reproducibility guard: checkout HEAD changed after submission; refusing payload launch"
         )
-    dirty = git_output(
-        [
-            "status",
-            "--porcelain=v1",
-            "--untracked-files=no",
-            "--ignore-submodules=none",
-        ],
-        cwd=git_root,
-    ).strip()
+    dirty = tracked_source_status(git_root)
     if dirty:
         raise SystemExit(
             "reproducibility guard: checkout became dirty after submission; refusing payload launch"

@@ -66,12 +66,12 @@ whether to extend the system or to introduce something parallel.
   `run_id`, collision-safe within agentctl-generated dumps. No SDK
   round-trip required to produce records.
 - **Committed source is the tracked-run admission rule.** The launcher records
-  Git branch + commit, requires a clean tracked/index state, rejects
-  non-ignored untracked Python, and proves the entry script and recognized
-  environment controls are recoverable from that commit. SHA-256 remains a
-  useful byte identity, but an off-Git hash diagnoses non-reproducibility
-  rather than curing it. Inputs and outputs remain SHA-256 opt-in because
-  large tensors are expensive.
+  Git branch + commit, requires a clean tracked/index state outside the
+  `runs/aim/` bookkeeping tree, rejects non-ignored untracked Python, and
+  proves the entry script and recognized environment controls are recoverable
+  from that commit. SHA-256 remains a useful byte identity, but an off-Git hash
+  diagnoses non-reproducibility rather than curing it. Inputs and outputs
+  remain SHA-256 opt-in because large tensors are expensive.
 
 ## Bounded scope (non-goals stated up front)
 
@@ -287,19 +287,20 @@ reproducibility cares about.
 ### `source_snapshot` and `machine_snapshot`
 
 Tracked runs carry an `agentctl-source-v1` snapshot with status `committed`,
-the Git root/branch/commit, the clean-tree decision, and a `files` map. Each
-selected file records absolute path, project-relative Git path, Git blob,
+the Git root/branch/commit, the source-cleanliness decision, and a `files` map.
+Each selected file records absolute path, project-relative Git path, Git blob,
 SHA-256, and size. Selected files include the detected/explicit entry script,
 `agentctl.env`, every `--source-env` script, root environment controls, and
 controls for a selected Pixi manifest. Pixi selection requires both
 `pixi.toml` and `pixi.lock`.
 
 Admission rejects a missing Git checkout or committed `HEAD`, tracked/index
-drift, any non-ignored untracked `*.py`, an off-checkout experiment script or
-environment, and selected bytes not recoverable from the recorded commit.
-The detached child repeats the commit, cleanliness, untracked-Python, and file
-checks after dependency/GPU waits and immediately before payload launch. Thus
-a queued run cannot silently execute against a later working-tree revision.
+drift outside `runs/aim/`, any non-ignored untracked `*.py`, an off-checkout
+experiment script or environment, and selected bytes not recoverable from the
+recorded commit. The detached child repeats the commit, cleanliness,
+untracked-Python, and file checks after dependency/GPU waits and immediately
+before payload launch. Thus a queued run cannot silently execute against a
+later source revision.
 
 This is a source-control contract, not a demand that the full worker filesystem
 be committed. `git ls-files --others --exclude-standard` defines the Python
@@ -571,7 +572,8 @@ Useful when:
 ## Reproducibility scope
 
 Captured automatically:
-- Clean Git branch + commit at submission and again before payload launch
+- Git branch + commit and source-relevant tracked/index cleanliness at
+  submission and again before payload launch
 - Script and recognized environment-control Git path/blob + SHA-256
 - Root/selected Pixi manifest and lock, when Pixi is configured
 - Project and explicitly sourced launch-env file identities (never values)
@@ -615,7 +617,10 @@ Projects decide whether `runs/aim/` is committed or ignored. Research repos
 may treat it as git-reviewed text authority; operational repos may treat it
 as disposable local provenance. `AGENTCTL_AIM_READ_ROOTS` may specify a
 pathsep-separated read-only root list during migrations or unusual layouts.
-Writes remain single-target and canonical.
+Writes remain single-target and canonical. Agentctl does not add `runs/aim/`
+to Git ignores: accumulated records stay visible for useful-result triage.
+When a project tracks some of them, later launcher-written changes under this
+tree are subtracted only from agentctl's source-cleanliness checks.
 
 ### KEY extensibility
 

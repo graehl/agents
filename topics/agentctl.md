@@ -128,14 +128,18 @@ window.
   the original launch's selected file or disabled state rather than adopting
   a newly created default.
 - A default tracked `start`/`smoke` requires a Git checkout at committed
-  `HEAD`. It rejects tracked/index changes, non-ignored untracked `*.py`, and
-  selected script/environment-control bytes that are not recoverable from the
-  recorded commit. Pixi requires a committed manifest+lock pair. A detached or
-  queued child repeats the guard immediately before payload launch. `--no-aim`
-  deliberately bypasses this admission rule and is limited to trivial,
-  non-evidence-producing work. Standard Git ignores/excludes exempt derived
-  Python trees such as `.pixi/`; unchecked-in intermediate data remains valid
-  when declared and tracked through the ordinary run-provenance surface.
+  `HEAD`. It rejects source-relevant tracked/index changes, non-ignored
+  untracked `*.py`, and selected script/environment-control bytes that are not
+  recoverable from the recorded commit. Tracked changes under `runs/aim/` are
+  excluded from the launcher's two cleanliness queries because those files are
+  run bookkeeping, not source; they remain visible to ordinary `git status`
+  for later result triage. Pixi requires a committed manifest+lock pair. A
+  detached or queued child repeats the guard immediately before payload
+  launch. `--no-aim` deliberately bypasses this admission rule and is limited
+  to trivial, non-evidence-producing work. Standard Git ignores/excludes
+  exempt derived Python trees such as `.pixi/`; unchecked-in intermediate data
+  remains valid when declared and tracked through the ordinary run-provenance
+  surface.
 - `start --after <job-or-output>` is a mechanical launch gate, not a
   result-interpretation scheduler. It records the new job as `waiting`, then
   starts the payload only after each named `agentctl` job exits cleanly or
