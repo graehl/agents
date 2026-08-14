@@ -6,15 +6,17 @@
 
 ## Grounding and coverage
 
-- **Grounding mode: `grounded`.** Twenty-two primary papers were fetched and read;
-  fifteen concept pages distill them below. Effectiveness claims are
+- **Grounding mode: `grounded`.** Thirty-three primary papers were fetched and read;
+  sixteen concept pages distill them below. Effectiveness claims are
   `single-source` unless a row explicitly says otherwise.
 - **Coverage cutoff: 2026-08-14.** Search scope: ACL Anthology, arXiv,
   OpenReview, and OpenAlex forward citations; queries covered character-aware
   and byte-level encoders, token/character fusion, multilingual named-entity
   recognition (NER), shallow probes, local downsampling, late task fusion,
   Unicode character encodings, exchangeability, distributional character
-  embeddings, and Brown/PPMI character clustering.
+  embeddings, Brown/PPMI character clustering, raw-byte versus codepoint
+  modeling, byte-subword and morphology-driven compression, and fixed or
+  learned entropy-coded text views.
 - **Anchor set:** CharacterBERT, CANINE, Cao's controlled character-encoder
   comparison, SCRIPT, and Tsai's exchangeability classes. Forward citations
   were sorted by both recency and citation count; direct recent-paper searches
@@ -46,6 +48,7 @@ the regenerable manifest is
 | F | [byte local/global hierarchy](concepts/byte-local-global.md) | BLT | hashed short n-grams and local byte blocks are useful motifs inside a much larger LM |
 | F | [byte state-space model](concepts/byte-ssm.md) | MambaByte | fixed-state causal byte modeling is efficient, but supplies no encoder-NER evidence |
 | G | [character projections](concepts/character-projections.md) | SCRIPT; Tsai; Boldsen; Mayer; Kashioka; Liu | structural Unicode addresses and distributional substitutability classes solve different problems; no fixed Unicode-wide substitute map was located |
+| H | [byte/codepoint compute](concepts/byte-codepoint-compute.md) | Gillick; Costa-jussà; Cherry; Wang; Khan; Shaham; ByT5; Libovický; Wolleb; MYTE; Zheng | bytes buy fixed-alphabet coverage and noise tolerance but lengthen non-Latin paths; full-codepoint composition and reversible compression are the supported remedies |
 
 ## Map: what each family buys
 
@@ -143,6 +146,39 @@ collapse separately from an identity-preserving `(cluster, within-cluster
 index)` address; the latter can help a neural encoder without showing that
 characters in one cluster are interchangeable.
 
+### H. Byte alphabets trade vocabulary for sequence path `[G]`
+
+The closest direct byte-versus-codepoint translation comparison is mixed:
+Costa-jussà et al.'s byte BLEU ranges from about 3.3 points worse to 0.8 better
+than Unicode characters, with faster convergence in their old recurrent setup.
+At modern scale, ByT5 gains noise and spelling robustness by reallocating
+vocabulary parameters into a deeper encoder, while paying longer sequences,
+more FLOPs, and slower inference. Libovický et al. likewise find that modern
+character translation generally remains slower and below subword quality,
+apart from clear source-noise robustness. Bytes are a coverage and robustness
+choice, not a universal clean-text quality advantage.
+
+Byte-level BPE shortens the raw-byte path and retains exact round-trip coverage.
+Wang et al. show that a one-layer bidirectional GRU is especially helpful when
+BBPE tokens contain partial characters, but do not isolate those arbitrary
+fragments as the cause of any gain. Land and Arnett supply the relevant
+negative ablation: requiring byte merges to complete Unicode characters first
+eliminates mixed partial-character tokens and almost universally improves
+compression across their tested encodings and corpora. The default for a clean
+Unicode sidecar should therefore compose complete codepoints first, then permit
+multi-codepoint compression only inside the incumbent SentencePiece token span.
+
+MYTE demonstrates that a different reversible 256-symbol code can shorten all
+99 tested languages and substantially reduce non-Latin path-length disparity,
+but its morphology-derived inventory is corpus-dependent and downstream NER is
+roughly tied/slightly lower than ByT5. Binary or n-ary Huffman codes optimize
+storage length rather than neural sequence cost; no located paper establishes
+binary Unicode-codepoint streams as a strong sole neural input. Learned proxy
+compression transfers when the code preserves local structure, while gzip-like
+views are unstable and weak. For fixed-compute comparisons, measure actual
+bytes per codepoint by language, match effective codepoint receptive field, and
+report measured throughput as well as quality.
+
 ## Recommended pilot for multilingual PII
 
 The first experiment should answer one question: **does cheap surface/local
@@ -219,6 +255,14 @@ inputs; only the sidecar and residual scale need train during this pilot.
   address is a tokenizer representation, while Tsai/PPMI/Brown classes are
   corpus-derived. No located source supports treating codepoint order as a
   substitutability coordinate.
+- **Partial UTF-8 fragments lack an isolated benefit.** BBPE systems can learn
+  around fragments that straddle codepoint boundaries, but the located direct
+  tokenizer ablation favors completing characters before cross-character
+  merges. Keep arbitrary fragments for malformed/noisy-byte controls.
+- **Compression is not automatically a useful representation.** Huffman and
+  gzip-like codes may save storage while lengthening dependency paths or making
+  nearby strings discontinuous; structured token/neural proxies transfer more
+  reliably only in much larger causal models.
 
 ## Baseline sensitivity and prior-art boundary
 
@@ -233,6 +277,8 @@ multilingual XLM-R tagger. Nearby ingredients are well established: character
 likelihood features, token-embedding probes, local character CNNs, and late
 task fusion. Nor did the search locate a released deterministic Unicode-wide
 flat substitutability map; the nearest methods learn exchangeability, PPMI, or
-Brown-style classes from a specific corpus. Novelty confidence for the exact
-composition is **moderate**, not high, because the focused search did not reach
-citation saturation.
+Brown-style classes from a specific corpus. It also found no matched evidence
+that non-codepoint-aligned byte-BPE fragments improve a clean-text model, or
+that a binary Huffman encoding of Unicode codepoints is a competitive sole
+input. Novelty confidence for the exact composition is **moderate**, not high,
+because the focused search did not reach citation saturation.

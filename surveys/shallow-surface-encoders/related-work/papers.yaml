@@ -342,3 +342,166 @@ papers:
     source: "ACL Anthology metadata checked 2026-08-14"
     fetched: 2026-08-14
     cluster: G
+
+  - key: gillick2016-multilingual-bytes
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "Multilingual Language Processing From Bytes"
+    authors: ["Dan Gillick", "Cliff Brunk", "Oriol Vinyals", "Amarnag Subramanya"]
+    venue: "NAACL"
+    year: 2016
+    url: "https://aclanthology.org/N16-1155.pdf"
+    doi: "10.18653/v1/N16-1155"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: costa-jussa2017-byte-nmt
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "Byte-based Neural Machine Translation"
+    authors: ["Marta R. Costa-jussà", "Carlos Escolano", "José A. R. Fonollosa"]
+    venue: "SCLeM"
+    year: 2017
+    url: "https://aclanthology.org/W17-4123.pdf"
+    doi: "10.18653/v1/W17-4123"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: cherry2018-capacity-compression
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "Revisiting Character-Based Neural Machine Translation with Capacity and Compression"
+    authors: ["Colin Cherry", "George Foster", "Ankur Bapna", "Orhan Firat", "Wolfgang Macherey"]
+    venue: "EMNLP"
+    year: 2018
+    url: "https://aclanthology.org/D18-1461.pdf"
+    doi: "10.18653/v1/D18-1461"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: khan2020-coded-inputs
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "Coding Textual Inputs Boosts the Accuracy of Neural Networks"
+    authors: ["Abdul Rafae Khan", "Jia Xu", "Weiwei Sun"]
+    venue: "EMNLP"
+    year: 2020
+    url: "https://aclanthology.org/2020.emnlp-main.104.pdf"
+    doi: "10.18653/v1/2020.emnlp-main.104"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: shaham2021-nmt-without-embeddings
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "Neural Machine Translation without Embeddings"
+    authors: ["Uri Shaham", "Omer Levy"]
+    venue: "NAACL"
+    year: 2021
+    url: "https://aclanthology.org/2021.naacl-main.17.pdf"
+    doi: "10.18653/v1/2021.naacl-main.17"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: xue2022-byt5
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "ByT5: Towards a Token-Free Future with Pre-trained Byte-to-Byte Models"
+    authors: ["Linting Xue", "Aditya Barua", "Noah Constant", "Rami Al-Rfou", "Sharan Narang", "Mihir Kale", "Adam Roberts", "Colin Raffel"]
+    venue: "TACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.tacl-1.17.pdf"
+    doi: "10.1162/tacl_a_00461"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: libovicky2022-character-mt
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "Why don't people use character-level machine translation?"
+    authors: ["Jindřich Libovický", "Helmut Schmid", "Alexander Fraser"]
+    venue: "Findings of ACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.findings-acl.194.pdf"
+    doi: "10.18653/v1/2022.findings-acl.194"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: wolleb2023-huffman-tokenization
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "Assessing the Importance of Frequency versus Compositionality for Subword-based Tokenization in NMT"
+    authors: ["Benoist Wolleb", "Romain Silvestri", "Georgios Vernikos", "Ljiljana Dolamic", "Andrei Popescu-Belis"]
+    venue: "EAMT"
+    year: 2023
+    url: "https://aclanthology.org/2023.eamt-1.14.pdf"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: zheng2026-proxy-compression
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "Proxy Compression for Language Modeling"
+    authors: ["Lin Zheng", "Xinyu Li", "Qian Liu", "Xiachong Feng", "Lingpeng Kong"]
+    venue: "ICML"
+    year: 2026
+    arxiv: "2602.04289"
+    grounded: true
+    verified: true
+    source: "ICML paper and arXiv metadata checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: wang2020-byte-level-subwords
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "Neural Machine Translation with Byte-Level Subwords"
+    authors: ["Changhan Wang", "Kyunghyun Cho", "Jiatao Gu"]
+    venue: "AAAI"
+    year: 2020
+    arxiv: "1909.03341"
+    doi: "10.1609/aaai.v34i05.6451"
+    grounded: true
+    verified: true
+    source: "AAAI proceedings and primary paper checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
+
+  - key: limisiewicz2024-myte
+    short: byte-codepoint-compute
+    concept_page: concepts/byte-codepoint-compute.md
+    title: "MYTE: Morphology-Driven Byte Encoding for Better and Fairer Multilingual Language Modeling"
+    authors: ["Tomasz Limisiewicz", "Terra Blevins", "Hila Gonen", "Orevaoghene Ahia", "Luke Zettlemoyer"]
+    venue: "ACL"
+    year: 2024
+    url: "https://aclanthology.org/2024.acl-long.804.pdf"
+    doi: "10.18653/v1/2024.acl-long.804"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: H
