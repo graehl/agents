@@ -3000,3 +3000,30 @@ the sweep single-target.
   of the file or demote the nested subsection to commentary.
 - **Status** — directly user-specified and already instantiated in `~/draft`;
   behavioral effect remains unmeasured.
+
+## 2026-08-14 — semantic dataset review at judgment-bearing boundaries
+
+- **User direction** — data preparation and augmentation should expose a
+  stratified human-readable sample early enough for holistic judgment about
+  whether the data could satisfy the research goal. Non-English rows need a
+  rough English gloss, and imperfect semi-supervised or unsupervised data may
+  still be useful when it improves the current hillclimbed model.
+- **Placement** — `RESEARCH/evidence.md` owns semantic goal fitness and the
+  research routers now reach it when accepting newly ingested or materially
+  transformed data. `RUNS/provenance.md` retains structural identity,
+  alignment, and outlier checks; those are complementary rather than
+  duplicated.
+- **Trace: verified lossless sharding** — serialization and partitioning are
+  demonstrably semantics-preserving and their relevant invariants pass, so the
+  qualitative review does not repeat. Determinism alone would not earn the
+  exemption if a transform could still alter meaning or distribution.
+- **Trace: multilingual augmentation** — the table covers every represented
+  language, type, and domain level, with English glosses, but does not require
+  the full Cartesian product unless a plausible interaction makes those cells
+  material. Informative failures remain visible rather than being sampled away.
+- **Trace: noisy pseudo-labels** — visibly imperfect examples do not force
+  rejection when a controlled, non-leaky downstream comparison clears the
+  incumbent. Failure to clear it redirects diagnosis toward pipeline defects,
+  corpus/resource intake, teacher supervision, and filtering or reweighting.
+- **Status** — directly user-specified and trace-simulated; behavioral benefit
+  remains assumed.

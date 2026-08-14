@@ -2,9 +2,10 @@
 
 > Rules and rationale for reproduction, evaluation scale, result sanity, data conditions, and significance claims.
 
-Read this packet before presenting a newly wired experimental result, making a
-comparison or significance claim, or summarizing train/eval/gate conditions.
-`RESEARCH.md` is the router and wins on conflict.
+Read this packet before accepting a newly ingested or materially transformed
+dataset, presenting a newly wired experimental result, making a comparison or
+significance claim, or summarizing train/eval/gate conditions. `RESEARCH.md`
+is the router and wins on conflict.
 
 ## Binding rules
 
@@ -42,6 +43,34 @@ project declares otherwise.
 
 After editing `research/<branch>.md`, show the modified diff, eliding only long
 unchanged spans to stay readable.
+
+### Data goal-fit review
+
+At each decision boundary after a change that can alter a dataset's meaning,
+labels, coverage, or distribution—and before committing substantial downstream
+work—inspect a compact human-readable sample and ask whether the resulting data
+could plausibly teach or evaluate the behavior required by the research goal.
+Do this early enough to redirect corpus intake, extraction, labeling,
+translation, augmentation, filtering, merging, or resampling, not only after
+the final build.
+
+Stratify the sample by every relevant declared axis—language, example or label
+type, domain, source, and similar—and show at least one row for every represented
+level. Cover cross-products only when interactions are a material risk. Present
+the sample as a compact table containing the strata, source/input, resulting
+example or label, a rough English gloss for non-English content, and any
+observed concern. Include informative failures, not only clean examples.
+
+This review fires only when semantics or distribution may have changed. Skip
+it after a demonstrably semantics-preserving step whose relevant invariants
+have already been checked; determinism alone is not such proof. Treat the
+sample as diagnostic evidence, not an acceptance oracle: imperfect
+semi-supervised or unsupervised data is acceptable when a controlled,
+non-leaky downstream comparison improves the incumbent. Otherwise fix pipeline
+defects and consider additional corpus or resource intake, teacher supervision,
+and filtering or reweighting before abandoning the direction. For row-wise
+transforms, this complements rather than replaces the structural provenance
+and alignment checks in `RUNS/provenance.md`.
 
 ### Result-sanity preview
 

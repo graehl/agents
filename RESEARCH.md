@@ -26,8 +26,9 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
   evidence state triggers the research advisor; also when an advisor-governed
   program completes the intended v1 of a working document or live handoff, or
   completes a later role/scope/path change or retirement.
-- [`RESEARCH/evidence.md`](RESEARCH/evidence.md) — before presenting a newly
-  wired experimental result, making a comparison or significance claim, or
+- [`RESEARCH/evidence.md`](RESEARCH/evidence.md) — before accepting a newly
+  ingested or materially transformed dataset, presenting a newly wired
+  experimental result, making a comparison or significance claim, or
   summarizing train/eval/gate conditions.
 - [`RESEARCH/judgment.md`](RESEARCH/judgment.md) — before judging an elaborate
   arm without a tuned cheap baseline, attributing a surprising change after
