@@ -17,7 +17,7 @@
 
 meta:
   field_slug: shallow-surface-encoders
-  coverage_cutoff: 2026-08-13
+  coverage_cutoff: 2026-08-14
   grounding_mode: grounded
 
 papers:
@@ -256,3 +256,89 @@ papers:
     source: "arXiv metadata checked 2026-08-13"
     fetched: 2026-08-13
     cluster: F
+
+  - key: land2025-script
+    short: character-projections
+    concept_page: concepts/character-projections.md
+    title: "BPE Stays on SCRIPT: Structured Encoding for Robust Multilingual Pretokenization"
+    authors: ["Sander Land", "Catherine Arnett"]
+    venue: "arXiv"
+    year: 2025
+    arxiv: "2505.24689"
+    grounded: true
+    verified: true
+    source: "arXiv HTML and metadata checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: G
+
+  - key: boldsen2022-character-embeddings
+    short: character-projections
+    concept_page: concepts/character-projections.md
+    title: "Interpreting Character Embeddings With Perceptual Representations: The Case of Shape, Sound, and Color"
+    authors: ["Sidsel Boldsen", "Manex Agirrezabal", "Nora Hollenstein"]
+    venue: "ACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.acl-long.470.pdf"
+    doi: "10.18653/v1/2022.acl-long.470"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: G
+
+  - key: mayer2020-distributional-classes
+    short: character-projections
+    concept_page: concepts/character-projections.md
+    title: "An algorithm for learning phonological classes from distributional similarity"
+    authors: ["Connor Mayer"]
+    venue: "Phonology"
+    year: 2020
+    url: "https://linguistics.ucla.edu/wp-content/uploads/2020/01/an-algorithm-for-learning-phonological-classes-from-distributional-similarity.pdf"
+    doi: "10.1017/S0952675720000056"
+    grounded: true
+    verified: true
+    source: "Cambridge Core metadata and primary PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: G
+
+  - key: tsai2006-exchangeability
+    short: character-projections
+    concept_page: concepts/character-projections.md
+    title: "On Closed Task of Chinese Word Segmentation: An Improved CRF Model Coupled with Character Clustering and Automatically Generated Template Matching"
+    authors: ["Richard Tzong-Han Tsai", "Hsieh-Chuan Hung", "Cheng-Lung Sung", "Hong-Jie Dai", "Wen-Lian Hsu"]
+    venue: "SIGHAN"
+    year: 2006
+    url: "https://aclanthology.org/W06-0120.pdf"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata and full PDF checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: G
+
+  - key: kashioka1998-mi-character-clusters
+    short: character-projections
+    concept_page: concepts/character-projections.md
+    title: "Use of Mutual Information Based Character Clusters in Dictionary-less Morphological Analysis of Japanese"
+    authors: ["Hideki Kashioka", "Yasuhiro Kawata", "Yumiko Kinjo", "Andrew Finch", "Ezra W. Black"]
+    venue: "COLING"
+    year: 1998
+    url: "https://aclanthology.org/C98-1104.pdf"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: G
+
+  - key: liu2012-brown-character-clusters
+    short: character-projections
+    concept_page: concepts/character-projections.md
+    title: "Unsupervised Domain Adaptation for Joint Segmentation and POS-Tagging"
+    authors: ["Yang Liu", "Yue Zhang"]
+    venue: "COLING"
+    year: 2012
+    url: "https://aclanthology.org/C12-2073.pdf"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-14"
+    fetched: 2026-08-14
+    cluster: G

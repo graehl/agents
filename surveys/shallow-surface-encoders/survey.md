@@ -6,16 +6,19 @@
 
 ## Grounding and coverage
 
-- **Grounding mode: `grounded`.** Sixteen primary papers were fetched and read;
-  fourteen concept pages distill them below. Effectiveness claims are
+- **Grounding mode: `grounded`.** Twenty-two primary papers were fetched and read;
+  fifteen concept pages distill them below. Effectiveness claims are
   `single-source` unless a row explicitly says otherwise.
-- **Coverage cutoff: 2026-08-13.** Search scope: ACL Anthology, arXiv,
+- **Coverage cutoff: 2026-08-14.** Search scope: ACL Anthology, arXiv,
   OpenReview, and OpenAlex forward citations; queries covered character-aware
   and byte-level encoders, token/character fusion, multilingual named-entity
-  recognition (NER), shallow probes, local downsampling, and late task fusion.
-- **Anchor set:** CharacterBERT, CANINE, and Cao's controlled character-encoder
-  comparison. Forward citations were sorted by both recency and citation count;
-  direct recent-paper searches supplemented the newest uncited edge.
+  recognition (NER), shallow probes, local downsampling, late task fusion,
+  Unicode character encodings, exchangeability, distributional character
+  embeddings, and Brown/PPMI character clustering.
+- **Anchor set:** CharacterBERT, CANINE, Cao's controlled character-encoder
+  comparison, SCRIPT, and Tsai's exchangeability classes. Forward citations
+  were sorted by both recency and citation count; direct recent-paper searches
+  supplemented the newest uncited edge.
 - **Saturation was not reached.** The focused architecture region is adequate
   for a pilot decision, but this is not a claim that no adjacent 2026 system
   implements the exact proposed sidecar.
@@ -42,6 +45,7 @@ the regenerable manifest is
 | E | [late task fusion](concepts/late-task-fusion.md) | EMBER | a small probe can turn frozen LM states into spans, but trails fine-tuned encoders |
 | F | [byte local/global hierarchy](concepts/byte-local-global.md) | BLT | hashed short n-grams and local byte blocks are useful motifs inside a much larger LM |
 | F | [byte state-space model](concepts/byte-ssm.md) | MambaByte | fixed-state causal byte modeling is efficient, but supplies no encoder-NER evidence |
+| G | [character projections](concepts/character-projections.md) | SCRIPT; Tsai; Boldsen; Mayer; Kashioka; Liu | structural Unicode addresses and distributional substitutability classes solve different problems; no fixed Unicode-wide substitute map was located |
 
 ## Map: what each family buys
 
@@ -121,6 +125,24 @@ returns. MambaByte uses a causal selective state-space model to avoid attention'
 quadratic byte-sequence cost. Both target general language modeling. Neither
 tests a small bidirectional sidecar on multilingual token classification.
 
+### G. Structural and distributional projections solve different problems `[G]`
+
+SCRIPT gives every Unicode scalar a compact, collision-free block/index
+address. Its block is a Script/category cue and its index is codepoint order
+inside that block; neither component is learned from substitutability. Tsai's
+exchangeability and location-independence counts are the closest located
+direct class method: characters group only when both orders and, for the
+location-aware form, both initial and non-initial positions occur inside known
+tokens. Positional PPMI, adjacent mutual-information hierarchies, and Brown
+clusters supply nearby distributional alternatives.
+
+The located artifacts are small per-language vectors or corpus-trained classes,
+not a released flat multilingual Unicode map. A live projection should
+therefore be learned from train-only target-corpus units. Test the actual class
+collapse separately from an identity-preserving `(cluster, within-cluster
+index)` address; the latter can help a neural encoder without showing that
+characters in one cluster are interchangeable.
+
 ## Recommended pilot for multilingual PII
 
 The first experiment should answer one question: **does cheap surface/local
@@ -193,6 +215,10 @@ inputs; only the sidecar and residual scale need train during this pilot.
 - **Objective and task matter.** Strawberry's synthetic character results and
   BLT/MambaByte language-modeling efficiency do not establish span-labeling
   value.
+- **Structure is not semantic similarity.** SCRIPT's deterministic block/index
+  address is a tokenizer representation, while Tsai/PPMI/Brown classes are
+  corpus-derived. No located source supports treating codepoint order as a
+  substitutability coordinate.
 
 ## Baseline sensitivity and prior-art boundary
 
@@ -205,6 +231,8 @@ No located paper exactly matches a small token-aligned, independently trainable
 surface branch fused only as a shared P1 logit residual into a strong
 multilingual XLM-R tagger. Nearby ingredients are well established: character
 likelihood features, token-embedding probes, local character CNNs, and late
-task fusion. Novelty confidence for the exact composition is **moderate**, not
-high, because the focused search did not reach citation saturation.
-
+task fusion. Nor did the search locate a released deterministic Unicode-wide
+flat substitutability map; the nearest methods learn exchangeability, PPMI, or
+Brown-style classes from a specific corpus. Novelty confidence for the exact
+composition is **moderate**, not high, because the focused search did not reach
+citation saturation.
