@@ -32,7 +32,8 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
   summarizing train/eval/gate conditions.
 - [`RESEARCH/judgment.md`](RESEARCH/judgment.md) — before judging an elaborate
   arm without a tuned cheap baseline, attributing a surprising change after
-  multiple differences, or parking a substantial weak or surprising line.
+  multiple differences, reading a tie on a revision built for stated reasons,
+  or parking a substantial weak or surprising line.
 - [`RESEARCH/workflow.md`](RESEARCH/workflow.md) — before queueing, resuming,
   checkpointing, or autonomously selecting research work.
 

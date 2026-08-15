@@ -1,11 +1,12 @@
 # Research judgment and experimental diagnosis
 
-> Rules and rationale for hypothesis communication, ambitious probes, strong cheap baselines, causal attribution, and closure tests.
+> Rules and rationale for hypothesis communication, ambitious probes, strong cheap baselines, causal attribution, tie diagnosis, and closure tests.
 
 Read this packet before judging an elaborate arm without a tuned cheap
-baseline, attributing a surprising change after multiple differences, or
-parking a substantial weak or surprising experiment line. `RESEARCH.md` is the
-router and wins on conflict.
+baseline, attributing a surprising change after multiple differences, reading
+a tie on a revision built for stated reasons, or parking a substantial weak
+or surprising experiment line. `RESEARCH.md` is the router and wins on
+conflict.
 
 ## Binding rules
 
@@ -44,6 +45,26 @@ the net of helpful and harmful effects; an unrun interaction remains
 uncertainty, not evidence. The formal additive model and worked diagnostics
 appear below under the second “Attributing a surprising change across multiple
 differences” heading.
+
+### Reading a tie on a motivated revision
+
+A tie does not establish "no change justified" for a revision built for
+stated reasons. When proposing the revision, record where those reasons
+predict improvement — a slice and its dispatch key, or an expected aggregate
+magnitude — and do the power arithmetic up front: predicted slice mass ×
+expected local effect against the eval's detection floor says in advance
+whether an aggregate tie would be uninformative or would already imply harm
+elsewhere. On a tie, run one bounded diagnosis pass, cheapest check first:
+inspect the intermediate artifact the reasons claim improved (blinded when
+judging quality by hand); then test the frozen predicted slice at adequate
+power, buying eval N on that slice or pre-registering a slice-weighted metric
+when needed. A null on the predicted slice closes the line; do not search
+further contexts for a win. On a verified slice win, prefer routing the
+revision selectively by the pre-named key with the incumbent elsewhere,
+measured end-to-end, over wholesale accept or discard. Tie plus significant
+added expense — compute, complexity, future attribution burden — is a valid
+reason to stop without the pass. The pass delivers a diagnosis; the default
+disposition at tie stays don't-land unless the revision also wins on cost.
 
 
 ## Retained detail and examples
@@ -200,3 +221,58 @@ about an untested interaction is symmetric.
 - Summaries should name any relevant existing options and recommend the smallest
   follow-up run or setting change that would distinguish "tool limitation" from
   "unexamined option/configuration".
+
+### Reading a tie on a motivated revision
+
+**The tie identity.** An aggregate tie constrains a mass-weighted sum:
+`0 ≈ m·Δ_slice + (1−m)·Δ_complement`, so a verified slice win fixes the
+implied complement effect at `−(m/(1−m))·Δ_slice`. Small slice mass: the
+implied harm sits below the detection floor — the tie is consistent with
+"helps there, clean elsewhere" (dilution), but implied-small is not
+known-zero, so check the complement rather than assume it. Substantial mass:
+the arithmetic forces real harm elsewhere (a focused win offsetting a
+common-case loss); locate it before deciding. Selective routing is the
+preferred disposition under either anatomy, which is why it beats
+accept-or-discard: the hybrid recipe is correct whether the tie was dilution
+or cancellation. The up-front power arithmetic tells you before the run
+which reading a tie would carry.
+
+**Freeze the predicted slice.** The recorded prediction is the license for
+the sliced test. If cells are appended after seeing sliced results, the
+pre-registration dissolves retroactively; additions discovered during eval
+inspection are hypotheses for the next cycle, not members of this
+comparison.
+
+**Inspect the artifact claim first.** The revision's case decomposes into
+two claims: the artifact it produces is genuinely better where the reasons
+say, and that better artifact moves the end metric downstream. The first
+costs no compute to check — directly inspect the artifact in the predicted
+slice, judging both per-example quality and distributional properties
+(coverage, diversity, skew) against a reference independent of the
+incumbent. Inspecting examples one at a time cannot reveal what an artifact
+is missing: when the producing pipeline anywhere depends on the incumbent —
+for example, data selected by a model trained under the incumbent's
+defect — the artifact systematically lacks the very cases the revision is
+meant to fix, while every retained example still looks good. If the
+artifact is not actually better there, discard the revision immediately:
+the stated reason was factually wrong. If it holds up while the predicted
+slice nulls at adequate power, the downstream claim is falsified — a
+transferable negative that prices an entire family of future investments in
+that mechanism. That prospective value, not invested cost, is what
+justifies the pass; the decision must stay insensitive to sunk compute.
+
+**Symmetry and provenance.** Any tie contradicting a confident prediction
+earns the pass, whichever outcome was hoped — digging only into ties on
+favored revisions turns the rule into a prior-amplifier. The bar is the
+specificity of the recorded prediction, not who proposed the revision;
+user- and agent-originated ideas meet the same test.
+
+**Worked instance.** Entity surface-form substitution for tagger training:
+the incumbent Faker placeholder was known-defective for specific
+(language, tag) types; a chars model trained on scarce gold/gazetteer data
+was proposed for sampling-time substitution. Brief trajectories scored
++0.0001 F1, not significant. The predicted slice — the known-defective
+cells — was a small eval mass fraction, so the aggregate tie was expected
+even under success; the informative tests are the defective-cell slice with
+eval N bought there, and on a win, substitution dispatched by tag × language
+with the incumbent elsewhere, measured by training.
