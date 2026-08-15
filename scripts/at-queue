@@ -400,7 +400,7 @@ def cmd_claim(args: argparse.Namespace) -> int:
             entry = state["jobs"][name]
             source = store.job_source(name)
             digest = prompt_digest(source)
-            occurrence_id = secrets.token_urlsafe(24)
+            occurrence_id = f"occ_{secrets.token_urlsafe(24)}"
             entry["running"] = {
                 "occurrence_id": occurrence_id,
                 "session": args.session,

@@ -16,6 +16,16 @@ SCRIPT = REPO_ROOT / "scripts" / "at-queue"
 
 PAST = "2020-01-01T00:00:00Z"
 FUTURE = "2030-01-02T03:04:05Z"
+FORCED_LEADING_DASH_TOKEN = """
+import runpy
+import secrets
+import sys
+
+script, *args = sys.argv[1:]
+secrets.token_urlsafe = lambda _: "-leading-dash"
+sys.argv = [script, *args]
+runpy.run_path(script, run_name="__main__")
+"""
 
 
 def _assert(condition, message="assertion failed"):
@@ -106,6 +116,48 @@ def test_claim_skips_future_and_takes_due():
     _assert(payload["job"] == "now", payload)
     _assert(payload["occurrence_id"], payload)
     _assert(payload["skipped"]["later"] == "not due", payload)
+
+
+def test_occurrence_receipt_remains_one_cli_argument():
+    root = _project()
+    _source(root, "replace")
+    _run(root, "activate", "--job", "replace", "--run-after", PAST)
+    claim = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            FORCED_LEADING_DASH_TOKEN,
+            str(SCRIPT),
+            "claim",
+            "--session",
+            "a",
+            "--owner-pid",
+            str(os.getpid()),
+            "--root",
+            str(root),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    _assert(claim.returncode == 0, claim.stderr)
+    receipt = _json(claim)["occurrence_id"]
+    _assert(receipt == "occ_-leading-dash", receipt)
+
+    accepted = _run(
+        root,
+        "activate",
+        "--job",
+        "replace",
+        "--run-after",
+        FUTURE,
+        "--occurrence",
+        receipt,
+    )
+    _assert(
+        accepted.returncode == 0,
+        (accepted.returncode, accepted.stdout, accepted.stderr),
+    )
 
 
 def test_claim_is_single_winner_while_runner_is_alive():
