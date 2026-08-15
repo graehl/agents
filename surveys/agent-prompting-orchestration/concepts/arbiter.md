@@ -1,9 +1,10 @@
 # Arbiter — static cross-vendor audit of agent-CLI system prompts
 
-Read method: prompted extraction over the arXiv HTML full text, 2026-08-15;
-local extract pending (`related-work fetch`). Full text:
-[HTML](https://arxiv.org/html/2603.08993v1) · [PDF](https://arxiv.org/pdf/2603.08993).
-arXiv 2603.08993.
+Read method: prompted extraction over the arXiv HTML full text, 2026-08-15.
+Full text: [HTML](https://arxiv.org/html/2603.08993v1) ·
+[PDF](https://arxiv.org/pdf/2603.08993) ·
+[local extract](../related-work/extract/arbiter2026/html/2603.08993.html)
+(git-ignored; rebuild with `related-work fetch`). arXiv 2603.08993.
 
 **What it is.** Static analysis of vendor agent-CLI system prompts (Claude
 Code, Codex CLI, Gemini CLI) for internal contradictions — e.g. one section

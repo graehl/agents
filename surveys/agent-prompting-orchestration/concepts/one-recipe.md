@@ -1,9 +1,10 @@
 # One Recipe, Many Harnesses — what self-evolution encodes
 
-Read method: prompted extraction over the arXiv HTML full text, 2026-08-15;
-local extract pending (`related-work fetch`). Full text:
-[HTML](https://arxiv.org/html/2608.10178) · [PDF](https://arxiv.org/pdf/2608.10178).
-arXiv 2608.10178.
+Read method: prompted extraction over the arXiv HTML full text, 2026-08-15.
+Full text: [HTML](https://arxiv.org/html/2608.10178) ·
+[PDF](https://arxiv.org/pdf/2608.10178) ·
+[local extract](../related-work/extract/onerecipe2026/html/2608.10178.html)
+(git-ignored; rebuild with `related-work fetch`). arXiv 2608.10178.
 
 **What it is.** Holds one harness self-evolution recipe fixed across an 8×3
 grid (Multi-SWE-Bench languages × three base models) and asks what the
