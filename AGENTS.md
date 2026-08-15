@@ -8,6 +8,15 @@ the global policy from being injected again as project context in this repo.
 
 ## Design objective
 
+The principal thematic thrust of all work here is actionable and correctly
+scoped guidance: an instruction earns its place by letting a reader with only
+the corpus tell when it fires and what to do. The
+`topics/agent-instructions.md` sections connecting this theme to practice are
+*Invariants* (load-bearing changes only; a costly rule names its failure
+mode), *Section extraction* (concrete triggers that carry the immediate
+steer), and *Verifying instruction changes* (trace-simulation against
+realistic misfires).
+
 This repository treats `AGENTS.global.md` and its routed supplements as an
 empirical control surface for global agent context. Compliance is not an end in
 itself. Keep an instruction only when observed cost/productivity or a credible
