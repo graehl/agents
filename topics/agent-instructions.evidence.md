@@ -3054,3 +3054,41 @@ the sweep single-target.
 - **Status** — user-specified and scenario-traced. Small-model layout tests and
   a Gemma-4 diagnostic exercise the facility; the long PII task quality and
   throughput comparison remains pending.
+
+## 2026-08-15 — harsh-review findings become range-keyed artifacts
+
+- **User direction** — replace session-only harsh-review output with retained,
+  uncommitted review history: a range-named accumulator plus a final verdict
+  written before findings are communicated. The response links the verdict by
+  project-relative path instead of duplicating its findings inline.
+- **Range identity** — both diff endpoints resolve to immutable SHAs when the
+  review starts; the readable key uses their 12-character abbreviations while
+  each artifact records the full SHAs. `HEAD` may select the endpoint but can
+  never remain in a filename, because it may move before a folded review ends.
+- **Trace: one-pass review** — a small single-commit audit writes its running
+  findings to `harsh-review-<base12>..<end12>.accum`, derives the final
+  `.verdict.md`, retains both locally, and replies with the verdict link only.
+- **Trace: long review with advancing HEAD** — a folded `since` review resumes
+  the unfinished accumulator's frozen target even after new commits land. Its
+  end-state suppression check reads the later diff, the completed verdict keeps
+  the original immutable range, and the next `since` review covers new work.
+- **Trace: ambiguous resume** — more than one unfinished accumulator begins at
+  the marker. The skill names the candidates and asks which fixed range to
+  resume rather than choosing by mtime or silently merging histories.
+- **Trace: concurrent same-range start** — each reviewer checks fresh active
+  sessions, claims the range and its canonical paths through `agentctl active`,
+  then checks again. An existing claim wins; a simultaneous race resolves by
+  claim age and session id, and every loser marks itself done without touching
+  the records. The claim remains advisory rather than pretending to be a
+  filesystem lock.
+- **Trace: same-range second opinion** — after winning the advisory claim, the
+  reviewer renames both canonical files to the next numbered backup without
+  reading their contents. It records an independent provisional verdict in a
+  fresh accumulator; only at the explicit reconciliation phase does it read
+  the prior pair. Item dispositions stay in the accumulator, the canonical
+  verdict contains only clean merged findings, and the response briefly names
+  valid findings missed by the independent pass or newly found. The backups
+  are history, not resume candidates.
+- **Status** — directly user-specified and trace-simulated; actual use will test
+  whether file-only findings improve review history without making delivery
+  harder to notice.
