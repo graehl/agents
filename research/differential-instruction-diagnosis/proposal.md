@@ -42,8 +42,16 @@ task-scoped instruction set through boot omnibus); two producer sessions
 on different-lab frontier models. Harness conventions are held as equal
 as the labs allow — load-bearing, not a nicety: harness variation alone
 induces large divergence with instructions fixed (survey A3, arXiv
-2607.04528), so unequal harnesses swamp corpus attribution. Task sources: a challenging benchmark task, or
-an ordinary organic user request processed slowly. Eligibility constraint:
+2607.04528), so unequal harnesses swamp corpus attribution.
+
+A public-consumption experiment starts with zero model- or harness-specific
+instructions in either producer condition; routed supplements may be added as
+separately labeled follow-on arms. Personal use intentionally retains the
+normally routed model/harness stack because the deployed corpus is the object
+being diagnosed.
+
+Task sources: a challenging benchmark task, or an ordinary organic user
+request processed slowly. Eligibility constraint:
 running the protocol ships the request, corpus, and both transcripts to both
 labs, so tasks carrying private context are ineligible. Persona framing of
 the counterpart (neutral peer / sibling / competitor) is a controlled
