@@ -58,7 +58,7 @@ The preferred `row-transform/v1` record is self-identifying and self-checking:
       "unit": "unicode_codepoint",
       "center_ratio": 1.1,
       "add_k": 0.5,
-      "factor_995": 1.8,
+      "coverage_factor": 1.8,
       "coverage": 0.995,
       "smoothed_ratio": 1.3426,
       "relative_ratio": 1.2205,
@@ -101,10 +101,11 @@ identity.
 ## Length review
 
 Use `run_quality.length_ratio.LengthRatioPolicy`. Its direct configuration is
-`center_ratio`, `add_k`, and `factor_995`; callers freeze these per operation,
-language direction, and counting unit from an accepted calibration set rather
-than fitting the batch being judged. For input and output lengths (n_i,n_o), a
-positive smoothing constant (k), and a typical ratio (c):
+`center_ratio`, `add_k`, `coverage_factor`, and `coverage`; callers freeze these
+per operation, language direction, and counting unit from an accepted
+calibration set rather than fitting the batch being judged. For input and
+output lengths (n_i,n_o), a positive smoothing constant (k), and a typical
+ratio (c):
 
 ```text
 relative_ratio = (n_o / c + k) / (n_i + k)
@@ -113,9 +114,10 @@ deviation_factor = max(relative_ratio, 1 / relative_ratio)
 ```
 
 The factor is reciprocal-symmetric: `1.5` and `1/1.5` are equally far from
-the center. Calibrate `factor_995` as the empirical 99.5th percentile of the
-factor on accepted rows; this makes no normal or log-normal assumption. A
-positive `k` makes all ratios defined and deliberately softens relative-length
+the center. Calibrate `coverage_factor` as the empirical quantile named by
+`coverage`—the 99.5th percentile only at the default `coverage=0.995`. This
+makes no normal or log-normal assumption. A positive `k` makes all ratios
+defined and deliberately softens relative-length
 judgment for short rows while becoming negligible on long rows. Scaling the
 numerator pseudocount by `center_ratio` preserves the expected ratio at every
 input length instead of pulling short rows toward ratio one. In ordinary
@@ -124,7 +126,7 @@ codepoint-based text checks, expect `add_k` in `(0, 2]`; the shared default is
 the short-segment regime.
 
 Scripted callers expose the same names as
-`--length-center-ratio`, `--length-add-k`, and `--length-factor-995`;
+`--length-center-ratio`, `--length-add-k`, and `--length-coverage-factor`;
 `--length-add-k` is optional and defaults to `0.5`.
 An explicit calibration input may call `LengthRatioPolicy.fit`, which uses the
 median raw output/input ratio as its center and the nearest-rank empirical

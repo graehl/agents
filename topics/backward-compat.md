@@ -30,3 +30,8 @@ Topic: `backward-compat`
   locator; an optional first-line H1 is an alternative formal name. A research
   program's directory basename remains its local slug but does not replace the
   path locator.
+- 2026-08-15 `LengthRatioPolicy.factor_995` — renamed to
+  `coverage_factor`, including serialized records and documented CLI naming,
+  because configurable coverage made the percentile-specific name false. No
+  shim: the surface was introduced in the still-unreleased reviewed range and
+  every in-repository caller was migrated before persisted consumers formed.

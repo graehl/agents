@@ -37,14 +37,14 @@ class LengthRatioScore:
 class LengthRatioPolicy:
     """A reciprocal-symmetric empirical coverage interval.
 
-    ``center_ratio`` is the typical smoothed output/input ratio,
-    ``add_k`` is added to both counts in the policy's named unit, and ``factor_995`` is the
-    multiplicative deviation factor covering the policy's calibration set at
-    ``coverage`` (99.5% by default).
+    ``center_ratio`` is the typical smoothed output/input ratio, ``add_k`` is
+    added to both counts in the policy's named unit, and ``coverage_factor`` is
+    the multiplicative deviation factor covering the policy's calibration set
+    at ``coverage`` (99.5% by default).
     """
 
     center_ratio: float
-    factor_995: float
+    coverage_factor: float
     add_k: float = 0.5
     coverage: float = 0.995
     unit: str = "unicode_codepoint"
@@ -53,7 +53,7 @@ class LengthRatioPolicy:
         for name, value in (
             ("center_ratio", self.center_ratio),
             ("add_k", self.add_k),
-            ("factor_995", self.factor_995),
+            ("coverage_factor", self.coverage_factor),
             ("coverage", self.coverage),
         ):
             if not math.isfinite(value):
@@ -62,8 +62,8 @@ class LengthRatioPolicy:
             raise ValueError("center_ratio must be positive")
         if self.add_k <= 0:
             raise ValueError("add_k must be positive")
-        if self.factor_995 < 1:
-            raise ValueError("factor_995 must be at least 1")
+        if self.coverage_factor < 1:
+            raise ValueError("coverage_factor must be at least 1")
         if not 0 < self.coverage < 1:
             raise ValueError("coverage must be strictly between 0 and 1")
         if not self.unit.strip():
@@ -71,7 +71,10 @@ class LengthRatioPolicy:
 
     @property
     def ratio_bounds(self) -> tuple[float, float]:
-        return self.center_ratio / self.factor_995, self.center_ratio * self.factor_995
+        return (
+            self.center_ratio / self.coverage_factor,
+            self.center_ratio * self.coverage_factor,
+        )
 
     def relative_ratio(self, input_length: int, output_length: int) -> float:
         """Return a center-preserving ratio whose expected value is one.
@@ -95,13 +98,15 @@ class LengthRatioPolicy:
         lower = max(
             0,
             math.ceil(
-                self.center_ratio * (denominator / self.factor_995 - self.add_k) - 1e-12
+                self.center_ratio * (denominator / self.coverage_factor - self.add_k)
+                - 1e-12
             ),
         )
         upper = max(
             0,
             math.floor(
-                self.center_ratio * (self.factor_995 * denominator - self.add_k) + 1e-12
+                self.center_ratio * (self.coverage_factor * denominator - self.add_k)
+                + 1e-12
             ),
         )
         return lower, upper
@@ -117,7 +122,7 @@ class LengthRatioPolicy:
             relative_ratio=relative_ratio,
             deviation_factor=deviation,
             expected_output_length=self.expected_output_bounds(input_length),
-            outlier=deviation > self.factor_995,
+            outlier=deviation > self.coverage_factor,
         )
 
     def score_text(self, source: str, output: str) -> LengthRatioScore:
@@ -130,7 +135,7 @@ class LengthRatioPolicy:
         return {
             "center_ratio": self.center_ratio,
             "add_k": self.add_k,
-            "factor_995": self.factor_995,
+            "coverage_factor": self.coverage_factor,
             "coverage": self.coverage,
             "unit": self.unit,
         }
@@ -169,7 +174,7 @@ class LengthRatioPolicy:
         policy = cls(
             center_ratio=center,
             add_k=add_k,
-            factor_995=1,
+            coverage_factor=1,
             coverage=coverage,
             unit=unit,
         )
@@ -184,7 +189,7 @@ class LengthRatioPolicy:
         return cls(
             center_ratio=center,
             add_k=add_k,
-            factor_995=deviations[rank],
+            coverage_factor=deviations[rank],
             coverage=coverage,
             unit=unit,
         )
