@@ -260,7 +260,7 @@ hashes:
 FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f \
   --msg-filter 'case "$GIT_COMMIT" in
       <sha1>|<sha2>)
-        sed "/^co-authored-by: /Id" | git stripspace ;;
+        sed "/^co-authored-by:[[:space:]]*/Id" | git stripspace ;;
       *) cat ;;
     esac' -- <oldest-sha>^..HEAD
 ```

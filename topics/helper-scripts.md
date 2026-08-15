@@ -492,7 +492,8 @@ because debris is a finding — possibly a lifecycle defect in the
 measured system — so even a fully reaped sweep exits nonzero.
 
 **CLI**: `perf-sweep <marker> [--kill] [--kill-group] [--grace S]
-[--no-environ]`. `<marker>` is a regex (≥5 chars) matched against
+[--no-environ]`. `<marker>` is a literal run identifier (≥5 chars) matched
+as a substring against
 every process's `/proc/<pid>/cmdline` and, unless `--no-environ`, its
 `environ` — env matching finds measured-system children that
 inherited the marker env var but carry no argv marker. Prints
@@ -506,8 +507,8 @@ survivor shares a process group with the sweep or one of its ancestors;
 that group is not signaled, and only its marker-matched processes are
 reaped. A final `SWEEP:` summary line follows.
 Exit 0 = nothing matched; 10 = debris found (even if fully reaped);
-11 = debris remains after kill; 2 = usage (short/invalid marker,
-`--kill-group` without `--kill`).
+11 = debris remains after kill; 2 = usage (short marker, negative grace,
+or `--kill-group` without `--kill`).
 
 **Post-conditions**:
 - Never signals anything in report-only mode (the default).
@@ -515,6 +516,10 @@ Exit 0 = nothing matched; 10 = debris found (even if fully reaped);
   marker or (under `--kill-group`) it shares a marked survivor's
   process group; never signals itself, its ancestors, or pid/pgid
   ≤ 1.
+- Revalidates each target's captured process start time and process group
+  immediately before every TERM or KILL. A group signal additionally requires
+  a still-matching original survivor in that group; a reused PID or ownerless
+  group is not signaled.
 - Never group-signals a process group containing itself or an ancestor;
   marker-matched processes in such a group still receive the requested
   per-process signals.
