@@ -69,8 +69,10 @@
   A completed extract carries a `.fetched` sentinel written *only* on success —
   so a crashed extraction is retried rather than cached as done — recording the
   method, source URL, and the server's `ETag`/`Last-Modified` when it offers
-  them. `related-work fetch --revalidate` uses those to ask whether a source
-  changed; with no validators to send, the answer is "may have changed", never
+  them. `related-work fetch --derive-only` backfills missing Markdown from
+  already-saved HTML without network access or a PDF fallback;
+  `related-work fetch --revalidate` additionally asks whether a source changed.
+  With no validators to send, revalidation means "may have changed", never
   "fresh".
 - **A figure whose PDF original is vector is extracted as vector.** marker
   rewrites every figure region — vector originals included — to a raster crop

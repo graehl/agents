@@ -264,6 +264,12 @@ def test_revalidation_without_validators_never_claims_fresh():
     )
 
 
+def test_legacy_url_pdf_sentinel_does_not_request_html_derivation():
+    sentinel = rw.Sentinel("url-html", "https://example.test/paper.PDF?download=1")
+    with tempfile.TemporaryDirectory() as tmp:
+        _assert(not rw.html_derivation_missing(Path(tmp), sentinel), sentinel)
+
+
 def test_audit_requires_html_derivation_metadata_and_markdown():
     with tempfile.TemporaryDirectory() as tmp:
         root = survey(Path(tmp))
@@ -276,6 +282,20 @@ def test_audit_requires_html_derivation_metadata_and_markdown():
         rules = {(row["key"], row["rule"]) for row in jsonl(proc)}
         _assert(("alpha2020-one", "html-markdown") in rules, sorted(rules))
         _assert(("alpha2020-one", "html-derivation") in rules, sorted(rules))
+
+
+def test_audit_requires_markdown_for_a_legacy_completed_extract():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        directory = root / "related-work" / "extract" / "alpha2020-one"
+        (directory / "paper.md").unlink()
+        (directory / "paper.html").write_text("<p>legacy</p>")
+        (directory / ".fetched").write_text("backfilled\talpha2020-one\n")
+
+        proc = run(root, "audit")
+        _assert(proc.returncode == 3, proc.stdout)
+        rules = {(row["key"], row["rule"]) for row in jsonl(proc)}
+        _assert(("alpha2020-one", "extract-content") in rules, sorted(rules))
 
 
 def _passthrough_html2text(command, **kwargs):
@@ -311,6 +331,19 @@ def test_html_derivation_emits_tex_once_after_conversion_and_drops_plain_html():
         _assert(markdown.count(r"\Phi") == 1, markdown)
         _assert(r"\(\Phi\)" in markdown, markdown)
         _assert(r"\[x_{1}\]" in markdown, markdown)
+
+
+def test_html_preprocessor_uses_alttext_when_tex_annotation_is_absent():
+    processed, replacements, _presentation = rw.preprocess_html(
+        r"""<p><math alttext="0"><mn>0</mn></math> <math alttext="wrong"><annotation encoding="application/x-tex">x_{1}</annotation></math></p>"""
+    )
+
+    _assert(len(replacements) == 2, replacements)
+    _assert(
+        [tex for _placeholder, tex, _block in replacements] == ["0", r"x_{1}"],
+        replacements,
+    )
+    _assert(all(placeholder in processed for placeholder, _tex, _block in replacements))
 
 
 def test_html_derivation_keeps_content_presentation_not_page_chrome():
@@ -421,6 +454,36 @@ def test_revalidate_backfills_a_completed_html_extract_before_network_fetch():
         _assert(sentinel.derived_with == rw.HTML_DERIVATION, sentinel)
 
 
+def test_derive_only_discovers_and_normalizes_a_legacy_html_only_extract():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        loaded = rw.load_survey(root)
+        directory = loaded.extract_dir("alpha2020-one")
+        (directory / "paper.md").unlink()
+        (directory / "2001.00001.html").write_text("<p>legacy download</p>")
+        loaded.sentinel_path("alpha2020-one").write_text("backfilled\talpha2020-one\n")
+        originals = (rw.have, rw.subprocess.run, rw.emit_table)
+        rows = []
+
+        rw.have = lambda tool: tool == "uvx" or originals[0](tool)
+        rw.subprocess.run = _passthrough_html2text
+        rw.emit_table = lambda _args, result, _columns, _name: rows.extend(result)
+        args = rw.build_parser().parse_args(
+            ["--dir", str(root), "fetch", "alpha2020-one", "--derive-only"]
+        )
+        try:
+            result = args.func(args)
+        finally:
+            rw.have, rw.subprocess.run, rw.emit_table = originals
+
+        row = rows[0]
+        sentinel = rw.read_sentinel(loaded.sentinel_path("alpha2020-one"))
+        _assert(result == 0 and row["status"] == "derived", row)
+        _assert(sentinel.method == "arxiv-html", sentinel)
+        _assert(sentinel.source == "https://arxiv.org/html/2001.00001", sentinel)
+        _assert(sentinel.markdown == "2001.00001.md", sentinel)
+
+
 def test_list_and_status_report_the_survey():
     with tempfile.TemporaryDirectory() as tmp:
         root = survey(Path(tmp))
@@ -527,6 +590,43 @@ def test_download_only_never_marks_html_as_extracted():
             rw.save_page = original_save_page
         _assert(row["status"] == "downloaded", row)
         _assert(not loaded.sentinel_path(paper.key).exists(), row)
+
+
+def test_url_pdf_uses_marker_instead_of_html_derivation():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        loaded = rw.load_survey(root)
+        paper = loaded.find("beta2021-two")
+        paper.ident = "https://example.test/two.pdf?download=1"
+        originals = (rw.download, rw.run_marker, rw.http_headers, rw.save_page)
+        calls = []
+
+        def download(_url, target):
+            calls.append(target)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"pdf")
+            return True
+
+        rw.download = download
+        rw.run_marker = lambda *_args, **_kwargs: {}
+        rw.http_headers = lambda _url: {}
+        rw.save_page = lambda *_args, **_kwargs: _assert(
+            False, "an explicit PDF URL must not use the HTML downloader"
+        )
+        try:
+            row = rw.fetch_paper(
+                loaded,
+                paper,
+                no_html=False,
+                download_only=False,
+                svg_figures=False,
+                refresh_source=False,
+            )
+        finally:
+            rw.download, rw.run_marker, rw.http_headers, rw.save_page = originals
+
+        _assert(row["status"] == "fetched" and row["method"] == "pdf-marker", row)
+        _assert(calls == [loaded.extract_dir(paper.key) / "two.pdf"], calls)
 
 
 def test_pdf_revalidation_replaces_existing_source_before_extraction():

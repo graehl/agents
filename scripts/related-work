@@ -73,6 +73,7 @@ USER_AGENT = "related-work/1 (+https://github.com/graehl/agents)"
 SENTINEL = ".fetched"
 SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 HTML_METHODS = frozenset(("arxiv-html", "url-html"))
+LEGACY_HTML_METHODS = frozenset(("backfilled", "tcircuits-html"))
 HTML2TEXT_VERSION = "2025.4.15"
 HTML_DERIVATION = f"html2text {HTML2TEXT_VERSION}"
 
@@ -351,6 +352,7 @@ class _MathPreprocessor(HTMLParser):
         self.math_depth = 0
         self.annotation_depth: int | None = None
         self.annotation: list[str] = []
+        self.math_alttext: str | None = None
         self.block_math = False
         self.content_roots: list[str] = []
         self.saw_content_root = False
@@ -433,11 +435,12 @@ class _MathPreprocessor(HTMLParser):
                 self.annotation_depth = self.math_depth
             return
         if tag == "math":
-            attrs = {name.lower(): (value or "").lower() for name, value in attributes}
+            attrs = {name.lower(): value or "" for name, value in attributes}
             self.math_depth = 1
             self.annotation_depth = None
             self.annotation = []
-            self.block_math = attrs.get("display") == "block"
+            self.math_alttext = attrs.get("alttext", "").strip() or None
+            self.block_math = attrs.get("display", "").lower() == "block"
             return
         if tag in self._CONTENT_ROOTS:
             self.content_roots.append(tag)
@@ -460,10 +463,11 @@ class _MathPreprocessor(HTMLParser):
         tag = tag.lower()
         if self.math_depth:
             if self.math_depth == 1:
-                tex = "".join(self.annotation).strip()
+                tex = "".join(self.annotation).strip() or self.math_alttext
                 if tag != "math" or not tex:
                     raise HtmlDerivationError(
-                        "a MathML element has no application/x-tex annotation"
+                        "a MathML element has neither an application/x-tex "
+                        "annotation nor alttext"
                     )
                 placeholder = (
                     f"{self.placeholder_prefix}{len(self.replacements):08d}END"
@@ -472,6 +476,7 @@ class _MathPreprocessor(HTMLParser):
                 self.replacements.append((placeholder, tex, self.block_math))
                 self.math_depth = 0
                 self.annotation_depth = None
+                self.math_alttext = None
                 return
             if self.annotation_depth == self.math_depth and tag == "annotation":
                 self.annotation_depth = None
@@ -595,7 +600,7 @@ def _has_versioned_derivation(sentinel: Sentinel) -> bool:
 
 
 def html_derivation_missing(directory: Path, sentinel: Sentinel) -> bool:
-    if sentinel.method not in HTML_METHODS:
+    if sentinel.method not in HTML_METHODS or _is_pdf_url(sentinel.source):
         return False
     markdown = _recorded_markdown_path(directory, sentinel)
     return (
@@ -773,9 +778,47 @@ def download(url: str, target: Path) -> bool:
             temporary.unlink(missing_ok=True)
 
 
+def _is_pdf_url(url: str) -> bool:
+    """Recognize explicit PDF resources, including legacy `url-html` records."""
+    return Path(unquote(urlsplit(url).path)).suffix.lower() == ".pdf"
+
+
 def has_content(directory: Path) -> bool:
     """True when the directory holds extracted text, not just a raw download."""
     return any(directory.rglob("*.md"))
+
+
+def _legacy_html_only(directory: Path, sentinel: Sentinel) -> bool:
+    return (
+        sentinel.method in LEGACY_HTML_METHODS
+        and not has_content(directory)
+        and any(
+            path.is_file() and path.suffix.lower() in (".htm", ".html")
+            for path in directory.rglob("*")
+        )
+    )
+
+
+def _saved_html_source(directory: Path, paper: Paper, sentinel: Sentinel) -> str | None:
+    candidates: list[str] = []
+    parsed = urlsplit(sentinel.source)
+    if parsed.scheme in ("http", "https") and not _is_pdf_url(sentinel.source):
+        candidates.append(sentinel.source)
+    if paper.kind == "arxiv" and paper.ident:
+        candidates.append(f"https://arxiv.org/html/{paper.ident}")
+    elif paper.kind == "url" and paper.ident and not _is_pdf_url(paper.ident):
+        candidates.append(paper.ident)
+    for source in dict.fromkeys(candidates):
+        if _saved_html_path(directory, source, paper.key) is not None:
+            return source
+    return None
+
+
+def _html_method(source: str) -> str:
+    parsed = urlsplit(source)
+    if parsed.hostname == "arxiv.org" and parsed.path.startswith("/html/"):
+        return "arxiv-html"
+    return "url-html"
 
 
 SVG_FIGURES = _REPO_ROOT / "scripts" / "pdf-figures-svg"
@@ -927,7 +970,38 @@ def fetch_paper(
             }
         return done(method, source, derivation)
 
+    def extract_pdf(source: str, pdf: Path) -> dict:
+        if (refresh_source or not pdf.exists()) and not download(source, pdf):
+            return {
+                "key": paper.key,
+                "status": "failed",
+                "reason": "pdf download failed",
+            }
+        if download_only:
+            return {
+                "key": paper.key,
+                "status": "downloaded",
+                "note": "no sentinel; extract later",
+            }
+        notes = run_marker(pdf, directory, paper.key, svg_figures=svg_figures)
+        if notes is not None:
+            return {**done("pdf-marker", source), **notes}
+        reason = (
+            "marker_single not on PATH"
+            if not have("marker_single")
+            else "marker produced no markdown"
+        )
+        return {
+            "key": paper.key,
+            "status": "failed",
+            "reason": reason,
+            "kept": str(pdf),
+        }
+
     if paper.kind == "url":
+        if _is_pdf_url(paper.ident):
+            name = Path(unquote(urlsplit(paper.ident).path)).name
+            return extract_pdf(paper.ident, directory / name)
         if save_page(directory, paper.ident, paper.key):
             if download_only:
                 return {
@@ -949,24 +1023,7 @@ def fetch_paper(
         return derive("arxiv-html", html_url)
 
     pdf_url = f"https://arxiv.org/pdf/{paper.ident}"
-    pdf = directory / "source.pdf"
-    if (refresh_source or not pdf.exists()) and not download(pdf_url, pdf):
-        return {"key": paper.key, "status": "failed", "reason": "pdf download failed"}
-    if download_only:
-        return {
-            "key": paper.key,
-            "status": "downloaded",
-            "note": "no sentinel; extract later",
-        }
-    notes = run_marker(pdf, directory, paper.key, svg_figures=svg_figures)
-    if notes is not None:
-        return {**done("pdf-marker", pdf_url), **notes}
-    reason = (
-        "marker_single not on PATH"
-        if not have("marker_single")
-        else "marker produced no markdown"
-    )
-    return {"key": paper.key, "status": "failed", "reason": reason, "kept": str(pdf)}
+    return extract_pdf(pdf_url, directory / "source.pdf")
 
 
 # --- audit ---
@@ -1013,7 +1070,11 @@ def audit_findings(survey: Survey) -> list[dict]:
         elif paper.grounded:
             report(paper.key, "grounded", f"grounded: true, but no {SENTINEL}")
 
-        if sentinel is not None and sentinel.method in HTML_METHODS:
+        if (
+            sentinel is not None
+            and sentinel.method in HTML_METHODS
+            and not _is_pdf_url(sentinel.source)
+        ):
             markdown = _recorded_markdown_path(directory, sentinel)
             if markdown is None:
                 report(
@@ -1033,6 +1094,12 @@ def audit_findings(survey: Survey) -> list[dict]:
                     "html-derivation",
                     "HTML extract sentinel records no derivation tool/version",
                 )
+        elif sentinel is not None and not has_content(directory):
+            report(
+                paper.key,
+                "extract-content",
+                "completed extract contains no Markdown",
+            )
 
         if directory.is_dir() and paper.ident is None:
             report(
@@ -1142,10 +1209,18 @@ def verb_audit(args) -> int:
 
 def verb_fetch(args) -> int:
     survey = resolve(args)
+    if args.derive_only and (
+        args.refetch or args.revalidate or args.download_only or args.no_html
+    ):
+        die(
+            "--derive-only cannot be combined with --refetch, --revalidate, "
+            "--download-only, or --no-html",
+            ExitCode.USAGE,
+        )
     if args.keys:
         wanted = [survey.find(key) for key in args.keys]
     else:
-        if args.revalidate or args.refetch:
+        if args.derive_only or args.revalidate or args.refetch:
             wanted = [p for p in survey.papers if p.ident]
         else:
             wanted = [
@@ -1173,21 +1248,44 @@ def verb_fetch(args) -> int:
             )
             continue
         sentinel = read_sentinel(survey.sentinel_path(paper.key))
+        if args.derive_only and sentinel is None:
+            results.append(
+                {
+                    "key": paper.key,
+                    "status": "skipped",
+                    "reason": "no completed extract",
+                }
+            )
+            continue
         if sentinel is not None and not args.refetch:
-            if not args.revalidate:
+            if not args.revalidate and not args.derive_only:
                 results.append(
                     {"key": paper.key, "status": "skipped", "reason": "already fetched"}
                 )
                 continue
             derived = None
             directory = survey.extract_dir(paper.key)
-            if html_derivation_missing(directory, sentinel):
+            if html_derivation_missing(directory, sentinel) or _legacy_html_only(
+                directory, sentinel
+            ):
+                source = _saved_html_source(directory, paper, sentinel)
                 try:
-                    derivation = derive_saved_html(
-                        directory, sentinel.source, paper.key
-                    )
-                except HtmlSourceNotFound:
-                    pass
+                    if source is None:
+                        raise HtmlSourceNotFound(
+                            "downloaded page has no unambiguous HTML entry point"
+                        )
+                    derivation = derive_saved_html(directory, source, paper.key)
+                except HtmlSourceNotFound as exc:
+                    if args.derive_only:
+                        results.append(
+                            {
+                                "key": paper.key,
+                                "status": "failed",
+                                "reason": f"HTML derivation failed: {exc}",
+                            }
+                        )
+                        failed = True
+                        continue
                 except (HtmlDerivationError, OSError, UnicodeError) as exc:
                     results.append(
                         {
@@ -1199,6 +1297,8 @@ def verb_fetch(args) -> int:
                     failed = True
                     continue
                 else:
+                    sentinel.method = _html_method(source)
+                    sentinel.source = source
                     sentinel.markdown = derivation.markdown
                     sentinel.derived_with = HTML_DERIVATION
                     write_sentinel(survey.sentinel_path(paper.key), sentinel)
@@ -1210,6 +1310,18 @@ def verb_fetch(args) -> int:
                         "markdown": derivation.markdown,
                         "html": derivation.html,
                     }
+                    if args.derive_only:
+                        results.append(derived)
+                        continue
+            if args.derive_only:
+                results.append(
+                    {
+                        "key": paper.key,
+                        "status": "skipped",
+                        "reason": "no local HTML derivation needed",
+                    }
+                )
+                continue
             if is_unchanged(sentinel.source, sentinel) and not html_derivation_missing(
                 directory, sentinel
             ):
@@ -1365,6 +1477,11 @@ def build_parser():
         "--revalidate",
         action="store_true",
         help="Ask the server whether a completed extract is stale (ETag/Last-Modified) and rebuild if so.",
+    )
+    p.add_argument(
+        "--derive-only",
+        action="store_true",
+        help="Derive missing Markdown from saved HTML without network access.",
     )
     p.add_argument(
         "--no-html",
