@@ -6,7 +6,7 @@
 
 Topic: on-deck
 
-RUNS/RESEARCH overlap: run-orchestration policy (RUNS) used to keep a research
+RUNS-RESEARCH overlap: run-orchestration policy (RUNS) used to keep a research
 program's GPU productive between higher-capability agent cycles (RESEARCH).
 
 ## Model

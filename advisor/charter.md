@@ -15,7 +15,7 @@ default core is:
 - `~/agents/AGENTS.user.md`;
 - `~/agents/RESEARCH.md`;
 - `~/agents/research-advisor.md`;
-- `~/agents/RESEARCH/direction.md`; and
+- `~/agents/_RESEARCH/direction.md`; and
 - `~/agents/topics/handoffs.md`.
 
 Project-wide and program charter amendments follow that core. Then load, in

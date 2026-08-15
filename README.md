@@ -60,10 +60,10 @@ branches, commits, shared workdirs, or private notes.
 | `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md` | Harness-specific mechanics such as session identifiers, log locations, and launcher quirks. |
 | `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier latitude and extra reminders; load-bearing policy still belongs in `AGENTS.global.md`. |
 | `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md` | Model-family behavior patches selected from the harness-recorded model id. |
-| `RESEARCH.md`, `RESEARCH/` | Short research router plus binding concern packets that combine rules, templates, rationale, and edge cases. |
+| `RESEARCH.md`, `_RESEARCH/` | Short research router plus binding concern packets that combine rules, templates, rationale, and edge cases. |
 | `research-advisor.md` | Handoff protocol for the long-lived, normally project-wide skeptical research-advisor session. |
 | `advisor/charter.md` | Durable global mandate and operating behavior loaded into every research-advisor session. |
-| `RUNS.md`, `RUNS/` | Short run-operation router plus binding resource, provenance, and monitoring packets. |
+| `RUNS.md`, `_RUNS/` | Short run-operation router plus binding resource, provenance, and monitoring packets. |
 | `feature-branch.md` | Optional branch-per-feature workflow for projects that opt into it. |
 | `PROGRAM.md` | A scope's descriptive charter plus optional binding program instructions for its directory subtree. |
 | `GLOSSARY.md` | Project vocabulary that agents should reuse in docs, code, UI copy, and commits. |

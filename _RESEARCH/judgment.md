@@ -241,7 +241,7 @@ accept-or-discard: the routed hybrid — revision on its predicted slice,
 incumbent elsewhere — is correct whether the tie was dilution or
 cancellation. The up-front power arithmetic tells you before the run which
 reading a tie would carry. Significance mechanics for the sliced comparison
-follow `RESEARCH/evidence.md`.
+follow `_RESEARCH/evidence.md`.
 
 **Freeze the predicted slice.** The recorded prediction is the license for
 the sliced test. If the slice is widened after seeing sliced results, the

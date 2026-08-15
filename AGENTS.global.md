@@ -268,7 +268,7 @@ missing one once and continue. Re-read the binding main at the governed action
 boundary after compaction/resume unless the harness verifiably reconstructs
 that exact current packet or a boot-loaded scoped supplement explicitly sets an
 evidence-backed cadence; summarized recollection is insufficient.
-`AGENTS/` detail is optional and this main wins. Routed RESEARCH/RUNS packets
+`AGENTS/` detail is optional and this main wins. Routed _RESEARCH/_RUNS packets
 are binding for their named conditions; their short indexes own routing and
 win on packet conflict.
 
@@ -277,22 +277,22 @@ win on packet conflict.
   research-advisor work. It is a short router. Compaction-durable high-value
   routes are:
   - research paper/log/program/result-table/progress-report work →
-    `RESEARCH/artifacts.md`;
+    `_RESEARCH/artifacts.md`;
   - field survey, prior art, direction ranking, or a material advisor decision
-    → `RESEARCH/direction.md`;
+    → `_RESEARCH/direction.md`;
   - a newly ingested or materially transformed dataset, newly wired
     experimental result, train/eval/gate summary, comparison, or significance
-    claim → `RESEARCH/evidence.md`; and
+    claim → `_RESEARCH/evidence.md`; and
   - an untuned elaborate arm, multi-difference attribution, or closure of a
-    substantial weak/surprising line → `RESEARCH/judgment.md`.
+    substantial weak/surprising line → `_RESEARCH/judgment.md`.
 - `RUNS.md` — before using local accelerators or launching, monitoring, waiting
   for, or summarizing tracked/long-running jobs. It is a short router:
   - Python that may import an accelerator stack or GPU-capacity allocation →
-    `RUNS/resources.md`;
+    `_RUNS/resources.md`;
   - an important saved output, in-flight record, or row-wise transformed
-    dataset → `RUNS/provenance.md`; and
+    dataset → `_RUNS/provenance.md`; and
   - a session-outliving launch, foreground wait, monitor/summary, or run-policy
-    failure reconstruction → `RUNS/monitoring.md`.
+    failure reconstruction → `_RUNS/monitoring.md`.
 - `feature-branch.md` — when project instructions name it or the repo plainly
   uses feature branches; otherwise stay branch-agnostic.
 - `AGENTS/` — optional slow-path detail only for a matching named section or a

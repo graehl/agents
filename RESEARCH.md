@@ -17,24 +17,24 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 
 ## Packet routes
 
-- [`RESEARCH/artifacts.md`](RESEARCH/artifacts.md) — before creating,
+- [`_RESEARCH/artifacts.md`](_RESEARCH/artifacts.md) — before creating,
   reorganizing, or materially updating a research branch's paper proposal,
   paper, handout, research blog, log, task structure, program, result table, or
   progress report.
-- [`RESEARCH/direction.md`](RESEARCH/direction.md) — before field-survey,
+- [`_RESEARCH/direction.md`](_RESEARCH/direction.md) — before field-survey,
   prior-art, or direction-ranking work, and when a material decision or changed
   evidence state triggers the research advisor; also when an advisor-governed
   program completes the intended v1 of a working document or live handoff, or
   completes a later role/scope/path change or retirement.
-- [`RESEARCH/evidence.md`](RESEARCH/evidence.md) — before accepting a newly
+- [`_RESEARCH/evidence.md`](_RESEARCH/evidence.md) — before accepting a newly
   ingested or materially transformed dataset, presenting a newly wired
   experimental result, making a comparison or significance claim, or
   summarizing train/eval/gate conditions.
-- [`RESEARCH/judgment.md`](RESEARCH/judgment.md) — before judging an elaborate
+- [`_RESEARCH/judgment.md`](_RESEARCH/judgment.md) — before judging an elaborate
   arm without a tuned cheap baseline, attributing a surprising change after
   multiple differences, reading a tie on a revision built for stated reasons,
   or parking a substantial weak or surprising line.
-- [`RESEARCH/workflow.md`](RESEARCH/workflow.md) — before queueing, resuming,
+- [`_RESEARCH/workflow.md`](_RESEARCH/workflow.md) — before queueing, resuming,
   checkpointing, or autonomously selecting research work.
 
 When one action matches multiple conditions, read all matching packets. Do not

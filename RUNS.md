@@ -17,14 +17,14 @@ named scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 
 ## Packet routes
 
-- [`RUNS/resources.md`](RUNS/resources.md) — before a Python command that may
+- [`_RUNS/resources.md`](_RUNS/resources.md) — before a Python command that may
   import a local accelerator stack, before allocating GPU capacity, before a
   run with a nontrivial storage footprint, or before launching an on-deck
   filler.
-- [`RUNS/provenance.md`](RUNS/provenance.md) — before launching tracked work
+- [`_RUNS/provenance.md`](_RUNS/provenance.md) — before launching tracked work
   that produces an important saved output, defining its in-flight record, or
   accepting a row-wise transformed dataset.
-- [`RUNS/monitoring.md`](RUNS/monitoring.md) — before launching a job expected
+- [`_RUNS/monitoring.md`](_RUNS/monitoring.md) — before launching a job expected
   to outlive the session, entering a foreground wait, monitoring or summarizing
   a long job, or reconstructing a run-policy failure.
 

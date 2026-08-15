@@ -130,7 +130,7 @@ papers directly below a program root need no migration.
 The new draft starts with an explicit epistemic status and links back to the
 proposal, `PROGRAM.md`, program glossary, and canonical internal topic when one
 exists. Follow the speculative-draft, paper/log boundary, result-table, and
-related-work contracts in `RESEARCH/artifacts.md`. A `TBD` names the missing
+related-work contracts in `_RESEARCH/artifacts.md`. A `TBD` names the missing
 measurement and its falsifier; it never impersonates a result.
 
 The `.md` path is the lightweight skeleton form. When the draft first needs a

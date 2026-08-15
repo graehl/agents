@@ -138,12 +138,12 @@ snapshot it under `.backups/<YYYYmmdd-HHMMSS>/<relative-path>`.
 
 Companion docs hold split-out, opt-in policy:
 - `RESEARCH.md` — a short router for substantive research/experimentation;
-  binding concern packets live under `RESEARCH/`. Shared field surveys live
+  binding concern packets live under `_RESEARCH/`. Shared field surveys live
   under `~/agents/surveys/<field>/` (`survey.md` map + per-concept
   `concepts/<short>.md` digests) and should be searched before extracting a
   field afresh.
 - `RUNS.md` — a short run-operation / `agentctl` router; binding resource,
-  provenance, and monitoring packets live under `RUNS/`.
+  provenance, and monitoring packets live under `_RUNS/`.
 - `feature-branch.md` — branch-per-feature workflow; load when the
   project's `AGENTS.md` names it or the repo plainly uses feature
   branches. Default policy is branch-agnostic without it.

@@ -70,7 +70,7 @@ non-leaky downstream comparison improves the incumbent. Otherwise fix pipeline
 defects and consider additional corpus or resource intake, teacher supervision,
 and filtering or reweighting before abandoning the direction. For row-wise
 transforms, this complements rather than replaces the structural provenance
-and alignment checks in `RUNS/provenance.md`.
+and alignment checks in `_RUNS/provenance.md`.
 
 ### Result-sanity preview
 

@@ -11,7 +11,7 @@ demand.
 ## Scope and continuity
 
 The default unit is one research program. Discover program roots by the
-presence of `research/<program>/PROGRAM.md` (`RESEARCH/artifacts.md` § Research
+presence of `research/<program>/PROGRAM.md` (`_RESEARCH/artifacts.md` § Research
 programs); a glossary without that sibling scopes vocabulary only, so no
 subdirectory forks an advisor by merely existing. A program advisor uses:
 
@@ -123,7 +123,7 @@ default core is:
 - `~/agents/AGENTS.user.md`;
 - `~/agents/RESEARCH.md`;
 - `~/agents/research-advisor.md`;
-- `~/agents/RESEARCH/direction.md`; and
+- `~/agents/_RESEARCH/direction.md`; and
 - `~/agents/topics/handoffs.md`.
 
 Add the project-wide and program charter amendments from metadata. Store these

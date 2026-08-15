@@ -113,7 +113,7 @@ or queued job whose result you will consume, or an idle-GPU successor
 decision — unless the user explicitly deferred it. Either consume and
 launch now, or end the turn inside the announced foreground `agentctl
 wait`/`watch` at the earned rung
-(`RUNS/monitoring.md` § Wait watchdog discipline).
+(`_RUNS/monitoring.md` § Wait watchdog discipline).
 Interactive questions do not suspend this: answer, then re-enter the
 wait in the same turn. Compaction does not clear the obligation —
 re-verify job state and re-enter the wait.

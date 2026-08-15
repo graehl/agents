@@ -29,8 +29,8 @@ Harness-injected files are outside this tool-read comparison.
 
 On 2026-08-12 those monoliths were reorganized into condition-routed packet
 directories. The largest independent reads after cleanup are
-`AGENTS/change-delivery.md` at 7,446 tokens, `RESEARCH/artifacts.md` at 6,074,
-and `RUNS/monitoring.md` at 4,968; the RESEARCH and RUNS routers are 486 and 385
+`AGENTS/change-delivery.md` at 7,446 tokens, `_RESEARCH/artifacts.md` at 6,074,
+and `_RUNS/monitoring.md` at 4,968; the RESEARCH and RUNS routers are 486 and 385
 tokens. This lowers the known truncation exposure without adding a per-read
 verification ritual. It does not measure how often an agent misses a route or
 otherwise mistakes partial output for a complete required read.

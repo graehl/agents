@@ -18,11 +18,11 @@ AGENTS.grok.md
 AGENTS.frontier.md
 AGENTS.weak.md
 RESEARCH.md
-RESEARCH/*.md
+_RESEARCH/*.md
 research-advisor.md
 advisor/charter.md
 RUNS.md
-RUNS/*.md
+_RUNS/*.md
 feature-branch.md
 field-map.md
 literature-search.md

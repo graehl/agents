@@ -104,7 +104,7 @@ keep-busy rule.
 #### Failure postmortems
 
 When reconstructing a failure to follow run policy, cite the governing
-RUNS/AGENTS section and distinguish direct evidence from post-hoc inference.
+_RUNS or AGENTS section and distinguish direct evidence from post-hoc inference.
 Prefer section names and short exact phrases over vague summaries.
 
 ## Retained detail and examples
@@ -352,7 +352,7 @@ when the project instructions call for that.
 #### Failure postmortems
 
 When troubleshooting your own failure to comply with instructions, explicitly
-cite the RUNS/AGENTS sections that were likely governing or distorting the mistaken
+cite the _RUNS or AGENTS sections that were likely governing or distorting the mistaken
 behavior. This may require post-hoc reconstruction rather than direct access to
 the exact activations that produced an earlier turn; say so plainly when
 uncertain. Prefer section headers and short quoted phrases over vague
