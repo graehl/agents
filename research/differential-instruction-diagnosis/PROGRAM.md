@@ -8,8 +8,9 @@ clauses — as the primary evidence about where the corpus is ambiguous,
 mis-weighted, or model-specifically ineffective.
 
 Durable themes: divergence as signal rather than noise to aggregate away;
-transcript-objective evidence (file-read traces, outputs, logged thinking)
-as the trust floor, with forked-producer self-report as bounded enrichment;
+transcript-objective evidence (file-read traces, outputs) as the trust
+floor — logged thinking summaries admitted as support only, never
+acquittal — with forked-producer self-report as bounded enrichment;
 every proposed instruction patch is a pre-registered hypothesis naming where
 improvement must appear; orchestration scripted for incentive neutrality, so
 a producer gains nothing by minimizing its own model-class patch or

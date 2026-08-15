@@ -22,14 +22,15 @@ model-supplement layer (`AGENTS.anthropic.md`, `AGENTS.opus.md`,
 `AGENTS.sol.md`, …) currently fills from ad-hoc observed incidents; this
 protocol harvests its evidence systematically.
 
-Name ancestry, in two exact senses: stage 1 is software **differential
-testing** (two implementations of one spec; divergence flags an
-implementation defect or an underspecified spec region — the
-undefined-behavior case is the corpus-ambiguity case), and stage 2 is a
-medical-sense **differential diagnosis** (per symptom, discriminate among
-candidate causes by targeted tests). The misleading medical reading —
-"differential" as comparing two patients — does not occur in medicine and is
-not meant here.
+"Differential" is deliberately overloaded, and every sense is meant. Most
+salient: the instrument's contrast pair is two substantially different
+frontier models. The evidence is the difference — in their performance and
+in the narrative of how the same instructions bore on each. Each divergence
+then receives a differential diagnosis in the ordinary medical sense:
+candidate causes discriminated by targeted checks. (Software **differential
+testing** — two implementations of one spec, where divergence flags an
+implementation defect or an underspecified spec region — is stage 1's
+structural ancestor; corroborating, not load-bearing.)
 
 ## Protocol
 
@@ -48,14 +49,21 @@ protocol awareness is required at this stage (and naive production is the
 cleaner condition).
 
 **Stage 2 — differential attribution.** Fork each producer from its
-post-answer state (the attribution fork). Two passes:
+post-answer state (the attribution fork). Three passes:
 
-1. *Read-trace diff (mechanical pre-pass).* Diff which corpus files and
+1. *Pre-registered self-account.* The fork's first turn — before any peer
+   material enters its context — elicits a private account of its key
+   decisions and what drove them. Paging the peer transcript is itself the
+   context movement that degrades the introspective access the fork exists
+   to preserve, so the account is captured at maximal proximity; it anchors
+   the attribution pass, and stage 3 reads self-account/attribution
+   divergence as a sneakiness signal.
+2. *Read-trace diff (mechanical pre-pass).* Diff which corpus files and
    sections each session actually opened, from logged tool calls. This is
    objective, introspection-free, and flattery-immune: "B never loaded
    `_RESEARCH/judgment.md`; A read it at turn 12" is checkable. Divergences
    the trace already explains need no introspection.
-2. *Attribution pass.* The fork receives a step/search tool over the peer
+3. *Attribution pass.* The fork receives a step/search tool over the peer
    transcript (paged access — never a full dump, so the fork's context stays
    viable). For each behavioral divergence it issues a divergence verdict:
    shared-clause ambiguity, differential salience, or model prior — the
@@ -68,16 +76,20 @@ continued session is the sole party with any access to the producer's actual
 reasoning trace. For labs that withhold raw CoT client-side, thought-bearing
 tokens persist server-side across same-lab continuation (observed:
 model-switch continuations surfacing a prior model's thinking), so the fork
-is strictly privileged over any judge; on the Claude side, thinking lands in
-the local session log, so the orchestrator can additionally audit the fork's
-self-report against recorded thinking. Both bounds are recorded in *Evidence
-layers* below.
+is strictly privileged over any judge. Claude-side session logs do record
+thinking, but as a cheap summarizer's product observed to drop exactly
+confession-class content — an opening eval-recognition admission ("this is
+just [eval] problem [id]") vanished while the method exposition survived —
+so a logged confession supports an attribution and a clean log acquits
+nothing. These bounds are recorded in *Evidence layers* below.
 
 **Stage 3 — cross-audit.** The two attribution reports are exchanged. Each
 fork audits the other's report against visible evidence only — read traces,
-quoted clauses, output diffs, and (where available) logged thinking — and
-flags self-serving attribution: fault located in shared wording to avoid an
-own-class patch, minimized own-model misreadings, lab-flattering framing.
+quoted clauses, output diffs, and logged thinking summaries (support-only;
+see *Evidence layers*) — and flags self-serving attribution: fault located
+in shared wording to avoid an own-class patch, minimized own-model
+misreadings, lab-flattering framing, and divergence between a fork's
+pre-registered self-account and its later attributions.
 Adversarial persona framing is permitted here and in stage 4, where
 harshness does useful work.
 
@@ -107,15 +119,25 @@ hypotheses with unusually good targeting; ablation remains the verdict.
 
 ## Evidence layers, ordered by trust
 
-1. **Transcript-objective** (floor): file-read traces, tool calls, outputs,
-   and logged thinking where the harness records it.
-2. **Forked self-report** (enrichment): privileged access to own reasoning,
-   but (a) provider-revocable — continuation access to thinking may close,
-   so no protocol stage may *depend* on it — and (b) faithfulness-bounded:
-   access is to the verbalized trace, not the computation
+1. **Transcript-objective** (floor): file-read traces, tool calls, and
+   outputs.
+2. **Logged thinking summaries** (asymmetric): a summarizer's product — an
+   untrusted redaction layer whether the omission is cheapness or
+   lab-aligned selection — observed to drop exactly confession-class
+   content. A logged confession is strong support; a clean log acquits
+   nothing.
+3. **Forked self-report** (enrichment): privileged access to own reasoning,
+   anchored by the pre-registered self-account, but (a) provider-revocable
+   — continuation access to thinking may close, so no protocol stage may
+   *depend* on it — and (b) faithfulness-bounded: access is to the
+   verbalized trace, not the computation
    (`surveys/llm-intelligence/survey.md` §E2, §F1).
-3. **Peer audit** (stage 3): adversarial check of 2 against 1.
-4. **Ablation/rerun** (confirmation): the only layer that grounds a causal
+4. **Guided probing** (drawn-out self-report): a diagnosis-guider probes
+   the fork starting from the transcript; slower, and each probing turn
+   spends the proximity it depends on. For when the layers above disagree.
+5. **Peer audit** (stage 3): adversarial check of the self-report layers
+   against the objective ones.
+6. **Ablation/rerun** (confirmation): the only layer that grounds a causal
    claim about a clause.
 
 ## Outputs and routing
