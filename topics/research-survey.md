@@ -51,11 +51,16 @@
   the paper title — is added later, and only for a paper that earns a concept
   page. So extracts are keyed by citation key: keying them by `short` orphans
   every already-fetched extract the day a handle is assigned.
-- **Extracts are computed, git-ignored, reconstitutable.** Extraction produces a
-  good `.md` — via **marker-pdf** (`AGENTS.global.md § PDF reading` + the
-  `AGENTS.user.md` host recipe) for PDFs, or the equally valid **arXiv HTML
-  view** (`arxiv.org/html/<id>`) — or a saved **HTML** file (markdown is not
-  required; marker-pdf→md is the *proposed PDF path*, not a mandate). Extracts
+- **Extracts are computed, git-ignored, reconstitutable.** The searchable
+  target artifact is a good `.md` per paper. Source preference: when an HTML
+  view exists (`arxiv.org/html/<id>`, a blog page), derive the `.md` from it
+  — cleaner and cheaper than PDF reconstruction; fall back to **marker-pdf**
+  (`AGENTS.global.md § PDF reading` + the `AGENTS.user.md` host recipe) only
+  for PDF-only papers. Keep a distinct saved **HTML** copy only when it
+  carries interactive or presentation elements that do not map well to
+  markdown; otherwise the derived `.md` suffices. (Engine gap: the
+  arxiv-html fetch method currently saves raw HTML without deriving `.md` —
+  `gaps/related-work-html-to-md.md`.) Extracts
   are `.gitignore`d — a *shared* policy so every clone ignores them (deliberately
   `.gitignore`, not the `.git/info/exclude` used for owner-might-track
   convention dirs): they are regenerable "computed" artifacts, durable in the
