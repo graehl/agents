@@ -39,8 +39,10 @@ structural ancestor; corroborating, not load-bearing.)
 
 **Stage 0 — setup.** One task; one corpus version (recorded by commit;
 task-scoped instruction set through boot omnibus); two producer sessions
-on different-lab frontier models, same harness
-conventions where possible. Task sources: a challenging benchmark task, or
+on different-lab frontier models. Harness conventions are held as equal
+as the labs allow — load-bearing, not a nicety: harness variation alone
+induces large divergence with instructions fixed (survey A3, arXiv
+2607.04528), so unequal harnesses swamp corpus attribution. Task sources: a challenging benchmark task, or
 an ordinary organic user request processed slowly. Eligibility constraint:
 running the protocol ships the request, corpus, and both transcripts to both
 labs, so tasks carrying private context are ineligible. Persona framing of
@@ -178,22 +180,36 @@ hypotheses with unusually good targeting; ablation remains the verdict.
 
 ## Relation to prior art
 
-Nearest neighbors, per the field map (`surveys/agent-prompting-orchestration/`):
-reflective prompt optimization (GEPA — single-system, outcome-metric-driven,
-mutates text rather than attributing causes); multi-agent debate/consensus
-(aggregates divergence away instead of reading it); LLM-as-judge (compares
-outputs, never attributes to a shared corpus); 2026 trajectory-forensics
-work (divergence attribution for failure triage, single scaffold); software
-differential testing (the structural ancestor). The neighbors also split on
-a second axis the claim uses — attribution versus repair: the forensics
-cluster attributes divergence but repairs nothing, GEPA mutates the prompt
-but attributes nothing, and PromptExp attributes one model's prompt
-components with no repair routing. The combination — heterogeneous
-producers, one versioned corpus (task-scoped or boot-omnibus), clause-cited
-attribution by post-answer forks with cross-audit, patches routed back into
-that corpus and its model-scoped supplements, ablation-gated — appears
-open; `novelty-confidence: speculative` pending a grounded falsification
-pass (survey §*Placement*).
+Nearest neighbors, per the field map
+(`surveys/agent-prompting-orchestration/`, grounded falsification slice
+2026-08-15): GEPA — reflective prompt optimization that *does* attribute
+failures to prompt elements before rewriting, single-system and
+outcome-scored (corrects this proposal's earlier "mutates without
+attributing"); HarnessFix — the nearest attribute+repair neighbor,
+aligning failed-trajectory steps with harness artifacts including prompt
+templates and applying scoped, regression-validated repairs, but from
+single-system failure signals; One Recipe, Many Harnesses — closest goal
+overlap, reaching the shared-vs-model-specific question by evolving
+separate per-model harnesses and comparing artifacts post hoc; corpus
+auditing (Arbiter's static cross-vendor contradiction audit, Instruction
+Bleed's module-interference perturbation tests) — the corpus object
+without trajectory signal or repair; multi-agent debate/consensus
+(aggregates divergence away); LLM-as-judge (compares outputs, never
+attributes to a shared corpus); software differential testing (the
+structural ancestor).
+
+So the bare attribute+repair combination is occupied at adjacent objects.
+What stays open — verified by the falsification pass, with residuals
+recorded in the survey's `frontier.md` — is this program's signal and
+object: divergence between heterogeneous producers under one shared
+versioned corpus, clause-cited attribution checkable against read traces,
+patches routed into that corpus and its model-scoped supplements,
+ablation-gated. `novelty-confidence: moderate`. Divergence-as-signal also
+has a practical edge the failure-signal neighbors lack: it needs no
+ground truth and no failure, so ordinary organic tasks qualify. Two
+protocol pieces now have published cousins: One Recipe's per-edit
+predicted-impact contracts (the pre-registered patch discipline) and
+Arbiter's multi-model auditor diversity (the stage-3 cross-audit).
 
 ## Future work
 
@@ -205,6 +221,10 @@ pass (survey §*Placement*).
 - Producer-fork vs external-judge vs blinded-judge attribution quality, at
   matched cost.
 - Framing as a variable: neutral vs adversarial persona across stages.
-- Grounded prior-art pass to settle the novelty claim.
+- Grounded prior-art pass: run 2026-08-15 (gate passed at moderate
+  confidence; survey `frontier.md` holds the record). Residual sweeps:
+  citers of Arbiter / Instruction Bleed / One Recipe, debate-survey
+  reference lists, industrial write-ups; fastest-moving neighbor is the
+  harness self-evolution cluster (revisit 2026-10).
 - Cost accounting: two producer sessions + two forks + exchange per organic
   task; identify the task classes worth the spend.
