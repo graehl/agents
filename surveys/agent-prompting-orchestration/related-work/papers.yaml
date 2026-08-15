@@ -1,0 +1,213 @@
+# Metadata manifest for surveys/agent-prompting-orchestration.
+#
+# Built and checked by the shared `related-work` engine (scripts/related-work
+# in ~/agents; contract topics/research-survey.md): `related-work fetch` builds
+# extracts under ./extract/<key>/, `related-work audit` reconciles this file
+# against them, `related-work status` derives survey.md's grounding banner.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# 2026-08-15 falsification slice: entries marked verified below were checked
+# by prompted full-text reads of the arXiv HTML pages that day (title, id,
+# year, and the content claims cited in survey.md/frontier.md). Author lists
+# not captured during those reads are null pending engine fetch.
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+
+meta:
+  field_slug: agent-prompting-orchestration
+  coverage_cutoff: 2026-08-15
+  grounding_mode: grounded-in-progress
+  model_training_cutoff: 2026-01
+
+papers:
+  # --- F. trajectory attribution, forensics, harness repair ---
+  - key: skilltriage2026
+    title: "Agent Skills Can Be Harmful (SkillTriage)"
+    authors: null
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2608.11888"
+    url: "https://arxiv.org/html/2608.11888v1"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: F
+    note: >
+      Single system (OpenCode + Claude Opus 4.6); contrastive target-vs-
+      reference trajectories; attribution at skill-module granularity;
+      classification only, no repair applied. 88.8% subcategory accuracy.
+  - key: beliefdiv2026
+    title: "Measuring Harness-Induced Belief Divergence in Multi-Step LLM Agents"
+    authors: null
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2607.04528"
+    url: "https://arxiv.org/html/2607.04528"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: A
+    note: >
+      Harness varies (6 configs), instructions/model fixed; divergence from
+      evidence-stream filtering, not instruction text; no repair. Harness
+      effects large (D_fail up to 0.80) — holding harness fixed is
+      load-bearing for corpus attribution.
+  - key: agentconsistency2026
+    title: "How Consistent Are LLM Agents? Measuring Behavioral Reproducibility in Multi-Step Tool-Calling Pipelines"
+    authors: null
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2605.28840"
+    url: "https://arxiv.org/html/2605.28840"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: A
+    note: >
+      Same-model rerun noise floor: TSS 0.87, argument consistency 0.69;
+      6 models x 19 tasks x 10 runs; 60% of divergence originates in steps
+      1-2; task ambiguity the dominant driver; no repair loop.
+  - key: agentforensics2026
+    title: "Black-Box Forensics for Conversational LLM Agents"
+    authors: null
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2606.22698"
+    url: "https://arxiv.org/html/2606.22698"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: F
+    note: >
+      Attribution/fingerprinting of system prompt + base model from
+      black-box conversations; prompts treated as opaque units, no
+      clause-level attribution, no repair. Prompt sensitivity is
+      model-dependent (GPT-OSS variants near-insensitive).
+  - key: harnessfix2026
+    short: harnessfix
+    concept_page: concepts/harnessfix.md
+    title: "From Failed Trajectories to Reliable LLM Agents: Diagnosing and Repairing Harness Flaws (HarnessFix)"
+    authors: ["Mengzhuo Chen", "Junjie Wang", "Zhe Liu", "Yawen Wang", "Qing Wang"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2606.06324"
+    url: "https://arxiv.org/html/2606.06324v2"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: F
+    note: >
+      Nearest attribute+repair neighbor: HTIR aligns failed-trajectory steps
+      with harness artifacts including prompt templates; scoped repair
+      operators; regression-aware validation. Single-system failure signal,
+      no cross-model divergence, no shared corpus.
+  - key: onerecipe2026
+    short: one-recipe
+    concept_page: concepts/one-recipe.md
+    title: "One Recipe, Many Harnesses: What Self-Evolution Encodes Across Languages and Models"
+    authors: null
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2608.10178"
+    url: "https://arxiv.org/html/2608.10178"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: F
+    note: >
+      Closest goal overlap: asks what evolved harness content is
+      model-specific vs portable, via separately evolved harnesses per
+      (language, model) cell compared post hoc (Jaccard). No shared corpus,
+      no divergence-as-live-signal. Per-edit predicted-impact contracts =
+      published precedent for pre-registered patches.
+
+  # --- B. prompt optimization ---
+  - key: gepa2025
+    short: gepa
+    concept_page: concepts/gepa.md
+    title: "GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning"
+    authors: null
+    venue: "ICLR 2026 (oral) / arXiv"
+    year: 2025
+    arxiv: "2507.19457"
+    url: "https://arxiv.org/html/2507.19457"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: B
+    note: >
+      Reflection DOES attribute successes/failures to prompt elements
+      before rewriting (corrects this survey's earlier "mutates without
+      attributing"). Single system, outcome-scored, instance-level Pareto
+      selection; cross-model transfer measured post hoc only.
+  - key: promptexp2024
+    title: "PromptExp: Multi-granularity Prompt Explanation for LLMs"
+    authors: null
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2410.13073"
+    url: "https://arxiv.org/html/2410.13073"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: F
+    note: >
+      Token/word/sentence/component attribution (IG + perturbation); two
+      models evaluated separately, no cross-model divergence; human-in-loop
+      refinement (compression user study) — a weak repair loop, no corpus
+      routing or ablation gate.
+
+  # --- I. instruction-corpus auditing ---
+  - key: instructionbleed2026
+    short: instruction-bleed
+    concept_page: concepts/instruction-bleed.md
+    title: "Instruction Bleed: Cross-Module Interference in Prompt-Composed Agentic Systems"
+    authors: null
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2606.26356"
+    url: "https://arxiv.org/html/2606.26356"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: I
+    note: >
+      Compositional behavioral leakage between co-resident prompt modules;
+      three-channel perturbation protocol, paired stats (d=0.63 archetype
+      interference, sub-threshold); single model (Claude Sonnet 4.6); no
+      repair; proposes module-interaction regression testing.
+  - key: arbiter2026
+    short: arbiter
+    concept_page: concepts/arbiter.md
+    title: "Arbiter: Detecting Interference in LLM Agent System Prompts — A Cross-Vendor Analysis of Architectural Failure Modes"
+    authors: null
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2603.08993"
+    url: "https://arxiv.org/html/2603.08993v1"
+    grounded: false
+    verified: true
+    source: "prompted arXiv-HTML read 2026-08-15"
+    fetched: null
+    cluster: I
+    note: >
+      Static contradiction audit of vendor agent-CLI system prompts (Claude
+      Code, Codex CLI, Gemini CLI); block/AST/directive granularity;
+      multiple models as diverse auditors (precedent for cross-audit
+      diversity); detects, does not patch; one Gemini finding externally
+      validated by a Google patch. $0.27 total analysis cost.
