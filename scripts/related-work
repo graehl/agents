@@ -25,6 +25,7 @@ artifact.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import re
 import shutil
@@ -35,7 +36,9 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
@@ -69,6 +72,9 @@ EXIT_CODES = {
 USER_AGENT = "related-work/1 (+https://github.com/graehl/agents)"
 SENTINEL = ".fetched"
 SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+HTML_METHODS = frozenset(("arxiv-html", "url-html"))
+HTML2TEXT_VERSION = "2025.4.15"
+HTML_DERIVATION = f"html2text {HTML2TEXT_VERSION}"
 
 
 # --- manifest ---
@@ -248,6 +254,8 @@ class Sentinel:
     at: str | None = None
     etag: str | None = None
     last_modified: str | None = None
+    markdown: str | None = None
+    derived_with: str | None = None
 
     def to_json(self) -> str:
         body = {"method": self.method, "source": self.source, "at": self.at}
@@ -255,6 +263,10 @@ class Sentinel:
             body["etag"] = self.etag
         if self.last_modified:
             body["last_modified"] = self.last_modified
+        if self.markdown:
+            body["markdown"] = self.markdown
+        if self.derived_with:
+            body["derived_with"] = self.derived_with
         return json.dumps(body, sort_keys=True) + "\n"
 
 
@@ -277,6 +289,8 @@ def read_sentinel(path: Path) -> Sentinel | None:
             at=body.get("at"),
             etag=body.get("etag"),
             last_modified=body.get("last_modified"),
+            markdown=_text(body.get("markdown")),
+            derived_with=_text(body.get("derived_with")),
         )
     method, _, source = text.partition("\t")
     return Sentinel(method=method, source=source)
@@ -292,6 +306,372 @@ def write_sentinel(path: Path, sentinel: Sentinel) -> None:
 
 def have(tool: str) -> bool:
     return shutil.which(tool) is not None
+
+
+class HtmlDerivationError(RuntimeError):
+    pass
+
+
+class HtmlSourceNotFound(HtmlDerivationError):
+    pass
+
+
+@dataclass(frozen=True)
+class HtmlDerivation:
+    markdown: str
+    html: str
+
+
+class _MathPreprocessor(HTMLParser):
+    """Replace MathML with collision-free tokens and inventory rich content."""
+
+    _CONTENT_ROOTS = frozenset(("article", "main"))
+    _PRESENTATION_TAGS = frozenset(
+        (
+            "audio",
+            "button",
+            "canvas",
+            "embed",
+            "form",
+            "iframe",
+            "input",
+            "object",
+            "script",
+            "select",
+            "textarea",
+            "video",
+        )
+    )
+
+    def __init__(self, placeholder_prefix: str):
+        super().__init__(convert_charrefs=False)
+        self.placeholder_prefix = placeholder_prefix
+        self.output: list[str] = []
+        self.replacements: list[tuple[str, str, bool]] = []
+        self.math_depth = 0
+        self.annotation_depth: int | None = None
+        self.annotation: list[str] = []
+        self.block_math = False
+        self.content_roots: list[str] = []
+        self.saw_content_root = False
+        self.presentation: set[str] = set()
+        self.content_presentation: set[str] = set()
+
+    def _record_presentation(
+        self, tag: str, attributes: list[tuple[str, str | None]]
+    ) -> None:
+        attrs = {name.lower(): (value or "").lower() for name, value in attributes}
+        reasons = {
+            "data URI"
+            for name, value in attributes
+            if name.lower() in ("data", "href", "poster", "src")
+            and (value or "").lstrip().lower().startswith("data:")
+        }
+        if any(
+            name.lower() == "href"
+            and (
+                (value or "").lstrip().startswith("#")
+                or re.search(r"\.html?(?:[?#][^#]*)?#", value or "", re.IGNORECASE)
+            )
+            for name, value in attributes
+        ):
+            reasons.add("section anchors")
+        if tag in self._PRESENTATION_TAGS:
+            reasons.add(tag)
+        elif tag == "svg" and not (
+            attrs.get("role") == "presentation" or attrs.get("aria-hidden") == "true"
+        ):
+            reasons.add("svg")
+        elif tag in ("td", "th") and any(
+            attrs.get(name, "1") not in ("", "1") for name in ("colspan", "rowspan")
+        ):
+            reasons.add("spanning table")
+        if reasons:
+            self.presentation.update(reasons)
+            if self.content_roots:
+                self.content_presentation.update(reasons)
+
+    def _start_tag(
+        self,
+        tag: str,
+        attributes: list[tuple[str, str | None]],
+        *,
+        self_closing: bool = False,
+    ) -> str:
+        if not any(
+            name.lower() in ("data", "href", "poster", "src")
+            and (value or "").lstrip().lower().startswith("data:")
+            for name, value in attributes
+        ):
+            return self.get_starttag_text()
+        kept = [
+            (name, value)
+            for name, value in attributes
+            if not (
+                name.lower() in ("data", "href", "poster", "src")
+                and (value or "").lstrip().lower().startswith("data:")
+            )
+        ]
+        rendered = [f"<{tag}"]
+        for name, value in kept:
+            rendered.append(
+                f' {name}="{html.escape(value, quote=True)}"'
+                if value is not None
+                else f" {name}"
+            )
+        rendered.append(" />" if self_closing else ">")
+        return "".join(rendered)
+
+    def handle_starttag(
+        self, tag: str, attributes: list[tuple[str, str | None]]
+    ) -> None:
+        tag = tag.lower()
+        if self.math_depth:
+            self.math_depth += 1
+            attrs = {name.lower(): (value or "").lower() for name, value in attributes}
+            if tag == "annotation" and attrs.get("encoding") == "application/x-tex":
+                self.annotation_depth = self.math_depth
+            return
+        if tag == "math":
+            attrs = {name.lower(): (value or "").lower() for name, value in attributes}
+            self.math_depth = 1
+            self.annotation_depth = None
+            self.annotation = []
+            self.block_math = attrs.get("display") == "block"
+            return
+        if tag in self._CONTENT_ROOTS:
+            self.content_roots.append(tag)
+            self.saw_content_root = True
+        self._record_presentation(tag, attributes)
+        self.output.append(self._start_tag(tag, attributes))
+
+    def handle_startendtag(
+        self, tag: str, attributes: list[tuple[str, str | None]]
+    ) -> None:
+        tag = tag.lower()
+        if self.math_depth:
+            return
+        if tag == "math":
+            raise HtmlDerivationError("a MathML element has no TeX annotation")
+        self._record_presentation(tag, attributes)
+        self.output.append(self._start_tag(tag, attributes, self_closing=True))
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if self.math_depth:
+            if self.math_depth == 1:
+                tex = "".join(self.annotation).strip()
+                if tag != "math" or not tex:
+                    raise HtmlDerivationError(
+                        "a MathML element has no application/x-tex annotation"
+                    )
+                placeholder = (
+                    f"{self.placeholder_prefix}{len(self.replacements):08d}END"
+                )
+                self.output.append(placeholder)
+                self.replacements.append((placeholder, tex, self.block_math))
+                self.math_depth = 0
+                self.annotation_depth = None
+                return
+            if self.annotation_depth == self.math_depth and tag == "annotation":
+                self.annotation_depth = None
+            self.math_depth -= 1
+            return
+        self.output.append(f"</{tag}>")
+        if tag in self._CONTENT_ROOTS and tag in self.content_roots:
+            index = len(self.content_roots) - 1 - self.content_roots[::-1].index(tag)
+            del self.content_roots[index:]
+
+    def handle_data(self, data: str) -> None:
+        if self.annotation_depth is not None:
+            self.annotation.append(data)
+        elif not self.math_depth:
+            self.output.append(data)
+
+    def handle_entityref(self, name: str) -> None:
+        reference = f"&{name};"
+        if self.annotation_depth is not None:
+            self.annotation.append(html.unescape(reference))
+        elif not self.math_depth:
+            self.output.append(reference)
+
+    def handle_charref(self, name: str) -> None:
+        reference = f"&#{name};"
+        if self.annotation_depth is not None:
+            self.annotation.append(html.unescape(reference))
+        elif not self.math_depth:
+            self.output.append(reference)
+
+    def handle_comment(self, data: str) -> None:
+        if not self.math_depth:
+            self.output.append(f"<!--{data}-->")
+
+    def handle_decl(self, decl: str) -> None:
+        if not self.math_depth:
+            self.output.append(f"<!{decl}>")
+
+    def handle_pi(self, data: str) -> None:
+        if not self.math_depth:
+            self.output.append(f"<?{data}>")
+
+    def unknown_decl(self, data: str) -> None:
+        if not self.math_depth:
+            self.output.append(f"<![{data}]>")
+
+    def result(self) -> tuple[str, list[tuple[str, str, bool]], set[str]]:
+        if self.math_depth:
+            raise HtmlDerivationError("an unterminated MathML element was found")
+        presentation = (
+            self.content_presentation if self.saw_content_root else self.presentation
+        )
+        return "".join(self.output), self.replacements, presentation
+
+
+def preprocess_html(
+    source: str,
+) -> tuple[str, list[tuple[str, str, bool]], set[str]]:
+    prefix = "RELATEDWORKMATHTOKEN"
+    while prefix in source:
+        prefix += "X"
+    parser = _MathPreprocessor(prefix)
+    parser.feed(source)
+    parser.close()
+    return parser.result()
+
+
+def _saved_html_path(directory: Path, url: str, stem: str) -> Path | None:
+    path = Path(unquote(urlsplit(url).path).lstrip("/"))
+    candidates: list[Path] = []
+    if path.name:
+        candidates.append(directory / path)
+        if path.suffix.lower() not in (".htm", ".html"):
+            candidates.append(directory / path.with_name(f"{path.name}.html"))
+    else:
+        candidates.append(directory / "index.html")
+    candidates.append(directory / f"{stem}.html")
+    for candidate in candidates:
+        try:
+            candidate.resolve().relative_to(directory.resolve())
+        except ValueError:
+            continue
+        if candidate.is_file():
+            return candidate
+
+    expected_names = {candidate.name for candidate in candidates}
+    named = [
+        candidate
+        for candidate in directory.rglob("*")
+        if candidate.is_file() and candidate.name in expected_names
+    ]
+    if len(named) == 1:
+        return named[0]
+    pages = [
+        candidate
+        for candidate in directory.rglob("*")
+        if candidate.is_file() and candidate.suffix.lower() in (".htm", ".html")
+    ]
+    return pages[0] if len(pages) == 1 else None
+
+
+def _recorded_markdown_path(directory: Path, sentinel: Sentinel) -> Path | None:
+    if not sentinel.markdown:
+        return None
+    relative = Path(sentinel.markdown)
+    if relative.is_absolute() or relative.suffix.lower() != ".md":
+        return None
+    candidate = (directory / relative).resolve()
+    try:
+        candidate.relative_to(directory.resolve())
+    except ValueError:
+        return None
+    return candidate
+
+
+def _has_versioned_derivation(sentinel: Sentinel) -> bool:
+    return bool(
+        sentinel.derived_with
+        and re.fullmatch(r"\S+\s+\S+", sentinel.derived_with.strip())
+    )
+
+
+def html_derivation_missing(directory: Path, sentinel: Sentinel) -> bool:
+    if sentinel.method not in HTML_METHODS:
+        return False
+    markdown = _recorded_markdown_path(directory, sentinel)
+    return (
+        not _has_versioned_derivation(sentinel)
+        or markdown is None
+        or not markdown.is_file()
+    )
+
+
+def derive_saved_html(directory: Path, url: str, stem: str) -> HtmlDerivation:
+    source = _saved_html_path(directory, url, stem)
+    if source is None:
+        raise HtmlSourceNotFound("downloaded page has no unambiguous HTML entry point")
+    if not have("uvx"):
+        raise HtmlDerivationError("uvx is required for pinned html2text conversion")
+
+    processed, replacements, presentation = preprocess_html(
+        source.read_text(encoding="utf-8")
+    )
+    completed = subprocess.run(
+        [
+            "uvx",
+            "--from",
+            f"html2text=={HTML2TEXT_VERSION}",
+            "html2text",
+            "--body-width=0",
+        ],
+        cwd=source.parent,
+        input=processed,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.strip().splitlines()
+        suffix = f": {detail[-1]}" if detail else ""
+        raise HtmlDerivationError(
+            f"html2text failed (exit {completed.returncode}){suffix}"
+        )
+
+    markdown = completed.stdout
+    for placeholder, tex, block in replacements:
+        if markdown.count(placeholder) != 1:
+            raise HtmlDerivationError(
+                f"html2text did not preserve math placeholder {placeholder} exactly once"
+            )
+        opening, closing = ("\\[", "\\]") if block else ("\\(", "\\)")
+        markdown = markdown.replace(placeholder, f"{opening}{tex}{closing}")
+    if not markdown.strip():
+        raise HtmlDerivationError("html2text produced empty markdown")
+
+    target = source.with_suffix(".md")
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=target.parent,
+            prefix=f".{target.name}.",
+            delete=False,
+        ) as output:
+            temporary = Path(output.name)
+            output.write(markdown)
+        temporary.replace(target)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+    relative = target.relative_to(directory).as_posix()
+    if presentation:
+        disposition = f"kept ({', '.join(sorted(presentation))})"
+    else:
+        source.unlink()
+        disposition = "dropped"
+    return HtmlDerivation(markdown=relative, html=disposition)
 
 
 def http_headers(url: str) -> dict[str, str]:
@@ -395,7 +775,7 @@ def download(url: str, target: Path) -> bool:
 
 def has_content(directory: Path) -> bool:
     """True when the directory holds extracted text, not just a raw download."""
-    return any(directory.rglob("*.md")) or any(directory.rglob("*.html"))
+    return any(directory.rglob("*.md"))
 
 
 SVG_FIGURES = _REPO_ROOT / "scripts" / "pdf-figures-svg"
@@ -510,7 +890,9 @@ def fetch_paper(
     sentinel_path = survey.sentinel_path(paper.key)
     stamp = datetime.now(timezone.utc).date().isoformat()
 
-    def done(method: str, source: str) -> dict:
+    def done(
+        method: str, source: str, derivation: HtmlDerivation | None = None
+    ) -> dict:
         headers = http_headers(source)
         write_sentinel(
             sentinel_path,
@@ -520,14 +902,30 @@ def fetch_paper(
                 at=stamp,
                 etag=headers.get("etag"),
                 last_modified=headers.get("last-modified"),
+                markdown=derivation.markdown if derivation else None,
+                derived_with=HTML_DERIVATION if derivation else None,
             ),
         )
-        return {
+        row = {
             "key": paper.key,
             "status": "fetched",
             "method": method,
             "source": source,
         }
+        if derivation is not None:
+            row.update(markdown=derivation.markdown, html=derivation.html)
+        return row
+
+    def derive(method: str, source: str) -> dict:
+        try:
+            derivation = derive_saved_html(directory, source, paper.key)
+        except (HtmlDerivationError, OSError, UnicodeError) as exc:
+            return {
+                "key": paper.key,
+                "status": "failed",
+                "reason": f"HTML derivation failed: {exc}",
+            }
+        return done(method, source, derivation)
 
     if paper.kind == "url":
         if save_page(directory, paper.ident, paper.key):
@@ -537,22 +935,18 @@ def fetch_paper(
                     "status": "downloaded",
                     "note": "no sentinel; extract later",
                 }
-            return done("url-html", paper.ident)
+            return derive("url-html", paper.ident)
         return {"key": paper.key, "status": "failed", "reason": "page fetch failed"}
 
     html_url = f"https://arxiv.org/html/{paper.ident}"
-    if (
-        not no_html
-        and save_page(directory, html_url, paper.key)
-        and has_content(directory)
-    ):
+    if not no_html and save_page(directory, html_url, paper.key):
         if download_only:
             return {
                 "key": paper.key,
                 "status": "downloaded",
                 "note": "no sentinel; extract later",
             }
-        return done("arxiv-html", html_url)
+        return derive("arxiv-html", html_url)
 
     pdf_url = f"https://arxiv.org/pdf/{paper.ident}"
     pdf = directory / "source.pdf"
@@ -598,7 +992,8 @@ def audit_findings(survey: Survey) -> list[dict]:
         seen.add(paper.key)
 
         directory = survey.extract_dir(paper.key)
-        fetched = survey.sentinel_path(paper.key).exists()
+        sentinel = read_sentinel(survey.sentinel_path(paper.key))
+        fetched = sentinel is not None
         if fetched:
             if not paper.grounded:
                 report(
@@ -617,6 +1012,27 @@ def audit_findings(survey: Survey) -> list[dict]:
                 )
         elif paper.grounded:
             report(paper.key, "grounded", f"grounded: true, but no {SENTINEL}")
+
+        if sentinel is not None and sentinel.method in HTML_METHODS:
+            markdown = _recorded_markdown_path(directory, sentinel)
+            if markdown is None:
+                report(
+                    paper.key,
+                    "html-markdown",
+                    "HTML extract sentinel records no safe markdown path",
+                )
+            elif not markdown.is_file():
+                report(
+                    paper.key,
+                    "html-markdown",
+                    f"derived markdown is missing: {sentinel.markdown}",
+                )
+            if not _has_versioned_derivation(sentinel):
+                report(
+                    paper.key,
+                    "html-derivation",
+                    "HTML extract sentinel records no derivation tool/version",
+                )
 
         if directory.is_dir() and paper.ident is None:
             report(
@@ -729,11 +1145,14 @@ def verb_fetch(args) -> int:
     if args.keys:
         wanted = [survey.find(key) for key in args.keys]
     else:
-        wanted = [
-            p
-            for p in survey.papers
-            if p.ident and not survey.sentinel_path(p.key).exists()
-        ]
+        if args.revalidate or args.refetch:
+            wanted = [p for p in survey.papers if p.ident]
+        else:
+            wanted = [
+                p
+                for p in survey.papers
+                if p.ident and not survey.sentinel_path(p.key).exists()
+            ]
         if not args.all and args.limit is None:
             # The bare form used to queue every unfetched paper at once, which
             # is a surprising amount of network for a command that reads like
@@ -760,9 +1179,47 @@ def verb_fetch(args) -> int:
                     {"key": paper.key, "status": "skipped", "reason": "already fetched"}
                 )
                 continue
-            if is_unchanged(sentinel.source, sentinel):
+            derived = None
+            directory = survey.extract_dir(paper.key)
+            if html_derivation_missing(directory, sentinel):
+                try:
+                    derivation = derive_saved_html(
+                        directory, sentinel.source, paper.key
+                    )
+                except HtmlSourceNotFound:
+                    pass
+                except (HtmlDerivationError, OSError, UnicodeError) as exc:
+                    results.append(
+                        {
+                            "key": paper.key,
+                            "status": "failed",
+                            "reason": f"HTML derivation failed: {exc}",
+                        }
+                    )
+                    failed = True
+                    continue
+                else:
+                    sentinel.markdown = derivation.markdown
+                    sentinel.derived_with = HTML_DERIVATION
+                    write_sentinel(survey.sentinel_path(paper.key), sentinel)
+                    derived = {
+                        "key": paper.key,
+                        "status": "derived",
+                        "method": sentinel.method,
+                        "source": sentinel.source,
+                        "markdown": derivation.markdown,
+                        "html": derivation.html,
+                    }
+            if is_unchanged(sentinel.source, sentinel) and not html_derivation_missing(
+                directory, sentinel
+            ):
                 results.append(
-                    {"key": paper.key, "status": "fresh", "source": sentinel.source}
+                    derived
+                    or {
+                        "key": paper.key,
+                        "status": "fresh",
+                        "source": sentinel.source,
+                    }
                 )
                 continue
         results.append(
@@ -777,7 +1234,10 @@ def verb_fetch(args) -> int:
         )
         failed = failed or results[-1]["status"] == "failed"
     emit_table(
-        args, results, ["key", "status", "method", "reason", "figures"], "results"
+        args,
+        results,
+        ["key", "status", "method", "reason", "markdown", "html", "figures"],
+        "results",
     )
     return int(ExitCode.TEMPORARY) if failed else 0
 

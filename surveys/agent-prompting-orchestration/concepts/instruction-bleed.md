@@ -3,7 +3,7 @@
 Read method: prompted extraction over the arXiv HTML full text, 2026-08-15.
 Full text: [HTML](https://arxiv.org/html/2606.26356) ·
 [PDF](https://arxiv.org/pdf/2606.26356) ·
-[local extract](../related-work/extract/instructionbleed2026/html/2606.26356.html)
+[local extract](../related-work/extract/instructionbleed2026/html/2606.26356.md)
 (git-ignored; rebuild with `related-work fetch`). arXiv 2606.26356.
 
 **What it is.** Names and measures compositional behavioral leakage (CBL):

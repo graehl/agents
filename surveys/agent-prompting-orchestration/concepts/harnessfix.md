@@ -4,7 +4,7 @@ Read method: prompted extraction over the arXiv HTML full text, 2026-08-15.
 Full text: [HTML](https://arxiv.org/html/2606.06324v2) ·
 [PDF](https://arxiv.org/pdf/2606.06324) ·
 [code](https://github.com/HarnessFix/HarnessFix) ·
-[local extract](../related-work/extract/harnessfix2026/html/2606.06324.html)
+[local extract](../related-work/extract/harnessfix2026/html/2606.06324.md)
 (git-ignored; rebuild with `related-work fetch`). arXiv 2606.06324.
 
 **What it is.** A framework that compiles raw execution traces plus harness

@@ -58,9 +58,7 @@
   (`AGENTS.global.md § PDF reading` + the `AGENTS.user.md` host recipe) only
   for PDF-only papers. Keep a distinct saved **HTML** copy only when it
   carries interactive or presentation elements that do not map well to
-  markdown; otherwise the derived `.md` suffices. (Engine gap: the
-  arxiv-html fetch method currently saves raw HTML without deriving `.md` —
-  `gaps/related-work-html-to-md.md`.) Extracts
+  markdown; otherwise the derived `.md` suffices. Extracts
   are `.gitignore`d — a *shared* policy so every clone ignores them (deliberately
   `.gitignore`, not the `.git/info/exclude` used for owner-might-track
   convention dirs): they are regenerable "computed" artifacts, durable in the
@@ -94,6 +92,17 @@
 - **Frontier analysis depends on a field map.** Void-ranking is unfounded
   without a map of what is already filled; `frontier-map.md` builds
   the relevant region of `survey.md` first if none exists.
+
+## Design decisions
+
+- **Run a pinned `html2text` through `uvx` for HTML derivation** (vs. vendoring
+  it or requiring a global install): the pure-Python converter stays
+  reproducible without importing its source into this repository, and the
+  `.fetched` sentinel records its version and exact Markdown path.
+- **Retain source HTML according to content loss** (vs. always keeping or
+  dropping it): the Markdown derivation substitutes embedded TeX for MathML
+  and removes duplicated `data:` payloads, while HTML remains when
+  presentation or interaction does not survive that conversion.
 
 ## Invariants
 

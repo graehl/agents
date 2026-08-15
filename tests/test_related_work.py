@@ -93,7 +93,12 @@ def survey(tmp: Path) -> Path:
     (fetched / "paper.md").write_text("# One\n")
     (fetched / ".fetched").write_text(
         json.dumps(
-            {"method": "arxiv-html", "source": "https://arxiv.org/html/2001.00001"}
+            {
+                "method": "arxiv-html",
+                "source": "https://arxiv.org/html/2001.00001",
+                "markdown": "paper.md",
+                "derived_with": rw.HTML_DERIVATION,
+            }
         )
     )
     return root
@@ -257,6 +262,163 @@ def test_revalidation_without_validators_never_claims_fresh():
     _assert(
         not rw.is_unchanged("https://example.invalid/x", rw.Sentinel("url-html", "u"))
     )
+
+
+def test_audit_requires_html_derivation_metadata_and_markdown():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        sentinel_path = root / "related-work" / "extract" / "alpha2020-one" / ".fetched"
+        sentinel_path.write_text(
+            '{"method":"arxiv-html","source":"https://arxiv.org/html/2001.00001"}'
+        )
+        proc = run(root, "audit")
+        _assert(proc.returncode == 3, proc.stdout)
+        rules = {(row["key"], row["rule"]) for row in jsonl(proc)}
+        _assert(("alpha2020-one", "html-markdown") in rules, sorted(rules))
+        _assert(("alpha2020-one", "html-derivation") in rules, sorted(rules))
+
+
+def _passthrough_html2text(command, **kwargs):
+    _assert("html2text==2025.4.15" in command, command)
+    _assert("--body-width=0" in command, command)
+    return subprocess.CompletedProcess(command, 0, stdout=kwargs["input"], stderr="")
+
+
+def test_html_derivation_emits_tex_once_after_conversion_and_drops_plain_html():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        html_dir = directory / "html"
+        html_dir.mkdir()
+        source = html_dir / "paper.html"
+        source.write_text(
+            r"""<article><p>inline <math><mi>Φ</mi><annotation encoding="application/x-tex">\Phi</annotation></math>.</p><math display="block"><mi>x</mi><annotation encoding="application/x-tex">x_{1}</annotation></math></article>"""
+        )
+        original_have, original_run = rw.have, rw.subprocess.run
+        rw.have = lambda tool: tool == "uvx" or original_have(tool)
+        rw.subprocess.run = _passthrough_html2text
+        try:
+            result = rw.derive_saved_html(
+                directory, "https://example.test/paper", "key"
+            )
+        finally:
+            rw.have, rw.subprocess.run = original_have, original_run
+
+        markdown = (html_dir / "paper.md").read_text()
+        _assert(result.markdown == "html/paper.md", result)
+        _assert(result.html == "dropped", result)
+        _assert(not source.exists(), "plain source HTML should be dropped")
+        _assert("Φ" not in markdown, markdown)
+        _assert(markdown.count(r"\Phi") == 1, markdown)
+        _assert(r"\(\Phi\)" in markdown, markdown)
+        _assert(r"\[x_{1}\]" in markdown, markdown)
+
+
+def test_html_derivation_keeps_content_presentation_not_page_chrome():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        source = directory / "paper.html"
+        source.write_text(
+            "<header><form><input></form></header>"
+            '<article><p id="part">Text <a href="#part">self</a> '
+            '<a href="data:text/plain;base64,dGV4dA==">download</a>'
+            "</p><svg><path></path></svg></article>"
+        )
+        original_have, original_run = rw.have, rw.subprocess.run
+        rw.have = lambda tool: tool == "uvx" or original_have(tool)
+        rw.subprocess.run = _passthrough_html2text
+        try:
+            result = rw.derive_saved_html(
+                directory, "https://example.test/paper", "key"
+            )
+        finally:
+            rw.have, rw.subprocess.run = original_have, original_run
+
+        _assert(source.exists(), "paper-body SVG has presentation absent from markdown")
+        _assert(result.html == "kept (data URI, section anchors, svg)", result)
+        _assert("data:text/plain" not in (directory / "paper.md").read_text(), result)
+
+
+def test_html_fetch_records_markdown_derivation():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        loaded = rw.load_survey(root)
+        paper = loaded.find("beta2021-two")
+        originals = (rw.save_page, rw.http_headers, rw.have, rw.subprocess.run)
+
+        def save_page(directory, _url, stem):
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / f"{stem}.html").write_text("<p>downloaded</p>")
+            return True
+
+        rw.save_page = save_page
+        rw.http_headers = lambda _url: {}
+        rw.have = lambda tool: tool == "uvx" or originals[2](tool)
+        rw.subprocess.run = _passthrough_html2text
+        try:
+            row = rw.fetch_paper(
+                loaded,
+                paper,
+                no_html=False,
+                download_only=False,
+                svg_figures=False,
+                refresh_source=False,
+            )
+        finally:
+            rw.save_page, rw.http_headers, rw.have, rw.subprocess.run = originals
+
+        sentinel = rw.read_sentinel(loaded.sentinel_path(paper.key))
+        _assert(
+            row["status"] == "fetched" and row["markdown"] == "beta2021-two.md", row
+        )
+        _assert(sentinel.markdown == "beta2021-two.md", sentinel)
+        _assert(sentinel.derived_with == rw.HTML_DERIVATION, sentinel)
+
+
+def test_revalidate_backfills_a_completed_html_extract_before_network_fetch():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        loaded = rw.load_survey(root)
+        directory = loaded.extract_dir("alpha2020-one")
+        source = directory / "alpha2020-one.html"
+        source.write_text("<p>old download</p>")
+        loaded.sentinel_path("alpha2020-one").write_text(
+            '{"method":"arxiv-html","source":"https://arxiv.org/html/2001.00001"}'
+        )
+        originals = (
+            rw.is_unchanged,
+            rw.save_page,
+            rw.have,
+            rw.subprocess.run,
+            rw.emit_table,
+        )
+        rows = []
+
+        rw.is_unchanged = lambda _url, _sentinel: True
+        rw.save_page = lambda *_args, **_kwargs: _assert(
+            False, "a fresh source should not be fetched again"
+        )
+        rw.have = lambda tool: tool == "uvx" or originals[2](tool)
+        rw.subprocess.run = _passthrough_html2text
+        rw.emit_table = lambda _args, result, _columns, _name: rows.extend(result)
+        args = rw.build_parser().parse_args(
+            ["--dir", str(root), "fetch", "alpha2020-one", "--revalidate", "--compact"]
+        )
+        try:
+            result = args.func(args)
+        finally:
+            (
+                rw.is_unchanged,
+                rw.save_page,
+                rw.have,
+                rw.subprocess.run,
+                rw.emit_table,
+            ) = originals
+
+        row = rows[0]
+        sentinel = rw.read_sentinel(loaded.sentinel_path("alpha2020-one"))
+        _assert(result == 0 and row["status"] == "derived", row)
+        _assert(sentinel.markdown == "alpha2020-one.md", sentinel)
+        _assert(sentinel.derived_with == rw.HTML_DERIVATION, sentinel)
 
 
 def test_list_and_status_report_the_survey():

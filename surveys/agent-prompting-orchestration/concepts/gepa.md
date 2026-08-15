@@ -3,7 +3,7 @@
 Read method: prompted extraction over the arXiv HTML full text, 2026-08-15.
 Full text: [HTML](https://arxiv.org/html/2507.19457) ·
 [PDF](https://arxiv.org/pdf/2507.19457) ·
-[local extract](../related-work/extract/gepa2025/html/2507.19457.html)
+[local extract](../related-work/extract/gepa2025/html/2507.19457.md)
 (git-ignored; rebuild with `related-work fetch`).
 arXiv 2507.19457; ICLR 2026 oral.
 

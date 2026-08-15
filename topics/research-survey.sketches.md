@@ -4,9 +4,8 @@ Dormant or candidate designs for the survey system; not current guidance.
 
 ## High-fidelity rendered html→md (user-proposed 2026-08-15)
 
-Companion to [gaps/related-work-html-to-md.md](../gaps/related-work-html-to-md.md),
-which tracks the basic derivation; this is the fidelity-preserving variant,
-parked as not worth heavy investment now.
+The shared `scripts/related-work` engine now owns the basic derivation; this is
+the fidelity-preserving variant, parked as not worth heavy investment now.
 
 **Proposal.** Derive the searchable `.md` from fetched HTML; for any
 *over-spanned* region — markup that does not map well to markdown — render

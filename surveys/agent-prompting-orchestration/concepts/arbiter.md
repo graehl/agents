@@ -3,7 +3,7 @@
 Read method: prompted extraction over the arXiv HTML full text, 2026-08-15.
 Full text: [HTML](https://arxiv.org/html/2603.08993v1) ·
 [PDF](https://arxiv.org/pdf/2603.08993) ·
-[local extract](../related-work/extract/arbiter2026/html/2603.08993.html)
+[local extract](../related-work/extract/arbiter2026/html/2603.08993.md)
 (git-ignored; rebuild with `related-work fetch`). arXiv 2603.08993.
 
 **What it is.** Static analysis of vendor agent-CLI system prompts (Claude
