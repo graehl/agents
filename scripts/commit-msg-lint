@@ -6,7 +6,9 @@ agents-instructions repo.
 Reads draft on stdin, or HEAD's commit message when stdin is empty.
 Echoes the checked message to stdout on success (exit 0). On violation,
 lists issues on stderr (exit 1). Missing input and unreadable HEAD exit 2.
+Literal backslash-n sequences are rejected anywhere in the message.
 """
+
 from __future__ import annotations
 
 import re
@@ -37,8 +39,13 @@ def lint(text: str) -> list[str]:
     subject = lines[0]
     if len(subject) > SUBJECT_MAX:
         issues.append(f"subject {len(subject)} > {SUBJECT_MAX} chars")
-    if "\\n" in subject:
-        issues.append("literal '\\n' in subject (shell-quoting bug?)")
+    for index, line in enumerate(lines, start=1):
+        if "\\n" not in line:
+            continue
+        if index == 1:
+            issues.append("literal '\\n' in subject (shell-quoting bug?)")
+        else:
+            issues.append(f"line {index}: literal '\\n' (shell-quoting bug?)")
 
     body_start: int | None = None
     if len(lines) > 1:
@@ -66,7 +73,10 @@ def main() -> int:
     if not text.strip():
         text = head_message() or ""
         if not text.strip():
-            print("commit-msg-lint: empty input and no HEAD commit message", file=sys.stderr)
+            print(
+                "commit-msg-lint: empty input and no HEAD commit message",
+                file=sys.stderr,
+            )
             return 2
     issues = lint(text)
     if issues:

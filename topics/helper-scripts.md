@@ -54,7 +54,7 @@ exits 1. Empty input with no readable `HEAD` message exits 2.
 
 **Post-conditions** (derived from `AGENTS.md` Commits section):
 - subject ≤65 chars
-- no literal `\n` in subject (multi-`-m` shell-quoting symptom)
+- no literal `\n` anywhere in the message (shell-quoting symptom)
 - blank line between subject and body if body present
 - body lines ≤71 cols, except where the longest single token on
   the line is itself >71 (unavoidable long-token carve-out for
@@ -68,8 +68,8 @@ section structure.
 
 **Examples**:
 1. Single-line subject `feat: do thing` → exit 0, echoed verbatim.
-2. Subject containing literal `\n` (e.g. `feat: foo\nbody`) → exit
-   1, `literal '\n' in subject`.
+2. Subject or body containing literal `\n` (e.g. `feat: foo\nbody`) →
+   exit 1 and identify the affected subject or line.
 3. 70-char subject + valid body → exit 1,
    `subject 70 > 65 chars`.
 4. Clean subject, blank line, body line of 85 cols of prose →
@@ -107,6 +107,8 @@ pass `-m ''`. No `-m` args or empty subject exits 2.
   input is itself >71)
 - blank lines in output come only from explicit `-m ''`
 - output ends with exactly one trailing newline
+- any `-m` argument containing literal `\n` is rejected with exit 1;
+  message structure uses separate `-m` arguments
 
 **Scope limitation**: each `-m` is treated as one plain-prose
 paragraph. Pre-formatted content (bullets, hanging indents, ASCII
@@ -126,14 +128,16 @@ when wrapping.
    → subject directly followed by body line; commit-msg-lint will
    flag the missing blank.
 5. `commit-msg-fmt` (no args) → exit 2, `no -m args`.
+6. `commit-msg-fmt -m "feat: do thing" -m "Body\nTrailer"` → exit
+   1 and instructs the caller to use a separate `-m` argument.
 
 **Canonical source**: `scripts/commit-msg-fmt` (in this repo).
 **Install target**: `~/bin/commit-msg-fmt` (symlink by default).
 
 **Composes with commit-msg-lint**:
 ```sh
-commit-msg-fmt -m "feat: do thing" -m '' -m "Body paragraph." \
-  | commit-msg-lint && git commit -F -
+git commit -F <(commit-msg-fmt -m "feat: do thing" -m '' \
+  -m "Body paragraph." | commit-msg-lint)
 ```
 
 ### at-queue

@@ -3183,3 +3183,31 @@ the sweep single-target.
   each rare condition now reads named sections rather than either full catalog.
 - **Status** — scenario-traced and caller-swept; consultation correctness and
   future manifest migration behavior remain assumed.
+
+## 2026-08-15 — commit messages use one formatted, linted path
+
+- **Trigger** — range review found two published commit messages containing
+  literal two-character `\n` sequences and four with wrappable prose beyond
+  the 71-column contract. The existing linter checked `\n` only in the subject,
+  its formatter accepted the escape unchanged, and the documented composition
+  example discarded the linter's stdout before `git commit -F -` read stdin.
+- **Decision** — non-trivial agent messages now go through
+  `commit-msg-fmt | commit-msg-lint` as the file supplied to Git. Preformatted
+  messages use a draft file and the same linter. Both helpers reject literal
+  `\n` anywhere; the formatter tells the caller to express structure with
+  separate `-m` arguments. Published history is left intact as the review
+  required.
+- **Trace: escaped body** — one `-m` argument contains
+  `Body\\nContributing-model`. The formatter fails before Git runs, and a
+  hand-authored draft containing the same bytes fails at the exact body line.
+- **Trace: long prose** — a long body paragraph is passed as one ordinary
+  formatter argument. It wraps to at most 71 columns, then the linter accepts
+  the exact bytes Git consumes.
+- **Trace: preformatted content** — a message contains bullets whose hanging
+  indentation must survive. The agent skips the plain-prose formatter, lints
+  the authored draft, and commits that same file; no whitespace-collapsing
+  helper touches it.
+- **Status** — helper tests cover literal body escapes, prose wrapping, the
+  formatter-to-linter boundary, and a real Git commit through the documented
+  Bash process substitution. The behavioral effect of making the path explicit
+  remains assumed.

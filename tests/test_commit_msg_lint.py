@@ -64,6 +64,27 @@ def test_stdin_message_is_linted():
         ws.cleanup()
 
 
+def test_literal_newline_in_body_is_rejected():
+    ws = Workspace()
+    try:
+        res = ws.run("short subject\n\nbody\\ntrailer\n")
+        _assert(res.returncode == 1, "literal body escape should fail")
+        _assert("line 3: literal '\\n'" in res.stderr, res.stderr)
+    finally:
+        ws.cleanup()
+
+
+def test_wrappable_long_body_is_rejected():
+    ws = Workspace()
+    try:
+        body = "word " * 20
+        res = ws.run(f"short subject\n\n{body}\n")
+        _assert(res.returncode == 1, "overlong prose should fail")
+        _assert("line 3:" in res.stderr and "> 71 cols" in res.stderr, res.stderr)
+    finally:
+        ws.cleanup()
+
+
 def test_no_stdin_lints_head_message():
     ws = Workspace()
     try:

@@ -22,6 +22,26 @@ Trivial commits get a short message — possibly subject-only, plus the
 `Contributing-model:` trailer. A small, simple change may name each edit when
 that remains the shortest clear account.
 
+### Message construction
+
+Before an agent-authored non-trivial commit, construct and lint the complete
+message before Git records it. For plain prose, use the repository helpers so
+body paragraphs are wrapped and the final bytes are checked:
+
+```bash
+git commit -F <(commit-msg-fmt -m "Subject" -m '' \
+  -m "Body paragraph." -m '' \
+  -m "Contributing-model: <short-name>" | commit-msg-lint)
+```
+
+For bullets, tables, code, or other preformatted bodies, author a draft file,
+run `commit-msg-lint < COMMIT_MESSAGE.txt`, then commit with
+`git commit -F COMMIT_MESSAGE.txt` only after the lint succeeds. Never encode
+paragraph breaks as literal `\n` inside one `-m` argument or pass a non-trivial
+body directly through unformatted `git commit -m`; both paths bypass the
+formatting contract. Inspect the recorded message after commit when Git or a
+hook could have changed it.
+
 A non-trivial message is first a reviewer on-ramp and later a historical
 statement of intent. Write for a fresh human reviewer who is about to inspect
 the diff and has none of the implementation conversation in mind. Lead with
