@@ -107,6 +107,9 @@ def survey(tmp: Path) -> Path:
                 "source": "https://arxiv.org/html/2001.00001",
                 "markdown": "paper.md",
                 "derived_with": rw.HTML_DERIVATION,
+                "source_sha256": "source-hash",
+                "markdown_sha256": rw._sha256_file(fetched / "paper.md"),
+                "fidelity": f"{rw.HTML_FIDELITY} blocks=1/1 min=1.000 math=0/0",
             }
         )
     )
@@ -145,8 +148,7 @@ def test_audit_requires_complete_citation_metadata():
         finding = next(
             row
             for row in jsonl(proc)
-            if row["key"] == "alpha2020-one"
-            and row["rule"] == "citation-metadata"
+            if row["key"] == "alpha2020-one" and row["rule"] == "citation-metadata"
         )
         _assert(
             finding["detail"]
@@ -306,6 +308,23 @@ def test_legacy_url_pdf_sentinel_does_not_request_html_derivation():
         _assert(not rw.html_derivation_missing(Path(tmp), sentinel), sentinel)
 
 
+def test_html_derivation_version_drift_requires_rebuild():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        markdown = directory / "paper.md"
+        markdown.write_text("paper text\n")
+        sentinel = rw.Sentinel(
+            "arxiv-html",
+            "https://arxiv.org/html/2001.00001",
+            markdown="paper.md",
+            derived_with="html2text 2025.4.15",
+            source_sha256="source-hash",
+            markdown_sha256=rw._sha256_file(markdown),
+            fidelity=f"{rw.HTML_FIDELITY} blocks=1/1 min=1.000 math=0/0",
+        )
+        _assert(rw.html_derivation_missing(directory, sentinel), sentinel)
+
+
 def test_audit_requires_html_derivation_metadata_and_markdown():
     with tempfile.TemporaryDirectory() as tmp:
         root = survey(Path(tmp))
@@ -318,6 +337,7 @@ def test_audit_requires_html_derivation_metadata_and_markdown():
         rules = {(row["key"], row["rule"]) for row in jsonl(proc)}
         _assert(("alpha2020-one", "html-markdown") in rules, sorted(rules))
         _assert(("alpha2020-one", "html-derivation") in rules, sorted(rules))
+        _assert(("alpha2020-one", "html-fidelity") in rules, sorted(rules))
 
 
 def test_audit_requires_markdown_for_a_legacy_completed_extract():
@@ -334,13 +354,47 @@ def test_audit_requires_markdown_for_a_legacy_completed_extract():
         _assert(("alpha2020-one", "extract-content") in rules, sorted(rules))
 
 
+def test_audit_requires_tracked_markdown_provenance_and_local_assets():
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace = Path(tmp)
+        root = survey(workspace)
+        directory = root / "related-work" / "extract" / "alpha2020-one"
+        markdown = directory / "paper.md"
+        figure = directory / "figure.svg"
+        markdown.write_text("# One\n\n![Result](figure.svg)\n")
+        figure.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>\n')
+        sentinel_path = directory / ".fetched"
+        sentinel = json.loads(sentinel_path.read_text())
+        sentinel["markdown_sha256"] = rw._sha256_file(markdown)
+        sentinel_path.write_text(json.dumps(sentinel))
+
+        subprocess.run(["git", "init", "-q", str(workspace)], check=True)
+        subprocess.run(
+            ["git", "-C", str(workspace), "add", str(markdown), str(sentinel_path)],
+            check=True,
+        )
+        proc = run(root, "audit")
+        rules = {(row["key"], row["rule"]) for row in jsonl(proc)}
+        _assert(("alpha2020-one", "authority-asset") in rules, sorted(rules))
+
+        subprocess.run(["git", "-C", str(workspace), "add", str(figure)], check=True)
+        _assert(run(root, "audit").returncode == 0)
+
+        raw = directory / "paper.html"
+        raw.write_text("<p>raw source</p>\n")
+        subprocess.run(["git", "-C", str(workspace), "add", str(raw)], check=True)
+        proc = run(root, "audit")
+        rules = {(row["key"], row["rule"]) for row in jsonl(proc)}
+        _assert(("alpha2020-one", "authority-source") in rules, sorted(rules))
+
+
 def _passthrough_html2text(command, **kwargs):
     _assert("html2text==2025.4.15" in command, command)
     _assert("--body-width=0" in command, command)
     return subprocess.CompletedProcess(command, 0, stdout=kwargs["input"], stderr="")
 
 
-def test_html_derivation_emits_tex_once_after_conversion_and_drops_plain_html():
+def test_html_derivation_emits_tex_once_and_keeps_ignored_source_cache():
     with tempfile.TemporaryDirectory() as tmp:
         directory = Path(tmp)
         html_dir = directory / "html"
@@ -361,12 +415,17 @@ def test_html_derivation_emits_tex_once_after_conversion_and_drops_plain_html():
 
         markdown = (html_dir / "paper.md").read_text()
         _assert(result.markdown == "html/paper.md", result)
-        _assert(result.html == "dropped", result)
-        _assert(not source.exists(), "plain source HTML should be dropped")
+        _assert(result.html == "kept (ignored source cache)", result)
+        _assert(source.exists(), "raw HTML remains available for fidelity review")
         _assert("Φ" not in markdown, markdown)
         _assert(markdown.count(r"\Phi") == 1, markdown)
         _assert(r"\(\Phi\)" in markdown, markdown)
         _assert(r"\[x_{1}\]" in markdown, markdown)
+        _assert(result.source_sha256 == rw._sha256_file(source), result)
+        _assert(
+            result.markdown_sha256 == rw._sha256_file(html_dir / "paper.md"), result
+        )
+        _assert(result.fidelity.startswith(rw.HTML_FIDELITY), result)
 
 
 def test_html_preprocessor_uses_alttext_when_tex_annotation_is_absent():
@@ -382,15 +441,63 @@ def test_html_preprocessor_uses_alttext_when_tex_annotation_is_absent():
     _assert(all(placeholder in processed for placeholder, _tex, _block in replacements))
 
 
+def test_html_preprocessor_externalizes_local_html_links_and_missing_figures():
+    processed, _replacements, presentation = rw.preprocess_html(
+        '<article><h2 id="part"><a href="#part">Part</a></h2>'
+        '<a href="other.html#detail">Other</a>'
+        '<img class="ltx_graphics ltx_missing_image" src="1234.5678.html">'
+        "</article>",
+        base_url="https://arxiv.org/html/1234.5678",
+        source_name="1234.5678.html",
+    )
+
+    _assert('href="https://arxiv.org/html/1234.5678#part"' in processed, processed)
+    _assert('href="https://arxiv.org/html/other.html#detail"' in processed, processed)
+    _assert("https://arxiv.org/pdf/1234.5678" in processed, processed)
+    _assert("ltx_missing_image" not in processed, processed)
+    _assert("section anchors" not in presentation, presentation)
+
+
+def test_html_derivation_rejects_a_dropped_visible_block():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        source = directory / "paper.html"
+        source.write_text(
+            "<article><p>This entire meaningful paragraph must survive.</p></article>"
+        )
+        original_have, original_run = rw.have, rw.subprocess.run
+
+        def drop_audit_block(command, **kwargs):
+            output = (
+                "<article></article>"
+                if "--ignore-links" in command
+                else kwargs["input"]
+            )
+            return subprocess.CompletedProcess(command, 0, stdout=output, stderr="")
+
+        rw.have = lambda tool: tool == "uvx" or original_have(tool)
+        rw.subprocess.run = drop_audit_block
+        try:
+            try:
+                rw.derive_saved_html(directory, "https://example.test/paper", "key")
+            except rw.HtmlDerivationError as exc:
+                _assert("visible-block fidelity failed" in str(exc), exc)
+            else:
+                _assert(False, "a missing prose block must reject the derivation")
+        finally:
+            rw.have, rw.subprocess.run = original_have, original_run
+
+
 def test_html_derivation_keeps_content_presentation_not_page_chrome():
     with tempfile.TemporaryDirectory() as tmp:
         directory = Path(tmp)
         source = directory / "paper.html"
         source.write_text(
             "<header><form><input></form></header>"
-            '<article><p id="part">Text <a href="#part">self</a> '
+            '<article><p id="part">Text stays fully visible here.</p>'
+            '<a href="#part">self</a> '
             '<a href="data:text/plain;base64,dGV4dA==">download</a>'
-            "</p><svg><path></path></svg></article>"
+            "<svg><path></path></svg></article>"
         )
         original_have, original_run = rw.have, rw.subprocess.run
         rw.have = lambda tool: tool == "uvx" or original_have(tool)
@@ -403,8 +510,13 @@ def test_html_derivation_keeps_content_presentation_not_page_chrome():
             rw.have, rw.subprocess.run = original_have, original_run
 
         _assert(source.exists(), "paper-body SVG has presentation absent from markdown")
-        _assert(result.html == "kept (data URI, section anchors, svg)", result)
-        _assert("data:text/plain" not in (directory / "paper.md").read_text(), result)
+        _assert(result.html == "kept (ignored source cache; data URI, svg)", result)
+        markdown = (directory / "paper.md").read_text()
+        _assert("data:text/plain" not in markdown, result)
+        _assert("Text stays fully visible here." in markdown, markdown)
+        _assert(
+            "header" not in markdown, "page chrome outside article must be excluded"
+        )
 
 
 def test_html_fetch_records_markdown_derivation():
@@ -441,6 +553,8 @@ def test_html_fetch_records_markdown_derivation():
         )
         _assert(sentinel.markdown == "beta2021-two.md", sentinel)
         _assert(sentinel.derived_with == rw.HTML_DERIVATION, sentinel)
+        _assert(sentinel.source_sha256 and sentinel.markdown_sha256, sentinel)
+        _assert(sentinel.fidelity.startswith(rw.HTML_FIDELITY), sentinel)
 
 
 def test_revalidate_backfills_a_completed_html_extract_before_network_fetch():
@@ -488,6 +602,8 @@ def test_revalidate_backfills_a_completed_html_extract_before_network_fetch():
         _assert(result == 0 and row["status"] == "derived", row)
         _assert(sentinel.markdown == "alpha2020-one.md", sentinel)
         _assert(sentinel.derived_with == rw.HTML_DERIVATION, sentinel)
+        _assert(sentinel.source_sha256 and sentinel.markdown_sha256, sentinel)
+        _assert(sentinel.fidelity.startswith(rw.HTML_FIDELITY), sentinel)
 
 
 def test_derive_only_discovers_and_normalizes_a_legacy_html_only_extract():
@@ -518,6 +634,8 @@ def test_derive_only_discovers_and_normalizes_a_legacy_html_only_extract():
         _assert(sentinel.method == "arxiv-html", sentinel)
         _assert(sentinel.source == "https://arxiv.org/html/2001.00001", sentinel)
         _assert(sentinel.markdown == "2001.00001.md", sentinel)
+        _assert(sentinel.source_sha256 and sentinel.markdown_sha256, sentinel)
+        _assert(sentinel.fidelity.startswith(rw.HTML_FIDELITY), sentinel)
 
 
 def test_list_and_status_report_the_survey():
@@ -563,10 +681,10 @@ def test_init_scaffolds_a_new_survey():
         manifest = root / "related-work" / "papers.yaml"
         _assert(manifest.is_file(), "init writes papers.yaml")
         _assert("field_slug: fresh" in manifest.read_text(), manifest.read_text()[:200])
-        _assert(
-            "extract/" in (root / "related-work" / ".gitignore").read_text(),
-            "extracts are ignored by shared policy, not a per-clone exclude",
-        )
+        ignore = (root / "related-work" / ".gitignore").read_text()
+        _assert("extract/**" in ignore, ignore)
+        _assert("!extract/**/*.md" in ignore, ignore)
+        _assert("!extract/**/.fetched" in ignore, ignore)
         _assert(run(root, "audit").returncode == 0, "an empty survey audits clean")
         _assert(run(root, "init").returncode == 5, "init must not clobber a manifest")
 
