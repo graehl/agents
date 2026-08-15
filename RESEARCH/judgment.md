@@ -50,15 +50,18 @@ differences” heading.
 
 A tie does not establish "no change justified" for a revision built for
 stated reasons. When proposing the revision, record where those reasons
-predict improvement — a slice and its dispatch key, or an expected aggregate
-magnitude — and do the power arithmetic up front: predicted slice mass ×
-expected local effect against the eval's detection floor says in advance
-whether an aggregate tie would be uninformative or would already imply harm
-elsewhere. On a tie, run one bounded diagnosis pass, cheapest check first:
-inspect the intermediate artifact the reasons claim improved (blinded when
-judging quality by hand); then test the frozen predicted slice at adequate
-power, buying eval N on that slice or pre-registering a slice-weighted metric
-when needed. A null on the predicted slice closes the line; do not search
+predict improvement:
+a slice plus the variable that identifies it at application time (the
+routing key), or an expected aggregate magnitude. Do the power arithmetic
+up front: predicted slice mass (its share of evaluation weight) × expected
+local effect against the eval's detection floor says in advance whether an
+aggregate tie would be uninformative or would already imply harm elsewhere.
+On a tie, run one bounded diagnosis pass, cheapest check first: inspect the
+intermediate artifact the reasons claim improved (blinded when judging
+quality by hand); then test the frozen predicted slice at adequate power,
+buying eval N on that slice or pre-registering a metric that keeps the
+slice visible (for example, macro-averaged over strata). A null on the
+predicted slice closes the line; do not search
 further contexts for a win. On a verified slice win, prefer routing the
 revision selectively by the pre-named key with the incumbent elsewhere,
 measured end-to-end, over wholesale accept or discard. Tie plus significant
@@ -224,7 +227,8 @@ about an untested interaction is symmetric.
 
 ### Reading a tie on a motivated revision
 
-**The tie identity.** An aggregate tie constrains a mass-weighted sum:
+**The tie identity.** With `m` the predicted slice's share of evaluation
+weight, an aggregate tie constrains a mass-weighted sum:
 `0 ≈ m·Δ_slice + (1−m)·Δ_complement`, so a verified slice win fixes the
 implied complement effect at `−(m/(1−m))·Δ_slice`. Small slice mass: the
 implied harm sits below the detection floor — the tie is consistent with
@@ -233,12 +237,14 @@ known-zero, so check the complement rather than assume it. Substantial mass:
 the arithmetic forces real harm elsewhere (a focused win offsetting a
 common-case loss); locate it before deciding. Selective routing is the
 preferred disposition under either anatomy, which is why it beats
-accept-or-discard: the hybrid recipe is correct whether the tie was dilution
-or cancellation. The up-front power arithmetic tells you before the run
-which reading a tie would carry.
+accept-or-discard: the routed hybrid — revision on its predicted slice,
+incumbent elsewhere — is correct whether the tie was dilution or
+cancellation. The up-front power arithmetic tells you before the run which
+reading a tie would carry. Significance mechanics for the sliced comparison
+follow `RESEARCH/evidence.md`.
 
 **Freeze the predicted slice.** The recorded prediction is the license for
-the sliced test. If cells are appended after seeing sliced results, the
+the sliced test. If the slice is widened after seeing sliced results, the
 pre-registration dissolves retroactively; additions discovered during eval
 inspection are hypotheses for the next cycle, not members of this
 comparison.
@@ -257,22 +263,24 @@ meant to fix, while every retained example still looks good. If the
 artifact is not actually better there, discard the revision immediately:
 the stated reason was factually wrong. If it holds up while the predicted
 slice nulls at adequate power, the downstream claim is falsified — a
-transferable negative that prices an entire family of future investments in
-that mechanism. That prospective value, not invested cost, is what
+transferable negative that settles the value of an entire family of future
+investments in that mechanism. That prospective value, not invested cost, is what
 justifies the pass; the decision must stay insensitive to sunk compute.
 
-**Symmetry and provenance.** Any tie contradicting a confident prediction
-earns the pass, whichever outcome was hoped — digging only into ties on
-favored revisions turns the rule into a prior-amplifier. The bar is the
+**Symmetry and proposer neutrality.** Any tie contradicting a confident
+prediction earns the pass, whichever outcome was hoped — digging only into
+ties on favored revisions turns the rule into a prior-amplifier. The bar is the
 specificity of the recorded prediction, not who proposed the revision;
 user- and agent-originated ideas meet the same test.
 
 **Worked instance.** Entity surface-form substitution for tagger training:
-the incumbent Faker placeholder was known-defective for specific
-(language, tag) types; a chars model trained on scarce gold/gazetteer data
-was proposed for sampling-time substitution. Brief trajectories scored
-+0.0001 F1, not significant. The predicted slice — the known-defective
-cells — was a small eval mass fraction, so the aggregate tie was expected
-even under success; the informative tests are the defective-cell slice with
-eval N bought there, and on a win, substitution dispatched by tag × language
-with the incumbent elsewhere, measured by training.
+synthetic entity strings from the Faker library, the incumbent, were
+known-defective for specific (language, tag) types; a character-level name
+generator trained on scarce gold/gazetteer data was proposed as the
+substitution source. Brief training runs scored +0.0001 F1, not
+significant. The predicted slice — the known-defective (language, tag)
+pairs — was a small share of evaluation weight, so the aggregate tie was
+expected even under success; the informative tests are the sliced
+comparison with eval N bought there, and on a win, the substitution source
+routed by (language, tag) with the incumbent elsewhere, measured by
+training.
