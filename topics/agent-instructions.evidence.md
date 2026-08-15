@@ -3092,3 +3092,20 @@ the sweep single-target.
 - **Status** — directly user-specified and trace-simulated; actual use will test
   whether file-only findings improve review history without making delivery
   harder to notice.
+
+## 2026-08-15 — harsh-review records leave the project root
+
+- **User correction** — retaining every accumulator, verdict, and prior pair at
+  project root creates visible filesystem clutter even though Git excludes the
+  files. Keep only the established `.harsh-review` current-through marker there.
+- **Decision** — create `harsh-review/` when absent and store range records as
+  `<range>.accum`, `<range>.verdict.md`, and numbered prior pairs inside it. The
+  clone-local exclude covers the directory; active-session claims and final
+  links use the project-relative paths below it.
+- **Trace** — a first review in a project with only the legacy marker runs
+  `mkdir -p harsh-review`, preserves the marker as its bare-`since` baseline,
+  and writes both records under the new directory. A same-range second opinion
+  renames both files inside that directory before the independent pass, so it
+  creates no additional root-level files.
+- **Status** — directly user-specified; this supersedes only the root-level
+  record paths in the immediately preceding entry.
