@@ -4,7 +4,7 @@ scope:
   - topics/frontier-capability-review.md
   - topics/frontier-capability-review.evidence.md
   - topics/agent-instructions.md
-  - RESEARCH/direction.md
+  - _RESEARCH/direction.md
   - AGENTS.frontier.md
   - AGENTS.opus.md
   - AGENTS.copilot.md

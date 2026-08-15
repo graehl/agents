@@ -23,7 +23,6 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Self
 
 SCHEMA_VERSION = 1
 
@@ -225,7 +224,7 @@ class ActivationLock:
         self.path = path
         self.broke_stale = False
 
-    def __enter__(self) -> Self:
+    def __enter__(self) -> "ActivationLock":
         self.path.parent.mkdir(parents=True, exist_ok=True)
         deadline = time.monotonic() + LOCK_ACQUIRE_SECONDS
         while True:
