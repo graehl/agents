@@ -1,5 +1,6 @@
-# Regenerable extraction artifacts — rebuild with `related-work fetch`. Only
-# papers.yaml and this file are committed. Everything a fetch produces (source
-# PDFs, saved HTML, marker markdown, figures) lands under extract/<key>/, keyed
-# by citation key so a later `short:` handle never orphans an extract.
-extract/
+# Commit fetched Markdown + provenance; ignore rebuildable raw sources and
+# page-requisite caches. Referenced figures are force-added and audited.
+extract/**
+!extract/**/
+!extract/**/*.md
+!extract/**/.fetched

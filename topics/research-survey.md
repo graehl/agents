@@ -15,7 +15,8 @@
   handle); `GLOSSARY.md` (survey-scoped vocabulary, governing every doc below
   the subdir by path, as a research program's glossary governs its subtree);
   `concepts/<short>.md` (committed per-concept understanding/analysis pages);
-  `related-work/` (`papers.yaml` manifest + git-ignored `extract/`); and
+  `related-work/` (`papers.yaml` manifest + committed Markdown/provenance under
+  `extract/`); and
   `frontier.md` (the frontier overlay). Each survey subdir is
   also listed as a row in the top-level `~/agents/GLOSSARY.md` so surveys are
   discoverable from the repo's shared vocabulary.
@@ -52,26 +53,25 @@
   the paper title — is added later, and only for a paper that earns a concept
   page. So extracts are keyed by citation key: keying them by `short` orphans
   every already-fetched extract the day a handle is assigned.
-- **Extracts are computed, git-ignored, reconstitutable.** The searchable
-  target artifact is a good `.md` per paper. Source preference: when an HTML
-  view exists (`arxiv.org/html/<id>`, a blog page), derive the `.md` from it
-  — cleaner and cheaper than PDF reconstruction; fall back to **marker-pdf**
+- **Committed Markdown is the full-text extract authority.** Every fetched
+  survey commits its `.md`, `.fetched` provenance, and each local figure or
+  image the Markdown references. Saved HTML/PDF, scripts, styles, fonts,
+  and unrelated page requisites are rebuildable source cache and remain
+  ignored; they may stay in the author's workdir for fidelity review without
+  becoming repository authority. Source preference: when an HTML view exists
+  (`arxiv.org/html/<id>`, a blog page), derive the `.md` from it — cleaner and
+  cheaper than PDF reconstruction; fall back to **marker-pdf**
   (`AGENTS.global.md § PDF reading` + the `AGENTS.user.md` host recipe) only
-  for PDF-only papers. Keep a distinct saved **HTML** copy only when it
-  carries interactive or presentation elements that do not map well to
-  markdown; otherwise the derived `.md` suffices. Extracts
-  are `.gitignore`d — a *shared* policy so every clone ignores them (deliberately
-  `.gitignore`, not the `.git/info/exclude` used for owner-might-track
-  convention dirs): they are regenerable "computed" artifacts, durable in the
-  author's workdir, retrieved under the user's own authorization to access the
-  source, and not redistributed by default. The committed understanding page
-  (plus its full-text hyperlinks) is the **primary artifact reasoned and traversed on**;
-  drop to the git-ignored full-text extract only for a specific the summary omits.
-  A completed extract carries a `.fetched` sentinel written *only* on success —
-  so a crashed extraction is retried rather than cached as done — recording the
-  method, source URL, and the server's `ETag`/`Last-Modified` when it offers
-  them. `related-work fetch --derive-only` backfills missing Markdown from
-  already-saved HTML without network access or a PDF fallback;
+  for PDF-only papers. The committed understanding page remains the primary
+  artifact reasoned and routinely traversed on; the committed full text is the
+  source-faithful reference when its summary omits a needed detail. A completed
+  extract carries a `.fetched` sentinel written *only* on success — so a
+  crashed extraction is retried rather than cached as done — recording the
+  method, source URL, validators, derivation version, source/target hashes, and
+  fidelity result when applicable. `related-work audit` rejects untracked
+  Markdown/provenance, missing or untracked local assets, tracked raw sources,
+  and hash drift. `related-work fetch --derive-only` backfills missing Markdown
+  from already-saved HTML without network access or a PDF fallback;
   `related-work fetch --revalidate` additionally asks whether a source changed.
   With no validators to send, revalidation means "may have changed", never
   "fresh".
@@ -82,8 +82,8 @@
   thing a durable full-text extract exists to protect. So `related-work fetch`
   asks the same marker run for per-block geometry and hands it to
   `scripts/pdf-figures-svg`, which recuts each figure region from the source
-  PDF as SVG and repoints the markdown link. The raster crop stays on disk as
-  a fallback, and stays *linked* for a region that is genuinely a placed
+  PDF as SVG and repoints the markdown link. A referenced SVG or raster crop
+  is committed with the Markdown; the raster crop stays *linked* for a placed
   bitmap or whose geometry disagrees with the crop — the tool names each such
   case in its output rather than passing over it. `--no-svg-figures` opts out;
   a host that cannot run the pass (no `uv`) reports `figures: raster only
@@ -104,12 +104,15 @@
   `verified: false` carries the uncertainty cost until the values are checked.
 - **Run a pinned `html2text` through `uvx` for HTML derivation** (vs. vendoring
   it or requiring a global install): the pure-Python converter stays
-  reproducible without importing its source into this repository, and the
-  `.fetched` sentinel records its version and exact Markdown path.
-- **Retain source HTML according to content loss** (vs. always keeping or
-  dropping it): the Markdown derivation substitutes embedded TeX for MathML
-  and removes duplicated `data:` payloads, while HTML remains when
-  presentation or interaction does not survive that conversion.
+  reproducible without importing its source into this repository. Before
+  accepting output, the engine requires at least 90% of each substantive
+  visible source block's five-word sequences in a link-free conversion,
+  requires every MathML expression exactly once as TeX, and records hashes plus
+  the result in `.fetched`.
+- **Separate committed authority from source cache** (vs. treating the whole
+  fetched page tree as one artifact): Markdown and its referenced assets are
+  reviewed and distributed; raw HTML/PDF can remain locally for comparison but
+  is ignored and trivially re-fetched from recorded provenance.
 
 ## Invariants
 

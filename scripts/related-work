@@ -4,9 +4,10 @@
 
 Contract: topics/research-survey.md in the ~/agents repo. Every field survey
 under `surveys/<field>/` keeps a `related-work/` directory holding a committed
-`papers.yaml` manifest and a git-ignored `extract/` tree of full texts. This
-tool owns both, so a new survey inherits fetch idempotency, HTTP revalidation,
-and manifest/disk reconciliation instead of hand-rolling a `fetch.sh`.
+`papers.yaml` manifest plus committed full-text Markdown, provenance, and
+referenced assets under `extract/`; raw source cache remains ignored. This tool
+owns both, so a new survey inherits fetch idempotency, HTTP revalidation, and
+manifest/disk reconciliation instead of hand-rolling a `fetch.sh`.
 
 Verbs: list, status, fetch, audit, init.
 Output follows topics/agent-cli.md: compact JSONL by default, --pretty for
@@ -25,6 +26,7 @@ artifact.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import re
@@ -38,7 +40,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote, urljoin, urlsplit
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
@@ -75,7 +77,9 @@ SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 HTML_METHODS = frozenset(("arxiv-html", "url-html"))
 LEGACY_HTML_METHODS = frozenset(("backfilled", "tcircuits-html"))
 HTML2TEXT_VERSION = "2025.4.15"
-HTML_DERIVATION = f"html2text {HTML2TEXT_VERSION}"
+HTML_DERIVATION = f"related-work html-md-v2 + html2text {HTML2TEXT_VERSION}"
+HTML_FIDELITY = "visible-blocks-v1"
+MIN_BLOCK_COVERAGE = 0.9
 REQUIRED_CITATION_FIELDS = ("title", "authors", "venue", "year")
 
 
@@ -264,6 +268,9 @@ class Sentinel:
     last_modified: str | None = None
     markdown: str | None = None
     derived_with: str | None = None
+    source_sha256: str | None = None
+    markdown_sha256: str | None = None
+    fidelity: str | None = None
 
     def to_json(self) -> str:
         body = {"method": self.method, "source": self.source, "at": self.at}
@@ -275,6 +282,12 @@ class Sentinel:
             body["markdown"] = self.markdown
         if self.derived_with:
             body["derived_with"] = self.derived_with
+        if self.source_sha256:
+            body["source_sha256"] = self.source_sha256
+        if self.markdown_sha256:
+            body["markdown_sha256"] = self.markdown_sha256
+        if self.fidelity:
+            body["fidelity"] = self.fidelity
         return json.dumps(body, sort_keys=True) + "\n"
 
 
@@ -299,6 +312,9 @@ def read_sentinel(path: Path) -> Sentinel | None:
             last_modified=body.get("last_modified"),
             markdown=_text(body.get("markdown")),
             derived_with=_text(body.get("derived_with")),
+            source_sha256=_text(body.get("source_sha256")),
+            markdown_sha256=_text(body.get("markdown_sha256")),
+            fidelity=_text(body.get("fidelity")),
         )
     method, _, source = text.partition("\t")
     return Sentinel(method=method, source=source)
@@ -328,6 +344,9 @@ class HtmlSourceNotFound(HtmlDerivationError):
 class HtmlDerivation:
     markdown: str
     html: str
+    source_sha256: str
+    markdown_sha256: str
+    fidelity: str
 
 
 class _MathPreprocessor(HTMLParser):
@@ -351,12 +370,23 @@ class _MathPreprocessor(HTMLParser):
         )
     )
 
-    def __init__(self, placeholder_prefix: str):
+    def __init__(
+        self,
+        placeholder_prefix: str,
+        *,
+        base_url: str | None = None,
+        source_name: str | None = None,
+    ):
         super().__init__(convert_charrefs=False)
         self.placeholder_prefix = placeholder_prefix
+        self.base_url = base_url
+        self.source_name = source_name
         self.output: list[str] = []
+        self.content_output: list[str] = []
         self.replacements: list[tuple[str, str, bool]] = []
+        self.content_replacements: list[tuple[str, str, bool]] = []
         self.math_depth = 0
+        self.math_in_content = False
         self.annotation_depth: int | None = None
         self.annotation: list[str] = []
         self.math_alttext: str | None = None
@@ -365,6 +395,12 @@ class _MathPreprocessor(HTMLParser):
         self.saw_content_root = False
         self.presentation: set[str] = set()
         self.content_presentation: set[str] = set()
+
+    def _append(self, text: str, *, in_content: bool | None = None) -> None:
+        self.output.append(text)
+        is_content = bool(self.content_roots) if in_content is None else in_content
+        if is_content:
+            self.content_output.append(text)
 
     def _record_presentation(
         self, tag: str, attributes: list[tuple[str, str | None]]
@@ -376,15 +412,6 @@ class _MathPreprocessor(HTMLParser):
             if name.lower() in ("data", "href", "poster", "src")
             and (value or "").lstrip().lower().startswith("data:")
         }
-        if any(
-            name.lower() == "href"
-            and (
-                (value or "").lstrip().startswith("#")
-                or re.search(r"\.html?(?:[?#][^#]*)?#", value or "", re.IGNORECASE)
-            )
-            for name, value in attributes
-        ):
-            reasons.add("section anchors")
         if tag in self._PRESENTATION_TAGS:
             reasons.add(tag)
         elif tag == "svg" and not (
@@ -407,20 +434,35 @@ class _MathPreprocessor(HTMLParser):
         *,
         self_closing: bool = False,
     ) -> str:
-        if not any(
-            name.lower() in ("data", "href", "poster", "src")
-            and (value or "").lstrip().lower().startswith("data:")
-            for name, value in attributes
-        ):
-            return self.get_starttag_text()
-        kept = [
-            (name, value)
-            for name, value in attributes
-            if not (
-                name.lower() in ("data", "href", "poster", "src")
-                and (value or "").lstrip().lower().startswith("data:")
-            )
-        ]
+        kept = []
+        for name, value in attributes:
+            lowered = name.lower()
+            stripped = (value or "").lstrip()
+            if lowered in (
+                "data",
+                "href",
+                "poster",
+                "src",
+            ) and stripped.lower().startswith("data:"):
+                continue
+            if lowered == "href" and stripped.lower().startswith("javascript:"):
+                continue
+            if lowered == "href" and value and self.base_url:
+                parsed = urlsplit(value)
+                if value.startswith("#"):
+                    value = self.base_url.split("#", 1)[0] + value
+                elif (
+                    not parsed.scheme
+                    and not parsed.netloc
+                    and Path(unquote(parsed.path)).suffix.lower() in (".htm", ".html")
+                ):
+                    if Path(unquote(parsed.path)).name == self.source_name:
+                        value = self.base_url.split("#", 1)[0]
+                        if parsed.fragment:
+                            value += f"#{parsed.fragment}"
+                    else:
+                        value = urljoin(self.base_url, value)
+            kept.append((name, value))
         rendered = [f"<{tag}"]
         for name, value in kept:
             rendered.append(
@@ -430,6 +472,20 @@ class _MathPreprocessor(HTMLParser):
             )
         rendered.append(" />" if self_closing else ">")
         return "".join(rendered)
+
+    def _missing_image(self, attributes: list[tuple[str, str | None]]) -> bool:
+        attrs = {name.lower(): value or "" for name, value in attributes}
+        return "ltx_missing_image" in attrs.get("class", "").split()
+
+    def _missing_image_notice(self) -> str:
+        target = self.base_url or ""
+        parsed = urlsplit(target)
+        if parsed.hostname == "arxiv.org" and parsed.path.startswith("/html/"):
+            target = target.replace("/html/", "/pdf/", 1)
+        label = "[Figure unavailable in source HTML; see source]"
+        if not target:
+            return label
+        return f'<a href="{html.escape(target, quote=True)}">{label}</a>'
 
     def handle_starttag(
         self, tag: str, attributes: list[tuple[str, str | None]]
@@ -448,12 +504,16 @@ class _MathPreprocessor(HTMLParser):
             self.annotation = []
             self.math_alttext = attrs.get("alttext", "").strip() or None
             self.block_math = attrs.get("display", "").lower() == "block"
+            self.math_in_content = bool(self.content_roots)
+            return
+        if tag == "img" and self._missing_image(attributes):
+            self._append(self._missing_image_notice())
             return
         if tag in self._CONTENT_ROOTS:
             self.content_roots.append(tag)
             self.saw_content_root = True
         self._record_presentation(tag, attributes)
-        self.output.append(self._start_tag(tag, attributes))
+        self._append(self._start_tag(tag, attributes))
 
     def handle_startendtag(
         self, tag: str, attributes: list[tuple[str, str | None]]
@@ -463,8 +523,11 @@ class _MathPreprocessor(HTMLParser):
             return
         if tag == "math":
             raise HtmlDerivationError("a MathML element has no TeX annotation")
+        if tag == "img" and self._missing_image(attributes):
+            self._append(self._missing_image_notice())
+            return
         self._record_presentation(tag, attributes)
-        self.output.append(self._start_tag(tag, attributes, self_closing=True))
+        self._append(self._start_tag(tag, attributes, self_closing=True))
 
     def handle_endtag(self, tag: str) -> None:
         tag = tag.lower()
@@ -479,17 +542,21 @@ class _MathPreprocessor(HTMLParser):
                 placeholder = (
                     f"{self.placeholder_prefix}{len(self.replacements):08d}END"
                 )
-                self.output.append(placeholder)
-                self.replacements.append((placeholder, tex, self.block_math))
+                replacement = (placeholder, tex, self.block_math)
+                self._append(placeholder, in_content=self.math_in_content)
+                self.replacements.append(replacement)
+                if self.math_in_content:
+                    self.content_replacements.append(replacement)
                 self.math_depth = 0
                 self.annotation_depth = None
                 self.math_alttext = None
+                self.math_in_content = False
                 return
             if self.annotation_depth == self.math_depth and tag == "annotation":
                 self.annotation_depth = None
             self.math_depth -= 1
             return
-        self.output.append(f"</{tag}>")
+        self._append(f"</{tag}>")
         if tag in self._CONTENT_ROOTS and tag in self.content_roots:
             index = len(self.content_roots) - 1 - self.content_roots[::-1].index(tag)
             del self.content_roots[index:]
@@ -498,57 +565,205 @@ class _MathPreprocessor(HTMLParser):
         if self.annotation_depth is not None:
             self.annotation.append(data)
         elif not self.math_depth:
-            self.output.append(data)
+            self._append(data)
 
     def handle_entityref(self, name: str) -> None:
         reference = f"&{name};"
         if self.annotation_depth is not None:
             self.annotation.append(html.unescape(reference))
         elif not self.math_depth:
-            self.output.append(reference)
+            self._append(reference)
 
     def handle_charref(self, name: str) -> None:
         reference = f"&#{name};"
         if self.annotation_depth is not None:
             self.annotation.append(html.unescape(reference))
         elif not self.math_depth:
-            self.output.append(reference)
+            self._append(reference)
 
     def handle_comment(self, data: str) -> None:
         if not self.math_depth:
-            self.output.append(f"<!--{data}-->")
+            self._append(f"<!--{data}-->")
 
     def handle_decl(self, decl: str) -> None:
         if not self.math_depth:
-            self.output.append(f"<!{decl}>")
+            self._append(f"<!{decl}>")
 
     def handle_pi(self, data: str) -> None:
         if not self.math_depth:
-            self.output.append(f"<?{data}>")
+            self._append(f"<?{data}>")
 
     def unknown_decl(self, data: str) -> None:
         if not self.math_depth:
-            self.output.append(f"<![{data}]>")
+            self._append(f"<![{data}]>")
 
     def result(self) -> tuple[str, list[tuple[str, str, bool]], set[str]]:
         if self.math_depth:
             raise HtmlDerivationError("an unterminated MathML element was found")
-        presentation = (
-            self.content_presentation if self.saw_content_root else self.presentation
-        )
-        return "".join(self.output), self.replacements, presentation
+        if self.saw_content_root:
+            return (
+                "".join(self.content_output),
+                self.content_replacements,
+                self.content_presentation,
+            )
+        return "".join(self.output), self.replacements, self.presentation
 
 
 def preprocess_html(
     source: str,
+    *,
+    base_url: str | None = None,
+    source_name: str | None = None,
 ) -> tuple[str, list[tuple[str, str, bool]], set[str]]:
     prefix = "RELATEDWORKMATHTOKEN"
     while prefix in source:
         prefix += "X"
-    parser = _MathPreprocessor(prefix)
+    parser = _MathPreprocessor(prefix, base_url=base_url, source_name=source_name)
     parser.feed(source)
     parser.close()
     return parser.result()
+
+
+_CONTENT_BLOCK_TAGS = frozenset(
+    (
+        "caption",
+        "figcaption",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "p",
+        "pre",
+        "td",
+        "th",
+    )
+)
+_NONCONTENT_TAGS = frozenset(("head", "noscript", "script", "style", "template"))
+_SEMANTIC_WORD = re.compile(r"RELATEDWORKMATHTOKEN[A-Z0-9]+|[^\W_]+", re.UNICODE)
+
+
+def _semantic_words(text: str) -> tuple[str, ...]:
+    return tuple(token.casefold() for token in _SEMANTIC_WORD.findall(text))
+
+
+class _ContentBlockParser(HTMLParser):
+    """Collect source-visible blocks for a conversion completeness check."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.skip_depth = 0
+        self.stack: list[tuple[str, list[str]]] = []
+        self.blocks: list[tuple[str, ...]] = []
+        self.all_text: list[str] = []
+
+    def handle_starttag(
+        self, tag: str, attributes: list[tuple[str, str | None]]
+    ) -> None:
+        tag = tag.lower()
+        if tag in _NONCONTENT_TAGS:
+            self.skip_depth += 1
+        if not self.skip_depth and tag == "br" and self.stack:
+            self.stack[-1][1].append(" ")
+        if not self.skip_depth and tag in _CONTENT_BLOCK_TAGS:
+            self.stack.append((tag, []))
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if not self.skip_depth and tag in _CONTENT_BLOCK_TAGS:
+            for index in range(len(self.stack) - 1, -1, -1):
+                block_tag, parts = self.stack[index]
+                if block_tag == tag:
+                    del self.stack[index]
+                    tokens = _semantic_words("".join(parts))
+                    if tokens:
+                        self.blocks.append(tokens)
+                    break
+        if tag in _NONCONTENT_TAGS and self.skip_depth:
+            self.skip_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if self.skip_depth:
+            return
+        self.all_text.append(data)
+        if self.stack:
+            self.stack[-1][1].append(data)
+
+
+def _ngrams(tokens: tuple[str, ...], width: int) -> set[tuple[str, ...]]:
+    return {tokens[index : index + width] for index in range(len(tokens) - width + 1)}
+
+
+def _block_coverage(
+    target: dict[int, set[tuple[str, ...]]], source: tuple[str, ...]
+) -> float:
+    width = min(5, len(source))
+    expected = _ngrams(source, width)
+    return len(expected & target[width]) / len(expected)
+
+
+def _run_html2text(source: str, *options: str) -> str:
+    completed = subprocess.run(
+        [
+            "uvx",
+            "--from",
+            f"html2text=={HTML2TEXT_VERSION}",
+            "html2text",
+            "--body-width=0",
+            *options,
+        ],
+        input=source,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.strip().splitlines()
+        suffix = f": {detail[-1]}" if detail else ""
+        raise HtmlDerivationError(
+            f"html2text failed (exit {completed.returncode}){suffix}"
+        )
+    return completed.stdout
+
+
+def _verify_visible_blocks(
+    processed: str, replacements: list[tuple[str, str, bool]]
+) -> str:
+    prose_source = processed
+    for placeholder, _tex, _block in replacements:
+        prose_source = prose_source.replace(placeholder, " ")
+
+    parser = _ContentBlockParser()
+    parser.feed(prose_source)
+    parser.close()
+    blocks = [tokens for tokens in parser.blocks if len(tokens) >= 4]
+    if not blocks:
+        fallback = _semantic_words("".join(parser.all_text))
+        if fallback:
+            blocks = [fallback]
+    if not blocks:
+        raise HtmlDerivationError("source HTML has no auditable visible text block")
+
+    target_words = _semantic_words(_run_html2text(prose_source, "--ignore-links"))
+    target_ngrams = {width: _ngrams(target_words, width) for width in range(1, 6)}
+    scores = [_block_coverage(target_ngrams, block) for block in blocks]
+    failures = [
+        (score, block)
+        for score, block in zip(scores, blocks, strict=True)
+        if score < MIN_BLOCK_COVERAGE
+    ]
+    if failures:
+        score, block = min(failures)
+        sample = " ".join(block[:16])
+        raise HtmlDerivationError(
+            f"visible-block fidelity failed for {len(failures)}/{len(blocks)} "
+            f"blocks (minimum {score:.3f}; sample: {sample})"
+        )
+    return (
+        f"{HTML_FIDELITY} blocks={len(blocks)}/{len(blocks)} "
+        f"min={min(scores):.3f} math={len(replacements)}/{len(replacements)}"
+    )
 
 
 def _saved_html_path(directory: Path, url: str, stem: str) -> Path | None:
@@ -600,10 +815,15 @@ def _recorded_markdown_path(directory: Path, sentinel: Sentinel) -> Path | None:
 
 
 def _has_versioned_derivation(sentinel: Sentinel) -> bool:
-    return bool(
-        sentinel.derived_with
-        and re.fullmatch(r"\S+\s+\S+", sentinel.derived_with.strip())
-    )
+    return sentinel.derived_with == HTML_DERIVATION
+
+
+def _sha256_bytes(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    return _sha256_bytes(path.read_bytes())
 
 
 def html_derivation_missing(directory: Path, sentinel: Sentinel) -> bool:
@@ -614,6 +834,14 @@ def html_derivation_missing(directory: Path, sentinel: Sentinel) -> bool:
         not _has_versioned_derivation(sentinel)
         or markdown is None
         or not markdown.is_file()
+        or not sentinel.source_sha256
+        or not sentinel.markdown_sha256
+        or not (sentinel.fidelity or "").startswith(HTML_FIDELITY)
+        or (
+            markdown is not None
+            and markdown.is_file()
+            and _sha256_file(markdown) != sentinel.markdown_sha256
+        )
     )
 
 
@@ -624,31 +852,13 @@ def derive_saved_html(directory: Path, url: str, stem: str) -> HtmlDerivation:
     if not have("uvx"):
         raise HtmlDerivationError("uvx is required for pinned html2text conversion")
 
+    source_bytes = source.read_bytes()
     processed, replacements, presentation = preprocess_html(
-        source.read_text(encoding="utf-8")
+        source_bytes.decode("utf-8"),
+        base_url=url,
+        source_name=source.name,
     )
-    completed = subprocess.run(
-        [
-            "uvx",
-            "--from",
-            f"html2text=={HTML2TEXT_VERSION}",
-            "html2text",
-            "--body-width=0",
-        ],
-        cwd=source.parent,
-        input=processed,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if completed.returncode != 0:
-        detail = completed.stderr.strip().splitlines()
-        suffix = f": {detail[-1]}" if detail else ""
-        raise HtmlDerivationError(
-            f"html2text failed (exit {completed.returncode}){suffix}"
-        )
-
-    markdown = completed.stdout
+    markdown = _run_html2text(processed)
     for placeholder, tex, block in replacements:
         if markdown.count(placeholder) != 1:
             raise HtmlDerivationError(
@@ -658,6 +868,7 @@ def derive_saved_html(directory: Path, url: str, stem: str) -> HtmlDerivation:
         markdown = markdown.replace(placeholder, f"{opening}{tex}{closing}")
     if not markdown.strip():
         raise HtmlDerivationError("html2text produced empty markdown")
+    fidelity = _verify_visible_blocks(processed, replacements)
 
     target = source.with_suffix(".md")
     temporary: Path | None = None
@@ -678,12 +889,18 @@ def derive_saved_html(directory: Path, url: str, stem: str) -> HtmlDerivation:
             temporary.unlink(missing_ok=True)
 
     relative = target.relative_to(directory).as_posix()
+    detail = ", ".join(sorted(presentation))
     if presentation:
-        disposition = f"kept ({', '.join(sorted(presentation))})"
+        disposition = f"kept (ignored source cache; {detail})"
     else:
-        source.unlink()
-        disposition = "dropped"
-    return HtmlDerivation(markdown=relative, html=disposition)
+        disposition = "kept (ignored source cache)"
+    return HtmlDerivation(
+        markdown=relative,
+        html=disposition,
+        source_sha256=_sha256_bytes(source_bytes),
+        markdown_sha256=_sha256_bytes(markdown.encode("utf-8")),
+        fidelity=fidelity,
+    )
 
 
 def http_headers(url: str) -> dict[str, str]:
@@ -954,6 +1171,9 @@ def fetch_paper(
                 last_modified=headers.get("last-modified"),
                 markdown=derivation.markdown if derivation else None,
                 derived_with=HTML_DERIVATION if derivation else None,
+                source_sha256=derivation.source_sha256 if derivation else None,
+                markdown_sha256=derivation.markdown_sha256 if derivation else None,
+                fidelity=derivation.fidelity if derivation else None,
             ),
         )
         row = {
@@ -963,7 +1183,11 @@ def fetch_paper(
             "source": source,
         }
         if derivation is not None:
-            row.update(markdown=derivation.markdown, html=derivation.html)
+            row.update(
+                markdown=derivation.markdown,
+                html=derivation.html,
+                fidelity=derivation.fidelity,
+            )
         return row
 
     def derive(method: str, source: str) -> dict:
@@ -1036,6 +1260,54 @@ def fetch_paper(
 # --- audit ---
 
 
+_MARKDOWN_IMAGE = re.compile(r"!\[[^\]]*\]\(((?:\\.|[^)])+)\)")
+
+
+def _local_markdown_assets(markdown: Path, extract_root: Path) -> list[Path]:
+    assets = []
+    for match in _MARKDOWN_IMAGE.finditer(markdown.read_text(errors="replace")):
+        target = match.group(1).strip()
+        if target.startswith("<") and ">" in target:
+            target = target[1 : target.index(">")]
+        else:
+            target = re.split(r'\s+["\']', target, maxsplit=1)[0]
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc or not parsed.path:
+            continue
+        candidate = (markdown.parent / unquote(parsed.path)).resolve()
+        try:
+            candidate.relative_to(extract_root.resolve())
+        except ValueError:
+            raise HtmlDerivationError(
+                f"{markdown} references an asset outside extract/: {target}"
+            )
+        assets.append(candidate)
+    return assets
+
+
+def _git_tracked_extract_paths(survey: Survey) -> set[Path] | None:
+    top = subprocess.run(
+        ["git", "-C", str(survey.root), "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if top.returncode != 0:
+        return None
+    repository = Path(top.stdout.strip()).resolve()
+    relative = survey.extract_root.resolve().relative_to(repository)
+    listed = subprocess.run(
+        ["git", "-C", str(repository), "ls-files", "-z", "--", str(relative)],
+        capture_output=True,
+        check=True,
+    )
+    return {
+        (repository / entry.decode()).resolve()
+        for entry in listed.stdout.split(b"\0")
+        if entry
+    }
+
+
 def audit_findings(survey: Survey) -> list[dict]:
     """Every incomplete citation or manifest/extract disagreement.
 
@@ -1049,6 +1321,7 @@ def audit_findings(survey: Survey) -> list[dict]:
     def report(key: str, rule: str, detail: str) -> None:
         findings.append({"key": key, "rule": rule, "detail": detail})
 
+    tracked = _git_tracked_extract_paths(survey)
     seen: set[str] = set()
     for paper in survey.papers:
         if paper.key in seen:
@@ -1068,7 +1341,8 @@ def audit_findings(survey: Survey) -> list[dict]:
             )
 
         directory = survey.extract_dir(paper.key)
-        sentinel = read_sentinel(survey.sentinel_path(paper.key))
+        sentinel_path = survey.sentinel_path(paper.key)
+        sentinel = read_sentinel(sentinel_path)
         fetched = sentinel is not None
         if fetched:
             if not paper.grounded:
@@ -1111,7 +1385,29 @@ def audit_findings(survey: Survey) -> list[dict]:
                 report(
                     paper.key,
                     "html-derivation",
-                    "HTML extract sentinel records no derivation tool/version",
+                    "HTML extract sentinel does not match the current "
+                    "derivation version",
+                )
+            if (
+                not sentinel.source_sha256
+                or not sentinel.markdown_sha256
+                or not (sentinel.fidelity or "").startswith(HTML_FIDELITY)
+            ):
+                report(
+                    paper.key,
+                    "html-fidelity",
+                    "HTML extract sentinel records no source/target hashes and "
+                    "visible-block fidelity result",
+                )
+            elif (
+                markdown is not None
+                and markdown.is_file()
+                and _sha256_file(markdown) != sentinel.markdown_sha256
+            ):
+                report(
+                    paper.key,
+                    "html-fidelity",
+                    f"derived markdown hash does not match {sentinel.markdown_sha256}",
                 )
         elif sentinel is not None and not has_content(directory):
             report(
@@ -1119,6 +1415,62 @@ def audit_findings(survey: Survey) -> list[dict]:
                 "extract-content",
                 "completed extract contains no Markdown",
             )
+
+        if sentinel is not None and tracked is not None:
+            if sentinel_path.resolve() not in tracked:
+                report(
+                    paper.key,
+                    "authority-provenance",
+                    f"{SENTINEL} is not tracked",
+                )
+            markdown_files = sorted(directory.rglob("*.md"))
+            for markdown_file in markdown_files:
+                if markdown_file.resolve() not in tracked:
+                    report(
+                        paper.key,
+                        "authority-markdown",
+                        f"{markdown_file.relative_to(directory)} is not tracked",
+                    )
+                try:
+                    assets = _local_markdown_assets(markdown_file, survey.extract_root)
+                except HtmlDerivationError as exc:
+                    report(paper.key, "authority-asset", str(exc))
+                    continue
+                for asset in assets:
+                    if asset.suffix.lower() in (".htm", ".html"):
+                        report(
+                            paper.key,
+                            "authority-asset",
+                            f"{asset.relative_to(directory)} is HTML, not a "
+                            "committable figure",
+                        )
+                    elif not asset.is_file():
+                        report(
+                            paper.key,
+                            "authority-asset",
+                            f"{asset.relative_to(directory)} is missing",
+                        )
+                    elif asset not in tracked:
+                        report(
+                            paper.key,
+                            "authority-asset",
+                            f"{asset.relative_to(directory)} is not tracked",
+                        )
+            raw_tracked = sorted(
+                path
+                for path in tracked
+                if path.is_relative_to(directory.resolve())
+                and path.suffix.lower() in (".htm", ".html", ".pdf")
+            )
+            if raw_tracked:
+                names = ", ".join(
+                    str(path.relative_to(directory)) for path in raw_tracked[:3]
+                )
+                report(
+                    paper.key,
+                    "authority-source",
+                    f"raw source is tracked instead of ignored: {names}",
+                )
 
         if directory.is_dir() and paper.ident is None:
             report(
@@ -1320,6 +1672,9 @@ def verb_fetch(args) -> int:
                     sentinel.source = source
                     sentinel.markdown = derivation.markdown
                     sentinel.derived_with = HTML_DERIVATION
+                    sentinel.source_sha256 = derivation.source_sha256
+                    sentinel.markdown_sha256 = derivation.markdown_sha256
+                    sentinel.fidelity = derivation.fidelity
                     write_sentinel(survey.sentinel_path(paper.key), sentinel)
                     derived = {
                         "key": paper.key,
@@ -1328,6 +1683,7 @@ def verb_fetch(args) -> int:
                         "source": sentinel.source,
                         "markdown": derivation.markdown,
                         "html": derivation.html,
+                        "fidelity": derivation.fidelity,
                     }
                     if args.derive_only:
                         results.append(derived)
@@ -1367,7 +1723,16 @@ def verb_fetch(args) -> int:
     emit_table(
         args,
         results,
-        ["key", "status", "method", "reason", "markdown", "html", "figures"],
+        [
+            "key",
+            "status",
+            "method",
+            "reason",
+            "markdown",
+            "html",
+            "fidelity",
+            "figures",
+        ],
         "results",
     )
     return int(ExitCode.TEMPORARY) if failed else 0
@@ -1416,10 +1781,12 @@ def verb_init(args) -> int:
     manifest.write_text(MANIFEST_TEMPLATE.format(slug=slug))
     gitignore = root / ".gitignore"
     if not gitignore.exists():
-        # Shared policy, not a per-clone exclude: extracts are computed,
-        # regenerable, and retrieved under the user's own access to the source.
         gitignore.write_text(
-            "# computed full-text extracts; rebuild with `related-work fetch`\nextract/\n"
+            "# Commit fetched Markdown + provenance; ignore rebuildable sources/cache.\n"
+            "extract/**\n"
+            "!extract/**/\n"
+            "!extract/**/*.md\n"
+            "!extract/**/.fetched\n"
         )
     emit(
         {"status": "created", "manifest": str(manifest), "field_slug": slug},
