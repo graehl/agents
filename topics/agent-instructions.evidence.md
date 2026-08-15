@@ -3027,3 +3027,30 @@ the sweep single-target.
   corpus/resource intake, teacher supervision, and filtering or reweighting.
 - **Status** — directly user-specified and trace-simulated; behavioral benefit
   remains assumed.
+
+## 2026-08-15 — repeated-prefix KV reuse stayed task-local
+
+- **Incident** — the user had already worked through reusable prompt-prefix
+  key/value state for the translation path, but a later many-document PII
+  teacher decode initially recomputed the same long instruction prefix. The
+  optimization remained narrow stack knowledge and did not generalize to the
+  new caller.
+- **Decision** — the draft project's boot now points repeated-prompt decode to
+  its shared `decodelib.py` facility. The rule names the operational sequence:
+  split an exact common token prefix, prefill once, and attach the copied state
+  while building each batch. Cache identity includes the exact prefix and
+  model state; left padding is masked layout, not content identity.
+- **Trace: same prompt, many documents** — one frozen instruction and schema
+  prefix precedes thousands of independent document suffixes. Literal use
+  reuses one prefill through `decodelib` rather than independently
+  hand-threading raw `past_key_values` in another task script.
+- **Trace: changing model state** — rows select different weights or adapters.
+  The exact-model-state condition prevents reuse across them; the rule does not
+  trade correctness for a cache hit.
+- **Trace: numerical bifurcation** — the cache layout is logically identical,
+  but finite-precision prefill grouping changes a greedy continuation. The
+  required task-quality on/off check judges the actual application rather than
+  imposing byte equality or claiming equivalence from fluent smoke output.
+- **Status** — user-specified and scenario-traced. Small-model layout tests and
+  a Gemma-4 diagnostic exercise the facility; the long PII task quality and
+  throughput comparison remains pending.
