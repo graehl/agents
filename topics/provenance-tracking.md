@@ -66,12 +66,13 @@ whether to extend the system or to introduce something parallel.
   `run_id`, collision-safe within agentctl-generated dumps. No SDK
   round-trip required to produce records.
 - **Committed source is the tracked-run admission rule.** The launcher records
-  Git branch + commit, requires a clean tracked/index state outside the
-  `runs/aim/` bookkeeping tree, rejects non-ignored untracked Python, and
-  proves the entry script and recognized environment controls are recoverable
-  from that commit. SHA-256 remains a useful byte identity, but an off-Git hash
-  diagnoses non-reproducibility rather than curing it. Inputs and outputs
-  remain SHA-256 opt-in because large tensors are expensive.
+  Git branch + commit, requires a clean tracked/index state outside every
+  `runs/aim/` bookkeeping subtree in the Git checkout, rejects non-ignored
+  untracked Python, and proves the entry script and recognized environment
+  controls are recoverable from that commit. SHA-256 remains a useful byte
+  identity, but an off-Git hash diagnoses non-reproducibility rather than
+  curing it. Inputs and outputs remain SHA-256 opt-in because large tensors
+  are expensive.
 
 ## Bounded scope (non-goals stated up front)
 
@@ -302,14 +303,15 @@ checked; it does not describe an immutable payload tree. The additive fields
 records the queued child's last check.
 
 Admission rejects a missing Git checkout or committed `HEAD`, tracked/index
-drift outside `runs/aim/`, any non-ignored untracked `*.py`, an off-checkout
-experiment script or environment, and selected bytes not recoverable from the
-recorded commit. The detached child repeats the commit, cleanliness,
-untracked-Python, and file checks after dependency/GPU waits and immediately
-before payload launch. The payload then runs from the invoking checkout. A
-peer edit after that check, or a file read deferred by the payload, can observe
-later bytes; the source snapshot makes no stronger claim. Commit-isolated work
-must launch from a separately materialized, protected checkout.
+drift outside every `runs/aim/` subtree, any non-ignored untracked `*.py`, an
+off-checkout experiment script or environment, and selected bytes not
+recoverable from the recorded commit. The detached child repeats the commit,
+cleanliness, untracked-Python, and file checks after dependency/GPU waits and
+immediately before payload launch. The payload then runs from the invoking
+checkout. A peer edit after that check, or a file read deferred by the payload,
+can observe later bytes; the source snapshot makes no stronger claim.
+Commit-isolated work must launch from a separately materialized, protected
+checkout.
 
 This is a source-control contract, not a demand that the full worker filesystem
 be committed. `git ls-files --others --exclude-standard` defines the Python
@@ -628,8 +630,10 @@ as disposable local provenance. `AGENTCTL_AIM_READ_ROOTS` may specify a
 pathsep-separated read-only root list during migrations or unusual layouts.
 Writes remain single-target and canonical. Agentctl does not add `runs/aim/`
 to Git ignores: accumulated records stay visible for useful-result triage.
-When a project tracks some of them, later launcher-written changes under this
-tree are subtracted only from agentctl's source-cleanliness checks.
+When a checkout tracks some of them, later launcher-written changes under any
+`runs/aim/` subtree are subtracted only from agentctl's source-cleanliness
+checks. This checkout-wide classification lets nested project roots share the
+worktree without one run's receipt blocking another run's delayed launch.
 
 ### KEY extensibility
 

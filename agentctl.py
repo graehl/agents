@@ -2130,15 +2130,9 @@ def git_output(args: list[str], *, cwd: Path = ROOT, text: bool = True):
 
 
 def tracked_source_status(git_root: Path) -> str:
-    aim_records = ROOT / "runs" / "aim"
-    try:
-        aim_records_rel = aim_records.relative_to(git_root).as_posix()
-    except ValueError:
-        pathspecs = ["."]
-    else:
-        # Aim records remain visible to ordinary Git status for later triage,
-        # but they are run bookkeeping rather than experiment source.
-        pathspecs = [".", f":(top,exclude){aim_records_rel}/**"]
+    # Aim records remain visible to ordinary Git status for later triage,
+    # but every project root in this checkout shares their bookkeeping writes.
+    pathspecs = [".", ":(top,glob,exclude)**/runs/aim/**"]
     return git_output(
         [
             "status",

@@ -26,6 +26,15 @@ Provenance tracking is therefore an `agentctl` concern, but separated because
 its invariants are shared by `artifact_meta.py`, downstream Aim import/export
 tooling, the cooperative declaration helper, and project migration docs.
 
+## Design decisions
+
+- **Exclude every `runs/aim/` subtree in the Git checkout from source
+  cleanliness** (vs. excluding only the invoking project root's subtree):
+  nested agentctl project roots share one mutable checkout, so one run's
+  receipt must not fail another run's delayed launch guard. Ordinary Git
+  status still shows the records, and source moved into bookkeeping still
+  leaves a visible deletion at its original path.
+
 ## Active-sessions file schema
 
 `.agentctl/active/<session-id>` files are agent-authored coordination
@@ -130,16 +139,16 @@ window.
 - A default tracked `start`/`smoke` requires a Git checkout at committed
   `HEAD`. It rejects source-relevant tracked/index changes, non-ignored
   untracked `*.py`, and selected script/environment-control bytes that are not
-  recoverable from the recorded commit. Tracked changes under `runs/aim/` are
-  excluded from the launcher's two cleanliness queries because those files are
-  run bookkeeping, not source; they remain visible to ordinary `git status`
-  for later result triage. Pixi requires a committed manifest+lock pair. A
-  detached or queued child repeats the guard immediately before payload
-  launch. `--no-aim` deliberately bypasses this admission rule and is limited
-  to trivial, non-evidence-producing work. Standard Git ignores/excludes
-  exempt derived Python trees such as `.pixi/`; unchecked-in intermediate data
-  remains valid when declared and tracked through the ordinary run-provenance
-  surface.
+  recoverable from the recorded commit. Tracked changes beneath any
+  `runs/aim/` directory in the Git checkout are excluded from the launcher's
+  two cleanliness queries because those files are run bookkeeping, not source;
+  they remain visible to ordinary `git status` for later result triage. Pixi
+  requires a committed manifest+lock pair. A detached or queued child repeats
+  the guard immediately before payload launch. `--no-aim` deliberately
+  bypasses this admission rule and is limited to trivial,
+  non-evidence-producing work. Standard Git ignores/excludes exempt derived
+  Python trees such as `.pixi/`; unchecked-in intermediate data remains valid
+  when declared and tracked through the ordinary run-provenance surface.
   This guard records an admission-time fact only: the payload still runs from
   the mutable invoking checkout. `source_snapshot.execution_guarantee` is
   `admission-time-only`, and commit-isolated execution requires invoking from a
