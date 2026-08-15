@@ -464,6 +464,10 @@ events (JSON `error` line on stderr).
 - `anchor` is the latest visible assistant text at or before
   `composed_at`; `unseen_turn_heads` holds exactly the turn-opening
   texts after it, in order.
+- `anchor_turn_continued` considers only later text in the anchor's assistant
+  turn and stops at the next user event. `activity_at_composition` considers
+  only activity in the assistant turn live at composition; an earlier turn's
+  trailing tool call cannot become current merely because no newer text exists.
 - Read-only: never writes anything.
 
 **Examples** (fixture: user@T+0s, assistant "Alpha result is

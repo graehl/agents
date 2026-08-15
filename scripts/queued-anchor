@@ -78,20 +78,21 @@ def load_events(
     path: Path,
 ) -> tuple[
     list[datetime],
-    list[tuple[datetime, str, bool]],
-    list[tuple[datetime, str, str]],
+    list[tuple[datetime, str, int, bool]],
+    list[tuple[datetime, str, str, int]],
 ]:
     """Returns (user_times, assistant_texts, activities) in file order.
 
-    assistant_texts entries are (time, text, starts_turn) where starts_turn
-    marks the first text-bearing assistant event since the last user event.
-    activities entries are (time, kind, head) for every assistant event
-    with any visible content (text, thinking, or tool_use).
+    assistant_texts entries are (time, text, turn_id, starts_turn), where
+    starts_turn marks the first text-bearing assistant event since the last
+    user event. Activities are (time, kind, head, turn_id) for every assistant
+    event with visible text, thinking, or tool use.
     """
     user_times: list[datetime] = []
-    assistant_texts: list[tuple[datetime, str, bool]] = []
-    activities: list[tuple[datetime, str, str]] = []
+    assistant_texts: list[tuple[datetime, str, int, bool]] = []
+    activities: list[tuple[datetime, str, str, int]] = []
     open_turn = False
+    turn_id = 0
     with open(path, encoding="utf-8") as f:
         for line in f:
             try:
@@ -107,15 +108,16 @@ def load_events(
             if kind == "user":
                 user_times.append(when)
                 open_turn = False
+                turn_id += 1
             else:
                 message = d.get("message") or {}
                 text = visible_text(message)
                 if text:
-                    assistant_texts.append((when, text, not open_turn))
+                    assistant_texts.append((when, text, turn_id, not open_turn))
                     open_turn = True
                 activity = activity_head(message)
                 if activity:
-                    activities.append((when, activity[0], activity[1]))
+                    activities.append((when, activity[0], activity[1], turn_id))
     return user_times, assistant_texts, activities
 
 
@@ -171,21 +173,37 @@ def main() -> int:
     render = max(user_times)
     composed = render - timedelta(seconds=args.seconds_ago)
 
-    seen = [(t, text) for t, text, _ in assistant_texts if t <= composed]
-    unseen_heads = [
-        (t, text) for t, text, starts in assistant_texts if t > composed and starts
+    seen = [
+        (t, text, turn_id)
+        for t, text, turn_id, _starts in assistant_texts
+        if t <= composed
     ]
+    unseen_heads = [
+        (t, text)
+        for t, text, _turn_id, starts in assistant_texts
+        if t > composed and starts
+    ]
+    anchor_turn_id = seen[-1][2] if seen else None
     anchor_turn_continued = bool(seen) and any(
-        not starts for t, _, starts in assistant_texts if t > composed
+        t > composed and turn_id == anchor_turn_id
+        for t, _text, turn_id, _starts in assistant_texts
     )
 
     # The sender may have been reacting to mid-turn activity (thinking or
     # a tool call) rather than the last completed text; surface the latest
     # such event at composition when it postdates the text anchor.
-    seen_activity = [a for a in activities if a[0] <= composed]
+    active_turn_id = max(
+        (index for index, when in enumerate(user_times, 1) if when <= composed),
+        default=None,
+    )
+    seen_activity = [
+        activity
+        for activity in activities
+        if activity[0] <= composed and activity[3] == active_turn_id
+    ]
     activity = None
     if seen_activity:
-        at, kind, head = seen_activity[-1]
+        at, kind, head, _turn_id = seen_activity[-1]
         if not seen or (kind != "text" and at > seen[-1][0]):
             activity = {"at": at.isoformat(), "kind": kind, "head": head[:HEAD_CHARS]}
 
