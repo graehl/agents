@@ -273,10 +273,11 @@ are binding for their named conditions; their short indexes own routing and
 win on packet conflict.
 
 - `RESEARCH.md` — before substantive research/experimentation, paper/report,
-  field-survey/prior-art/direction-ranking, significance/comparison, or
-  research-advisor work. It is a short router. Compaction-durable high-value
-  routes are:
-  - research paper/log/program/result-table/progress-report work →
+  handout/research-blog, field-survey/prior-art/direction-ranking,
+  significance/comparison, or research-advisor work. It is a short router.
+  Compaction-durable high-value routes are:
+  - research paper/handout/research-blog/log/program/result-table/
+    progress-report work →
     `_RESEARCH/artifacts.md`;
   - field survey, prior art, direction ranking, or a material advisor decision
     → `_RESEARCH/direction.md`;
@@ -285,9 +286,11 @@ win on packet conflict.
     claim → `_RESEARCH/evidence.md`; and
   - an untuned elaborate arm, multi-difference attribution, or closure of a
     substantial weak/surprising line → `_RESEARCH/judgment.md`.
-- `RUNS.md` — before using local accelerators or launching, monitoring, waiting
-  for, or summarizing tracked/long-running jobs. It is a short router:
-  - Python that may import an accelerator stack or GPU-capacity allocation →
+- `RUNS.md` — before using local accelerators, launching work with a
+  nontrivial storage footprint, or launching, monitoring, waiting for, or
+  summarizing tracked/long-running jobs. It is a short router:
+  - a Python command that may import an accelerator stack, GPU-capacity
+    allocation, or a run with a nontrivial storage footprint →
     `_RUNS/resources.md`;
   - an important saved output, in-flight record, or row-wise transformed
     dataset → `_RUNS/provenance.md`; and
@@ -596,9 +599,10 @@ Every `GLOSSARY.md` defines a topic scope. Its named terms are topic-like even
 when their canonical docs live elsewhere. Existing glossary-linked docs win;
 do not move or duplicate one merely to fit the layout. Formal topic docs hold
 cross-cutting contracts/invariants/project-facing knowledge, not module notes
-or changelogs. The project-root glossary owns root `topics/*.md` (or the
-alternate `docs/topics/*.md`); a scoped glossary owns its sibling
-`topics/*.md`.
+or changelogs. Before a root glossary exists, the project root is the implicit
+topic scope and owns root `topics/*.md` (or the alternate
+`docs/topics/*.md`). A project-root glossary, once present, owns that same
+collection; a scoped glossary owns its sibling `topics/*.md`.
 
 When creating a topic doc, default to the current project and choose the
 broadest active glossary scope that naturally owns the concern. Keep it local

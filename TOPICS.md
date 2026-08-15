@@ -43,10 +43,13 @@ canonical reference. Search outward through enclosing glossary scopes only
 when the nearer scope does not define X.
 
 When X needs a new formal topic doc, place it in the `topics/` collection owned
-by the selected glossary. The project-root glossary owns root `topics/` (or
-the established `docs/topics/` alternate); a scoped glossary owns the sibling
-`topics/` directory. A research-program glossary at `research/pii/GLOSSARY.md`,
-for example, owns `research/pii/topics/`.
+by the selected glossary. If the project has no root `GLOSSARY.md`, treat the
+project root as the implicit scope for its first ordinary topic; it owns root
+`topics/` (or the established `docs/topics/` alternate), and that first topic
+does not by itself require creating a glossary. A project-root glossary, once
+present, owns the same collection; a scoped glossary owns the sibling
+`topics/` directory. A research-program glossary at
+`research/pii/GLOSSARY.md`, for example, owns `research/pii/topics/`.
 
 Topic names keep owner context without exposing the mechanical collection
 directory. A root topic uses its basename, while a scoped topic prefixes the

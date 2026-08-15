@@ -122,46 +122,17 @@ explicitly before `nohup` jobs. (The typo `PYTORCH_ALLOC_CONF`, missing `CUDA_`,
 
 ### GPU utilization and parallelism policy
 
-The GPU is non-shared and must be kept busy with planned work at all times —
-without being asked and without churning the repo.
+The thresholds in the binding rule distinguish three cases: below 50% VRAM,
+where a compatible planned peer can materially improve occupancy; 50–80%,
+where the operator should actively look for one; and at least 80% VRAM or
+sustained utilization, where one job is already enough. Output separation and
+no reads from another job's in-progress output are what make concurrent runs
+independent.
 
-**Keep-busy rule**: Whenever a job finishes (or while one runs and a slot is
-free), immediately queue or launch the next planned job. Never leave the GPU
-idle between planned jobs. Use `wait <PID>` wrappers with a brief sleep buffer
-(~90 s) between sequential jobs to let GPU memory fully release.
-
-**Parallelism rule** — two independent jobs must run simultaneously whenever:
-- the running job uses **< 50% of total VRAM**, AND
-- a second planned job also fits in remaining VRAM with ≥ 10% headroom.
-
-A single job is acceptable only when it uses **≥ 80% of VRAM** (or ≥ 80%
-sustained utilization per `nvidia-smi utilization.gpu`). The 50–80% band is
-the trigger zone: find and launch a second job from the plan without asking.
-
-**Operationally**:
-1. After any job launch or completion, run `nvidia-smi` and check VRAM.
-2. If VRAM < 50%: immediately identify the next independent planned job that
-   fits in free VRAM (≥ 10% headroom) and launch it without asking.
-3. Two jobs are "independent" if they write to different output directories and
-   neither reads the other's in-progress output.
-4. Prefer the next *planned* job from the task/research queue; only propose new
-   experiments if the queue is exhausted.
-5. When chaining via `wait <PID>`, check whether any queued job can be promoted
-   to run now in parallel with the current job.
-6. When a run finishes, immediately show the user a brief highlight: headline
-   result, key metric(s), and 1–2 sample output comparisons. Do not wait to be
-   asked.
-7. **Verify GPU is in use after every job launch.** After starting a background
-   job (direct or via a `nohup` wrapper), wait ~30 s and run `nvidia-smi` to
-   confirm VRAM rose as expected. If the GPU stays at 0 MiB, the job silently
-   failed — investigate the log immediately and relaunch. Never assume a
-   background job succeeded without this check.
-8. **Use VRAM-polling waits between chained jobs**, not fixed sleeps.
-   Before launching the next job in a chain, poll until VRAM drops below a
-   safe threshold (e.g. `while [ $(nvidia-smi --query-gpu=memory.used
-   --format=csv,noheader | tr -d ' MiB') -gt 3000 ]; do sleep 15; done`).
-   Fixed sleeps are unreliable because child/worker processes can hold GPU
-   memory well past the parent's exit.
+A parent PID exiting does not prove its workers released device memory, and a
+background PID existing does not prove useful GPU work began. That is why the
+canonical protocol above observes VRAM after launch and before a chained
+successor instead of relying on PID state or an elapsed sleep.
 
 ### On-deck GPU fillers
 

@@ -3109,3 +3109,38 @@ the sweep single-target.
   creates no additional root-level files.
 - **Status** — directly user-specified; this supersedes only the root-level
   record paths in the immediately preceding entry.
+
+## 2026-08-15 — harsh-review route and bounded-sample repairs
+
+- **Trigger** — a range review found three routing/boundary failures in newly
+  split policy: boot-visible RUNS omitted the storage-only cue, boot-visible
+  RESEARCH omitted handout and research-blog cues, and topic ownership assumed
+  a root glossary even though the glossary-creation rule deliberately permits
+  one ordinary topic without one. It also found a compact qualitative sample
+  could become exhaustive over hundreds of represented levels.
+- **Decision** — preserve the missing observable terms in
+  `AGENTS.global.md`; treat the project root as the implicit topic scope until
+  a root glossary exists; exhaust only acceptance-critical axes of at most 12
+  levels; and cap the primary qualitative table at 32 rows, using explicit
+  frequency/risk coverage for larger axes. A separately declared audit remains
+  available when exhaustive high-cardinality review is the actual task.
+- **Trace: short CPU cache build** — a one-minute preprocessing job writes a
+  large model cache. The storage phrase now reaches RUNS and its filesystem
+  preflight even though the job is neither GPU-backed nor long-running.
+- **Trace: direct handout request** — completed results are supplied with
+  “write a handout.” The protected term reaches RESEARCH and the artifact
+  packet rather than relying on an agent to generalize “paper/report.”
+- **Trace: first project topic** — a project with no glossary needs one
+  cross-cutting contract. It creates root `topics/<name>.md` under the implicit
+  project scope without manufacturing a one-row glossary; a later root
+  glossary takes ownership of the same collection without moving the topic.
+- **Trace: 600 sources** — language and label type are acceptance-critical and
+  small, while source id has 600 levels. The sample covers every small critical
+  level, common source mass, rare/boundary sources, and known failures inside
+  32 rows, reports the 600-level denominator, and creates a separate audit only
+  if the decision genuinely requires all sources.
+- **Read cost** — the protected global main changed 42,033 → 42,302 bytes;
+  `_RUNS/resources.md` changed 9,289 → 7,559 after removing its duplicate
+  protocol; and `_RESEARCH/evidence.md` changed 13,109 → 13,774.
+- **Status** — scenario-traced; behavioral benefit and the 12/32 defaults
+  remain assumed.

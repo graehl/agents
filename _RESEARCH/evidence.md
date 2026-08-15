@@ -54,12 +54,23 @@ Do this early enough to redirect corpus intake, extraction, labeling,
 translation, augmentation, filtering, merging, or resampling, not only after
 the final build.
 
-Stratify the sample by every relevant declared axis—language, example or label
-type, domain, source, and similar—and show at least one row for every represented
-level. Cover cross-products only when interactions are a material risk. Present
-the sample as a compact table containing the strata, source/input, resulting
-example or label, a rough English gloss for non-English content, and any
-observed concern. Include informative failures, not only clean examples.
+Declare the axes that are acceptance-critical for this decision. Exhaustively
+show every represented level only for a critical axis with at most 12 levels;
+language and example/label type are common examples, but their names alone do
+not make them exhaustive. For higher-cardinality or secondary axes, select
+levels by observed frequency and risk: include common mass, rare and boundary
+cases, known or plausible failures, and any level whose omission could hide a
+decision-changing defect. Report levels shown versus total and the selection
+basis.
+
+Keep the primary table to at most 32 rows unless the project declares a
+different bound before review. Cover cross-products only when interactions are
+a material risk and charge those cells to the same cap. If exhaustive review
+of a high-cardinality axis is itself required, make it a separate audit
+artifact rather than expanding the early diagnostic sample without bound.
+The compact table contains the strata, source/input, resulting example or
+label, a rough English gloss for non-English content, and any observed concern.
+Include informative failures, not only clean examples.
 
 This review fires only when semantics or distribution may have changed. Skip
 it after a demonstrably semantics-preserving step whose relevant invariants

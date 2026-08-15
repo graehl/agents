@@ -148,8 +148,13 @@ convolution whose dominant work is proportional to `L k C² D`, replacing
 codepoints by raw bytes raises work by about `b` at fixed kernel, width, and
 depth. A first fixed-compute approximation is therefore
 `C_byte ≈ C_codepoint / sqrt(b)`. A recurrent or state-space layer with work
-proportional to `L C²` has the same first-order width trade. Activations rise
-about `b` times; dense attention rises about `b²` before downsampling.
+proportional to `L C²` has the same first-order width trade. At fixed width,
+ordinary hidden-state activations (`L C`) rise about `b` times and a dense
+attention-score matrix (`L²`) rises about `b²`. Under the just-stated
+fixed-compute width adjustment, hidden-state activations instead rise about
+`sqrt(b)`; the attention-score matrix remains about `b²` because reducing
+hidden width does not shorten the byte sequence. Report which regime and which
+memory term an estimate uses.
 
 Equal kernel width is also unequal semantic reach. A byte network needs about
 `b` times as many positions to cover the same codepoint interval, so widening

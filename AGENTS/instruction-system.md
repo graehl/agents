@@ -177,14 +177,15 @@ ephemera, so long as they are cleared when addressed rather than accreted;
 permanence is not what separates a topic from `tasks/` (§ Session management),
 collaborator value is.
 
-Each `GLOSSARY.md` defines a topic scope. The project-root glossary owns
-`topics/*.md` (or the alternate `docs/topics/*.md`); a scoped glossary owns
-the `topics/*.md` collection beside it. Every named glossary term is
-topic-like, including one whose `topic / refs` cell points to an already
-located proposal, draft, handoff, or other canonical doc. Resolve that doc
-before creating anything. If none exists, create a formal topic doc in the
-owning glossary's collection. Create a collection when first needed, not
-proactively.
+Each `GLOSSARY.md` defines a topic scope. Before a root glossary exists, the
+project root is the implicit topic scope and owns `topics/*.md` (or the
+alternate `docs/topics/*.md`). A project-root glossary, once present, owns
+that same collection; a scoped glossary owns the `topics/*.md` collection
+beside it. Every named glossary term is topic-like, including one whose
+`topic / refs` cell points to an already located proposal, draft, handoff, or
+other canonical doc. Resolve that doc before creating anything. If none
+exists, create a formal topic doc in the owning glossary's collection. Create
+a collection when first needed, not proactively.
 
 Choose the broadest active glossary scope that naturally owns the concern,
 while defaulting creation to the current project. A subtree/program remains
