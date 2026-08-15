@@ -12,7 +12,10 @@ Diagnose the soundness of the boot corpus itself — not the models reading
 it. Two frontier models from different labs run the same task under the
 identical corpus; where their behavior diverges, the divergence is
 attributed, chapter and verse, to corpus text. The models are two assay
-conditions; the corpus is the patient.
+conditions; the corpus is the patient. The corpus under test is any
+versioned instruction set — a task-scoped prompt, a project boot, or a
+boot omnibus like this repo's `AGENTS.global.md` stack — and the product
+is repair: patches applied back to that corpus, not a report about models.
 
 This is the evidence generator the repo's charter already calls for:
 `AGENTS.md` prefers "measured ablation by model, harness, project, and
@@ -34,8 +37,9 @@ structural ancestor; corroborating, not load-bearing.)
 
 ## Protocol
 
-**Stage 0 — setup.** One task; one corpus version (recorded by commit);
-two producer sessions on different-lab frontier models, same harness
+**Stage 0 — setup.** One task; one corpus version (recorded by commit;
+task-scoped instruction set through boot omnibus); two producer sessions
+on different-lab frontier models, same harness
 conventions where possible. Task sources: a challenging benchmark task, or
 an ordinary organic user request processed slowly. Eligibility constraint:
 running the protocol ships the request, corpus, and both transcripts to both
@@ -180,11 +184,16 @@ mutates text rather than attributing causes); multi-agent debate/consensus
 (aggregates divergence away instead of reading it); LLM-as-judge (compares
 outputs, never attributes to a shared corpus); 2026 trajectory-forensics
 work (divergence attribution for failure triage, single scaffold); software
-differential testing (the structural ancestor). The combination —
-heterogeneous producers, one versioned corpus, clause-cited attribution by
-post-answer forks with cross-audit, patches routed to model-scoped
-supplements — appears open; `novelty-confidence: speculative` pending a
-grounded falsification pass (survey §*Placement*).
+differential testing (the structural ancestor). The neighbors also split on
+a second axis the claim uses — attribution versus repair: the forensics
+cluster attributes divergence but repairs nothing, GEPA mutates the prompt
+but attributes nothing, and PromptExp attributes one model's prompt
+components with no repair routing. The combination — heterogeneous
+producers, one versioned corpus (task-scoped or boot-omnibus), clause-cited
+attribution by post-answer forks with cross-audit, patches routed back into
+that corpus and its model-scoped supplements, ablation-gated — appears
+open; `novelty-confidence: speculative` pending a grounded falsification
+pass (survey §*Placement*).
 
 ## Future work
 

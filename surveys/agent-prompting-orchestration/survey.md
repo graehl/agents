@@ -28,7 +28,7 @@ Three axes organize the field:
   a whole agent scaffold (tools + prompts + control flow);
 - **mechanism** — measure instruction effects; optimize instruction text;
   aggregate multiple agents/samples; judge outputs; attribute causes of
-  behavior or divergence;
+  behavior or divergence; repair a corpus from attributed causes;
 - **signal** — outcome metrics; model self-report; trajectory/transcript
   evidence.
 
@@ -203,20 +203,27 @@ baseline-effort point.
 
 ## Placement: `research/differential-instruction-diagnosis` (~/agents)
 
-Grid cell: {object: shared multi-file boot corpus} × {mechanism: cause
-attribution + patch proposal} × {signal: transcript-objective read traces,
-forked-producer self-report, peer audit}, with two heterogeneous frontier
-producers.
+Grid cell: {object: shared multi-file boot corpus — generalizing to any
+versioned instruction set, task-scoped through boot omnibus} × {mechanism:
+cause attribution + corpus repair} × {signal: transcript-objective read
+traces, forked-producer self-report, peer audit}, with two heterogeneous
+frontier producers.
 
 Filled neighbors: B3 (single-system reflective optimization, outcome-driven);
 C (aggregation discarding divergence); D (output judging without corpus
 attribution); F (divergence attribution for failure triage / single-model
 prompt components); G (the structural ancestor, non-LLM).
 
+No filled neighbor holds both load-bearing mechanisms at once: F
+attributes but repairs nothing, B3 repairs (mutates text) but attributes
+nothing, D judges without doing either. The attribution→repair loop
+against a shared maintained corpus is itself part of the claimed cell.
+
 The apparently open cell: heterogeneous producers under one versioned
 instruction corpus, divergence attributed *to cited corpus clauses* by
-post-answer forked producers plus cross-audit, with patches routed to
-model-scoped supplement files and validated by pre-named-slice ablation.
+post-answer forked producers plus cross-audit, with patches routed back
+into that corpus and its model-scoped supplement files and validated by
+pre-named-slice ablation.
 Why plausibly unexplored: it presupposes a maintained multi-file corpus with
 per-model supplements (rare outside serious agent-ops), session-continuation
 access to producer reasoning, and willingness to run a competitor's model on
