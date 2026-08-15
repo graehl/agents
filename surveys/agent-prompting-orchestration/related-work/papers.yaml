@@ -34,10 +34,10 @@ papers:
     year: 2026
     arxiv: "2608.11888"
     url: "https://arxiv.org/html/2608.11888v1"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: F
     note: >
       Single system (OpenCode + Claude Opus 4.6); contrastive target-vs-
@@ -50,10 +50,10 @@ papers:
     year: 2026
     arxiv: "2607.04528"
     url: "https://arxiv.org/html/2607.04528"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: A
     note: >
       Harness varies (6 configs), instructions/model fixed; divergence from
@@ -67,10 +67,10 @@ papers:
     year: 2026
     arxiv: "2605.28840"
     url: "https://arxiv.org/html/2605.28840"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: A
     note: >
       Same-model rerun noise floor: TSS 0.87, argument consistency 0.69;
@@ -83,10 +83,10 @@ papers:
     year: 2026
     arxiv: "2606.22698"
     url: "https://arxiv.org/html/2606.22698"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: F
     note: >
       Attribution/fingerprinting of system prompt + base model from
@@ -102,10 +102,10 @@ papers:
     year: 2026
     arxiv: "2606.06324"
     url: "https://arxiv.org/html/2606.06324v2"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: F
     note: >
       Nearest attribute+repair neighbor: HTIR aligns failed-trajectory steps
@@ -121,10 +121,10 @@ papers:
     year: 2026
     arxiv: "2608.10178"
     url: "https://arxiv.org/html/2608.10178"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: F
     note: >
       Closest goal overlap: asks what evolved harness content is
@@ -143,10 +143,10 @@ papers:
     year: 2025
     arxiv: "2507.19457"
     url: "https://arxiv.org/html/2507.19457"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: B
     note: >
       Reflection DOES attribute successes/failures to prompt elements
@@ -160,10 +160,10 @@ papers:
     year: 2024
     arxiv: "2410.13073"
     url: "https://arxiv.org/html/2410.13073"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: F
     note: >
       Token/word/sentence/component attribution (IG + perturbation); two
@@ -181,10 +181,10 @@ papers:
     year: 2026
     arxiv: "2606.26356"
     url: "https://arxiv.org/html/2606.26356"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: I
     note: >
       Compositional behavioral leakage between co-resident prompt modules;
@@ -200,10 +200,10 @@ papers:
     year: 2026
     arxiv: "2603.08993"
     url: "https://arxiv.org/html/2603.08993v1"
-    grounded: false
+    grounded: true
     verified: true
     source: "prompted arXiv-HTML read 2026-08-15"
-    fetched: null
+    fetched: 2026-08-15
     cluster: I
     note: >
       Static contradiction audit of vendor agent-CLI system prompts (Claude
