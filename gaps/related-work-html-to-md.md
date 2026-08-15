@@ -7,6 +7,11 @@ HTML page (`extract/<key>/html/<id>.html`) and never derives the searchable
 only for elements that don't map to markdown). Every HTML-fetched extract
 is therefore `rg`-able only as raw HTML.
 
+The fidelity-preserving variant (render over-spanned regions as SVG with
+full-text alt) is sketched in `topics/research-survey.sketches.md`; the
+close below is the plain derivation, which arXiv's embedded per-equation
+TeX annotations make nearly lossless on their own.
+
 Close by extending the engine (never a survey-local script): an html→md
 derivation step for HTML-method fetches, applied to existing extracts on a
 revalidate-style pass; drop the saved HTML where the md carries everything,
