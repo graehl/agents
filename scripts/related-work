@@ -12,9 +12,9 @@ Verbs: list, status, fetch, audit, init.
 Output follows topics/agent-cli.md: compact JSONL by default, --pretty for
 humans, --toon on the table verbs, --acli-complete for completion.
 
-Exit codes (beyond 0/2): 3 = audit found drift, 4 = no such survey or key,
-70 = papers.yaml is not the shape this tool reads, 75 = a fetch or extraction
-failed.
+Exit codes (beyond 0/2): 3 = audit found incomplete citation metadata or
+extract drift, 4 = no such survey or key, 70 = papers.yaml is not the shape
+this tool reads, 75 = a fetch or extraction failed.
 
 Not almanac. `almanac` caches web pages as queryable *record datasets* under
 its own cache root; this manages a bibliography whose product is readable full
@@ -64,7 +64,7 @@ except ModuleNotFoundError:  # pragma: no cover - environment guard
 
 CAPABILITIES = ("complete", "toon")
 EXIT_CODES = {
-    3: "audit found drift between papers.yaml and extract/",
+    3: "audit found incomplete citation metadata or extract drift",
     4: "no such survey directory or paper key",
     70: "papers.yaml is not the shape this tool reads",
     75: "a fetch or extraction failed",
@@ -76,6 +76,7 @@ HTML_METHODS = frozenset(("arxiv-html", "url-html"))
 LEGACY_HTML_METHODS = frozenset(("backfilled", "tcircuits-html"))
 HTML2TEXT_VERSION = "2025.4.15"
 HTML_DERIVATION = f"html2text {HTML2TEXT_VERSION}"
+REQUIRED_CITATION_FIELDS = ("title", "authors", "venue", "year")
 
 
 # --- manifest ---
@@ -147,6 +148,12 @@ def _text(value) -> str | None:
     if value is None or value == "":
         return None
     return value.isoformat() if isinstance(value, (date, datetime)) else str(value)
+
+
+def _citation_field_present(value) -> bool:
+    if isinstance(value, list):
+        return bool(value) and all((_text(item) or "").strip() for item in value)
+    return bool((_text(value) or "").strip())
 
 
 def _manifest_key(value, index: int) -> str:
@@ -1030,7 +1037,7 @@ def fetch_paper(
 
 
 def audit_findings(survey: Survey) -> list[dict]:
-    """Every disagreement between the manifest's claims and the extract tree.
+    """Every incomplete citation or manifest/extract disagreement.
 
     The manifest header defines `grounded` as "source fetched" and `verified`
     as "citation checked against a fetched source", which makes most of it
@@ -1047,6 +1054,18 @@ def audit_findings(survey: Survey) -> list[dict]:
         if paper.key in seen:
             report(paper.key, "duplicate-key", "appears more than once in papers.yaml")
         seen.add(paper.key)
+
+        missing_citation = [
+            name
+            for name in REQUIRED_CITATION_FIELDS
+            if not _citation_field_present(paper.raw.get(name))
+        ]
+        if missing_citation:
+            report(
+                paper.key,
+                "citation-metadata",
+                "required citation fields are empty: " + ", ".join(missing_citation),
+            )
 
         directory = survey.extract_dir(paper.key)
         sentinel = read_sentinel(survey.sentinel_path(paper.key))
@@ -1456,7 +1475,8 @@ def build_parser():
     p.set_defaults(func=verb_status)
 
     p = sub.add_parser(
-        "audit", help="Reconcile papers.yaml against extract/; exit 3 on drift."
+        "audit",
+        help="Validate citation metadata and reconcile extract/; exit 3 on drift.",
     )
     add_standard_args(p, allow_toon=True)
     p.set_defaults(func=verb_audit)

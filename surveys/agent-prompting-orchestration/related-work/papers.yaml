@@ -2,8 +2,9 @@
 #
 # Built and checked by the shared `related-work` engine (scripts/related-work
 # in ~/agents; contract topics/research-survey.md): `related-work fetch` builds
-# extracts under ./extract/<key>/, `related-work audit` reconciles this file
-# against them, `related-work status` derives survey.md's grounding banner.
+# extracts under ./extract/<key>/, `related-work audit` validates citation
+# metadata and reconciles this file against them, and `related-work status`
+# derives survey.md's grounding banner.
 #
 # One entry per paper the field map references. `verified: true` means the
 # citation was checked against a fetched source THIS repo can regenerate;
@@ -12,9 +13,8 @@
 # a verified:false entry as authoritative.
 #
 # 2026-08-15 falsification slice: entries marked verified below were checked
-# by prompted full-text reads of the arXiv HTML pages that day (title, id,
-# year, and the content claims cited in survey.md/frontier.md). Author lists
-# not captured during those reads are null pending engine fetch.
+# by prompted full-text reads of the arXiv HTML pages that day (title, authors,
+# id, year, and the content claims cited in survey.md/frontier.md).
 #
 # Extracts are keyed by `key`, never by `short`: a short handle is assigned
 # later, and rekeying would orphan every extract a concept page cites.
@@ -29,7 +29,7 @@ papers:
   # --- F. trajectory attribution, forensics, harness repair ---
   - key: skilltriage2026
     title: "Agent Skills Can Be Harmful (SkillTriage)"
-    authors: null
+    authors: ["Gen Dong", "Yanjie Gao", "Liqun Li", "Tianyin Xu", "Yu Hua", "Fan Yang"]
     venue: "arXiv"
     year: 2026
     arxiv: "2608.11888"
@@ -45,7 +45,7 @@ papers:
       classification only, no repair applied. 88.8% subcategory accuracy.
   - key: beliefdiv2026
     title: "Measuring Harness-Induced Belief Divergence in Multi-Step LLM Agents"
-    authors: null
+    authors: ["Haiwen Yi", "Xinyuan Song"]
     venue: "arXiv"
     year: 2026
     arxiv: "2607.04528"
@@ -62,7 +62,7 @@ papers:
       load-bearing for corpus attribution.
   - key: agentconsistency2026
     title: "How Consistent Are LLM Agents? Measuring Behavioral Reproducibility in Multi-Step Tool-Calling Pipelines"
-    authors: null
+    authors: ["Abel Yagubyan"]
     venue: "arXiv"
     year: 2026
     arxiv: "2605.28840"
@@ -78,7 +78,7 @@ papers:
       1-2; task ambiguity the dominant driver; no repair loop.
   - key: agentforensics2026
     title: "Black-Box Forensics for Conversational LLM Agents"
-    authors: null
+    authors: ["Isadora White", "Yasaman Jafari", "Taylor Berg-Kirkpatrick"]
     venue: "arXiv"
     year: 2026
     arxiv: "2606.22698"
@@ -116,7 +116,7 @@ papers:
     short: one-recipe
     concept_page: concepts/one-recipe.md
     title: "One Recipe, Many Harnesses: What Self-Evolution Encodes Across Languages and Models"
-    authors: null
+    authors: ["Siqi Yang", "Qianlan Yang", "Yu-Xiong Wang", "Saurabh Pujar", "Martin Hirzel"]
     venue: "arXiv"
     year: 2026
     arxiv: "2608.10178"
@@ -138,7 +138,7 @@ papers:
     short: gepa
     concept_page: concepts/gepa.md
     title: "GEPA: Reflective Prompt Evolution Can Outperform Reinforcement Learning"
-    authors: null
+    authors: ["Lakshya A Agrawal", "Shangyin Tan", "Dilara Soylu", "Noah Ziems", "Rishi Khare", "Krista Opsahl-Ong", "Arnav Singhvi", "Herumb Shandilya", "Michael J Ryan", "Meng Jiang", "Christopher Potts", "Koushik Sen", "Alexandros G. Dimakis", "Ion Stoica", "Dan Klein", "Matei Zaharia", "Omar Khattab"]
     venue: "ICLR 2026 (oral) / arXiv"
     year: 2025
     arxiv: "2507.19457"
@@ -155,7 +155,7 @@ papers:
       selection; cross-model transfer measured post hoc only.
   - key: promptexp2024
     title: "PromptExp: Multi-granularity Prompt Explanation for LLMs"
-    authors: null
+    authors: ["Ximing Dong", "Shaowei Wang", "Dayi Lin", "Gopi Krishnan Rajbahadur", "Boquan Zhou", "Shichao Liu", "Ahmed E. Hassan"]
     venue: "arXiv"
     year: 2024
     arxiv: "2410.13073"
@@ -176,7 +176,7 @@ papers:
     short: instruction-bleed
     concept_page: concepts/instruction-bleed.md
     title: "Instruction Bleed: Cross-Module Interference in Prompt-Composed Agentic Systems"
-    authors: null
+    authors: ["Ching-Yu Lin", "Yifan Liu"]
     venue: "arXiv"
     year: 2026
     arxiv: "2606.26356"
@@ -195,7 +195,7 @@ papers:
     short: arbiter
     concept_page: concepts/arbiter.md
     title: "Arbiter: Detecting Interference in LLM Agent System Prompts — A Cross-Vendor Analysis of Architectural Failure Modes"
-    authors: null
+    authors: ["Tony Mason"]
     venue: "arXiv"
     year: 2026
     arxiv: "2603.08993"

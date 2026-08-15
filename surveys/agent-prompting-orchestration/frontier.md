@@ -1,11 +1,12 @@
 # Frontier: agent prompting and orchestration
 
 Mode: recall base + **grounded falsification slice 2026-08-15** — ten
-anchor/neighbor papers read via prompted arXiv-HTML extraction (local
-extracts pending `related-work fetch`), citers snowballed via Semantic
-Scholar, reframing queries run (survey §Disconfirming pass). Entries below
-are read-backed unless marked existence-only; independent replication is
-unchecked for all (grade cap `single-source`).
+anchor/neighbor papers read via prompted arXiv-HTML extraction and backed by
+ten local searchable Markdown extracts (10 manifested / 10 verified / 10
+grounded / 10 extracted; 5 concept digests), citers snowballed via Semantic
+Scholar, and reframing queries run (survey §Disconfirming pass). Entries
+below are read-backed unless marked existence-only; independent replication
+is unchecked for all (grade cap `single-source`).
 
 ## Provisional claim inbox
 

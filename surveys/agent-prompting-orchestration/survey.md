@@ -5,8 +5,10 @@ was built from pretrained recall (2026-01 cutoff) plus light search; the
 falsification slice then read ten anchor/neighbor papers via prompted
 arXiv-HTML extraction, snowballed their citers (Semantic Scholar Graph
 API), and ran the reframing queries in *Disconfirming pass*. Read-backed
-nodes cite `related-work/papers.yaml` keys; local extracts pending
-(`related-work fetch`). Effectiveness grades remain capped at
+nodes cite `related-work/papers.yaml` keys. All ten now have local searchable
+Markdown extracts (10 manifested / 10 verified / 10 grounded / 10 extracted;
+5 concept digests, `related-work status` 2026-08-15). Effectiveness grades
+remain capped at
 `single-source` (each claim still rests on its own paper); `folklore`
 where honest.
 

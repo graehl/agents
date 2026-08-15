@@ -62,18 +62,27 @@ papers:
     title: "One"
     arxiv: "2001.00001"
     grounded: true
+    authors: ["Alpha Author"]
+    venue: "DemoConf"
+    year: 2020
     verified: true
     fetched: 2026-07-31
   - key: beta2021-two
     title: "Two"
     url: "https://example.invalid/two"
     grounded: false
+    authors: ["Beta Author"]
+    venue: "DemoConf"
+    year: 2021
     verified: false
     fetched: null
   - key: gamma2022-three
     title: "Three"
     arxiv: "2203.00003"
     grounded: false
+    authors: ["Gamma Author"]
+    venue: "DemoConf"
+    year: 2022
     verified: true
     source: anchor-bib
     fetched: null
@@ -116,6 +125,33 @@ def test_clean_survey_audits_clean():
         _assert(row["drift"] == 0 and row["manifested"] == 3, row)
         _assert(
             row["grounded"] == 1 and row["verified"] == 2 and row["digested"] == 1, row
+        )
+
+
+def test_audit_requires_complete_citation_metadata():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        manifest = root / "related-work" / "papers.yaml"
+        manifest.write_text(
+            manifest.read_text()
+            .replace('    title: "One"\n', "    title: null\n")
+            .replace('    authors: ["Alpha Author"]\n', "    authors: []\n")
+            .replace('    venue: "DemoConf"\n', "    venue: null\n", 1)
+            .replace("    year: 2020\n", "    year: null\n")
+        )
+
+        proc = run(root, "audit")
+        _assert(proc.returncode == 3, proc.stdout)
+        finding = next(
+            row
+            for row in jsonl(proc)
+            if row["key"] == "alpha2020-one"
+            and row["rule"] == "citation-metadata"
+        )
+        _assert(
+            finding["detail"]
+            == "required citation fields are empty: title, authors, venue, year",
+            finding,
         )
 
 

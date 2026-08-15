@@ -22,9 +22,10 @@
 - **`related-work/` is driven by the shared `related-work` engine, never by a
   per-survey script.** `~/agents/scripts/related-work` (on `PATH`) owns fetch,
   extraction, and reconciliation for every survey: `init` scaffolds a new
-  `related-work/`, `fetch` builds extracts, `audit` reconciles `papers.yaml`
-  against `extract/` and exits 3 on drift, `status` derives the grounding
-  banner's counts, `list` reports the manifest. Do not write a survey-local
+  `related-work/`, `fetch` builds extracts, `audit` validates required citation
+  metadata, reconciles `papers.yaml` against `extract/`, and exits 3 on drift;
+  `status` derives the grounding banner's counts, and `list` reports the
+  manifest. Do not write a survey-local
   `fetch.sh`: the last one accumulated three defects the engine now has tests
   for — extracts rekeyed out from under their sentinels, a manifest that
   silently drifted from disk, and a bare invocation that queued every pending
@@ -97,6 +98,10 @@
 
 ## Design decisions
 
+- **Require complete citation-shaped entries before grounding** (vs. allowing
+  null metadata until fetch): a manifest remains usable as a bibliography and
+  the audit can enforce one stable schema throughout the survey lifecycle;
+  `verified: false` carries the uncertainty cost until the values are checked.
 - **Run a pinned `html2text` through `uvx` for HTML derivation** (vs. vendoring
   it or requiring a global install): the pure-Python converter stays
   reproducible without importing its source into this repository, and the
@@ -113,6 +118,10 @@
   is stated at the top of every output. A `recall` survey caps effectiveness
   grades at `single-source` and carries a provenance banner; it must not
   present itself as grounded.
+- **Citation metadata is complete independently of grounding.** Every
+  `papers.yaml` entry carries nonempty title, authors, venue, and year fields;
+  `related-work audit` reports any missing field as drift. `verified: false`
+  marks those values as needing confirmation, not as permission to omit them.
 - **Concept understanding pages follow a fetch+read.** `concepts/<short>.md` is
   written from an actual read of the fetched full text — its
   `related-work/extract/<key>/`, or the fetched primary source — not from
