@@ -904,7 +904,10 @@ def test_project_env_defaults_are_portable_and_overridable():
             == ["PII_EVAL_HOME", "CALLER_WINS", "EXPLICIT_WINS"],
             state,
         )
-        _assert(len(state["project_env"]["sha256"]) == 64, state)
+        expected_hash = hashlib.sha256(
+            (ws.tmp / "agentctl.env").read_bytes()
+        ).hexdigest()
+        _assert(state["project_env"]["sha256"] == expected_hash, state)
     finally:
         ws.cleanup()
 
@@ -2769,6 +2772,37 @@ def test_restart_preserves_declarations():
         )
         _assert(s2["script"]["selection"] == "explicit", s2["script"])
         _assert(s2["propagate"] == {"k": "v"}, f"propagate lost: {s2['propagate']!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_restart_migrates_legacy_final_argv_without_duplicate_inputs():
+    ws = Workspace()
+    try:
+        source = ws.scratch / "legacy-input.txt"
+        source.write_text("data")
+        _start(
+            ws,
+            "--input-hash",
+            f"data={source}",
+            "legacyrestart",
+            "--",
+            sys.executable,
+            "-c",
+            "import sys; assert len([x for x in sys.argv if x.startswith('--data=')]) == 1",
+        )
+        first = ws.wait_finished("legacyrestart")
+        current = ws.tmp / ".agentctl/jobs/legacyrestart/current.json"
+        legacy = json.loads(current.read_text())
+        legacy.pop("user_argv")
+        current.write_text(json.dumps(legacy, indent=2, sort_keys=True) + "\n")
+
+        restarted = ws.run("restart", "legacyrestart")
+        _assert(restarted.returncode == 0, restarted.stderr)
+        second = ws.wait_finished("legacyrestart", since_run_id=first["run_id"])
+        translated = f"--data={source}"
+        _assert(second["argv"].count(translated) == 1, second["argv"])
+        _assert(second["user_argv"].count(translated) == 0, second["user_argv"])
     finally:
         ws.cleanup()
 

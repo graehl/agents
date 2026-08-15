@@ -503,6 +503,9 @@ it contains `path`, `sha256`, and `keys`; values are deliberately excluded.
 `user_argv` preserves the payload argv before translated `--input` and
 `--output-arg` declarations are appended. Restarts rebuild translated flags
 from declarations against that original argv, preventing duplicate flags.
+For run state written before `user_argv` existed, restart removes the exact
+declaration-owned suffix from final `argv` before rebuilding it. It refuses a
+legacy record whose suffix disagrees with its input/output declarations.
 
 Plugins should write their own keys directly on `state` (the dict is the
 in-memory record passed to every hook). Existing convention from the `aim`

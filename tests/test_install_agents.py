@@ -11,12 +11,14 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.install_agents import core as install_core
+
 SCRIPT = REPO_ROOT / "scripts" / "install-agents"
 GLOBAL = REPO_ROOT / "AGENTS.global.md"
 SKILLS = REPO_ROOT / "skills"
-FIRST_SKILL = sorted(
-    path for path in SKILLS.iterdir() if (path / "SKILL.md").is_file()
-)[0]
+FIRST_SKILL = min(path for path in SKILLS.iterdir() if (path / "SKILL.md").is_file())
 
 
 def _run(home: Path, command: str, *args: str) -> subprocess.CompletedProcess[str]:
@@ -92,8 +94,7 @@ def test_install_and_uninstall_restore_mixed_prior_state() -> None:
         assert claude.is_symlink() and os.readlink(claude) == "missing-old-target"
         assert grok.is_dir()
         assert (
-            grok.joinpath("unexpected-but-preserved").read_text()
-            == "directory state\n"
+            grok.joinpath("unexpected-but-preserved").read_text() == "directory state\n"
         )
         assert old_skill.is_dir()
         assert old_skill.joinpath("kept.txt").read_text() == "old skill\n"
@@ -127,6 +128,73 @@ def test_uninstall_refuses_post_install_changes() -> None:
         assert proc.returncode == 2
         assert "post-install changes" in proc.stderr
         assert target.read_text() == "new user state\n"
+
+
+def test_uninstall_preflights_every_backup_before_mutating_targets() -> None:
+    for damage in ("missing", "corrupt"):
+        with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
+            home = Path(directory)
+            codex = home / ".codex/AGENTS.md"
+            claude = home / ".claude/CLAUDE.md"
+            codex.parent.mkdir(parents=True)
+            claude.parent.mkdir(parents=True)
+            codex.write_text("old codex\n")
+            claude.write_text("old claude\n")
+
+            installed = _run(home, "install", "--harness", "codex,claude")
+            assert installed.returncode == 0, installed.stderr
+            active_path = home / ".local/state/agents-install/active.json"
+            manifest = json.loads(active_path.read_text())
+            record = next(
+                target
+                for target in manifest["targets"]
+                if target["relative"] == ".codex/AGENTS.md"
+            )
+            backup = Path(manifest["backup_root"]) / record["original"]["backup"]
+            if damage == "missing":
+                backup.unlink()
+            else:
+                backup.write_text("corrupt\n")
+
+            refused = _run(home, "uninstall")
+            assert refused.returncode == 2, refused
+            assert "restore preflight failed" in refused.stderr, refused.stderr
+            assert _target(codex) == GLOBAL.resolve()
+            assert _target(claude) == GLOBAL.resolve()
+            assert active_path.is_file()
+
+
+def test_install_refuses_a_target_through_an_external_parent_symlink() -> None:
+    with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
+        base = Path(directory)
+        home = base / "home"
+        outside = base / "outside"
+        home.mkdir()
+        outside.mkdir()
+        victim = outside / "AGENTS.md"
+        victim.write_text("outside sentinel\n")
+        (home / ".codex").symlink_to(outside, target_is_directory=True)
+
+        refused = _run(home, "install", "--harness", "codex")
+        assert refused.returncode == 2, refused
+        assert "symlinked parent escapes --home" in refused.stderr, refused.stderr
+        assert victim.read_text() == "outside sentinel\n"
+        assert not victim.is_symlink()
+
+
+def test_link_replacement_preserves_an_unowned_legacy_temp_collision() -> None:
+    with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
+        root = Path(directory)
+        target = root / "target"
+        source = root / "source"
+        source.write_text("source\n")
+        collision = target.with_name(f".{target.name}.install-agents-{os.getpid()}")
+        collision.write_text("do not delete\n")
+
+        install_core._replace_with_link(target, source)
+
+        assert _target(target) == source.resolve()
+        assert collision.read_text() == "do not delete\n"
 
 
 def test_broken_skill_root_is_backed_up_and_restored() -> None:
@@ -225,7 +293,9 @@ def test_reinstall_refuses_changed_retired_skill_target() -> None:
 
 
 if __name__ == "__main__":
-    tests = [value for name, value in sorted(globals().items()) if name.startswith("test_")]
+    tests = [
+        value for name, value in sorted(globals().items()) if name.startswith("test_")
+    ]
     for test in tests:
         test()
     print(f"ok: {len(tests)} tests")

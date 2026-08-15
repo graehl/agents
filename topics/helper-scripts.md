@@ -366,10 +366,13 @@ usage and safe refusals exit 2.
 - Before mutation, `~/.local/state/agents-install/active.json` and its named
   backup directory record every target's prior kind, content or link target,
   mode, and inode/link metadata. `uninstall` restores mutated paths in reverse
-  order and retains the backup.
-- Uninstall refuses to overwrite post-install drift. A repeated install for
-  the same checkout and harness selection is a no-op when complete and extends
-  the manifest when new repository skills need per-skill links.
+  order and retains the backup. Before its first mutation, uninstall validates
+  the kind and digest or link target of every restore object.
+- Install, status, and uninstall refuse a target whose symlinked parent escapes
+  the selected home. Uninstall also refuses to overwrite post-install drift. A
+  repeated install for the same checkout and harness selection is a no-op when
+  complete and extends the manifest when new repository skills need per-skill
+  links.
 
 **Examples**:
 1. `install-agents status` reports every supported harness without writing.

@@ -2016,7 +2016,8 @@ def load_project_env(
     keys: list[str] = []
     seen: set[str] = set()
     try:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        project_env_bytes = path.read_bytes()
+        lines = project_env_bytes.decode("utf-8").splitlines()
     except (OSError, UnicodeError) as exc:
         raise SystemExit(f"failed to read project env file {path}: {exc}") from exc
     for line_number, raw_line in enumerate(lines, 1):
@@ -2039,7 +2040,7 @@ def load_project_env(
         keys.append(key)
     return updated, {
         "path": str(path),
-        "sha256": compute_sha256(path),
+        "sha256": hashlib.sha256(project_env_bytes).hexdigest(),
         "keys": keys,
     }
 
@@ -4586,6 +4587,32 @@ def stop(args: argparse.Namespace) -> int:
     return 0
 
 
+def restart_user_argv(state: dict) -> list[str]:
+    """Recover the payload argv, including from pre-user_argv run state."""
+    if "user_argv" in state:
+        user_argv = state["user_argv"]
+        if not isinstance(user_argv, list):
+            raise SystemExit("cannot restart: user_argv is not a list")
+        return list(user_argv)
+
+    final_argv = list(state.get("argv") or [])
+    declaration_suffix = []
+    for key, info in (state.get("inputs") or {}).items():
+        if not info.get("raw") and info.get("path"):
+            declaration_suffix.append(f"--{key}={info['path']}")
+    for key, info in (state.get("outputs") or {}).items():
+        if info.get("arg") and info.get("path"):
+            declaration_suffix.append(f"--{key}={info['path']}")
+    if declaration_suffix:
+        if final_argv[-len(declaration_suffix) :] != declaration_suffix:
+            raise SystemExit(
+                "cannot restart legacy run: declaration-owned argv suffix does not "
+                "match recorded inputs/outputs"
+            )
+        del final_argv[-len(declaration_suffix) :]
+    return final_argv
+
+
 def restart(args: argparse.Namespace) -> int:
     state = load_job(args.job)
     # Stop a waiting (queued) run too, or the old wrapper would launch the
@@ -4593,7 +4620,7 @@ def restart(args: argparse.Namespace) -> int:
     if state.get("status") in ("running", "waiting"):
         stop(argparse.Namespace(job=args.job, grace=args.grace))
     start_args = argparse.Namespace(
-        argv=state.get("user_argv") or state["argv"],
+        argv=restart_user_argv(state),
         context_note=state.get("context_note", ""),
         depends_on=state.get("depends_on", []),
         # Requeue behind the same --after dependencies; a clean-finished

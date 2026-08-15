@@ -135,8 +135,10 @@ Each install writes a readable manifest and filesystem snapshots under
 files, directories, symlinks (including broken ones), inode/link metadata,
 and a non-mutating snapshot of `~/AGENTS.md` when present. `uninstall` restores
 the prior kind, content, link target, and mode of paths the installer replaced;
-it refuses to overwrite a path changed after installation. Backups remain
-after uninstall.
+it validates every restore object's kind and digest before changing any target,
+and refuses to overwrite a path changed after installation. Install and
+uninstall also refuse any target whose symlinked parent resolves outside the
+selected `--home`. Backups remain after uninstall.
 
 The installer never creates or modifies `~/AGENTS.md`, and it deliberately has
 no hardlink mode. A hardlink to a Git-controlled file can retain the old inode

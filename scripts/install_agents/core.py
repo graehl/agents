@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import stat
+import tempfile
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -99,9 +100,16 @@ def _signature(description: dict[str, Any]) -> tuple[Any, ...]:
 
 def _relative(path: Path, home: Path) -> Path:
     try:
-        return path.relative_to(home)
+        relative = path.relative_to(home)
     except ValueError as exc:
         raise InstallError(f"refusing target outside --home: {path}") from exc
+    try:
+        path.parent.resolve(strict=False).relative_to(home.resolve(strict=False))
+    except ValueError as exc:
+        raise InstallError(
+            f"refusing target whose symlinked parent escapes --home: {path}"
+        ) from exc
+    return relative
 
 
 def _copy_snapshot(
@@ -111,13 +119,13 @@ def _copy_snapshot(
     *,
     preserve_hardlink: bool = False,
 ) -> dict[str, Any]:
+    relative = _relative(path, home)
     description = _describe(path)
     if description["kind"] in {"absent", "other"}:
         if description["kind"] == "other":
             raise InstallError(f"refusing unsupported filesystem object: {path}")
         return description
 
-    relative = _relative(path, home)
     backup = backup_root / "files" / relative
     backup.parent.mkdir(parents=True, exist_ok=True)
     if description["kind"] == "symlink":
@@ -163,20 +171,24 @@ def _remove_path(path: Path) -> None:
 
 def _replace_with_link(path: Path, source: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.install-agents-{os.getpid()}")
-    if temporary.exists() or temporary.is_symlink():
-        _remove_path(temporary)
-    os.symlink(str(source), temporary, target_is_directory=source.is_dir())
-    if path.is_dir() and not path.is_symlink():
-        shutil.rmtree(path)
-    os.replace(temporary, path)
+    with tempfile.TemporaryDirectory(
+        dir=path.parent, prefix=f".{path.name}.install-agents-"
+    ) as temporary_directory:
+        temporary = Path(temporary_directory) / "link"
+        os.symlink(str(source), temporary, target_is_directory=source.is_dir())
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        os.replace(temporary, path)
 
 
 def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
-    os.replace(temporary, path)
+    with tempfile.TemporaryDirectory(
+        dir=path.parent, prefix=f".{path.name}.install-agents-"
+    ) as temporary_directory:
+        temporary = Path(temporary_directory) / "value"
+        temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        os.replace(temporary, path)
 
 
 def _skill_directories(source: Path) -> list[Path]:
@@ -224,9 +236,7 @@ def _target_record(
     backup_root: Path,
     roles: list[str],
 ) -> tuple[dict[str, Any], bool]:
-    original = _copy_snapshot(
-        path, home, backup_root, preserve_hardlink=True
-    )
+    original = _copy_snapshot(path, home, backup_root, preserve_hardlink=True)
     record = {
         "path": str(path),
         "relative": str(_relative(path, home)),
@@ -246,7 +256,9 @@ def _active_manifest(state_root: Path) -> dict[str, Any] | None:
     try:
         return json.loads(active.read_text())
     except (OSError, json.JSONDecodeError) as exc:
-        raise InstallError(f"cannot read active install manifest {active}: {exc}") from exc
+        raise InstallError(
+            f"cannot read active install manifest {active}: {exc}"
+        ) from exc
 
 
 def _plan_skill_targets(
@@ -263,6 +275,7 @@ def _plan_skill_targets(
     skills = _skill_directories(skills_source)
 
     for root, roles in skill_roots.items():
+        _relative(root, home)
         observations.append(
             {"path": str(root), "roles": sorted(roles), "state": _describe(root)}
         )
@@ -301,17 +314,33 @@ def install(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, 
     instructions: dict[Path, list[str]] = {}
     skill_roots: dict[Path, list[str]] = {}
     for harness in harnesses:
-        instructions.setdefault(home.joinpath(*harness.instruction), []).append(harness.name)
-        skill_roots.setdefault(home.joinpath(*harness.skill_root), []).append(harness.name)
+        instructions.setdefault(home.joinpath(*harness.instruction), []).append(
+            harness.name
+        )
+        skill_roots.setdefault(home.joinpath(*harness.skill_root), []).append(
+            harness.name
+        )
 
     state_root = home / STATE_RELATIVE
+    _relative(state_root / "active.json", home)
+    for path in instructions:
+        _relative(path, home)
+    for root in skill_roots:
+        _relative(root, home)
     existing = _active_manifest(state_root)
     if existing is not None:
-        if existing.get("repo_root") != str(repo_root) or existing.get("harnesses") != selected:
+        if (
+            existing.get("repo_root") != str(repo_root)
+            or existing.get("harnesses") != selected
+        ):
             raise InstallError(
                 "another install is active; uninstall it before changing "
                 "source or harness selection"
             )
+        backup_root = Path(existing["backup_root"])
+        _validate_manifest_scope(existing, home, backup_root)
+        if not backup_root.is_dir():
+            raise InstallError(f"active install backup is missing: {backup_root}")
         retired = _retired_skill_records(existing, skills_source)
         safely_retired_paths = {
             Path(target["path"])
@@ -321,9 +350,6 @@ def install(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, 
         drift = _manifest_drift(existing, ignored_paths=safely_retired_paths)
         if drift:
             raise InstallError("active install has drifted: " + ", ".join(drift))
-        backup_root = Path(existing["backup_root"])
-        if not backup_root.is_dir():
-            raise InstallError(f"active install backup is missing: {backup_root}")
         known_paths = {Path(record["path"]) for record in existing.get("targets", [])}
         records, actions, observations = _plan_skill_targets(
             home, skills_source, skill_roots, backup_root, known_paths
@@ -448,13 +474,16 @@ def _skills_available(root: Path, source: Path) -> bool:
         return True
     if not root.is_dir():
         return False
-    return all(_matches_link(root / skill.name, skill) for skill in _skill_directories(source))
+    return all(
+        _matches_link(root / skill.name, skill) for skill in _skill_directories(source)
+    )
 
 
 def status(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, Any]:
     home = home.expanduser().absolute()
     repo_root = repo_root.expanduser().resolve()
     state_root = home / STATE_RELATIVE
+    _relative(state_root / "active.json", home)
     active = _active_manifest(state_root)
     selected = [asdict(harness) for harness in harnesses]
     result: dict[str, Any] = {
@@ -468,11 +497,14 @@ def status(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, A
         skill_root = home.joinpath(*harness.skill_root)
         result["harnesses"][harness.name] = {
             "instruction": str(instruction),
-            "instruction_ok": _matches_link(instruction, repo_root / "AGENTS.global.md"),
+            "instruction_ok": _matches_link(
+                instruction, repo_root / "AGENTS.global.md"
+            ),
             "skill_root": str(skill_root),
             "skills_ok": _skills_available(skill_root, repo_root / "skills"),
         }
     if active is not None:
+        _validate_manifest_scope(active, home, Path(active["backup_root"]))
         result["phase"] = active.get("phase")
         result["manifest_harnesses"] = active.get("harnesses")
         result["drift"] = _manifest_drift(active)
@@ -484,23 +516,84 @@ def status(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, A
     return result
 
 
-def _restore(path: Path, original: dict[str, Any], backup_root: Path) -> None:
-    _remove_path(path)
+def _backup_path(
+    original: dict[str, Any], backup_root: Path, *, label: str
+) -> Path | None:
     kind = original["kind"]
+    if kind == "absent":
+        return None
+    if kind not in {"symlink", "directory", "file"}:
+        raise InstallError(f"unsupported restore kind for {label}: {kind!r}")
+    relative_value = original.get("backup")
+    if not isinstance(relative_value, str) or not relative_value:
+        raise InstallError(f"missing backup path for {label}")
+    relative = Path(relative_value)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise InstallError(f"backup path escapes transaction for {label}: {relative}")
+    backup = backup_root / relative
+    try:
+        backup.parent.resolve(strict=False).relative_to(
+            backup_root.resolve(strict=False)
+        )
+    except ValueError as exc:
+        raise InstallError(
+            f"backup parent escapes transaction for {label}: {backup}"
+        ) from exc
+    actual = _describe(backup)
+    if _signature(actual) != _signature(original):
+        raise InstallError(
+            f"backup mismatch for {label}: expected {kind}, found {actual['kind']}"
+        )
+    return backup
+
+
+def _validate_manifest_scope(
+    manifest: dict[str, Any], home: Path, backup_root: Path
+) -> None:
+    _relative(backup_root / "manifest.json", home)
+    for target in manifest.get("targets", []):
+        _relative(Path(target["path"]), home)
+
+
+def _preflight_restores(manifest: dict[str, Any], backup_root: Path) -> None:
+    problems = []
+    for target in manifest.get("targets", []):
+        if not target.get("mutated"):
+            continue
+        try:
+            _backup_path(
+                target["original"], backup_root, label=target.get("relative", "?")
+            )
+        except (InstallError, KeyError) as exc:
+            problems.append(str(exc))
+    if problems:
+        raise InstallError("restore preflight failed: " + "; ".join(problems))
+
+
+def _restore(path: Path, original: dict[str, Any], backup_root: Path) -> None:
+    kind = original["kind"]
+    backup = _backup_path(original, backup_root, label=str(path))
+    _remove_path(path)
     if kind == "absent":
         return
     path.parent.mkdir(parents=True, exist_ok=True)
-    backup = backup_root / original["backup"]
     if kind == "symlink":
-        os.symlink(original["target"], path)
+        assert backup is not None
+        os.symlink(os.readlink(backup), path)
     elif kind == "directory":
+        assert backup is not None
         shutil.copytree(backup, path, symlinks=True, copy_function=shutil.copy2)
     elif kind == "file" and original.get("backup_method") == "hardlink":
+        assert backup is not None
         os.link(backup, path)
-        detached = backup.with_name(f".{backup.name}.detached-{os.getpid()}")
-        shutil.copy2(backup, detached, follow_symlinks=False)
-        os.replace(detached, backup)
+        with tempfile.TemporaryDirectory(
+            dir=backup.parent, prefix=f".{backup.name}.detached-"
+        ) as temporary_directory:
+            detached = Path(temporary_directory) / "value"
+            shutil.copy2(backup, detached, follow_symlinks=False)
+            os.replace(detached, backup)
     elif kind == "file":
+        assert backup is not None
         shutil.copy2(backup, path, follow_symlinks=False)
     else:
         raise InstallError(f"cannot restore unsupported object at {path}")
@@ -509,11 +602,16 @@ def _restore(path: Path, original: dict[str, Any], backup_root: Path) -> None:
 def uninstall(home: Path) -> dict[str, Any]:
     home = home.expanduser().absolute()
     state_root = home / STATE_RELATIVE
+    _relative(state_root / "active.json", home)
     manifest = _active_manifest(state_root)
     if manifest is None:
         return {"status": "not-installed", "changed": 0}
     if manifest.get("home") != str(home):
         raise InstallError("active manifest belongs to a different --home")
+
+    backup_root = Path(manifest["backup_root"])
+    _validate_manifest_scope(manifest, home, backup_root)
+    _preflight_restores(manifest, backup_root)
 
     conflicts = []
     for target in manifest.get("targets", []):
@@ -527,9 +625,10 @@ def uninstall(home: Path) -> dict[str, Any]:
         ) != _signature(original):
             conflicts.append(target["relative"])
     if conflicts:
-        raise InstallError("refusing to overwrite post-install changes: " + ", ".join(conflicts))
+        raise InstallError(
+            "refusing to overwrite post-install changes: " + ", ".join(conflicts)
+        )
 
-    backup_root = Path(manifest["backup_root"])
     changed = 0
     for target in reversed(manifest.get("targets", [])):
         if target.get("mutated"):
