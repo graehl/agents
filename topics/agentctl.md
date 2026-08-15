@@ -140,6 +140,16 @@ window.
   exempt derived Python trees such as `.pixi/`; unchecked-in intermediate data
   remains valid when declared and tracked through the ordinary run-provenance
   surface.
+  This guard records an admission-time fact only: the payload still runs from
+  the mutable invoking checkout. `source_snapshot.execution_guarantee` is
+  `admission-time-only`, and commit-isolated execution requires invoking from a
+  separately materialized, protected checkout.
+  Every Git cleanliness, listing, and blob-content probe fails closed; a Git
+  command error is not treated as an empty clean result. Pixi-specific
+  `--manifest-path`/`-m` parsing applies only to a direct `pixi` invocation
+  before its subcommand, while an executable located under `.pixi/` also
+  identifies its environment root. The same-looking flags on other tools are
+  ordinary payload arguments.
 - `start --after <job-or-output>` is a mechanical launch gate, not a
   result-interpretation scheduler. It records the new job as `waiting`, then
   starts the payload only after each named `agentctl` job exits cleanly or
@@ -521,13 +531,13 @@ Two intended use cases for `agentctl`, both first-class:
    `aim-text-dump-v1` schema). These dumps are the authoritative branch
    record for the run; live `.aim/` is a rebuildable materialization,
    produced by downstream tooling like `import_aim_text.py`. The tracked form
-   also enforces committed-source admission and records the selected source
+   also enforces commit-aligned source admission and records the selected source
    snapshot plus best-effort host/OS/GPU/cloud identity.
 2. **Trivial / untracked runs.** `--no-aim` opts out of dump writing.
    Useful when the value of running through `agentctl` is just the launcher
    + state-tracking + permission story (an agent with `agentctl` in `PATH`
    does not need raw shell exec rights for routine launches), not the
-   research-record story. It bypasses committed-source admission and must not
+   research-record story. It bypasses commit-aligned source admission and must not
    produce experimental evidence.
 
 The Aim SDK is **not** required. The plugin writes JSON dumps directly. If

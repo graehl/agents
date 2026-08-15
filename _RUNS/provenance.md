@@ -51,6 +51,13 @@ Queued work repeats the check after its waits and before the payload starts. A
 SHA-256 for bytes absent from Git is diagnostic evidence of the
 non-reproducible submission, not permission to run it.
 
+This is an admission-time observation, not an immutable execution tree. The
+source record says `execution_guarantee: admission-time-only` and
+`execution_tree: mutable-shared-worktree`: after the last pre-launch check,
+the payload runs from the invoking checkout, so a later peer edit or lazy file
+read can observe different bytes. Work requiring commit-isolated execution
+must invoke `agentctl` from a separately materialized, protected checkout.
+
 This makes an exact Git checkout the normal remote staging unit. An rsynced
 source tree without `.git`, or one changed after checkout, cannot launch a
 tracked experiment. Named data inputs may remain outside Git, but declare them
@@ -273,7 +280,7 @@ JSON dump under `runs/aim/<experiment>/runs/<run-id>.json`, using the
 `artifact_meta.find_aim_run_record/text` lookup path. Refer to that record
 rather than reconstructing run history from logs or `.meta.md` content alone: the
 dump carries the structured argv/cwd, declared inputs and outputs, the
-commit-bound source snapshot, best-effort machine identity, and any
+commit-aligned admission snapshot, best-effort machine identity, and any
 producer-tagged propagation facts.
 
 Output files produced under tracked runs get a `<output>.meta.json` sidecar next

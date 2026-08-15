@@ -81,6 +81,13 @@ ENVIRONMENT_CONTROL_FILES = (
 )
 
 
+def nonnegative_float(value: str) -> float:
+    number = float(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError("must be non-negative")
+    return number
+
+
 # ---- Plugin loader ----
 #
 # Plugins live in CODE_ROOT/agentctl_plugins/<name>.py and expose any subset of these
@@ -2097,13 +2104,29 @@ def git_value(args: list[str]) -> str:
     return out.strip()
 
 
+class GitProbeError(SystemExit):
+    """A required Git observation failed instead of producing evidence."""
+
+
 def git_output(args: list[str], *, cwd: Path = ROOT, text: bool = True):
     try:
         return subprocess.check_output(
-            ["git", *args], cwd=cwd, text=text, stderr=subprocess.DEVNULL
+            ["git", *args], cwd=cwd, text=text, stderr=subprocess.PIPE
         )
-    except (OSError, subprocess.SubprocessError, UnicodeError):
-        return "" if text else b""
+    except subprocess.CalledProcessError as exc:
+        detail = exc.stderr or ""
+        if isinstance(detail, bytes):
+            detail = detail.decode("utf-8", errors="replace")
+        detail = detail.strip() or f"exit {exc.returncode}"
+        raise GitProbeError(
+            f"reproducibility guard: Git probe failed: "
+            f"{shlex.join(['git', *args])}: {detail}"
+        ) from exc
+    except (OSError, subprocess.SubprocessError, UnicodeError) as exc:
+        raise GitProbeError(
+            f"reproducibility guard: Git probe failed: "
+            f"{shlex.join(['git', *args])}: {exc}"
+        ) from exc
 
 
 def tracked_source_status(git_root: Path) -> str:
@@ -2138,13 +2161,21 @@ def committed_file_record(path: str | Path, *, git_root: Path, commit: str) -> d
             f"reproducibility guard: source/control file is outside the Git checkout: {p}"
         ) from exc
     rel = relative.as_posix()
-    blob = git_output(["rev-parse", f"{commit}:{rel}"], cwd=git_root).strip()
-    if not blob:
+    tree_entry = git_output(
+        ["ls-tree", "-z", commit, "--", rel], cwd=git_root, text=False
+    )
+    if not tree_entry:
         fingerprint = compute_sha256(p) if p.is_file() else "unavailable"
         raise SystemExit(
             "reproducibility guard: file bytes are not recoverable from the recorded "
             f"commit: {rel} sha256={fingerprint}"
         )
+    try:
+        blob = tree_entry.split(b"\t", 1)[0].split()[2].decode("ascii")
+    except (IndexError, UnicodeError) as exc:
+        raise GitProbeError(
+            f"reproducibility guard: Git probe returned malformed ls-tree data for {rel}"
+        ) from exc
     committed_bytes = git_output(["show", f"{commit}:{rel}"], cwd=git_root, text=False)
     current_sha256 = compute_sha256(p)
     committed_sha256 = hashlib.sha256(committed_bytes).hexdigest()
@@ -2165,12 +2196,34 @@ def committed_file_record(path: str | Path, *, git_root: Path, commit: str) -> d
 
 def pixi_roots_from_argv(argv: list[str]) -> set[Path]:
     roots: set[Path] = set()
-    if argv and Path(argv[0]).name == "pixi":
-        roots.add(ROOT)
-    for index, arg in enumerate(argv):
-        manifest_value = ""
-        if arg in {"--manifest-path", "-m"} and index + 1 < len(argv):
+    if not argv:
+        return roots
+
+    executable = Path(argv[0]).expanduser()
+    if not executable.is_absolute():
+        executable = ROOT / executable
+    executable_parts = executable.resolve(strict=False).parts
+    try:
+        pixi_index = executable_parts.index(".pixi")
+    except ValueError:
+        pass
+    else:
+        roots.add(Path(*executable_parts[:pixi_index]))
+
+    if Path(argv[0]).name != "pixi":
+        return roots
+    roots.add(ROOT)
+    index = 1
+    while index < len(argv):
+        arg = argv[index]
+        if arg == "--" or not arg.startswith("-"):
+            break
+        manifest_value = None
+        if arg in {"--manifest-path", "-m"}:
+            if index + 1 >= len(argv):
+                break
             manifest_value = argv[index + 1]
+            index += 1
         elif arg.startswith("--manifest-path="):
             manifest_value = arg.partition("=")[2]
         if manifest_value:
@@ -2178,18 +2231,7 @@ def pixi_roots_from_argv(argv: list[str]) -> set[Path]:
             if not manifest.is_absolute():
                 manifest = ROOT / manifest
             roots.add(manifest.resolve(strict=False).parent)
-        value = arg.partition("=")[2] if "=" in arg else arg
-        if ".pixi" not in value:
-            continue
-        p = Path(value).expanduser()
-        if not p.is_absolute():
-            p = ROOT / p
-        parts = p.resolve(strict=False).parts
-        try:
-            index = parts.index(".pixi")
-        except ValueError:
-            continue
-        roots.add(Path(*parts[:index]))
+        index += 1
     return roots
 
 
@@ -2237,8 +2279,14 @@ def build_source_snapshot(
     project_env: dict | None,
     source_env: list[str],
 ) -> dict:
-    git_root_text = git_output(["rev-parse", "--show-toplevel"]).strip()
-    commit = git_output(["rev-parse", "HEAD"]).strip()
+    try:
+        git_root_text = git_output(["rev-parse", "--show-toplevel"]).strip()
+        commit = git_output(["rev-parse", "HEAD"]).strip()
+    except GitProbeError as exc:
+        raise SystemExit(
+            "reproducibility guard: tracked runs require a Git checkout with a "
+            f"committed HEAD; {exc.code}"
+        ) from exc
     if not git_root_text or not commit:
         raise SystemExit(
             "reproducibility guard: tracked runs require a Git checkout with a committed HEAD; "
@@ -2288,6 +2336,10 @@ def build_source_snapshot(
     return {
         "schema": "agentctl-source-v1",
         "status": "committed",
+        "execution_guarantee": "admission-time-only",
+        "execution_tree": "mutable-shared-worktree",
+        "submission_check_at": utc_now(),
+        "launch_check_at": "",
         "git_root": str(git_root),
         "git_branch": git_output(["branch", "--show-current"], cwd=git_root).strip(),
         "git_commit": commit,
@@ -3360,11 +3412,12 @@ def start(args: argparse.Namespace) -> int:
         env["AGENTCTL_INPUT_FILE"] = str(Path(args.input_file).expanduser().resolve())
     if args.gpus:
         env["CUDA_VISIBLE_DEVICES"] = args.gpus
+    explicit_env: dict[str, str] = {}
     for item in args.env:
-        key, _, value = item.partition("=")
-        if not key or not _:
+        key, separator, value = item.partition("=")
+        if not key or not separator:
             raise SystemExit(f"expected --env KEY=VALUE, got {item!r}")
-        env[key] = value
+        explicit_env[key] = value
 
     # Build the final argv for the child: user's argv + translated I/O flags.
     final_argv = list(args.argv)
@@ -3407,6 +3460,7 @@ def start(args: argparse.Namespace) -> int:
         )
     for script in args.source_env:
         env = source_env_script(env, script)
+    env.update(explicit_env)
 
     # Pre-launch state: canonical fields plugins can read/extend.
     state = {
@@ -3593,6 +3647,10 @@ def run_child(args: argparse.Namespace) -> int:
         source_snapshot = state.get("source_snapshot")
         if source_snapshot:
             revalidate_source_snapshot(source_snapshot)
+            source_snapshot["launch_check_at"] = utc_now()
+            state["source_snapshot"] = source_snapshot
+            write_json(state_path, state)
+            write_json(current, state)
     except (OSError, KeyError, TypeError, ValueError, SystemExit) as exc:
         detail = exc.code if isinstance(exc, SystemExit) else str(exc)
         print(
@@ -3956,7 +4014,9 @@ def parse_nvidia_smi_number(text: str) -> float | None:
         return None
 
 
-def query_gpu_stats(gpu_index: int) -> dict[str, float | int | None]:
+def query_gpu_stats(
+    gpu_index: int, *, timeout: float | None = None
+) -> dict[str, float | int | None]:
     out = subprocess.check_output(
         [
             "nvidia-smi",
@@ -3966,6 +4026,7 @@ def query_gpu_stats(gpu_index: int) -> dict[str, float | int | None]:
         ],
         text=True,
         stderr=subprocess.STDOUT,
+        timeout=timeout,
     )
     line = out.strip().splitlines()[0]
     fields = [field.strip() for field in line.split(",")]
@@ -3987,14 +4048,25 @@ def query_gpu_stats_smoothed(
     *,
     samples: int = DEFAULT_HEARTBEAT_GPU_SMOOTH_SAMPLES,
     interval: float = DEFAULT_HEARTBEAT_GPU_SMOOTH_INTERVAL_S,
+    timeout: float | None = None,
 ) -> dict[str, float | int | None]:
     sample_count = max(1, int(samples))
     sleep_interval = max(0.0, float(interval))
+    deadline = time.monotonic() + timeout if timeout is not None else None
     stats_list: list[dict[str, float | int | None]] = []
     for idx in range(sample_count):
         if idx and sleep_interval > 0:
-            time.sleep(sleep_interval)
-        stats_list.append(query_gpu_stats(gpu_index))
+            if deadline is None:
+                time.sleep(sleep_interval)
+            else:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired("nvidia-smi", timeout)
+                time.sleep(min(sleep_interval, remaining))
+        remaining = None if deadline is None else deadline - time.monotonic()
+        if remaining is not None and remaining <= 0:
+            raise subprocess.TimeoutExpired("nvidia-smi", timeout)
+        stats_list.append(query_gpu_stats(gpu_index, timeout=remaining))
     merged = dict(stats_list[-1])
     utils = [
         float(s["utilization_gpu_pct"])
@@ -4152,9 +4224,10 @@ def poll_watch_gpu_state(
     last_gpu_below: bool | None,
     last_gpu_error: str,
     gpu_activity_seen: bool,
+    query_timeout: float | None = None,
 ) -> tuple[bool | None, str, bool, bool, dict[str, float | int | None] | None]:
     try:
-        stats = query_gpu_stats(gpu)
+        stats = query_gpu_stats(gpu, timeout=query_timeout)
         if gpu_activity_seen_since_launch(stats, launch_gpu_stats):
             gpu_activity_seen = True
         if not gpu_watch_thresholds_requested(args):
@@ -4389,7 +4462,11 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                 sys.stdout.buffer.flush()
                 offset = len(data)
         now = time.monotonic()
-        if watching_gpu and now >= next_gpu_poll_at:
+        if (
+            watching_gpu
+            and now >= next_gpu_poll_at
+            and (deadline is None or now < deadline)
+        ):
             next_gpu_poll_at = now + gpu_poll
             (
                 last_gpu_below,
@@ -4404,7 +4481,9 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                 last_gpu_below=last_gpu_below,
                 last_gpu_error=last_gpu_error,
                 gpu_activity_seen=gpu_activity_seen,
+                query_timeout=None if deadline is None else max(0.001, deadline - now),
             )
+            now = time.monotonic()
             if gpu_polled and waiting_for_gpu_thresholds:
                 gpu_done = bool(last_gpu_below)
         if (
@@ -4491,23 +4570,32 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                 heartbeat_line += " gpu_activity=" + (
                     "seen" if gpu_activity_seen else "not-yet-seen"
                 )
-            if getattr(args, "heartbeat_gpu", False):
+            if getattr(args, "heartbeat_gpu", False) and (
+                deadline is None or time.monotonic() < deadline
+            ):
                 gpu_stats = None
                 try:
-                    gpu_stats = query_gpu_stats_smoothed(args.gpu)
+                    gpu_stats = query_gpu_stats_smoothed(
+                        args.gpu,
+                        timeout=None
+                        if deadline is None
+                        else max(0.001, deadline - time.monotonic()),
+                    )
                 except Exception as exc:
                     gpu_stats = last_gpu_stats
                     if gpu_stats is None:
                         heartbeat_line += f" gpu_query_failed={exc}"
                 if gpu_stats is not None:
                     heartbeat_line += " " + format_gpu_stats(gpu_stats)
+                now = time.monotonic()
             print(heartbeat_line, flush=True)
             next_heartbeat_at = now + heartbeat_interval
         current_status = state.get("status", "")
         # waiting (queued behind --after) is a live state: stay attached
         # through the queued phase and the run itself.
         if current_status not in ("running", "waiting"):
-            if watching_gpu:
+            if watching_gpu and (deadline is None or time.monotonic() < deadline):
+                query_started_at = time.monotonic()
                 (
                     last_gpu_below,
                     last_gpu_error,
@@ -4521,7 +4609,11 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                     last_gpu_below=last_gpu_below,
                     last_gpu_error=last_gpu_error,
                     gpu_activity_seen=gpu_activity_seen,
+                    query_timeout=None
+                    if deadline is None
+                    else max(0.001, deadline - query_started_at),
                 )
+                now = time.monotonic()
                 if gpu_polled and waiting_for_gpu_thresholds:
                     gpu_done = bool(last_gpu_below)
             if not job_done_reported:
@@ -4553,6 +4645,7 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
                     flush=True,
                 )
                 waiting_for_gpu_reported = True
+        now = time.monotonic()
         if deadline is not None and now >= deadline:
             print(
                 f"[{WATCH_TIMEOUT_MARKER}] job={state['job']} "
@@ -5165,7 +5258,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument(
         "--timeout",
-        type=float,
+        type=nonnegative_float,
         default=0.0,
         help="Maximum seconds to watch; 0 means no timeout.",
     )

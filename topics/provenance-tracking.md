@@ -190,7 +190,7 @@ shown; full set documented inline in `agentctl.py:start()`.
   "depends_on": [],
   "git_branch": "...",
   "git_commit": "...",
-  "source_snapshot": { /* committed-source record; see below */ },
+  "source_snapshot": { /* commit-aligned admission record; see below */ },
   "machine_snapshot": { /* best-effort host identity; see below */ },
   "inputs":  { /* see below */ },
   "outputs": { /* see below */ },
@@ -294,13 +294,22 @@ SHA-256, and size. Selected files include the detected/explicit entry script,
 controls for a selected Pixi manifest. Pixi selection requires both
 `pixi.toml` and `pixi.lock`.
 
+Here `committed` means the selected bytes agreed with the named commit when
+checked; it does not describe an immutable payload tree. The additive fields
+`execution_guarantee: admission-time-only` and
+`execution_tree: mutable-shared-worktree` make that boundary explicit.
+`submission_check_at` records the initial observation and `launch_check_at`
+records the queued child's last check.
+
 Admission rejects a missing Git checkout or committed `HEAD`, tracked/index
 drift outside `runs/aim/`, any non-ignored untracked `*.py`, an off-checkout
 experiment script or environment, and selected bytes not recoverable from the
 recorded commit. The detached child repeats the commit, cleanliness,
 untracked-Python, and file checks after dependency/GPU waits and immediately
-before payload launch. Thus a queued run cannot silently execute against a
-later source revision.
+before payload launch. The payload then runs from the invoking checkout. A
+peer edit after that check, or a file read deferred by the payload, can observe
+later bytes; the source snapshot makes no stronger claim. Commit-isolated work
+must launch from a separately materialized, protected checkout.
 
 This is a source-control contract, not a demand that the full worker filesystem
 be committed. `git ls-files --others --exclude-standard` defines the Python
@@ -560,7 +569,7 @@ DB query "what's inside run X?" becomes trivial. No DSL required.
 ### Trivial / leaf runs
 
 `agentctl start --no-aim ... -- some-cmd` writes nothing under `runs/aim/`
-and writes no sidecars. It also bypasses committed-source admission, so it is
+and writes no sidecars. It also bypasses commit-aligned source admission, so it is
 not an alternate route for experimental evidence. The run is a graph leaf.
 Useful when:
 - The launch is genuinely trivial (one-off janitorial command)

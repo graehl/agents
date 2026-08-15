@@ -941,6 +941,46 @@ def test_project_env_can_be_disabled_and_rejects_shell_syntax():
         ws.cleanup()
 
 
+def test_source_env_precedence_stays_below_explicit_env():
+    ws = Workspace()
+    try:
+        (ws.tmp / "agentctl.env").write_text(
+            "PROJECT_ONLY=project\nSOURCE_WINS=project\nEXPLICIT_WINS=project\n"
+        )
+        source_env = ws.scratch / "source-env.sh"
+        source_env.write_text(
+            "export SOURCE_WINS=source\nexport EXPLICIT_WINS=source\n"
+        )
+        output = ws.scratch / "precedence.json"
+        code = (
+            "import json, os, pathlib; "
+            f"pathlib.Path({str(output)!r}).write_text(json.dumps({{k: os.environ[k] for k in "
+            "['PROJECT_ONLY', 'SOURCE_WINS', 'EXPLICIT_WINS']}))"
+        )
+        started = ws.run(
+            "start",
+            "--no-aim",
+            "--source-env",
+            str(source_env),
+            "--env",
+            "EXPLICIT_WINS=explicit",
+            "envprecedence",
+            "--",
+            sys.executable,
+            "-c",
+            code,
+            env_extra={"SOURCE_WINS": "ambient"},
+        )
+        _assert(started.returncode == 0, started.stderr)
+        ws.wait_finished("envprecedence")
+        values = json.loads(output.read_text())
+        _assert(values["PROJECT_ONLY"] == "project", values)
+        _assert(values["SOURCE_WINS"] == "source", values)
+        _assert(values["EXPLICIT_WINS"] == "explicit", values)
+    finally:
+        ws.cleanup()
+
+
 def test_tracked_writes_dump_and_sidecar():
     ws = Workspace()
     try:
@@ -2176,6 +2216,63 @@ def test_watch_timeout_marker_distinguishes_payload_exit_124():
         ws.cleanup()
 
 
+def test_watch_rejects_negative_timeout():
+    ws = Workspace()
+    try:
+        rejected = ws.run("watch", "missing", "--timeout", "-1")
+        _assert(rejected.returncode == 2, rejected)
+        _assert("non-negative" in rejected.stderr, rejected.stderr)
+    finally:
+        ws.cleanup()
+
+
+def test_watch_budgets_gpu_probes_against_timeout():
+    for mode_args in (
+        ("--notify-max-memory-used", "0", "--heartbeat", "0"),
+        ("--heartbeat-gpu", "--heartbeat", "0.01"),
+    ):
+        ws = Workspace()
+        try:
+            _start(
+                ws,
+                "--no-aim",
+                "slowgpuwatch",
+                "--",
+                "bash",
+                "-c",
+                "sleep 5",
+            )
+            fake_bin = ws.scratch / "slow-nvidia"
+            fake_bin.mkdir()
+            fake_smi = fake_bin / "nvidia-smi"
+            fake_smi.write_text("#!/bin/sh\nsleep 1\necho '0, 48000, 12000, 180, 50'\n")
+            fake_smi.chmod(0o755)
+            started = time.monotonic()
+            watched = ws.run(
+                "watch",
+                "slowgpuwatch",
+                "--poll",
+                "1",
+                "--gpu-poll",
+                "0.01",
+                "--gpu-patience",
+                "0",
+                "--tail",
+                "0",
+                "--timeout",
+                "0.15",
+                *mode_args,
+                env_extra={"PATH": f"{fake_bin}:{os.environ['PATH']}"},
+                timeout=2,
+            )
+            elapsed = time.monotonic() - started
+            _assert(watched.returncode == 124, watched)
+            _assert(elapsed < 0.7, f"GPU probe overran watch timeout: {elapsed:.3f}s")
+            ws.run("stop", "slowgpuwatch")
+        finally:
+            ws.cleanup()
+
+
 def test_refresh_marks_dead_queued_wrapper_failed():
     # A waiting run whose wrapper process died will never launch its payload:
     # liveness refresh must mark it finished returncode=unknown so dependents
@@ -2504,6 +2601,65 @@ def test_tracked_run_rejects_dirty_tracked_source():
         ws.cleanup()
 
 
+def test_tracked_git_admission_probes_fail_closed():
+    for failed_probe in ("status", "ls-files", "show"):
+        ws = Workspace()
+        try:
+            script = ws.scratch / "probe-script.sh"
+            script.write_text("#!/bin/sh\nexit 0\n")
+            script.chmod(0o755)
+            ws.commit(script)
+            fake_bin = ws.scratch / f"git-failure-{failed_probe}"
+            fake_bin.mkdir()
+            fake_git = fake_bin / "git"
+            real_git = shutil.which("git")
+            _assert(real_git is not None)
+            fake_git.write_text(
+                "#!/bin/sh\n"
+                f'if [ "$1" = {failed_probe!r} ]; then\n'
+                "  echo injected-git-probe-failure >&2\n"
+                "  exit 70\n"
+                "fi\n"
+                f'exec {real_git!r} "$@"\n'
+            )
+            fake_git.chmod(0o755)
+
+            rejected = ws.run(
+                "start",
+                "--script",
+                str(script),
+                f"gitprobe-{failed_probe}",
+                "--",
+                "sh",
+                str(script),
+                env_extra={"PATH": f"{fake_bin}:{os.environ['PATH']}"},
+            )
+            _assert(rejected.returncode != 0, rejected)
+            _assert("Git probe failed" in rejected.stderr, rejected.stderr)
+            _assert(failed_probe in rejected.stderr, rejected.stderr)
+        finally:
+            ws.cleanup()
+
+
+def test_non_pixi_manifest_flag_does_not_select_a_pixi_environment():
+    ws = Workspace()
+    try:
+        manifest = ws.scratch / "configs/job.json"
+        started = ws.run(
+            "start",
+            "notpixi",
+            "--",
+            "true",
+            "--manifest-path",
+            str(manifest),
+        )
+        _assert(started.returncode == 0, started.stderr)
+        state = ws.wait_finished("notpixi")
+        _assert(state["returncode"] == 0, state)
+    finally:
+        ws.cleanup()
+
+
 def test_tracked_run_allows_dirty_aim_bookkeeping():
     ws = Workspace()
     try:
@@ -2628,6 +2784,9 @@ def test_pixi_lock_and_machine_identity_are_recorded():
         state = ws.wait_finished("captured")
         source = state["source_snapshot"]
         _assert(source["status"] == "committed", source)
+        _assert(source["execution_guarantee"] == "admission-time-only", source)
+        _assert(source["execution_tree"] == "mutable-shared-worktree", source)
+        _assert(source["launch_check_at"], source)
         _assert(source["git_commit"], source)
         _assert("environment:pixi.toml" in source["files"], source)
         _assert("environment:pixi.lock" in source["files"], source)
