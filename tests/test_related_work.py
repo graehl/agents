@@ -323,6 +323,99 @@ def test_bad_manifest_shapes_fail_loud():
         )
 
 
+def test_manifest_paths_cannot_escape_the_survey():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        manifest = root / "related-work" / "papers.yaml"
+        original = manifest.read_text()
+        manifest.write_text(original.replace("alpha2020-one", "../../victim"))
+        proc = run(root, "audit")
+        _assert(proc.returncode == 70, proc.stderr)
+        _assert("safe path component" in proc.stderr, proc.stderr)
+
+        manifest.write_text(original.replace("concepts/one.md", "../../victim.md"))
+        proc = run(root, "audit")
+        _assert(proc.returncode == 70, proc.stderr)
+        _assert("concept_page" in proc.stderr, proc.stderr)
+
+
+def test_download_only_never_marks_html_as_extracted():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        loaded = rw.load_survey(root)
+        paper = loaded.find("beta2021-two")
+        original_save_page = rw.save_page
+
+        def save_page(directory, _url, stem):
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / f"{stem}.html").write_text("downloaded")
+            return True
+
+        rw.save_page = save_page
+        try:
+            row = rw.fetch_paper(
+                loaded,
+                paper,
+                no_html=False,
+                download_only=True,
+                svg_figures=False,
+                refresh_source=False,
+            )
+        finally:
+            rw.save_page = original_save_page
+        _assert(row["status"] == "downloaded", row)
+        _assert(not loaded.sentinel_path(paper.key).exists(), row)
+
+
+def test_pdf_revalidation_replaces_existing_source_before_extraction():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        loaded = rw.load_survey(root)
+        paper = loaded.find("alpha2020-one")
+        directory = loaded.extract_dir(paper.key)
+        pdf = directory / "source.pdf"
+        pdf.write_bytes(b"stale")
+        originals = (rw.download, rw.run_marker, rw.http_headers)
+        calls = []
+
+        def download(_url, target):
+            calls.append(target)
+            target.write_bytes(b"fresh")
+            return True
+
+        def run_marker(source, *_args, **_kwargs):
+            _assert(source.read_bytes() == b"fresh", "marker saw stale PDF bytes")
+            return {}
+
+        rw.download = download
+        rw.run_marker = run_marker
+        rw.http_headers = lambda _url: {}
+        try:
+            row = rw.fetch_paper(
+                loaded,
+                paper,
+                no_html=True,
+                download_only=False,
+                svg_figures=False,
+                refresh_source=True,
+            )
+        finally:
+            rw.download, rw.run_marker, rw.http_headers = originals
+        _assert(row["status"] == "fetched", row)
+        _assert(calls == [pdf], calls)
+        _assert(pdf.read_bytes() == b"fresh", pdf.read_bytes())
+
+
+def test_limit_rejects_negative_values_and_accepts_zero():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        negative = run(root, "fetch", "--limit", "-1")
+        _assert(negative.returncode == 2, negative.stderr)
+        zero = run(root, "fetch", "--limit", "0")
+        _assert(zero.returncode == 0, zero.stderr)
+        _assert(jsonl(zero) == [{"count": 0, "of": "results"}], zero.stdout)
+
+
 def test_help_carries_the_acli_footer():
     proc = run(REPO_ROOT, "--help")
     _assert(proc.returncode == 0, proc.stderr)

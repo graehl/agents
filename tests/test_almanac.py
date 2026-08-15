@@ -227,9 +227,19 @@ def test_register_conflicts():
     proc = run(root, "register", "dupe", "--no-launcher")
     _assert(proc.returncode == 5, f"same url must conflict: {proc.stderr}")
     (bin_dir / "other").write_text("#!/bin/sh\n")
-    make_dataset(root, name="other", url="https://example.test/other")
+    other = make_dataset(root, name="other", url="https://example.test/other")
+    manifest_before = (other / "manifest.json").read_bytes()
+    links_before = {path.name for path in (root / "by-url").iterdir()}
     proc = run(root, "register", "other", "--launcher-dir", str(bin_dir))
     _assert(proc.returncode == 5, "foreign launcher file must not be overwritten")
+    _assert(
+        (other / "manifest.json").read_bytes() == manifest_before,
+        "a refused registration must not stamp manifest metadata",
+    )
+    _assert(
+        {path.name for path in (root / "by-url").iterdir()} == links_before,
+        "a refused registration must not leave a by-url link",
+    )
 
 
 def test_list_query_show_search():

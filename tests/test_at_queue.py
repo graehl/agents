@@ -51,6 +51,18 @@ def _claim(root: Path, session: str, pid: int | None = None):
     )
 
 
+def _done(root: Path, claim: subprocess.CompletedProcess, *args: str):
+    return _run(
+        root,
+        "done",
+        "--job",
+        _json(claim)["job"],
+        "--occurrence",
+        _json(claim)["occurrence_id"],
+        *args,
+    )
+
+
 def _run(root: Path, *args: str):
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args, "--root", str(root)],
@@ -92,6 +104,7 @@ def test_claim_skips_future_and_takes_due():
     _assert(proc.returncode == 0, proc.stderr)
     payload = _json(proc)
     _assert(payload["job"] == "now", payload)
+    _assert(payload["occurrence_id"], payload)
     _assert(payload["skipped"]["later"] == "not due", payload)
 
 
@@ -122,21 +135,39 @@ def test_dead_runner_releases_the_job_without_a_heartbeat():
     _assert(_json(again)["job"] == "orphan", again.stdout)
 
 
+def test_foreign_host_runner_stays_blocked_when_liveness_is_unknown():
+    root = _project()
+    _source(root, "remote")
+    _run(root, "activate", "--job", "remote", "--run-after", PAST)
+    first = _claim(root, "a")
+    _assert(first.returncode == 0, first.stderr)
+
+    state = json.loads(_activation(root).read_text())
+    state["jobs"]["remote"]["running"]["host"] = "another-host.example"
+    _activation(root).write_text(json.dumps(state, indent=1, sort_keys=True) + "\n")
+
+    second = _claim(root, "b")
+    _assert(second.returncode == 3, second.stdout)
+    _assert("liveness unknown" in _json(second)["skipped"]["remote"], second.stdout)
+    listing = _json(_run(root, "list"))["jobs"][0]
+    _assert(listing["running"]["liveness"] == "unknown", listing)
+
+
 def test_done_reschedules_or_parks():
     root = _project()
     _source(root, "periodic")
     _run(root, "activate", "--job", "periodic", "--run-after", PAST)
-    _claim(root, "a")
+    first = _claim(root, "a")
 
-    proc = _run(root, "done", "--job", "periodic", "--run-after", FUTURE)
+    proc = _done(root, first, "--run-after", FUTURE)
     _assert(
         proc.returncode == 0 and _json(proc)["status"] == "rescheduled", proc.stdout
     )
     _assert(_claim(root, "b").returncode == 3, "no longer due")
 
     _run(root, "activate", "--job", "periodic", "--run-after", PAST)
-    _claim(root, "c")
-    proc = _run(root, "done", "--job", "periodic", "--park")
+    second = _claim(root, "c")
+    proc = _done(root, second, "--park")
     _assert(proc.returncode == 0 and _json(proc)["status"] == "parked", proc.stdout)
     entry = json.loads(_activation(root).read_text())["jobs"]["periodic"]
     _assert(entry["enabled"] is False and entry["run_after"] is None, entry)
@@ -146,9 +177,79 @@ def test_done_requires_an_explicit_disposition():
     root = _project()
     _source(root, "ambiguous")
     _run(root, "activate", "--job", "ambiguous", "--run-after", PAST)
-    proc = _run(root, "done", "--job", "ambiguous")
+    claim = _claim(root, "a")
+    proc = _run(
+        root,
+        "done",
+        "--job",
+        "ambiguous",
+        "--occurrence",
+        _json(claim)["occurrence_id"],
+    )
     _assert(proc.returncode == 4, proc.stdout)
     _assert("--park" in _json(proc)["error"], proc.stdout)
+
+
+def test_done_refuses_absent_or_stale_occurrences():
+    root = _project()
+    _source(root, "fenced")
+    _run(root, "activate", "--job", "fenced", "--run-after", PAST)
+
+    absent = _run(
+        root,
+        "done",
+        "--job",
+        "fenced",
+        "--occurrence",
+        "never-claimed",
+        "--park",
+    )
+    _assert(absent.returncode == 4, absent.stdout)
+
+    dead = subprocess.Popen([sys.executable, "-c", "pass"])
+    dead.wait()
+    first = _claim(root, "a", dead.pid)
+    second = _claim(root, "b")
+    _assert(first.returncode == second.returncode == 0)
+
+    stale = _done(root, first, "--park")
+    _assert(stale.returncode == 4, stale.stdout)
+    running = json.loads(_activation(root).read_text())["jobs"]["fenced"]["running"]
+    _assert(running["occurrence_id"] == _json(second)["occurrence_id"], running)
+
+
+def test_activate_requires_the_live_occurrence_receipt():
+    root = _project()
+    _source(root, "replace")
+    _run(root, "activate", "--job", "replace", "--run-after", PAST)
+    claim = _claim(root, "a")
+
+    refused = _run(root, "activate", "--job", "replace", "--run-after", FUTURE)
+    _assert(refused.returncode == 4, refused.stdout)
+    accepted = _run(
+        root,
+        "activate",
+        "--job",
+        "replace",
+        "--run-after",
+        FUTURE,
+        "--occurrence",
+        _json(claim)["occurrence_id"],
+    )
+    _assert(accepted.returncode == 0, accepted.stdout)
+
+
+def test_done_reapproves_only_the_claimed_prompt_bytes():
+    root = _project()
+    source = _source(root, "drift-during-run")
+    _run(root, "activate", "--job", "drift-during-run", "--run-after", PAST)
+    claim = _claim(root, "a")
+    source.write_text("---\nname: drift-during-run\n---\n\nChanged mid-run.\n")
+
+    _assert(_done(root, claim, "--run-after", PAST).returncode == 0)
+    next_claim = _claim(root, "b")
+    _assert(next_claim.returncode == 3, next_claim.stdout)
+    _assert("re-activate" in _json(next_claim)["skipped"]["drift-during-run"])
 
 
 def test_pause_blocks_claiming_without_forgetting_the_schedule():

@@ -50,7 +50,8 @@ missed catch-up is cheaper than a double launch.
 at-queue activate --root R --job NAME --run-after RFC3339
 at-queue pause|resume --root R --job NAME
 at-queue claim --root R --session ID --harness H --owner-pid PID
-at-queue done --root R --job NAME (--run-after RFC3339 | --park) [--status S]
+at-queue done --root R --job NAME --occurrence RECEIPT \
+  (--run-after RFC3339 | --park) [--status S]
 at-queue list --root R
 ```
 
@@ -115,12 +116,14 @@ At the start of each ordinary new or resumed session, once per process launch:
 3. Run `at-queue claim`, passing the project root, canonical resumable session
    id, harness, and the PID of a process that will outlive the claim.
 4. On exit 0, launch the runner with the owning project root as its working
-   directory, passing the exact source path and the acknowledgement duty.
+   directory, passing the exact source path, occurrence receipt, and
+   acknowledgement duty.
 
 `claim` grades every job before taking one and reports why each was skipped
-(`paused`, `not due`, `already running`, `prompt source is missing`, or a
-prompt changed since activation), so one blocked job never hides the rest. A
-normal startup probe takes at most one job.
+(`paused`, `no schedule`, `not due`, `already running`, foreign-host liveness
+unknown, `prompt source is missing`, or a prompt changed since activation), so
+one blocked job never hides the rest. A normal startup probe takes at most one
+job.
 
 An at-launched runner does not perform the startup probe, which is what
 prevents recursive launch chains. An explicit user request, a bounded
@@ -152,9 +155,12 @@ sound: a lock older than 30 seconds cannot be a live holder, only debris.
 
 **A run record, held for the run.** A claim records the runner's session,
 harness, host, and process-start identity (PID plus `/proc` start ticks plus
-boot id). A later claim asks "is that exact process incarnation still alive?" —
-answerable at any instant with no periodic write. If it is gone, the run was
-abandoned and the job is claimable again.
+boot id), plus an opaque occurrence receipt and the approved prompt hash. A
+later claim asks "is that exact process incarnation still alive?" — answerable
+at any instant with no periodic write on the owning host. A foreign host's
+process state is unknown and remains blocked rather than being guessed dead.
+If a same-host process is gone, the run was abandoned and the job is claimable
+again.
 
 There is therefore no heartbeat and no phase ladder. `kill -0 <pid>` alone
 never proves ownership because PIDs are reused; start ticks are what
@@ -163,17 +169,20 @@ them warns that it is not provably exclusive.
 
 ## Mandatory runner acknowledgement
 
-Before its final response, the runner must call `at-queue done` with an
-explicit disposition — `--run-after <next instant>` or `--park`. The helper
-clears the run record, stamps the outcome, and re-approves the current source
-bytes in one locked write, so there is no ordering for a caller to get wrong
-and no half-applied acknowledgement to recover from.
+Before its final response, the runner must call `at-queue done` with an exact
+`--occurrence` receipt and explicit disposition — `--run-after <next instant>`
+or `--park`. The helper clears only that occurrence, stamps the outcome, and
+retains the prompt hash claimed for that run in one locked write. A source edit
+during the run therefore remains blocked pending deliberate re-activation;
+completion never silently approves unrelated drift.
 
-`done` refuses without a disposition rather than guessing. A failed
-object-level task reschedules only when the job specified or the user directs a
-retry; otherwise record the failure and park it. Automatic retry after an
-uncertain result is more dangerous than a visible miss because it can duplicate
-external effects.
+`done` refuses without a matching live occurrence or disposition rather than
+guessing. A late runner cannot clear or reschedule a newer reclaim. `activate`
+similarly requires the active occurrence receipt before it may replace a live
+run record. A failed object-level task reschedules only when the job specified
+or the user directs a retry; otherwise record the failure and park it.
+Automatic retry after an uncertain result is more dangerous than a visible
+miss because it can duplicate external effects.
 
 A runner that dies without calling `done` leaves a run record whose process is
 provably gone, so the job simply becomes claimable again at its existing

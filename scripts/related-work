@@ -24,7 +24,9 @@ artifact.
 
 from __future__ import annotations
 
+import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -32,15 +34,15 @@ import tempfile
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from acli import ExitCode, Format, die, emit, resolve_format, write_jsonl  # noqa: E402
-from acli.args import (  # noqa: E402
+from acli import ExitCode, Format, die, emit, resolve_format, write_jsonl
+from acli.args import (
     add_standard_args,
     argument_parser,
     hint,
@@ -66,6 +68,7 @@ EXIT_CODES = {
 }
 USER_AGENT = "related-work/1 (+https://github.com/graehl/agents)"
 SENTINEL = ".fetched"
+SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 # --- manifest ---
@@ -139,6 +142,41 @@ def _text(value) -> str | None:
     return value.isoformat() if isinstance(value, (date, datetime)) else str(value)
 
 
+def _manifest_key(value, index: int) -> str:
+    key = _text(value)
+    if key is None or SAFE_KEY.fullmatch(key) is None:
+        die(
+            f"papers[{index}].key must be one safe path component",
+            ExitCode.SOFTWARE,
+            detail={"key": key},
+        )
+    return key
+
+
+def _contained_manifest_path(root: Path, value, index: int) -> str | None:
+    text = _text(value)
+    if text is None:
+        return None
+    relative = Path(text)
+    base = root.parent.resolve()
+    candidate = (base / relative).resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError:
+        die(
+            f"papers[{index}].concept_page must stay inside the survey",
+            ExitCode.SOFTWARE,
+            detail={"concept_page": text},
+        )
+    if relative.is_absolute():
+        die(
+            f"papers[{index}].concept_page must be survey-relative",
+            ExitCode.SOFTWARE,
+            detail={"concept_page": text},
+        )
+    return text
+
+
 def load_survey(start: Path) -> Survey:
     """Resolve `start` to a related-work directory and parse its manifest.
 
@@ -176,7 +214,7 @@ def load_survey(start: Path) -> Survey:
         arxiv, url = entry.get("arxiv"), entry.get("url")
         papers.append(
             Paper(
-                key=str(entry["key"]),
+                key=_manifest_key(entry["key"], index),
                 ident=str(arxiv) if arxiv else (str(url) if url else None),
                 kind="arxiv" if arxiv else ("url" if url else None),
                 grounded=_bool(entry.get("grounded")),
@@ -184,7 +222,9 @@ def load_survey(start: Path) -> Survey:
                 fetched=_text(entry.get("fetched")),
                 source=_text(entry.get("source")),
                 short=_text(entry.get("short")),
-                concept_page=_text(entry.get("concept_page")),
+                concept_page=_contained_manifest_path(
+                    root, entry.get("concept_page"), index
+                ),
                 raw=entry,
             )
         )
@@ -256,7 +296,9 @@ def have(tool: str) -> bool:
 
 def http_headers(url: str) -> dict[str, str]:
     """Validators for `url`, or {} when the server offers none."""
-    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": USER_AGENT})
+    request = urllib.request.Request(
+        url, method="HEAD", headers={"User-Agent": USER_AGENT}
+    )
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             return {k.lower(): v for k, v in response.headers.items()}
@@ -299,8 +341,20 @@ def save_page(directory: Path, url: str, stem: str) -> bool:
         # -p requisites, -k rewrite links for offline reading, -E fix
         # extensions, -nH drop the host dir, robots=off so figures come too.
         completed = subprocess.run(
-            ["wget", "-q", "-e", "robots=off", "-p", "-k", "-E", "-nH",
-             "--restrict-file-names=windows", "-P", str(directory), url],
+            [
+                "wget",
+                "-q",
+                "-e",
+                "robots=off",
+                "-p",
+                "-k",
+                "-E",
+                "-nH",
+                "--restrict-file-names=windows",
+                "-P",
+                str(directory),
+                url,
+            ],
             stdin=subprocess.DEVNULL,
             check=False,
         )
@@ -318,12 +372,25 @@ def save_page(directory: Path, url: str, stem: str) -> bool:
 def download(url: str, target: Path) -> bool:
     target.parent.mkdir(parents=True, exist_ok=True)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    temporary: Path | None = None
     try:
-        with urllib.request.urlopen(request, timeout=300) as response:
-            target.write_bytes(response.read())
+        with (
+            urllib.request.urlopen(request, timeout=300) as response,
+            tempfile.NamedTemporaryFile(
+                dir=target.parent,
+                prefix=f".{target.name}.",
+                delete=False,
+            ) as output,
+        ):
+            temporary = Path(output.name)
+            shutil.copyfileobj(response, output)
+        temporary.replace(target)
         return True
     except (urllib.error.URLError, OSError, ValueError):
         return False
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def has_content(directory: Path) -> bool:
@@ -353,9 +420,12 @@ def vector_figures(pdf: Path, blocks: Path, markdown: Path) -> dict:
     completed = subprocess.run(
         [
             str(SVG_FIGURES),
-            "--pdf", str(pdf),
-            "--blocks", str(blocks),
-            "--markdown", str(markdown),
+            "--pdf",
+            str(pdf),
+            "--blocks",
+            str(blocks),
+            "--markdown",
+            str(markdown),
             "--compact",
         ],
         stdin=subprocess.DEVNULL,
@@ -373,10 +443,14 @@ def vector_figures(pdf: Path, blocks: Path, markdown: Path) -> dict:
             counts[status] = counts.get(status, 0) + 1
     if not counts:
         return {"figures": f"no rows (exit {completed.returncode})"}
-    return {"figures": ", ".join(f"{n} {status}" for status, n in sorted(counts.items()))}
+    return {
+        "figures": ", ".join(f"{n} {status}" for status, n in sorted(counts.items()))
+    }
 
 
-def run_marker(pdf: Path, directory: Path, key: str, *, svg_figures: bool) -> dict | None:
+def run_marker(
+    pdf: Path, directory: Path, key: str, *, svg_figures: bool
+) -> dict | None:
     """PDF -> markdown via marker_single, keeping its extracted images.
 
     Returns extraction notes for the result row, or None when nothing usable
@@ -399,8 +473,12 @@ def run_marker(pdf: Path, directory: Path, key: str, *, svg_figures: bool) -> di
                 json.dumps({"debug_json": True, "debug_data_folder": str(geometry)})
             )
             command += ["--config_json", str(config)]
-        subprocess.run(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, check=False)
-        produced = next((p for p in Path(tmp).iterdir() if p.is_dir() and p != geometry), None)
+        subprocess.run(
+            command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, check=False
+        )
+        produced = next(
+            (p for p in Path(tmp).iterdir() if p.is_dir() and p != geometry), None
+        )
         if produced is None:
             return None
         shutil.copytree(produced, directory, dirs_exist_ok=True)
@@ -419,12 +497,18 @@ def run_marker(pdf: Path, directory: Path, key: str, *, svg_figures: bool) -> di
 
 
 def fetch_paper(
-    survey: Survey, paper: Paper, *, no_html: bool, keys_only: bool, svg_figures: bool
+    survey: Survey,
+    paper: Paper,
+    *,
+    no_html: bool,
+    download_only: bool,
+    svg_figures: bool,
+    refresh_source: bool,
 ) -> dict:
     """Build one extract. Returns a JSONL-shaped result row."""
     directory = survey.extract_dir(paper.key)
     sentinel_path = survey.sentinel_path(paper.key)
-    stamp = date.today().isoformat()
+    stamp = datetime.now(timezone.utc).date().isoformat()
 
     def done(method: str, source: str) -> dict:
         headers = http_headers(source)
@@ -438,23 +522,48 @@ def fetch_paper(
                 last_modified=headers.get("last-modified"),
             ),
         )
-        return {"key": paper.key, "status": "fetched", "method": method, "source": source}
+        return {
+            "key": paper.key,
+            "status": "fetched",
+            "method": method,
+            "source": source,
+        }
 
     if paper.kind == "url":
         if save_page(directory, paper.ident, paper.key):
+            if download_only:
+                return {
+                    "key": paper.key,
+                    "status": "downloaded",
+                    "note": "no sentinel; extract later",
+                }
             return done("url-html", paper.ident)
         return {"key": paper.key, "status": "failed", "reason": "page fetch failed"}
 
     html_url = f"https://arxiv.org/html/{paper.ident}"
-    if not no_html and save_page(directory, html_url, paper.key) and has_content(directory):
+    if (
+        not no_html
+        and save_page(directory, html_url, paper.key)
+        and has_content(directory)
+    ):
+        if download_only:
+            return {
+                "key": paper.key,
+                "status": "downloaded",
+                "note": "no sentinel; extract later",
+            }
         return done("arxiv-html", html_url)
 
     pdf_url = f"https://arxiv.org/pdf/{paper.ident}"
     pdf = directory / "source.pdf"
-    if not pdf.exists() and not download(pdf_url, pdf):
+    if (refresh_source or not pdf.exists()) and not download(pdf_url, pdf):
         return {"key": paper.key, "status": "failed", "reason": "pdf download failed"}
-    if keys_only:
-        return {"key": paper.key, "status": "downloaded", "note": "no sentinel; extract later"}
+    if download_only:
+        return {
+            "key": paper.key,
+            "status": "downloaded",
+            "note": "no sentinel; extract later",
+        }
     notes = run_marker(pdf, directory, paper.key, svg_figures=svg_figures)
     if notes is not None:
         return {**done("pdf-marker", pdf_url), **notes}
@@ -492,29 +601,50 @@ def audit_findings(survey: Survey) -> list[dict]:
         fetched = survey.sentinel_path(paper.key).exists()
         if fetched:
             if not paper.grounded:
-                report(paper.key, "grounded", "extract fetched, but grounded is not true")
+                report(
+                    paper.key, "grounded", "extract fetched, but grounded is not true"
+                )
             if not paper.fetched:
-                report(paper.key, "fetched-date", "extract fetched, but fetched: is empty")
+                report(
+                    paper.key, "fetched-date", "extract fetched, but fetched: is empty"
+                )
             if not paper.verified:
                 # Its own full text is on disk; nothing is left to check.
-                report(paper.key, "verified", "own source fetched, but verified is not true")
+                report(
+                    paper.key,
+                    "verified",
+                    "own source fetched, but verified is not true",
+                )
         elif paper.grounded:
             report(paper.key, "grounded", f"grounded: true, but no {SENTINEL}")
 
         if directory.is_dir() and paper.ident is None:
-            report(paper.key, "regenerable", "extract on disk, but no arxiv:/url: to rebuild it")
+            report(
+                paper.key,
+                "regenerable",
+                "extract on disk, but no arxiv:/url: to rebuild it",
+            )
         if paper.verified and not paper.grounded and not paper.source:
             # Legal and common — a citation checked against the anchor's
             # bibliography needs no extract — but it must say where.
-            report(paper.key, "source", "verified without its own extract needs source:")
-        if paper.concept_page and not (survey.root.parent / paper.concept_page).is_file():
+            report(
+                paper.key, "source", "verified without its own extract needs source:"
+            )
+        if (
+            paper.concept_page
+            and not (survey.root.parent / paper.concept_page).is_file()
+        ):
             report(paper.key, "concept-page", f"{paper.concept_page} does not exist")
 
     known = {paper.key for paper in survey.papers}
     if survey.extract_root.is_dir():
         for directory in sorted(survey.extract_root.iterdir()):
             if directory.is_dir() and directory.name not in known:
-                report(directory.name, "orphan-extract", "no papers.yaml entry claims this extract")
+                report(
+                    directory.name,
+                    "orphan-extract",
+                    "no papers.yaml entry claims this extract",
+                )
     return findings
 
 
@@ -526,7 +656,9 @@ def survey_status(survey: Survey) -> dict:
         "manifested": len(survey.papers),
         "verified": sum(1 for p in survey.papers if p.verified),
         "grounded": sum(1 for p in survey.papers if p.grounded),
-        "extracts": sum(1 for p in survey.papers if survey.sentinel_path(p.key).exists()),
+        "extracts": sum(
+            1 for p in survey.papers if survey.sentinel_path(p.key).exists()
+        ),
         "digested": digests,
         "coverage_cutoff": _text(survey.meta.get("coverage_cutoff")),
         "grounding_mode": _text(survey.meta.get("grounding_mode")),
@@ -568,7 +700,12 @@ def verb_list(args) -> int:
         }
         for p in survey.papers
     ]
-    emit_table(args, rows, ["key", "short", "kind", "grounded", "verified", "extract"], "papers")
+    emit_table(
+        args,
+        rows,
+        ["key", "short", "kind", "grounded", "verified", "extract"],
+        "papers",
+    )
     return 0
 
 
@@ -592,7 +729,11 @@ def verb_fetch(args) -> int:
     if args.keys:
         wanted = [survey.find(key) for key in args.keys]
     else:
-        wanted = [p for p in survey.papers if p.ident and not survey.sentinel_path(p.key).exists()]
+        wanted = [
+            p
+            for p in survey.papers
+            if p.ident and not survey.sentinel_path(p.key).exists()
+        ]
         if not args.all and args.limit is None:
             # The bare form used to queue every unfetched paper at once, which
             # is a surprising amount of network for a command that reads like
@@ -608,31 +749,40 @@ def verb_fetch(args) -> int:
     failed = False
     for paper in wanted:
         if paper.ident is None:
-            results.append({"key": paper.key, "status": "skipped", "reason": "no arxiv:/url:"})
+            results.append(
+                {"key": paper.key, "status": "skipped", "reason": "no arxiv:/url:"}
+            )
             continue
         sentinel = read_sentinel(survey.sentinel_path(paper.key))
         if sentinel is not None and not args.refetch:
             if not args.revalidate:
-                results.append({"key": paper.key, "status": "skipped", "reason": "already fetched"})
+                results.append(
+                    {"key": paper.key, "status": "skipped", "reason": "already fetched"}
+                )
                 continue
             if is_unchanged(sentinel.source, sentinel):
-                results.append({"key": paper.key, "status": "fresh", "source": sentinel.source})
+                results.append(
+                    {"key": paper.key, "status": "fresh", "source": sentinel.source}
+                )
                 continue
         results.append(
             fetch_paper(
                 survey,
                 paper,
                 no_html=args.no_html,
-                keys_only=args.keys_only,
+                download_only=args.download_only,
                 svg_figures=not args.no_svg_figures,
+                refresh_source=args.refetch or sentinel is not None,
             )
         )
         failed = failed or results[-1]["status"] == "failed"
-    emit_table(args, results, ["key", "status", "method", "reason", "figures"], "results")
+    emit_table(
+        args, results, ["key", "status", "method", "reason", "figures"], "results"
+    )
     return int(ExitCode.TEMPORARY) if failed else 0
 
 
-MANIFEST_TEMPLATE = '''\
+MANIFEST_TEMPLATE = """\
 # Metadata manifest for surveys/{slug}.
 #
 # One entry per paper the field map references. `verified: true` means the
@@ -656,7 +806,7 @@ meta:
   grounding_mode: recall
 
 papers: []
-'''
+"""
 
 
 def verb_init(args) -> int:
@@ -665,7 +815,11 @@ def verb_init(args) -> int:
         root = root / "related-work"
     manifest = root / "papers.yaml"
     if manifest.exists():
-        die(f"{manifest} already exists", ExitCode.CONFLICT, detail={"path": str(manifest)})
+        die(
+            f"{manifest} already exists",
+            ExitCode.CONFLICT,
+            detail={"path": str(manifest)},
+        )
     root.mkdir(parents=True, exist_ok=True)
     slug = args.slug or root.parent.name
     manifest.write_text(MANIFEST_TEMPLATE.format(slug=slug))
@@ -673,7 +827,9 @@ def verb_init(args) -> int:
     if not gitignore.exists():
         # Shared policy, not a per-clone exclude: extracts are computed,
         # regenerable, and retrieved under the user's own access to the source.
-        gitignore.write_text("# computed full-text extracts; rebuild with `related-work fetch`\nextract/\n")
+        gitignore.write_text(
+            "# computed full-text extracts; rebuild with `related-work fetch`\nextract/\n"
+        )
     emit(
         {"status": "created", "manifest": str(manifest), "field_slug": slug},
         resolve_format(args),
@@ -695,6 +851,13 @@ def key_completer(survey_dir: str):
     return complete_key
 
 
+def nonnegative_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be nonnegative")
+    return parsed
+
+
 def build_parser():
     parser = argument_parser(
         prog="related-work",
@@ -714,27 +877,51 @@ def build_parser():
     add_standard_args(p, allow_toon=True)
     p.set_defaults(func=verb_list)
 
-    p = sub.add_parser("status", help="Derived counts for the survey's grounding banner.")
+    p = sub.add_parser(
+        "status", help="Derived counts for the survey's grounding banner."
+    )
     add_standard_args(p)
     p.set_defaults(func=verb_status)
 
-    p = sub.add_parser("audit", help="Reconcile papers.yaml against extract/; exit 3 on drift.")
+    p = sub.add_parser(
+        "audit", help="Reconcile papers.yaml against extract/; exit 3 on drift."
+    )
     add_standard_args(p, allow_toon=True)
     p.set_defaults(func=verb_audit)
 
     p = sub.add_parser("fetch", help="Build extracts for papers that have none.")
-    keys = p.add_argument("keys", nargs="*", help="Citation keys; default is the pending set.")
+    keys = p.add_argument(
+        "keys", nargs="*", help="Citation keys; default is the pending set."
+    )
     set_completer(keys, key_completer("."))
     p.add_argument("--all", action="store_true", help="Fetch every pending paper.")
-    p.add_argument("--limit", type=int, help="Fetch at most N pending papers.")
-    p.add_argument("--refetch", action="store_true", help="Rebuild even a completed extract.")
+    p.add_argument(
+        "--limit", type=nonnegative_int, help="Fetch at most N pending papers."
+    )
+    p.add_argument(
+        "--refetch", action="store_true", help="Rebuild even a completed extract."
+    )
     p.add_argument(
         "--revalidate",
         action="store_true",
         help="Ask the server whether a completed extract is stale (ETag/Last-Modified) and rebuild if so.",
     )
-    p.add_argument("--no-html", action="store_true", help="Skip the arXiv HTML view; go straight to PDF.")
-    p.add_argument("--keys-only", action="store_true", help="Download sources only; extract on a later run.")
+    p.add_argument(
+        "--no-html",
+        action="store_true",
+        help="Skip the arXiv HTML view; go straight to PDF.",
+    )
+    p.add_argument(
+        "--download-only",
+        action="store_true",
+        help="Download sources only; extract on a later run.",
+    )
+    p.add_argument(
+        "--keys-only",
+        dest="download_only",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     p.add_argument(
         "--no-svg-figures",
         action="store_true",

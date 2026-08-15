@@ -174,6 +174,9 @@ argv to the engine. The engine owns that grammar—including leading output
 flags and completion—so launchers cannot drift into a second parser.
 The launcher head carries the zero-execution capability marker
 (`# acli: 1 complete repl toon`).
+Registration resolves every URL and launcher conflict before stamping the
+manifest or creating any link or launcher, so a refused registration leaves
+no half-registered dataset.
 
 Candidate integrations are kept in [almanac sketches](almanac.sketches.md).
 

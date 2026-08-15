@@ -893,14 +893,7 @@ def cmd_register(args) -> int:
     elif extract.exists():
         warnings.append("frozen dataset carries an extract script (unused)")
 
-    data = read_json(directory / "data.json", f"{name}/data.json")
-    manifest.setdefault("created", now_utc())
-    manifest.setdefault("fetched", now_utc())
-    manifest["content_hash"] = content_hash(data)
-    write_json_atomic(directory / "manifest.json", manifest)
-
     by_url = root() / "by-url"
-    by_url.mkdir(parents=True, exist_ok=True)
     link = by_url / url_slug(manifest["url"])
     target = Path("..") / name
     if link.is_symlink():
@@ -910,24 +903,59 @@ def cmd_register(args) -> int:
                 ExitCode.CONFLICT,
                 detail={"link": str(link)},
             )
-    else:
-        link.symlink_to(target)
+    elif link.exists():
+        die(
+            f"{link} exists and is not an almanac by-url link",
+            ExitCode.CONFLICT,
+        )
 
     launcher = None
+    launcher_dir = None
+    launcher_path = None
+    engine = None
     if not args.no_launcher:
         launcher_dir = Path(args.launcher_dir).expanduser()
-        launcher_dir.mkdir(parents=True, exist_ok=True)
-        path = launcher_dir / name
-        if path.exists() and LAUNCHER_MARKER not in path.read_text()[:200]:
-            die(
-                f"{path} exists and is not an almanac launcher; refusing to overwrite",
-                ExitCode.CONFLICT,
-            )
-        path.write_text(launcher_text(name))
-        path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        launcher = str(path)
+        launcher_path = launcher_dir / name
+        if launcher_path.exists() or launcher_path.is_symlink():
+            if not launcher_path.is_file():
+                die(
+                    f"{launcher_path} exists and is not an almanac launcher; "
+                    "refusing to overwrite",
+                    ExitCode.CONFLICT,
+                )
+            try:
+                existing_launcher = launcher_path.read_text()[:200]
+            except OSError as exc:
+                die(
+                    f"cannot inspect existing launcher {launcher_path}: {exc}",
+                    ExitCode.CONFLICT,
+                )
+            if LAUNCHER_MARKER not in existing_launcher:
+                die(
+                    f"{launcher_path} exists and is not an almanac launcher; "
+                    "refusing to overwrite",
+                    ExitCode.CONFLICT,
+                )
         engine = launcher_dir / "almanac"
-        if not engine.exists():
+
+    data = read_json(directory / "data.json", f"{name}/data.json")
+    manifest.setdefault("created", now_utc())
+    manifest.setdefault("fetched", now_utc())
+    manifest["content_hash"] = content_hash(data)
+    write_json_atomic(directory / "manifest.json", manifest)
+
+    by_url.mkdir(parents=True, exist_ok=True)
+    if not link.is_symlink():
+        link.symlink_to(target)
+
+    if launcher_dir is not None and launcher_path is not None and engine is not None:
+        launcher_dir.mkdir(parents=True, exist_ok=True)
+        launcher_path.write_text(launcher_text(name))
+        launcher_path.chmod(
+            launcher_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+        )
+        launcher = str(launcher_path)
+        if not engine.exists() and not engine.is_symlink():
             engine.symlink_to(ENGINE_SCRIPT)
 
     git = git_commit([directory, link], f"register {name}")

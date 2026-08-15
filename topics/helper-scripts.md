@@ -147,14 +147,16 @@ must not hand-edit it.
 **CLI** (all verbs take `--root <project>`; all emit one JSON line):
 - `activate --job <name> --run-after <RFC3339>` — schedule a prompt source and
   record the hash of the bytes being approved. Also the re-approval action
-  after a source changes.
+  after a source changes. Replacing a live claim also requires its
+  `--occurrence <receipt>`.
 - `pause --job <name>` / `resume --job <name>` — stop or restart scheduling
   without discarding the schedule.
 - `claim --session <canonical-id> --harness <name> --owner-pid <pid>` —
   atomically claim at most one due job. `--owner-pid` is required and must
-  outlive the claim: its process-start identity is the exclusion proof.
-- `done --job <name> (--run-after <RFC3339> | --park) [--status <s>]` — clear
-  the run record, stamp the outcome, and re-approve the current source.
+  outlive the claim: its process-start identity is the exclusion proof. The
+  result includes an opaque `occurrence_id` receipt.
+- `done --job <name> --occurrence <receipt> (--run-after <RFC3339> | --park)
+  [--status <s>]` — clear only that run occurrence and stamp the outcome.
 - `list` — report every job's state and `blocked_by` reason.
 
 **Exit codes**: 0 success; 3 `claim` found nothing claimable; 4 refused, with a
@@ -169,14 +171,17 @@ JSON `error` naming what to fix; 2 argparse usage.
   emits a `warnings` entry.
 - Prompt sources are never rewritten; `activate` and `done` touch only
   activation.
-- A claim whose recorded process is gone is re-claimable with no heartbeat,
-  lock-breaking, or adjudication.
+- A same-host claim whose recorded process is gone is re-claimable with no
+  heartbeat, lock-breaking, or adjudication. Foreign-host liveness stays
+  unknown and blocked.
 - A source whose bytes differ from the approved hash is skipped, not run.
+- `done` retains the claimed hash rather than approving source edits made
+  during the run; stale occurrence receipts cannot alter a newer claim.
 
 **Examples**:
 1. No activation → `claim` exits 3 with `{"status":"none","skipped":{}}`.
-2. Due `at/review.md` → exit 0 with `job`, `source`, `prompt_sha256`,
-   `run_after`; a concurrent `claim` exits 3 with
+2. Due `at/review.md` → exit 0 with `job`, `occurrence_id`, `source`,
+   `prompt_sha256`, `run_after`; a concurrent `claim` exits 3 with
    `skipped:{"review":"already running"}`.
 3. Source edited after activation → `claim` exits 3 with
    `"prompt changed since activation; re-activate to approve"`.

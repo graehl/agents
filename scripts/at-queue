@@ -15,6 +15,7 @@ import errno
 import hashlib
 import json
 import os
+import secrets
 import shutil
 import socket
 import subprocess
@@ -22,6 +23,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Self
 
 SCHEMA_VERSION = 1
 
@@ -94,21 +96,45 @@ def process_identity(pid: int, warnings: list[str]) -> dict:
     return identity
 
 
-def process_alive(identity: dict) -> bool:
-    """True only when this exact process incarnation is still running.
+def process_liveness(running: dict) -> str:
+    """Return alive, dead, or unknown for a recorded runner.
 
-    Without recorded start ticks the answer is unknowable from a PID alone
-    (PIDs are reused), so an unidentifiable runner counts as gone and its job
-    becomes claimable again.
+    A foreign host's /proc namespace is not locally observable. Treating its
+    boot-id mismatch as death would let every other NFS client steal its job.
+    On the owning host, missing process identity remains dead because the
+    original claim warned that it could not provide exclusion.
     """
+    if running.get("host") != socket.gethostname():
+        return "unknown"
+    identity = running.get("identity", {})
     pid = identity.get("pid")
     ticks = identity.get("start_ticks")
     if not isinstance(pid, int) or ticks is None:
-        return False
+        return "dead"
     recorded_boot = identity.get("boot_id")
     if recorded_boot is not None and recorded_boot != boot_id():
-        return False
-    return process_start_ticks(pid) == ticks
+        return "dead"
+    return "alive" if process_start_ticks(pid) == ticks else "dead"
+
+
+def require_occurrence(
+    entry: dict,
+    occurrence_id: str | None,
+    action: str,
+    *,
+    allow_dead_without_receipt: bool,
+) -> dict:
+    running = entry.get("running")
+    if not isinstance(running, dict):
+        raise Refused(f"{action}: job has no claimed occurrence")
+    expected = running.get("occurrence_id")
+    if occurrence_id is None:
+        if allow_dead_without_receipt and process_liveness(running) == "dead":
+            return running
+        raise Refused(f"{action}: --occurrence must match the active claim")
+    if not isinstance(expected, str) or occurrence_id != expected:
+        raise Refused(f"{action}: occurrence does not match the active claim")
+    return running
 
 
 # --- activation store ---
@@ -199,7 +225,7 @@ class ActivationLock:
         self.path = path
         self.broke_stale = False
 
-    def __enter__(self) -> "ActivationLock":
+    def __enter__(self) -> Self:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         deadline = time.monotonic() + LOCK_ACQUIRE_SECONDS
         while True:
@@ -288,6 +314,13 @@ def cmd_activate(args: argparse.Namespace) -> int:
     with store.lock():
         state = store.load()
         entry = dict(state["jobs"].get(name, {}))
+        if isinstance(entry.get("running"), dict):
+            require_occurrence(
+                entry,
+                args.occurrence,
+                "activate",
+                allow_dead_without_receipt=True,
+            )
         entry.update(
             {
                 "run_after": iso_utc(run_after),
@@ -332,8 +365,12 @@ def block_reason(name: str, entry: dict, now: datetime, store: Store) -> str | N
     if parse_rfc3339(run_after, name) > now:
         return "not due"
     running = entry.get("running")
-    if isinstance(running, dict) and process_alive(running.get("identity", {})):
-        return "already running"
+    if isinstance(running, dict):
+        liveness = process_liveness(running)
+        if liveness == "alive":
+            return "already running"
+        if liveness == "unknown":
+            return f"already running on {running.get('host')}; liveness unknown"
     source = store.job_source(name)
     if not source.is_file():
         return "prompt source is missing"
@@ -364,11 +401,14 @@ def cmd_claim(args: argparse.Namespace) -> int:
             entry = state["jobs"][name]
             source = store.job_source(name)
             digest = prompt_digest(source)
+            occurrence_id = secrets.token_urlsafe(24)
             entry["running"] = {
+                "occurrence_id": occurrence_id,
                 "session": args.session,
                 "harness": args.harness,
                 "host": socket.gethostname(),
                 "started_at": iso_utc(now),
+                "prompt_sha256": digest,
                 "identity": process_identity(args.owner_pid, store.warnings),
             }
             entry["last_started"] = iso_utc(now)
@@ -377,6 +417,7 @@ def cmd_claim(args: argparse.Namespace) -> int:
             claimed = {
                 "status": "claimed",
                 "job": name,
+                "occurrence_id": occurrence_id,
                 "source": str(source),
                 "project": str(store.project),
                 "prompt_sha256": digest,
@@ -404,6 +445,12 @@ def cmd_done(args: argparse.Namespace) -> int:
         entry = state["jobs"].get(name)
         if entry is None:
             raise Refused(f"{name} has no activation")
+        running = require_occurrence(
+            entry,
+            args.occurrence,
+            "done",
+            allow_dead_without_receipt=False,
+        )
         entry.pop("running", None)
         entry["last_finished"] = iso_utc(utc_now())
         entry["last_status"] = args.status
@@ -412,9 +459,7 @@ def cmd_done(args: argparse.Namespace) -> int:
             entry["run_after"] = None
         else:
             entry["run_after"] = iso_utc(next_run)
-        source = store.job_source(name)
-        if source.is_file():
-            entry["source_sha256"] = prompt_digest(source)
+        entry["source_sha256"] = running["prompt_sha256"]
         state["jobs"][name] = entry
         write_state(store.path, state)
     emit(
@@ -439,7 +484,7 @@ def cmd_list(args: argparse.Namespace) -> int:
         if isinstance(running, dict):
             entry["running"] = {
                 **running,
-                "alive": process_alive(running.get("identity", {})),
+                "liveness": process_liveness(running),
             }
         entry["name"] = name
         entry["blocked_by"] = block_reason(name, state["jobs"][name], now, store)
@@ -461,6 +506,10 @@ def parser() -> argparse.ArgumentParser:
     p = with_root(sub.add_parser("activate", help="Schedule a prompt source."))
     p.add_argument("--job", required=True, help="Prompt basename under at/.")
     p.add_argument("--run-after", required=True, help="RFC 3339 instant.")
+    p.add_argument(
+        "--occurrence",
+        help="Receipt required when replacing an active claimed occurrence.",
+    )
     p.set_defaults(func=cmd_activate)
 
     p = with_root(sub.add_parser("pause", help="Stop scheduling without forgetting."))
@@ -483,8 +532,11 @@ def parser() -> argparse.ArgumentParser:
     )
     p.set_defaults(func=cmd_claim)
 
-    p = with_root(sub.add_parser("done", help="Release a claim, rescheduled or parked."))
+    p = with_root(
+        sub.add_parser("done", help="Release a claim, rescheduled or parked.")
+    )
     p.add_argument("--job", required=True)
+    p.add_argument("--occurrence", required=True, help="Receipt returned by claim.")
     p.add_argument("--run-after", help="Next RFC 3339 instant.")
     p.add_argument("--park", action="store_true", help="Retire until re-activated.")
     p.add_argument("--status", default="ok")

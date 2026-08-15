@@ -22,6 +22,9 @@ product TODO, or policy whose need is independent of capability.
 A review is due after a major frontier-model generation, when the user brings
 fresh experience, or on the 60-day scheduled backstop. A due review is allowed
 to conclude that no evidence changed and make no wording edits.
+The tracked prompt source at
+[`at/frontier-capability-review.md`](../at/frontier-capability-review.md) and
+its clone-local activation implement that backstop.
 
 ## Evidence and disposition
 
