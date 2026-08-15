@@ -2869,6 +2869,72 @@ def test_queued_run_allows_aim_bookkeeping_changes_before_payload():
         ws.cleanup()
 
 
+def test_queued_run_allows_sibling_aim_bookkeeping_changes_before_payload():
+    ws = Workspace()
+    try:
+        sibling_manifest = ws.tmp / "project-a/runs/aim/prior/manifest.jsonl"
+        sibling_manifest.parent.mkdir(parents=True)
+        sibling_manifest.write_text('{"ref": "prior"}\n', encoding="utf-8")
+        ws.commit(sibling_manifest)
+        project_root = ws.tmp / "project-b"
+        project_root.mkdir()
+        env = {"AGENTCTL_ROOT": str(project_root)}
+        output = project_root / "ran.txt"
+
+        dependency = ws.run(
+            "start",
+            "--no-aim",
+            "slowdep",
+            "--",
+            "bash",
+            "-c",
+            "sleep 0.5",
+            env_extra=env,
+        )
+        _assert(dependency.returncode == 0, dependency.stderr)
+        guarded = ws.run(
+            "start",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "guarded-sibling-aim",
+            "--",
+            "bash",
+            "-c",
+            f"echo ran > {output}",
+            env_extra=env,
+        )
+        _assert(guarded.returncode == 0, guarded.stderr)
+        state_path = project_root / ".agentctl/jobs/guarded-sibling-aim/current.json"
+        deadline = time.time() + 5
+        while time.time() < deadline:
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            if state.get("status") == "waiting":
+                break
+            time.sleep(0.02)
+        else:
+            raise AssertionError(f"guarded run never waited: {state!r}")
+
+        with sibling_manifest.open("a", encoding="utf-8") as handle:
+            handle.write('{"ref": "concurrent-run"}\n')
+
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            if state.get("status") == "finished":
+                break
+            time.sleep(0.05)
+        else:
+            raise AssertionError(f"guarded run did not finish: {state!r}")
+        _assert(state["returncode"] == 0, state)
+        _assert(output.read_text(encoding="utf-8").strip() == "ran", output)
+    finally:
+        ws.cleanup()
+
+
 def test_script_autodetect_ignores_long_inline_program():
     ws = Workspace()
     try:
