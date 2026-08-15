@@ -990,7 +990,7 @@ import json
 import sys
 
 sys.stdin.read()
-print(json.dumps({"type": "turn.completed"}), flush=True)
+print(json.dumps({"type": "turn.completed", "usage": {}}), flush=True)
 """
     )
     executable.chmod(0o755)
@@ -1145,7 +1145,7 @@ raise SystemExit(7)
     )
 
 
-def test_native_provider_output_still_proves_acceptance_after_broken_stdin():
+def test_native_provider_output_cannot_accept_a_broken_stdin_delivery():
     host = FakeProviderHost([])
     (host.runtime / "host.json").unlink()
     fake_bin = Path(tempfile.mkdtemp(prefix="session-turn-native-broken-stdin-"))
@@ -1171,14 +1171,53 @@ raise SystemExit(7)
         extra_env={"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
     )
 
-    _assert(proc.returncode == 10, proc.stderr)
+    _assert(proc.returncode == 11, proc.stderr)
     records = _records(proc)
     _assert(
         [record["type"] for record in records]
-        == ["transport", "accepted", "providerEvent", "terminal"],
+        == ["transport", "providerEvent", "error"],
         records,
     )
-    _assert(records[-1]["outcome"] == "provider-failed", records[-1])
+    _assert(records[-1]["accepted"] is False, records[-1])
+    _assert(
+        records[-1]["outcome"] == "transport-failed-before-acceptance",
+        records[-1],
+    )
+
+
+def test_native_non_json_warning_is_not_an_acceptance_receipt():
+    host = FakeProviderHost([])
+    (host.runtime / "host.json").unlink()
+    fake_bin = Path(tempfile.mkdtemp(prefix="session-turn-native-warning-"))
+    executable = fake_bin / "codex"
+    executable.write_text(
+        """#!/usr/bin/env python3
+import json
+import sys
+
+sys.stdin.read()
+print("warning: loading configuration", flush=True)
+print(json.dumps({"type": "resume.rejected"}), flush=True)
+raise SystemExit(7)
+"""
+    )
+    executable.chmod(0o755)
+    proc = _run(
+        host,
+        "codex",
+        "provider-session-1",
+        extra_env={"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
+    )
+
+    _assert(proc.returncode == 11, proc.stderr)
+    records = _records(proc)
+    _assert(
+        [record["type"] for record in records]
+        == ["transport", "providerEvent", "providerEvent", "error"],
+        records,
+    )
+    _assert(records[1]["providerRecord"]["raw"].startswith("warning:"), records)
+    _assert(records[-1]["accepted"] is False, records[-1])
 
 
 def test_native_ctrl_c_interrupts_only_the_helper_process_group():

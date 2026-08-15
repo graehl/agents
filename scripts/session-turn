@@ -782,6 +782,35 @@ def wait_after_native_interrupt(process: subprocess.Popen) -> int:
         return process.wait()
 
 
+def native_lifecycle_record(harness: str, record: object) -> bool:
+    if not isinstance(record, dict):
+        return False
+    record_type = record.get("type")
+    if not isinstance(record_type, str):
+        return False
+    if harness == "codex":
+        if record_type == "thread.started":
+            return isinstance(record.get("thread_id"), str)
+        if record_type == "turn.started":
+            return True
+        if record_type == "turn.completed":
+            return isinstance(record.get("usage"), dict)
+        if record_type == "turn.failed":
+            return isinstance(record.get("error"), (dict, str))
+        if record_type in {"item.started", "item.completed"}:
+            return isinstance(record.get("item"), dict)
+        if record_type == "error":
+            return isinstance(record.get("message"), str)
+        return False
+    if harness == "claude":
+        if record_type in {"system", "result"}:
+            return isinstance(record.get("subtype"), str)
+        if record_type in {"assistant", "user"}:
+            return isinstance(record.get("message"), dict)
+        return False
+    return False
+
+
 def native_turn(
     args: argparse.Namespace, message: str, submission_id: str, reason: str
 ) -> int:
@@ -842,19 +871,36 @@ def native_turn(
     assert process.stdin is not None
     assert process.stdout is not None
     delivered = True
+    delivery_error = ""
     try:
-        process.stdin.write(message)
+        written = process.stdin.write(message)
+        if written != len(message):
+            raise OSError(f"short stdin write: {written} of {len(message)} characters")
+        process.stdin.flush()
         process.stdin.close()
-    except BrokenPipeError:
+    except OSError as exc:
         delivered = False
+        delivery_error = str(exc)
     record_count = 0
     last_native_type = None
+    accepted = False
     try:
         for line in process.stdout:
             if not line.strip():
                 continue
             record_count += 1
-            if record_count == 1:
+            try:
+                provider_record = json.loads(line)
+                if isinstance(provider_record, dict):
+                    last_native_type = provider_record.get("type")
+            except ValueError:
+                provider_record = {"raw": line.rstrip("\n")}
+            if (
+                delivered
+                and not accepted
+                and native_lifecycle_record(args.harness, provider_record)
+            ):
+                accepted = True
                 emit(
                     {
                         "type": "accepted",
@@ -862,12 +908,6 @@ def native_turn(
                         "forkRisk": "concurrent-native-resume",
                     }
                 )
-            try:
-                provider_record = json.loads(line)
-                if isinstance(provider_record, dict):
-                    last_native_type = provider_record.get("type")
-            except ValueError:
-                provider_record = {"raw": line.rstrip("\n")}
             emit(
                 {
                     "type": "providerEvent",
@@ -880,11 +920,11 @@ def native_turn(
     except KeyboardInterrupt:
         emit({"type": "interruptRequested", **fields, "requested": True})
         return_code = wait_after_native_interrupt(process)
-    if record_count == 0:
+    if not accepted:
         error = (
             "native resume closed before accepting the turn body"
             if not delivered
-            else "native resume exited before producing provider output"
+            else "native resume exited before a recognized provider lifecycle record"
         )
         print(
             "session-turn: error: native resume did not accept the turn; "
@@ -900,6 +940,7 @@ def native_turn(
                 "accepted": False,
                 "providerExitCode": return_code,
                 "error": error,
+                **({"deliveryError": delivery_error} if delivery_error else {}),
             }
         )
         return EXIT_TRANSPORT_FAILURE

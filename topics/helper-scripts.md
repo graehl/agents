@@ -301,10 +301,12 @@ session can remain busy until that already accepted turn reaches terminal.
   harness as `YEP_AGENT_HARNESS`. It removes caller-owned provider ids, YA's
   Bash identity bridge and wake capability, initial model/effort markers, and
   agentctl launch-depth state; unrelated configuration remains inherited.
-- Native acceptance is emitted only after the first provider JSONL record. A
-  process that exits without provider output is a transport failure before
-  acceptance, even when its stdin pipe accepted the turn body; stderr states
-  that an active writer or invalid resume handle may be the blocking cause.
+- Native acceptance requires both a successful write/flush of the complete
+  turn body and a harness-recognized provider JSON lifecycle record. Non-JSON
+  warnings and unknown JSON records remain provider events but cannot prove
+  acceptance. A process that exits without both conditions is a transport
+  failure before acceptance; stderr states that an active writer or invalid
+  resume handle may be the blocking cause.
 - Provider output is consumed and emitted line by line. A compaction event is
   an ordinary provider event and does not replace terminal receipt tracking.
 - The wrapper accepts at most 900 KiB for one turn and never loads or replays a
