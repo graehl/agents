@@ -18,3 +18,16 @@ revalidate-style pass; drop the saved HTML where the md carries everything,
 keep it where presentation/interactive elements survive only there. First
 affected survey: `surveys/agent-prompting-orchestration/` (ten HTML
 extracts, 2026-08-15).
+
+Proved out 2026-08-15 (`uvx html2text --body-width=0` on the gepa2025 and
+harnessfix2026 extracts): structure and prose convert cleanly — numbered
+section headers survive as `##`, claims stay greppable ("reflectively
+attribute", "HTIR"), harnessfix 408 KB html → 118 KB md with only 5 lines
+of `ltx_` residue. One systematic defect: LaTeXML math emits doubled —
+rendered Unicode glyphs immediately followed by the embedded TeX
+annotation (`Φ=(M,C,𝒳,𝒴)\Phi=(M,C,\mathcal{X},\mathcal{Y})`) — searchable
+in both forms but ugly and size-inflating (math-heavy gepa: 535 KB md).
+The engine extension therefore needs one small preprocessing step: strip
+the MathML rendered children and keep the `application/x-tex` annotation
+as `$...$`. With that, html2text (pure python, uvx-runnable) is a
+sufficient conversion core.
