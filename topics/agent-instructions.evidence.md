@@ -3211,3 +3211,37 @@ the sweep single-target.
   formatter-to-linter boundary, and a real Git commit through the documented
   Bash process substitution. The behavioral effect of making the path explicit
   remains assumed.
+
+## 2026-08-15 — ordinary advisor packets carry ownership acquisition
+
+- **Trigger** — range review found that `advisor/serve.md` required exclusive
+  ownership and told the advisor to release it at sign-off, but routed the
+  corresponding acquire/check protocol only through a rare collision branch.
+  A second ordinary dispatcher could therefore follow the bounded packet
+  literally and reach continuity writes without the normal ownership step.
+- **Decision** — the ordinary packet now makes ownership one delivered-turn
+  transaction. The worker resolves fresh claims and reuses the incumbent; the
+  advisor registers and checks its directory scope; an automated router
+  acquires and holds an atomic scope/generation lease when that facility
+  exists. The packet says explicitly that active-session claims are only a
+  collision detector and that a detected collision blocks continuity writes.
+- **Trace: concurrent dispatch** — two workers target one logical advisor.
+  Both encounter the ordinary ownership section before `session-turn`; the
+  established incumbent wins, or only one atomic lease acquisition succeeds.
+  The other worker cannot create a second continuity writer and follows the
+  collision route if the live owners remain ambiguous.
+- **Trace: transport has no lease facility** — one worker sees no competing
+  claim and uses the current active-session convention without calling it an
+  atomic lock. If a competitor appears before a write, the advisor's repeated
+  check blocks that write but still allows a visibly provisional memo; it does
+  not merge or fence state from advisory evidence.
+- **Trace: sign-off** — the winning advisor holds any acquired lease through
+  notes, intake, and the final session projection, then releases the lease and
+  turn-scoped active ownership. The continuous provider session remains the
+  resumable incumbent rather than being retired by ordinary sign-off.
+- **Trace: generated web digest** — `scripts/web-digest.manifest` now includes
+  `advisor/serve.md`, so rebuilding the local digest exposes the ordinary
+  acquisition rule to its claude.ai audience instead of supplying only the
+  long catalogs that route away from the ordinary path.
+- **Status** — scenario-traced; the current active-session fallback remains
+  advisory, and no generic atomic advisor-lease implementation is claimed.

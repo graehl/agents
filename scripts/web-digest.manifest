@@ -21,6 +21,7 @@ RESEARCH.md
 _RESEARCH/*.md
 research-advisor.md
 advisor/charter.md
+advisor/serve.md
 RUNS.md
 _RUNS/*.md
 feature-branch.md

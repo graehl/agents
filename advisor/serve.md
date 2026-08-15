@@ -71,6 +71,24 @@ or governing artifact explicitly delegates one. State the worker's proposed
 choice and rationale, then request findings and arguments for and against it.
 Do not ask for permission, a veto, or a ranking of what the worker should do.
 
+## Worker and advisor: acquire ordinary ownership
+
+Before dispatch, the worker resolves the advisor directory and inspects fresh
+active-session claims covering it. Reuse the established serving incumbent.
+The advisor registers an active-session scope covering that directory before
+processing the packet, checks for another live owner, and repeats the check
+immediately before every continuity write.
+
+A launcher or session router that automates advisor resume or creation must
+acquire one atomic, scope-keyed, stale-recoverable interaction lease for the
+logical advisor id and generation before dispatch. Hold it through the
+delivered advisor turn and its note/intake/session checkpoint, then release it
+at sign-off. When the current transport exposes no such lease, do not describe
+the active-session convention as atomic: it detects ordinary collisions, and a
+detected collision blocks continuity writes while still permitting advice
+marked provisional. Multiple or ambiguous live owners trigger the collision
+route at the end of this packet before any merge, fence, or state repair.
+
 ## Worker: deliver one interaction
 
 Use one stable interaction id for one coherent bundle of results, claims, or
@@ -198,8 +216,8 @@ surface: synchronize stale followed documents, reconcile semantic notes, fold
 one contiguous transcript prefix, update changed progress/proof requests,
 complete intake, then write `session.local.md` last as `closed-idle` or
 `partial-idle` with the end time. Unaffected files need no rewrite. Release the
-interaction lease/active ownership while leaving a continuous incumbent
-resumable.
+acquired interaction lease and the turn-scoped active ownership while leaving
+a continuous incumbent resumable.
 
 Return a closure receipt naming logical id/generation/session, current
 model/effort evidence, governance manifest status, state paths and resulting
