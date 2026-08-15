@@ -199,7 +199,9 @@ pass (survey §*Placement*).
 
 - Pilot: one benchmark task and one eligible organic task end-to-end;
   measure attribution yield (verdicts per divergence) and patch survival
-  through ablation.
+  through ablation. A same-producer rerun control sizes the
+  self-divergence noise floor first — cross-model divergence is signal
+  only above it (survey frontier inbox, behavioral-reproducibility entry).
 - Producer-fork vs external-judge vs blinded-judge attribution quality, at
   matched cost.
 - Framing as a variable: neutral vs adversarial persona across stages.

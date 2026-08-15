@@ -233,6 +233,10 @@ one's own corpus — none of which benchmark-centric labs need.
 falsification pass (snowball from GEPA, SkillTriage, PromptExp, and a debate
 survey as anchors) is required before treating the void as established.
 
+Frontier state — the provisional-claim inbox for the unread 2026 anchors,
+the formal void map, and the falsification-gate record — is
+[`frontier.md`](frontier.md).
+
 ## Disconfirming pass
 
 Light-search queries run 2026-08-15 (general web search):
