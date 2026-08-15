@@ -149,7 +149,7 @@ directly below a program root need no migration until they need that document-
 project boundary.
 
 Creating the intended v1 of the proposal portfolio or promoted draft is a
-working-document change under `research-advisor.md`. Notify the program advisor
+working-document change under `advisor/serve.md`. Notify the program advisor
 and propose it for the followed set when its future revisions matter.
 
 Continue from a promoted proposal under

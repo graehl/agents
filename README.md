@@ -61,8 +61,9 @@ branches, commits, shared workdirs, or private notes.
 | `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier latitude and extra reminders; load-bearing policy still belongs in `AGENTS.global.md`. |
 | `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md` | Model-family behavior patches selected from the harness-recorded model id. |
 | `RESEARCH.md`, `_RESEARCH/` | Short research router plus binding concern packets that combine rules, templates, rationale, and edge cases. |
-| `research-advisor.md` | Handoff protocol for the long-lived, normally project-wide skeptical research-advisor session. |
-| `advisor/charter.md` | Durable global mandate and operating behavior loaded into every research-advisor session. |
+| `advisor/serve.md` | Complete ordinary tell/ask packet for a long-lived skeptical research advisor. |
+| `research-advisor.md` | Condition-routed lifecycle, transport-recovery, and state-continuity catalog. |
+| `advisor/charter.md` | Condition-routed advisor collision, document-recovery, shutdown, and succession catalog. |
 | `RUNS.md`, `_RUNS/` | Short run-operation router plus binding resource, provenance, and monitoring packets. |
 | `feature-branch.md` | Optional branch-per-feature workflow for projects that opt into it. |
 | `PROGRAM.md` | A scope's descriptive charter plus optional binding program instructions for its directory subtree. |

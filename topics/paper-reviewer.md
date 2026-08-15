@@ -22,17 +22,18 @@ independent logical bundle at
 `research/<program>/papers/<paper-slug>/advisor/` under
 `research-advisor.md`; give it `PROGRAM.md`, the program glossary, frozen
 proposal, current draft, and the evidence-bearing documents needed for review.
-It loads the full standard research-advisor charter and startup bundle; the
-paper-specific topics are additive checks, not a reduced competency or context.
-Its followed set is chosen manually under the ordinary advisor protocol. It
-does not write the broader program advisor's state.
+It loads the complete ordinary `advisor/serve.md` packet and startup bundle,
+plus condition-routed lifecycle mechanics when needed; the paper-specific
+topics are additive checks, not a reduced competency or context. Its followed
+set is chosen manually under the ordinary advisor protocol. It does not write
+the broader program advisor's state.
 
 A live handoff for paper work identifies every advisor it relies on with the
 exact `Advisor metadata:` and repeatable `Incumbent advisor session:` lines
 from `topics/handoffs.md`. This applies whether the handoff names only the
 program advisor, only a draft-scoped advisor, or both.
 
-Use the ordinary `research-advisor.md` interaction and challenge memo. Name the
+Use the ordinary `advisor/serve.md` interaction and challenge memo. Name the
 paper stage and include the proposal or draft as a working-document change;
 request followed-document status when future deltas should remain in the
 advisor's context. After proposal selection, apply `technical-writing.md` and

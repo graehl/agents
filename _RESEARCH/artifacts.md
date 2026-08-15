@@ -205,33 +205,20 @@ task also owns two companion documents in `research/`:
 The main task file itself should explicitly track the branch's acceptance criteria,
 implementation steps, and current state, not merely act as a subtask index.
 
-### Research programs
+### Program vocabulary and declaration rationale
 
-A **research program** is a durable, named line of inquiry that contains more
-than one paper, report, or supporting research artifact. It lives under
-`research/<program>/`; standalone papers may remain directly under
-`research/`.
+The binding “Research programs” section above owns declaration and discovery.
+Within a declared program, `research/<program>/GLOSSARY.md` supplies shared
+vocabulary by path for papers, reports, advisor notes, logs, and related-work
+artifacts. Define recurring program terms there; keep notation used by only one
+paper in that paper.
 
-Every research program has `research/<program>/GLOSSARY.md`. That glossary
-defines the program's shared vocabulary and applies by path to every document
-below the program directory, including papers, reports, advisor notes, logs,
-and related-work artifacts. A nested document is presumed to use that glossary;
-authors need not repeat the association in each file. Define a term in the
-program glossary when multiple program artifacts use it, while paper-local
-notation that does not recur stays in the paper.
-
-A sibling `PROGRAM.md` declares the directory as a program root, provides its
-descriptive charter, and may carry binding `Program instructions` for that
-subtree. The directory path is the canonical locator; its basename remains the
-research slug, and an optional first-line H1 may supply an alternative formal
-name. It is the sole declaration for advisor scope, followed-document defaults,
-and everything else keyed on programs. An old `Research program:` glossary
-header may coexist but is inert. Declare deliberately, once the program's
-evidence stream and narrative are independent enough that separate advising
-beats shared context. A directory existing under `research/`, holding papers,
-or holding only a glossary is not by itself a program:
-`topics/glossary.md` permits subtree glossaries whenever local jargon recurs,
-so an undeclared glossary under `research/` scopes vocabulary and nothing more.
+Keeping vocabulary scope separate from program declaration is deliberate. A
+subtree may need a glossary whenever local jargon recurs without needing an
+independent evidence trajectory or advisor. Conversely, `PROGRAM.md` is added
+only when separate advising and a durable program charter are useful. A plain
+directory, a collection of papers, or a glossary therefore remains insufficient
+discovery evidence; this prevents accidental advisor forks from layout alone.
 
 #### Research log conventions
 

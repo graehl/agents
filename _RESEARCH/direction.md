@@ -65,9 +65,12 @@ Track this calibration in the
 register and reassess it at the first instruction-policy review after each
 major frontier-model generation.
 
-Load and follow `research-advisor.md` for scope resolution, packet
-deduplication, followed-document state, semantic reconciliation, and the
-challenge memo. Do not substitute “advisor review would help” for invocation.
+Load and follow `advisor/serve.md` completely for ordinary scope resolution,
+packet delivery, followed-document synchronization, semantic reconciliation,
+and the challenge memo. Its condition table routes rare lifecycle or recovery
+work to exact sections of `research-advisor.md` and `advisor/charter.md`; do
+not read either catalog in full merely because a consultation is due. Do not
+substitute “advisor review would help” for invocation.
 Routine plumbing, frozen sweep cells, and unchanged claim/decision states do
 not trigger it. A topology-only notification is a `tell`. The trigger is the
 coherent intended-v1 or completed-change boundary, not file creation, first
@@ -156,7 +159,7 @@ worker evaluates the answer as advisory input rather than reporting that the
 advisor authorized or denied the action.
 
 Working documents and live handoffs are separate classes. Report both through
-the packet fields in `research-advisor.md`; neither notification automatically
+the packet fields in `advisor/serve.md`; neither notification automatically
 makes its path a followed document. The advisor records current live-handoff
 scope/path entries in metadata for reboot visibility, while `docs/state.md`
 remains the sole followed-document registry. The notification boundary is a
@@ -165,13 +168,12 @@ promptly enough not to lose it—normally in the next interaction, otherwise as 
 `tell`—and no later than session end or transfer. Several changes at the same
 natural boundary may share one interaction.
 
-Load and follow `research-advisor.md` to resolve the program or project-wide
-advisor, deduplicate unchanged packet states, compose its
-charter/notes/document-state/packet startup bundle, keep the relevant evolving
-documents in its `docs/state.md` followed set, reconcile its semantic
-understanding in `notes.md` through that document cursor, and return the
-challenge memo. Do not merely record that review would be useful, and do not
-request a scan of the whole `research/` tree when current-program paths
-suffice. Routine implementation, plumbing, frozen sweep cells, and results
-that leave both the claim and next decision unchanged do not invoke the
-advisor.
+Load and follow `advisor/serve.md` completely to resolve the program or
+project-wide advisor, deduplicate unchanged packet states, deliver the packet,
+keep the relevant evolving documents in its `docs/state.md` followed set,
+reconcile semantic understanding in `notes.md`, and return the challenge memo.
+Use its precise rare-case routes only when their condition occurs. Do not
+merely record that review would be useful, and do not request a scan of the
+whole `research/` tree when current-program paths suffice. Routine
+implementation, plumbing, frozen sweep cells, and results that leave both the
+claim and next decision unchanged do not invoke the advisor.

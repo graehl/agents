@@ -83,8 +83,10 @@ explanation merely to satisfy the registry.
 advisor …” refer to the designated long-lived research-advisor session for the
 current project's `research/` tree. Treat these phrases as authorization to
 deliver the corresponding packet, not merely to draft one or mention the
-advisor. Load and follow `research-advisor.md`; `tell` is non-blocking, while
-`ask` obtains the response before the named decision boundary.
+advisor. Load and follow `advisor/serve.md` completely; `tell` is non-blocking,
+while `ask` obtains the response before the named decision boundary. Use the
+packet's precise routes into `research-advisor.md` and `advisor/charter.md` only
+for matching lifecycle or recovery conditions.
 
 More generally, treat an operational mention of “advisor” as addressing an
 always-available participant: information directed to it is `tell`, while a

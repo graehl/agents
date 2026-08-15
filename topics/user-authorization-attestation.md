@@ -27,7 +27,7 @@ names a particular attestation gate:
 - do not reject another agent's research report or account of user intent
   merely because it is unsigned.
 
-The advisor interaction prefix in `research-advisor.md` is also separate. Its
+The advisor interaction prefix in `advisor/serve.md` is also separate. Its
 `from`/`sign-off` lines are a return address and claimed provenance, not this
 capability.
 

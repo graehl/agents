@@ -1,19 +1,21 @@
-# RESEARCH ADVISOR — logical continuity and object-session routing
+# RESEARCH ADVISOR — lifecycle and recovery catalog
 
-This protocol governs the object-level research session and the transport to a
-durable logical advisor that may outlive any provider session or model.
-`advisor/charter.md` governs how the advisor reasons and responds. Load this
-protocol when a `RESEARCH.md` invocation condition fires or graehl
-operationally addresses or refers to “the advisor.” The advisor is treated as
-always at hand even though its serving session is resumed or started only on
-demand.
+This catalog owns the long-form lifecycle, recovery, collision, transport,
+archival, and shutdown mechanics for a durable logical advisor. Ordinary
+invocation, packet, response, and close behavior lives in
+`advisor/serve.md`; read that complete packet when a `RESEARCH.md` invocation
+condition fires or graehl operationally addresses the advisor. Do not read
+this catalog or `advisor/charter.md` in full solely because a consultation is
+due. `advisor/serve.md` names the observable rare conditions and exact sections
+to read here.
 
 ## Scope and continuity
 
 The default unit is one research program. Discover program roots by the
-presence of `research/<program>/PROGRAM.md` (`_RESEARCH/artifacts.md` § Research
-programs); a glossary without that sibling scopes vocabulary only, so no
-subdirectory forks an advisor by merely existing. A program advisor uses:
+presence of `research/<program>/PROGRAM.md` (`_RESEARCH/artifacts.md` § Binding
+rules / Research programs); a glossary without that sibling scopes vocabulary
+only, so no subdirectory forks an advisor by merely existing. A program
+advisor uses:
 
 - `research/<program>/advisor/metadata.md` for logical identity, program
   binding, lifecycle, and restart control;
@@ -110,19 +112,20 @@ makes a successor's startup test explicit: if the document cursor is newer than
 the notes watermark, the compact understanding is stale and must be reconciled
 before advising.
 
-The durable default advisor behavior is `~/agents/advisor/charter.md`. A project
+The durable ordinary advisor behavior is `~/agents/advisor/serve.md`. A project
 may add `research/advisor/charter.md` as a project-wide amendment, and a program
 may add `research/<program>/advisor/charter.md`. Amendments are loaded broadest
-to narrowest; they supplement rather than silently replace the global charter.
+to narrowest; they supplement rather than silently replace the ordinary packet.
+The global `~/agents/advisor/charter.md` remains the conditional catalog for
+rare mechanics routed by `advisor/serve.md`.
 
 Every logical advisor watches a cross-repository governance-source stack. Its
 default core is:
 
-- `~/agents/advisor/charter.md`;
+- `~/agents/advisor/serve.md`;
 - `~/agents/AGENTS.global.md`;
 - `~/agents/AGENTS.user.md`;
 - `~/agents/RESEARCH.md`;
-- `~/agents/research-advisor.md`;
 - `~/agents/_RESEARCH/direction.md`; and
 - `~/agents/topics/handoffs.md`.
 
@@ -135,9 +138,13 @@ require succession.
 
 Before every dispatch, the consulting worker reconciles metadata's governance
 sources with this protocol's current default core and the applicable charter
-amendments. A newly added default is schema maintenance, not consultation
-rescope. This worker-side bootstrap prevents an old advisor from relying on a
-stale metadata list that omits the very source announcing the addition.
+amendments. Existing metadata replaces the former default
+`advisor/charter.md` and `research-advisor.md` entries with
+`advisor/serve.md`; retain a long catalog only while a routed rare operation
+requires it. A newly added or replaced default is schema maintenance, not
+consultation rescope. This worker-side bootstrap prevents an old advisor from
+relying on a stale metadata list that omits the very source announcing the
+addition.
 
 At the start of every interaction, resolve and hash the complete governance
 stack. On first activation, establish a complete read receipt; exact current
@@ -201,7 +208,7 @@ Lifecycle generation: <monotonic integer>
 Lifecycle state: active | no-incumbent | retired
 Predecessor: <logical id/generation/session, or none>
 Replacement reason: <reason, or none>
-Charter stack: <global then project/program amendments>
+Charter stack: <advisor/serve.md then project/program amendments>
 Governance sources: <default ~/agents core then project/program amendments>
 Semantic notes: <notes.md path>
 Document state: <docs/state.md path>
@@ -826,8 +833,9 @@ the initial packet or send a rebuttal for acceptance.
 
 ## Advisor review
 
-The global charter and optional amendments govern the advisor's review,
-challenge-memo format, independence, compact-state maintenance, and succession.
+The ordinary serve packet and optional amendments govern the advisor's review,
+challenge-memo format, independence, and compact-state maintenance. The global
+charter catalog governs condition-routed succession and recovery mechanics.
 The object session must not present its own assessment as the advisor's when
 transport is unavailable. It may still give a clearly labeled working-session
 assessment and the exact forwardable packet, plus an explicit user choice to

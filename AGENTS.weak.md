@@ -66,7 +66,7 @@ session — not all at session start.
 | Before designing or extending tests | `topics/testing.md` |
 | Before building a prototype | `topics/prototyping.md` |
 | Before research or experimentation work | `RESEARCH.md` |
-| At a research-advisor trigger, or when asked to tell/ask the advisor | `research-advisor.md` |
+| At a research-advisor trigger, or when asked to tell/ask the advisor | `advisor/serve.md` |
 | Before launching or monitoring long-running jobs | `RUNS.md` |
 | Before surveying a field or gathering prior art | `literature-search.md`, `field-map.md`, `frontier-map.md` |
 | Entering a topic area for the first time in session | that topic's `.md` and `.bearings.md` |

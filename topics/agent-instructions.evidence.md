@@ -3144,3 +3144,42 @@ the sweep single-target.
   protocol; and `_RESEARCH/evidence.md` changed 13,109 → 13,774.
 - **Status** — scenario-traced; behavioral benefit and the 12/32 defaults
   remain assumed.
+
+## 2026-08-15 — advisor consultation gets a bounded serve packet
+
+- **Trigger** — range review found that an ordinary tell/ask trigger required
+  complete reads of both the 879-line object-session protocol and the 653-line
+  charter, even though succession, generation fencing, archive repair, and
+  shutdown are rare. This repeated the oversized-read failure mode that caused
+  the packet reorganization elsewhere in the corpus.
+- **Decision** — `advisor/serve.md` now owns the complete ordinary worker and
+  advisor path: scope resolution, decision ownership, packet, `session-turn`
+  delivery, synchronized review, challenge memo, sign-off checkpoint, and
+  worker evaluation. The long protocol and charter remain live catalogs, but
+  ordinary routes explicitly forbid reading them in full and name the exact
+  sections for first establishment, legacy/succession, collision, fold debt,
+  document recovery, handoff repair, transport ambiguity, and shutdown.
+  Existing advisor governance manifests replace only the former default long
+  entries; project/program amendments remain intact.
+- **Trace: ordinary tell** — “tell advisor this result” reaches RESEARCH,
+  direction, and the 250-line serve packet. The worker can deliver one bounded
+  interaction and the advisor can return and checkpoint its memo without
+  opening either long catalog.
+- **Trace: first consultation** — no metadata exists. The serve packet routes
+  to “Scope and continuity” plus “Establishing the logical advisor,” then the
+  ordinary path resumes. It does not load shutdown, archive, or collision
+  mechanics preemptively.
+- **Trace: retired incumbent** — generation state conflicts during resume. The
+  explicit legacy/succession route loads the binding/state and succession
+  sections from both catalogs before any continuity write, so the read-size
+  optimization does not soften the fence.
+- **Trace: shutdown** — the exact `Shutdown advisor` directive routes to the
+  shutdown and succession sections. Ordinary sign-off stays in the serve
+  packet and cannot accidentally imply retirement.
+- **Recovery and read cost** — no catalog body was removed; prior text remains
+  recoverable both in current files and Git. The former ordinary pair totaled
+  87,012 bytes (`research-advisor.md` 50,701 plus `advisor/charter.md` 36,311).
+  The new independently read serve packet is 12,888 bytes, an 85.2% reduction;
+  each rare condition now reads named sections rather than either full catalog.
+- **Status** — scenario-traced and caller-swept; consultation correctness and
+  future manifest migration behavior remain assumed.
