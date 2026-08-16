@@ -4,6 +4,17 @@
 > sequence evidence to a strong token encoder, with multilingual PII span
 > labeling as the live design case.
 
+**Sibling survey.** This map covers surface evidence used *alongside* a strong
+token encoder. The question of replacing that encoder outright — a
+character-only tokenizer-free model as the sole span tagger, against a fine-tuned
+subword transformer — is mapped in
+[`surveys/tokenizer-free-span-tagging`](../tokenizer-free-span-tagging/survey.md).
+It reads CANINE, ByT5, Charformer, Gillick, Cao, Sun, Flair and CharacterBERT
+from this survey's committed extracts rather than duplicating them, and adds the
+chars-only tagger lineage (Klein 2003, CharNER, Cotterell and Duh, PIXEL), the
+fast convolutional tagger lineage (ID-CNN, VDCNN, spaCy), and distillation into
+small students (XtremeDistil and successors).
+
 ## Grounding and coverage
 
 - **Grounding mode: `grounded`.** Thirty-seven primary papers were fetched and read;
@@ -296,6 +307,12 @@ The most favorable historical NER numbers predate modern multilingual encoders,
 so they justify a cheap test rather than a forecasted gain. The fair incumbent
 is the project's best calibrated XLM-R, scored on the same held-out documents;
 the sidecar must earn its extra parameters and latency there.
+
+The complementary boundary — what a *sole* character encoder would have to beat,
+and the fact that no matched comparison against a fine-tuned multilingual subword
+tagger exists — is worked out in the sibling survey's
+[what a chars-only tagger must beat](../tokenizer-free-span-tagging/survey.md#what-a-chars-only-tagger-must-beat-and-cite)
+section.
 
 No located paper exactly matches a small token-aligned, independently trainable
 surface branch fused only as a shared P1 logit residual into a strong
