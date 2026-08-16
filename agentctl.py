@@ -2229,19 +2229,72 @@ def pixi_roots_from_argv(argv: list[str]) -> set[Path]:
     return roots
 
 
+def foreign_environment_record(env_root: Path) -> dict:
+    """Pin an environment outside the invoking checkout to its own repository.
+
+    Only the declarative manifests are pinned: `pixi.toml` alone may carry
+    version ranges, so the paired `pixi.lock` is what makes a rebuild
+    reproducible. The realized `.pixi/envs/**` tree is derived state and is
+    never commit-required nor hashed here.
+    """
+    try:
+        git_root_text = git_output(
+            ["rev-parse", "--show-toplevel"], cwd=env_root
+        ).strip()
+        commit = git_output(["rev-parse", "HEAD"], cwd=env_root).strip()
+    except GitProbeError as exc:
+        raise SystemExit(
+            "reproducibility guard: selected environment is outside the project "
+            f"checkout and is not pinned by a Git checkout of its own: {env_root}; "
+            f"{exc.code}"
+        ) from exc
+    if not git_root_text or not commit:
+        raise SystemExit(
+            "reproducibility guard: selected environment is outside the project "
+            f"checkout and its Git checkout has no committed HEAD: {env_root}"
+        )
+    git_root = Path(git_root_text).resolve()
+    manifest = env_root / "pixi.toml"
+    lock = env_root / "pixi.lock"
+    if not manifest.is_file() or not lock.is_file():
+        raise SystemExit(
+            "reproducibility guard: a cross-repo Pixi environment requires both "
+            f"{manifest} and {lock}"
+        )
+    try:
+        files = {
+            path.name: committed_file_record(path, git_root=git_root, commit=commit)
+            for path in (manifest, lock)
+        }
+    except SystemExit as exc:
+        raise SystemExit(
+            f"reproducibility guard: cross-repo environment {env_root} is not "
+            f"recoverable from its checkout {git_root} at HEAD {commit}: {exc.code}"
+        ) from exc
+    return {
+        "env_root": str(env_root),
+        "git_root": str(git_root),
+        "git_branch": git_output(["branch", "--show-current"], cwd=git_root).strip(),
+        "git_commit": commit,
+        # Unrelated dirt in the environment's repository does not affect the
+        # pinned manifests; record it, never refuse on it.
+        "tracked_dirty_elsewhere": bool(tracked_source_status(git_root)),
+        "files": files,
+    }
+
+
 def environment_control_paths(
     argv: list[str], project_env: dict | None, source_env: list[str]
-) -> dict[str, Path]:
+) -> tuple[dict[str, Path], list[dict]]:
     paths: dict[str, Path] = {}
+    foreign: list[dict] = []
     roots = {ROOT, *pixi_roots_from_argv(argv)}
     for env_root in sorted(roots):
         try:
             env_relative = env_root.relative_to(ROOT)
-        except ValueError as exc:
-            raise SystemExit(
-                "reproducibility guard: selected environment is outside the project "
-                f"checkout: {env_root}"
-            ) from exc
+        except ValueError:
+            foreign.append(foreign_environment_record(env_root))
+            continue
         manifest = env_root / "pixi.toml"
         lock = env_root / "pixi.lock"
         if (env_root != ROOT or manifest.exists() or lock.exists()) and (
@@ -2262,7 +2315,7 @@ def environment_control_paths(
         if not path.is_absolute():
             path = ROOT / path
         paths[f"source_env:{index}"] = path.resolve(strict=False)
-    return paths
+    return paths, foreign
 
 
 def build_source_snapshot(
@@ -2307,7 +2360,9 @@ def build_source_snapshot(
             f"tracked run: {preview}{suffix}"
         )
 
-    files = environment_control_paths(argv, project_env, source_env)
+    files, foreign_environments = environment_control_paths(
+        argv, project_env, source_env
+    )
     script_path = Path(script["path"]).resolve() if script.get("path") else None
     if script_path is not None:
         try:
@@ -2327,7 +2382,7 @@ def build_source_snapshot(
     }
     if "script" in records:
         script.update({key: records["script"][key] for key in ("git_path", "git_blob")})
-    return {
+    snapshot = {
         "schema": "agentctl-source-v1",
         "status": "committed",
         "execution_guarantee": "admission-time-only",
@@ -2341,6 +2396,31 @@ def build_source_snapshot(
         "untracked_python_count": 0,
         "files": records,
     }
+    if foreign_environments:
+        snapshot["foreign_environments"] = foreign_environments
+    return snapshot
+
+
+def revalidate_foreign_environment(record: dict) -> None:
+    git_root = Path(record["git_root"])
+    commit = record["git_commit"]
+    if git_output(["rev-parse", "HEAD"], cwd=git_root).strip() != commit:
+        raise SystemExit(
+            "reproducibility guard: cross-repo environment checkout HEAD changed after "
+            f"submission; refusing payload launch: {git_root}"
+        )
+    for expected in (record.get("files") or {}).values():
+        current = committed_file_record(
+            expected["path"], git_root=git_root, commit=commit
+        )
+        if (
+            current["sha256"] != expected["sha256"]
+            or current["git_blob"] != expected["git_blob"]
+        ):
+            raise SystemExit(
+                "reproducibility guard: cross-repo environment manifest changed after "
+                f"submission: {expected['path']}"
+            )
 
 
 def revalidate_source_snapshot(snapshot: dict) -> None:
@@ -2374,6 +2454,8 @@ def revalidate_source_snapshot(snapshot: dict) -> None:
                 "reproducibility guard: source/control fingerprint changed after submission: "
                 f"{expected['git_path']}"
             )
+    for record in snapshot.get("foreign_environments") or []:
+        revalidate_foreign_environment(record)
 
 
 def machine_snapshot() -> dict:

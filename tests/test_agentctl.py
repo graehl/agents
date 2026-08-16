@@ -2886,6 +2886,126 @@ def test_pixi_lock_and_machine_identity_are_recorded():
         ws.cleanup()
 
 
+def _foreign_pixi_env(root: Path, *, git: bool = True) -> Path:
+    """Build an out-of-project Pixi env root; return its fake `python`."""
+    env_root = root / "envs" / "encoder"
+    interpreter = env_root / ".pixi/envs/default/bin/python"
+    interpreter.parent.mkdir(parents=True)
+    interpreter.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+    interpreter.chmod(0o755)
+    (env_root / "pixi.toml").write_text("[project]\nname = 'enc'\n", encoding="utf-8")
+    (env_root / "pixi.lock").write_text(
+        "version: 6\nenvironments: {}\n", encoding="utf-8"
+    )
+    if git:
+        for args in (
+            ["git", "init", "-q"],
+            ["git", "config", "user.email", "agentctl-test@example.invalid"],
+            ["git", "config", "user.name", "agentctl test"],
+            ["git", "commit", "-qm", "empty", "--allow-empty"],
+        ):
+            subprocess.run(args, cwd=root, check=True)
+    return interpreter
+
+
+def _foreign_commit(root: Path, *paths: Path) -> None:
+    relative = [str(path.resolve().relative_to(root.resolve())) for path in paths]
+    subprocess.run(["git", "add", "--", *relative], cwd=root, check=True)
+    subprocess.run(
+        ["git", "commit", "-qm", f"foreign fixture {time.time_ns()}"],
+        cwd=root,
+        check=True,
+    )
+
+
+def test_cross_repo_environment_is_pinned_to_its_own_checkout():
+    ws = Workspace()
+    foreign = Path(tempfile.mkdtemp(prefix="agentctl-test-foreign-"))
+    try:
+        interpreter = _foreign_pixi_env(foreign)
+        env_root = interpreter.parents[4]
+        manifest = env_root / "pixi.toml"
+        lock = env_root / "pixi.lock"
+
+        uncommitted = ws.run("start", "crossrepo", "--", str(interpreter), "-c", "0")
+        _assert(uncommitted.returncode != 0, uncommitted)
+        _assert("cross-repo environment" in uncommitted.stderr, uncommitted.stderr)
+        _assert(
+            "not recoverable from the recorded commit" in uncommitted.stderr,
+            uncommitted.stderr,
+        )
+
+        _foreign_commit(foreign, manifest, lock)
+        committed_lock = lock.read_text(encoding="utf-8")
+        lock.write_text(committed_lock + "# edited\n", encoding="utf-8")
+        dirty = ws.run("start", "crossrepo", "--", str(interpreter), "-c", "0")
+        _assert(dirty.returncode != 0, dirty)
+        _assert("cross-repo environment" in dirty.stderr, dirty.stderr)
+        _assert("differs from the recorded commit" in dirty.stderr, dirty.stderr)
+        lock.write_text(committed_lock, encoding="utf-8")
+
+        _start(
+            ws, "--experiment", "repro", "crossrepo", "--", str(interpreter), "-c", "0"
+        )
+        state = ws.wait_finished("crossrepo")
+        _assert(state["returncode"] == 0, state)
+        pins = state["source_snapshot"]["foreign_environments"]
+        _assert(len(pins) == 1, pins)
+        pin = pins[0]
+        _assert(pin["env_root"] == str(env_root.resolve()), pin)
+        _assert(pin["git_root"] == str(foreign.resolve()), pin)
+        _assert(
+            pin["git_commit"]
+            == subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=foreign, text=True
+            ).strip(),
+            pin,
+        )
+        _assert(pin["tracked_dirty_elsewhere"] is False, pin)
+        for name in ("pixi.toml", "pixi.lock"):
+            expected = hashlib.sha256((env_root / name).read_bytes()).hexdigest()
+            _assert(pin["files"][name]["sha256"] == expected, pin["files"][name])
+        dump = json.loads(ws.dump_path("repro", state["run_id"]).read_text())
+        _assert(
+            dump["params"]["source"]["foreign_environments"] == pins,
+            dump["params"]["source"],
+        )
+
+        # Unrelated dirt in the environment's repository is reported, not refused.
+        unrelated = foreign / "notes.txt"
+        unrelated.write_text("first\n", encoding="utf-8")
+        _foreign_commit(foreign, unrelated)
+        unrelated.write_text("second\n", encoding="utf-8")
+        _start(ws, "crossrepo2", "--", str(interpreter), "-c", "0")
+        noisy = ws.wait_finished("crossrepo2")
+        _assert(
+            noisy["source_snapshot"]["foreign_environments"][0][
+                "tracked_dirty_elsewhere"
+            ]
+            is True,
+            noisy["source_snapshot"]["foreign_environments"],
+        )
+    finally:
+        shutil.rmtree(foreign, ignore_errors=True)
+        ws.cleanup()
+
+
+def test_cross_repo_environment_outside_git_is_refused():
+    ws = Workspace()
+    foreign = Path(tempfile.mkdtemp(prefix="agentctl-test-nogit-"))
+    try:
+        interpreter = _foreign_pixi_env(foreign, git=False)
+        rejected = ws.run("start", "ungit", "--", str(interpreter), "-c", "0")
+        _assert(rejected.returncode != 0, rejected)
+        _assert(
+            "not pinned by a Git checkout of its own" in rejected.stderr,
+            rejected.stderr,
+        )
+    finally:
+        shutil.rmtree(foreign, ignore_errors=True)
+        ws.cleanup()
+
+
 def test_queued_run_revalidates_source_before_payload():
     ws = Workspace()
     try:

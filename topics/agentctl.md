@@ -174,6 +174,25 @@ window.
   before its subcommand, while an executable located under `.pixi/` also
   identifies its environment root. The same-looking flags on other tools are
   ordinary payload arguments.
+- An environment root outside the invoking checkout is admitted only as a
+  **cross-repo pin**: the root must lie inside a Git checkout of its own, and
+  that checkout must hand back both `pixi.toml` and `pixi.lock` at the
+  environment root byte-identical from its `HEAD`. Uncommitted or locally
+  modified manifests are refused, naming the environment root and its
+  checkout. Both files are required because a manifest alone may carry version
+  ranges, so the lock is what makes the rebuild reproducible. **Only those two
+  manifests are pinned.** The realized `.pixi/envs/**` tree is derived state:
+  it is never commit-required and never hashed into admission — pinning it
+  would demand committing a machine-specific build product. The snapshot
+  records a `foreign_environments` entry per outside root: environment root,
+  repository top level, branch, `HEAD` commit, each manifest's SHA-256 and
+  blob id, and `tracked_dirty_elsewhere`, a **non-blocking** flag for
+  unrelated tracked changes in that repository. Unrelated dirt there cannot
+  alter the pinned manifests, so it is reported, never refused. The
+  delayed-launch recheck repeats the foreign `HEAD` and manifest comparison.
+  Sharing one environment across projects is therefore reproducible without
+  copying it into every checkout that uses it; an environment in no Git
+  checkout at all is still refused.
 - `start --after <job-or-output>` is a mechanical launch gate, not a
   result-interpretation scheduler. It records the new job as `waiting`, then
   starts the payload only after each named `agentctl` job exits cleanly or
