@@ -48,6 +48,29 @@ the diff and has none of the implementation conversation in mind. Lead with
 motivation and decision => outcome; supply enough basic context and terminology
 that the review can start without reconstructing the session.
 
+When one commit lands only part of the current user-requested goal, open its
+body after any `Onboarding:` line with this ordered structure:
+
+```text
+Series goal: <current user-requested goal>
+This commit: <portion landed by this diff>
+Remaining after this commit: <substantive remainder>
+```
+
+Each label begins a line; blank lines between them are optional, and wrapped
+continuation lines need no repeated label. The series goal is the active request
+scope, not every ambition in a broader topic or project roadmap. Cite a
+committed topic, gap, plan, or similar governing artifact when it accurately
+defines that scope; otherwise summarize the active task in place rather than
+linking private state. Do not derive promised follow-up from dormant or
+candidate material.
+
+`Remaining after this commit:` records the historical state immediately after
+that commit, so it remains true when later commits finish the work. The format
+fires only for a substantive nonempty remainder. When the commit lands the
+whole goal, use the ordinary narrative format: omit all three labels rather
+than emitting an empty remainder or `None` for symmetry.
+
 The narrative synthesis:
 
 - Exclude credentials/secrets from contents and message.
