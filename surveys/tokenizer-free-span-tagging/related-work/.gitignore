@@ -1,0 +1,5 @@
+# Commit fetched Markdown + provenance; ignore rebuildable sources/cache.
+extract/**
+!extract/**/
+!extract/**/*.md
+!extract/**/.fetched

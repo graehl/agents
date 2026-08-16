@@ -1,0 +1,421 @@
+# Metadata manifest for surveys/tokenizer-free-span-tagging.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+#
+# Sibling reuse: papers whose full text is already committed under
+# surveys/shallow-surface-encoders/related-work/extract/<key>/ are read from
+# there and are NOT re-fetched here (duplicating an extraction cache is a
+# defect). They carry grounded: false with a `source:` naming the sibling
+# extract path, so `related-work audit` stays honest about what this survey's
+# own tree contains. Their citation keys deliberately match the sibling's.
+
+meta:
+  field_slug: tokenizer-free-span-tagging
+  coverage_cutoff: 2026-08-16
+  grounding_mode: grounded
+
+papers:
+  # --- A. character-only span taggers, pre-transformer ---
+  - key: tjongkimsang2003-conll-shared-task
+    short: conll-yardstick
+    concept_page: concepts/conll-yardstick.md
+    title: "Introduction to the CoNLL-2003 Shared Task: Language-Independent Named Entity Recognition"
+    authors: ["Erik F. Tjong Kim Sang", "Fien De Meulder"]
+    venue: "CoNLL"
+    year: 2003
+    url: "https://aclanthology.org/W03-0419.pdf"
+    grounded: true
+    verified: true
+    source: "ACL Anthology volume listing checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: A
+
+  - key: klein2003-character-ner
+    short: char-only-classical
+    concept_page: concepts/char-only-classical.md
+    title: "Named Entity Recognition with Character-Level Models"
+    authors: ["Dan Klein", "Joseph Smarr", "Huy Nguyen", "Christopher D. Manning"]
+    venue: "CoNLL"
+    year: 2003
+    url: "https://aclanthology.org/W03-0428.pdf"
+    doi: "10.3115/1119176.1119204"
+    grounded: true
+    verified: true
+    source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: A
+
+  - key: kuru2016-charner
+    short: charner
+    concept_page: concepts/charner.md
+    title: "CharNER: Character-Level Named Entity Recognition"
+    authors: ["Onur Kuru", "Ozan Arkan Can", "Deniz Yuret"]
+    venue: "COLING"
+    year: 2016
+    url: "https://aclanthology.org/C16-1087.pdf"
+    grounded: true
+    verified: true
+    source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: A
+
+  - key: cotterell2017-cross-lingual-char-crf
+    short: char-crf-transfer
+    concept_page: concepts/char-crf-transfer.md
+    title: "Low-Resource Named Entity Recognition with Cross-lingual, Character-Level Neural Conditional Random Fields"
+    authors: ["Ryan Cotterell", "Kevin Duh"]
+    venue: "IJCNLP"
+    year: 2017
+    url: "https://aclanthology.org/I17-2016.pdf"
+    arxiv_mirror: "2404.09383"
+    grounded: true
+    verified: true
+    source: "ACL Anthology BibTeX checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: A
+
+  - key: gillick2016-multilingual-bytes
+    short: byte-sole-encoder
+    concept_page: concepts/byte-sole-encoder.md
+    title: "Multilingual Language Processing From Bytes"
+    authors: ["Dan Gillick", "Cliff Brunk", "Oriol Vinyals", "Amarnag Subramanya"]
+    venue: "NAACL"
+    year: 2016
+    url: "https://aclanthology.org/N16-1155.pdf"
+    doi: "10.18653/v1/N16-1155"
+    grounded: false
+    verified: true
+    source: "read from surveys/shallow-surface-encoders/related-work/extract/gillick2016-multilingual-bytes/ (fetched 2026-08-14)"
+    fetched: null
+    cluster: A
+
+  # --- B. tokenizer-free pretrained encoders with tagging evidence ---
+  - key: clark2022-canine
+    short: byte-sole-encoder
+    concept_page: concepts/byte-sole-encoder.md
+    title: "CANINE: Pre-training an Efficient Tokenization-Free Encoder for Language Representation"
+    authors: ["Jonathan H. Clark", "Dan Garrette", "Iulia Turc", "John Wieting"]
+    venue: "TACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.tacl-1.5.pdf"
+    grounded: false
+    verified: true
+    source: "read from surveys/shallow-surface-encoders/related-work/extract/clark2022-canine/ (fetched 2026-08-13)"
+    fetched: null
+    cluster: B
+
+  - key: xue2022-byt5
+    short: byte-sole-encoder
+    concept_page: concepts/byte-sole-encoder.md
+    title: "ByT5: Towards a Token-Free Future with Pre-trained Byte-to-Byte Models"
+    authors: ["Linting Xue", "Aditya Barua", "Noah Constant", "Rami Al-Rfou", "Sharan Narang", "Mihir Kale", "Adam Roberts", "Colin Raffel"]
+    venue: "TACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.tacl-1.17.pdf"
+    grounded: false
+    verified: true
+    source: "read from surveys/shallow-surface-encoders/related-work/extract/xue2022-byt5/ (fetched 2026-08-14)"
+    fetched: null
+    cluster: B
+
+  - key: tay2022-charformer
+    title: "Charformer: Fast Character Transformers via Gradient-based Subword Tokenization"
+    authors: ["Yi Tay", "Vinh Q. Tran", "Sebastian Ruder", "Jai Gupta", "Hyung Won Chung", "Dara Bahri", "Zhen Qin", "Simon Baumgartner", "Cong Yu", "Donald Metzler"]
+    venue: "ICLR"
+    year: 2022
+    arxiv: "2106.12672"
+    grounded: false
+    verified: true
+    source: "read from surveys/shallow-surface-encoders/related-work/extract/tay2022-charformer/ (fetched 2026-08-13)"
+    fetched: null
+    cluster: B
+
+  - key: cao2023-recipe
+    title: "What is the best recipe for character-level encoder-only modelling?"
+    authors: ["Kris Cao"]
+    venue: "ACL"
+    year: 2023
+    url: "https://aclanthology.org/2023.acl-long.326.pdf"
+    grounded: false
+    verified: true
+    source: "read from surveys/shallow-surface-encoders/related-work/extract/cao2023-recipe/ (fetched 2026-08-13)"
+    fetched: null
+    cluster: B
+
+  - key: sun2023-hierarchical
+    title: "From Characters to Words: Hierarchical Pre-trained Language Model for Open-vocabulary Language Understanding"
+    authors: ["Li Sun", "Florian Luisier", "Kayhan Batmanghelich", "Dinei Florencio", "Cha Zhang"]
+    venue: "ACL"
+    year: 2023
+    url: "https://aclanthology.org/2023.acl-long.200.pdf"
+    grounded: false
+    verified: true
+    source: "read from surveys/shallow-surface-encoders/related-work/extract/sun2023-hierarchical/ (fetched 2026-08-13)"
+    fetched: null
+    cluster: B
+
+  - key: rahman2023-token-or-not
+    short: representation-bakeoff
+    concept_page: concepts/representation-bakeoff.md
+    title: "To token or not to token: A Comparative Study of Text Representations for Cross-Lingual Transfer"
+    authors: ["Md Mushfiqur Rahman", "Fardin Ahsan Sakib", "Fahim Faisal", "Antonios Anastasopoulos"]
+    venue: "MRL Workshop at EMNLP"
+    year: 2023
+    url: "https://aclanthology.org/2023.mrl-1.6.pdf"
+    arxiv_mirror: "2310.08078"
+    doi: "10.18653/v1/2023.mrl-1.6"
+    grounded: true
+    verified: true
+    source: "ACL Anthology BibTeX checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: B
+
+  - key: pattnayak2025-indic-tokenization
+    short: indic-tokenization
+    concept_page: concepts/indic-tokenization.md
+    title: "Tokenization Matters: Improving Zero-Shot NER for Indic Languages"
+    authors: ["Priyaranjan Pattnayak", "Hitesh Laxmichand Patel", "Amit Agarwal"]
+    venue: "arXiv preprint"
+    year: 2025
+    arxiv: "2504.16977"
+    grounded: true
+    verified: true
+    source: "arXiv API metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: B
+
+  - key: rust2023-pixel
+    short: rendered-text-encoder
+    concept_page: concepts/rendered-text-encoder.md
+    title: "Language Modelling with Pixels"
+    authors: ["Phillip Rust", "Jonas F. Lotz", "Emanuele Bugliarello", "Elizabeth Salesky", "Miryam de Lhoneux", "Desmond Elliott"]
+    venue: "ICLR"
+    year: 2023
+    arxiv: "2207.06991"
+    grounded: true
+    verified: true
+    source: "arXiv API metadata and author ICLR 2023 comment checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: B
+
+  # --- C. fast convolutional taggers, the speed comparators ---
+  - key: strubell2017-id-cnn
+    short: dilated-cnn-tagger
+    concept_page: concepts/dilated-cnn-tagger.md
+    title: "Fast and Accurate Entity Recognition with Iterated Dilated Convolutions"
+    authors: ["Emma Strubell", "Patrick Verga", "David Belanger", "Andrew McCallum"]
+    venue: "EMNLP"
+    year: 2017
+    url: "https://aclanthology.org/D17-1283.pdf"
+    doi: "10.18653/v1/D17-1283"
+    arxiv_mirror: "1702.02098"
+    grounded: true
+    verified: true
+    source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: C
+
+  - key: zhang2015-char-cnn
+    short: deep-char-cnn
+    concept_page: concepts/deep-char-cnn.md
+    title: "Character-level Convolutional Networks for Text Classification"
+    authors: ["Xiang Zhang", "Junbo Zhao", "Yann LeCun"]
+    venue: "NeurIPS"
+    year: 2015
+    arxiv: "1509.01626"
+    grounded: true
+    verified: true
+    source: "OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: C
+
+  - key: conneau2017-vdcnn
+    short: deep-char-cnn
+    concept_page: concepts/deep-char-cnn.md
+    title: "Very Deep Convolutional Networks for Text Classification"
+    authors: ["Alexis Conneau", "Holger Schwenk", "Loic Barrault", "Yann LeCun"]
+    venue: "EACL"
+    year: 2017
+    url: "https://aclanthology.org/E17-1104.pdf"
+    doi: "10.18653/v1/E17-1104"
+    arxiv_mirror: "1606.01781"
+    grounded: true
+    verified: true
+    source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: C
+
+  - key: miranda2022-spacy-hash-embed
+    short: industrial-hash-cnn
+    concept_page: concepts/industrial-hash-cnn.md
+    title: "Multi hash embeddings in spaCy"
+    authors: ["Lester James Miranda", "Akos Kadar", "Adriane Boyd", "Sofie Van Landeghem", "Anders Sogaard", "Matthew Honnibal"]
+    venue: "arXiv preprint"
+    year: 2022
+    arxiv: "2212.09255"
+    grounded: true
+    verified: true
+    source: "arXiv and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: C
+
+  # --- D. character/word hybrids, the class we must distinguish from ---
+  - key: dossantos2015-charwnn
+    short: char-word-hybrid
+    concept_page: concepts/char-word-hybrid.md
+    title: "Boosting Named Entity Recognition with Neural Character Embeddings"
+    authors: ["Cicero dos Santos", "Victor Guimaraes"]
+    venue: "NEWS Workshop at ACL-IJCNLP"
+    year: 2015
+    url: "https://aclanthology.org/W15-3904.pdf"
+    doi: "10.18653/v1/W15-3904"
+    arxiv_mirror: "1505.05008"
+    grounded: true
+    verified: true
+    source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: D
+
+  - key: lample2016-lstm-crf
+    short: char-word-hybrid
+    concept_page: concepts/char-word-hybrid.md
+    title: "Neural Architectures for Named Entity Recognition"
+    authors: ["Guillaume Lample", "Miguel Ballesteros", "Sandeep Subramanian", "Kazuya Kawakami", "Chris Dyer"]
+    venue: "NAACL"
+    year: 2016
+    url: "https://aclanthology.org/N16-1030.pdf"
+    doi: "10.18653/v1/N16-1030"
+    arxiv_mirror: "1603.01360"
+    grounded: true
+    verified: true
+    source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: D
+
+  - key: ma2016-lstm-cnn-crf
+    short: char-word-hybrid
+    concept_page: concepts/char-word-hybrid.md
+    title: "End-to-end Sequence Labeling via Bi-directional LSTM-CNNs-CRF"
+    authors: ["Xuezhe Ma", "Eduard Hovy"]
+    venue: "ACL"
+    year: 2016
+    url: "https://aclanthology.org/P16-1101.pdf"
+    doi: "10.18653/v1/P16-1101"
+    arxiv_mirror: "1603.01354"
+    grounded: true
+    verified: true
+    source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: D
+
+  - key: ganesh2025-lstm-cnn-crf-repro
+    short: char-word-hybrid
+    concept_page: concepts/char-word-hybrid.md
+    title: "End-to-end Sequence Labeling via Bi-directional LSTM-CNNs-CRF: A Reproducibility Study"
+    authors: ["Anirudh Ganesh", "Jayavardhan Reddy"]
+    venue: "arXiv preprint"
+    year: 2025
+    arxiv: "2510.10936"
+    grounded: true
+    verified: true
+    source: "arXiv API metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: D
+
+  - key: akbik2018-flair
+    title: "Contextual String Embeddings for Sequence Labeling"
+    authors: ["Alan Akbik", "Duncan Blythe", "Roland Vollgraf"]
+    venue: "COLING"
+    year: 2018
+    url: "https://aclanthology.org/C18-1139.pdf"
+    grounded: false
+    verified: true
+    source: "read from surveys/shallow-surface-encoders/related-work/extract/akbik2018-flair/ (fetched 2026-08-13)"
+    fetched: null
+    cluster: D
+
+  - key: elboukkouri2020-characterbert
+    title: "CharacterBERT: Reconciling ELMo and BERT for Word-Level Open-Vocabulary Representations From Characters"
+    authors: ["Hicham El Boukkouri", "Olivier Ferret", "Thomas Lavergne", "Hiroshi Noji", "Pierre Zweigenbaum", "Jun'ichi Tsujii"]
+    venue: "COLING"
+    year: 2020
+    url: "https://aclanthology.org/2020.coling-main.609.pdf"
+    doi: "10.18653/v1/2020.coling-main.609"
+    grounded: false
+    verified: true
+    source: "read from surveys/shallow-surface-encoders/related-work/extract/elboukkouri2020-characterbert/ (fetched 2026-08-13)"
+    fetched: null
+    cluster: D
+
+  # --- E. distilling a large encoder into a small tagger ---
+  - key: mukherjee2020-xtremedistil
+    short: distilled-small-tagger
+    concept_page: concepts/distilled-small-tagger.md
+    title: "XtremeDistil: Multi-stage Distillation for Massive Multilingual Models"
+    authors: ["Subhabrata Mukherjee", "Ahmed Hassan Awadallah"]
+    venue: "ACL"
+    year: 2020
+    url: "https://aclanthology.org/2020.acl-main.202.pdf"
+    doi: "10.18653/v1/2020.acl-main.202"
+    grounded: true
+    verified: true
+    source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: E
+
+  - key: farina2023-seqlabel-distillation
+    short: distilled-small-tagger
+    concept_page: concepts/distilled-small-tagger.md
+    title: "Distillation of encoder-decoder transformers for sequence labelling"
+    authors: ["Marco Farina", "Duccio Pappadopulo", "Anant Gupta", "Leslie Huang", "Ozan Irsoy", "Thamar Solorio"]
+    venue: "Findings of EACL"
+    year: 2023
+    arxiv: "2302.05454"
+    grounded: true
+    verified: true
+    source: "arXiv API metadata and author EACL 2023 comment checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: E
+
+  - key: nityasya2022-student-exam
+    short: distilled-small-tagger
+    concept_page: concepts/distilled-small-tagger.md
+    title: "Which Student is Best? A Comprehensive Knowledge Distillation Exam for Task-Specific BERT Models"
+    authors: ["Made Nindyatama Nityasya", "Haryo Akbarianto Wibowo", "Rendi Chevi", "Radityo Eko Prasojo", "Alham Fikri Aji"]
+    venue: "arXiv preprint"
+    year: 2022
+    arxiv: "2201.00558"
+    grounded: true
+    verified: true
+    source: "arXiv API metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: E
+
+  - key: wang2020-structure-kd
+    short: distilled-small-tagger
+    concept_page: concepts/distilled-small-tagger.md
+    title: "Structure-Level Knowledge Distillation For Multilingual Sequence Labeling"
+    authors: ["Xinyu Wang", "Yong Jiang", "Nguyen Bach", "Tao Wang", "Fei Huang", "Kewei Tu"]
+    venue: "ACL"
+    year: 2020
+    url: "https://aclanthology.org/2020.acl-main.304.pdf"
+    doi: "10.18653/v1/2020.acl-main.304"
+    arxiv_mirror: "2004.03846"
+    grounded: true
+    verified: true
+    source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
+    fetched: 2026-08-16
+    cluster: E
