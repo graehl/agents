@@ -89,6 +89,13 @@ def add_standard_args(
         help="Output compact JSON Lines.",
     )
     group.add_argument(
+        "--json",
+        action="store_const",
+        const="compact",
+        dest="format",
+        help="Output compact JSON Lines (accepted even when already the default).",
+    )
+    group.add_argument(
         "--pretty",
         action="store_const",
         const="pretty",

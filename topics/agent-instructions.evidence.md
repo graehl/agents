@@ -3274,3 +3274,29 @@ the sweep single-target.
   durability. The instruction effect is scenario-traced and remains assumed.
 
 Contributing-model: 5.6-Sol
+
+## 2026-08-16 — ACLI accepts an explicit redundant `--json`
+
+- **Incident** — an agent invoked `agentctl status --json <job>` to state the
+  required serialization explicitly, but argparse rejected `--json` even
+  though ACLI already standardized compact JSONL and several ACLI surfaces
+  emitted it by default. The rejection added a discovery/retry turn and made
+  the flagship ACLI consumer look less conventional to an agent caller.
+- **Decision** — every JSON-emitting ACLI parser accepts `--json` as an alias
+  for compact JSONL, even when that is already the detected default. Job
+  `status` and `list` expose structured envelopes only under explicit ACLI
+  output flags for now, preserving their longstanding text output for existing
+  operators and scripts.
+- **Trace: redundant explicit intent** — a compact-by-default verb receives
+  `--json`; it emits the same JSONL schema instead of failing. A human TTY uses
+  `--json` to override pretty output. `--pretty` remains mutually exclusive,
+  so contradictory serialization requests fail at the input boundary.
+- **Trace: legacy status caller** — a script greps the one-line default
+  `agentctl status` output and keeps working. An agent uses
+  `agentctl status --json <job>` and gets a parseable envelope; `--full`
+  widens the rows and `--tail` stays inside JSON rather than corrupting it.
+- **Status** — parser and end-to-end tests cover the alias, completion, both
+  option positions around the job, and full status records. The effect on
+  failed-call frequency remains assumed.
+
+Contributing-model: 5.6-Sol
