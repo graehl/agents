@@ -1301,6 +1301,25 @@ def test_host_uncertain_terminal_uses_uncertain_delivery_exit_code():
     _assert(_records(proc)[-1]["outcome"] == "uncertain-after-acceptance")
 
 
+def test_every_grammar_accepts_the_explicit_json_alias():
+    import importlib.machinery
+    import importlib.util
+
+    loader = importlib.machinery.SourceFileLoader("session_turn", str(SCRIPT))
+    spec = importlib.util.spec_from_loader("session_turn", loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+
+    for parser, argv in (
+        (module.turn_parser(), ["--json", "codex", "deadbeef"]),
+        (module.send_parser(), ["--json", "codex", "deadbeef"]),
+        (module.await_parser(), ["--json", "submission-1"]),
+        (module.receipt_parser(), ["--json", "submission-1"]),
+    ):
+        args = parser.parse_args(argv)
+        _assert(args.json is True, (parser.prog, args))
+
+
 def _collect_tests():
     return [
         (name, fn)

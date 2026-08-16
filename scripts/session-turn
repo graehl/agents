@@ -968,6 +968,15 @@ def read_turn() -> str:
     return value
 
 
+def _accept_json_alias(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output compact JSON Lines (already the default; explicit alias).",
+    )
+    return parser
+
+
 def turn_parser(*, include_wait_timeout: bool = True) -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
         description="Send one turn to a durable provider session and stream JSONL.",
@@ -1012,7 +1021,7 @@ def turn_parser(*, include_wait_timeout: bool = True) -> argparse.ArgumentParser
                 "(hosted turns only)"
             ),
         )
-    return result
+    return _accept_json_alias(result)
 
 
 def send_parser() -> argparse.ArgumentParser:
@@ -1042,7 +1051,7 @@ def await_parser() -> argparse.ArgumentParser:
         default=0,
         help="observer deadline in seconds; 0 waits through terminal",
     )
-    return result
+    return _accept_json_alias(result)
 
 
 def receipt_parser() -> argparse.ArgumentParser:
@@ -1052,7 +1061,7 @@ def receipt_parser() -> argparse.ArgumentParser:
         epilog="acli: 1",
     )
     result.add_argument("submission_id")
-    return result
+    return _accept_json_alias(result)
 
 
 def main() -> int:
