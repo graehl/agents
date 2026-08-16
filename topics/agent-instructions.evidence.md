@@ -3338,3 +3338,35 @@ Contributing-model: 5.6-Sol
   non-defect backlog into `gaps/`.
 
 Contributing-model: Fable
+
+## 2026-08-16 — partial-goal commits expose their series context
+
+- **Trigger** — a mid-goal commit can accurately describe its own outcome while
+  leaving a reviewer unable to distinguish the active user-requested goal from
+  the portion present in that diff. A committed topic, gap, or plan may expose
+  the larger direction, but it may also be broader than the request, stale, or
+  written before the current work began.
+- **Decision** — when substantive work remains in the active request, the commit
+  body uses three line-start labels: `Series goal:`, `This commit:`, and
+  `Remaining after this commit:`. Blank lines are optional. An accurate
+  committed governing artifact may carry the series context; otherwise the
+  message summarizes the active task rather than citing private state.
+- **Historical phrasing** — `Remaining after this commit:` describes the state
+  at that commit instead of making an unqualified present-tense claim. It stays
+  true after later commits land. The complete-goal case uses ordinary narrative
+  rather than empty labels or `None`; the format is triggered by a substantive
+  nonempty remainder, not merely by topic-series membership.
+- **Trace: partial implementation** — the first of several feature commits names
+  the full request, its own landed slice, and the work remaining after that
+  slice, so the overall goal is visibly context rather than a claim about the
+  current diff.
+- **Trace: complete implementation** — one commit lands the whole requested
+  goal. The remainder is empty, so the three-label form does not fire and the
+  ordinary reviewer-on-ramp message remains concise.
+- **Trace: pre-existing roadmap** — a commit satisfies its active request while
+  its topic contains dormant follow-ups. Those candidates do not create a
+  remainder or a promised series; the ordinary format applies.
+- **Status** — user-directed and trace-simulated; effect on review accuracy and
+  message length remains assumed.
+
+Contributing-model: 5.6-Sol

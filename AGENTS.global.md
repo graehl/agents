@@ -465,6 +465,14 @@ decision, and outcome; account for each non-trivial file group at that level;
 include material user decisions/non-obvious rejected paths and real coverage
 gaps; omit secrets, iteration chronology, and test lists.
 
+When a commit lands only part of the current user-requested goal, begin its body
+(after any `Onboarding:` line) with `Series goal:`, `This commit:`, and
+`Remaining after this commit:` as line-start labels in that order; blank lines
+between them are optional. State the active request scope, the landed portion,
+and the substantive remainder. Cite an accurate committed topic/gap/plan when
+available; otherwise summarize the active task in place. Use ordinary narrative
+when the commit lands the whole goal; never emit empty labels or `None`.
+
 Before first review, revise toward one printed page or less. Keep only the
 shortest orienting what. Trivial small changes may name every edit. Durable
 implementation detail belongs, after journal review, in
