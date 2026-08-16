@@ -3245,3 +3245,32 @@ the sweep single-target.
   long catalogs that route away from the ordinary path.
 - **Status** — scenario-traced; the current active-session fallback remains
   advisory, and no generic atomic advisor-lease implementation is claimed.
+
+## 2026-08-16 — yielded run handles are observable monitoring triggers
+
+- **Trigger** — an agent deferred a `start --watch` tool call after it yielded
+  a live terminal handle, then lost the handle. The payload's receipt passed,
+  but the old `agentctl` watch path had no durable completion recorder and
+  finalized the run as `returncode=unknown`. The user explicitly asked for a
+  monitoring trigger more likely to survive compaction or a mechanical repair.
+- **Decision** — the compaction-protected `AGENTS.global.md` route and compact
+  `RUNS.md` router now name receiving or resuming a yielded live terminal/
+  session handle as an observable monitoring cue. The router carries the
+  immediate action: absent new user steering, consume only that handle until a
+  wake condition or timeout. The launcher independently removes the dangerous
+  consequence by making `--watch` a disposable observer of the same durable
+  `_run-child` used by every start.
+- **Trace: yielded watched launch** — `start --watch` returns a live handle.
+  Even after compaction, that visible tool state routes through `RUNS.md` and
+  the agent continues consuming the handle instead of labeling it deferred.
+- **Trace: user interruption** — new user steering arrives while the handle is
+  live. The router's explicit exception permits the packet's normal
+  interrupted-wait handling rather than making the agent ignore the user.
+- **Trace: completed detached launch** — ordinary detached `start` returns a
+  completed tool result, not a live handle. The added cue does not invent a
+  foreground wait; the existing launch/monitoring routes still decide the next
+  action.
+- **Status** — the launcher regression mechanically covers terminal-status
+  durability. The instruction effect is scenario-traced and remains assumed.
+
+Contributing-model: 5.6-Sol

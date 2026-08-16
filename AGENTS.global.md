@@ -287,15 +287,17 @@ win on packet conflict.
   - an untuned elaborate arm, multi-difference attribution, or closure of a
     substantial weak/surprising line → `_RESEARCH/judgment.md`.
 - `RUNS.md` — before using local accelerators, launching work with a
-  nontrivial storage footprint, or launching, monitoring, waiting for, or
-  summarizing tracked/long-running jobs. It is a short router:
+  nontrivial storage footprint, receiving or resuming a yielded live terminal
+  handle from run work, or launching, monitoring, waiting for, or summarizing
+  tracked/long-running jobs. It is a short router:
   - a Python command that may import an accelerator stack, GPU-capacity
     allocation, or a run with a nontrivial storage footprint →
     `_RUNS/resources.md`;
   - an important saved output, in-flight record, or row-wise transformed
     dataset → `_RUNS/provenance.md`; and
-  - a session-outliving launch, foreground wait, monitor/summary, or run-policy
-    failure reconstruction → `_RUNS/monitoring.md`.
+  - a session-outliving launch, yielded live terminal handle, foreground wait,
+    monitor/summary, or run-policy failure reconstruction →
+    `_RUNS/monitoring.md`.
 - `feature-branch.md` — when project instructions name it or the repo plainly
   uses feature branches; otherwise stay branch-agnostic.
 - `AGENTS/` — optional slow-path detail only for a matching named section or a

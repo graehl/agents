@@ -34,6 +34,12 @@ tooling, the cooperative declaration helper, and project migration docs.
   receipt must not fail another run's delayed launch guard. Ordinary Git
   status still shows the records, and source moved into bookkeeping still
   leaves a visible deletion at its original path.
+- **Keep terminal recording independent of watchers** (vs. launching the
+  payload directly for `start --watch`): every start uses the detached
+  `_run-child` wrapper, which writes `exit-status.json`; `--watch` only adds a
+  disposable foreground observer. Losing that observer may forfeit the
+  completion wake-up, but it cannot turn a successful recorded exit into
+  `returncode=unknown`.
 
 ## Active-sessions file schema
 
@@ -125,6 +131,10 @@ window.
   `.agentctl/runs/<job>/<run-id>/state.json` and mirrors a pointer to
   `.agentctl/jobs/<job>/current.json`. These files are the ground truth for
   process status; everything else (sidecars, dumps) is derived.
+- Every `start`/`smoke` launch, including `--watch`, runs through the detached
+  `_run-child` wrapper that owns terminal-status and completion-artifact
+  writes. The optional watcher observes that same run and may disappear
+  without losing its eventual return code.
 - `start` and `smoke` load project-root `agentctl.env` when it exists. This is
   a declarative defaults file, not a shell script: it accepts blank lines,
   full-line `#` comments, and unique `KEY=VALUE` entries only. The literal

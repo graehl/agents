@@ -48,3 +48,20 @@ projects is already bounded by agentctl's resource gating at launch.
   window ≈ the ≤60-min steward wake cadence (55-min wait cap, 3600s
   fallback heartbeat) plus slack; the touch is what makes that
   arithmetic hold through long foreground blocks.
+
+## 2026-08-16 watched launches need a durable completion owner
+
+- On commit `a909383`, a scratch `start --watch` run launched a payload that
+  slept and exited 0. Sending SIGTERM only to the `start --watch` frontend let
+  the payload finish, but left no `exit-status.json`; the next `status` refresh
+  produced `finished returncode=unknown`. The direct cause was the
+  `args.watch` branch bypassing `_run-child`, so the observer alone owned the
+  `Popen` handle and terminal-status write.
+- The user asked to improve the compaction-surviving monitoring trigger, make
+  `agentctl` detect the intent, or otherwise prevent the failure. The chosen
+  invariant makes every start use `_run-child`; `--watch` only attaches to that
+  durable run. A regression terminates the frontend, confirms the payload
+  survives, and requires the later wait to return 0 with an exit-status
+  sidecar.
+
+Contributing-model: 5.6-Sol

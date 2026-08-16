@@ -2,9 +2,12 @@
 
 Load this routing index before using local accelerator resources, launching
 work with a nontrivial storage footprint, launching tracked work that produces
-important saved output, or launching, monitoring, waiting for, or summarizing
-a long-running job. Read every packet whose observable condition matches the
-next action.
+important saved output, receiving or resuming a yielded live terminal/session
+handle from run work, or launching, monitoring, waiting for, or summarizing a
+long-running job. Read every packet whose observable condition matches the next
+action. A yielded live handle is an active foreground wait: unless new user
+steering interrupts it, consume only that handle until it returns a wake
+condition or timeout.
 
 After compaction or resume, an earlier read is not proof that this policy
 survived. Re-read this index at the next run-operation boundary unless the
@@ -25,8 +28,9 @@ named scope. Cross-provider policy in `AGENTS.global.md` wins over both.
   that produces an important saved output, defining its in-flight record, or
   accepting a row-wise transformed dataset.
 - [`_RUNS/monitoring.md`](_RUNS/monitoring.md) — before launching a job expected
-  to outlive the session, entering a foreground wait, monitoring or summarizing
-  a long job, or reconstructing a run-policy failure.
+  to outlive the session, receiving or resuming a yielded live terminal/session
+  handle, entering a foreground wait, monitoring or summarizing a long job, or
+  reconstructing a run-policy failure.
 
 When one action matches multiple conditions, read all matching packets. Do not
 load the directory indiscriminately.

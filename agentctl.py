@@ -3512,21 +3512,20 @@ def start(args: argparse.Namespace) -> int:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     if args.context_note:
         write_headline(headline_path, args.context_note)
-    child_argv = final_argv
-    if not args.watch:
-        child_argv = [
-            sys.executable,
-            str(Path(__file__).resolve()),
-            "_run-child",
-            "--state-path",
-            str(state_path),
-            "--current-path",
-            str(current_path(job)),
-            "--exit-status-path",
-            str(exit_status_path),
-            "--",
-            *final_argv,
-        ]
+    # The detached wrapper owns terminal recording; a watcher is disposable.
+    child_argv = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "_run-child",
+        "--state-path",
+        str(state_path),
+        "--current-path",
+        str(current_path(job)),
+        "--exit-status-path",
+        str(exit_status_path),
+        "--",
+        *final_argv,
+    ]
     log = log_path.open("ab")
     proc = subprocess.Popen(
         child_argv,
@@ -3556,12 +3555,6 @@ def start(args: argparse.Namespace) -> int:
     if launch_gpu_stats is not None:
         state["launch_gpu_stats"] = launch_gpu_stats
     update_state_files(state)
-    # write_meta runs in run_child for non-watch launches (so the dump record is in
-    # state.json before run_child's completion path needs to read it). For --watch,
-    # run_child is bypassed and start owns the full lifecycle, so write_meta here.
-    if args.watch and output_path is not None and args.meta:
-        state = write_meta(state)
-        update_state_files(state)
     print(f"started {launch_name} job={job} serial={serial} run={rid} pid={proc.pid}")
     print(f"log: {log_path}")
     refresh_active_register(
