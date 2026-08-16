@@ -3,6 +3,7 @@
 > Rules, protocols, and rationale for detachment, foreground waits, watchdogs, status reporting, and failure reconstruction.
 
 Read this packet before launching a job expected to outlive the session,
+receiving or resuming a yielded live terminal/session handle from run work,
 entering a foreground wait, monitoring or summarizing a long job, or
 reconstructing a run-policy failure. `RUNS.md` is the router and wins on
 conflict.

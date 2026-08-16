@@ -1493,6 +1493,49 @@ def test_watch_cooperative_declared_json_outputs():
         ws.cleanup()
 
 
+def test_start_watch_frontend_loss_preserves_terminal_status():
+    ws = Workspace()
+    try:
+        completed = ws.scratch / "completed"
+        proc = ws.popen(
+            "start",
+            "--no-aim",
+            "--watch",
+            "--watch-heartbeat",
+            "0",
+            "--watch-poll",
+            "0.05",
+            "durablewatch",
+            "--",
+            sys.executable,
+            "-c",
+            f"import pathlib, time; time.sleep(0.5); pathlib.Path({str(completed)!r}).touch()",
+        )
+        _wait_status(ws, "durablewatch", "running")
+        proc.terminate()
+        proc.wait(timeout=5)
+
+        waited = ws.run(
+            "wait",
+            "durablewatch",
+            "--target",
+            "not-running",
+            "--poll",
+            "0.05",
+            "--heartbeat",
+            "0",
+            "--timeout",
+            "5",
+        )
+        state = ws.state("durablewatch")
+        _assert(completed.exists(), "payload should survive loss of the watch frontend")
+        _assert(waited.returncode == 0, waited)
+        _assert(state.get("returncode") == 0, state)
+        _assert(Path(state["exit_status_path"]).exists(), state)
+    finally:
+        ws.cleanup()
+
+
 def test_declare_helpers_import_from_external_project():
     ws = Workspace()
     try:
