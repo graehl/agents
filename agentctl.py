@@ -3702,7 +3702,37 @@ def state_sort_key(state: dict) -> tuple[str, str, str]:
     return (finished_at, started_at, str(state.get("run_id") or ""))
 
 
+def status_state_payload(state: dict, args: argparse.Namespace) -> dict:
+    if bool(getattr(args, "full", False)):
+        payload = dict(state)
+        payload["elapsed"] = elapsed_estimate_text(state)
+        payload["failed"] = state_failed(state)
+    else:
+        payload = {
+            "job": state["job"],
+            "run_id": state.get("run_id"),
+            "status": state.get("status"),
+            "elapsed": elapsed_estimate_text(state),
+            "returncode": state.get("returncode"),
+            "log_path": state.get("log_path"),
+        }
+    if args.tail:
+        path = Path(state["log_path"])
+        if path.exists():
+            payload["tail"] = path.read_text(
+                encoding="utf-8", errors="replace"
+            ).splitlines()[-args.tail :]
+        else:
+            payload["tail"] = []
+            payload["tail_error"] = f"missing log: {path}"
+    return payload
+
+
 def status(args: argparse.Namespace) -> int:
+    structured = getattr(args, "format", None) is not None or bool(
+        getattr(args, "full", False)
+    )
+    fmt = _resolve_acli_format(args) if structured else None
     if args.settle > 0:
         time.sleep(args.settle)
     states: list[dict] = []
@@ -3741,6 +3771,19 @@ def status(args: argparse.Namespace) -> int:
             states = [*live, *completed]
         elif args.recent and args.recent > 0:
             states = states[: args.recent]
+    if fmt is not None:
+        payload = {
+            "kind": "job_status" if args.job else "job_list",
+            "count": len(states),
+            "jobs": [status_state_payload(state, args) for state in states],
+        }
+        if groups is not None:
+            payload["groups"] = [
+                {"name": title.lower().replace(" ", "_"), "count": len(group)}
+                for title, group in groups
+            ]
+        acli.emit(payload, fmt)
+        return 0
     if groups is not None:
         for group_idx, (title, group_states) in enumerate(groups):
             if group_idx:
@@ -5103,6 +5146,7 @@ def build_parser() -> argparse.ArgumentParser:
         dest="recent",
         help="Show only the most recent N jobs after filtering (0 = all).",
     )
+    acli_args.add_standard_args(s)
     s.set_defaults(
         func=status,
         live_only=False,
@@ -5182,6 +5226,7 @@ def build_parser() -> argparse.ArgumentParser:
             "With --all: show only the most recent N jobs after filtering (0 = all)."
         ),
     )
+    acli_args.add_standard_args(s)
     s.set_defaults(
         func=status,
         job=None,

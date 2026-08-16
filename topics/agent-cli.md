@@ -62,6 +62,13 @@ mis-detected human passes `--pretty`; a mis-detected agent passes
 flag, not a broken workflow — so ship a good disjunction, not an exhaustive
 one.
 
+**Accept `--json` even when JSON is already the default.** Every JSON-emitting
+ACLI surface exposes `--json` as an explicit alias for compact JSONL. Agents
+commonly state the serialization they require rather than first discovering a
+tool's default; rejecting the redundant flag creates a failed call and retry
+without protecting any ambiguity. `--compact` and `--format jsonl` remain
+equivalent spellings.
+
 **Default machine format is JSONL; the human fallback is pretty JSON, not a
 table.** "Pretty JSONL" is a contradiction — JSON Lines is one compact
 object per line, and indenting it breaks the line contract. So the human
@@ -300,7 +307,8 @@ small pure-function modules — a library, not a framework:
 - `acli.errors` — the structured error envelope, standard exit codes, and a
   `die()` that fails loud.
 - `acli.args` — an argparse factory pre-wiring the standard flags
-  (`--format`, `--full`, `--pretty`, `--toon`), the agent-friendly help
+  (`--format`, `--json`, `--compact`, `--full`, `--pretty`, `--toon`), the
+  agent-friendly help
   conventions, the capability line / exit-code footer, and the
   `--acli-complete` / `--repl` reserved verbs.
 - `acli.shell` — the `--repl` loop over a tool's parser; prompt_toolkit
@@ -359,6 +367,10 @@ concern, different namespace.
   alphabetization): data order carries meaning (tier ranking, reading
   order — the almanac order contract). Accepts inconsistent ordering
   conventions across tools.
+- **Redundant `--json` is accepted** (vs. requiring callers to discover that
+  compact JSONL is already the default): explicit serialization intent is a
+  common agent-CLI convention, and accepting it costs one alias while avoiding
+  a failed discovery round-trip.
 - **REPL in the library behind a reserved flag, prompt_toolkit
   optional** (vs. a hard dependency or per-tool shells): every ACLI
   tool gets an interactive mode from the parser it already declares,

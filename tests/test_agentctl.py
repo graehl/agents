@@ -2528,6 +2528,45 @@ def test_list_default_shows_six_recent_finished_jobs():
         ws.cleanup()
 
 
+def test_status_json_is_explicit_structured_output():
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "json-status", "--", "true")
+        state = ws.wait_finished("json-status")
+
+        res = ws.run("status", "--json", "--tail", "1", "json-status")
+        _assert(res.returncode == 0, f"status --json failed: {res.stderr}")
+        payload = _json_record(res.stdout)
+        _assert(payload["kind"] == "job_status", payload)
+        _assert(payload["count"] == 1, payload)
+        _assert(
+            payload["jobs"][0]["run_id"] == state["run_id"]
+            and payload["jobs"][0]["status"] == "finished",
+            payload,
+        )
+        _assert(isinstance(payload["jobs"][0]["tail"], list), payload)
+
+        full = ws.run("status", "json-status", "--json", "--full")
+        _assert(full.returncode == 0, f"status --json --full failed: {full.stderr}")
+        full_job = _json_record(full.stdout)["jobs"][0]
+        _assert(full_job["argv"] == ["true"], full_job)
+        _assert(full_job["elapsed"], full_job)
+
+        listed = _json_record(ws.run("list", "--json").stdout)
+        _assert(listed["kind"] == "job_list", listed)
+        _assert(listed["jobs"][0]["job"] == "json-status", listed)
+        _assert(
+            listed["groups"]
+            == [
+                {"count": 0, "name": "live_jobs"},
+                {"count": 1, "name": "recent_finished_jobs"},
+            ],
+            listed,
+        )
+    finally:
+        ws.cleanup()
+
+
 def test_list_show_last_fills_after_running_and_waiting_jobs():
     ws = Workspace()
     try:

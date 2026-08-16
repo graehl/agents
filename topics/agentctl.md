@@ -28,6 +28,11 @@ tooling, the cooperative declaration helper, and project migration docs.
 
 ## Design decisions
 
+- **Preserve the job `status`/`list` text default while adding explicit ACLI
+  structured output** (vs. immediately changing their default): existing
+  operators and scripts consume the stable one-line status form; `--json`,
+  `--compact`, `--pretty`, and `--format` provide the structured migration
+  surface without breaking those callers.
 - **Exclude every `runs/aim/` subtree in the Git checkout from source
   cleanliness** (vs. excluding only the invoking project root's subtree):
   nested agentctl project roots share one mutable checkout, so one run's
@@ -197,6 +202,12 @@ window.
   would hide short successful runs, and `status/list --failed` exists as a
   troubleshooting view. `wait --target not-running` prints the final return
   code and log path, and exits nonzero for failed `finished` jobs.
+- Job `status` and `list` accept the shared ACLI output flags. Their legacy
+  default remains the human-oriented status text; an explicit `--json` or
+  `--compact` emits one compact JSONL envelope, `--pretty` emits the same
+  envelope as indented JSON, and `--full` widens each job row to its complete
+  state record. `--tail` becomes a `tail` array in structured output instead
+  of appending non-JSON lines.
 - `wait <job> --tail N` stays quiet apart from requested heartbeat lines until
   the target status is reached, then prints the terminal status and the final
   `N` log lines. Use this one-command form when completion diagnostics are

@@ -172,7 +172,7 @@ def test_skip_standard_flags_consumes_values_in_both_spellings():
     skip = importlib.import_module("acli.args").skip_standard_flags
     _assert(skip(["--format", "pretty", "show", "x"]) == 2)
     _assert(skip(["--format=pretty", "show", "x"]) == 1)
-    _assert(skip(["--pretty", "--full", "show", "x"]) == 2)
+    _assert(skip(["--json", "--pretty", "--full", "show", "x"]) == 3)
     _assert(skip(["show", "--pretty", "x"]) == 0, "only leading flags are skipped")
     _assert(skip([]) == 0)
     _assert(skip(["--format"]) == 2, "a dangling value slot leaves nothing behind")
@@ -207,6 +207,9 @@ def test_complete_subcommands_flags_and_values():
 
     rows = _complete_lines(args_mod, parser, ["--f"])
     _assert([r["completion"] for r in rows] == ["--format", "--full"], rows)
+
+    rows = _complete_lines(args_mod, parser, ["--j"])
+    _assert([r["completion"] for r in rows] == ["--json"], rows)
 
     rows = _complete_lines(args_mod, parser, ["show", "a"])
     _assert([r["completion"] for r in rows] == ["alpha"], rows)
