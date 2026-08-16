@@ -83,9 +83,7 @@ binding moves into the main topic or an implementation plan; leaving it only in
 `.sketches.md` does not make it guidance. When a sketch describes a capability
 whose absence is current project incompleteness, link it to the existing
 project gap that tracks closure, and link that gap back to the topic/sketch.
-Default to one running gap per topic when the capabilities are easiest to
-understand together; separate per-capability gaps are also valid when each
-retains enough shared context to preserve the interaction and purpose.
+Gap granularity and scope: root `gaps/README.md`.
 
 ## Bearings outline format
 

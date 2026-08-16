@@ -49,7 +49,9 @@ project root as the implicit scope for its first ordinary topic; it owns root
 does not by itself require creating a glossary. A project-root glossary, once
 present, owns the same collection; a scoped glossary owns the sibling
 `topics/` directory. A research-program glossary at
-`research/pii/GLOSSARY.md`, for example, owns `research/pii/topics/`.
+`research/pii/GLOSSARY.md`, for example, owns `research/pii/topics/`. A scope
+that owns `topics/` may likewise own a sibling `gaps/`, created on first
+need; root `gaps/README.md` governs its format and granularity.
 
 Topic names keep owner context without exposing the mechanical collection
 directory. A root topic uses its basename, while a scoped topic prefixes the
