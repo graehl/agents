@@ -568,13 +568,15 @@ against the request and cite capture paths. Read `topics/ui-testing.md`.
 ## Adjacent gaps: capture, don't chase or drop
 
 An adjacent code-quality issue not fixed now, or a partially landed unit whose
-unfinished state leaves repository truth incomplete, becomes
+unfinished state leaves repository truth incomplete, becomes or extends
 `gaps/<slug>.md` (or the local tactical equivalent) under that project's
-tracking convention and is removed when the gap closes. Private continuity
-state that implies no project defect belongs in `tasks/`, not `gaps/`. Fix an
-adjacent issue immediately only when cheap, in scope, and as its own commit. If
-`gaps/` exists, inspect relevant entries when entering an area. Format and
-lifecycle: `gaps/README.md`.
+tracking convention and is removed when the gap closes. Like `topics/`, a
+glossary/program scope may own a sibling `gaps/`; choose a gap's owning scope
+as for a topic doc. Private continuity state that implies no project defect
+belongs in `tasks/`, not `gaps/`. Fix an adjacent issue immediately only when
+cheap, in scope, and as its own commit. When entering an area, inspect
+relevant entries in its enclosing scopes' existing `gaps/` directories.
+Format, granularity, and lifecycle: root `gaps/README.md`.
 
 ## Ideal coding
 

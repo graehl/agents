@@ -33,25 +33,41 @@ not every unimplemented plan or missing handoff.
   needs visibility into what actions sessions take in response to
   commands. Tending on-deck does not itself put unrelated gaps in scope.
 
+## Scoped gaps directories
+
+Like `topics/`, a glossary/program scope may own a sibling `gaps/`, created
+on first need — `surveys/llm-intelligence/gaps/` for example. Choose the
+owning scope as for a topic doc; the project root is the default. This root
+README governs every scoped directory — do not copy it. A `gaps/` directory's
+presence marks live backlog in that subtree. When the owning scope has a
+`PROGRAM.md`, the goals a gap claims are impaired are that charter's.
+
 ## Reading
 
-Glance at `gaps/` when starting work in an area — a filed gap is known
-context, and its fix may now be in scope (then fix and remove it as its
-own commit). Capture without this read side is write-only memory.
+Glance at the enclosing scopes' `gaps/` directories, nearest first, when
+starting work in an area — a filed gap is known context, and its fix may
+now be in scope (then fix and remove it as its own commit). Capture without
+this read side is write-only memory.
 
 ## Lifecycle
 
 - **Create** `gaps/<slug>.md` when you notice an adjacent defect you are
   deliberately not fixing now, or when a partially committed unit needs an
-  honest visible account of what remains. Check existing entries first; extend
-  the file covering the same incompleteness rather than filing a duplicate.
-- **Choose useful granularity.** Default to one running gap for a topic when
-  several missing capabilities share one purpose or must be evaluated
-  together. A per-capability file is also appropriate when it stays
-  self-contained enough to remain intelligible. A capability-gated
-  `.sketches.md` companion beside the owning formal topic and its gap link both
-  ways; do not create an alternate `*.gaps.md` discovery namespace or require
-  routine scans of every topic companion.
+  honest visible account of what remains. Check existing entries first; an
+  observation duplicative of or close enough to an existing entry extends
+  that file rather than filing a duplicate.
+- **Choose useful granularity.** `TOPICS.md`'s landing-site principles apply —
+  one home plus pointers, name the retrieval trigger — at a finer grain than
+  topics. A gap file is either a **triage pool** (one running file at a
+  topical scope holding less-investigated, vague noticed items until a pass
+  triages them into a working plan or promotes one to its own file) or a
+  **session unit** (a small specific proposal sized for one working session,
+  carrying the claim that program — or project — goals stay impaired until it
+  clears). Promotion out of a pool is the normal way old material becomes a
+  new file. A capability-gated `.sketches.md` companion beside the owning
+  formal topic and its gap link both ways; do not create an alternate
+  `*.gaps.md` discovery namespace or require routine scans of every topic
+  companion.
 - **Remove** `gaps/<slug>.md` in the same commit that fixes the gap. Do not
   archive it — git history is the record, and the commit message narrates
   the closure.

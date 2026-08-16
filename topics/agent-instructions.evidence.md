@@ -3300,3 +3300,41 @@ Contributing-model: 5.6-Sol
   failed-call frequency remains assumed.
 
 Contributing-model: 5.6-Sol
+
+## 2026-08-16 — scoped gaps/ and two-grain gap granularity
+
+- **Provenance** — user direction: research programs should own sibling
+  `gaps/` so complaints noticed in passing stash without derailing active
+  work, and gap-capture phrasing must not read create-biased when an
+  observation is close enough to merge into an existing entry. Anchored on
+  glossary scope rather than a second PROGRAM-only scope system: every
+  `PROGRAM.md` sits beside a `GLOSSARY.md` (verified, all four), and
+  `topics/` ownership is already glossary-anchored, so "the controlling
+  program's sibling `gaps/`" resolves to the same directory for free.
+- **Why topics/ behaves well** — traced the create-at-right-grain /
+  merge-when-duplicative behavior to TOPICS.md's landing-site principles
+  (name the retrieval trigger; one home plus pointers) plus `AGENTS.global.md`
+  § "Add X" when X already exists and the "add/update" framing in § Project
+  topics; nothing in the corpus forces new-file creation. Gap writing now
+  routes through the same principles via `gaps/README.md`, which the boot
+  already points at — no new mandatory read.
+- **Granularity restated** — supersedes the earlier gap-routing default
+  ("one running gap per topic"): a gap file is either a topical triage pool
+  of less-investigated noticed items awaiting a planning pass, or a
+  session-sized unit carrying the claim that program goals stay impaired
+  until it clears. The impaired-until-cleared test also sharpens the
+  gap/sketch boundary (sketches don't impair). The no-`*.gaps.md`-namespace
+  and no-routine-companion-scan decisions stand.
+- **Dedup found** — `topic-doc-format.md` restated the gap-granularity
+  default owned by `gaps/README.md`; trimmed to a pointer (one home).
+- **Trace: no gaps anywhere** — "enclosing scopes' existing `gaps/`
+  directories" no-ops on "existing"; a project with only root `gaps/` keeps
+  the old behavior since root is an enclosing scope. "Becomes or extends"
+  reads as alternatives, not a mandate to do both.
+- **Status** — landed in `AGENTS.global.md` § Adjacent gaps,
+  `gaps/README.md` (new Scoped gaps directories section, reworked Reading
+  and granularity), `TOPICS.md`, `topic-doc-format.md`. Untested premise, as
+  ever: that the finer-grain wording steers capture without inviting
+  non-defect backlog into `gaps/`.
+
+Contributing-model: Fable
