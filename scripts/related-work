@@ -648,6 +648,19 @@ def _semantic_words(text: str) -> tuple[str, ...]:
     return tuple(token.casefold() for token in _SEMANTIC_WORD.findall(text))
 
 
+_MARKDOWN_IMAGE = re.compile(r"!\[([^][]*)\]\([^()]*\)")
+_MARKDOWN_LINK = re.compile(r"\[([^][]*)\]\([^()]*\)")
+
+
+def _delink_markdown(markdown: str) -> str:
+    """Reduce inline links/images to their visible text.
+
+    Link targets are invisible in the source HTML, so their tokens would
+    break n-gram contiguity inside an otherwise preserved sentence.
+    """
+    return _MARKDOWN_LINK.sub(r"\1", _MARKDOWN_IMAGE.sub(r"\1", markdown))
+
+
 class _ContentBlockParser(HTMLParser):
     """Collect source-visible blocks for a conversion completeness check."""
 
@@ -728,11 +741,13 @@ def _run_html2text(source: str, *options: str) -> str:
 
 
 def _verify_visible_blocks(
-    processed: str, replacements: list[tuple[str, str, bool]]
+    processed: str, replacements: list[tuple[str, str, bool]], markdown: str
 ) -> str:
     prose_source = processed
+    prose_markdown = markdown
     for placeholder, _tex, _block in replacements:
         prose_source = prose_source.replace(placeholder, " ")
+        prose_markdown = prose_markdown.replace(placeholder, " ")
 
     parser = _ContentBlockParser()
     parser.feed(prose_source)
@@ -745,7 +760,7 @@ def _verify_visible_blocks(
     if not blocks:
         raise HtmlDerivationError("source HTML has no auditable visible text block")
 
-    target_words = _semantic_words(_run_html2text(prose_source, "--ignore-links"))
+    target_words = _semantic_words(_delink_markdown(prose_markdown))
     target_ngrams = {width: _ngrams(target_words, width) for width in range(1, 6)}
     scores = [_block_coverage(target_ngrams, block) for block in blocks]
     failures = [
@@ -859,6 +874,11 @@ def derive_saved_html(directory: Path, url: str, stem: str) -> HtmlDerivation:
         source_name=source.name,
     )
     markdown = _run_html2text(processed)
+    if not markdown.strip():
+        raise HtmlDerivationError("html2text produced empty markdown")
+    # Audit the conversion output that becomes the saved artifact, not a
+    # second conversion whose behavior can differ from the candidate's.
+    fidelity = _verify_visible_blocks(processed, replacements, markdown)
     for placeholder, tex, block in replacements:
         if markdown.count(placeholder) != 1:
             raise HtmlDerivationError(
@@ -866,9 +886,6 @@ def derive_saved_html(directory: Path, url: str, stem: str) -> HtmlDerivation:
             )
         opening, closing = ("\\[", "\\]") if block else ("\\(", "\\)")
         markdown = markdown.replace(placeholder, f"{opening}{tex}{closing}")
-    if not markdown.strip():
-        raise HtmlDerivationError("html2text produced empty markdown")
-    fidelity = _verify_visible_blocks(processed, replacements)
 
     target = source.with_suffix(".md")
     temporary: Path | None = None
