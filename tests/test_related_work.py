@@ -459,24 +459,27 @@ def test_html_preprocessor_externalizes_local_html_links_and_missing_figures():
 
 
 def test_html_derivation_rejects_a_dropped_visible_block():
+    # The dropped paragraph is missing from the candidate itself: the gate
+    # must score the conversion output being saved, not a separate audit run.
     with tempfile.TemporaryDirectory() as tmp:
         directory = Path(tmp)
         source = directory / "paper.html"
         source.write_text(
-            "<article><p>This entire meaningful paragraph must survive.</p></article>"
+            "<article><p>The opening paragraph survives conversion intact.</p>"
+            "<p>This entire meaningful paragraph must survive.</p></article>"
         )
         original_have, original_run = rw.have, rw.subprocess.run
 
-        def drop_audit_block(command, **kwargs):
-            output = (
-                "<article></article>"
-                if "--ignore-links" in command
-                else kwargs["input"]
+        def drop_one_block(command, **kwargs):
+            return subprocess.CompletedProcess(
+                command,
+                0,
+                stdout="The opening paragraph survives conversion intact.\n",
+                stderr="",
             )
-            return subprocess.CompletedProcess(command, 0, stdout=output, stderr="")
 
         rw.have = lambda tool: tool == "uvx" or original_have(tool)
-        rw.subprocess.run = drop_audit_block
+        rw.subprocess.run = drop_one_block
         try:
             try:
                 rw.derive_saved_html(directory, "https://example.test/paper", "key")
@@ -486,6 +489,41 @@ def test_html_derivation_rejects_a_dropped_visible_block():
                 _assert(False, "a missing prose block must reject the derivation")
         finally:
             rw.have, rw.subprocess.run = original_have, original_run
+        _assert(
+            not (directory / "paper.md").exists(),
+            "a rejected derivation must not save markdown authority",
+        )
+
+
+def test_html_derivation_normalizes_candidate_links_before_scoring():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        source = directory / "paper.html"
+        source.write_text(
+            "<article><p>Please click "
+            '<a href="https://example.test/method">here</a>'
+            " for the full method details.</p></article>"
+        )
+        original_have, original_run = rw.have, rw.subprocess.run
+        linked = (
+            "Please click [here](https://example.test/method) for the full "
+            "method details.\n"
+        )
+
+        def convert_with_inline_link(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, stdout=linked, stderr="")
+
+        rw.have = lambda tool: tool == "uvx" or original_have(tool)
+        rw.subprocess.run = convert_with_inline_link
+        try:
+            result = rw.derive_saved_html(
+                directory, "https://example.test/paper", "key"
+            )
+        finally:
+            rw.have, rw.subprocess.run = original_have, original_run
+
+        _assert(result.fidelity.startswith(rw.HTML_FIDELITY), result)
+        _assert((directory / "paper.md").read_text() == linked)
 
 
 def test_html_derivation_keeps_content_presentation_not_page_chrome():
