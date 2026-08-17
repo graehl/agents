@@ -302,9 +302,10 @@ session can remain busy until that already accepted turn reaches terminal.
   escalation; neither path kills an unrelated incumbent session.
 - Native fallback launches with the supplied target YA session, or otherwise
   the target provider session, as `AGENTCTL_SESSION_ID`; it uses the target
-  harness as `YEP_AGENT_HARNESS`. It removes caller-owned provider ids, YA's
-  Bash identity bridge and wake capability, initial model/effort markers, and
-  agentctl launch-depth state; unrelated configuration remains inherited.
+  harness as `AGENT_LAUNCH_HARNESS`. It removes caller-owned provider ids, YA's
+  Bash identity bridge and wake capability, the launcher identity, launch
+  model/effort markers, and agentctl launch-depth state; unrelated
+  configuration remains inherited.
 - Native acceptance requires both a successful write/flush of the complete
   turn body and a harness-recognized provider JSON lifecycle record. Non-JSON
   warnings and unknown JSON records remain provider events but cannot prove

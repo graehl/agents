@@ -37,6 +37,13 @@ recorded-model supplements such as `AGENTS.frontier.md`, `AGENTS.opus.md`, and
 `AGENTS.sol.md`. Cross-provider policy stays here. If the relevant supplement
 is missing or unreadable, report once and continue.
 
+A launcher supplement is the same idea one layer out, keyed on
+`AGENT_LAUNCHER` rather than on the harness: `yepanywhere` →
+`~/agents/AGENTS.ya.md`. It owns the markers and capabilities that launcher
+publishes into the session, and behavior that holds because that launcher is
+supervising — not harness mechanics, which stay in the harness supplement. A
+YA-launched Claude session reads both.
+
 Symlinks and hardlinks to the same target are the same loaded
 source for provider-supplement routing.
 

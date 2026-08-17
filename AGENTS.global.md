@@ -175,12 +175,13 @@ symlink to it. This checkout's root `AGENTS.md` is only its project boot.
 `~/bin/` synchronized and make a brief local commit on `master` when changing
 global instructions/helpers.
 
-For YA-launched sessions, trust present `YEP_AGENT_HARNESS`,
-`YEP_AGENT_INITIAL_MODEL`, `YEP_AGENT_INITIAL_EFFORT`, and
-`AGENTCTL_SESSION_ID` values as launcher-recorded facts. Use the harness marker
-for supplement routing; initial model and effort remain launch facts after a
-mid-session change. Query provider state or logs only for a required fact that
-no present marker supplies.
+Trust present `AGENT_LAUNCHER`, `AGENT_LAUNCH_HARNESS`, `AGENT_LAUNCH_MODEL`,
+`AGENT_LAUNCH_EFFORT`, and `AGENTCTL_SESSION_ID` values as launcher-recorded
+facts. Use the harness marker for supplement routing; launch model and effort
+remain launch facts after a mid-session change. Query provider state or logs
+only for a required fact that no present marker supplies. A launcher publishes
+agent-facing markers under the unprefixed `AGENT_` namespace; its own
+product-prefixed configuration is not addressed to you.
 
 Read `AGENTS.user.md` every session. Then read the matching harness supplement
 when present:
@@ -194,6 +195,11 @@ Harness supplements own session ids/logs, skill paths, launcher quirks, and
 backend safeguards, and may route model supplements. Cross-provider policy
 stays here. Report a missing/unreadable applicable supplement once and
 continue. Symlink and hardlink aliases to the same source route identically.
+
+Also read the launcher supplement named by `AGENT_LAUNCHER` when one exists —
+currently `yepanywhere` → `AGENTS.ya.md`. A launcher supplement owns the
+markers and capabilities that launcher publishes into the session and the
+behavior that depends on it being the launcher.
 
 Before writing/editing any agent instruction, global/project rule, supplement,
 skill, glossary row, or instruction topic, read

@@ -300,7 +300,7 @@ experience, or the 60-day backstop may trigger review; no-op is valid. Start
 with ordinary traces, use a bounded presumption switch when cheap, and reserve
 controlled instruction ablation for explicitly high-value questions.
 
-## Harness-, backend-, and model-scoped supplements
+## Launcher-, harness-, backend-, and model-scoped supplements
 
 `AGENTS.codex.md` and `AGENTS.claude.md` are sibling instruction files for
 harness-specific mechanics: session-log locations, real resume identifiers,
@@ -308,6 +308,21 @@ provider skill paths, and launcher quirks. Each reads the model id from its
 harness transcript and routes matching model-scoped behavior patches.
 `AGENTS.global.md` routes agents to the matching harness supplement when present but
 keeps cross-provider policy in the main file.
+
+`AGENTS.ya.md` is launcher-scoped: it applies when `AGENT_LAUNCHER=yepanywhere`
+says Yep Anywhere started the session, whatever harness it started. It owns the
+markers YA publishes — the `AGENT_LAUNCH_*` launch facts in the process
+environment, and the session id, wake capability, and browser-debug credentials
+that arrive later through YA's Bash bridge — plus behavior that holds because
+YA is supervising, such as never restarting the server running the session. A
+YA-launched Claude session loads both it and `AGENTS.claude.md`; the split is
+who supplies the fact, not which one is more specific.
+
+Agent-facing markers are unprefixed by design. YA strips inherited `YEP_*` and
+`YA_*` from a provider child's environment, so a marker named for the product
+reaches the worker and dies one process later; the launch markers spent their
+first weeks invisible to every Claude session that way. Publish an agent-facing
+marker under `AGENT_`, or explicitly by name past the filter.
 
 `AGENTS.copilot.md` is route-scoped rather than model-scoped. Native Copilot
 CLI exposes `COPILOT_CLI=1`; YA propagates `YEP_COPILOT_API=1` only after an

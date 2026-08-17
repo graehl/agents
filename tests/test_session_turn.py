@@ -627,7 +627,8 @@ for record in (
             "FAKE_NATIVE_ENV_NAMES": json.dumps(
                 [
                     "AGENTCTL_SESSION_ID",
-                    "YEP_AGENT_HARNESS",
+                    "AGENT_LAUNCHER",
+                    "AGENT_LAUNCH_HARNESS",
                     "AGENT_GUARD",
                     "CLAUDE_CODE_SESSION_ID",
                     "CODEX_THREAD_ID",
@@ -635,8 +636,9 @@ for record in (
                     "PI_CODING_AGENT",
                     "AGENTCTL_LAUNCH_DEPTH",
                     "AGENTCTL_NO_PROC_SESSION_ID",
-                    "YEP_AGENT_INITIAL_MODEL",
-                    "YEP_AGENT_INITIAL_EFFORT",
+                    "AGENT_LAUNCH_MODEL",
+                    "AGENT_LAUNCH_EFFORT",
+                    "YEP_AGENT_HARNESS",
                     "BASH_ENV",
                     "YEP_ORIGINAL_BASH_ENV",
                     "YEP_SESSION_WAKE_URL",
@@ -644,7 +646,8 @@ for record in (
                 ]
             ),
             "AGENTCTL_SESSION_ID": "caller-session",
-            "YEP_AGENT_HARNESS": "claude",
+            "AGENT_LAUNCHER": "yepanywhere",
+            "AGENT_LAUNCH_HARNESS": "claude",
             "AGENT_GUARD": "1",
             "CLAUDE_CODE_SESSION_ID": "caller-claude-session",
             "CODEX_THREAD_ID": "caller-codex-thread",
@@ -652,8 +655,9 @@ for record in (
             "PI_CODING_AGENT": "1",
             "AGENTCTL_LAUNCH_DEPTH": "2",
             "AGENTCTL_NO_PROC_SESSION_ID": "1",
-            "YEP_AGENT_INITIAL_MODEL": "caller-model",
-            "YEP_AGENT_INITIAL_EFFORT": "caller-effort",
+            "AGENT_LAUNCH_MODEL": "caller-model",
+            "AGENT_LAUNCH_EFFORT": "caller-effort",
+            "YEP_AGENT_HARNESS": "claude",
             "BASH_ENV": "/caller/bash-env",
             "YEP_ORIGINAL_BASH_ENV": "/caller/original-bash-env",
             "YEP_SESSION_WAKE_URL": "https://caller.invalid/wake",
@@ -698,7 +702,7 @@ for record in (
     )
     _assert(invocation["stdin"] == "Review this.")
     _assert(invocation["env"]["AGENTCTL_SESSION_ID"] == "target-ya-session")
-    _assert(invocation["env"]["YEP_AGENT_HARNESS"] == "codex")
+    _assert(invocation["env"]["AGENT_LAUNCH_HARNESS"] == "codex")
     _assert(invocation["env"]["AGENT_GUARD"] == "1")
     _assert(
         all(
@@ -707,7 +711,7 @@ for record in (
             if name
             not in {
                 "AGENTCTL_SESSION_ID",
-                "YEP_AGENT_HARNESS",
+                "AGENT_LAUNCH_HARNESS",
                 "AGENT_GUARD",
             }
         ),
