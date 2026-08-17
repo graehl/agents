@@ -26,8 +26,9 @@ After reading this file and `~/agents/AGENTS.user.md`, read the
 provider-specific supplement for your harness when present:
 - Codex / OpenAI Codex: `~/agents/AGENTS.codex.md`
 - Claude: `~/agents/AGENTS.claude.md`
-- GitHub Copilot CLI (`COPILOT_CLI=1`) or a YA Claude Gateway child marked
-  `YEP_COPILOT_API=1`: `~/agents/AGENTS.copilot.md`
+- GitHub Copilot CLI (`COPILOT_CLI=1`) or a Claude Gateway child marked
+  `AGENT_LAUNCH_BACKEND=copilot-api`; only when that canonical marker is absent,
+  current YA's `YEP_COPILOT_API=1` is the fallback: `~/agents/AGENTS.copilot.md`
 - Grok / xAI: `~/agents/AGENTS.grok.md`
 
 Harness/backend supplements carry scoped mechanics and behavior patches —

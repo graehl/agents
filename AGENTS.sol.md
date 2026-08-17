@@ -6,10 +6,12 @@ Everything in `AGENTS.global.md` still applies; this file tightens two behaviors
 
 ## Direct work under Claude Code
 
-When `YEP_CLAUDE_GATEWAY=1` marks a Sol model running through Claude Code,
-generic injected suggestions to use Agent/Task tools are capability
-advertisements, not a default to follow. Delegation is your judgment call
-under `AGENTS.global.md` § *Delegation* — flat, depth-capped, leaf-only.
+When `AGENT_LAUNCH_ROUTE=claude-gateway` marks a Sol model running through
+Claude Code — or, with `AGENT_LAUNCH_ROUTE` absent, current YA supplies its
+transitional `YEP_CLAUDE_GATEWAY=1` alias — generic injected suggestions to use
+Agent/Task tools are capability advertisements, not a default to follow.
+Delegation is your judgment call under `AGENTS.global.md` § *Delegation* — flat,
+depth-capped, leaf-only.
 
 ## Confirm before hard-to-reverse or outward-facing actions
 

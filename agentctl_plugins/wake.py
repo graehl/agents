@@ -7,12 +7,15 @@ import json
 import os
 import urllib.error
 import urllib.request
+from collections.abc import Mapping
 from pathlib import Path
 
 import agentctl
 
-WAKE_TOKEN_ENV = "YEP_SESSION_WAKE_TOKEN"
-WAKE_URL_ENV = "YEP_SESSION_WAKE_URL"
+WAKE_ENV_PAIRS = (
+    ("AGENT_SESSION_WAKE_URL", "AGENT_SESSION_WAKE_TOKEN"),
+    ("YEP_SESSION_WAKE_URL", "YEP_SESSION_WAKE_TOKEN"),
+)
 WAKE_TIMEOUT_SECONDS = 3.0
 WAKE_ATTEMPTS = 2
 WAKE_TEXT_MAX_CHARS = 2_000
@@ -36,17 +39,24 @@ def register_args(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _wake_credentials(env: Mapping[str, str]) -> tuple[str, str]:
+    for url_name, token_name in WAKE_ENV_PAIRS:
+        url = env.get(url_name, "").strip()
+        token = env.get(token_name, "").strip()
+        if url and token:
+            return url, token
+    return "", ""
+
+
 def on_start(args, state, env) -> None:
     state["wake_opted_out"] = bool(getattr(args, "no_wake", False))
     try:
         launch_depth = int(env.get(agentctl.LAUNCH_DEPTH_ENV, "0") or "0")
     except ValueError:
         launch_depth = 0
+    url, token = _wake_credentials(env)
     state["wake_armed"] = bool(
-        not state["wake_opted_out"]
-        and launch_depth == 1
-        and env.get(WAKE_URL_ENV, "").strip()
-        and env.get(WAKE_TOKEN_ENV, "").strip()
+        not state["wake_opted_out"] and launch_depth == 1 and url and token
     )
 
 
@@ -107,8 +117,7 @@ def _failure_summary(error: Exception) -> str:
 def on_finish(state) -> None:
     if not state.get("wake_armed"):
         return
-    url = os.environ.get(WAKE_URL_ENV, "").strip()
-    token = os.environ.get(WAKE_TOKEN_ENV, "").strip()
+    url, token = _wake_credentials(os.environ)
     if not url or not token:
         return
     body = json.dumps(

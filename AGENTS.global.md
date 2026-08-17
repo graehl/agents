@@ -175,13 +175,16 @@ symlink to it. This checkout's root `AGENTS.md` is only its project boot.
 `~/bin/` synchronized and make a brief local commit on `master` when changing
 global instructions/helpers.
 
-Trust present `AGENT_LAUNCHER`, `AGENT_LAUNCH_HARNESS`, `AGENT_LAUNCH_MODEL`,
+Trust present `AGENT_LAUNCHER`, `AGENT_LAUNCH_HARNESS`,
+`AGENT_LAUNCH_ROUTE`, `AGENT_LAUNCH_BACKEND`, `AGENT_LAUNCH_MODEL`,
 `AGENT_LAUNCH_EFFORT`, and `AGENTCTL_SESSION_ID` values as launcher-recorded
 facts. Use the harness marker for supplement routing; launch model and effort
 remain launch facts after a mid-session change. Query provider state or logs
-only for a required fact that no present marker supplies. A launcher publishes
-agent-facing markers under the unprefixed `AGENT_` namespace; its own
-product-prefixed configuration is not addressed to you.
+only for a required fact that no present marker supplies. Canonical
+agent-facing launcher/session outputs use `AGENT_*`; product-prefixed aliases
+explicitly listed in `topics/AGENT_ENV_VARS.md` are migration inputs, not naming
+precedent or operator configuration addressed to you. A present canonical
+route/backend marker wins over its compatibility alias.
 
 Read `AGENTS.user.md` every session. Then read the matching harness supplement
 when present:
