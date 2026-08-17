@@ -3379,11 +3379,12 @@ Contributing-model: 5.6-Sol
   375×812.
 - **Decision** — the compaction-protected global rule now names both exact
   viewports and forbids batching image reads. The project protocol makes the
-  sequence operational: capture, read, inspect, and record notes for desktop
-  before proceeding to the phone capture.
-- **Trace: responsive UI** — an agent captures 1000×600, reads that image alone,
-  records its layout findings, and only then captures and reads 375×812. Both
-  responsive surfaces remain covered without loading a multi-image batch.
+  sequence operational: read, inspect, and record notes for the desktop image
+  before reading the phone image.
+- **Trace: responsive UI** — an agent captures 1000×600 and 375×812, reads the
+  desktop image alone, records its layout findings, and only then reads the
+  phone image. Both responsive surfaces remain covered without loading a
+  multi-image batch.
 - **Trace: desktop-only UI** — an interface without mobile support still uses
   the exact 1000×600 desktop capture. The conditional phone requirement remains
   unchanged rather than making every desktop-only application emulate mobile.
