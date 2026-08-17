@@ -31,7 +31,7 @@ the "Generated with Claude Code" PR banner. The mandated
 provenance, not one of these markers — it stays.
 
 Model tier: do not trust self-knowledge of your model name — models
-misreport it. Use `$YEP_AGENT_INITIAL_MODEL` when present; otherwise read the
+misreport it. Use `$AGENT_LAUNCH_MODEL` when present; otherwise read the
 harness-recorded id from your own transcript:
 
 ```bash

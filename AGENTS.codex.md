@@ -5,7 +5,7 @@ running in Codex / OpenAI Codex. This file contains Codex harness
 mechanics; shared and model-scoped policy stays outside this file.
 
 Model tier: do not trust self-knowledge of your model name — models
-misreport it. Use `$YEP_AGENT_INITIAL_MODEL` when present; otherwise read the
+misreport it. Use `$AGENT_LAUNCH_MODEL` when present; otherwise read the
 harness-recorded id from your own rollout file:
 
 ```bash

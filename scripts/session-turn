@@ -42,11 +42,17 @@ NATIVE_SESSION_OWNED_ENV_NAMES = (
     "AGENTCTL_SESSION_ID",
     "AGENTCTL_LAUNCH_DEPTH",
     "AGENTCTL_NO_PROC_SESSION_ID",
+    "AGENT_LAUNCHER",
+    "AGENT_LAUNCH_EFFORT",
+    "AGENT_LAUNCH_HARNESS",
+    "AGENT_LAUNCH_MODEL",
     "BASH_ENV",
     "CLAUDECODE",
     "CLAUDE_CODE_SESSION_ID",
     "CODEX_THREAD_ID",
     "PI_CODING_AGENT",
+    # Pre-2026-08-17 names for the launch markers, still inherited from a
+    # caller a YA server of that vintage launched.
     "YEP_AGENT_HARNESS",
     "YEP_AGENT_INITIAL_MODEL",
     "YEP_AGENT_INITIAL_EFFORT",
@@ -750,7 +756,7 @@ def native_environment(args: argparse.Namespace) -> dict[str, str]:
     for name in NATIVE_SESSION_OWNED_ENV_NAMES:
         environment.pop(name, None)
     environment["AGENTCTL_SESSION_ID"] = args.ya_session_id or args.provider_session_id
-    environment["YEP_AGENT_HARNESS"] = args.harness
+    environment["AGENT_LAUNCH_HARNESS"] = args.harness
     return environment
 
 
