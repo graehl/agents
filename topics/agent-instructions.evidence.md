@@ -3395,3 +3395,46 @@ Contributing-model: 5.6-Sol
   exhaustion remains expected rather than measured.
 
 Contributing-model: 5.6-Sol
+
+## 2026-08-17 — inventory and migrate agent-facing environment names
+
+- **User correction** — YA broadly strips inherited `YA_*` and `YEP_*`, so the
+  harsh-review finding could not treat every product-prefixed value in a
+  provider shell as an accidental pass-through. The surviving values arrive by
+  explicit allowlist, provider overlay, or the late Bash bridge. The user
+  nevertheless wants fresh harness/script children to shed caller-session
+  identity and credentials, and wants collision-resistant `AGENT_*` names that
+  non-YA launchers can publish.
+- **Decision** — `topics/AGENT_ENV_VARS.md` is the one name/effect/boundary
+  inventory. Canonical names distinguish launcher, harness, route, and backend:
+  `AGENT_LAUNCH_ROUTE=claude-gateway` and
+  `AGENT_LAUNCH_BACKEND=copilot-api` replace two unrelated booleans without
+  collapsing their semantics. Wake and browser capabilities name their scope
+  and role. `AGENTCTL_SESSION_ID` stays because an unqualified
+  `AGENT_SESSION_ID` could collide with provider, broker, or tool identities;
+  `YEP_ORIGINAL_BASH_ENV` stays private because it is bridge machinery rather
+  than agent-addressed state.
+- **Compatibility** — unlike the earlier invisible `YEP_AGENT_*` launch
+  markers, the remaining names have live readers. Migrate readers first,
+  prefer a complete canonical pair, retain explicit legacy fallbacks, then
+  migrate publishers and eventually remove aliases. The open YA gap owns that
+  cross-repository publisher sweep; instruction text names current aliases as
+  compatibility debt rather than using them as precedent.
+- **Trace: compatibility precedence** — a non-YA launcher publishes a future
+  explicit backend while a stale shell still carries `YEP_COPILOT_API=1`.
+  Routing follows the canonical backend and ignores the YA alias; treating both
+  as unconditional signals would load the wrong supplement.
+- **Trace: fresh target** — a YA Copilot-backed Claude caller invokes
+  `session-turn` native fallback for a plain Codex target. The target receives
+  its own `AGENTCTL_SESSION_ID` and `AGENT_LAUNCH_HARNESS=codex`, retains
+  `AGENT_GUARD`, and receives neither route/backend selection nor wake/browser
+  capability in either canonical or legacy spelling.
+- **Trace: agentctl payload** — `agentctl` increments launch depth and supplies
+  run context but otherwise inherits ambient variables. The inventory states
+  that wake/browser values currently reach both detached wrapper and payload;
+  it does not silently imply masking that the implementation does not perform.
+- **Status** — user-directed naming and documentation; focused tests cover
+  canonical wake precedence, legacy wake fallback, and native-child cleanup.
+  YA publisher migration remains open by design.
+
+Contributing-model: 5.6-Sol

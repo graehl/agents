@@ -311,24 +311,29 @@ keeps cross-provider policy in the main file.
 
 `AGENTS.ya.md` is launcher-scoped: it applies when `AGENT_LAUNCHER=yepanywhere`
 says Yep Anywhere started the session, whatever harness it started. It owns the
-markers YA publishes — the `AGENT_LAUNCH_*` launch facts in the process
-environment, and the session id, wake capability, and browser-debug credentials
-that arrive later through YA's Bash bridge — plus behavior that holds because
-YA is supervising, such as never restarting the server running the session. A
+markers YA publishes — `AGENT_LAUNCH_*` launch facts in the process environment,
+and the session id, wake capability, and browser-debug credentials delivered
+later through YA's Bash bridge — plus behavior that holds because YA is
+supervising, such as never restarting the server running the session. A
 YA-launched Claude session loads both it and `AGENTS.claude.md`; the split is
 who supplies the fact, not which one is more specific.
 
-Agent-facing markers are unprefixed by design. YA strips inherited `YEP_*` and
-`YA_*` from a provider child's environment, so a marker named for the product
-reaches the worker and dies one process later; the launch markers spent their
-first weeks invisible to every Claude session that way. Publish an agent-facing
-marker under `AGENT_`, or explicitly by name past the filter.
+Canonical agent-facing launcher/session outputs use `AGENT_*`; YA's
+product-prefixed configuration does not. Current YA builds still inject several
+agent-consumed `YEP_*` names after the shared filter, so readers accept those
+explicit compatibility aliases during a reader-first migration rather than
+pretending they are already absent. The one name/effect/child-boundary inventory
+is [`AGENT_ENV_VARS`](AGENT_ENV_VARS.md); YA's publisher migration is tracked in
+`~/ya/gaps/agent-facing-env-markers.md`.
 
-`AGENTS.copilot.md` is route-scoped rather than model-scoped. Native Copilot
-CLI exposes `COPILOT_CLI=1`; YA propagates `YEP_COPILOT_API=1` only after an
-Anthropic-compatible gateway explicitly identifies itself through its model
-catalog response. Both routes load the same stricter optional-subagent proof,
-and a Claude Gateway launch also retains its Claude and model supplements.
+`AGENTS.copilot.md` is backend-scoped rather than model-scoped. Native Copilot
+CLI exposes `COPILOT_CLI=1`; a compatible launcher publishes
+`AGENT_LAUNCH_BACKEND=copilot-api` only after the Anthropic-compatible gateway
+explicitly identifies itself through its model catalog response. When that
+canonical marker is absent, current YA's transitional `YEP_COPILOT_API=1` is
+the fallback. Both routes load the same
+stricter optional-subagent proof, and a Claude Gateway launch also retains its
+Claude and model supplements.
 
 `AGENTS.weak.md` is a sibling instruction file carrying restatements of
 behavior that frontier agents perform by default but weaker models

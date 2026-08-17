@@ -1,8 +1,10 @@
 # Copilot supplement to AGENTS.global.md
 
-Load this for native GitHub Copilot CLI (`COPILOT_CLI=1`) and for a YA Claude
-Gateway child whose explicitly identified backend sets `YEP_COPILOT_API=1`.
-The latter also loads its Claude harness and recorded-model supplements.
+Load this for native GitHub Copilot CLI (`COPILOT_CLI=1`) and for a Claude
+Gateway child whose explicitly identified backend sets
+`AGENT_LAUNCH_BACKEND=copilot-api`. When `AGENT_LAUNCH_BACKEND` is absent,
+current YA's transitional `YEP_COPILOT_API=1` is the fallback. The gateway form
+also loads its Claude harness and recorded-model supplements.
 Everything in `AGENTS.global.md` still applies.
 
 ## Optional subagent proof

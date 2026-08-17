@@ -101,6 +101,8 @@ class Workspace:
             "CLAUDE_CODE_SESSION_ID",
             "AGENTCTL_LAUNCH_DEPTH",
             "BASH_ENV",
+            "AGENT_SESSION_WAKE_TOKEN",
+            "AGENT_SESSION_WAKE_URL",
             "YEP_SESSION_WAKE_TOKEN",
             "YEP_SESSION_WAKE_URL",
         ):
@@ -129,6 +131,10 @@ class Workspace:
             "CLAUDE_CODE_SESSION_ID",
             "AGENTCTL_LAUNCH_DEPTH",
             "BASH_ENV",
+            "AGENT_SESSION_WAKE_TOKEN",
+            "AGENT_SESSION_WAKE_URL",
+            "YEP_SESSION_WAKE_TOKEN",
+            "YEP_SESSION_WAKE_URL",
         ):
             env.pop(var, None)
         env["AGENTCTL_NO_PROC_SESSION_ID"] = "1"
@@ -711,7 +717,7 @@ def test_no_aim_writes_nothing():
         ws.cleanup()
 
 
-def test_agent_level_launch_posts_session_wake_on_finish():
+def test_agent_level_launch_prefers_canonical_session_wake_on_finish():
     ws = Workspace()
     try:
         with WakeServer() as wake:
@@ -723,8 +729,10 @@ def test_agent_level_launch_posts_session_wake_on_finish():
                 "true",
                 env_extra={
                     "AGENTCTL_SESSION_ID": "test-session",
-                    "YEP_SESSION_WAKE_TOKEN": "wake-secret",
-                    "YEP_SESSION_WAKE_URL": wake.url,
+                    "AGENT_SESSION_WAKE_TOKEN": "wake-secret",
+                    "AGENT_SESSION_WAKE_URL": wake.url,
+                    "YEP_SESSION_WAKE_TOKEN": "legacy-secret",
+                    "YEP_SESSION_WAKE_URL": "http://127.0.0.1:1/legacy-wake",
                 },
             )
             _assert(res.returncode == 0, res.stderr)
@@ -747,6 +755,37 @@ def test_agent_level_launch_posts_session_wake_on_finish():
             body,
         )
         _assert(f"log={state['log_path']}" in body["text"], body)
+    finally:
+        ws.cleanup()
+
+
+def test_session_wake_uses_complete_legacy_pair_when_canonical_incomplete():
+    ws = Workspace()
+    try:
+        with WakeServer() as wake:
+            res = ws.run(
+                "start",
+                "--no-aim",
+                "wakelegacy",
+                "--",
+                "true",
+                env_extra={
+                    "AGENTCTL_SESSION_ID": "test-session",
+                    "AGENT_SESSION_WAKE_URL": "http://127.0.0.1:1/incomplete",
+                    "YEP_SESSION_WAKE_TOKEN": "legacy-secret",
+                    "YEP_SESSION_WAKE_URL": wake.url,
+                },
+            )
+            _assert(res.returncode == 0, res.stderr)
+            ws.wait_finished("wakelegacy")
+            deadline = time.time() + 3
+            while not wake.requests and time.time() < deadline:
+                time.sleep(0.02)
+
+        _assert(len(wake.requests) == 1, wake.requests)
+        request = wake.requests[0]
+        _assert(request["authorization"] == "Bearer legacy-secret", request)
+        _assert(request["path"] == "/session-wake/test-session", request)
     finally:
         ws.cleanup()
 

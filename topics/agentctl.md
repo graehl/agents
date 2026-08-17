@@ -510,20 +510,22 @@ capacity monitoring.
 
 `agentctl_plugins/wake.py` closes the
 Codex dead-stop gap (`AGENTS.codex.md § Turn-End Is A Dead Stop`): a
-launch made from a YA-supervised session inherits
-`YEP_SESSION_WAKE_URL`/`YEP_SESSION_WAKE_TOKEN`; the plugin arms on
-launch-depth-0 launches carrying that env (`--no-wake` opts out), and
-`on_finish` — running in the detached `_run-child` wrapper, which
-survives agent teardown with the launch-time env — POSTs a one-line
-completion summary (`[agentctl-wake] job <name> finished
-returncode=<rc> …`) back to the launching session, waking the agent to
-consume the result. It appends the last non-empty log line for a failed job,
-never follows HTTP redirects with the bearer credential, and persists no URL
-or token in run state. Best-effort: stdlib HTTP with a three-second timeout,
-one retry, then one log line and stop; YA heartbeat turns are the backstop.
-Full contract — endpoint, token, delivery-time gating, resume-on-wake rules,
-and the narrow provider-CLI injection fallback — lives in the yepanywhere
-repo's `topics/session-wake.md`.
+supervised launch may inherit canonical
+`AGENT_SESSION_WAKE_URL`/`AGENT_SESSION_WAKE_TOKEN` or YA's transitional
+`YEP_SESSION_WAKE_URL`/`YEP_SESSION_WAKE_TOKEN` pair. The canonical complete
+pair wins; otherwise the complete legacy pair is accepted without mixing names.
+The plugin arms on launch-depth-0 launches carrying a pair (`--no-wake` opts
+out), and `on_finish` — running in the detached `_run-child` wrapper, which
+survives agent teardown with the launch-time env — POSTs a one-line completion
+summary (`[agentctl-wake] job <name> finished returncode=<rc> …`) back to the
+launching session, waking the agent to consume the result. It appends the last
+non-empty log line for a failed job, never follows HTTP redirects with the
+bearer credential, and persists no URL or token in run state. Best-effort:
+stdlib HTTP with a three-second timeout, one retry, then one log line and stop;
+YA heartbeat turns are the backstop. The name-by-name child behavior is in
+[`AGENT_ENV_VARS`](AGENT_ENV_VARS.md); the endpoint, token, delivery-time gate,
+resume-on-wake rules, and provider-CLI fallback contract live in YA's
+`topics/session-wake.md`.
 
 ## Hook surface
 
