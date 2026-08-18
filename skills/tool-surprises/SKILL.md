@@ -23,14 +23,19 @@ environment is broken. Background and promotion criteria:
 2. **Run the helper** (canonical source `~/agents/scripts/tool-surprises`):
 
    ```bash
-   ~/agents/scripts/tool-surprises --project "$root"
+   ~/agents/scripts/tool-surprises --project "$root" --harness claude
+   ~/agents/scripts/tool-surprises --project "$root" --harness codex
    ```
 
+   Run either line for one harness or both for a cross-harness survey.
    Useful knobs: `--days N` to bound the window, `--min-fails`
    (default 2), `--limit` (default 20; dropped rows are counted in
    the summary), `--full` for untruncated examples and model/session
    lists, `--include-gated` to include user-interrupt/approval rows.
-   Only `--harness claude` is implemented; `codex` exits 69.
+   In a Codex summary, a nonzero
+   `custom_exec_scripts_with_opaque_command_status` coverage count
+   means nested shell exits were not serialized; report shell-failure
+   totals as lower bounds rather than guessing from output text.
 
 3. **Discount the false-positive classes** before reporting. A
    nonzero exit is not always a surprise:

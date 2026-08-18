@@ -10,7 +10,7 @@ retry, at token cost. Recurring fail->fix pairs across sessions are
 error-analysis candidates: improve the tool, add an option/helper, or
 patch the (possibly harness- or model-specific) agent instructions.
 
-Claude harness only for now; see topics/tool-surprises.md.
+Claude and Codex rollout formats are supported; see topics/tool-surprises.md.
 """
 
 from __future__ import annotations
@@ -71,7 +71,8 @@ _ERROR_CLASSES: list[tuple[str, re.Pattern[str]]] = [
     (
         "interrupted",
         re.compile(
-            r"Request interrupted|doesn't want to proceed|user rejected", re.IGNORECASE
+            r"Request interrupted|doesn't want to proceed|user rejected|aborted by user",
+            re.IGNORECASE,
         ),
     ),
     (
@@ -80,6 +81,10 @@ _ERROR_CLASSES: list[tuple[str, re.Pattern[str]]] = [
             r"requires approval|denied by|blocked by .*hook|hook (?:blocked|denied)|permission to use",
             re.IGNORECASE,
         ),
+    ),
+    (
+        "stale-handle",
+        re.compile(r"exec cell \d+ not found|Unknown process id", re.IGNORECASE),
     ),
     (
         "command-not-found",
@@ -95,7 +100,7 @@ _ERROR_CLASSES: list[tuple[str, re.Pattern[str]]] = [
     (
         "edit-anchor",
         re.compile(
-            r"String to replace not found|old_string|not unique|Found \d+ matches",
+            r"String to replace not found|old_string|not unique|Found \d+ matches|apply_patch verification failed|Failed to find expected lines",
             re.IGNORECASE,
         ),
     ),
@@ -125,10 +130,31 @@ _ERROR_CLASSES: list[tuple[str, re.Pattern[str]]] = [
         "python-exception",
         re.compile(r"Traceback \(most recent call last\)", re.IGNORECASE),
     ),
-    ("nonzero-exit", re.compile(r"Exit code \d+", re.IGNORECASE)),
+    (
+        "nonzero-exit",
+        re.compile(r"Exit code:? \d+|Process exited with code \d+", re.IGNORECASE),
+    ),
 ]
 
-_EXIT_CODE_RE = re.compile(r"Exit code (\d+)")
+_CLAUDE_EXIT_CODE_RE = re.compile(r"(?:Error:\s*)?Exit code (\d+)")
+_CODEX_EXIT_CODE_LINE_RE = re.compile(
+    r"(?:Process exited with code|Exit code:)\s*(\d+)\s*", re.IGNORECASE
+)
+_CODEX_PROCESS_SESSION_RE = re.compile(r"Process running with session ID\s+(\d+)")
+_CODEX_EXEC_CELL_RE = re.compile(r"Script running with cell ID\s+(\d+)")
+_CODEX_NESTED_TOOL_RE = re.compile(r"\btools\.([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+_PATCH_FILE_RE = re.compile(r"\*\*\* (?:Update|Add|Delete) File:\s*([^\\\n\"]+)")
+_PATCH_FAILURE_FILE_RE = re.compile(
+    r"Failed to find expected lines in (.+?):(?:\r?\n|\\n)"
+)
+_CODEX_HANDLE_ARG_RE = re.compile(
+    r"""["']?(session_id|cell_id)["']?\s*:\s*["']?(\d+)"""
+)
+_CODEX_FILE_ARG_RE = re.compile(
+    r"""["']?(?:path|file_path|notebook_path)["']?\s*:\s*(["'])(.*?)\1"""
+)
+_STALE_PROCESS_RE = re.compile(r"Unknown process id\s+(\d+)", re.IGNORECASE)
+_STALE_CELL_RE = re.compile(r"exec cell\s+(\d+)\s+not found", re.IGNORECASE)
 
 
 def classify_error(text: str) -> str:
@@ -212,6 +238,121 @@ def transcript_dirs(project_root: Path) -> list[Path]:
     return seen
 
 
+def codex_session_info(path: Path) -> tuple[str, Path | None]:
+    """Return the resumable session id and recorded cwd from a rollout."""
+    with path.open(encoding="utf-8", errors="replace") as fh:
+        for index, line in enumerate(fh):
+            if index >= 20:
+                break
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if record.get("type") != "session_meta":
+                continue
+            payload = record.get("payload") or {}
+            session_id = str(
+                payload.get("id") or payload.get("session_id") or path.stem
+            )
+            cwd = payload.get("cwd")
+            return session_id, Path(cwd).expanduser().resolve() if cwd else None
+    return path.stem, None
+
+
+def codex_result_text(payload: dict[str, Any]) -> str:
+    output = payload.get("output")
+    if isinstance(output, str):
+        return output
+    if isinstance(output, list):
+        parts = [item.get("text", "") for item in output if isinstance(item, dict)]
+        return "".join(part for part in parts if part)
+    return ""
+
+
+def codex_exit_code(text: str) -> int | None:
+    """Read Codex's wrapper status without matching status-like payload text."""
+    for line in text.splitlines()[:10]:
+        match = _CODEX_EXIT_CODE_LINE_RE.fullmatch(line.strip())
+        if match:
+            return int(match.group(1))
+    return None
+
+
+def _decode_call_arguments(payload: dict[str, Any]) -> dict[str, Any]:
+    arguments = payload.get("arguments")
+    if isinstance(arguments, dict):
+        return arguments
+    if isinstance(arguments, str):
+        try:
+            decoded = json.loads(arguments)
+        except json.JSONDecodeError:
+            return {}
+        return decoded if isinstance(decoded, dict) else {}
+    return {}
+
+
+def _javascript_command(source: str) -> str:
+    """Extract one literal exec_command cmd from a functions.exec program."""
+    if len(_CODEX_NESTED_TOOL_RE.findall(source)) != 1:
+        return ""
+    match = re.search(r"[\"']?cmd[\"']?\s*:\s*", source)
+    if match is None:
+        return ""
+    encoded = source[match.end() :].lstrip()
+    if encoded.startswith('"'):
+        try:
+            value, _ = json.JSONDecoder().raw_decode(encoded)
+        except json.JSONDecodeError:
+            return ""
+        return value if isinstance(value, str) else ""
+    if encoded.startswith(("'", "`")):
+        quote = encoded[0]
+        end = 1
+        while end < len(encoded):
+            if encoded[end] == quote and encoded[end - 1] != "\\":
+                return encoded[1:end]
+            end += 1
+    return ""
+
+
+def patch_targets(source: str, error: str = "") -> list[str]:
+    targets = {match.strip() for match in _PATCH_FILE_RE.findall(source)}
+    failure = _PATCH_FAILURE_FILE_RE.search(error)
+    if failure:
+        targets.add(failure.group(1).strip())
+    return sorted(targets)
+
+
+def codex_file_targets(args: dict[str, Any], source: str = "") -> list[str]:
+    targets = {
+        str(args[key])
+        for key in ("path", "file_path", "notebook_path")
+        if args.get(key)
+    }
+    targets.update(match[1] for match in _CODEX_FILE_ARG_RE.findall(source))
+    return sorted(targets)
+
+
+def codex_handle_targets(
+    name: str, args: dict[str, Any], source: str = "", error: str = ""
+) -> list[str]:
+    targets: set[str] = set()
+    if name == "write_stdin" and args.get("session_id") is not None:
+        targets.add(f"process:{args['session_id']}")
+    if name == "wait" and args.get("cell_id") is not None:
+        targets.add(f"cell:{args['cell_id']}")
+    for kind, value in _CODEX_HANDLE_ARG_RE.findall(source):
+        prefix = "process" if kind == "session_id" else "cell"
+        targets.add(f"{prefix}:{value}")
+    process = _STALE_PROCESS_RE.search(error)
+    if process:
+        targets.add(f"process:{process.group(1)}")
+    cell = _STALE_CELL_RE.search(error)
+    if cell:
+        targets.add(f"cell:{cell.group(1)}")
+    return sorted(targets)
+
+
 def scan_session(path: Path) -> tuple[list[dict[str, Any]], int]:
     """Return (ordered per-call events, total tool calls) for one transcript."""
     uses: dict[str, dict[str, Any]] = {}
@@ -251,11 +392,15 @@ def scan_session(path: Path) -> tuple[list[dict[str, Any]], int]:
                     tool = use["tool"]
                     command = use["input"].get("command", "") if tool == "Bash" else ""
                     sig = bash_signature(command) if tool == "Bash" else tool
+                    target = use["input"].get("file_path") or use["input"].get(
+                        "notebook_path"
+                    )
                     event = {
                         "seq": use["seq"],
                         "tool": tool,
                         "sig": sig,
                         "command": command,
+                        "targets": [str(target)] if target else [],
                         "model": use["model"],
                         "ts": use["ts"],
                         "ok": not block.get("is_error"),
@@ -264,22 +409,198 @@ def scan_session(path: Path) -> tuple[list[dict[str, Any]], int]:
                         text = result_text(record, block)
                         event["error"] = text
                         event["err_class"] = classify_error(text)
-                        match = _EXIT_CODE_RE.search(text)
+                        match = _CLAUDE_EXIT_CODE_RE.search(text)
                         event["exit"] = int(match.group(1)) if match else None
                     events.append(event)
     events.sort(key=lambda e: e["seq"])
     return events, seq
 
 
+def _codex_outcome(text: str, exit_code: int | None) -> bool | None:
+    if exit_code is not None:
+        return exit_code == 0
+    first_lines = "\n".join(text.splitlines()[:10])
+    if _CODEX_PROCESS_SESSION_RE.search(first_lines) or _CODEX_EXEC_CELL_RE.search(
+        first_lines
+    ):
+        return None
+    stripped = text.lstrip()
+    if stripped.startswith("Script completed"):
+        return True
+    if stripped.startswith("Script failed"):
+        return False
+    if re.match(r"(?:Error|Tool error|tool_error)\b", stripped, re.IGNORECASE):
+        return False
+    if re.search(r"aborted by user", first_lines, re.IGNORECASE):
+        return False
+    return re.search(r"\btimed out\b", first_lines, re.IGNORECASE) is None
+
+
+def _codex_event_identity(
+    call: dict[str, Any], exit_code: int | None
+) -> tuple[str, str, str]:
+    name = call["name"]
+    command = call["command"]
+    if name == "exec":
+        nested = call["nested_tools"]
+        unique_nested = set(nested)
+        if nested and len(unique_nested) == 1 and nested[0] != "exec_command":
+            return nested[0], nested[0], nested[0]
+        if nested == ["exec_command"] and exit_code is not None and command:
+            return "exec_command", bash_signature(command), command
+        return "exec", "exec", "exec"
+    if name == "exec_command":
+        return name, bash_signature(command), command
+    if name == "apply_patch":
+        return name, name, name
+    return name, name, name
+
+
+def scan_codex_session(
+    path: Path,
+) -> tuple[list[dict[str, Any]], int, dict[str, int]]:
+    """Return terminal tool events from one Codex rollout."""
+    uses: dict[str, dict[str, Any]] = {}
+    process_calls: dict[str, dict[str, Any]] = {}
+    exec_cells: dict[str, dict[str, Any]] = {}
+    events: list[dict[str, Any]] = []
+    diagnostics: dict[str, int] = defaultdict(int)
+    current_model = "?"
+    seq = 0
+
+    with path.open(encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            kind = record.get("type")
+            payload = record.get("payload") or {}
+            if kind == "turn_context":
+                current_model = str(payload.get("model") or current_model)
+                continue
+            if kind != "response_item":
+                continue
+            item_type = payload.get("type")
+            if item_type in {"function_call", "custom_tool_call"}:
+                seq += 1
+                name = str(payload.get("name") or "?")
+                args = (
+                    _decode_call_arguments(payload)
+                    if item_type == "function_call"
+                    else {}
+                )
+                source = str(payload.get("input") or "")
+                nested_tools = _CODEX_NESTED_TOOL_RE.findall(source)
+                targets = set(codex_file_targets(args, source))
+                targets.update(codex_handle_targets(name, args, source))
+                if name == "apply_patch" or "apply_patch" in nested_tools:
+                    targets.update(patch_targets(source))
+                if name == "exec_command":
+                    command = str(args.get("cmd") or args.get("command") or "")
+                    diagnostics["standard_exec_command_calls"] += 1
+                elif name == "exec":
+                    command = _javascript_command(source)
+                    diagnostics["custom_exec_calls"] += 1
+                elif name == "apply_patch":
+                    command = name
+                    diagnostics["apply_patch_calls"] += 1
+                else:
+                    command = name
+                uses[str(payload.get("call_id") or "")] = {
+                    "seq": seq,
+                    "name": name,
+                    "args": args,
+                    "source": source,
+                    "nested_tools": nested_tools,
+                    "command": command,
+                    "targets": sorted(targets),
+                    "model": current_model,
+                    "ts": record.get("timestamp", ""),
+                }
+                continue
+            if item_type not in {"function_call_output", "custom_tool_call_output"}:
+                continue
+
+            call = uses.get(str(payload.get("call_id") or ""))
+            if call is None:
+                diagnostics["unmatched_results"] += 1
+                continue
+            text = codex_result_text(payload)
+            effective = call
+            if call["name"] == "write_stdin" and not _STALE_PROCESS_RE.search(text):
+                effective = process_calls.get(str(call["args"].get("session_id")), call)
+            elif call["name"] == "wait" and not _STALE_CELL_RE.search(text):
+                effective = exec_cells.get(str(call["args"].get("cell_id")), call)
+
+            exit_code = codex_exit_code(text)
+            first_lines = "\n".join(text.splitlines()[:10])
+            process_match = _CODEX_PROCESS_SESSION_RE.search(first_lines)
+            if call["name"] == "exec_command" and process_match:
+                process_calls[process_match.group(1)] = call
+                continue
+            cell_match = _CODEX_EXEC_CELL_RE.search(first_lines)
+            if call["name"] == "exec" and cell_match:
+                exec_cells[cell_match.group(1)] = call
+                continue
+            outcome = _codex_outcome(text, exit_code)
+            if outcome is None:
+                continue
+            if (
+                effective["name"] == "exec"
+                and "exec_command" in effective["nested_tools"]
+                and exit_code is None
+                and text.lstrip().startswith("Script completed")
+            ):
+                diagnostics["custom_exec_scripts_with_opaque_command_status"] += 1
+
+            tool, sig, command = _codex_event_identity(effective, exit_code)
+            targets = set(effective["targets"])
+            if not outcome:
+                targets.update(patch_targets("", text))
+                targets.update(
+                    codex_handle_targets(
+                        effective["name"],
+                        effective["args"],
+                        effective["source"],
+                        text,
+                    )
+                )
+            event = {
+                "seq": call["seq"],
+                "tool": tool,
+                "sig": sig,
+                "command": command,
+                "targets": sorted(targets),
+                "model": effective["model"],
+                "ts": effective["ts"],
+                "ok": outcome,
+            }
+            if not outcome:
+                event["error"] = text
+                event["err_class"] = classify_error(text)
+                event["exit"] = exit_code
+            events.append(event)
+
+    events.sort(key=lambda event: event["seq"])
+    diagnostics["terminal_events"] = len(events)
+    return events, seq, dict(diagnostics)
+
+
 def find_recovery(
     events: list[dict[str, Any]], fail: dict[str, Any]
 ) -> dict[str, Any] | None:
+    fail_targets = set(fail.get("targets") or [])
     for event in events:
+        same_target = not fail_targets or bool(
+            fail_targets.intersection(event.get("targets") or [])
+        )
         if (
             event["seq"] > fail["seq"]
             and event["ok"]
             and event["tool"] == fail["tool"]
             and event["sig"] == fail["sig"]
+            and same_target
         ):
             return event
     return None
@@ -294,13 +615,6 @@ def trim(text: str, limit: int, full: bool) -> str:
 
 def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
     project_root = Path(ns.project).resolve()
-    dirs = transcript_dirs(project_root)
-    if not dirs:
-        errors.die(
-            f"no Claude transcript dir for {project_root}",
-            errors.ExitCode.NOT_FOUND,
-            detail={"looked_under": str(Path.home() / ".claude" / "projects")},
-        )
     exclude = set()
     if not ns.all_sessions:
         for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID"):
@@ -308,20 +622,50 @@ def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
             if value:
                 exclude.add(value)
     cutoff = time.time() - ns.days * 86400 if ns.days else 0.0
-    files = sorted(
-        f
-        for d in dirs
-        for f in d.glob("*.jsonl")
-        if f.stem not in exclude and f.stat().st_mtime >= cutoff
-    )
+    sources: list[tuple[Path, str]] = []
+    if ns.harness == "claude":
+        dirs = transcript_dirs(project_root)
+        if not dirs:
+            errors.die(
+                f"no Claude transcript dir for {project_root}",
+                errors.ExitCode.NOT_FOUND,
+                detail={"looked_under": str(Path.home() / ".claude" / "projects")},
+            )
+        sources = [
+            (path, path.stem)
+            for directory in dirs
+            for path in directory.glob("*.jsonl")
+            if path.stem not in exclude and path.stat().st_mtime >= cutoff
+        ]
+    else:
+        base = Path.home() / ".codex" / "sessions"
+        if not base.is_dir():
+            errors.die(
+                f"no Codex transcript dir for {project_root}",
+                errors.ExitCode.NOT_FOUND,
+                detail={"looked_under": str(base)},
+            )
+        for path in base.rglob("*.jsonl"):
+            if path.stat().st_mtime < cutoff:
+                continue
+            session_id, cwd = codex_session_info(path)
+            if session_id not in exclude and cwd == project_root:
+                sources.append((path, session_id))
+    sources.sort(key=lambda source: str(source[0]))
 
     total_calls = 0
     total_failures = 0
     class_counts: dict[str, int] = defaultdict(int)
     sessions_with_failures = 0
+    coverage: dict[str, int] = defaultdict(int)
     groups: dict[tuple[str, str, str], dict[str, Any]] = {}
-    for path in files:
-        events, calls = scan_session(path)
+    for path, session_id in sources:
+        if ns.harness == "codex":
+            events, calls, diagnostics = scan_codex_session(path)
+            for key, value in diagnostics.items():
+                coverage[key] += value
+        else:
+            events, calls = scan_session(path)
         total_calls += calls
         failures = [e for e in events if not e["ok"]]
         if failures:
@@ -344,7 +688,7 @@ def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
                 },
             )
             group["fails"] += 1
-            group["sessions"].add(path.stem)
+            group["sessions"].add(session_id)
             group["models"].add(fail["model"])
             group["last"] = max(group["last"], fail["ts"])
             recovery = find_recovery(events, fail)
@@ -389,7 +733,7 @@ def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
         "kind": "summary",
         "project": str(project_root),
         "harness": ns.harness,
-        "sessions_scanned": len(files),
+        "sessions_scanned": len(sources),
         "sessions_with_failures": sessions_with_failures,
         "tool_calls": total_calls,
         "failures": total_failures,
@@ -399,6 +743,8 @@ def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
         "min_fails": ns.min_fails,
         "window_days": ns.days or None,
     }
+    if ns.harness == "codex":
+        summary["coverage"] = dict(sorted(coverage.items()))
     return summary, patterns, dropped
 
 
@@ -410,7 +756,6 @@ def main(argv: list[str] | None = None) -> int:
             0: "report emitted (possibly zero patterns)",
             2: "usage error",
             4: "no transcript directory for the project",
-            69: "requested harness not implemented",
         },
     )
     parser.add_argument(
@@ -422,7 +767,7 @@ def main(argv: list[str] | None = None) -> int:
         "--harness",
         default="claude",
         choices=["claude", "codex"],
-        help="session-log source; only claude is implemented",
+        help="session-log source (default: claude)",
     )
     parser.add_argument(
         "--days",
@@ -452,11 +797,6 @@ def main(argv: list[str] | None = None) -> int:
     acli_args.add_standard_args(parser)
     acli_args.maybe_complete(parser, argv)
     ns = parser.parse_args(argv)
-    if ns.harness != "claude":
-        errors.die(
-            f"harness {ns.harness!r} not implemented; claude only for now",
-            errors.ExitCode.UNAVAILABLE,
-        )
     fmt = session.resolve_format(ns)
     summary, patterns, _ = build_report(ns)
     if fmt is session.Format.PRETTY:
