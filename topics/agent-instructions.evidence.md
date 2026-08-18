@@ -3438,3 +3438,51 @@ Contributing-model: 5.6-Sol
   YA publisher migration remains open by design.
 
 Contributing-model: 5.6-Sol
+
+## 2026-08-18 — observed-form tolerance in throwaway orchestration
+
+- **User direction** — agents mis-model tool output forms in near-throwaway
+  orchestration scripting (expect JSON, get text, or the converse).
+  Defensive handling of either form is acceptable when meaningful tests
+  would catch a misinterpretation and the alternate form preserves the
+  needed information; the correct fix (understand the tool, request the
+  expected form) should win when it yields helper or instruction
+  improvements worth having. Caution should scale with the future work a
+  missed misreading would invalidate.
+- **Decision** — `AGENTS.global.md § Anti-slop implementation` gains a
+  scoped tolerance paragraph: branches only for observed forms (never
+  imagined ones), information-preserving and unambiguous, a form mismatch
+  detected rather than read as zero results, the unexpected branch logging
+  that it fired; one bounded probe for an explicit format option first; a
+  second surprise from the same tool ends tolerance and fixes the
+  invocation/option/helper/instruction. Durable scripts keep the
+  documented-contract bar of the base rule. The companion `tool-surprises`
+  skill/helper (same-day commit) is the systematic detector behind the
+  informal second-surprise trigger.
+- **Trace: forgot the flag** — an agent expects JSON from `gh pr list`,
+  gets a table. The rule sends one `--help` probe → `--json` exists → the
+  correct invocation replaces a dual parser. No backfire.
+- **Trace: legitimate empty** — a scan legitimately returns zero items.
+  The chosen wording ("a form mismatch is detected rather than read as
+  zero results") requires distinguishing well-formed-empty from
+  unparsed-form; it deliberately does not mandate fail-on-empty, which
+  would misfire here.
+- **Trace: undocumented dual-form tool** — second surprise; `--help`
+  shows no format option. Fix-the-understanding resolves to documenting
+  the dual form (recovery as documented contract, which the base rule
+  already allows) or a wrapper, so the rule converges with the existing
+  exception instead of demanding a nonexistent flag.
+- **Why the four conditions** — observed-only blocks speculative
+  try/except branches that codify a hallucinated tool model; the
+  mismatch-detection condition closes the vacuous-pass hole (a misparse of
+  the wrong form typically yields empty-but-plausible results, e.g. `jq`
+  over text); the logging condition preserves the signal that the tool
+  model was wrong, without which the confusion silently recurs; TTY/pipe
+  output switching means an untested branch can be the one that fires in
+  production, which is why the probe-for-a-flag beats defensive parsing
+  when a flag exists.
+- **Status** — user-directed; trace-simulated; effect on retry cost and
+  script quality is expected, not measured. The tool-surprises miner can
+  later supply before/after counts.
+
+Contributing-model: Fable
