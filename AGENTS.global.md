@@ -917,6 +917,12 @@ Leave `-f` off `rm` and prefer `rm -r` unless missing targets must not fail.
 Force flags trigger destructive gates without changing deletion of an existing
 path.
 
+## Killing by pattern
+
+`pkill -f`/`pgrep -f` from an agent shell can match the shell's own
+wrapper, whose command line contains the pattern. `pgrep -f` first and
+kill named PIDs, or narrow the pattern past self-match.
+
 ## Agent-facing CLI help
 
 For agent-facing CLIs, do not hard-wrap option descriptions to guessed terminal

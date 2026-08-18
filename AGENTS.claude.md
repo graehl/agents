@@ -136,6 +136,11 @@ completion-notifications self-sustain the loop; the wakeup/cron is the fallback
 for gaps. **Invariant:** never end an autonomous-work turn with no job running
 and no wakeup scheduled — verify before yielding.
 
+## Foreground `sleep` is blocked
+
+This harness rejects foreground `sleep` in Bash. Wait with Monitor, a
+tracked background job, or a scheduled wakeup instead of trying it.
+
 ## Persisting memories: promote cross-project ones to ~/agents
 
 The Claude file-memory system is per-project: it writes under
