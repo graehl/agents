@@ -12,10 +12,12 @@ Topic: `tool-surprises`
 
 Within one session, a failed call followed by a similar successful call
 means the agent re-derived the tool's contract by retry, paying tokens
-and latency. That adjacency recurring across sessions is the
-error-analysis candidate this topic exists for: either the tool is hard
-to use (fix the tool: an explicit option, a composite verb, a helper —
-see `topics/agent-cli.md`), the agents' model of it is wrong (fix the
+and latency. File-edit recoveries also match the target path when the
+transcript exposes one, so an unrelated later edit does not count as the
+fix. That adjacency recurring across sessions is the error-analysis
+candidate this topic exists for: either the tool is hard to use (fix the
+tool: an explicit option, a composite verb, a helper — see
+`topics/agent-cli.md`), the agents' model of it is wrong (fix the
 narrowest applicable instruction file), or the environment breaks an
 assumption a governing doc makes (fix the setup or the doc).
 
@@ -31,29 +33,49 @@ output form versus stop and fix its understanding — is owned by
 second-surprise trigger is informal and per-agent; this topic's mining
 is its systematic, retrospective complement.
 
-## Data source
+## Data sources and coverage
 
-Claude harness transcripts: `~/.claude/projects/<munged-root>/*.jsonl`,
-where the munged root is the project path with `/` replaced by `-`
-(a `.` variant is also probed). `tool_result` blocks with `is_error`
-mark failures; Bash failures carry `Error: Exit code N` plus output,
-so exit codes are recoverable without any runtime wrapper. The current
-session's transcript is excluded unless `--all-sessions`.
+Claude harness transcripts live at
+`~/.claude/projects/<munged-root>/*.jsonl`, where the munged root is the
+project path with `/` replaced by `-` (a `.` variant is also probed).
+`tool_result` blocks with `is_error` mark failures; Bash failures carry
+`Error: Exit code N` plus output, so exit codes are recoverable without
+any runtime wrapper.
 
-`is_error` on Bash means nonzero exit, which conflates
-answer-by-exit-code verbs with genuine failures — hence the discount
-step. Codex session logs are not yet parsed (`--harness codex` exits
-69 with a structured error). A token-free in-band alternative is
-sketched in [tool-surprises.sketches.md](tool-surprises.sketches.md).
+Codex rollouts live under `~/.codex/sessions/**/*.jsonl`. The miner
+selects the project from `session_meta.payload.cwd`, records the model
+from `turn_context`, and parses both rollout forms:
+
+- direct `exec_command` / `apply_patch` calls, including terminal results
+  retrieved through `write_stdin`; and
+- newer `functions.exec` scripts, including patch-tool attribution and
+  terminal results retrieved through `wait`.
+
+Direct command results expose `Process exited with code N`. Most nested
+`exec_command` calls inside `functions.exec`, however, serialize only
+`r.output`; a surrounding `Script completed` does not prove that nested
+command exited zero. The miner does not infer status from payload text.
+Codex summaries therefore report
+`custom_exec_scripts_with_opaque_command_status` beside direct-call and
+terminal-event counts. Treat Codex shell-failure totals as a lower bound
+when that coverage count is nonzero. This observed loss activates the
+telemetry alternative in
+[tool-surprises.sketches.md](tool-surprises.sketches.md).
+
+For either harness, the current session is excluded unless
+`--all-sessions`. Claude `is_error` and Codex nonzero exits still
+conflate answer-by-exit-code verbs with genuine failures — hence the
+manual discount step.
 
 ## Components
 
-- `scripts/tool-surprises` — ACLI miner. Flags: `--project`,
-  `--harness`, `--days`, `--limit`, `--min-fails`, `--all-sessions`,
-  `--include-gated`, plus the standard output flags. Emits a `summary`
-  row then `pattern` rows (tool, signature, error class, fails,
-  recovered, sessions, example fail→fix pair). Exit codes: 0 report
-  emitted, 2 usage, 4 no transcript dir, 69 harness unimplemented.
+- `scripts/tool-surprises` — ACLI miner for Claude and Codex. Flags:
+  `--project`, `--harness`, `--days`, `--limit`, `--min-fails`,
+  `--all-sessions`, `--include-gated`, plus the standard output flags.
+  Emits a `summary` row then `pattern` rows (tool, signature, error
+  class, fails, recovered, sessions, example fail→fix pair). Codex
+  summaries also carry coverage diagnostics. Exit codes: 0 report
+  emitted, 2 usage, 4 no transcript directory.
 - `skills/tool-surprises/SKILL.md` — the reporting workflow: run,
   discount false positives, classify remediation, report with
   evidence. Instruction changes it motivates go through
