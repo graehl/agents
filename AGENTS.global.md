@@ -536,6 +536,17 @@ swallowing, or proceed-on-partial-state behavior merely to make the current
 trace pass. Establish required preconditions or fail clearly unless recovery is
 part of the documented contract.
 
+In throwaway orchestration, parsing more than one output form from one
+invocation is tolerance, not slop, when every handled form was actually
+observed rather than imagined, no accepted form loses needed information
+or admits two readings, a form mismatch is detected rather than read as
+zero results, and the unexpected branch logs that it fired. Probe once
+for an explicit format option before writing the second branch; output
+that switches on TTY/pipe or version makes the untested branch the live
+one. On a second surprise from the same tool, stop tolerating: fix the
+invocation, option, helper, or instruction, and capture what resists
+fixing. Durable scripts keep the preceding bar.
+
 ## Backward compatibility
 
 Preserve public/exported APIs, CLI flags, wire/serialization formats, persisted
@@ -830,6 +841,8 @@ Slash invocation loads any named skill. Natural-language auto-routing:
 - who else/other agents → `skills/others/SKILL.md`
 - harsh/deep structural review → `skills/harsh-review/SKILL.md`
 - doubt wording → doubt skill above
+- recurring tool/command failure patterns, "tool surprises" →
+  `skills/tool-surprises/SKILL.md`
 
 Other disabled skills are slash-only unless a skill explicitly chains by
 reading their `SKILL.md`.
