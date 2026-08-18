@@ -579,7 +579,7 @@ software-structure details live in `topics/ui-verification.md`,
 ## UI tweak result captures
 
 A web UI layout/style/placement tweak is complete only after inspecting rendered
-captures: 1000×600 desktop and 375×812 phone when mobile is supported. Read
+captures: 1200×600 desktop and 375×812 phone when mobile is supported. Read
 and inspect captures sequentially, one image at a time; never batch image
 reads. Check against the request and cite capture paths. Read
 `topics/ui-testing.md`.

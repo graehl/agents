@@ -3374,19 +3374,19 @@ Contributing-model: 5.6-Sol
 ## 2026-08-17 — UI captures use bounded sequential inspection
 
 - **User correction** — desktop UI verification should capture exactly
-  1000×600 rather than a larger viewport, and image reads should happen one at
+  1200×600 rather than a larger viewport, and image reads should happen one at
   a time to avoid exhausting the model context. The phone viewport remains
   375×812.
 - **Decision** — the compaction-protected global rule now names both exact
   viewports and forbids batching image reads. The project protocol makes the
   sequence operational: read, inspect, and record notes for the desktop image
   before reading the phone image.
-- **Trace: responsive UI** — an agent captures 1000×600 and 375×812, reads the
+- **Trace: responsive UI** — an agent captures 1200×600 and 375×812, reads the
   desktop image alone, records its layout findings, and only then reads the
   phone image. Both responsive surfaces remain covered without loading a
   multi-image batch.
 - **Trace: desktop-only UI** — an interface without mobile support still uses
-  the exact 1000×600 desktop capture. The conditional phone requirement remains
+  the exact 1200×600 desktop capture. The conditional phone requirement remains
   unchanged rather than making every desktop-only application emulate mobile.
 - **Counter-trace: several states** — a flow needs before/after or source/preview
   evidence. Each capture is read and assessed separately; the need to compare
