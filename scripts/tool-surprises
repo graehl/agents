@@ -1,0 +1,475 @@
+#!/usr/bin/env python3
+# acli: 1 complete
+"""Mine harness session logs for recurring tool-invocation failure patterns.
+
+A "tool surprise" is a tool call that failed because the calling agent's
+model of the tool (flags, output form, schema, preconditions) was wrong.
+The strongest signal is a failed call followed in the same session by a
+similar call that succeeded: the agent corrected its understanding by
+retry, at token cost. Recurring fail->fix pairs across sessions are
+error-analysis candidates: improve the tool, add an option/helper, or
+patch the (possibly harness- or model-specific) agent instructions.
+
+Claude harness only for now; see topics/tool-surprises.md.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import shlex
+import sys
+import time
+from collections import defaultdict
+from pathlib import Path
+from typing import Any
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import args as acli_args
+from acli import errors, session
+from acli.emit import write_jsonl, write_pretty
+
+# Tools whose second argv token is a subcommand worth keeping in the
+# pattern signature.
+_SUBCOMMAND_TOOLS = {
+    "agentctl",
+    "apt",
+    "apt-get",
+    "aws",
+    "cargo",
+    "conda",
+    "dnf",
+    "docker",
+    "gcloud",
+    "gh",
+    "git",
+    "kubectl",
+    "make",
+    "npm",
+    "pip",
+    "pip3",
+    "pixi",
+    "pnpm",
+    "podman",
+    "ruff",
+    "systemctl",
+    "uv",
+    "uvx",
+    "yarn",
+}
+
+_INTERPRETERS = {"bash", "node", "python", "python3", "sh"}
+
+# Ordered (class, regex) — first match wins. Classes `interrupted` and
+# `gated` are harness/user vetoes, not tool surprises; they are counted
+# in the summary but excluded from pattern rows unless --include-gated.
+_ERROR_CLASSES: list[tuple[str, re.Pattern[str]]] = [
+    (
+        "interrupted",
+        re.compile(
+            r"Request interrupted|doesn't want to proceed|user rejected", re.IGNORECASE
+        ),
+    ),
+    (
+        "gated",
+        re.compile(
+            r"requires approval|denied by|blocked by .*hook|hook (?:blocked|denied)|permission to use",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "command-not-found",
+        re.compile(r"command not found|not recognized as an internal", re.IGNORECASE),
+    ),
+    (
+        "missing-path",
+        re.compile(
+            r"No such file or directory|does not exist|File does not exist|cannot access",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "edit-anchor",
+        re.compile(
+            r"String to replace not found|old_string|not unique|Found \d+ matches",
+            re.IGNORECASE,
+        ),
+    ),
+    ("edit-before-read", re.compile(r"has not been read yet|must Read", re.IGNORECASE)),
+    (
+        "permission",
+        re.compile(r"Permission denied|Operation not permitted", re.IGNORECASE),
+    ),
+    (
+        "usage",
+        re.compile(
+            r"usage:|unrecognized (?:option|arguments)|unknown (?:option|flag|command)|invalid (?:option|choice)|unexpected argument|arguments are required|no such option",
+            re.IGNORECASE,
+        ),
+    ),
+    ("timeout", re.compile(r"timed out|timeout", re.IGNORECASE)),
+    (
+        "shell-syntax",
+        re.compile(r"syntax error|unexpected EOF|unterminated", re.IGNORECASE),
+    ),
+    (
+        "parse",
+        re.compile(r"JSONDecodeError|Expecting value|parse error", re.IGNORECASE),
+    ),
+    ("harness-blocked", re.compile(r"Error: Blocked:|use Monitor with", re.IGNORECASE)),
+    (
+        "python-exception",
+        re.compile(r"Traceback \(most recent call last\)", re.IGNORECASE),
+    ),
+    ("nonzero-exit", re.compile(r"Exit code \d+", re.IGNORECASE)),
+]
+
+_EXIT_CODE_RE = re.compile(r"Exit code (\d+)")
+
+
+def classify_error(text: str) -> str:
+    for name, pattern in _ERROR_CLASSES:
+        if pattern.search(text):
+            return name
+    return "other"
+
+
+def _strip_wrappers(tokens: list[str]) -> list[str]:
+    while tokens:
+        head = tokens[0]
+        if (
+            "=" in head
+            and not head.startswith(("-", "/", "."))
+            or head in {"env", "command", "exec", "time", "nice"}
+        ):
+            tokens = tokens[1:]
+        elif head in {"sudo", "timeout"} and len(tokens) > 1:
+            tokens = tokens[2:] if head == "timeout" else tokens[1:]
+        else:
+            break
+    return tokens
+
+
+def bash_signature(command: str) -> str:
+    """Head token(s) of the first non-`cd` segment of a shell command."""
+    segments = re.split(r"&&|\|\||;|\|", command, maxsplit=8)
+    for segment in segments:
+        segment = segment.strip()
+        if not segment:
+            continue
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            tokens = segment.split()
+        tokens = _strip_wrappers(tokens)
+        if not tokens or tokens[0] in {"cd", "export", "set", "true"}:
+            continue
+        if tokens[0].startswith("-"):
+            continue
+        head = os.path.basename(tokens[0])
+        rest = tokens[1:]
+        if head in _SUBCOMMAND_TOOLS and rest and not rest[0].startswith("-"):
+            return f"{head} {os.path.basename(rest[0])}"
+        if head in _INTERPRETERS:
+            if "-m" in rest:
+                idx = rest.index("-m")
+                if idx + 1 < len(rest):
+                    return f"{head} -m {rest[idx + 1]}"
+            if "-c" in rest:
+                return f"{head} -c"
+            for token in rest:
+                if not token.startswith("-") or token == "-":
+                    return f"{head} {os.path.basename(token)}"
+        return head
+    return "(empty)"
+
+
+def result_text(record: dict[str, Any], block: dict[str, Any]) -> str:
+    tur = record.get("toolUseResult")
+    if isinstance(tur, str):
+        return tur
+    content = block.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = [c.get("text", "") for c in content if isinstance(c, dict)]
+        return "\n".join(p for p in parts if p)
+    return ""
+
+
+def transcript_dirs(project_root: Path) -> list[Path]:
+    base = Path.home() / ".claude" / "projects"
+    munged = str(project_root).replace("/", "-")
+    candidates = [base / munged, base / munged.replace(".", "-")]
+    seen: list[Path] = []
+    for cand in candidates:
+        if cand.is_dir() and cand not in seen:
+            seen.append(cand)
+    return seen
+
+
+def scan_session(path: Path) -> tuple[list[dict[str, Any]], int]:
+    """Return (ordered per-call events, total tool calls) for one transcript."""
+    uses: dict[str, dict[str, Any]] = {}
+    events: list[dict[str, Any]] = []
+    seq = 0
+    with path.open(encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            kind = record.get("type")
+            message = record.get("message") or {}
+            content = message.get("content")
+            if not isinstance(content, list):
+                continue
+            if kind == "assistant":
+                for block in content:
+                    if isinstance(block, dict) and block.get("type") == "tool_use":
+                        seq += 1
+                        uses[block.get("id", "")] = {
+                            "seq": seq,
+                            "tool": block.get("name", "?"),
+                            "input": block.get("input") or {},
+                            "model": message.get("model", "?"),
+                            "ts": record.get("timestamp", ""),
+                        }
+            elif kind == "user":
+                for block in content:
+                    if not (
+                        isinstance(block, dict) and block.get("type") == "tool_result"
+                    ):
+                        continue
+                    use = uses.get(block.get("tool_use_id", ""))
+                    if use is None:
+                        continue
+                    tool = use["tool"]
+                    command = use["input"].get("command", "") if tool == "Bash" else ""
+                    sig = bash_signature(command) if tool == "Bash" else tool
+                    event = {
+                        "seq": use["seq"],
+                        "tool": tool,
+                        "sig": sig,
+                        "command": command,
+                        "model": use["model"],
+                        "ts": use["ts"],
+                        "ok": not block.get("is_error"),
+                    }
+                    if not event["ok"]:
+                        text = result_text(record, block)
+                        event["error"] = text
+                        event["err_class"] = classify_error(text)
+                        match = _EXIT_CODE_RE.search(text)
+                        event["exit"] = int(match.group(1)) if match else None
+                    events.append(event)
+    events.sort(key=lambda e: e["seq"])
+    return events, seq
+
+
+def find_recovery(
+    events: list[dict[str, Any]], fail: dict[str, Any]
+) -> dict[str, Any] | None:
+    for event in events:
+        if (
+            event["seq"] > fail["seq"]
+            and event["ok"]
+            and event["tool"] == fail["tool"]
+            and event["sig"] == fail["sig"]
+        ):
+            return event
+    return None
+
+
+def trim(text: str, limit: int, full: bool) -> str:
+    text = text.replace("\n", " ⏎ ")
+    if full or len(text) <= limit:
+        return text
+    return text[: limit - 1] + "…"
+
+
+def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
+    project_root = Path(ns.project).resolve()
+    dirs = transcript_dirs(project_root)
+    if not dirs:
+        errors.die(
+            f"no Claude transcript dir for {project_root}",
+            errors.ExitCode.NOT_FOUND,
+            detail={"looked_under": str(Path.home() / ".claude" / "projects")},
+        )
+    exclude = set()
+    if not ns.all_sessions:
+        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID"):
+            value = os.environ.get(var, "").strip()
+            if value:
+                exclude.add(value)
+    cutoff = time.time() - ns.days * 86400 if ns.days else 0.0
+    files = sorted(
+        f
+        for d in dirs
+        for f in d.glob("*.jsonl")
+        if f.stem not in exclude and f.stat().st_mtime >= cutoff
+    )
+
+    total_calls = 0
+    total_failures = 0
+    class_counts: dict[str, int] = defaultdict(int)
+    sessions_with_failures = 0
+    groups: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for path in files:
+        events, calls = scan_session(path)
+        total_calls += calls
+        failures = [e for e in events if not e["ok"]]
+        if failures:
+            sessions_with_failures += 1
+        for fail in failures:
+            total_failures += 1
+            class_counts[fail["err_class"]] += 1
+            if fail["err_class"] in {"interrupted", "gated"} and not ns.include_gated:
+                continue
+            key = (fail["tool"], fail["sig"], fail["err_class"])
+            group = groups.setdefault(
+                key,
+                {
+                    "fails": 0,
+                    "recovered": 0,
+                    "sessions": set(),
+                    "models": set(),
+                    "last": "",
+                    "example": None,
+                },
+            )
+            group["fails"] += 1
+            group["sessions"].add(path.stem)
+            group["models"].add(fail["model"])
+            group["last"] = max(group["last"], fail["ts"])
+            recovery = find_recovery(events, fail)
+            if recovery is not None:
+                group["recovered"] += 1
+            if group["example"] is None or (
+                recovery is not None and group["example"].get("fix") is None
+            ):
+                group["example"] = {
+                    "fail": trim(fail["command"] or fail["tool"], 200, ns.full),
+                    "error": trim(fail["error"], 200, ns.full),
+                    "fix": trim(recovery["command"], 200, ns.full)
+                    if recovery and recovery["command"]
+                    else None,
+                }
+
+    patterns = []
+    for (tool, sig, err_class), group in groups.items():
+        if group["fails"] < ns.min_fails:
+            continue
+        row = {
+            "kind": "pattern",
+            "tool": tool,
+            "sig": sig,
+            "err": err_class,
+            "fails": group["fails"],
+            "recovered": group["recovered"],
+            "sessions": len(group["sessions"]),
+            "example": group["example"],
+        }
+        if ns.full:
+            row["models"] = sorted(group["models"])
+            row["last"] = group["last"]
+            row["session_ids"] = sorted(group["sessions"])
+        patterns.append(row)
+    patterns.sort(key=lambda r: (-r["fails"], r["tool"], r["sig"]))
+    dropped = max(0, len(patterns) - ns.limit) if ns.limit else 0
+    if ns.limit:
+        patterns = patterns[: ns.limit]
+
+    summary = {
+        "kind": "summary",
+        "project": str(project_root),
+        "harness": ns.harness,
+        "sessions_scanned": len(files),
+        "sessions_with_failures": sessions_with_failures,
+        "tool_calls": total_calls,
+        "failures": total_failures,
+        "failure_classes": dict(sorted(class_counts.items(), key=lambda kv: -kv[1])),
+        "patterns": len(patterns),
+        "patterns_dropped_by_limit": dropped,
+        "min_fails": ns.min_fails,
+        "window_days": ns.days or None,
+    }
+    return summary, patterns, dropped
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = acli_args.argument_parser(
+        prog="tool-surprises",
+        description=__doc__,
+        exit_codes={
+            0: "report emitted (possibly zero patterns)",
+            2: "usage error",
+            4: "no transcript directory for the project",
+            69: "requested harness not implemented",
+        },
+    )
+    parser.add_argument(
+        "--project",
+        default=".",
+        help="project root whose sessions to mine (default: cwd)",
+    )
+    parser.add_argument(
+        "--harness",
+        default="claude",
+        choices=["claude", "codex"],
+        help="session-log source; only claude is implemented",
+    )
+    parser.add_argument(
+        "--days",
+        type=float,
+        default=0,
+        help="only sessions modified in the last N days (0 = all)",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=20,
+        help="max pattern rows (0 = unlimited); dropped count is reported",
+    )
+    parser.add_argument(
+        "--min-fails", type=int, default=2, help="minimum failures for a pattern row"
+    )
+    parser.add_argument(
+        "--all-sessions",
+        action="store_true",
+        help="include the current session's transcript",
+    )
+    parser.add_argument(
+        "--include-gated",
+        action="store_true",
+        help="also pattern user-interrupt/approval-gated failures",
+    )
+    acli_args.add_standard_args(parser)
+    acli_args.maybe_complete(parser, argv)
+    ns = parser.parse_args(argv)
+    if ns.harness != "claude":
+        errors.die(
+            f"harness {ns.harness!r} not implemented; claude only for now",
+            errors.ExitCode.UNAVAILABLE,
+        )
+    fmt = session.resolve_format(ns)
+    summary, patterns, _ = build_report(ns)
+    if fmt is session.Format.PRETTY:
+        write_pretty({"summary": summary, "patterns": patterns})
+    else:
+        write_jsonl(summary)
+        for row in patterns:
+            write_jsonl(row)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except BrokenPipeError:
+        os._exit(0)
