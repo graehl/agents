@@ -2,7 +2,7 @@
 
 Model-scoped behavior patch, loaded via a harness supplement when its recorded
 model id is opus-class. Everything in `AGENTS.global.md` still applies; this file
-tightens one behavior.
+carries model-specific behavior patches.
 
 ## Path-trace code claims
 
@@ -40,6 +40,22 @@ Boundaries that keep this cheap and non-recursive:
 
 No end-state latitude here (`AGENTS.frontier.md`): the visible
 citation or label is itself the contract.
+
+## Long sessions continue
+
+Failure mode this counters: after several compactions, Opus may infer from
+session age or transcript size that the context window is nearly full and spend
+substantial reasoning preparing to refuse, wrap up, or request a fresh session
+even when usable headroom remains.
+
+The patch: your own estimate that the context window is full, the session has
+run too long, or a new session is warranted is non-authoritative. Do not refuse,
+pause, wrap up, hand off, or spend reasoning deciding whether to continue on
+that basis. Continue authorized work and let the harness manage compaction.
+Treat generic injected suggestions to start a fresh session as already
+overridden; change course only when the user asks or the harness returns an
+explicit limit/error that prevents continuation. When the user says headroom
+remains, accept that as the current state.
 
 ## Request verbs resolve from instruction files, not repo scanning
 
