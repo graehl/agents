@@ -39,12 +39,22 @@ tooling, the cooperative declaration helper, and project migration docs.
   receipt must not fail another run's delayed launch guard. Ordinary Git
   status still shows the records, and source moved into bookkeeping still
   leaves a visible deletion at its original path.
-- **Keep terminal recording independent of watchers** (vs. launching the
+- **Keep terminal recording independent of observers** (vs. launching the
   payload directly for `start --watch`): every start uses the detached
-  `_run-child` wrapper, which writes `exit-status.json`; `--watch` only adds a
-  disposable foreground observer. Losing that observer may forfeit the
-  completion wake-up, but it cannot turn a successful recorded exit into
-  `returncode=unknown`.
+  `_run-child` wrapper, which writes `exit-status.json`; the built-in launch
+  observation, `--watch`, and explicit `wait`/`watch` are disposable observers.
+  Losing one cannot turn a recorded exit into `returncode=unknown` or suppress
+  an armed wrapper-owned completion wake.
+- **Use a broad non-document source scope by default** (vs. exact `HEAD`
+  equality or language dependency crawling): `--source-scope non-doc` checks
+  every tracked path except Markdown and run bookkeeping, so task/status commits
+  do not invalidate queued work while code and ordinary controls remain
+  conservative. `--source-scope all` retains the stricter form. Detected source
+  and environment controls are fingerprinted even when their suffix is `.md`.
+- **Start the launch clock at payload creation** (vs. submission): ordinary
+  `start` observes five seconds after queued gates and pre-payload checks pass
+  and `Popen` succeeds. Thus the window sees startup failures rather than being
+  consumed by queue time. `--launch-wait 0` is the explicit skip.
 
 ## Active-sessions file schema
 
@@ -140,6 +150,13 @@ window.
   `_run-child` wrapper that owns terminal-status and completion-artifact
   writes. The optional watcher observes that same run and may disappear
   without losing its eventual return code.
+- Without `--watch`, `start` remains foreground through its launch observation.
+  It waits through dependency/resource gates and pre-payload checks, then starts
+  the `--launch-wait` clock only after `payload_started_at` records successful
+  payload process creation. The default is five seconds; zero skips it. A
+  terminal run returns its real status and failed-log tail, while a survivor
+  returns zero with `completion_wake=armed|unarmed`. This is a startup window,
+  not a completion observer for the surviving run.
 - `start` and `smoke` load project-root `agentctl.env` when it exists. This is
   a declarative defaults file, not a shell script: it accepts blank lines,
   full-line `#` comments, and unique `KEY=VALUE` entries only. The literal
@@ -152,22 +169,25 @@ window.
   the original launch's selected file or disabled state rather than adopting
   a newly created default.
 - A default tracked `start`/`smoke` requires a Git checkout at committed
-  `HEAD`. It rejects source-relevant tracked/index changes, non-ignored
-  untracked `*.py`, and selected script/environment-control bytes that are not
-  recoverable from the recorded commit. Tracked changes beneath any
-  `runs/aim/` directory in the Git checkout are excluded from the launcher's
-  two cleanliness queries because those files are run bookkeeping, not source;
-  they remain visible to ordinary `git status` for later result triage. Pixi
-  requires a committed manifest+lock pair. A detached or queued child repeats
-  the guard immediately before payload launch. `--no-aim` deliberately
-  bypasses this admission rule and is limited to trivial,
-  non-evidence-producing work. Standard Git ignores/excludes exempt derived
-  Python trees such as `.pixi/`; unchecked-in intermediate data remains valid
-  when declared and tracked through the ordinary run-provenance surface.
-  This guard records an admission-time fact only: the payload still runs from
-  the mutable invoking checkout. `source_snapshot.execution_guarantee` is
-  `admission-time-only`, and commit-isolated execution requires invoking from a
-  separately materialized, protected checkout.
+  `HEAD`. `--source-scope non-doc` is the default: it rejects tracked/index
+  changes across the checkout except `*.md` and every `runs/aim/` bookkeeping
+  subtree. `--source-scope all` checks Markdown too. Both forms reject
+  non-ignored untracked `*.py` and selected script/environment-control bytes
+  that are not recoverable from the recorded commit; a selected `.md` file is
+  therefore still protected. Run bookkeeping remains visible to ordinary Git
+  status for later result triage. Pixi requires a committed manifest+lock pair.
+  A detached or queued child repeats the guard immediately before payload
+  launch. A moved `HEAD` is accepted only when the diff from the submission
+  commit contains no path in the recorded source scope; old snapshots without
+  `source_scope` retain `all`. `--no-aim` deliberately bypasses this admission
+  rule and is limited to trivial, non-evidence-producing work. Standard Git
+  ignores/excludes exempt derived Python trees such as `.pixi/`; unchecked-in
+  intermediate data remains valid when declared and tracked through the
+  ordinary run-provenance surface. This guard records an admission-time fact
+  only: the payload still runs from the mutable invoking checkout.
+  `source_snapshot.execution_guarantee` is `admission-time-only`, and
+  commit-isolated execution requires invoking from a separately materialized,
+  protected checkout.
   Every Git cleanliness, listing, and blob-content probe fails closed; a Git
   command error is not treated as an empty clean result. Pixi-specific
   `--manifest-path`/`-m` parsing applies only to a direct `pixi` invocation
@@ -189,7 +209,8 @@ window.
   blob id, and `tracked_dirty_elsewhere`, a **non-blocking** flag for
   unrelated tracked changes in that repository. Unrelated dirt there cannot
   alter the pinned manifests, so it is reported, never refused. The
-  delayed-launch recheck repeats the foreign `HEAD` and manifest comparison.
+  delayed-launch recheck repeats the manifest comparison against the recorded
+  foreign commit; an unrelated later foreign `HEAD` remains nonblocking.
   Sharing one environment across projects is therefore reproducible without
   copying it into every checkout that uses it; an environment in no Git
   checkout at all is still refused.
@@ -493,8 +514,8 @@ added; asking for a named job without either is an error rather than a
 silent downgrade.
 
 A remote that launches tracked work has a stronger precondition: its project
-root is an exact Git checkout with the recorded commit available and a clean
-working tree. Copying `agentctl` alone is enough for monitoring, but an rsynced
+root is a Git checkout with the recorded commit available and a clean selected
+source scope. Copying `agentctl` alone is enough for monitoring, but an rsynced
 source snapshot without `.git` is intentionally rejected as an experiment
 source. Transfer named data/artifacts separately and declare them as inputs;
 use a checkout (or a future verified snapshot materialization), not a mutable
@@ -515,12 +536,13 @@ supervised launch may inherit canonical
 `YEP_SESSION_WAKE_URL`/`YEP_SESSION_WAKE_TOKEN` pair. The canonical complete
 pair wins; otherwise the complete legacy pair is accepted without mixing names.
 The plugin arms on launch-depth-0 launches carrying a pair (`--no-wake` opts
-out), and `on_finish` — running in the detached `_run-child` wrapper, which
-survives agent teardown with the launch-time env — POSTs a one-line completion
+out), and `on_finish` — called by detached `_run-child` finalization for both
+pre-payload failures and payload completion — POSTs a one-line completion
 summary (`[agentctl-wake] job <name> finished returncode=<rc> …`) back to the
-launching session, waking the agent to consume the result. It appends the last
-non-empty log line for a failed job, never follows HTTP redirects with the
-bearer credential, and persists no URL or token in run state. Best-effort:
+launching session. The wrapper survives agent teardown with the launch-time env.
+The wake appends the last non-empty log line for a failed job, never follows HTTP
+redirects with the bearer credential, and persists no URL or token in run state.
+Best-effort:
 stdlib HTTP with a three-second timeout, one retry, then one log line and stop;
 YA heartbeat turns are the backstop. The name-by-name child behavior is in
 [`AGENT_ENV_VARS`](AGENT_ENV_VARS.md); the endpoint, token, delivery-time gate,
@@ -549,7 +571,8 @@ All hooks are optional; the base calls them via `getattr` and a small
 The base writes a flat dict to `state.json`. Canonical keys (read freely):
 
 `job`, `launch_name`, `run_id`, `serial`, `mode`, `status`, `started_at`,
-`finished_at`, `returncode`, `pid`, `pgid`, `pid_namespace`,
+`finished_at`, `returncode`, `pid`, `pgid`, `payload_pid`,
+`payload_started_at`, `launch_wait_seconds`, `pid_namespace`,
 `pid_start_ticks`, `pid_cmdline`, `argv`, `cwd`, `log_path`, `headline_path`,
 `output_path`, `meta_path`, `state_path`, `exit_status_path`, `run_dir`,
 `runtime_estimate`, `runtime_estimate_seconds`, `context_note`,
@@ -557,6 +580,11 @@ The base writes a flat dict to `state.json`. Canonical keys (read freely):
 `depends_on`, `wait_on`, `wait_after`, `queued_at`, `source_env`,
 `project_env`, `git_branch`, `git_commit`, `source_snapshot`,
 `machine_snapshot`, `launch_gpu_stats`.
+
+`pid`/`pgid` identify the detached wrapper. `payload_pid` identifies the user
+process, and `payload_started_at` appears only after its `Popen` succeeds; that
+field starts the launch-observation clock. `launch_wait_seconds` records the
+requested window so `restart` preserves it.
 
 `project_env` is null when project defaults were absent or disabled. Otherwise
 it contains `path`, `sha256`, and `keys`; values are deliberately excluded.
@@ -608,6 +636,10 @@ same one-line status path makes the cheap check harder to skip.
 
 Operational consequences:
 
+- Ordinary `agentctl start` observes the first five payload seconds, returns an
+  early terminal code, and prints the failed-log tail. Dependency, resource,
+  source-admission, and payload-process-creation failures use the same terminal
+  finalization path, including completion hooks.
 - `agentctl status <job>` is the required truth check after a manual sleep,
   timeout, interrupted tool call, or apparent lack of output.
 - In a sandboxed PID namespace, an invisible recorded PID is inconclusive, but

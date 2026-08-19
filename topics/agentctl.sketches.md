@@ -5,6 +5,19 @@
 
 Topic: `agentctl`
 
+## Language-aware source selection
+
+The current `--source-scope non-doc` is intentionally repo-wide: broad enough
+to be safe, but coarser than the payload's actual dependency closure. A future
+extension could combine an explicit source list with a conservative
+language-aware crawler rooted at the selected entry script, then record the
+resolved file set in `source_snapshot` for delayed revalidation.
+
+Do not add language values to `--source-scope`; that option names the current
+`non-doc|all` path policy. A separate surface and its fallback behavior need
+design only after real repo-wide false invalidations make the added crawler
+worth its language/toolchain complexity.
+
 ## Machine-scoped activity on foreign workers
 
 Local `.agentctl/active/` cannot expose a session operating in another clone

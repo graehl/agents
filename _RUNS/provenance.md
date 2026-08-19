@@ -42,14 +42,24 @@ The record owns argv/cwd, declared inputs and outputs, script fingerprint, Git
 state, and producer propagation.
 
 The default tracked form is also a source-admission gate. It requires a Git
-checkout with a committed `HEAD`, rejects tracked/index changes and any
-non-ignored untracked `*.py`, and verifies that the detected or explicit entry
-script, `agentctl.env`, each `--source-env` file, and recognized environment
-control files are byte-identical to files recoverable from the recorded
-commit. A selected Pixi environment must have both `pixi.toml` and `pixi.lock`.
-Queued work repeats the check after its waits and before the payload starts. A
-SHA-256 for bytes absent from Git is diagnostic evidence of the
-non-reproducible submission, not permission to run it.
+checkout with a committed `HEAD`. `--source-scope non-doc` (the default) rejects
+tracked/index changes repo-wide except `*.md` and `runs/aim/**` bookkeeping;
+`--source-scope all` includes Markdown. Both reject any non-ignored untracked
+`*.py` and verify that the detected or explicit entry script, `agentctl.env`,
+each `--source-env` file, and recognized environment controls are byte-identical
+to files recoverable from the recorded commit. A selected `.md` script/control
+is still fingerprinted. A selected Pixi environment must have both `pixi.toml`
+and `pixi.lock`.
+
+Before launch, commit every changed path covered by the chosen scope, every
+non-ignored untracked Python source, and every selected script/environment
+control. This is the minimal source commit guarantee; a default-scope task or
+status Markdown edit need not join it. Queued work repeats the check after its
+waits and before the payload starts. A later commit is accepted when its diff
+from the recorded commit changes only out-of-scope Markdown/bookkeeping; the
+record remains tied to the original source commit. A SHA-256 for bytes absent
+from Git is diagnostic evidence of the non-reproducible submission, not
+permission to run it.
 
 This is an admission-time observation, not an immutable execution tree. The
 source record says `execution_guarantee: admission-time-only` and

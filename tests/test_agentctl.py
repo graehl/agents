@@ -185,8 +185,8 @@ def _assert(cond, msg="assertion failed"):
 
 
 def _start(ws: Workspace, *args) -> subprocess.CompletedProcess:
-    """Convenience wrapper for `agentctl start ...`. Asserts rc==0."""
-    res = ws.run("start", *args)
+    """Start without the default launch observation; tests wait explicitly."""
+    res = ws.run("start", "--launch-wait", "0", *args)
     _assert(
         res.returncode == 0,
         f"agentctl start failed: rc={res.returncode}\nstdout: {res.stdout}\nstderr: {res.stderr}",
@@ -834,6 +834,8 @@ def test_wake_failure_retries_once_and_logs_once():
             res = ws.run(
                 "start",
                 "--no-aim",
+                "--launch-wait",
+                "0",
                 "wakefail",
                 "--",
                 "bash",
@@ -858,6 +860,80 @@ def test_wake_failure_retries_once_and_logs_once():
         )
         _assert("wake-secret" not in log, log)
     finally:
+        ws.cleanup()
+
+
+def test_default_launch_wait_returns_payload_fail_fast():
+    ws = Workspace()
+    try:
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "failfast",
+            "--",
+            "bash",
+            "-c",
+            "sleep 0.1; echo startup-failed; exit 7",
+        )
+        _assert(res.returncode == 7, res)
+        _assert("[launch-wait]" in res.stdout, res.stdout)
+        _assert("returncode=7" in res.stdout, res.stdout)
+        _assert("startup-failed" in res.stdout, res.stdout)
+    finally:
+        ws.cleanup()
+
+
+def test_launch_wait_returns_payload_process_creation_failure():
+    ws = Workspace()
+    try:
+        missing = ws.scratch / "does-not-exist"
+        res = ws.run("start", "--no-aim", "missing-exec", "--", str(missing))
+        _assert(res.returncode == 127, res)
+        _assert("returncode=127" in res.stdout, res.stdout)
+        _assert("payload process creation failed" in res.stdout, res.stdout)
+        state = ws.state("missing-exec")
+        _assert(state["status"] == "finished", state)
+        _assert(state["returncode"] == 127, state)
+        _assert("payload_started_at" not in state, state)
+    finally:
+        ws.cleanup()
+
+
+def test_launch_wait_timer_starts_after_prelaunch_checks():
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.4")
+        started = time.monotonic()
+        res = ws.run(
+            "start",
+            "--no-aim",
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.02",
+            "--after-heartbeat",
+            "0",
+            "--launch-wait",
+            "0.2",
+            "delayed",
+            "--",
+            "bash",
+            "-c",
+            "sleep 2",
+        )
+        elapsed = time.monotonic() - started
+        _assert(res.returncode == 0, res)
+        _assert(
+            elapsed >= 0.45, f"launch wait started before dependency cleared: {elapsed}"
+        )
+        _assert(
+            elapsed < 1.5,
+            f"launch wait did not stop after its post-launch window: {elapsed}",
+        )
+        _assert("running after 0.2s" in res.stdout, res.stdout)
+        _assert("start an explicit agentctl wait/watch observer" in res.stderr, res)
+    finally:
+        ws.run("stop", "delayed")
         ws.cleanup()
 
 
@@ -2440,6 +2516,31 @@ def test_restart_requeues_behind_same_after_chain():
         ws.cleanup()
 
 
+def test_restart_preserves_source_scope_and_launch_wait():
+    ws = Workspace()
+    try:
+        started = ws.run(
+            "start",
+            "--source-scope",
+            "all",
+            "--launch-wait",
+            "0.05",
+            "restart-options",
+            "--",
+            "true",
+        )
+        _assert(started.returncode == 0, started)
+        first = ws.wait_finished("restart-options")
+
+        restarted = ws.run("restart", "restart-options")
+        _assert(restarted.returncode == 0, restarted)
+        state = ws.wait_finished("restart-options", since_run_id=first["run_id"])
+        _assert(state["source_snapshot"]["source_scope"] == "all", state)
+        _assert(state["launch_wait_seconds"] == 0.05, state)
+    finally:
+        ws.cleanup()
+
+
 def test_wait_work_times_out_when_nothing_new():
     ws = Workspace()
     try:
@@ -2718,6 +2819,61 @@ def test_tracked_run_rejects_dirty_tracked_source():
             "tracked/index changes must be committed" in rejected.stderr,
             rejected.stderr,
         )
+    finally:
+        ws.cleanup()
+
+
+def test_tracked_run_allows_dirty_docs_by_default():
+    ws = Workspace()
+    try:
+        root_doc = ws.tmp / "STATUS.md"
+        nested_doc = ws.tmp / "tasks/progress.md"
+        nested_doc.parent.mkdir()
+        root_doc.write_text("initial\n", encoding="utf-8")
+        nested_doc.write_text("initial\n", encoding="utf-8")
+        ws.commit(root_doc, nested_doc)
+        root_doc.write_text("updated\n", encoding="utf-8")
+        nested_doc.write_text("updated\n", encoding="utf-8")
+
+        started = ws.run("start", "--launch-wait", "0", "docs", "--", "true")
+        _assert(started.returncode == 0, started)
+        state = ws.wait_finished("docs")
+        _assert(state["returncode"] == 0, state)
+        _assert(state["source_snapshot"]["source_scope"] == "non-doc", state)
+    finally:
+        ws.cleanup()
+
+
+def test_selected_markdown_script_remains_commit_bound():
+    ws = Workspace()
+    try:
+        script = ws.tmp / "workflow.md"
+        script.write_text("committed instructions\n", encoding="utf-8")
+        ws.commit(script)
+        script.write_text("dirty instructions\n", encoding="utf-8")
+
+        rejected = ws.run(
+            "start", "--script", str(script), "markdown-script", "--", "true"
+        )
+        _assert(rejected.returncode != 0, rejected)
+        _assert("file differs from the recorded commit" in rejected.stderr, rejected)
+        _assert("workflow.md" in rejected.stderr, rejected.stderr)
+    finally:
+        ws.cleanup()
+
+
+def test_tracked_run_source_scope_all_rejects_dirty_docs():
+    ws = Workspace()
+    try:
+        doc = ws.tmp / "STATUS.md"
+        doc.write_text("initial\n", encoding="utf-8")
+        ws.commit(doc)
+        doc.write_text("updated\n", encoding="utf-8")
+
+        rejected = ws.run("start", "--source-scope", "all", "docs", "--", "true")
+        _assert(rejected.returncode != 0, rejected)
+        _assert("tracked/index changes must be committed" in rejected.stderr, rejected)
+        _assert("STATUS.md" in rejected.stderr, rejected.stderr)
     finally:
         ws.cleanup()
 
@@ -3029,6 +3185,40 @@ def test_cross_repo_environment_is_pinned_to_its_own_checkout():
         ws.cleanup()
 
 
+def test_queued_run_allows_unrelated_foreign_checkout_commit():
+    ws = Workspace()
+    foreign = Path(tempfile.mkdtemp(prefix="agentctl-test-foreign-"))
+    try:
+        interpreter = _foreign_pixi_env(foreign)
+        env_root = interpreter.parents[4]
+        _foreign_commit(foreign, env_root / "pixi.toml", env_root / "pixi.lock")
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.5")
+        _start(
+            ws,
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "foreign-queued",
+            "--",
+            str(interpreter),
+            "-c",
+            "0",
+        )
+
+        unrelated = foreign / "notes.txt"
+        unrelated.write_text("committed after submission\n", encoding="utf-8")
+        _foreign_commit(foreign, unrelated)
+
+        state = ws.wait_finished("foreign-queued")
+        _assert(state["returncode"] == 0, state)
+    finally:
+        shutil.rmtree(foreign, ignore_errors=True)
+        ws.cleanup()
+
+
 def test_cross_repo_environment_outside_git_is_refused():
     ws = Workspace()
     foreign = Path(tempfile.mkdtemp(prefix="agentctl-test-nogit-"))
@@ -3045,7 +3235,7 @@ def test_cross_repo_environment_outside_git_is_refused():
         ws.cleanup()
 
 
-def test_queued_run_revalidates_source_before_payload():
+def test_queued_run_rejects_committed_source_change_before_payload():
     ws = Workspace()
     try:
         output = ws.scratch / "must-not-exist.txt"
@@ -3064,14 +3254,93 @@ def test_queued_run_revalidates_source_before_payload():
             "-c",
             f"echo ran > {output}",
         )
-        with (ws.tmp / "agentctl.py").open("a", encoding="utf-8") as handle:
+        agentctl_source = ws.tmp / "agentctl.py"
+        with agentctl_source.open("a", encoding="utf-8") as handle:
             handle.write("\n# changed after submission\n")
+        ws.commit(agentctl_source)
 
         state = ws.wait_finished("guarded")
         _assert(state["returncode"] == 2, state)
         _assert(not output.exists(), f"payload ran despite source drift: {output}")
         log = Path(state["log_path"]).read_text(encoding="utf-8")
         _assert("reproducibility guard failed before payload launch" in log, log)
+        _assert("agentctl.py" in log, log)
+    finally:
+        ws.cleanup()
+
+
+def test_queued_prelaunch_failure_posts_session_wake():
+    ws = Workspace()
+    try:
+        with WakeServer() as wake:
+            _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.5")
+            started = ws.run(
+                "start",
+                "--launch-wait",
+                "0",
+                "--after",
+                "slowdep",
+                "--after-poll",
+                "0.05",
+                "--after-heartbeat",
+                "0",
+                "guarded-wake",
+                "--",
+                "true",
+                env_extra={
+                    "AGENTCTL_SESSION_ID": "test-session",
+                    "YEP_SESSION_WAKE_TOKEN": "wake-secret",
+                    "YEP_SESSION_WAKE_URL": wake.url,
+                },
+            )
+            _assert(started.returncode == 0, started)
+            agentctl_source = ws.tmp / "agentctl.py"
+            with agentctl_source.open("a", encoding="utf-8") as handle:
+                handle.write("\n# changed after submission\n")
+            ws.commit(agentctl_source)
+            state = ws.wait_finished("guarded-wake")
+            deadline = time.time() + 3
+            while not wake.requests and time.time() < deadline:
+                time.sleep(0.02)
+
+        _assert(state["returncode"] == 2, state)
+        _assert(len(wake.requests) == 1, wake.requests)
+        text = wake.requests[0]["body"]["text"]
+        _assert("returncode=2" in text, text)
+        _assert("reproducibility guard" in text, text)
+    finally:
+        ws.cleanup()
+
+
+def test_queued_run_allows_committed_doc_change_before_payload():
+    ws = Workspace()
+    try:
+        doc = ws.tmp / "tasks/progress.md"
+        doc.parent.mkdir()
+        doc.write_text("queued\n", encoding="utf-8")
+        ws.commit(doc)
+        output = ws.scratch / "ran.txt"
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.5")
+        _start(
+            ws,
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "guarded-docs",
+            "--",
+            "bash",
+            "-c",
+            f"echo ran > {output}",
+        )
+        doc.write_text("completed\n", encoding="utf-8")
+        ws.commit(doc)
+
+        state = ws.wait_finished("guarded-docs")
+        _assert(state["returncode"] == 0, state)
+        _assert(output.read_text(encoding="utf-8").strip() == "ran", output)
     finally:
         ws.cleanup()
 
@@ -3124,6 +3393,8 @@ def test_queued_run_allows_sibling_aim_bookkeeping_changes_before_payload():
 
         dependency = ws.run(
             "start",
+            "--launch-wait",
+            "0",
             "--no-aim",
             "slowdep",
             "--",
@@ -3135,6 +3406,8 @@ def test_queued_run_allows_sibling_aim_bookkeeping_changes_before_payload():
         _assert(dependency.returncode == 0, dependency.stderr)
         guarded = ws.run(
             "start",
+            "--launch-wait",
+            "0",
             "--after",
             "slowdep",
             "--after-poll",

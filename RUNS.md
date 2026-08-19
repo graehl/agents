@@ -32,5 +32,14 @@ named scope. Cross-provider policy in `AGENTS.global.md` wins over both.
   handle, entering a foreground wait, monitoring or summarizing a long job, or
   reconstructing a run-policy failure.
 
+Every ordinary `agentctl start` stays in the foreground through its built-in
+five-second post-launch observation; do not background `start`. The timer begins
+after queued gates and pre-payload checks pass and the payload process exists.
+A run still live when that window ends needs a completion observer: the reported
+`completion_wake=armed`, or an explicit `agentctl wait/watch`. Background only
+that explicit observer through a harness facility that reports its completion;
+a shell `&`, detached terminal, or status poll is not one. `--launch-wait 0`
+skips the launch observation, not the completion-observer requirement.
+
 When one action matches multiple conditions, read all matching packets. Do not
 load the directory indiscriminately.

@@ -67,6 +67,8 @@ PROPAGATE_FILENAME = "propagate.json"
 PROJECT_ENV_FILENAME = "agentctl.env"
 LIVE_JOB_STATUSES = {"running", "waiting"}
 DEFAULT_LIST_SHOW_LAST = 6
+DEFAULT_LAUNCH_WAIT_SECONDS = 5.0
+SOURCE_SCOPES = ("non-doc", "all")
 ENVIRONMENT_CONTROL_FILES = (
     "pixi.toml",
     "pixi.lock",
@@ -2129,10 +2131,18 @@ def git_output(args: list[str], *, cwd: Path = ROOT, text: bool = True):
         ) from exc
 
 
-def tracked_source_status(git_root: Path) -> str:
+def source_pathspecs(source_scope: str) -> list[str]:
+    pathspecs = [".", ":(top,glob,exclude)**/runs/aim/**"]
+    if source_scope == "non-doc":
+        pathspecs.append(":(top,glob,exclude)**/*.md")
+    elif source_scope != "all":
+        raise ValueError(f"unknown source scope: {source_scope!r}")
+    return pathspecs
+
+
+def tracked_source_status(git_root: Path, *, source_scope: str = "all") -> str:
     # Aim records remain visible to ordinary Git status for later triage,
     # but every project root in this checkout shares their bookkeeping writes.
-    pathspecs = [".", ":(top,glob,exclude)**/runs/aim/**"]
     return git_output(
         [
             "status",
@@ -2140,10 +2150,27 @@ def tracked_source_status(git_root: Path) -> str:
             "--untracked-files=no",
             "--ignore-submodules=none",
             "--",
-            *pathspecs,
+            *source_pathspecs(source_scope),
         ],
         cwd=git_root,
     ).strip()
+
+
+def committed_source_changes(
+    git_root: Path, *, previous_commit: str, current_commit: str, source_scope: str
+) -> list[str]:
+    return git_output(
+        [
+            "diff",
+            "--name-only",
+            "--no-renames",
+            previous_commit,
+            current_commit,
+            "--",
+            *source_pathspecs(source_scope),
+        ],
+        cwd=git_root,
+    ).splitlines()
 
 
 def committed_file_record(path: str | Path, *, git_root: Path, commit: str) -> dict:
@@ -2325,6 +2352,7 @@ def build_source_snapshot(
     explicit_script: bool,
     project_env: dict | None,
     source_env: list[str],
+    source_scope: str,
 ) -> dict:
     try:
         git_root_text = git_output(["rev-parse", "--show-toplevel"]).strip()
@@ -2340,7 +2368,7 @@ def build_source_snapshot(
             "an rsynced source tree without .git is not an experiment source"
         )
     git_root = Path(git_root_text).resolve()
-    dirty = tracked_source_status(git_root)
+    dirty = tracked_source_status(git_root, source_scope=source_scope)
     if dirty:
         first = dirty.splitlines()[0]
         raise SystemExit(
@@ -2392,6 +2420,7 @@ def build_source_snapshot(
         "git_root": str(git_root),
         "git_branch": git_output(["branch", "--show-current"], cwd=git_root).strip(),
         "git_commit": commit,
+        "source_scope": source_scope,
         "tracked_clean": True,
         "untracked_python_count": 0,
         "files": records,
@@ -2404,11 +2433,6 @@ def build_source_snapshot(
 def revalidate_foreign_environment(record: dict) -> None:
     git_root = Path(record["git_root"])
     commit = record["git_commit"]
-    if git_output(["rev-parse", "HEAD"], cwd=git_root).strip() != commit:
-        raise SystemExit(
-            "reproducibility guard: cross-repo environment checkout HEAD changed after "
-            f"submission; refusing payload launch: {git_root}"
-        )
     for expected in (record.get("files") or {}).values():
         current = committed_file_record(
             expected["path"], git_root=git_root, commit=commit
@@ -2426,14 +2450,25 @@ def revalidate_foreign_environment(record: dict) -> None:
 def revalidate_source_snapshot(snapshot: dict) -> None:
     git_root = Path(snapshot["git_root"])
     commit = snapshot["git_commit"]
-    if git_output(["rev-parse", "HEAD"], cwd=git_root).strip() != commit:
-        raise SystemExit(
-            "reproducibility guard: checkout HEAD changed after submission; refusing payload launch"
+    source_scope = snapshot.get("source_scope", "all")
+    current_commit = git_output(["rev-parse", "HEAD"], cwd=git_root).strip()
+    if current_commit != commit:
+        changed = committed_source_changes(
+            git_root,
+            previous_commit=commit,
+            current_commit=current_commit,
+            source_scope=source_scope,
         )
-    dirty = tracked_source_status(git_root)
+        if changed:
+            raise SystemExit(
+                "reproducibility guard: committed source changed after submission; "
+                f"refusing payload launch; first change: {changed[0]}"
+            )
+    dirty = tracked_source_status(git_root, source_scope=source_scope)
     if dirty:
         raise SystemExit(
-            "reproducibility guard: checkout became dirty after submission; refusing payload launch"
+            "reproducibility guard: checkout source became dirty after submission; "
+            f"refusing payload launch; first change: {dirty.splitlines()[0]}"
         )
     untracked_python = git_output(
         ["ls-files", "--others", "--exclude-standard", "--", "*.py"], cwd=git_root
@@ -3315,7 +3350,7 @@ def wait_for_after_targets(state: dict) -> int:
         time.sleep(poll)
 
 
-def mark_wait_failed(
+def mark_prelaunch_failed(
     state_path: Path, current: Path, exit_status_path: Path, rc: int
 ) -> None:
     finished_at = utc_now()
@@ -3326,12 +3361,83 @@ def mark_wait_failed(
         state["status"] = "finished"
         state["finished_at"] = finished_at
         state["returncode"] = rc
+        state = finalize_finished_state(state)
         update_state_files(state)
         write_json(current, state)
     except Exception as exc:
         print(
-            f"warning: wait-after failure state update failed: {exc!r}", file=sys.stderr
+            f"warning: pre-launch failure state update failed: {exc!r}", file=sys.stderr
         )
+
+
+def launch_completion_wake_text(state: dict) -> str:
+    return "armed" if state.get("wake_armed") else "unarmed"
+
+
+def observe_payload_launch(
+    job: str, *, wrapper: subprocess.Popen, seconds: float
+) -> int:
+    if seconds <= 0:
+        state = load_job(job)
+        wake = launch_completion_wake_text(state)
+        print(f"[launch-wait] skipped job={state['job']} completion_wake={wake}")
+        if wake == "unarmed":
+            print(
+                f"warning: no completion wake is armed for {state['job']}; "
+                f"start an explicit agentctl wait/watch observer",
+                file=sys.stderr,
+            )
+        return 0
+
+    deadline: float | None = None
+    reported_prelaunch = False
+    while True:
+        state = load_job(job)
+        status = state.get("status", "")
+        if status not in LIVE_JOB_STATUSES:
+            rc = status_returncode_exit_code(state) if status == "finished" else 1
+            rc_text = status_returncode_text(state) or "unknown"
+            print(
+                f"[launch-wait] job={state['job']} status={status} "
+                f"returncode={rc_text} log={state.get('log_path', '')}"
+            )
+            if rc != 0 and state.get("log_path"):
+                print_tail(Path(state["log_path"]), 20)
+            return rc
+
+        if state.get("payload_started_at"):
+            if deadline is None:
+                deadline = time.monotonic() + seconds
+            if time.monotonic() >= deadline:
+                wake = launch_completion_wake_text(state)
+                print(
+                    f"[launch-wait] job={state['job']} running after {seconds:g}s "
+                    f"completion_wake={wake}"
+                )
+                if wake == "unarmed":
+                    print(
+                        f"warning: no completion wake is armed for {state['job']}; "
+                        f"start an explicit agentctl wait/watch observer",
+                        file=sys.stderr,
+                    )
+                return 0
+        elif not reported_prelaunch:
+            print(
+                f"[launch-wait] job={state['job']} waiting for pre-payload checks",
+                flush=True,
+            )
+            reported_prelaunch = True
+
+        if wrapper.poll() is not None:
+            state = load_job(job)
+            if state.get("status") in LIVE_JOB_STATUSES:
+                print(
+                    f"[launch-wait] job={state['job']} wrapper exited before terminal "
+                    f"state was recorded",
+                    file=sys.stderr,
+                )
+                return 1
+        time.sleep(0.05)
 
 
 def start(args: argparse.Namespace) -> int:
@@ -3533,6 +3639,7 @@ def start(args: argparse.Namespace) -> int:
             explicit_script=bool(args.script),
             project_env=project_env,
             source_env=list(args.source_env),
+            source_scope=args.source_scope,
         )
     for script in args.source_env:
         env = source_env_script(env, script)
@@ -3568,6 +3675,7 @@ def start(args: argparse.Namespace) -> int:
         "run_id": rid,
         "runtime_estimate": runtime_estimate,
         "runtime_estimate_seconds": runtime_estimate_seconds,
+        "launch_wait_seconds": args.launch_wait,
         "machine_snapshot": machine_snapshot(),
         "project_env": project_env,
         "script": script_rec,
@@ -3667,7 +3775,7 @@ def start(args: argparse.Namespace) -> int:
             )
         finally:
             reap_proc(proc)
-    return 0
+    return observe_payload_launch(job, wrapper=proc, seconds=args.launch_wait)
 
 
 def run_child(args: argparse.Namespace) -> int:
@@ -3689,7 +3797,7 @@ def run_child(args: argparse.Namespace) -> int:
         )
         wait_rc = 1
     if wait_rc != 0:
-        mark_wait_failed(state_path, current, exit_status_path, wait_rc)
+        mark_prelaunch_failed(state_path, current, exit_status_path, wait_rc)
         return wait_rc
     try:
         state = read_json(state_path)
@@ -3702,14 +3810,14 @@ def run_child(args: argparse.Namespace) -> int:
                 heartbeat=float(state.get("deferred_wait_heartbeat") or 10.0),
             )
             if wait_rc != 0:
-                mark_wait_failed(state_path, current, exit_status_path, wait_rc)
+                mark_prelaunch_failed(state_path, current, exit_status_path, wait_rc)
                 return wait_rc
     except Exception as exc:
         print(
             f"warning: deferred wait-gpu failed before payload launch: {exc!r}",
             file=sys.stderr,
         )
-        mark_wait_failed(state_path, current, exit_status_path, 1)
+        mark_prelaunch_failed(state_path, current, exit_status_path, 1)
         return 1
     try:
         state = read_json(state_path)
@@ -3726,7 +3834,7 @@ def run_child(args: argparse.Namespace) -> int:
             f"reproducibility guard failed before payload launch: {detail}",
             file=sys.stderr,
         )
-        mark_wait_failed(state_path, current, exit_status_path, 2)
+        mark_prelaunch_failed(state_path, current, exit_status_path, 2)
         return 2
     # Pre-launch: write meta + dump record now (serialized inside the child so
     # there's no race between start()'s post-Popen writes and our completion read).
@@ -3742,14 +3850,26 @@ def run_child(args: argparse.Namespace) -> int:
         update_state_files(state)
     except Exception as exc:
         print(f"warning: pre-launch meta write failed: {exc!r}", file=sys.stderr)
-    proc = subprocess.Popen(argv, cwd=str(ROOT))
+    try:
+        proc = subprocess.Popen(argv, cwd=str(ROOT))
+    except OSError as exc:
+        print(f"payload process creation failed: {exc}", file=sys.stderr)
+        mark_prelaunch_failed(state_path, current, exit_status_path, 127)
+        return 127
     payload_pid = proc.pid
+    payload_started_at = utc_now()
     try:
         state = read_json(state_path)
         state["payload_pid"] = payload_pid
+        state["payload_started_at"] = payload_started_at
         update_state_files(state)
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"payload start state update failed: {exc!r}", file=sys.stderr)
+        if proc.poll() is None:
+            proc.kill()
+        proc.wait()
+        mark_prelaunch_failed(state_path, current, exit_status_path, 1)
+        return 1
     rc = proc.wait()
     record = {
         "finished_at": utc_now(),
@@ -4855,12 +4975,16 @@ def restart(args: argparse.Namespace) -> int:
         project_env=(state.get("project_env") or {}).get("path", ""),
         no_project_env=not bool(state.get("project_env")),
         source_env=state.get("source_env", []),
+        source_scope=(state.get("source_snapshot") or {}).get("source_scope", "all"),
         gpu_patience=600.0,
         wait_gpu=0,
         wait_max_memory_used=None,
         wait_poll=10.0,
         wait_heartbeat=10.0,
         wait_timeout=0.0,
+        launch_wait=float(
+            state.get("launch_wait_seconds", DEFAULT_LAUNCH_WAIT_SECONDS)
+        ),
         watch=False,
         watch_tail=20,
         watch_poll=5.0,
@@ -5044,6 +5168,15 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         ),
     )
     sp.add_argument(
+        "--source-scope",
+        choices=SOURCE_SCOPES,
+        default="non-doc",
+        help=(
+            "Tracked paths whose changes block launch: non-doc excludes Markdown; "
+            "all checks every tracked path except run bookkeeping (default: %(default)s)."
+        ),
+    )
+    sp.add_argument(
         "--gpu-patience",
         type=float,
         default=600.0,
@@ -5078,6 +5211,15 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         type=float,
         default=0.0,
         help="Maximum seconds to wait before launch; 0 means no timeout.",
+    )
+    sp.add_argument(
+        "--launch-wait",
+        type=nonnegative_float,
+        default=DEFAULT_LAUNCH_WAIT_SECONDS,
+        help=(
+            "After pre-payload checks pass and the payload starts, observe it for this many "
+            "seconds and return its fail-fast status; 0 skips observation (default: %(default)g)."
+        ),
     )
     sp.add_argument(
         "--watch",
