@@ -98,6 +98,21 @@ can still lower it. Required reads approaching the smaller active budget use
 separate calls or bounded ranges; any truncation warning or elision marker
 means the read remains incomplete.
 
+## Patch hunk context
+
+`apply_patch` verifies hunk context exactly. Construct each hunk from the
+smallest current-file context that identifies its site, copied from visible
+output rather than composed indentation, surrounding lines, or escapes. Merely
+running a same-file command does not establish matching context; use the bytes
+that command actually displayed. An intervening writer or formatter invalidates
+them.
+
+## Code-mode cell handles
+
+A terminal `wait` result consumes its `cell_id`; do not wait on that id again.
+Reuse the id only when the most recent result explicitly says the script is
+still running with that cell id.
+
 ## Turn-End Is A Dead Stop
 
 Codex has no scheduled wakeup, cron, or background-job completion

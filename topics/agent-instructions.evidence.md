@@ -3486,3 +3486,36 @@ Contributing-model: 5.6-Sol
   later supply before/after counts.
 
 Contributing-model: Fable
+
+## 2026-08-18 — exact patch context and terminal cell consumption
+
+- **Trigger** — a 30-day tool-surprises survey found 69 Codex patch-anchor
+  failures in `~/agents` and 276 in Yep Anywhere, with nearly every failure
+  followed by a successful same-target retry. The same survey found 12 stale
+  `wait` calls in 12 Yep Anywhere sessions; 11 followed an already-terminal
+  result, and none recovered on the same cell.
+- **Decision** — the shared edit invariant now covers both exact `old_string`
+  matches and patch-hunk context: copy the smallest identifying material from
+  current visible output, and treat any intervening writer or formatter as
+  invalidation. The Codex supplement projects that invariant onto
+  `apply_patch`, where a recent same-file command is insufficient unless its
+  displayed bytes supply the hunk. It also states that a terminal code-mode
+  `wait` consumes its cell id, while an explicitly still-running result permits
+  another wait on that id.
+- **Trace: inferred patch context** — an agent runs `rg` against a file, then
+  composes a hunk from remembered indentation and nearby lines. Literal use of
+  the new rule rejects the memory-based hunk and copies minimal displayed
+  context, preventing the verification retry rather than merely prescribing a
+  reread after failure.
+- **Trace: intervening formatter** — a formatter writes the file after the
+  agent's read. The shared invalidation clause forces a fresh read before either
+  `Edit` or `apply_patch`; the old output cannot authorize an exact-match edit.
+- **Trace: consumed cell** — `wait({cell_id: 52})` returns a terminal completion.
+  The next step does not poll 52 again. If instead the result says the script is
+  still running with cell 52, the explicit exception permits another wait, so
+  long-running work is not abandoned.
+- **Status** — user-directed and trace-simulated. The baseline is measured;
+  reduction in patch retries and stale waits remains to be checked in a later
+  survey.
+
+Contributing-model: 5.6-Sol

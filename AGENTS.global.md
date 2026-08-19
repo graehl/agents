@@ -433,11 +433,11 @@ for genuine bulk codemods/formatters, not disguised targeted edits.
 
 ## Edit anchors: copy, don't compose
 
-An `old_string` is a literal current-file substring. Copy it from a current read
-or visible prior edit; do not reconstruct indentation, wraps, whitespace, or
-escapes. Use the smallest unique span and extend upward to a unique enclosing
-line when multiple matches occur. A subagent/formatter/script write you have not
-read requires a reread.
+Exact-match edit material—an `old_string` or patch-hunk context—must be copied
+from current file output or a visible prior edit; never reconstruct indentation,
+wraps, whitespace, or escapes. Use the smallest unique span or hunk. Any
+intervening writer, formatter, or script invalidates that copied context; reread
+before using it.
 
 Source escapes such as `\0`, `\n`, `\t`, and `\\` remain two source characters;
 never insert literal control bytes. After a second failure on one file, stop
