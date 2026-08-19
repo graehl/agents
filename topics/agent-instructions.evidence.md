@@ -3519,3 +3519,41 @@ Contributing-model: Fable
   survey.
 
 Contributing-model: 5.6-Sol
+
+## 2026-08-19 — Claude Edit anchors exclude diagnostic output
+
+- **Trigger** — the user identified missing `Edit` guidance in a Copilot-backed
+  Sol session running through Claude Gateway. The supplied Vitest failure was a
+  motivating diagnostic containing terminal-rendering artifacts (`•`, `Σ`), not
+  a recovered rejected `Edit` call. The 30-day Yep Anywhere tool-surprises
+  survey independently found 102 Claude `Edit` anchor failures across 48
+  sessions, with 94 followed by a successful retry; affected models included
+  Fable, Opus, and Sol.
+- **Placement** — `AGENTS.codex.md`'s concrete projection applies only to
+  `apply_patch` in the Codex harness and does not load on this route. The shared
+  exact-anchor invariant already loads from `AGENTS.global.md`; the missing
+  operational projection belongs in `AGENTS.claude.md` because Claude Code
+  supplies `Edit`, regardless of whether Copilot API or another backend serves
+  the model. Putting it in the Copilot supplement would also over-apply it to
+  native Copilot CLI.
+- **Decision** — say directly that `Edit.old_string` is current source-file text,
+  never a patch, test failure, diff, diagnostic, or terminal rendering. Read the
+  target and copy the smallest unique source span; when text repeats, add a
+  nearby unique source line rather than more repeated body. Preserve the common
+  rapid-edit path: a successful `Edit` leaves its visible `new_string` available
+  as an immediate follow-up anchor without a redundant read.
+- **Trace: diagnostic reaction** — a Vitest spy diff shows decorated expected and
+  received objects. Literal application treats it only as evidence about the
+  failure, reads the test source, and copies the actual expectation into
+  `old_string`; renderer bullets and terminators cannot enter the anchor.
+- **Trace: repeated source** — a one-line assertion occurs in several tests. The
+  agent includes the enclosing `it("...")` line from source rather than adding
+  more duplicated assertion body, so `Edit` receives one exact match.
+- **Trace: immediate follow-up** — a successful edit inserts a new test whose
+  body needs one correction. The agent anchors on its own visible `new_string`
+  instead of paying for a redundant read; an intervening writer still triggers
+  the shared invalidation rule.
+- **Status** — direct user placement decision plus scenario traces; the aggregate
+  baseline is measured, while any reduction in retries remains unmeasured.
+
+Contributing-model: 5.6-Sol

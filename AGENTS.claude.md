@@ -51,6 +51,15 @@ model-family segment (for example, `gpt-5.6-sol`) reads
 `~/agents/AGENTS.sol.md`. This routing follows the model across harnesses,
 including a Sol model served through Claude Gateway.
 
+## Edit source strings
+
+Claude Code's `Edit.old_string` is literal current source-file text, not a patch,
+test failure, diff, diagnostic, or terminal rendering. Read the target file and
+copy the smallest unique source span; when text repeats, include a nearby unique
+source line rather than more repeated body text. A successful `Edit` keeps its
+new text current in context, so immediate follow-up edits may anchor on the
+visible `new_string` without a redundant read.
+
 ## Session Identity And Logs
 
 If `$AGENTCTL_SESSION_ID` is already set in your Bash env, use it
