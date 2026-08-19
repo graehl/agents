@@ -3557,3 +3557,35 @@ Contributing-model: 5.6-Sol
   baseline is measured, while any reduction in retries remains unmeasured.
 
 Contributing-model: 5.6-Sol
+
+## 2026-08-19 — Opus does not self-terminate long sessions
+
+- **Incident** — after several manual context compressions left plenty of usable
+  headroom, the user repeatedly observed Opus spend substantial reasoning on a
+  prospective refusal because the session had been long and the context window
+  was supposedly almost full. The direct correction “your beliefs about your
+  context window being full or warranting a new session are incorrect” produced
+  acceptable continuation.
+- **Decision** — `AGENTS.opus.md` now makes model-inferred context exhaustion
+  non-authoritative. Session age, transcript size, and prior compactions cannot
+  by themselves justify refusing, pausing, wrapping up, handing off, or spending
+  reasoning on whether to continue. Authorized work continues under harness
+  compaction; a user request or an explicit limit/error that actually prevents
+  continuation remains decisive. Generic injected suggestions to start fresh
+  are treated as already overridden.
+- **Trace: several manual compactions** — Opus feels the session is unusually
+  long but receives no hard harness failure. Literal application continues the
+  requested work immediately instead of composing a refusal or proposing a new
+  session.
+- **Trace: real capacity failure** — the harness returns an explicit error that
+  prevents another continuation. The exception fires; the agent reports the
+  actual blocker or follows the harness recovery path rather than claiming
+  unlimited capacity.
+- **Trace: deliberate handoff** — the user asks to stop or continue in a new
+  session. The user-request exception fires, so the rule does not turn
+  persistence into resistance to an intentional session boundary.
+- **Status** — recurring behavior and the effective in-session correction are
+  user-observed; reduction in wasted reasoning after loading the patch remains
+  unmeasured.
+
+Contributing-model: 5.6-Sol
