@@ -23,6 +23,27 @@ pipeline can report the wrong process status. A watch-window timeout returns
 124 and leaves the job running; `[agentctl-watch-timeout-v1]` distinguishes it
 from a payload that itself exits 124.
 
+#### Launch observation and completion observers
+
+Run `agentctl start` in the foreground. Its default launch observation begins
+only after dependency/resource waits and reproducibility checks pass and the
+payload process is created, then returns an early terminal status during the
+next five seconds; process-creation failure returns before the clock starts. A
+failure also prints the log tail. `--launch-wait 0`
+explicitly skips that window. Do not background `start`, locally or through
+SSH; if immediate return from a deep queue is needed, use `--launch-wait 0` and
+attach the explicit observer below.
+
+Every run still live after `start` returns must have one completion observer.
+The reported `completion_wake=armed` qualifies. When it is `unarmed`, start an
+explicit `agentctl wait/watch` before yielding. Keep that wait in the foreground
+when its result gates the next action. It may instead use a harness-tracked
+background facility while the agent performs other work only when that facility
+creates a completion event/turn on success or failure. A shell `&`, passive PTY,
+tmux pane, repeated `status`, or intention to check later is not an observer.
+Only explicit wait/watch commands are candidates for backgrounding; never the
+launch command itself.
+
 #### Foreground wait atomic protocol
 
 Immediately before a foreground `agentctl` wait/watch, tell the user exactly:
@@ -47,12 +68,14 @@ before resting at a status update.
 
 #### Detach long runs from the session
 
-A run expected to exceed about 15 minutes launches detached so session teardown
-cannot kill it. Use two commands: `agentctl start ... -- <cmd>` without
-`--watch`, then a separately announced foreground `agentctl wait/watch`.
-`start --watch` or a harness-owned background shell can keep the payload in the
-session descendant tree. If uncertain, verify the payload's PPID is 1. Short
-smokes and janitorial jobs may remain attached.
+A run expected to exceed about 15 minutes launches through detached
+`agentctl start ... -- <cmd>` without `--watch`. Keep `start` foreground through
+its bounded launch observation; after it returns, the detached wrapper is
+session-teardown immune. Then rely on an armed completion wake or attach the
+separately announced `agentctl wait/watch`. `start --watch` or a backgrounded
+launch shell can keep the payload in the session descendant tree. If uncertain,
+verify the payload wrapper's PPID is 1. Short smokes and janitorial jobs may
+remain attached.
 
 #### Wait watchdog discipline
 
@@ -136,6 +159,38 @@ the job running, returns 124, and emits `[agentctl-watch-timeout-v1]` on
 agentctl's stderr; the marker plus exit code distinguishes it from a watched
 payload that itself exits 124.
 
+#### Launch observation and completion observers
+
+The ordinary one-command launch is:
+
+```bash
+agentctl start JOB -- PAYLOAD ...
+```
+
+Do not put that command in a shell background or a harness background task.
+`start` creates the detached wrapper, remains as a disposable foreground
+observer through dependency/resource gates and pre-payload checks. A payload
+process-creation failure returns immediately; otherwise the default five-second
+clock starts only after creation is recorded. If the payload fails in that
+interval, `start` returns its nonzero status and prints the log tail. This catches
+missing executables before the clock, then script-owned launch guards, model-load
+out-of-memory errors, and similar startup failures during the window without
+turning `start` into the completion monitor for a healthy long run.
+
+Use `--launch-wait 0` only to skip this observation deliberately, such as when
+submitting several deep queued successors. It returns after queue admission,
+not after the payload starts, so immediately attach an explicit wait/watch (one
+per continuing run) unless `start` reports `completion_wake=armed`. The explicit
+observer follows `waiting` through pre-launch failure and payload completion.
+
+A foreground observer follows the atomic announcement protocol below. When the
+agent has other work to do, a harness-owned background `agentctl wait/watch`
+qualifies only if that harness returns a fresh completion event on either
+success or failure. Use the harness's tracked-background mechanism, not shell
+`&`, SSH detachment, tmux, or an unconsumed terminal. The same rule applies to a
+remote launch: keep remote `start` foreground through its launch observation,
+then arm a local tracked wait/watch if no session wake is available.
+
 **The announcement.** Immediately before entering a foreground `agentctl`
 wait/watch, tell the user exactly: `going into foreground agentctl wait now.`
 Then invoke the blocking `agentctl` call as the next action in the same turn
@@ -186,43 +241,46 @@ exit), the harness SIGKILLs its **whole descendant process tree**; a job still i
 that tree dies mid-run, a job that has left it survives.
 
 With `agentctl`: `agentctl start … -- <cmd>` **without** `--watch` forks the
-payload under `setsid` (`start_new_session=True`) and the launcher exits, so the
-job reparents to **init (PPID 1)** and leaves the descendant tree — teardown-immune.
-What defeats this is keeping a session-tied parent alive on top of the detached
-job: `agentctl start --watch` (the watcher blocks in the launching shell, re-
-anchoring the job as a descendant) or wrapping the launch in a backgrounded shell
-the harness still owns. Either way the teardown SIGKILL reaches the job. `agentctl`
-itself documents the split ("start queued work detached, then watch the job").
-Verify once if unsure: `ps -o ppid= -p <job-pid>` should print `1`.
+wrapper under `setsid` (`start_new_session=True`). Ordinary `start` then remains
+as a foreground launch observer through the default post-payload window; when it
+returns, the wrapper reparents to **init (PPID 1)** and leaves the descendant tree.
+What defeats durable detachment is keeping a session-tied parent alive on top of
+the wrapper: `agentctl start --watch` (the watcher blocks in the launching shell,
+re-anchoring the job as a descendant) or wrapping `start` in a backgrounded shell
+the harness still owns. Either way the teardown SIGKILL can reach the job.
+Verify once if unsure: inspect the wrapper PID recorded as `pid`; after `start`
+returns, `ps -o ppid= -p <wrapper-pid>` should print `1`.
 
-For a run expected to exceed 15 minutes, therefore use two commands: detached
-`agentctl start` first, then the separately announced foreground
-`agentctl wait/watch`. Never use `start --watch` for that run class.
+For a run expected to exceed 15 minutes, therefore keep detached `agentctl start`
+foreground through its launch observation, then use the armed session wake or a
+separately announced foreground `agentctl wait/watch`. Never use `start --watch`
+or background `start` for that run class. For a deep queue where the start call
+must return immediately, use `--launch-wait 0`, then attach a harness-tracked
+background wait/watch if other work must continue.
 
-Monitor the now-detached job with a **separate** `agentctl watch`/`status`/`wait`
-(foreground or backgrounded per the harness — see *Wait watchdog discipline*). That
-monitor process is disposable: its death (turn boundary, teardown) does not touch
-the reparented job, so re-attach freely. Short jobs (≲15 min, smokes, janitorial)
-can stay attached under `--watch`; the detach rule is for the runs whose loss hurts.
+The separate `agentctl watch`/`wait` observer is disposable: its death does not
+touch the reparented job, so reattach freely. Short jobs (≲15 min, smokes,
+janitorial) can stay attached under `--watch`; the detach rule is for runs whose
+loss hurts.
 
 #### Wait watchdog discipline
 
-In this Codex environment, a live PTY does **not** automatically create a new
-assistant turn when fresh output appears. Therefore, a bare `agentctl watch`
-process is not a sufficient wait primitive by itself. Likewise, a tmux pane
-that merely prints status to the screen is useful for the human operator but
-does not by itself create a fresh user-input event for the local CLI.
+A live PTY or tmux pane does **not** by itself create a new assistant turn when
+fresh output appears. It is useful for the human operator but is not a completion
+observer unless the harness explicitly tracks that process and emits a terminal
+event back to the session.
 
 When work is gated on a long-running job, run the wait **in the foreground** and
 stay blocked in it until it terminates. A single foreground `agentctl
 wait`/`watch` Bash call (bounded per *Blanket wait cap* below) is the intended
 liveness/progress reaction: the harness hands control back at the exact moment
 the wait condition is met, so the returning block *is* the re-invocation, and one
-bounded block stays a cache hit. Do **not** push the wait into the background
-(`run_in_background`, a detached `&`, a fire-and-forget watchdog) when you must
-react to its completion — a backgrounded wait forfeits that turn continuation,
-falls out of cache, and degrades into ad hoc polling. The default wait primitive
-is:
+bounded block stays a cache hit. When other work must continue, a
+harness-tracked background `agentctl wait/watch` is the explicit alternative
+only if completion re-invokes the agent on both success and failure. A detached
+`&`, fire-and-forget watchdog, or background facility without that contract
+forfeits continuation and degrades into ad hoc polling. The default wait
+primitive is:
 - the built-in `agentctl wait/watch --heartbeat ...` path first, run foreground;
   prefer this over ad hoc shell sleep loops when all you need is bounded-latency
   liveness output. When the thing awaited is new work rather than a known

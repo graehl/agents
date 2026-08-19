@@ -66,25 +66,28 @@ whether to extend the system or to introduce something parallel.
   `run_id`, collision-safe within agentctl-generated dumps. No SDK
   round-trip required to produce records.
 - **Committed source is the tracked-run admission rule.** The launcher records
-  Git branch + commit, requires a clean tracked/index state outside every
-  `runs/aim/` bookkeeping subtree in the Git checkout, rejects non-ignored
-  untracked Python, and proves the entry script and recognized environment
-  controls are recoverable from that commit. SHA-256 remains a useful byte
-  identity, but an off-Git hash diagnoses non-reproducibility rather than
-  curing it. Inputs and outputs remain SHA-256 opt-in because large tensors
-  are expensive.
+  Git branch + commit and requires a clean tracked/index state within the chosen
+  source scope. The default `non-doc` scope excludes Markdown and every
+  `runs/aim/` bookkeeping subtree; `all` includes Markdown. Both reject
+  non-ignored untracked Python and prove the entry script and recognized
+  environment controls are recoverable from that commit, even when a selected
+  file is Markdown. SHA-256 remains a useful byte identity, but an off-Git hash
+  diagnoses non-reproducibility rather than curing it. Inputs and outputs remain
+  SHA-256 opt-in because large tensors are expensive.
 
 ## Bounded scope (non-goals stated up front)
 
 - **No workflow DSL.** Agents (or humans) orchestrate steps imperatively —
   `agentctl start` per step, `--depends-on` for declared ordering, the runs
   DB is the durable propagation graph. We are not building Snakemake.
-- **No exact runtime dependency discovery.** A clean commit binds tracked
-  project files; the coarse near-term closure additionally forbids
+- **No exact runtime dependency discovery.** A clean selected source scope binds
+  tracked project files; the coarse near-term closure additionally forbids
   non-ignored untracked `*.py` and binds recognized environment manifests,
-  locks, and launch-env files. We do not strace, intercept opens, trace Python
-  imports, or infer arbitrary external/native/ignored dependencies. A step
-  that does not declare its data inputs is still a graph leaf.
+  locks, and launch-env files. The default conservatively checks every
+  non-Markdown tracked path; it does not crawl imports by language. We do not
+  strace, intercept opens, trace Python imports, or infer arbitrary
+  external/native/ignored dependencies. A step that does not declare its data
+  inputs is still a graph leaf.
 - **No deterministic replay.** True bit-for-bit reproducibility is the
   containerization problem (nix/docker). OS/distro, GPU, and cloud image
   identity are recorded best-effort but do not gate launch. We capture enough
@@ -149,6 +152,7 @@ recognizes the pattern without onboarding.
 | `--output-arg KEY=PATH` (repeatable) | Like `--output`, and translate to `--KEY=PATH` appended to payload argv |
 | `--output-hash KEY=PATH` (repeatable) | Like `--output` plus compute sha256 at completion (cost is paid after the user command finishes) |
 | `--script PATH` | Override the heuristic script-detection. Useful when argv has no script-shaped argument (`bash -c '...'`), the heuristic picks the wrong file, or the run hides behind a multi-word launcher (`pixi run script.py`, `conda run -n env python ...`, `nohup ...`). |
+| `--source-scope {non-doc,all}` | Choose which tracked/index changes gate source admission. `non-doc` (default) excludes `*.md`; `all` includes it. Both exclude `runs/aim/**` bookkeeping and independently fingerprint selected script/environment controls. |
 | `--propagate-json '{...}'` | Static producer-flagged facts (JSON object) for quoting at the next consumer's input record. Stored in `state.propagate`, folded into each output's `.meta.json` sidecar under `propagate`. Cooperative protocol: programs may write run-time-computed facts to `$AGENTCTL_RUN_DIR/propagate.json` during execution; agentctl merges that file at completion (runtime values override static). |
 | `--no-aim` | Skip writing the aim-format dump (run becomes a graph leaf) |
 | `--no-meta` | Skip the human-readable launch `.meta.md` (sidecar `.meta.json` is independent) |
@@ -288,12 +292,12 @@ reproducibility cares about.
 ### `source_snapshot` and `machine_snapshot`
 
 Tracked runs carry an `agentctl-source-v1` snapshot with status `committed`,
-the Git root/branch/commit, the source-cleanliness decision, and a `files` map.
-Each selected file records absolute path, project-relative Git path, Git blob,
-SHA-256, and size. Selected files include the detected/explicit entry script,
-`agentctl.env`, every `--source-env` script, root environment controls, and
-controls for a selected Pixi manifest. Pixi selection requires both
-`pixi.toml` and `pixi.lock`.
+the Git root/branch/commit, `source_scope`, the source-cleanliness decision, and
+a `files` map. Each selected file records absolute path, project-relative Git
+path, Git blob, SHA-256, and size. Selected files include the detected/explicit
+entry script, `agentctl.env`, every `--source-env` script, root environment
+controls, and controls for a selected Pixi manifest. Pixi selection requires
+both `pixi.toml` and `pixi.lock`.
 
 Here `committed` means the selected bytes agreed with the named commit when
 checked; it does not describe an immutable payload tree. The additive fields
@@ -303,11 +307,14 @@ checked; it does not describe an immutable payload tree. The additive fields
 records the queued child's last check.
 
 Admission rejects a missing Git checkout or committed `HEAD`, tracked/index
-drift outside every `runs/aim/` subtree, any non-ignored untracked `*.py`, an
+drift inside the selected scope, any non-ignored untracked `*.py`, an
 off-checkout experiment script or environment, and selected bytes not
-recoverable from the recorded commit. The detached child repeats the commit,
-cleanliness, untracked-Python, and file checks after dependency/GPU waits and
-immediately before payload launch. The payload then runs from the invoking
+recoverable from the recorded commit. `non-doc` excludes `*.md` plus every
+`runs/aim/` subtree; `all` excludes only that bookkeeping. The detached child
+repeats the cleanliness, untracked-Python, and file checks after dependency/GPU
+waits and immediately before payload launch. When `HEAD` moved, it rejects only
+if the diff from the submission commit contains an in-scope path; snapshots
+predating `source_scope` retain `all`. The payload then runs from the invoking
 checkout. A peer edit after that check, or a file read deferred by the payload,
 can observe later bytes; the source snapshot makes no stronger claim.
 Commit-isolated work must launch from a separately materialized, protected

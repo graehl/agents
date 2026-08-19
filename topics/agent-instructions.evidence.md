@@ -3589,3 +3589,43 @@ Contributing-model: 5.6-Sol
   unmeasured.
 
 Contributing-model: 5.6-Sol
+
+## 2026-08-19 — queued launch observation and completion ownership
+
+- **Incident** — an Opus session queued a GPU chain, then made Markdown-only
+  task/status commits. Raw delayed `HEAD` equality rejected the first queued
+  payload before launch. Its recorded state was already `finished returncode=2`
+  with `wake_armed=false`, but the session reported the chain as active without
+  an explicit `agentctl wait`; the GPU remained idle for roughly 1h48m.
+- **Placement and decision** — the failure mode is launcher- and harness-general,
+  so `RUNS.md` and `_RUNS/` own the behavioral rule rather than an Opus patch.
+  Ordinary `start` remains foreground through a five-second observation whose
+  clock begins after gates/checks and successful payload creation. Every
+  surviving run then has an armed session wake or an explicit wait/watch;
+  agents may harness-background only that explicit observer, never `start`.
+  Source admission defaults to repo-wide `non-doc`, while `all` remains the
+  strict option. Pre-payload terminal paths invoke the ordinary completion hooks.
+- **Trace: Markdown progress commit while queued** — `non-doc` sees no in-scope
+  committed change, fingerprints still agree with the recorded commit, and the
+  payload launches. A selected Markdown script remains protected by its direct
+  fingerprint.
+- **Trace: source commit while queued** — the delayed diff finds the first
+  in-scope path, finalizes return code 2, names that path in the log, and wakes
+  the session or returns through its explicit wait.
+- **Trace: startup out-of-memory** — model loading creates the payload process
+  and exits nonzero inside five seconds; foreground `start` returns that status
+  and prints the log tail instead of reporting a detached success.
+- **Trace: healthy survivor without session wake** — `start` reports
+  `completion_wake=unarmed`; the agent immediately begins an explicit
+  wait/watch, using a harness-tracked background call only when continuing other
+  work. Shell `&`, tmux, and later polling fail the literal observer rule.
+- **Trace: remote/deep queue** — remote `start` remains foreground through its
+  launch window. If immediate deep-queue submission is required,
+  `--launch-wait 0` returns after admission and the agent attaches a locally
+  tracked wait/watch; skipping observation never skips completion ownership.
+- **Status** — user-directed and trace-simulated. Focused tests cover Markdown
+  and source commits during queueing, post-check timer semantics, startup
+  failures, pre-payload wake delivery, restart preservation, and unrelated
+  foreign-checkout commits; cross-session behavior remains to be observed.
+
+Contributing-model: 5.6-Sol
