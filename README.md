@@ -152,6 +152,7 @@ Symlinks follow the named `AGENTS.global.md` across Git updates.
 | --- | --- |
 | `skills/wish/` | Pursues an unattended goal against an explicit done-condition and quoted evidence, while refusing verifier-gaming shortcuts. |
 | `skills/harsh-review/` | Runs a deliberately strict structural and correctness audit: deleting reframes, spaghetti, leaky abstractions, and logic that breaks on a concrete input. |
+| `skills/security-review/` | Audits release snapshots for concrete compromises against the project's stated security stance, with retained range records and final-state emphasis. |
 | `skills/code-map/` | Produces a regenerable developer map of modules, flow slices, contracts, seams, blind spots, and refresh commands. |
 | `skills/doubt/` | Re-solves a disputed conclusion independently before comparing with the earlier answer to find the first consequential divergence. |
 | `skills/dream/` | Consolidates a doc project by pruning contradiction/staleness and distilling facts established in recent sessions but never written down. |

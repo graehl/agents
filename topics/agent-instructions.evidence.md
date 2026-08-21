@@ -3629,3 +3629,32 @@ Contributing-model: 5.6-Sol
   foreign-checkout commits; cross-session behavior remains to be observed.
 
 Contributing-model: 5.6-Sol
+
+## 2026-08-21 — security review audits release snapshots
+
+- **User direction** — create a security-only counterpart to harsh review that
+  retains its local review surface under security-specific names:
+  `.security-review`, `security-review/<range>.accum`, and
+  `security-review/<range>.verdict.md`. Read an optional project
+  `topics/security.md` and report only compromises against the stated stance,
+  not general hardening, correctness, or structural advice.
+- **Granularity correction** — the audit is snapshot-first. Release tags, plus
+  the requested final endpoint, are the review points; commits between them are
+  only a change map. An untagged vulnerable intermediate commit fixed before
+  the next review point is not a finding.
+- **Trace: fixed before release** — one commit introduces command injection and
+  the next removes it before the next release tag. The release snapshot and
+  final endpoint are safe, so the review records no compromise from the
+  intermediate state.
+- **Trace: released then fixed** — the vulnerable state receives release tag
+  `v2.1`; `v2.2` fixes it. The review records a released-and-resolved
+  compromise, proposes no already-landed code fix, and checks for persistent
+  consequences such as exposed data or credential rotation.
+- **Trace: explicit accepted boundary** — `topics/security.md` accepts an
+  unauthenticated endpoint only on loopback. The endpoint remaining on
+  loopback is not a finding; a change binding it publicly is a concrete
+  compromise beyond the accepted-risk boundary.
+- **Status** — directly user-specified and scenario-traced; first use will test
+  release-tag discovery and the retained record workflow.
+
+Contributing-model: Daybreak-Blue
