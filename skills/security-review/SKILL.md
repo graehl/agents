@@ -47,6 +47,27 @@ classify them, or include them in the security accumulator or verdict.
 Deduplicate and follow the project's gap format. At the end of a completed
 review, name every gap filed during it after the verdict link.
 
+## Upstream freshness
+
+When the review end is selected by a moving ref — a bare invocation, bare
+`since`, or a range ending at HEAD or a branch tip — sync before freezing
+endpoints; an end the user pinned to an explicit SHA reviews as requested. The
+upstreams are the remote branches project instructions name for keeping the
+reviewed branch current (e.g. `~/ya` tracks main on both its kzahel and graehl
+remotes), else the branch's configured `@{u}`; with neither, skip this step.
+Fetch them (a failed fetch is reported and reviews the local tree), then:
+
+- up to date or strictly ahead: proceed;
+- behind with a clean fast-forward — one fetched head descends from local HEAD
+  and contains every other named upstream head, no active peer sessions, and
+  the worktree does not block it: `git merge --ff-only <that head>`, then
+  review the updated tree;
+- behind otherwise — local commits not upstream, upstream heads with no single
+  fast-forward target, active peers, or a worktree refusal: stop and ask
+  whether to merge, rebase, or review locally, unless the request already
+  chose. Reviewing locally audits the tree as it stands, and the response
+  names the upstream(s) it is behind.
+
 ## Range, review points, and scope
 
 Resolve what to review first. The selected Git range runs from the parent of the

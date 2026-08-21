@@ -3680,3 +3680,31 @@ Contributing-model: Daybreak-Blue
   gap capture and security-review focus remains unmeasured.
 
 Contributing-model: Daybreak-Blue
+
+## 2026-08-21 — review skills sync to upstream before freezing a range
+
+- **User direction** — before a harsh or security review resolves its range,
+  fast-forward pull when the reviewed branch is behind its upstream(s) and a
+  fast-forward applies; when behind otherwise, stop unless the user names the
+  merge/rebase kind or says to proceed locally. In `~/ya`, project
+  instructions make both the kzahel and graehl remotes upstreams for main.
+- **Decision** — an identical "Upstream freshness" section in both skills,
+  placed before range resolution: it applies only when the end is selected by
+  a moving ref; the upstream set comes from project instructions, else the
+  configured `@{u}`, else the step is skipped; a multi-remote fast-forward
+  target must contain every other named upstream head; active peers or a
+  worktree refusal join the stop-and-ask branch; a failed fetch is reported
+  and the review proceeds locally.
+- **Trace: pinned range** — `harsh-review SHA1..SHA2` never syncs; the user
+  chose immutable endpoints, and no fetch can change them.
+- **Trace: diverged multi-remote** — kzahel/main and graehl/main disagree, so
+  no fetched head contains the other; the review stops and asks rather than
+  choosing a merge strategy, unless the request already chose one.
+- **Trace: peers in a shared worktree** — a fast-forward is available but a
+  peer session is active; moving HEAD under a peer risks their in-flight
+  work, so the skill stops or, when told, reviews locally and names the
+  pending update.
+- **Status** — directly user-specified and trace-simulated; first use will
+  test multi-remote target selection.
+
+Contributing-model: Fable

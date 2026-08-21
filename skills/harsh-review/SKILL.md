@@ -17,6 +17,27 @@ The terms below — *deleting reframe*, *spaghetti*, *leaky abstraction*, *diver
 
 Review past the diff. Judge the structure the change lands in, and ask whether the problem had a better approach from the outside. Always check for a deleting reframe: a restructuring that deletes whole branches, layers, or concepts while preserving behavior. Demanding a restructure on every merge just churns the system, so the procedure tags each item *blocker* or *advisory*; raise advisories with conviction but weigh the fix against the churn of blocking now. Exception: when the diff already opens the relevant *seam*, fixing it now is cheap and the bar to block drops.
 
+## Upstream freshness
+
+When the review end is selected by a moving ref — a bare invocation, bare
+`since`, or a range ending at HEAD or a branch tip — sync before freezing
+endpoints; an end the user pinned to an explicit SHA reviews as requested. The
+upstreams are the remote branches project instructions name for keeping the
+reviewed branch current (e.g. `~/ya` tracks main on both its kzahel and graehl
+remotes), else the branch's configured `@{u}`; with neither, skip this step.
+Fetch them (a failed fetch is reported and reviews the local tree), then:
+
+- up to date or strictly ahead: proceed;
+- behind with a clean fast-forward — one fetched head descends from local HEAD
+  and contains every other named upstream head, no active peer sessions, and
+  the worktree does not block it: `git merge --ff-only <that head>`, then
+  review the updated tree;
+- behind otherwise — local commits not upstream, upstream heads with no single
+  fast-forward target, active peers, or a worktree refusal: stop and ask
+  whether to merge, rebase, or review locally, unless the request already
+  chose. Reviewing locally audits the tree as it stands, and the response
+  names the upstream(s) it is behind.
+
 ## Range and scope
 
 Resolve what to review before classifying. The reviewed diff runs from the parent of the first reviewed commit to the last. No argument reviews HEAD alone: `HEAD^..HEAD`. A single commit (`harsh-review SHA1`) reviews just that commit: `SHA1^..SHA1`, not `SHA1` to HEAD. An inclusive start — "SHA1 to SHA2", "from SHA1 on" — counts SHA1 as first reviewed, so it diffs `SHA1^..SHA2` (or `SHA1^..HEAD`). "Since SHA1" instead treats SHA1 as the baseline and reviews what came after: `SHA1..HEAD`. A bare `since` — nothing after it — takes that baseline from the marker left by the previous review (§ Review marker): `<its line 1>..HEAD`. When the marker is missing, or its commit no longer exists in this repo (rebased or gc'd away), say so and ask for a baseline rather than substituting one; when the range is empty, report that nothing has landed since the last review and stop. A subject-shaped request ("recent commits on X") defaults to a ~48h lookback; widen only if nothing matches, until commits are found.
