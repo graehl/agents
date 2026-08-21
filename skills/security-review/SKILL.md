@@ -40,6 +40,13 @@ style, maintainability, performance, or correctness advice; an unreachable
 theoretical weakness; or a risk the stance explicitly accepts. A silent
 expansion beyond an accepted risk's stated boundary is still a finding.
 
+While tracing security paths, you may freely file concrete non-security quality
+defects you encounter under the project's normal gap convention. This is
+capture, not a second audit: do not search for them, widen review coverage to
+classify them, or include them in the security accumulator or verdict.
+Deduplicate and follow the project's gap format. At the end of a completed
+review, name every gap filed during it after the verdict link.
+
 ## Range, review points, and scope
 
 Resolve what to review first. The selected Git range runs from the parent of the
