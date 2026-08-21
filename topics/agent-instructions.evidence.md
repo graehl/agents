@@ -3658,3 +3658,25 @@ Contributing-model: 5.6-Sol
   release-tag discovery and the retained record workflow.
 
 Contributing-model: Daybreak-Blue
+
+## 2026-08-21 — security review may capture incidental quality gaps
+
+- **User direction** — a security audit will notice some non-security quality
+  defects while tracing real paths. The reviewer may file those gaps freely and
+  names them at the end of the completed review rather than discarding them.
+- **Boundary** — this is capture permission, not a second review mode. The
+  skill still forbids searching for general quality issues or widening coverage
+  to classify them, and keeps non-security defects out of the security
+  accumulator and verdict. Filed items use the project's normal gap convention
+  and deduplication rules.
+- **Trace: incidental defect** — a security data-flow trace exposes a concrete
+  confusing-failure bug with no attacker-to-impact chain. The reviewer files
+  the ordinary quality gap, omits it from the security findings, and names the
+  gap path after the verdict link.
+- **Trace: tempting quality sweep** — one incidental defect suggests broader
+  maintainability debt. The reviewer records only the concrete issue already
+  encountered and does not start a structural checklist or quality audit.
+- **Status** — directly user-specified and scenario-traced; effect on useful
+  gap capture and security-review focus remains unmeasured.
+
+Contributing-model: Daybreak-Blue
