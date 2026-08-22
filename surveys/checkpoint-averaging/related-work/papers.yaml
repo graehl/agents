@@ -1,0 +1,264 @@
+# Metadata manifest for surveys/checkpoint-averaging.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: checkpoint-averaging
+  coverage_cutoff: 2026-08-22
+  grounding_mode: grounded
+
+papers:
+  - key: polyak1992-averaging
+    title: "Acceleration of Stochastic Approximation by Averaging"
+    authors: ["B. T. Polyak", "A. B. Juditsky"]
+    venue: "SIAM Journal on Control and Optimization"
+    year: 1992
+    url: "https://epubs.siam.org/doi/pdf/10.1137/0330046"
+    doi: "10.1137/0330046"
+    grounded: false
+    verified: true
+    source: "SIAM title, author, DOI, and abstract metadata checked 2026-08-22; full text is access-controlled"
+    fetched: null
+    cluster: A
+
+  - key: garipov2018-mode-connectivity
+    short: trajectory-geometry
+    concept_page: concepts/trajectory-geometry.md
+    title: "Loss Surfaces, Mode Connectivity, and Fast Ensembling of DNNs"
+    authors: ["Timur Garipov", "Pavel Izmailov", "Dmitrii Podoprikhin", "Dmitry Vetrov", "Andrew Gordon Wilson"]
+    venue: "NeurIPS"
+    year: 2018
+    arxiv: "1802.10026"
+    grounded: true
+    verified: true
+    source: "arXiv and NeurIPS metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: B
+
+  - key: izmailov2018-swa
+    short: trajectory-averaging
+    concept_page: concepts/trajectory-averaging.md
+    title: "Averaging Weights Leads to Wider Optima and Better Generalization"
+    authors: ["Pavel Izmailov", "Dmitrii Podoprikhin", "Timur Garipov", "Dmitry Vetrov", "Andrew Gordon Wilson"]
+    venue: "UAI"
+    year: 2018
+    arxiv: "1803.05407"
+    grounded: true
+    verified: true
+    source: "arXiv metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: A
+
+  - key: cha2021-swad
+    short: validation-window
+    concept_page: concepts/validation-window.md
+    title: "SWAD: Domain Generalization by Seeking Flat Minima"
+    authors: ["Junbum Cha", "Sanghyuk Chun", "Kyungjae Lee", "Han-Cheol Cho", "Seunghyun Park", "Yunsung Lee", "Sungrae Park"]
+    venue: "NeurIPS"
+    year: 2021
+    arxiv: "2102.08604"
+    grounded: true
+    verified: true
+    source: "NeurIPS and arXiv metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: A
+
+  - key: wortsman2021-wiseft
+    short: pretrained-interpolation
+    concept_page: concepts/pretrained-interpolation.md
+    title: "Robust fine-tuning of zero-shot models"
+    authors: ["Mitchell Wortsman", "Gabriel Ilharco", "Jong Wook Kim", "Mike Li", "Simon Kornblith", "Rebecca Roelofs", "Raphael Gontijo-Lopes", "Hannaneh Hajishirzi", "Ali Farhadi", "Hongseok Namkoong", "Ludwig Schmidt"]
+    venue: "CVPR"
+    year: 2022
+    arxiv: "2109.01903"
+    grounded: true
+    verified: true
+    source: "arXiv and CVPR metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: C
+
+  - key: matena2021-fisher-merging
+    short: divergent-merging
+    concept_page: concepts/divergent-merging.md
+    title: "Merging Models with Fisher-Weighted Averaging"
+    authors: ["Michael Matena", "Colin Raffel"]
+    venue: "NeurIPS"
+    year: 2022
+    arxiv: "2111.09832"
+    grounded: true
+    verified: true
+    source: "arXiv and NeurIPS metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: C
+
+  - key: guo2022-swa-revisited
+    short: trajectory-averaging
+    concept_page: concepts/trajectory-averaging.md
+    title: "Stochastic Weight Averaging Revisited"
+    authors: ["Hao Guo", "Jiyong Jin", "Bin Liu"]
+    venue: "Applied Sciences"
+    year: 2023
+    arxiv: "2201.00519"
+    grounded: true
+    verified: true
+    source: "arXiv and journal metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: A
+
+  - key: wortsman2022-model-soups
+    short: model-soups
+    concept_page: concepts/model-soups.md
+    title: "Model soups: averaging weights of multiple fine-tuned models improves accuracy without increasing inference time"
+    authors: ["Mitchell Wortsman", "Gabriel Ilharco", "Samir Ya Gadre", "Rebecca Roelofs", "Raphael Gontijo-Lopes", "Ari S. Morcos", "Hongseok Namkoong", "Ali Farhadi", "Yair Carmon", "Simon Kornblith", "Ludwig Schmidt"]
+    venue: "ICML"
+    year: 2022
+    url: "https://proceedings.mlr.press/v162/wortsman22a/wortsman22a.pdf"
+    arxiv: "2203.05482"
+    grounded: true
+    verified: true
+    source: "PMLR metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: B
+
+  - key: kaddour2022-lawa
+    short: latest-window
+    concept_page: concepts/latest-window.md
+    title: "Stop Wasting My Time! Saving Days of ImageNet and BERT Training with Latest Weight Averaging"
+    authors: ["Jean Kaddour"]
+    venue: "arXiv"
+    year: 2022
+    arxiv: "2209.14981"
+    grounded: true
+    verified: true
+    source: "arXiv metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: A
+
+  - key: ainsworth2022-git-rebasin
+    short: divergent-merging
+    concept_page: concepts/divergent-merging.md
+    title: "Git Re-Basin: Merging Models modulo Permutation Symmetries"
+    authors: ["Samuel K. Ainsworth", "Jonathan Hayase", "Siddhartha Srinivasa"]
+    venue: "ICLR"
+    year: 2023
+    arxiv: "2209.04836"
+    grounded: true
+    verified: true
+    source: "arXiv and OpenReview metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: C
+
+  - key: gao2022-checkpoint-averaging
+    short: simple-mean-baseline
+    concept_page: concepts/simple-mean-baseline.md
+    title: "Revisiting Checkpoint Averaging for Neural Machine Translation"
+    authors: ["Yingbo Gao", "Christian Herold", "Zijian Yang", "Hermann Ney"]
+    venue: "Findings of AACL-IJCNLP"
+    year: 2022
+    url: "https://aclanthology.org/2022.findings-aacl.18.pdf"
+    doi: "10.18653/v1/2022.findings-aacl.18"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: B
+
+  - key: schmidt2023-crosslingual
+    short: crosslingual-averaging
+    concept_page: concepts/crosslingual-averaging.md
+    title: "Free Lunch: Robust Cross-Lingual Transfer via Model Checkpoint Averaging"
+    authors: ["Fabian David Schmidt", "Ivan Vulić", "Goran Glavaš"]
+    venue: "ACL"
+    year: 2023
+    url: "https://aclanthology.org/2023.acl-long.314.pdf"
+    arxiv: "2305.16834"
+    doi: "10.18653/v1/2023.acl-long.314"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: B
+
+  - key: sanyal2023-early-averaging
+    short: spacing-and-learning-rate
+    concept_page: concepts/spacing-and-learning-rate.md
+    title: "Early Weight Averaging meets High Learning Rates for LLM Pre-training"
+    authors: ["Sunny Sanyal", "Atula Neerkaje", "Jean Kaddour", "Abhishek Kumar", "Sujay Sanghavi"]
+    venue: "NeurIPS WANT workshop"
+    year: 2023
+    arxiv: "2306.03241"
+    grounded: true
+    verified: true
+    source: "arXiv metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: A
+
+  - key: moralesbrotons2024-ema
+    short: exponential-averaging
+    concept_page: concepts/exponential-averaging.md
+    title: "Exponential Moving Average of Weights in Deep Learning: Dynamics and Benefits"
+    authors: ["Daniel Morales-Brotons", "Thijs Vogels", "Hadrien Hendrikx"]
+    venue: "TMLR"
+    year: 2024
+    arxiv: "2411.18704"
+    grounded: true
+    verified: true
+    source: "arXiv and TMLR metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: A
+
+  - key: ajroldi2025-when-where-why
+    short: modern-benchmark
+    concept_page: concepts/modern-benchmark.md
+    title: "When, Where and Why to Average Weights?"
+    authors: ["Niccolò Ajroldi", "Antonio Orvieto", "Jonas Geiping"]
+    venue: "ICML"
+    year: 2025
+    url: "https://raw.githubusercontent.com/mlresearch/v267/main/assets/ajroldi25a/ajroldi25a.pdf"
+    grounded: true
+    verified: true
+    source: "PMLR metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: A
+
+  - key: bergkirkpatrick2012-significance
+    short: paired-resampling
+    concept_page: concepts/paired-resampling.md
+    title: "An Empirical Investigation of Statistical Significance in NLP"
+    authors: ["Taylor Berg-Kirkpatrick", "David Burkett", "Dan Klein"]
+    venue: "EMNLP-CoNLL"
+    year: 2012
+    url: "https://aclanthology.org/D12-1091.pdf"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: D
+
+  - key: dror2018-significance-guide
+    short: paired-resampling
+    concept_page: concepts/paired-resampling.md
+    title: "The Hitchhiker's Guide to Testing Statistical Significance in Natural Language Processing"
+    authors: ["Rotem Dror", "Gili Baumer", "Segev Shlomov", "Roi Reichart"]
+    venue: "ACL"
+    year: 2018
+    url: "https://aclanthology.org/P18-1128.pdf"
+    doi: "10.18653/v1/P18-1128"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-22"
+    fetched: 2026-08-22
+    cluster: D
