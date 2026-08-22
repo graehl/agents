@@ -111,22 +111,15 @@ closely.
 
 ## Scheduled session prompts
 
-Once at the start of each ordinary new/resumed project session, cheaply check
-that project's existing `at/` for due `*.md` prompts. Do not create `at/` to
-probe, probe `~/agents/at/` from another project, or repeat this in an at-launched
-runner.
-
-Claim only through executable project `scripts/at-queue`, else
-`~/agents/scripts/at-queue`. Pass project root, canonical session id, harness,
-and an owner PID that outlives the claim; use the exact source path returned.
-If neither helper exists, skip rather than hand-roll a claim.
-
-Before invocation, read project `topics/at-scheduling.md`, else
-`~/agents/topics/at-scheduling.md`.
-The source file is inert; the helper-owned, clone-local activation store is what
-schedules it. Never hand-edit that store. Any YA/multi-project scheduler must
-call the helper and derive cwd from the owning `at/` directory. Slow-path
-activation/acknowledgement mechanics are in `topics/at-scheduling.md`.
+Ordinary sessions do not probe `at/`; scheduled prompts launch through an
+external scheduler (planned opt-in YA support) or an explicit user request.
+On any `at/` interaction, first read project `topics/at-scheduling.md`, else
+`~/agents/topics/at-scheduling.md`, and touch activation state only through
+executable project `scripts/at-queue`, else `~/agents/scripts/at-queue`;
+without the helper, stop rather than hand-roll a claim. The source file is
+inert; the helper-owned, clone-local activation store is what schedules it.
+Never hand-edit that store. Any YA/multi-project scheduler must call the
+helper and derive cwd from the owning `at/` directory.
 
 # Verification and retrieval
 

@@ -162,12 +162,12 @@ needed to fill a specific gap. A recent relevant task, auto-handoff, or
 
 ### Scheduled session prompts
 
-Once at the start of each ordinary new or resumed project session, cheaply
-probe that project's `<project>/at/` for a due `*.md` prompt when the directory
-exists. Do not create `at/` merely to check it, and do not also probe
-`~/agents/at/` from another project: an `at/` entry belongs to the project
-containing it and runs with that project root as its working directory.
-An at-launched runner skips this startup probe, preventing recursive launch
+Ordinary session startup does not probe `at/` (removed 2026-08-22 to cut the
+per-session cost). A due `at/` job launches through an external scheduler —
+planned opt-in YA support scanning all projects' `at/` directories — or an
+explicit user request to service a queue. An `at/` entry still belongs to the
+project containing it and runs with that project root as its working
+directory; an at-launched runner never probes, preventing recursive launch
 chains.
 
 Claiming goes through the project-local `scripts/at-queue` when executable,
@@ -184,7 +184,6 @@ present, else `~/agents/topics/at-scheduling.md`; its activation split, claim
 protocol, and runner acknowledgement (`at-queue done`) govern whether a job may
 run.
 
-A session-start probe is catch-up, not a wall-clock scheduler. An explicit
-multi-project helper or YA may provide punctual wakeups over the same store,
+Any multi-project helper or YA scheduler provides wakeups over the same store,
 invoking `at-queue` rather than reimplementing it, and must derive each job's
 working directory from its owning `at/`, never from the helper's caller.
