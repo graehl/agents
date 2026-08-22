@@ -7,9 +7,10 @@
 Topic: `at-scheduling`
 
 This is a filesystem protocol for low-volume, agent-operated scheduling. It
-does not pretend that instructions alone provide a wall-clock daemon. A helper
-or YA scheduler may provide punctual wakeups over the same store, but ordinary
-sessions service it correctly without one.
+does not pretend that instructions alone provide a wall-clock daemon. Ordinary
+sessions do not probe the queue; servicing comes from an explicit user
+request, a bounded multi-project helper, or planned opt-in YA support that
+scans all projects' `at/` directories.
 
 ## Source and activation are separate
 
@@ -66,8 +67,7 @@ with that project root as the working directory. In particular,
 `~/agents/at/<job>.md` belongs to `~/agents`; it is not a machine-global queue
 that every other project session scans.
 
-Ordinary session startup checks only the current project. An explicit
-multi-project invoker may inspect several known project queues, but resolves
+A multi-project invoker may inspect several known project queues, but resolves
 and preserves each queue's own project root. When two paths resolve to the same
 project, canonicalize them and inspect it once.
 
@@ -109,9 +109,12 @@ not a parser, chooses the next appropriate instant and passes it to
 
 ## Probe and claim
 
-At the start of each ordinary new or resumed session, once per process launch:
+Ordinary session startup does not probe the queue (removed 2026-08-22; the
+per-session check cost more than it caught). A probe runs only on an explicit
+user request, from a bounded multi-project helper, or from the YA scheduler.
+A probe:
 
-1. Resolve the current project root.
+1. Resolve the owning project root.
 2. If `<project>/at/` does not exist, stop without creating it.
 3. Run `at-queue claim`, passing the project root, canonical resumable session
    id, harness, and the PID of a process that will outlive the claim.
@@ -122,17 +125,17 @@ At the start of each ordinary new or resumed session, once per process launch:
 `claim` grades every job before taking one and reports why each was skipped
 (`paused`, `no schedule`, `not due`, `already running`, foreign-host liveness
 unknown, `prompt source is missing`, or a prompt changed since activation), so
-one blocked job never hides the rest. A normal startup probe takes at most one
+one blocked job never hides the rest. A single-project probe takes at most one
 job.
 
-An at-launched runner does not perform the startup probe, which is what
-prevents recursive launch chains. An explicit user request, a bounded
-multi-project helper, or YA may also trigger a probe and may service more than
-one job under an explicit concurrency bound.
+An at-launched runner never probes, preventing recursive launch chains. A
+multi-project helper or YA may service more than one job under an explicit
+concurrency bound.
 
-No session-start scheme wakes while no session starts. It provides eventual
-catch-up only. A punctual scheduler is a separate concern and must not keep one
-provider process or polling loop alive per job.
+With no startup probe, nothing services the queue until a scheduler or a
+user-directed probe runs; until YA support lands, due jobs simply wait,
+visibly. A punctual scheduler must not keep one provider process or polling
+loop alive per job.
 
 ### A changed prompt blocks its own claim
 
@@ -221,10 +224,11 @@ at/<job>.md    + at-activation.json --> occurrence -> safe session dispatch
 ```
 
 YA is a **helper over this convention, not its owner**. It may discover `at/`
-sources, display schedules and run history from `at-queue list`, provide the
-punctual wakeups a session-start probe cannot, and offer run/pause actions —
-all by invoking `at-queue`, never by reimplementing the lock in a second
-language.
+sources, display schedules and run history from `at-queue list`, provide
+punctual wakeups, and offer run/pause actions — all by invoking `at-queue`,
+never by reimplementing the lock in a second language. Launching at-sessions
+from YA — disabled by default, scanning all projects' `at/` directories — is
+the planned servicing path; `~/ya/gaps/at-session-launching.md` tracks it.
 
 YA's rule that repository content must not activate a routine
 (`~/ya/topics/routines.md`) remains YA's, and applies to what YA dispatches:

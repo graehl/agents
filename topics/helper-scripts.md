@@ -191,7 +191,7 @@ JSON `error` naming what to fix; 2 argparse usage.
    `"prompt changed since activation; re-activate to approve"`.
 
 **Canonical source**: `scripts/at-queue` (in this repo). No install is
-required; startup uses this path only when it exists and is executable.
+required; callers use this path only when it exists and is executable.
 
 ### session-turn
 
