@@ -28,7 +28,8 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
   completes a later role/scope/path change or retirement.
 - [`_RESEARCH/evidence.md`](_RESEARCH/evidence.md) — before accepting a newly
   ingested or materially transformed dataset, presenting a newly wired
-  experimental result, making a comparison or significance claim, or
+  experimental result, making a comparison or significance claim, treating a
+  completed run's score or stop/gate outcome as decision evidence, or
   summarizing train/eval/gate conditions.
 - [`_RESEARCH/judgment.md`](_RESEARCH/judgment.md) — before judging an elaborate
   arm without a tuned cheap baseline, attributing a surprising change after
