@@ -291,8 +291,8 @@ win on packet conflict.
   - field survey, prior art, direction ranking, or a material advisor decision
     → `_RESEARCH/direction.md`;
   - a newly ingested or materially transformed dataset, newly wired
-    experimental result, train/eval/gate summary, comparison, or significance
-    claim → `_RESEARCH/evidence.md`; and
+    experimental result, train/eval/gate summary or score/stop readout,
+    comparison, or significance claim → `_RESEARCH/evidence.md`; and
   - an untuned elaborate arm, multi-difference attribution, or closure of a
     substantial weak/surprising line → `_RESEARCH/judgment.md`.
 - `RUNS.md` — before using local accelerators, launching work with a

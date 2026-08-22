@@ -4,7 +4,8 @@
 
 Read this packet before accepting a newly ingested or materially transformed
 dataset, presenting a newly wired experimental result, making a comparison or
-significance claim, or summarizing train/eval/gate conditions. `RESEARCH.md`
+significance claim, treating a completed run's score or stop/gate outcome as
+decision evidence, or summarizing train/eval/gate conditions. `RESEARCH.md`
 is the router and wins on conflict.
 
 ## Binding rules
@@ -101,6 +102,37 @@ metric, or rubric plus metamorphic checks without leaking the oracle into the
 generator (`topics/soft-checks.md`).
 
 
+### Read the failure before reporting it
+
+Before treating a completed run's aggregate score, gate outcome, or frozen
+stop-rule trigger as evidence for a decision — stop, park, reject, select, or
+a user-facing readout — and always when the result is negative or surprising:
+
+- Verify the producing run: exact command, exit status, row count against the
+  protocol's N, and the artifact's identity via its run record or meta
+  back-pointer (`_RUNS/provenance.md`). When sibling invocations failed or
+  were retried, classify each as harmless orchestration or score-contaminating
+  before quoting the survivor's number.
+- Read the raw rows behind the score: at least one input/output pair per
+  failure category the scorer counts. A counter or repair statistic is a
+  pointer into the artifact, not a substitute for reading it.
+- Sweep the run log for anomaly markers — token/length-ceiling hits,
+  truncation, retries, empty decodes, guard rejections, fallbacks — before
+  summarizing; a hit routes to the post-run option audit in
+  `_RESEARCH/judgment.md`.
+- Reread the governing guidance: the frozen protocol and every `PROGRAM.md`
+  from the artifact's directory upward, for stated requirements the failing
+  path may not implement (for example, sentence-segmenting data on intake).
+- State the failure class in the readout: invocation error, harness/resource
+  error, protocol defect (a design artifact such as an output ceiling or
+  oversized chunk, or an unmet stated requirement), or genuine model-output
+  failure. Only the last supports a claim about model quality. A protocol
+  defect still fires a mechanical stop rule but caps what the stop proves,
+  and does not by itself license respending past the frozen protocol.
+
+Routine intermediate scores that decide nothing are exempt; the rule fires
+when the number would change what happens next.
+
 ### Reporting eval conditions precisely
 
 A run/eval/gate summary states, without branch shorthand:
@@ -109,7 +141,9 @@ A run/eval/gate summary states, without branch shorthand:
 - epoch ceiling and checkpoint-selection/early-stop rule;
 - selection corpus, exact split/N, and fixed versus derived status;
 - decode/eval corpus, exact split/N, and overlap with selection;
-- separate score/reference corpus when applicable; and
+- separate score/reference corpus when applicable;
+- which protocol roles/conditions the score covers, when fewer than the
+  protocol defines; and
 - overlap among train, selection, and eval.
 
 Training-split smokes are labeled correctness checks, not generalization.
@@ -122,9 +156,10 @@ a method. Divergent dev/test ranking is evidence about overfitting, not a “bad
 slice.”
 
 Before leaving a substantial weak or surprising experiment line, run reasonable
-closure tests: configuration/bug checks, strongest cheap baseline, and
-same-budget null controls where combination-only gains need them. Record the
-closure evidence before parking the line. When logs suggest a tool anomaly,
+closure tests: the run/row/log checks under “Read the failure before reporting
+it,” the strongest cheap baseline, and same-budget null controls where
+combination-only gains need them. Record the closure evidence before parking
+the line. When logs suggest a tool anomaly,
 search current `--help` and nearby option descriptions before declaring a tool
 limit; name the relevant option and smallest discriminating follow-up.
 
@@ -197,6 +232,21 @@ invariance) the native form for translation. See `topics/soft-checks.md`
 for the oracle-choice and no-leak-to-generator rules.
 
 
+### Read the failure before reporting it (worked instance)
+
+A frozen four-role annotation protocol's direct pass "failed its zero-error
+stop rule," and the first readout presented the saved score as the finding.
+Under review, the campaign held four dead invocations (a source-guard
+rejection, an unknown-argument exit 2, a malformed allocator setting, a scorer
+called off-contract) around one valid run, and nothing had established which
+invocation produced the score. Reading two raw rows reclassified the result:
+one span-copy repair, and one output truncated at exactly the 3,072-token
+ceiling by a 6,000-character clinical chunk eliciting 101 findings — a
+protocol defect, not model-quality evidence, on a score covering one of four
+roles. Each check above was minutes of work and each caught something the
+aggregate hid; the raw-row read happened only on user pushback, not in the
+readout.
+
 ### Reporting eval conditions precisely
 
 When summarizing a research run, eval result, or claimed "gate", report the
@@ -212,6 +262,8 @@ At minimum, state:
 - decode / evaluation corpus, including exact split, head-N, and whether it is
   the same pool as the early-stopping set or a disjoint slice
 - score/reference corpus when separate from the decode inputs
+- which of the protocol's roles/conditions the score covers, when the readout
+  could be mistaken for the whole protocol
 - overlap status among train, early-stop, and eval sets, especially when any
   quoted result comes from the same pool used for checkpoint selection
 
