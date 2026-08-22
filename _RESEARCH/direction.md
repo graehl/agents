@@ -24,6 +24,13 @@ references and extends the shared survey rather than duplicating its extraction
 cache, except for paper-specific overlap material. The full survey schema is
 `topics/research-survey.md`.
 
+An explicit field- or frontier-survey request defaults to grounded: fetch and
+read sources, verify citations, and maintain
+`~/agents/surveys/<field-slug>/`. Only explicit `light`, `recall`, or
+`ungrounded` wording selects a conversation-only pass that downloads no
+primary-source corpus and persists nothing. An ordinary explanation that does
+not request a survey is not promoted into persistent survey work.
+
 ### Research-advisor handoff
 
 Use one durable logical research advisor per declared research program, with

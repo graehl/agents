@@ -6,7 +6,7 @@ gather prior art: a full field survey, a "what's known about X" subtopic, or
 method** — how to *find* the right papers. `field-map.md` then organizes
 them into a graded field map; `frontier-map.md` maintains provisional claims
 and ranks the voids. Obey the
-`recall` vs `grounded` mode, evidence grading, and disconfirming-search
+ungrounded vs grounded mode, evidence grading, and disconfirming-search
 discipline defined in those files; do not restate them here.
 
 ## Why snowballing, not keyword search
@@ -95,8 +95,8 @@ itself a cheap source of anchors.
   anchor it descends from**. This feeds `field-map.md`'s `related-work/`
   manifest directly — do not invent a parallel format.
 - Dedup by DOI/arXiv id (the same work recurs under multiple titles/preprints).
-- Never fabricate a citation. In `recall` mode you may name a technique and the
-  gist of who/when, but flag that exact venue/year/authors need a `grounded`
+- Never fabricate a citation. In ungrounded mode you may name a technique and
+  the gist of who/when, but flag that exact venue/year/authors need a grounded
   snowball to pin down.
 - State the **anchor set, the DBs queried, and the coverage-cutoff date** at the
   top of the output, alongside the grounding mode.
