@@ -11,8 +11,10 @@ map exists, build the relevant region of one first — void-ranking without a
 map of what is already filled is unfounded.
 
 **Field and frontier are two views on one representation, not two artifact
-kinds.** They share the same `surveys/<field-slug>/` structure and grounding
-mode; a frontier pass may run *within* an established survey dir. "Frontier"
+kinds.** Grounded work shares the same `surveys/<field-slug>/` structure; a
+frontier pass runs *within* an established survey dir. An ungrounded frontier
+pass may read that representation but returns only a conversational projection.
+"Frontier"
 foregrounds the **lower-trustworthiness** subset a field already carries — the
 unproven / unreproduced nodes marked `single-source`/`contested` and `[R]` — and
 adds the provisional-claim inbox, void map, and capstone analysis below. It does
@@ -23,17 +25,20 @@ This is **not** a long-running autonomous research loop. It is a bounded
 analysis: map the voids, rank the best ones, optionally draft a proposal.
 It never launches runs. As with the field map, ordinary discussion does not
 authorize a persistent frontier edit unless maintenance is requested or
-already belongs to the active research workflow.
+already belongs to the active research workflow; an explicit frontier-survey
+request follows the mode and persistence default below.
 
 ## Mode
 
-Frontier work inherits the `recall` / `grounded` specifier from
-`field-map.md`. The falsification gate below is a real prior-art search,
-so a trustworthy capstone ranking needs `grounded` mode. A `recall`-mode
-frontier pass is allowed for fast brainstorming but every candidate must be
-labeled speculative — its `novelty-confidence` is unverified, since recall
-cannot rule out that a "void" is already filled. Do not present a
-`recall`-mode ranking as a vetted set of open problems.
+Frontier work inherits the default-grounded mode contract from `field-map.md`.
+Only explicit `light`, `recall`, or `ungrounded` wording selects an ungrounded,
+non-persistent pass. The falsification gate below is a real prior-art search,
+so a trustworthy capstone ranking needs grounded mode. An ungrounded frontier
+pass is allowed for fast brainstorming, but every candidate must be labeled
+speculative — its `novelty-confidence` is unverified because model recall and
+light search cannot rule out that a "void" is already filled. Do not present
+an ungrounded ranking as a vetted set of open problems or write it to
+`frontier.md`.
 
 ## The frontier artifact (`surveys/<field-slug>/frontier.md`)
 

@@ -6,61 +6,64 @@ explanatory paper/presentation, or answer "what is known about subtopic X"
 (typically prior-art reconnaissance before planning a solution).
 
 Loading this supplement for an ordinary explanation does not itself authorize
-a persistent file edit. Maintain `survey.md` when persistence is requested or
-already belongs to the active research workflow; otherwise use the map as a
+a persistent file edit. An explicit field- or frontier-survey request carries
+the mode and persistence default below; otherwise use an existing map as a
 read-only source or answer in conversation.
 
-This template builds one artifact — a **field map** — and reads it at two
-zoom levels. Frontier/void-mapping work that consumes the same map is a
-separate task; see `frontier-map.md`. The retrieval method that *finds*
-the papers this map organizes — citation snowballing from anchors, paper-DB
-queries, keyword search filtered by a known-labs/authors prior — is
-`literature-search.md`; the "light search for recent releases" below means
-that method run in `recall` mode.
+Grounded work builds one persistent artifact — a **field map** — and reads it
+at two zoom levels; ungrounded work returns only a conversational projection.
+Frontier/void-mapping work that consumes the same map is a separate task; see
+`frontier-map.md`. The retrieval method that *finds* the papers this map
+organizes — citation snowballing from anchors, paper-DB queries, keyword search
+filtered by a known-labs/authors prior — is `literature-search.md`; the "light
+search for recent releases" below means that method run in ungrounded mode.
 
-## Map/survey modes — `recall` vs `grounded`
+## Map/survey modes — `ungrounded` vs `grounded`
 
 Two independent axes are often conflated. Keep them separate:
 - **grounding** — were sources fetched and read? This is the load-bearing
   property and what the mode specifier selects.
 - **length** — brief or full. Just how much is written; not a mode.
 
-A brief grounded survey (short, citation-verified) and a long recall survey
-(extensive, unverified) are both legitimate.
+A brief grounded survey (short, citation-verified) and a long ungrounded
+survey (extensive, unverified) are both legitimate.
 
-The invocation carries a leading mode word:
+An explicit field- or frontier-survey request defaults to **`grounded`**.
+Only an explicit **`light`**, **`recall`**, or **`ungrounded`** modifier selects
+the ungrounded path. An ordinary explanation or "what is known about X"
+question that does not request a survey remains conversational and does not
+silently create one.
 
-- **`recall`** — triggered by "quick", "brief", or "recall" survey of X.
-  Built from pretrained knowledge plus, optionally, a light search for
-  recent paper releases. No PDF fetch, no `related-work/` directory. A full grounded
-  survey is search-, token-, and reading-intensive; `recall` is the cheap
-  path when the user wants orientation, not a citable artifact.
-- **`grounded`** — "full survey of X", "for a paper", or prior art the user
-  will act on. Runs the full fetch → markdown → citation-verified pipeline
-  and builds `related-work/`.
+- **`ungrounded`** — the common mode selected by `light`, `recall`, or
+  `ungrounded`. Answer from pretrained knowledge plus, optionally, a light
+  search for recent releases. Do not download primary sources and do not
+  create or modify `survey.md`, `GLOSSARY.md`, `concepts/`, `related-work/`,
+  `frontier.md`, or another persistent survey artifact.
+- **`grounded`** — the default when a survey request has no ungrounded
+  modifier. Run the full fetch → markdown → citation-verified pipeline and
+  maintain the persistent survey tree.
 
-Default to `recall` for casual questions; choose `grounded` when the user
-says "full", mentions a paper/presentation deliverable, or will plan real
-work off the result. State the mode chosen at the top of the output.
+State the mode chosen at the top of the output. Length remains independent:
+`brief grounded field survey` asks for concise, citation-verified output.
 
-### `recall`-mode obligations
+### Ungrounded-mode obligations
 
-A `recall` survey must not pass itself off as grounded:
-- Open `survey.md` (or the subtopic note) with a provenance banner: mode,
-  the model's training cutoff, the date and scope of any light search run,
-  and an explicit "claims are pretrained recall, not citation-verified".
+An ungrounded survey must not pass itself off as grounded:
+- Open the conversational output with a provenance line: mode, the model's
+  training cutoff, the date and scope of any light search run, and an explicit
+  "claims are model recall/light search, not citation-verified".
 - **Cap effectiveness grades at `single-source`.** `reproduced`,
   `externally-evaluated`, `benchmark-reported`, `contested`, and
-  `failed-replication` assert source or evaluation details that recall has not
-  checked; do not use them. `folklore` is allowed and often honest in this
-  mode.
+  `failed-replication` assert source or evaluation details that the ungrounded
+  pass has not checked; do not use them. `folklore` is allowed and often
+  honest in this mode.
 - Name techniques and the gist of who/when, but do not fabricate precise
   citations (exact venue, year, author lists). Flag what would need a
   grounded pass to pin down.
 
-Upgrading a `recall` survey to `grounded` later is expected: re-run as
-`grounded`, build `related-work/`, and revise grades against fetched
-sources.
+Upgrading an ungrounded answer later means rerunning the request as grounded,
+creating the canonical survey tree, and revising grades against fetched
+sources; the earlier answer is not itself a persisted survey.
 
 ## Where surveys live
 
@@ -91,17 +94,18 @@ PDF URL, fetched/extracted timestamp, tool version), tiered extraction
 (fully extract the high-value tier, leave background papers on demand), and
 `rg`-able generated markdown. Do not respecify or reinvent that machinery.
 
-Put the map in the narrowest project that owns the relevant research
-decisions. When no narrower project owns the field, use
-`~/agents/surveys/<field-slug>/` as the personal-global location. Other
-projects link to the canonical map rather than copying it.
+The default and canonical cross-project location is
+`~/agents/surveys/<field-slug>/`. Use another project-local location only when
+the user explicitly requests it. Other projects link to the canonical map
+rather than copying it.
 
 ## When to create or extend a map
 
 Do not create an empty survey for every conversation. Create or extend the
 smallest relevant region when at least one of these is true:
 
-- the user asks for a durable survey, field map, or teaching artifact;
+- the user requests a field or frontier survey without an ungrounded modifier,
+  or explicitly asks for a durable field map or teaching artifact;
 - a live design or research decision depends on the concept;
 - a prerequisite relation is needed to understand a consequential method;
 - a nearby alternative is easy to confuse and would change the decision;

@@ -7,9 +7,18 @@
 ## Contracts
 
 - A **field survey is standalone reference material**, not a branch-scoped
-  `research/` artifact. It lives under `surveys/<field-slug>/` and outlives
-  any single experiment branch. Research papers *reference* a `surveys/`
-  subdir rather than duplicating per-paper related-work extraction.
+  `research/` artifact. Its default and canonical cross-project location is
+  `~/agents/surveys/<field-slug>/`, and it outlives any single experiment
+  branch. Use another project-local location only when the user explicitly
+  requests it. Research papers reference the canonical survey rather than
+  duplicating per-paper related-work extraction.
+- **Survey requests default to grounded and persistent.** An explicit `light`,
+  `recall`, or `ungrounded` modifier selects one ungrounded mode: answer in
+  conversation from model memory plus optional light search, without
+  downloading primary sources or creating or modifying survey artifacts. A
+  field- or frontier-survey request with no such modifier runs the grounded
+  fetch+read pipeline and maintains the canonical survey tree. An ordinary
+  explanation that does not request a survey remains conversational.
 - **Per-survey layout.** A survey subdir holds: `survey.md` (the "total
   survey" — map + territory/relationships, linking to concept pages by short
   handle); `GLOSSARY.md` (survey-scoped vocabulary, governing every doc below
@@ -38,9 +47,10 @@
   and adds void + capstone analysis in `frontier.md`. Trust level is already
   carried by each node's effectiveness grade and `[G]`/`[R]` tag; the frontier
   view filters and ranks on it rather than re-representing the field. A frontier
-  pass may run *within* an established survey dir (`field-map.md` builds the map;
-  `frontier-map.md` overlays on it — same `surveys/<field-slug>/`
-  representation, same grounding mode).
+  grounded pass runs *within* an established survey dir (`field-map.md` builds
+  the map; `frontier-map.md` overlays on it — the same
+  `surveys/<field-slug>/` representation). An ungrounded frontier pass may read
+  that map but remains conversation-only and does not modify it.
 - **Concept artifacts: three tiers.** (1) A durable full-text **extract**
   (`related-work/extract/<key>/`) — a linked reference, read on demand, not
   routinely traversed. (2) A committed **understanding** page
@@ -116,11 +126,12 @@
 
 ## Invariants
 
-- **Grounding mode is explicit and orthogonal to length.** `recall` (model
-  memory + light search) vs `grounded` (fetch → markdown → citation-verified)
-  is stated at the top of every output. A `recall` survey caps effectiveness
-  grades at `single-source` and carries a provenance banner; it must not
-  present itself as grounded.
+- **Grounding mode is explicit and orthogonal to length.** Ungrounded (`light`,
+  `recall`, or `ungrounded`: model memory + optional light search) vs grounded
+  (fetch → markdown → citation-verified) is stated at the top of every output.
+  An ungrounded answer caps effectiveness grades at `single-source`, carries a
+  provenance line, and is never persisted; it must not present itself as
+  grounded. Length words such as `brief` do not change grounding.
 - **Citation metadata is complete independently of grounding.** Every
   `papers.yaml` entry carries nonempty title, authors, venue, and year fields;
   `related-work audit` reports any missing field as drift. `verified: false`
@@ -128,9 +139,8 @@
 - **Concept understanding pages follow a fetch+read.** `concepts/<short>.md` is
   written from an actual read of the fetched full text — its
   `related-work/extract/<key>/`, or the fetched primary source — not from
-  pretrained recall; a durable, checked understanding is the goal. A
-  recall-only page is a banner-marked stopgap, not a grounded concept page, and
-  its citations stay `verified: false` until a fetch+read confirms them.
+  pretrained recall; a durable, checked understanding is the goal. Ungrounded
+  output never creates a concept page; a page is added only after fetch+read.
 - **Understanding pages hyperlink the viewable full text.** Every
   `concepts/<short>.md` includes **direct, clickable** markdown links (not bare
   arXiv ids) to where the full text is viewed/downloaded — the HTML viewer and/or
@@ -156,6 +166,6 @@
 - An active field's survey decays; recency is load-bearing. Surveys carry a
   coverage-cutoff date and search scope — but no per-claim "last updated"
   dates, which create false confidence.
-- `recall`-mode frontier passes are allowed for brainstorming but every
-  candidate is labeled speculative: recall cannot rule out that a "void" is
-  already filled.
+- Ungrounded frontier passes are allowed in conversation for brainstorming,
+  but every candidate is labeled speculative and none is persisted: model
+  recall and light search cannot rule out that a "void" is already filled.
