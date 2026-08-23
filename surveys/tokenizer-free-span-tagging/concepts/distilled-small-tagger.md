@@ -1,13 +1,16 @@
 # distilled-small-tagger — the lever that makes a small span tagger competitive
 
-> Read-backed digest `[G]` (cluster E, trust `single-source` each). Four papers
-> establish that a ~1M–10M-parameter tagger distilled from a large encoder
-> retains most of the teacher's span quality at 20–50× the speed — and, in the
-> low-gold regime, *beats* both the teacher and a fine-tuned BERT. None of the
-> located students is character-level; every one keeps a word or subword
+> Read-backed digest `[G]` (cluster E, trust `single-source` each). Hinton et al.
+> supply the generic distillation recipe; four applied papers establish that a
+> ~1M–10M-parameter tagger distilled from a large encoder retains most of the
+> teacher's span quality at 20–50× the speed — and, in the low-gold regime,
+> *beats* both the teacher and a fine-tuned BERT. None of the located sequence
+> tagger students is character-level; every one keeps a word or subword
 > embedding table, which is exactly the component a chars-only student deletes.
 
-**Papers.** Mukherjee and Hassan Awadallah, "XtremeDistil: Multi-stage
+**Papers.** [Hinton, Vinyals, and Dean, "Distilling the Knowledge in a Neural
+Network"](https://arxiv.org/abs/1503.02531), NeurIPS Deep Learning Workshop
+2014; Mukherjee and Hassan Awadallah, "XtremeDistil: Multi-stage
 Distillation for Massive Multilingual Models," ACL 2020; Wang, Jiang, Bach,
 Wang, Huang, and Tu, "Structure-Level Knowledge Distillation For Multilingual
 Sequence Labeling," ACL 2020; Farina, Pappadopulo, Gupta, Huang, Irsoy, and
@@ -20,6 +23,19 @@ Models," arXiv:2201.00558, 2022.
 [Farina HTML](https://arxiv.org/html/2302.05454) ·
 [Student-exam HTML](https://arxiv.org/html/2201.00558) ·
 local extracts under `related-work/extract/`.
+
+## Foundational recipe and its boundary
+
+[Hinton et al.](https://arxiv.org/abs/1503.02531) train a student against
+teacher probabilities softened at temperature `T`, use the same `T` in the
+student softmax, combine that term with ordinary hard-label cross-entropy at
+`T=1`, and multiply the soft-target gradient by `T²` to keep its relative
+weight stable as temperature changes. The transfer set may be unlabeled. Their
+speech experiment transferred most of a ten-model ensemble's gain into one
+model, but it is frame classification rather than span tagging. For BIOES, the
+durable contribution is the loss recipe; teacher and student logits still need
+word-position and label-inventory alignment, and the direct sequence-labeling
+evidence below decides whether the recipe is useful.
 
 ## What distillation buys on span tagging
 

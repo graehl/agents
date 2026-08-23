@@ -8,7 +8,7 @@
 
 ## Grounding and coverage
 
-- **Grounding mode: `grounded`.** 27 primary sources. 19 were fetched and read
+- **Grounding mode: `grounded`.** 34 primary sources. 26 were fetched and read
   into this survey's own `related-work/extract/` (`[G]`); 8 were read from the
   sibling survey's committed extracts rather than duplicating its cache (`[S]` —
   CANINE, ByT5, Charformer, Gillick, Cao, Sun, Flair, CharacterBERT). Effectiveness
@@ -19,6 +19,11 @@
   sequence labeling and token classification, dilated and very deep
   convolutional taggers, hash embeddings, and knowledge distillation for
   multilingual sequence labeling.
+- **Targeted intake: 2026-08-23.** Grounded the requested distillation,
+  confidence-penalty, and non-negative PU papers, then read direct NER checks
+  on subword pooling, constrained decoding, PU supervision, and
+  linear-versus-CRF encoder heads. This targeted addition does not advance the
+  broad-search cutoff above.
 - **Anchor set:** CharNER, Gillick's byte tagger, ID-CNN, CANINE, ByT5.
   Forward citations were pulled by both recency and citation count; direct
   keyword search covered the newest uncited edge.
@@ -50,7 +55,8 @@ The regenerable manifest is
 | C | [deep char CNN](concepts/deep-char-cnn.md) `[G]` | Zhang et al. 2015; VDCNN | depth to 29 layers pays, 49 needs shortcuts; char CNNs need millions of examples — but this is classification, not tagging |
 | C | [industrial hash CNN](concepts/industrial-hash-cnn.md) `[G]` | Miranda et al. 2022 | the deployed 8-layer width-96 CNN scores 0.77–0.79 on Spanish CoNLL; dropping character-derived features raises error ~50% |
 | D | [char-word hybrids](concepts/char-word-hybrid.md) `[G]` | dos Santos and Guimarães; Lample; Ma and Hovy; 2025 reproduction | the character channel adds +0.7 to +3.7 F1 *on top of* word embeddings; 91.21 → 91.18 reproduced |
-| E | [distilled small tagger](concepts/distilled-small-tagger.md) `[G]` | XtremeDistil; Wang et al.; Farina et al.; Nityasya et al. | 35×/51× compression at 95% of teacher F1; at 100 gold sentences a 1M-parameter student beats its 220M teacher |
+| E | [distilled small tagger](concepts/distilled-small-tagger.md) `[G]` | Hinton et al.; XtremeDistil; Wang et al.; Farina et al.; Nityasya et al. | foundational soft-target recipe; 35×/51× compression at 95% of teacher F1; at 100 gold sentences a 1M-parameter student beats its 220M teacher |
+| F | [token-classifier objectives](concepts/token-classifier-objectives.md) `[G]` | Pereyra et al.; Kiryo et al.; Peng et al.; Ács et al.; Lester et al.; Verma et al. | pooling should be measured; constrained CE trains ~2× faster than a CRF with mostly tied F1; modern CRF results reverse by dataset; PU applies only to incomplete labels |
 
 ## Map: what each family establishes
 
@@ -154,6 +160,13 @@ sentences; Zhang et al. needing millions; ByT5 needing 1.2–4.5× more fine-tun
 steps). Distillation converts unlabelled text into supervision and directly
 attacks that.
 
+[Hinton et al.](https://arxiv.org/abs/1503.02531) provide the durable generic
+recipe: softened teacher probabilities at temperature `T`, ordinary hard-label
+cross-entropy alongside them, and `T²` scaling of the soft-target term; the
+transfer examples may be unlabelled. That paper is classifier-level evidence,
+not BIOES evidence. The sequence-labelling papers below establish the direct
+case.
+
 XtremeDistil compresses mBERT 35× in parameters and 51× in batch-inference
 latency on 41-language WikiAnn NER while keeping ~95% of teacher F1 (88.64 vs.
 91.86), and its ablation shows where that comes from: hard labels alone give
@@ -175,6 +188,44 @@ multilingual tax that any single joint model pays: per-language teachers average
 89.38 on CoNLL NER, a joint multilingual student 87.36, and their best
 structure-level distillation recovers 0.4 of that ~2-point gap.
 
+### F. Above XLM-R token representations, structure beats generic regularization `[G]`
+
+For flat word-level BIOES, start with end-to-end encoder fine-tuning, a linear
+cross-entropy head, one emission per annotated word from an explicit subtoken
+selection or pooling rule, and hard-constrained Viterbi decoding. BIOES does not
+itself choose between first-piece and pooled word representations. In a frozen
+layer-6 probe across nine WikiAnn languages, learned subword-LSTM pooling has the
+best XLM-R NER macro result, but first-piece remains competitive and differences
+are smaller than on morphology or POS [Ács et
+al.](https://aclanthology.org/2021.eacl-main.194/). That study uses BIO and does
+not fine-tune the encoder, so it supports a pooling ablation rather than a
+universal head choice. [Lester et
+al.](https://aclanthology.org/2020.findings-emnlp.166/)
+found this decoder trained in 51.2% of the time of their optimized CRF and had
+no significant F1 difference on three of four public datasets; OntoNotes was
+the exception where the CRF was significantly better. Their encoder was a
+BiLSTM, so the result establishes a strong decoder baseline rather than an
+XLM-R guarantee.
+
+The more directly modern comparison is mixed. With XLM-R-large on two Spanish
+datasets and BioLinkBERT-large on two English biomedical datasets, a CRF beat
+the linear head on SocialDisNER and LivingNER but lost on GENIA and
+NCBI-Disease [Verma et
+al.](https://aclanthology.org/2023.bionlp-1.24/). That study used BIO rather
+than BIOES. Treat a trainable CRF as a matched ablation selected on strict dev
+span F1, not as an automatic upgrade.
+
+The two generic objective papers have narrower roles. [Pereyra et
+al.](https://arxiv.org/abs/1701.06548) test confidence penalties outside NER;
+uniform entropy or label-smoothing targets put mass on impossible BIOES labels,
+so they are low-priority, constraint-aware ablations rather than defaults.
+[Kiryo et al.](https://arxiv.org/abs/1703.00593) solve binary learning from
+positive examples and an unlabeled mixture. That is relevant only when `O`
+contains missed entities. The direct NER descendant intentionally reduces
+incomplete dictionary supervision to binary entity-word detection rather than
+BIOES [Peng et al.](https://aclanthology.org/P19-1231/), confirming that raw
+nnPU is not a drop-in loss for a fully labelled structured tagger.
+
 ## What a chars-only tagger must beat, and cite
 
 This section exists to serve one planned contrastive: a chars-only, tokenizer-free
@@ -189,7 +240,7 @@ memorization channel that CANINE-C lacked* — hashed character n-grams recovere
 12.7 of those 13.8 points while staying vocabulary-free, and that is the cheapest
 known answer.
 
-**Cite, and do not conflate, these four classes.**
+**Cite, and do not conflate, these five classes.**
 
 1. *Sole char/byte encoders* — Klein 2003, CharNER, Gillick BTS, CANINE, ByT5,
    PIXEL, Cao 2023. These are the only papers whose results are about the
@@ -202,6 +253,10 @@ known answer.
    measured on top of a word table.
 4. *Distillation* — XtremeDistil, Farina et al., Wang et al., Nityasya et al.
    This is the training lever, not a result about characters.
+5. *Token-head objective and decoding controls* — Pereyra, Kiryo, Peng, Ács,
+   Lester, Verma. Measure subword pooling, use constrained cross-entropy and a
+   CRF ablation on both encoder arms, reserve PU risk for incomplete annotations,
+   and reserve confidence regularization for a diagnosed calibration problem.
 
 **Design commitments the literature already supports.**
 
@@ -218,10 +273,16 @@ known answer.
   F1 from character dropout. This is one of the largest cheap effects in the
   survey.
 - **A structured decode from character positions to spans.** CharNER loses 2 F1
-  replacing Viterbi over character posteriors with per-word majority voting; the
-  CRF is worth ~1.9 F1 in Ma and Hovy and 0.35 in its reproduction. Klein's
-  `(type, k)` state topology and Gillick's span triples are the two alternative
-  ways to make word-level consistency a property of decoding.
+  replacing Viterbi over character posteriors with per-word majority voting.
+  For BIOES token heads, [Lester et
+  al.](https://aclanthology.org/2020.findings-emnlp.166/) show that a fixed legal
+  transition mask captures most of the CRF benefit at roughly twice the
+  training speed, while [Verma et
+  al.](https://aclanthology.org/2023.bionlp-1.24/) show the learned CRF's F1
+  advantage changes sign across datasets. Default to hard-constrained Viterbi
+  and retain the CRF as an ablation. Klein's `(type, k)` state topology and
+  Gillick's span triples are alternative ways to make word-level consistency a
+  property of decoding.
 - **Train one multilingual model, not per-language models.** Gillick's joint
   4-language model beat its per-language models by 1.1–4.8 F1; Cotterell and Duh
   show pooling a related language is worth up to +9.8 in low resource. Budget

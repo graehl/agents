@@ -419,3 +419,107 @@ papers:
     source: "ACL Anthology and OpenAlex metadata checked 2026-08-16"
     fetched: 2026-08-16
     cluster: E
+
+  - key: hinton2015-distilling-knowledge
+    short: distilled-small-tagger
+    concept_page: concepts/distilled-small-tagger.md
+    title: "Distilling the Knowledge in a Neural Network"
+    authors: ["Geoffrey Hinton", "Oriol Vinyals", "Jeff Dean"]
+    venue: "NeurIPS Deep Learning Workshop"
+    year: 2014
+    arxiv: "1503.02531"
+    grounded: true
+    verified: true
+    source: "arXiv metadata checked 2026-08-23"
+    fetched: 2026-08-23
+    cluster: E
+
+  # --- F. classifier objectives above contextual token representations ---
+  - key: pereyra2017-confidence-penalty
+    short: token-classifier-objectives
+    concept_page: concepts/token-classifier-objectives.md
+    title: "Regularizing Neural Networks by Penalizing Confident Output Distributions"
+    authors: ["Gabriel Pereyra", "George Tucker", "Jan Chorowski", "Łukasz Kaiser", "Geoffrey Hinton"]
+    venue: "ICLR submission"
+    year: 2017
+    arxiv: "1701.06548"
+    grounded: true
+    verified: true
+    source: "arXiv metadata checked 2026-08-23"
+    fetched: 2026-08-23
+    cluster: F
+
+  - key: kiryo2017-nonnegative-pu
+    short: token-classifier-objectives
+    concept_page: concepts/token-classifier-objectives.md
+    title: "Positive-Unlabeled Learning with Non-Negative Risk Estimator"
+    authors: ["Ryuichi Kiryo", "Gang Niu", "Marthinus C. du Plessis", "Masashi Sugiyama"]
+    venue: "NeurIPS"
+    year: 2017
+    arxiv: "1703.00593"
+    grounded: true
+    verified: true
+    source: "arXiv metadata checked 2026-08-23"
+    fetched: 2026-08-23
+    cluster: F
+
+  - key: peng2019-pu-ner
+    short: token-classifier-objectives
+    concept_page: concepts/token-classifier-objectives.md
+    title: "Distantly Supervised Named Entity Recognition using Positive-Unlabeled Learning"
+    authors: ["Minlong Peng", "Xiaoyu Xing", "Qi Zhang", "Jinlan Fu", "Xuanjing Huang"]
+    venue: "ACL"
+    year: 2019
+    url: "https://aclanthology.org/P19-1231.pdf"
+    doi: "10.18653/v1/P19-1231"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-23"
+    fetched: 2026-08-23
+    cluster: F
+
+  - key: lester2020-constrained-decoding
+    short: token-classifier-objectives
+    concept_page: concepts/token-classifier-objectives.md
+    title: "Constrained Decoding for Computationally Efficient Named Entity Recognition Taggers"
+    authors: ["Brian Lester", "Daniel Pressel", "Amy Hemmeter", "Sagnik Ray Choudhury", "Srinivas Bangalore"]
+    venue: "Findings of EMNLP"
+    year: 2020
+    url: "https://aclanthology.org/2020.findings-emnlp.166.pdf"
+    doi: "10.18653/v1/2020.findings-emnlp.166"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-23"
+    fetched: 2026-08-23
+    cluster: F
+
+  - key: verma2023-popular-ner-approaches
+    short: token-classifier-objectives
+    concept_page: concepts/token-classifier-objectives.md
+    title: "Comparing and combining some popular NER approaches on Biomedical tasks"
+    authors: ["Harsh Verma", "Sabine Bergler", "Narjesossadat Tahaei"]
+    venue: "BioNLP Workshop"
+    year: 2023
+    url: "https://aclanthology.org/2023.bionlp-1.24.pdf"
+    doi: "10.18653/v1/2023.bionlp-1.24"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-23"
+    fetched: 2026-08-23
+    cluster: F
+
+  - key: acs2021-subword-pooling
+    short: token-classifier-objectives
+    concept_page: concepts/token-classifier-objectives.md
+    title: "Subword Pooling Makes a Difference"
+    authors: ["Judit Ács", "Ákos Kádár", "András Kornai"]
+    venue: "EACL"
+    year: 2021
+    url: "https://aclanthology.org/2021.eacl-main.194.pdf"
+    doi: "10.18653/v1/2021.eacl-main.194"
+    arxiv_mirror: "2102.10864"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-08-23"
+    fetched: 2026-08-23
+    cluster: F
