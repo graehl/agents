@@ -93,29 +93,30 @@ commit-msg-lint
 
 ### commit-msg-fmt
 
-**CLI**: `commit-msg-fmt -m "subject" [-m "para" ...]`. Writes a
-formatted commit message to stdout, exits 0. The first `-m` is the
-subject and passes through unwrapped. Subsequent `-m` args are
-wrapped to 71 cols. `-m` args are joined with single newlines —
-**no blank lines are inserted automatically**, unlike `git commit
--m -m`. To insert a blank line (e.g. between subject and body),
-pass `-m ''`. No `-m` args or empty subject exits 2.
+**CLI**: `commit-msg-fmt [-m "subject" [-m "para" ...]]`. Writes a
+formatted commit message to stdout, exits 0. With no `-m` args, reads a
+draft from stdin: the first line is the subject, and contiguous body lines
+form paragraphs separated by explicit blank lines. With `-m`, the first
+argument is the subject and passes through unwrapped; subsequent arguments
+are paragraphs wrapped to 71 cols. `-m` args are joined with single newlines
+— **no blank lines are inserted automatically**, unlike `git commit -m -m`.
+To insert a blank line, pass `-m ''`. Empty stdin or an empty subject exits 2.
 
 **Post-conditions**:
-- output line 1 (subject) equals first `-m` arg verbatim
+- output line 1 equals the first `-m` arg or stdin line verbatim
 - each body line ≤71 cols (except where a single token in the
   input is itself >71)
-- blank lines in output come only from explicit `-m ''`
+- blank lines come only from explicit `-m ''` or stdin blank lines
 - output ends with exactly one trailing newline
-- any `-m` argument containing literal `\n` is rejected with exit 1;
-  message structure uses separate `-m` arguments
+- literal `\n` in either input form is rejected with exit 1; message
+  structure uses real stdin lines or separate `-m` arguments
 
-**Scope limitation**: each `-m` is treated as one plain-prose
-paragraph. Pre-formatted content (bullets, hanging indents, ASCII
-diagrams, tables, code blocks) must not be passed through this
-formatter — write those messages directly with `git commit -F`
-instead. The formatter intentionally collapses internal whitespace
-when wrapping.
+**Scope limitation**: each `-m`, or each group of contiguous stdin body
+lines, is treated as one plain-prose paragraph. Pre-formatted content
+(bullets, hanging indents, ASCII diagrams, tables, code blocks) must not be
+passed through this formatter — write those messages directly with
+`git commit -F` instead. The formatter intentionally collapses internal
+whitespace when wrapping.
 
 **Examples**:
 1. `commit-msg-fmt -m "feat: do thing"` → `feat: do thing` + newline.
@@ -127,8 +128,10 @@ when wrapping.
 4. `commit-msg-fmt -m "feat: do thing" -m "Body, no blank above."`
    → subject directly followed by body line; commit-msg-lint will
    flag the missing blank.
-5. `commit-msg-fmt` (no args) → exit 2, `no -m args`.
-6. `commit-msg-fmt -m "feat: do thing" -m "Body\nTrailer"` → exit
+5. `printf 'feat: do thing\n\nA long body paragraph.\n' |
+   commit-msg-fmt` → subject, blank line, reflowed body paragraph.
+6. `commit-msg-fmt < /dev/null` → exit 2, `empty stdin`.
+7. `commit-msg-fmt -m "feat: do thing" -m "Body\nTrailer"` → exit
    1 and instructs the caller to use a separate `-m` argument.
 
 **Canonical source**: `scripts/commit-msg-fmt` (in this repo).
@@ -138,6 +141,8 @@ when wrapping.
 ```sh
 git commit -F <(commit-msg-fmt -m "feat: do thing" -m '' \
   -m "Body paragraph." | commit-msg-lint)
+# or reflow and check a plain-prose draft:
+git commit -F <(commit-msg-fmt < draft.txt | commit-msg-lint)
 ```
 
 ### at-queue
