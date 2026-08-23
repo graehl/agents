@@ -3708,3 +3708,27 @@ Contributing-model: Daybreak-Blue
   test multi-remote target selection.
 
 Contributing-model: Fable
+
+## 2026-08-23 — commit-msg-fmt accepts draft streams
+
+- **User direction** — `commit-msg-fmt` with no arguments should act as a stdin
+  filter. The old zero-argument error made a natural
+  `draft | formatter | linter` composition fail and forced callers to convert
+  an existing draft into repeated `-m` arguments.
+- **Decision** — no-argument mode now treats the first stdin line as the
+  unwrapped subject and reflows contiguous body lines as plain-prose paragraphs,
+  preserving explicit blank lines. Repeated `-m` remains unchanged and takes
+  precedence without reading stdin. Empty stdin exits 2; literal `\\n` remains
+  an error in either form.
+- **Trace: ordinary draft** — subject, blank line, and a body paragraph split
+  across physical lines become one checked message with body lines at most 71
+  columns; the formatter composes directly into `commit-msg-lint`.
+- **Trace: structured message** — bullets would lose their hanging indentation,
+  so the existing plain-prose scope limitation still sends that draft directly
+  through `commit-msg-lint`, not the formatter.
+- **Trace: accidental empty pipe** — EOF with no bytes fails instead of
+  consulting Git state or emitting a message that could be committed.
+- **Status** — directly user-specified and covered by focused stdin, error,
+  compatibility, linter-composition, and Git-commit tests.
+
+Contributing-model: Daybreak-Blue

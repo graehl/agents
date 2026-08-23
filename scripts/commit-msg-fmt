@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-"""commit-msg-fmt — format a commit message from multiple -m args.
+"""commit-msg-fmt — format a plain-prose commit message.
 
 Spec: topics/helper-scripts.md (commit-msg-fmt entry) in the
 agents-instructions repo.
-First -m is the subject (passed through unwrapped). Subsequent
--m args are wrapped to 71 cols. -m args are joined with single
-newlines; no blank lines are inserted automatically. Pass -m ''
-to insert a blank line. No -m args or empty subject exits 2. A
-literal backslash-n in any -m argument exits 1; use another -m
-argument for structure.
+With -m args, the first is the subject (passed through unwrapped) and
+subsequent args are wrapped to 71 cols. With no args, stdin supplies the
+subject line and blank-line-separated body paragraphs. Empty input or an
+empty subject exits 2. A literal backslash-n exits 1.
 """
 
 from __future__ import annotations
@@ -20,11 +18,31 @@ import textwrap
 BODY_WIDTH = 71
 
 
+def messages_from_stdin(text: str) -> list[str]:
+    lines = text.splitlines()
+    if not lines:
+        return []
+
+    messages = [lines[0]]
+    paragraph: list[str] = []
+    for line in lines[1:]:
+        if line.strip():
+            paragraph.append(line)
+            continue
+        if paragraph:
+            messages.append(" ".join(paragraph))
+            paragraph = []
+        messages.append("")
+    if paragraph:
+        messages.append(" ".join(paragraph))
+    return messages
+
+
 def main() -> int:
     p = argparse.ArgumentParser(
         description=(
-            "Format a commit message from -m args; first is subject "
-            "(unwrapped), rest are wrapped to 71; '' inserts a blank line."
+            "Format a plain-prose commit message from -m args or stdin; "
+            "the subject is unwrapped and body paragraphs wrap to 71 cols."
         ),
         prog="commit-msg-fmt",
     )
@@ -42,23 +60,36 @@ def main() -> int:
     )
     args = p.parse_args()
 
-    if not args.messages:
-        print("commit-msg-fmt: no -m args", file=sys.stderr)
+    if args.messages:
+        messages = args.messages
+        literal_sources = (
+            (message, f"-m {index}") for index, message in enumerate(messages, start=1)
+        )
+    else:
+        stdin_text = sys.stdin.read()
+        messages = messages_from_stdin(stdin_text)
+        literal_sources = (
+            (line, f"stdin line {index}")
+            for index, line in enumerate(stdin_text.splitlines(), start=1)
+        )
+
+    if not messages:
+        print("commit-msg-fmt: empty stdin", file=sys.stderr)
         return 2
-    if not args.messages[0].strip():
+    if not messages[0].strip():
         print("commit-msg-fmt: empty subject", file=sys.stderr)
         return 2
-    for index, message in enumerate(args.messages, start=1):
+    for message, source in literal_sources:
         if "\\n" in message:
             print(
-                f"commit-msg-fmt: literal '\\n' in -m {index}; "
-                "use a separate -m argument",
+                f"commit-msg-fmt: literal '\\n' in {source}; "
+                "use an input line or separate -m argument",
                 file=sys.stderr,
             )
             return 1
 
     out: list[str] = []
-    for i, msg in enumerate(args.messages):
+    for i, msg in enumerate(messages):
         if i == 0:
             out.append(msg)
         elif msg == "":

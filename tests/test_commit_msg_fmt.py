@@ -15,9 +15,10 @@ SCRIPT = REPO_ROOT / "scripts" / "commit-msg-fmt"
 LINT = REPO_ROOT / "scripts" / "commit-msg-lint"
 
 
-def run_fmt(*args: str) -> subprocess.CompletedProcess:
+def run_fmt(*args: str, input_text: str | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
+        input=input_text,
         capture_output=True,
         text=True,
         timeout=10,
@@ -33,6 +34,44 @@ def test_literal_newline_escape_is_rejected():
     res = run_fmt("-m", "short subject", "-m", "body\\ntrailer")
     _assert(res.returncode == 1, "literal newline escape should fail")
     _assert("literal '\\n' in -m 2" in res.stderr, res.stderr)
+
+
+def test_literal_newline_escape_from_stdin_is_rejected():
+    res = run_fmt(input_text="short subject\n\nbody\\ntrailer\n")
+    _assert(res.returncode == 1, "literal newline escape should fail")
+    _assert("literal '\\n' in stdin line 3" in res.stderr, res.stderr)
+
+
+def test_empty_stdin_is_rejected():
+    res = run_fmt(input_text="")
+    _assert(res.returncode == 2, "empty stdin should fail")
+    _assert("empty stdin" in res.stderr, res.stderr)
+
+
+def test_stdin_plain_prose_is_reflowed_and_lints_cleanly():
+    body = "A decision-bearing body paragraph " * 6
+    draft = f"short subject\n\n{body[:90]}\n{body[90:]}\n\nSecond paragraph.\n"
+    res = run_fmt(input_text=draft)
+    _assert(res.returncode == 0, res.stderr)
+    lines = res.stdout.rstrip("\n").split("\n")
+    _assert(lines[0] == "short subject", res.stdout)
+    _assert(lines[1] == "", "formatter must preserve explicit blank lines")
+    _assert(lines[-2:] == ["", "Second paragraph."], res.stdout)
+    _assert(all(len(line) <= 71 for line in lines[2:]), res.stdout)
+    lint = subprocess.run(
+        [sys.executable, str(LINT)],
+        input=res.stdout,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    _assert(lint.returncode == 0, lint.stderr)
+
+
+def test_m_args_take_precedence_over_stdin():
+    res = run_fmt("-m", "argument subject", input_text="stdin subject\n")
+    _assert(res.returncode == 0, res.stderr)
+    _assert(res.stdout == "argument subject\n", res.stdout)
 
 
 def test_plain_prose_is_wrapped_and_lints_cleanly():
