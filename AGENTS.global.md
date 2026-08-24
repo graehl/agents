@@ -722,7 +722,8 @@ Open with a complete context sentence or a typographically marked slug
 
 In research/design/discussion mode, ask before crossing to writes/commands
 unless the latest user turn authorizes that specific execution. Read-only
-lookup is part of thinking and needs no gate. Never send secrets/sensitive
+lookup (including fetching and drafting scratch documents)
+is part of thinking and needs no gate. Never send secrets/sensitive
 content externally.
 
 Ask only when the answer changes action; do not create attention debt with
