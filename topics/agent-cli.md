@@ -252,6 +252,48 @@ composition (a pipe or a named verb) — a sequence of separate calls is
 still N turns no matter how obvious the defaults; obvious defaults buy lower
 mistake-rate, not fewer turns.
 
+## Expected duration and output channel
+
+An agent deciding how to invoke a verb needs two facts the input schema
+does not carry: how long the call should take, and on which channel the
+result arrives. Input is discoverable (`-h`, or the caller was told);
+duration and channel usually are not, and a wrong guess costs a blocked
+turn (foreground-waiting on a slow verb) or a lost result (backgrounding
+a verb whose only output was stdout). Every ACLI verb therefore declares
+a duration class (instant / seconds / minutes / open-ended) and its
+output channel in help. The three channels:
+
+1. **Unbuffered stdout, blocking** — the default for instant/seconds
+   verbs: the caller waits and the result is the process output,
+   unbuffered so a streaming reader sees progress instead of a silent
+   hang.
+2. **Arranged IPC message** — the call returns immediately and the
+   result arrives through a broker: a helper that posts a turn into the
+   calling agent session (YA's wake/ask-reply path), a named pipe, a
+   socket. Help names the broker; the immediate stdout acknowledgement
+   carries the job/request id.
+3. **Named watched file** — the work edits a file the caller watches.
+   The arranging call creates/touches the file (or establishes the
+   parent-directory watch target) before returning, so the watcher never
+   races the first write. Help names the path or the flag that sets it.
+
+**Deferral envelope: sync until an invoker timeout, then a structured
+handoff.** When the caller does not choose a channel, the verb runs as
+channel 1 up to an invoker-configured timeout (`--timeout <s>`; `0` =
+immediate deferral, i.e. pure async). On expiry the verb exits reporting
+successful *arrangement*: its last stdout line is a reserved JSONL
+deferral envelope — indicatively
+`{"kind":"deferred","id":...,"output":{"channel":"turn"|"pipe"|"file",
+...},"expected":"minutes","status":"<verb> status <id>"}` — naming where
+the result will arrive, the expected remaining duration when known, and
+how to poll. The detached work must never also write partial results to
+stdout: the result arrives wholly on stdout (in time) or wholly on the
+deferred channel, and for a file channel the file exists before the
+envelope is emitted. This is the sanctioned exception to
+static-per-subcommand output: a verb may switch channels at runtime only
+through the reserved envelope, never silently. Open-ended verbs must not
+offer unbounded channel-1 blocking except behind an explicit `--wait`.
+
 ## The remaining principles
 
 - **Minimal default schemas.** 3–4 fields per list item, not 10, with a
