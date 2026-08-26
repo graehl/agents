@@ -3732,3 +3732,36 @@ Contributing-model: Fable
   compatibility, linter-composition, and Git-commit tests.
 
 Contributing-model: Daybreak-Blue
+
+## 2026-08-26 — long waits settle at a nine-minute heartbeat
+
+- **Observed failure** — the user supplied many consecutive unchanged lines
+  from one long completion wait, including:
+
+  ```text
+  [wait] job=pii-ont3-replacement-base-prompt-v2-scale-luna-resume-v1 status=running elapsed=2h09m/12h00m target=not-running
+  [wait] job=pii-ont3-replacement-base-prompt-v2-scale-luna-resume-v1 status=running elapsed=2h10m/12h00m target=not-running
+  ```
+
+  The one-minute status change carried no job-state change and wasted context
+  tokens and screen space.
+- **Decision** — `agentctl wait` and `watch` print an immediate heartbeat, then
+  default to one every 540 seconds. Completion polling remains independent and
+  frequent, so sparse output does not delay the terminal wake. Explicit
+  `--heartbeat` overrides remain available for bounded startup diagnosis. The
+  external watchdog uses the same nine-minute default.
+- **Trace: healthy long run** — a 12-hour run enters `wait` with no heartbeat
+  option. It reports its initial state, polls internally at the ordinary
+  cadence, emits no minute-by-minute duplicate lines, and reports again after
+  nine minutes if still unchanged.
+- **Trace: early completion** — the same run finishes two minutes after entry.
+  The short poll cadence returns the terminal state immediately; the sparse
+  heartbeat does not delay completion reaction.
+- **Trace: bounded diagnosis** — a startup investigation explicitly passes
+  `--heartbeat 60` and retains minute-spaced reports. The override remains
+  available for that bounded diagnostic, while an ordinary long wait omits it
+  and receives the nine-minute default.
+- **Status** — directly user-specified and covered by parser-default regression
+  tests; reduction in long-session output is expected rather than measured.
+
+Contributing-model: Daybreak-Blue

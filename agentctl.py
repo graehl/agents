@@ -159,6 +159,7 @@ DEFAULT_IDLE_GPU_MEMORY_USED_MIB = 3000
 DEFAULT_IDLE_GPU_POWER_DRAW_W = 50.0
 DEFAULT_HEARTBEAT_GPU_SMOOTH_SAMPLES = 3
 DEFAULT_HEARTBEAT_GPU_SMOOTH_INTERVAL_S = 1.0
+DEFAULT_WAIT_HEARTBEAT_SECONDS = 9 * 60.0
 DEFAULT_ZERO_COMPUTE_REPORT_INTERVAL_S = 300.0
 DEFAULT_ZERO_COMPUTE_INTERRUPT_AFTER_S = 1200.0
 DEFAULT_ZERO_COMPUTE_MIN_VRAM_MIB = 3000
@@ -4194,7 +4195,10 @@ def cleanup_running(args: argparse.Namespace) -> int:
 def wait_job(args: argparse.Namespace) -> int:
     deadline = time.time() + args.timeout if args.timeout > 0 else None
     next_report = 0.0
-    heartbeat_interval = max(0.0, float(getattr(args, "heartbeat", 30.0) or 0.0))
+    heartbeat_interval = max(
+        0.0,
+        float(getattr(args, "heartbeat", DEFAULT_WAIT_HEARTBEAT_SECONDS) or 0.0),
+    )
     while True:
         touch_active_entry()
         state = load_job(args.job)
@@ -4640,7 +4644,10 @@ def watch(args: argparse.Namespace, proc: subprocess.Popen | None = None) -> int
     last_gpu_error = ""
     next_gpu_poll_at = 0.0
     next_heartbeat_at = 0.0
-    heartbeat_interval = max(0.0, float(getattr(args, "heartbeat", 30.0) or 0.0))
+    heartbeat_interval = max(
+        0.0,
+        float(getattr(args, "heartbeat", DEFAULT_WAIT_HEARTBEAT_SECONDS) or 0.0),
+    )
     gpu_poll = args.gpu_poll if args.gpu_poll > 0 else args.poll
     if log_path.exists():
         # Follow from the end either way; --tail only decides how much of
@@ -4988,7 +4995,7 @@ def restart(args: argparse.Namespace) -> int:
         watch=False,
         watch_tail=20,
         watch_poll=5.0,
-        watch_heartbeat=30.0,
+        watch_heartbeat=DEFAULT_WAIT_HEARTBEAT_SECONDS,
         watch_heartbeat_gpu=False,
         watch_gpu=0,
         watch_gpu_poll=10.0,
@@ -5241,8 +5248,8 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
     sp.add_argument(
         "--watch-heartbeat",
         type=float,
-        default=30.0,
-        help="Seconds between watch heartbeat lines (0 disables the periodic heartbeat).",
+        default=DEFAULT_WAIT_HEARTBEAT_SECONDS,
+        help="Seconds between watch heartbeat lines (default: %(default)g; 0 disables).",
     )
     sp.add_argument(
         "--watch-heartbeat-gpu",
@@ -5503,8 +5510,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument(
         "--heartbeat",
         type=float,
-        default=30.0,
-        help="Seconds between watch heartbeat lines (0 disables the periodic heartbeat).",
+        default=DEFAULT_WAIT_HEARTBEAT_SECONDS,
+        help="Seconds between watch heartbeat lines (default: %(default)g; 0 disables).",
     )
     s.add_argument(
         "--tail",
@@ -5588,8 +5595,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument(
         "--heartbeat",
         type=float,
-        default=30.0,
-        help="Seconds between wait heartbeat lines (0 disables the periodic heartbeat).",
+        default=DEFAULT_WAIT_HEARTBEAT_SECONDS,
+        help="Seconds between wait heartbeat lines (default: %(default)g; 0 disables).",
     )
     s.add_argument(
         "--gpu", type=int, default=0, help="GPU index used by --heartbeat-gpu."

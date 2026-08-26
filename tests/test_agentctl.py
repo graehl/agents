@@ -1953,6 +1953,37 @@ def test_start_after_marker_without_sidecar_does_not_launch_payload():
         ws.cleanup()
 
 
+def test_wait_and_watch_default_heartbeat_is_nine_minutes():
+    sys.path.insert(0, str(REPO_ROOT))
+    import agentctl
+
+    parser = agentctl.build_parser()
+    wait_args = parser.parse_args(["wait", "heartbeat-default"])
+    watch_args = parser.parse_args(["watch", "heartbeat-default"])
+    start_args = agentctl.parse_start_command(
+        "start", "start", ["heartbeat-default", "--watch", "--", "true"]
+    )
+    expected = 9 * 60
+    _assert(wait_args.heartbeat == expected, wait_args.heartbeat)
+    _assert(watch_args.heartbeat == expected, watch_args.heartbeat)
+    _assert(start_args.watch_heartbeat == expected, start_args.watch_heartbeat)
+
+    wait_override = parser.parse_args(
+        ["wait", "heartbeat-override", "--heartbeat", "60"]
+    )
+    watch_override = parser.parse_args(
+        ["watch", "heartbeat-override", "--heartbeat", "60"]
+    )
+    start_override = agentctl.parse_start_command(
+        "start",
+        "start",
+        ["heartbeat-override", "--watch-heartbeat", "60", "--", "true"],
+    )
+    _assert(wait_override.heartbeat == 60, wait_override.heartbeat)
+    _assert(watch_override.heartbeat == 60, watch_override.heartbeat)
+    _assert(start_override.watch_heartbeat == 60, start_override.watch_heartbeat)
+
+
 def test_wait_not_running_blocks_on_queued_job():
     # A queued (waiting) --after run is pending, not terminal: `wait --target
     # not-running` must keep blocking through the queued phase.
