@@ -80,13 +80,19 @@ remain attached.
 #### Wait watchdog discipline
 
 When completion requires agent reaction, wait in the foreground. Prefer
-`agentctl wait/watch --heartbeat ... --timeout ...`; use `wait-work` when
-awaiting a new launchable item. A background wait, passive PTY, or tmux dashboard
-does not create a reliable continuation in harnesses without wake-up support.
+`agentctl wait/watch --timeout ...` with its default heartbeat; use `wait-work`
+when awaiting a new launchable item. A background wait, passive PTY, or tmux
+dashboard does not create a reliable continuation in harnesses without wake-up
+support.
 External watchdog/nudge alternatives and their exact use appear below under the
 second “Wait watchdog discipline” heading.
 
 Keep healthy-run waiting low-token: heartbeat rather than repeated log pulls.
+Keep completion polling separate from status output: `--poll` may stay short so
+completion returns promptly. For an unchanged healthy run, use the default
+`wait`/`watch` heartbeat: one status line on entry, then one every 540 seconds.
+A shorter explicit heartbeat is only for bounded startup or diagnosis; never
+leave minute-spaced unchanged-status output active through a long steady wait.
 On a user activity turn, check live run/GPU state, engage briefly, then re-enter
 the foreground wait in that same turn. Never claim a wait remains live after
 its process resolved.
@@ -281,16 +287,19 @@ only if completion re-invokes the agent on both success and failure. A detached
 `&`, fire-and-forget watchdog, or background facility without that contract
 forfeits continuation and degrades into ad hoc polling. The default wait
 primitive is:
-- the built-in `agentctl wait/watch --heartbeat ...` path first, run foreground;
-  prefer this over ad hoc shell sleep loops when all you need is bounded-latency
-  liveness output. When the thing awaited is new work rather than a known
+- the built-in `agentctl wait/watch` path first, run foreground;
+  its short `--poll` cadence detects completion promptly while the default
+  heartbeat prints once on entry and then every 540 seconds. Prefer this over
+  ad hoc shell sleep loops when all you need is bounded-latency liveness output.
+  When the thing awaited is new work rather than a known
   job — a fresh launch to watch, or a new `on-deck/` entry to tend —
   `agentctl wait-work` is the same foreground-block primitive
   (`topics/agentctl.md`)
-- a foreground watchdog process that emits a timestamped poll at least every
-  300 seconds and includes `agentctl status`/`list` plus `nvidia-smi`
-- explicit PTY polling by the agent at least every 300 seconds while the wait
-  is active
+- a foreground watchdog process that emits one timestamped poll on entry, then
+  every 540 seconds while state is unchanged, and includes `agentctl
+  status`/`list` plus `nvidia-smi`
+- explicit PTY polling by the agent on entry, then every 540 seconds while the
+  wait state is unchanged
 - when Codex itself is running inside tmux, a second helper from another shell
   or pane that periodically injects a benign key into the Codex pane so the
   local CLI receives a real tty input event; default to `C-l` unless there is

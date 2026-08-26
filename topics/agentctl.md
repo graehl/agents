@@ -55,6 +55,11 @@ tooling, the cooperative declaration helper, and project migration docs.
   `start` observes five seconds after queued gates and pre-payload checks pass
   and `Popen` succeeds. Thus the window sees startup failures rather than being
   consumed by queue time. `--launch-wait 0` is the explicit skip.
+- **Use one fixed nine-minute wait heartbeat** (vs. a staged startup/backoff
+  schedule): `wait` and `watch` already poll separately for prompt completion,
+  so one immediate status line followed by 540-second heartbeats removes
+  unchanged-output churn without adding scheduling state. Explicit
+  `--heartbeat` values retain the short diagnostic path.
 
 ## Active-sessions file schema
 
@@ -250,10 +255,14 @@ window.
   of appending non-JSON lines.
 - `wait <job> --tail N` stays quiet apart from requested heartbeat lines until
   the target status is reached, then prints the terminal status and the final
-  `N` log lines. Use this one-command form when completion diagnostics are
-  useful but live training-log traffic is not. `watch --tail N` has different,
-  explicitly live-debug semantics: it prints the last `N` existing lines once
-  at attachment, then streams only bytes appended after that snapshot.
+  `N` log lines. The ordinary `wait` and `watch` heartbeat default is one line
+  on entry followed by one every 540 seconds while state is unchanged;
+  `--heartbeat SECONDS` overrides it and `--heartbeat 0` disables it. Their
+  shorter `--poll` cadence remains independent and returns promptly on state
+  change. Use this one-command form when completion diagnostics are useful but
+  live training-log traffic is not. `watch --tail N` has different, explicitly
+  live-debug semantics: it prints the last `N` existing lines once at
+  attachment, then streams only bytes appended after that snapshot.
 - Both verbs accept a native observation bound via `--timeout SECONDS` (0 =
   unbounded). `wait` reports an unmet target and returns 1. `watch` leaves the
   job running, returns 124, and writes

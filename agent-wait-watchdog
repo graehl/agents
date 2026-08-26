@@ -5,13 +5,14 @@ usage() {
     cat <<'EOF'
 Usage: agent-wait-watchdog JOB [INTERVAL_SECONDS] [-- WATCH_ARGS...]
 
-Run `agentctl watch JOB` in the background while printing a timestamped poll
-block every INTERVAL_SECONDS (default: 300). The poll block includes:
+Run `agentctl watch JOB` in the background while printing one timestamped poll
+block immediately, then every INTERVAL_SECONDS (default: 540). Each block
+includes:
 - `agentctl status JOB`
 - `agentctl list --running-only --recent 8`
 - `nvidia-smi`
 
-Prefer the built-in `agentctl wait/watch --heartbeat ...` options first when
+Prefer the built-in `agentctl wait/watch` default heartbeat first when
 all you need is bounded-latency liveness output. This helper is for the
 stronger case where you want an external combined poll block alongside watch.
 
@@ -35,7 +36,7 @@ fi
 job="$1"
 shift
 
-interval=300
+interval=540
 if [[ $# -gt 0 && "$1" != "--" ]]; then
     interval="$1"
     shift
