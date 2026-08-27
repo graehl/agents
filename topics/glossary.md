@@ -97,6 +97,14 @@ understand do not belong. Sort alphabetically by term. Leave `topic / refs`
 empty when the definition is sufficient; otherwise link the already-canonical
 doc or other useful references, regardless of their directory.
 
+Author each comma-separated alternative in its intended case because YA
+glossary hints treat case as matching syntax: an all-lowercase alternative is
+case-insensitive, an all-caps alternative is exact, and a mixed-case
+alternative is exact except for capitalization of its first cased character.
+Put the preferred tooltip spelling first. Add an explicit lowercase alternative
+for a name or acronym only when matching its ordinary lowercase form would not
+falsely annotate a common word.
+
 For a row added during conversation as a tentative resolution of
 ambiguity, flag with `<!-- unconfirmed: YYYY-mm-dd -->`. The user
 confirms by removing the marker or prunes the row; either way the

@@ -3765,3 +3765,20 @@ Contributing-model: Daybreak-Blue
   tests; reduction in long-session output is expected rather than measured.
 
 Contributing-model: Daybreak-Blue
+
+## 2026-08-27 — glossary case is author-controlled syntax
+
+- **User decision** — glossary authors should preserve a term's intended case,
+  and add an explicit lowercase alternative only when broad case-insensitive
+  matching will not falsely annotate an ordinary word. The first-listed case
+  remains the tooltip display spelling.
+- **Trace: acronym collision** — `YA` alone matches only `YA`, preventing the
+  ordinary lowercase `ya` from becoming a glossary interaction. An author who
+  genuinely wants all casing writes `YA, ya` and accepts that broader match.
+- **Trace: mixed-case name** — `eBay` matches `eBay` and the first-character
+  capitalization `EBay`, but not `ebay` or `EBAY`; an explicit `ebay`
+  alternative deliberately opts into those forms.
+- **Status** — directly user-specified; enforcement lives in YA's compiled
+  glossary artifact, while `topics/glossary.md` carries the authoring rule.
+
+Contributing-model: Daybreak-Blue
