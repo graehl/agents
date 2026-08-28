@@ -125,6 +125,16 @@ I/O failure rate at storage aspects, and an injected crash
 probability — the janky end-user OS/browser/hardware platform is a
 real deployment target, not a tail case. Then:
 
+- **Choose injection sites from a system theory.** Slowdown hooks do
+  not replace architectural and code reading. For an overall-UX
+  performance bug report, first trace the user-visible path and choose
+  boundaries whose queueing, fan-out, batching, storage, or rendering
+  work could plausibly govern the symptom. A test-only site may be
+  added speculatively to validate or falsify that theory before an
+  ordinary profile proves it hot; record the theory, predicted
+  downstream metric or phase, and realized perturbation. A site whose
+  dose sweep has no predicted end-to-end effect is negative evidence,
+  not a hotspot merely because it was instrumented.
 - **Map cascade sensitivity.** Degrade one boundary at a time, sweep
   severity closely enough to expose non-monotonic danger zones, and
   measure useful work plus injection, recovery, and residual phases.
@@ -133,8 +143,9 @@ real deployment target, not a tail case. Then:
   itself on/off, because slowdown is not generally the inverse of
   speedup across queues, thresholds, batching, or failover.
 - **Start random, graduate to guided.** The easy build is the right
-  start: one global "how bad" knob and random choices of one boundary
-  and severity. Add random subsets only after the single-boundary map;
+  start after architecture and code reading define a plausible site
+  set: one global "how bad" knob and random choices of one boundary and
+  severity. Add random subsets only after the single-boundary map;
   sensitivity ranking, observed queue dependencies, and causal-cycle
   hypotheses then guide composed scenarios. The explored set must
   still include massive
