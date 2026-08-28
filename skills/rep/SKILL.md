@@ -1,7 +1,7 @@
 ---
 name: rep
 disable-model-invocation: true
-description: Repeat or self-pace a prompt across wakeups. Use when the user invokes /rep, asks for repeated or periodic checks, or needs a loop workaround in a harness without built-in loop capability; supports optional fixed intervals via /chron when available.
+description: Literally repeat a prompt across wakeups, on a fixed interval or self-paced. Use only when the user invokes /rep or explicitly asks to re-run an action recurringly. A one-shot wait-for-a-condition-then-act is a foreground wait (RUNS.md routing), not a rep loop.
 ---
 
 # `/rep` - repeat a prompt until it is done
@@ -10,11 +10,22 @@ Parse the input into optional leading `until`, optional `[interval]`, and
 `<prompt...>`. Run the prompt now. Then re-arm only when another run is
 actually useful.
 
+## Scope: literal repetition only
+
+`/rep` repeats an action. It is not a way to wait for an external
+result: "when X becomes available, do Y" is a single foreground wait
+governed by `RUNS.md` routing (`_RUNS/monitoring.md`), and current
+harnesses already judge a wait-until-goal condition well on their own.
+If the input reduces to one wait-then-act, say so and follow the
+foreground-wait discipline instead of arming a loop.
+
 `/rep` must be usable without `/chron` (a future cron-style scheduler).
 Prefer `/chron` for fixed-interval recurrence when it exists; fall back
 to `ScheduleWakeup` for session-local repetition. If no wakeup or
-scheduling tool is available, run the prompt once and say no loop was
-armed.
+scheduling tool is available, run the prompt once; if recurrence is
+still wanted, read `_RUNS/monitoring.md` and use announced, bounded
+foreground waits between runs at the cadence below — otherwise say no
+loop was armed.
 
 ## Parsing
 
@@ -54,7 +65,9 @@ Examples (`<P>` = any unparsed prompt text; `<S>` = a slash command):
 ## `until` semantics
 
 `until` makes `/rep` stop-aware: run the prompt now, then repeat only
-while the prompt's own goal or observable condition is unfinished.
+while the goal the loop itself is enacting remains unfinished. A
+condition only an external process advances is not an `until` loop —
+route it to the foreground wait above.
 
 Before scheduling a next run:
 
@@ -87,9 +100,9 @@ One linear procedure; the branches are cadence selection and arming tool.
    - **Fixed-interval** if parsing found one: convert per the table below.
    - **Self-paced** otherwise: pick a `delaySeconds` based on what makes
      the next iteration worth running (passage of time, observable event,
-     or stateful goal not done). With a Monitor armed for an event, the
-     delay is a fallback heartbeat (typically 1200-1800s); without one
-     it is the cadence.
+     or stateful goal not done) and the Cadence section below. With a
+     Monitor armed for an event, the delay is a fallback heartbeat
+     (typically 1200-1800s); without one it is the cadence.
 4. **Arm via the best available tool.**
    - **Fixed interval, `/chron` available**: invoke `/chron` with the
      cron expression, the parsed prompt verbatim, `recurring: true`, and
@@ -113,6 +126,22 @@ One linear procedure; the branches are cadence selection and arming tool.
 
 To stop the loop, omit `ScheduleWakeup` and stop any Monitor this loop
 armed (use `TaskList` to find the task ID if no longer in context).
+
+## Cadence
+
+Price polling against the expected arrival time (ETA). For a typical
+compute job the ETA is bimodal — fast-fail during startup (missing
+executable, bad config, model-load OOM) versus normal completion much
+later — so spend a few early checks observing the job survive its
+startup window and enter normal post-load worksteps (the same shape as
+`agentctl start`'s launch observation), then switch to the long mode:
+
+- first re-check no earlier than about half the remaining ETA;
+- thereafter poll no more often than about ETA/10, floor one minute;
+- with no ETA, use the 540-second unchanged-state heartbeat convention
+  (`_RUNS/monitoring.md`).
+
+Never poll on a seconds-scale cadence toward a multi-minute ETA.
 
 ## Interval to cron
 
