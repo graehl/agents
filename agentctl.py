@@ -166,6 +166,14 @@ DEFAULT_ZERO_COMPUTE_MIN_VRAM_MIB = 3000
 DEFAULT_WAIT_AFTER_UNKNOWN_GRACE_S = 15.0
 WATCH_TIMEOUT_EXIT_CODE = 124
 WATCH_TIMEOUT_MARKER = "agentctl-watch-timeout-v1"
+EXIT_CODES = {
+    0: "success or condition satisfied",
+    1: "operation or condition failed",
+    2: "usage error or refused operation",
+    124: "watch timed out (marker on stderr), or payload exited 124",
+    127: "payload executable not found",
+    130: "interrupted",
+}
 
 
 def utc_now() -> str:
@@ -5294,9 +5302,7 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
 
 
 def parse_start_command(name: str, mode: str, argv: list[str]) -> argparse.Namespace:
-    # capabilities=(): agentctl does not wire maybe_complete yet, so its
-    # --help must not advertise `complete` (gaps/agentctl-acli-complete.md).
-    p = acli_args.ArgumentParser(prog=f"agentctl {name}", capabilities=())
+    p = acli_args.ArgumentParser(prog=f"agentctl {name}", exit_codes=EXIT_CODES)
     add_start_options(p)
     if "--" not in argv:
         if any(arg in {"-h", "--help"} for arg in argv):
@@ -5313,12 +5319,9 @@ def parse_start_command(name: str, mode: str, argv: list[str]) -> argparse.Names
 
 
 def build_parser() -> argparse.ArgumentParser:
-    # capabilities=(): agentctl does not wire maybe_complete yet, so its
-    # --help must not advertise `complete` (gaps/agentctl-acli-complete.md).
-    # Subparsers inherit the opt-out via acli's add_subparsers default.
     p = acli_args.ArgumentParser(
         description="Small local job helper for agent-managed runs.",
-        capabilities=(),
+        exit_codes=EXIT_CODES,
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -5891,6 +5894,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     _load_plugins()
+    parser = build_parser()
+    acli_args.maybe_complete(parser)
     ensure_state_ignored()
     raw = sys.argv[1:]
     if raw[:1] == ["start"]:
@@ -5899,7 +5904,7 @@ def main() -> int:
     if raw[:1] == ["smoke"]:
         args = parse_start_command("smoke", "smoke", raw[1:])
         return start(args)
-    args = build_parser().parse_args(raw)
+    args = parser.parse_args(raw)
     if getattr(args, "argv", None) and args.argv[:1] == ["--"]:
         args.argv = args.argv[1:]
     return args.func(args)
