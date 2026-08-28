@@ -479,9 +479,19 @@ concurrently, so one slow SSH round does not multiply by the worker count:
 threshold. A 96-GiB GPU already using 60 GiB is therefore eligible for a
 30-GiB run when the remaining headroom is durable. The foreground process is
 a blocking primitive, not a dashboard: it emits nothing until a wake
-condition is satisfied. Its one flushed wake line then carries the fleet
-snapshot, running native jobs, completed job/PID details, and the durability
-evidence for qualifying capacity.
+condition is satisfied. Its one flushed stdout event follows the shared
+`acli` contract: compact JSONL for agents and pipes, pretty JSON for an
+interactive human, with `--compact`, `--json`, `--pretty`, and `--full`
+overrides. Structured errors are the last stderr line and use the common
+usage, not-found, and unavailable exit classes.
+
+Every wake event has `kind: "fleet_watch"`, a definitive `reason`
+(`capacity_available`, `work_ended`, or `timeout`), an `events` list naming
+the capacity/job/PID transition, and a `fleet` snapshot. Fleet rows include
+the target, GPU, free memory, capacity verdict when requested, and known
+native jobs or watched PIDs. `--full` adds host, total/used memory, power,
+utilization, GPU process IDs, and capacity reload-risk evidence. This keeps
+the default result compact without making the detailed state unrecoverable.
 
 One sample never releases the wait. With the default ten-second poll:
 
@@ -491,9 +501,9 @@ One sample never releases the wait. With the default ten-second poll:
   reload;
 - three are required when GPU-process enumeration is unavailable.
 
-Any below-threshold sample silently resets the candidate. The final capacity
-line names free memory, the requested minimum, sample count, native jobs
-still running, and any watched completions accumulated while
+Any below-threshold sample silently resets the candidate. A capacity event
+names free memory, the requested minimum, sample count, native jobs still
+running, and any watched completions accumulated while
 `--no-wake-on-job-end` was active.
 
 Native job awareness is opportunistic. On local and SSH targets with
@@ -514,7 +524,8 @@ Foreground invocations should use a sub-hour timeout (`--timeout 3300` is
 the normal 55-minute bound) so the agent periodically regains control even
 when no resource or job transition occurs. The verb defaults to that bound;
 `--timeout 0` is the deliberate unbounded override. A timeout is itself a
-wake and prints the final fleet snapshot.
+wake: it emits `reason: "timeout"` with an explicit empty `events` list and
+the final fleet snapshot, then exits 1.
 
 A fresh remote needs only SSH and `nvidia-smi` for capacity monitoring.
 Install-free process monitoring uses `--pid NAME=PID`. If `<root>/agentctl`

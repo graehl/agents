@@ -10,11 +10,13 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import acli
 import agentctl
 
 NORMAL_CAPACITY_SAMPLES = 2
@@ -137,10 +139,6 @@ class JobSnapshot:
     def terminal(self) -> bool:
         return self.status not in agentctl.LIVE_JOB_STATUSES
 
-    def format(self) -> str:
-        suffix = f",rc={self.returncode}" if self.returncode else ""
-        return f"{self.name}:{self.status}({self.elapsed}{suffix})"
-
 
 @dataclass(frozen=True)
 class TargetSnapshot:
@@ -158,23 +156,6 @@ class TargetSnapshot:
     def capacity_available(self, min_free_memory: int | None) -> bool:
         return min_free_memory is not None and self.free_memory_mib >= min_free_memory
 
-    def format(self, min_free_memory: int | None) -> str:
-        bits = [f"{self.target.name}: {agentctl.format_gpu_stats(self.gpu)}"]
-        if min_free_memory is not None:
-            state = "available" if self.capacity_available(min_free_memory) else "busy"
-            bits.append(f"capacity={state}(need={min_free_memory}MiB)")
-        if self.jobs:
-            bits.append("jobs=" + ",".join(job.format() for job in self.jobs))
-        if self.pids:
-            bits.append(
-                "pids="
-                + ",".join(
-                    f"{pid}:{'running' if alive else 'ended'}"
-                    for pid, alive in self.pids
-                )
-            )
-        return " ".join(bits)
-
 
 @dataclass
 class CapacityCandidate:
@@ -187,7 +168,7 @@ class CapacityCandidate:
 def _split_assignment(raw: str, option: str) -> tuple[str, str]:
     name, separator, value = raw.partition("=")
     if not separator or not name.strip() or not value.strip():
-        raise SystemExit(f"{option} requires NAME=VALUE, got {raw!r}")
+        raise ValueError(f"{option} requires NAME=VALUE, got {raw!r}")
     return name.strip(), value.strip()
 
 
@@ -198,10 +179,10 @@ def _targets(args: argparse.Namespace) -> list[Target]:
     for raw in args.target:
         name, host = _split_assignment(raw, "--target")
         if name in targets:
-            raise SystemExit(f"duplicate --target name: {name}")
+            raise ValueError(f"duplicate --target name: {name}")
         targets[name] = Target(name=name, host=host)
     if not targets:
-        raise SystemExit(
+        raise ValueError(
             "fleet-watch has no targets; remove --no-local or add --target"
         )
 
@@ -212,11 +193,11 @@ def _targets(args: argparse.Namespace) -> list[Target]:
         for raw in values:
             name, value = _split_assignment(raw, option)
             if name not in targets:
-                raise SystemExit(f"{option} names unknown target: {name}")
+                raise ValueError(f"{option} names unknown target: {name}")
             try:
                 setattr(targets[name], attr, convert(value))
             except ValueError as exc:
-                raise SystemExit(f"{option} has invalid value {value!r}") from exc
+                raise ValueError(f"{option} has invalid value {value!r}") from exc
 
     for option, values, attr, convert in (
         ("--job", args.job, "jobs", str),
@@ -225,17 +206,17 @@ def _targets(args: argparse.Namespace) -> list[Target]:
         for raw in values:
             name, value = _split_assignment(raw, option)
             if name not in targets:
-                raise SystemExit(f"{option} names unknown target: {name}")
+                raise ValueError(f"{option} names unknown target: {name}")
             try:
                 getattr(targets[name], attr).append(convert(value))
             except ValueError as exc:
-                raise SystemExit(f"{option} has invalid value {value!r}") from exc
+                raise ValueError(f"{option} has invalid value {value!r}") from exc
     for target in targets.values():
         if not target.local:
             continue
         local_root = Path(target.root).expanduser().resolve()
         if local_root != agentctl.ROOT:
-            raise SystemExit(
+            raise ValueError(
                 f"{target.name}: a local target must use the invocation project root "
                 f"{agentctl.ROOT}; alternate local project roots are not supported"
             )
@@ -298,7 +279,7 @@ def _local_snapshot(
     for name in sorted(selected_names):
         state = states.get(name)
         if state is None:
-            raise RuntimeError(f"{target.name}: unknown agentctl job: {name}")
+            raise LookupError(f"{target.name}: unknown agentctl job: {name}")
         jobs.append(
             JobSnapshot(
                 name=name,
@@ -445,7 +426,7 @@ def _remote_snapshot(
         )
     missing_jobs = [job.name for job in jobs.values() if job.status == "missing"]
     if missing_jobs:
-        raise RuntimeError(
+        raise LookupError(
             f"{target.name}: unknown agentctl job: {', '.join(missing_jobs)}"
         )
     return TargetSnapshot(
@@ -484,28 +465,6 @@ def _pid_completion_events(
     ]
 
 
-def _completion_summary(
-    completed_jobs: list[tuple[str, JobSnapshot]],
-    completed_pids: list[tuple[str, int]],
-) -> str:
-    bits: list[str] = []
-    if completed_jobs:
-        bits.append(
-            "ended_jobs="
-            + ",".join(f"{target}/{job.format()}" for target, job in completed_jobs)
-        )
-    if completed_pids:
-        bits.append(
-            "ended_pids="
-            + ",".join(f"{target}/{pid}" for target, pid in completed_pids)
-        )
-    return " ".join(bits)
-
-
-def _fleet_summary(snapshots: list[TargetSnapshot], min_free_memory: int | None) -> str:
-    return " | ".join(snapshot.format(min_free_memory) for snapshot in snapshots)
-
-
 def _capacity_samples_required(
     candidate: CapacityCandidate, snapshot: TargetSnapshot
 ) -> int:
@@ -516,19 +475,119 @@ def _capacity_samples_required(
     return NORMAL_CAPACITY_SAMPLES
 
 
-def _capacity_wake_detail(
-    snapshot: TargetSnapshot, candidate: CapacityCandidate
-) -> str:
-    required = _capacity_samples_required(candidate, snapshot)
-    detail = (
-        f"{snapshot.target.name}={snapshot.free_memory_mib}MiB"
-        f"(samples={candidate.samples}/{required}"
-    )
-    if candidate.reload_risk_pids:
-        detail += ",reload-risk-pids=" + ",".join(
-            map(str, sorted(candidate.reload_risk_pids))
+def _returncode_value(raw: str) -> int | None:
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
+def _job_payload(job: JobSnapshot) -> dict:
+    row: dict = {"name": job.name, "status": job.status}
+    returncode = _returncode_value(job.returncode)
+    if returncode is not None:
+        row["returncode"] = returncode
+    row["elapsed"] = job.elapsed
+    return row
+
+
+def _target_payload(
+    snapshot: TargetSnapshot,
+    min_free_memory: int | None,
+    *,
+    full: bool,
+) -> dict:
+    row: dict = {
+        "target": snapshot.target.name,
+        "gpu": snapshot.target.gpu,
+        "free_memory_mib": snapshot.free_memory_mib,
+    }
+    if min_free_memory is not None:
+        row["capacity_available"] = snapshot.capacity_available(min_free_memory)
+    if snapshot.jobs:
+        row["jobs"] = [_job_payload(job) for job in snapshot.jobs]
+    if snapshot.pids:
+        row["pids"] = [{"pid": pid, "alive": alive} for pid, alive in snapshot.pids]
+    if full:
+        row.update(
+            {
+                "host": snapshot.target.host,
+                "memory_total_mib": snapshot.gpu["memory_total_mib"],
+                "memory_used_mib": snapshot.gpu["memory_used_mib"],
+                "power_draw_w": snapshot.gpu["power_draw_w"],
+                "utilization_gpu_pct": snapshot.gpu["utilization_gpu_pct"],
+                "gpu_process_pids": (
+                    sorted(snapshot.gpu_process_pids)
+                    if snapshot.gpu_process_pids is not None
+                    else None
+                ),
+            }
         )
-    return detail + ")"
+    return row
+
+
+def _completion_events(
+    completed_jobs: list[tuple[str, JobSnapshot]],
+    completed_pids: list[tuple[str, int]],
+) -> list[dict]:
+    events: list[dict] = []
+    for target, job in completed_jobs:
+        event = {"kind": "job_end", "target": target, **_job_payload(job)}
+        events.append(event)
+    events.extend(
+        {"kind": "pid_end", "target": target, "pid": pid}
+        for target, pid in completed_pids
+    )
+    return events
+
+
+def _capacity_events(
+    snapshots: list[TargetSnapshot],
+    candidates: dict[str, CapacityCandidate],
+    min_free_memory: int,
+    *,
+    full: bool,
+) -> list[dict]:
+    events: list[dict] = []
+    for snapshot in snapshots:
+        candidate = candidates[snapshot.target.name]
+        event = {
+            "kind": "capacity",
+            "target": snapshot.target.name,
+            "free_memory_mib": snapshot.free_memory_mib,
+            "min_free_memory_mib": min_free_memory,
+            "samples": candidate.samples,
+            "required_samples": _capacity_samples_required(candidate, snapshot),
+        }
+        if full:
+            event["reload_risk_pids"] = sorted(candidate.reload_risk_pids)
+            event["processes_unknown"] = candidate.processes_unknown
+        events.append(event)
+    return events
+
+
+def _emit_wake(
+    args: argparse.Namespace,
+    fmt: acli.Format,
+    reason: str,
+    snapshots: list[TargetSnapshot],
+    events: list[dict],
+) -> None:
+    payload = {
+        "kind": "fleet_watch",
+        "reason": reason,
+        "events": events,
+        "fleet": [
+            _target_payload(
+                snapshot,
+                args.min_free_memory,
+                full=args.full,
+            )
+            for snapshot in snapshots
+        ],
+    }
+    acli.emit(payload, fmt)
+    sys.stdout.flush()
 
 
 def _probe_target(
@@ -554,13 +613,24 @@ def _probe_target(
 
 
 def fleet_watch(args: argparse.Namespace) -> int:
+    try:
+        fmt = acli.resolve_format(args)
+    except ValueError as exc:
+        acli.die(str(exc), acli.ExitCode.USAGE)
     if args.no_wake_on_job_end and args.min_free_memory is None:
-        raise SystemExit("fleet-watch --no-wake-on-job-end requires --min-free-memory")
-    if args.min_free_memory is None and not args.job and not args.pid:
-        raise SystemExit(
-            "fleet-watch needs --min-free-memory, --job, or --pid to define a wake condition"
+        acli.die(
+            "fleet-watch --no-wake-on-job-end requires --min-free-memory",
+            acli.ExitCode.USAGE,
         )
-    targets = _targets(args)
+    if args.min_free_memory is None and not args.job and not args.pid:
+        acli.die(
+            "fleet-watch needs --min-free-memory, --job, or --pid to define a wake condition",
+            acli.ExitCode.USAGE,
+        )
+    try:
+        targets = _targets(args)
+    except ValueError as exc:
+        acli.die(str(exc), acli.ExitCode.USAGE)
     deadline = time.monotonic() + args.timeout if args.timeout > 0 else None
     previous: dict[str, TargetSnapshot] = {}
     observed_job_names: dict[str, set[str]] = {
@@ -594,10 +664,19 @@ def fleet_watch(args: argparse.Namespace) -> int:
             for target, future in pending:
                 try:
                     snapshots.append(future.result())
-                except Exception as exc:
-                    raise SystemExit(
-                        f"fleet-watch probe failed for {target.name}: {exc}"
-                    ) from exc
+                except LookupError as exc:
+                    acli.die(str(exc), acli.ExitCode.NOT_FOUND)
+                except (
+                    OSError,
+                    RuntimeError,
+                    subprocess.SubprocessError,
+                    ValueError,
+                    IndexError,
+                ) as exc:
+                    acli.die(
+                        f"fleet-watch probe failed for {target.name}: {exc}",
+                        acli.ExitCode.UNAVAILABLE,
+                    )
 
         now = time.monotonic()
         new_jobs: list[tuple[str, JobSnapshot]] = []
@@ -638,45 +717,33 @@ def fleet_watch(args: argparse.Namespace) -> int:
             elif name in capacity_candidates:
                 capacity_candidates.pop(name)
         if stable_capacity:
-            detail = ", ".join(
-                _capacity_wake_detail(
-                    snapshot, capacity_candidates[snapshot.target.name]
+            events = _capacity_events(
+                stable_capacity,
+                capacity_candidates,
+                args.min_free_memory,
+                full=args.full,
+            )
+            events.extend(
+                _completion_events(
+                    completed_jobs,
+                    completed_pids,
                 )
-                for snapshot in stable_capacity
             )
-            completions = _completion_summary(completed_jobs, completed_pids)
-            suffix = f" {completions}" if completions else ""
-            active_jobs = [
-                f"{snapshot.target.name}/{job.format()}"
-                for snapshot in stable_capacity
-                for job in snapshot.jobs
-                if not job.terminal
-            ]
-            running = " running_jobs=" + ",".join(active_jobs) if active_jobs else ""
-            print(
-                f"wake: GPU capacity available {detail} "
-                f"(need={args.min_free_memory}MiB)"
-                f"{running}{suffix} "
-                f"fleet=[{_fleet_summary(snapshots, args.min_free_memory)}]",
-                flush=True,
-            )
+            _emit_wake(args, fmt, "capacity_available", snapshots, events)
             return 0
         if not args.no_wake_on_job_end and (new_jobs or new_pids):
-            print(
-                "wake: watched work ended "
-                + _completion_summary(new_jobs, new_pids)
-                + f" fleet=[{_fleet_summary(snapshots, args.min_free_memory)}]",
-                flush=True,
+            _emit_wake(
+                args,
+                fmt,
+                "work_ended",
+                snapshots,
+                _completion_events(new_jobs, new_pids),
             )
             return 0
 
         previous = {snapshot.target.name: snapshot for snapshot in snapshots}
         if deadline is not None and now >= deadline:
-            print(
-                "wake: fleet-watch timed out "
-                f"fleet=[{_fleet_summary(snapshots, args.min_free_memory)}]",
-                flush=True,
-            )
+            _emit_wake(args, fmt, "timeout", snapshots, [])
             return 1
         time.sleep(args.poll)
 
@@ -685,6 +752,11 @@ def register_verbs(subparsers) -> None:
     parser = subparsers.add_parser(
         "fleet-watch",
         help="Wait for work or free GPU capacity across local and SSH workers.",
+        description=(
+            "Wait for work or free GPU capacity across local and SSH workers. "
+            "Duration: open-ended, bounded by --timeout unless set to 0. "
+            "Output: one unbuffered structured stdout event on wake or timeout."
+        ),
     )
     parser.add_argument(
         "--no-local",
@@ -777,4 +849,5 @@ def register_verbs(subparsers) -> None:
         metavar="SECONDS",
         help="Maximum silent wait before a timeout wake (default: 3300; 0 waits indefinitely).",
     )
+    acli.add_standard_args(parser)
     parser.set_defaults(func=fleet_watch)
