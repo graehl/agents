@@ -905,6 +905,16 @@ For multi-line or iterative ad-hoc code, write a scratch file and rerun it
 rather than embedding fragile shell quoting. Remove it when done; use durable
 scratch storage if it must survive a gap.
 
+## Multiple-use helper tools
+
+A new helper CLI meant to outlive its task — committed, named in
+instructions, or reused across sessions, whether user-requested or
+agent-initiated — is built acli-compliant on the shared `acli` library:
+before writing one, read repo `topics/acli.md`, else
+`~/agents/topics/acli.md`. Throwaway, exploration, and diagnostic
+commands may stay bare shell scripts or long commands; the boundary is
+retention, not size.
+
 ## Deleting files
 
 Leave `-f` off `rm` and prefer `rm -r` unless missing targets must not fail.
