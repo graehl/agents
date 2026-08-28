@@ -153,6 +153,17 @@ real deployment target, not a tail case. Then:
   destabilizing cycles among queues/resources rather than assigning
   independent scalar blame. Analysis strategies: the survey's
   `Experimental recipe implied by the literature` section.
+- **Output system-observed-performance code hotspot pointers.** A
+  useful analysis result is a ranked set of pointers to code regions
+  or compilation units where a projected marginal speed or memory
+  improvement changes an externally observed system metric: latency,
+  goodput, queue growth, recovery time, or residual memory. These are
+  causal optimization candidates, not raw CPU-usage hot spots. Each
+  pointer should name the scenario, affected metric, evidence, owning
+  code, and likely intervention: usually a manual code edit, and where
+  supported, targeted compiler-optimization markup or compilation-unit
+  settings. Validate the actual change on/off before claiming its
+  projected value.
 - **Delays, not drops.** With reliable in-order transports (the
   current stack), packet-loss injection exercises a layer that is not
   there; message delay is the perturbation of choice. Loss becomes
