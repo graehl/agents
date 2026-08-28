@@ -110,6 +110,73 @@ several measured 062 facilities with strong correctness evidence
 and no perf re-assessment; the 066 survey later found persistent
 session-detail losses hiding behind endpoint-flat comparisons.
 
+## Degradation injection: perturb every async boundary
+
+User-directed trial (2026-08-28), promoted so perf-improvement
+sessions actually apply it; evaluate and retire or keep after use.
+Field terms of art: fault injection, latency injection, slow faults.
+
+When improving or stress-testing a concurrent or distributed system —
+including a web app's server queues, websocket paths, and browser-side
+components/event handlers — give every worker queue and async boundary
+an instrumented aspect that both reports metrics and accepts
+artificial degradation: added latency, capped throughput, an injected
+I/O failure rate at storage aspects, and an injected crash
+probability — the janky end-user OS/browser/hardware platform is a
+real deployment target, not a tail case. Then:
+
+- **Map cascade sensitivity.** Degrade one boundary at a time and
+  measure which user-visible metrics move. Boundaries whose small
+  degradations cascade are both the optimization targets and the
+  fragile points under load.
+- **Start random, graduate to guided.** The easy build is the right
+  start: one global "how bad" knob, random per-boundary slowdowns,
+  random subsets relaxed back to normal. Analysis, not construction,
+  is the hard part; sensitivity ranking and composed scenarios grow
+  out of that data. The explored set must still include massive
+  *correlated, adversarial* scenarios — remote-exploit DoS flooding,
+  crash storms — which random sampling essentially never composes.
+  There the pass criterion is sensible eventual recovery once the
+  assault stops, not graceful service during it.
+- **First analyses: dual saturation probes, then flail attribution.**
+  The opening questions are dual walks to the saturation boundary:
+  what happens as load / request rate / data size increases, and what
+  happens when everything slows until offered load is barely
+  sustainable. Graphs are not the goal — the goal is identifying
+  which parts of the system *flail*: amplify stress or lengthen
+  recovery to normal once stress is relieved. Analysis strategies:
+  `surveys/slow-fault-injection/survey.md § Analysis methods`.
+- **Delays, not drops.** With reliable in-order transports (the
+  current stack), packet-loss injection exercises a layer that is not
+  there; message delay is the perturbation of choice. Loss becomes
+  interesting only where a custom non-TCP-semantic reliability layer
+  turns it into reordering.
+- **Reordering is a first-class intent.** Variable/random per-message
+  slowdowns are meant to induce reordering wherever ordering is not
+  guaranteed. Apply *explicit* reorder injection only in channels known
+  to admit out-of-order delivery — an out-of-order retransmit/accept
+  discipline — not in in-order channels.
+- **Crash/resume is in scope — it is the normal path.** Distributed
+  systems pretty much always auto-restart crashed queue workers and
+  even queue servers, so crash injection exercises a recovery path the
+  system already promises to take, not an exotic fault. Client
+  crash/resume is always a test axis. Where persistent data exists,
+  add database-style server crash/recovery — tested against the
+  actual durability contract, not an imagined one: a journaled
+  filesystem giving approximately atomic writes, where losing the
+  last message(s) is acceptable because nothing waits for a *really*
+  committed write (and storage hardware may not deliver true commit
+  even when asked). The recovery invariant is a consistent recent
+  prefix, not zero loss.
+- **One hook, three uses.** Keep the degradation knob inside the same
+  instrumented aspect that reports metrics, so it serves profiling,
+  stress tests, and regression suites without parallel plumbing. The
+  browser analogue: wrap component event handlers so a test build can
+  delay them like any server queue.
+
+Prior art seed (ungrounded):
+[`surveys/slow-fault-injection/`](../surveys/slow-fault-injection/survey.md).
+
 ## Fresh runners when policy allows
 
 Where project policy authorizes cloud workers (AWS or similar) or
