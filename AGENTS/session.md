@@ -138,6 +138,13 @@ line on stderr. `agentctl alone <id>
 intentionally project-serial step, e.g. a whole-project amend/rebase),
 then registers your entry. Neither verb narrows to `scope:` overlap; a
 waiting `alone` is visible to browsers but never counts as a peer.
+`agentctl clear <paths> && <edits>` is the per-path form: one
+check+claim before an intended sequence of edits, after which the held
+files need no per-edit re-check while your entry stays fresh. `--carve`
+claims through a peer's covering wildcard (an exact peer claim blocks);
+`clear --drop <paths>` releases finished files, keeping wildcard scope.
+Re-run `clear` when a new sequence starts — a resume or long pause is a
+new sequence, and re-claiming a held path is a cheap refresh.
 
 A steward-type session — one that will keep launching queued work when
 it wakes (e.g. `/steward` between hourly rounds) — adds a `tending:`

@@ -5233,6 +5233,79 @@ def test_others_expect_excludes_known_peers():
         ws.cleanup()
 
 
+def test_clear_checks_peers_and_claims_paths():
+    # `clear <paths>` is the once-per-edit-sequence check+claim: exit 0 claims
+    # the literal paths on the caller's entry; a peer's broader claim is
+    # carveable only under --carve (literal beats covering); an equal-or-more-
+    # specific literal peer claim blocks even --carve. --drop releases literal
+    # claims (and their claim/carve lines), leaving wildcard scope.
+    ws = Workspace(git=False)
+    me = "55555555-5555-5555-5555-555555555555"
+    wide = "66666666-6666-6666-6666-666666666666"
+    exact = "77777777-7777-7777-7777-777777777777"
+    env = {"AGENTCTL_SESSION_ID": me}
+    try:
+        active = ws.tmp / ".agentctl/active"
+        active.mkdir(parents=True)
+        (active / wide).write_text("wide refactor\nscope: src/** *.md\n")
+        (active / exact).write_text("fixing parser\nscope: src/parse.py\n")
+
+        res = ws.run("clear", "docs/notes.txt", env_extra=env)
+        _assert(res.returncode == 0, f"unclaimed path must clear: {res.stderr}")
+        payload = _json_record(res.stdout)
+        _assert(payload["verdict"] == "claimed", payload)
+        _assert(payload["stale_at"] > payload["now"], payload)
+        entry = (active / me).read_text()
+        _assert("scope: docs/notes.txt" in entry, entry)
+
+        res = ws.run("clear", "src/util.py", env_extra=env)
+        _assert(res.returncode == 1, "covering wildcard must gate without --carve")
+        payload = _json_record(res.stdout)
+        _assert(payload["verdict"] == "carveable", payload)
+        _assert(payload["conflicts"][0]["id"] == wide, payload)
+        _assert("src/util.py" not in (active / me).read_text(), "no claim on gate")
+
+        res = ws.run(
+            "clear", "src/util.py", "--carve", "-M", "helpers", env_extra=env
+        )
+        _assert(res.returncode == 0, f"--carve claims through wildcard: {res.stderr}")
+        payload = _json_record(res.stdout)
+        _assert(payload["carved"] == ["src/util.py"], payload)
+        entry = (active / me).read_text()
+        _assert("scope: docs/notes.txt src/util.py" in entry, entry)
+        _assert(f"carve: src/util.py from {wide} src/**" in entry, entry)
+        _assert("helpers" in entry, entry)
+
+        res = ws.run("clear", "src/parse.py", "--carve", env_extra=env)
+        _assert(res.returncode == 1, "exact peer claim must block --carve")
+        _assert(_json_record(res.stdout)["verdict"] == "blocked", res.stdout)
+
+        res = ws.run("clear", "src", "--carve", env_extra=env)
+        _assert(res.returncode == 1, "peer's more-specific literal blocks dir claim")
+        _assert(_json_record(res.stdout)["verdict"] == "blocked", res.stdout)
+
+        res = ws.run("clear", "docs/notes.txt", env_extra=env)
+        _assert(res.returncode == 0, "re-claiming a held path is a cheap success")
+        _assert(
+            _json_record(res.stdout)["scope"] == ["docs/notes.txt", "src/util.py"],
+            res.stdout,
+        )
+
+        res = ws.run("clear", "--drop", "src/util.py", "ghost.txt", env_extra=env)
+        _assert(res.returncode == 0, "drop is idempotent")
+        payload = _json_record(res.stdout)
+        _assert(payload["dropped"] == ["src/util.py"], payload)
+        _assert(payload["not_held"] == ["ghost.txt"], payload)
+        entry = (active / me).read_text()
+        _assert("src/util.py" not in entry, f"claim+carve lines dropped: {entry}")
+        _assert("scope: docs/notes.txt" in entry, entry)
+
+        res = ws.run("clear", "src/*.py", env_extra=env)
+        _assert(res.returncode == 2, "wildcard request is a usage error")
+    finally:
+        ws.cleanup()
+
+
 # ---- Runner ----------------------------------------------------------------
 
 

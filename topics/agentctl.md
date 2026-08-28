@@ -87,6 +87,11 @@ a glob-aware consumer. Every blessed form instead reduces to an
 anchored match — a concrete path overlaps a claim when the claim's
 literal anchor prefixes it (segment/subtree forms) or it ends in the
 claimed extension — so one grep tests overlap with no glob engine.
+Claims also carry precedence: a literal path beats a covering claim
+(wildcard, extension, or ancestor literal), so a broad claim is porous
+to specific carves through the `clear` verb (§ Contracts), and its
+holder re-checks for carves at its own edit-sequence starts while
+peers are present.
 
 A `tending:` header line (below line 1, beside `scope:`, either order
 accepted; canonical writes put scope first) declares steward presence:
@@ -108,8 +113,10 @@ tending` is the verb form (§ Contracts).
 
 Anything beyond the header (line 1, `scope:`, `tending:`) is free
 content at agent discretion (plan notes, considered approaches, longer
-status); brief readers stop after the header. Readers treat files
-whose line 1 starts with `DONE` (`DONE*`) as complete.
+status); brief readers stop after the header. The `clear` verb appends
+conventional `claim:`/`carve:` free lines (UTC-timestamped, optionally
+noted) and removes them with `--drop`; readers may ignore them. Readers
+treat files whose line 1 starts with `DONE` (`DONE*`) as complete.
 
 A line 1 starting `REWRITE` is the advisory history-rewrite lock
 (`AGENTS.global.md § Amends`): the holder took the floor via `agentctl alone
@@ -349,7 +356,8 @@ window.
   Reversible by design; the list views above read the archive dirs back. The
   same sweep runs silently on each foreground launch — piggybacked on that
   write path so listing stays read-only.
-- The active-session verbs (`active`, `others`, `tending`, `alone`) use the
+- The active-session verbs (`active`, `others`, `clear`, `tending`, `alone`)
+  use the
   shared `acli` output flags: compact JSONL by default for agents/pipes,
   indented JSON under `--pretty`, `--full` for wider schemas, and `--toon`
   rejected because these verbs are not table producers.
@@ -389,6 +397,31 @@ window.
   agentctl-backed counterpart to the dependency-free
   `/others` skill's peer bucket — pass your *real* session id, since a wrong id
   would count your own entry as a peer and re-manufacture the stale belief.
+- `clear <paths...>` is the per-path counterpart to `others`: one atomic-ish
+  check+claim, run once before an intended sequence of edits — `agentctl
+  clear <paths> && <edits>` — not per edit. It scans fresh peers' `scope:`
+  claims for overlap with each requested literal path (wildcards in the
+  request are refused; a directory path claims its subtree) and,
+  all-or-nothing, adds cleared paths to the caller's own scope.
+  Literal-beats-covering precedence: an equal-or-more-specific literal peer
+  claim **blocks** (`verdict: blocked`, holders named; `--carve` does not
+  override), while a broader covering claim (wildcard, extension, ancestor
+  dir) gates by default (`verdict: carveable`, with `next_command`
+  suggesting `--carve`) and `--carve` claims through it, appending a
+  `carve: <path> from <peer-id> <claim> at <UTC>` free line so a knowing
+  carve stays distinguishable from an oblivious collision. A specifically
+  claimed file needs no per-edit re-check while the entry is fresh;
+  re-claiming a held path is a cheap success that refreshes the entry, so
+  the staleness story is simply "re-run `clear` at each new edit
+  sequence" — a resume or long pause starts a new sequence, and the re-run
+  either re-establishes an aged-out or manually cleared claim or reports
+  the conflict that grew meanwhile. The payload surfaces `now`,
+  `claimed_at`, and `stale_at` so a time-blind agent sees the clock in its
+  transcript. `clear --drop <paths>` releases finished literal claims and
+  their claim/carve lines, leaving wildcard scope — encouraged at sequence
+  end. `-M/--note` records a "what for" on the claim line; line 1 stays
+  agent-authored. Advisory, binding only for protocol users, like the rest
+  of the convention.
 - `tending [<session-id>]` is the steward-presence specialization of `others`:
   the same window scan and self-exclusion, but only entries carrying a
   `tending:` header line count (§ Active-sessions file schema). It answers

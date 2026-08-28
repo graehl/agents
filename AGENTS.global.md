@@ -414,7 +414,15 @@ surprising peers):
 - **Solo:** rely on the user supplement's reciprocal announcement convention;
   skip slow-gap rereads unless a user edit was announced or context was lost.
 - **Peers present:** reread the specific file immediately before edit, narrowed
-  by peer `scope:` when available.
+  by peer `scope:` when available — or claim it once: `agentctl clear <paths>`
+  before an intended sequence of edits checks peers and claims on exit 0
+  (`--carve` claims through a peer's covering wildcard; an exact peer claim
+  always blocks). A file you hold a fresh specific claim on needs no
+  per-edit ceremony; a resume or long pause starts a new sequence, so
+  re-run `clear` then — claims age out. Drop finished file claims
+  (`clear --drop <paths>`), keeping wildcard scope. Your own wildcard
+  scope is porous: peers may carve exact claims from it, surfaced by your
+  next sequence-start check.
 
 A failed edit anchor, unexpected dirty/staged state, or other surprise triggers
 a fresh peer check even when solitude was assumed. On divergence, pause and
