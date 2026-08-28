@@ -152,15 +152,22 @@ tracked background job, or a scheduled wakeup instead of trying it.
 
 ## Persisting memories: promote cross-project ones to ~/agents
 
-The Claude file-memory system is per-project: it writes under
-`~/.claude/projects/<project-hash>/memory/`, and its `MEMORY.md` index
-loads per project. That is the right home only for project-specific
-facts. When a memory is *general* — a cross-project working preference,
-a behavioral correction, a reusable reference — also record it
-appropriately scoped in `~/agents`: a load-bearing rule in `AGENTS.global.md`,
-its rationale in a topic or `.evidence.md`, Claude-harness mechanics
-here. A general rule saved only under one project both misleads (reads
-as project-specific) and hides (sessions in other projects never load
-it). First check whether `AGENTS.global.md` or a topic already covers it —
-`AGENTS.global.md` is boot-loaded every session, so a memory restating it is
-pure redundancy; update the global home instead of duplicating.
+Claude Code stores auto-memory files on this machine under
+`~/.claude/projects/<project-hash>/memory/`; it does not sync those files as a
+cloud memory store. Its `MEMORY.md` index is nevertheless injected into model
+context for each project conversation, so machine-local storage does not mean
+the loaded content stays on the machine during inference. Provider retention
+or reuse depends on the account and privacy configuration; it does not decide
+where this instruction corpus owns a fact.
+
+Use that memory directory only for project-specific facts. When a memory is
+*general* — a cross-project working preference, behavioral correction, or
+reusable reference — promote it to the appropriate `~/agents` home and remove
+the redundant general statement from project memory: a load-bearing rule in
+`AGENTS.global.md`, its rationale in a topic or `.evidence.md`, and
+Claude-harness mechanics here. A general rule saved only under one project
+both misleads (reads as project-specific) and hides (other projects never load
+it). First check whether the global home already covers it and update that
+source instead of keeping two authoritative copies. Claude's native affinity
+for its MEMORY mechanism is not evidence that a cross-project fact belongs
+there; choose the owner by scope and audience.

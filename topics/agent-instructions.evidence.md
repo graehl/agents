@@ -3782,3 +3782,35 @@ Contributing-model: Daybreak-Blue
   glossary artifact, while `topics/glossary.md` carries the authoring rule.
 
 Contributing-model: Daybreak-Blue
+
+## 2026-08-28 — separate auto-memory storage from transmitted context
+
+- **User observation** — Claude's native model and harness may favor their own
+  MEMORY mechanism because its loaded content is sent to Anthropic and may be
+  retained or reused according to the account's privacy configuration.
+- **Verified distinction** — Anthropic's current Claude Code documentation
+  says auto-memory files are machine-local and are not shared across machines
+  or cloud environments, while the `MEMORY.md` prefix loads into every
+  conversation. Local Claude Code sends prompt context to the serving model;
+  server retention and model-improvement use vary by provider, account type,
+  and privacy settings. Sources: [memory](https://code.claude.com/docs/en/memory)
+  and [data usage](https://code.claude.com/docs/en/data-usage).
+- **Decision** — `AGENTS.claude.md` now distinguishes file location from
+  inference data flow, promotes general memories instead of duplicating them,
+  and says Claude's native affinity for MEMORY is not ownership evidence.
+- **Trace: project-specific learning** — Claude learns that one repository's
+  integration test needs a local fixture. It stays in that project's memory;
+  no global copy is created.
+- **Trace: general correction** — a project memory says never use bare force
+  push, while `AGENTS.global.md` already owns the rule. The agent removes the
+  redundant memory statement and updates the global source if clarification
+  is needed.
+- **Trace: deceptively local storage** — a user considers placing a secret in
+  MEMORY because its files do not cloud-sync. The agent recognizes that loaded
+  content still enters remote inference context and does not infer secrecy
+  from the storage location.
+- **Status** — directly user-specified, checked against current Anthropic
+  documentation, and trace-simulated; effect on Claude's ownership choices is
+  unmeasured.
+
+Contributing-model: Daybreak-Blue
