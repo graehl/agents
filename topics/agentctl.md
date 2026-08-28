@@ -363,13 +363,23 @@ window.
   caution instead of trusting the stale belief. The **exit code is the
   signal** — 0 when you are alone, nonzero when peers are present — so it
   composes as `agentctl others <id> && <solo-only step>` without parsing
-  stdout. The explicit `<session-id>` argument is the exclusion key *and* a
+  stdout. `--expect <id[,id...]>` (repeatable, multi-arg or CSV) names peers
+  whose presence is already accounted for — typically ones the caller
+  spawned — and `--expect-count N` tolerates up to N unnamed peers beyond
+  the named ones; with either, exit 0 means *no surprising peers*, expected
+  rows are marked in the `peers` array, and the payload adds
+  `unexpected_count`/`has_surprises`/`expected_absent`. An expected peer
+  that is DONE, aged out, or unregistered never fails the gate — that is
+  more solitude, not less; each dropout gets one `# `-prefixed stderr info
+  line naming why. The explicit
+  `<session-id>` argument is the exclusion key *and* a
   deliberate nudge for a session to know its own id; omit it to fall back to
   `agent_session_id()`, and with no id resolvable nothing is excluded (it
   degrades to `active`-style output). All peers count: there is deliberately
   **no narrowing to `scope:` overlap** — `others`/`alone` are the intentionally
   project-serial verbs, distinct from the per-path re-Read+scope coordination.
-  A **provided** id is also a claim: on the alone path it calls
+  A **provided** id is also a claim: on any exit-0 path (truly alone, or
+  only expected peers) it calls
   `ensure_active_registered` to create/refresh `active/<id>` before returning,
   so observe-no-peers and claim-the-floor are near-atomic (the residual
   simultaneous-clearance race is why the claim is atomic-*ish*, not a lock);
