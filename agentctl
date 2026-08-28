@@ -65,7 +65,8 @@ fi
 # slow per-run import as it falls back to a fresh /tmp dir. Point it at a
 # writable dir we already own so the font cache persists; only when unset, so a
 # caller's explicit choice still wins. Inherited by agentctl.py and its children.
-if [[ -z "${MPLCONFIGDIR:-}" ]]; then
+# Completion probes skip cache setup because the protocol is side-effect-free.
+if [[ "${1:-}" != "--acli-complete" && -z "${MPLCONFIGDIR:-}" ]]; then
     _mpldir="$project_dir/.agentctl/mplconfig"
     mkdir -p "$_mpldir" 2>/dev/null && export MPLCONFIGDIR="$_mpldir"
 fi

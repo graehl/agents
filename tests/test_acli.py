@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import importlib
 import io
@@ -188,6 +189,7 @@ def _completion_parser():
     args_mod.set_completer(name_arg, _demo_name_completer)
     show.add_argument("--mode", choices=["brief", "wide"], help="Detail level.")
     sub.add_parser("list", help="List records.")
+    sub.add_parser("_internal", help=argparse.SUPPRESS)
     return args_mod, parser
 
 

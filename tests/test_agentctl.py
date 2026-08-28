@@ -3777,6 +3777,58 @@ def test_cleanup_running_scan_reports_recovery_state():
         ws.cleanup()
 
 
+def test_acli_completion_is_wired_and_side_effect_free():
+    ws = Workspace()
+    exclude = ws.tmp / ".git/info/exclude"
+    exclude_before = exclude.read_bytes()
+    completion_env = {"MPLCONFIGDIR": ""}
+    try:
+        root = ws.run("--acli-complete", "", env_extra=completion_env)
+        _assert(root.returncode == 0, f"completion failed: {root.stderr}")
+        _assert(root.stderr == "", f"completion must not emit stderr: {root.stderr!r}")
+        root_values = [row["completion"] for row in _json_records(root.stdout)]
+        _assert("start" in root_values and "fleet-watch" in root_values, root_values)
+        _assert("_run-child" not in root_values, root_values)
+
+        choices = ws.run(
+            "--acli-complete",
+            "start",
+            "job",
+            "--source-scope",
+            "",
+            env_extra=completion_env,
+        )
+        _assert(choices.returncode == 0, f"choice completion failed: {choices.stderr}")
+        _assert(
+            [row["completion"] for row in _json_records(choices.stdout)]
+            == ["non-doc", "all"],
+            choices.stdout,
+        )
+
+        plugin = ws.run(
+            "--acli-complete", "start", "job", "--no-a", env_extra=completion_env
+        )
+        _assert(plugin.returncode == 0, f"plugin completion failed: {plugin.stderr}")
+        _assert(
+            [row["completion"] for row in _json_records(plugin.stdout)] == ["--no-aim"],
+            plugin.stdout,
+        )
+        _assert(not (ws.tmp / ".agentctl").exists(), "completion created state")
+        _assert(
+            exclude.read_bytes() == exclude_before, "completion changed Git excludes"
+        )
+
+        help_result = ws.run("--help")
+        _assert(help_result.returncode == 0, help_result.stderr)
+        _assert(
+            help_result.stdout.rstrip().endswith("acli: 1 complete"),
+            help_result.stdout,
+        )
+        _assert("exit codes:" in help_result.stdout, help_result.stdout)
+    finally:
+        ws.cleanup()
+
+
 def test_active_register_skipped_without_session_id():
     ws = Workspace()
     try:

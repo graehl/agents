@@ -413,13 +413,18 @@ def candidates(
     else:
         sub = _subparsers_action(target)
         if sub is not None:
+            suppressed = {
+                choice.dest
+                for choice in sub._choices_actions
+                if choice.help == argparse.SUPPRESS
+            }
             helps = {
                 choice.dest: choice.help
                 for choice in sub._choices_actions
                 if choice.help != argparse.SUPPRESS
             }
             for name in sub.choices:
-                if name.startswith(current):
+                if name not in suppressed and name.startswith(current):
                     rows.append(_candidate(name, "subcommand", helps.get(name)))
         action = _positional_action(target, positionals)
         if action is not None:
