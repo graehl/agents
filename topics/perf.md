@@ -99,6 +99,17 @@ diagnostic-grade, not ratchet-grade: a ratchet failure there means
 second. Flag such runs in the record instead of accumulating them
 as comparable.
 
+An idle host is not required. Classify the background load before
+spending on a long run. If it is steady and reproducible, record it as
+part of the run conditions, keep it comparable across paired baseline
+and candidate legs, and state that conclusions are conditional on that
+load. If it drifts, starts or stops during the comparison, or cannot be
+characterized well enough to separate it from the expected effect,
+delay the expensive measurement or optimization effort and tell the
+user what load prevented a valid comparison. A run already taken under
+such conditions remains diagnostic evidence; do not analyze the noise
+as if the host were controlled.
+
 ## Optimization work measures itself
 
 Every perf-motivated change records its own before/after under the
