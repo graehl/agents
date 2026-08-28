@@ -128,7 +128,12 @@ verbs over carrying a peer belief: `agentctl others <session-id>` answers
 "am I alone?" by exit code (0 alone, nonzero peers) with your own entry
 excluded — use it as `agentctl others <id> && <solo-only step>`, re-run
 at the point of caution rather than trusting a stale reading (see
-*Pre-edit re-Read and parallel-worker noticing*); `agentctl alone <id>
+*Pre-edit re-Read and parallel-worker noticing*). Peers you already
+account for — typically ones you spawned — are excluded by id with
+`--expect <peer-id[,...]>` (multi-arg or CSV; `--expect-count N`
+tolerates N more unnamed), so exit 0 means no surprising peers; an
+expected peer that is DONE or aged out still passes, with one `# ` info
+line on stderr. `agentctl alone <id>
 -b "<status>" [scope...]` blocks until every other peer is gone (for an
 intentionally project-serial step, e.g. a whole-project amend/rebase),
 then registers your entry. Neither verb narrows to `scope:` overlap; a

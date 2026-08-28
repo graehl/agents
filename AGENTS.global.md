@@ -85,7 +85,10 @@ recheck active peers rather than carrying an old belief:
 agentctl others <session-id>
 ```
 
-Exit 0 means alone; nonzero names peers. `agentctl alone <id> -b "<status>"`
+Exit 0 means alone; nonzero names peers. A peer already accounted for —
+typically one you spawned — can be excluded by id: `--expect <peer-id[,...]>`
+(or `--expect-count N` for unnamed ones) makes exit 0 mean no *surprising*
+peers, so the `&&` gate still composes. `agentctl alone <id> -b "<status>"`
 waits for project-wide solitude, then registers the caller; scope does not
 narrow that wait. Steward sessions add `tending:` and claim through
 `agentctl tending <id>` before clearing/servicing a queue.
@@ -404,7 +407,9 @@ peer/user/indirect writer could have changed it since the last read. After
 compaction, missing content is an unconditional re-read. One visible edit
 followed by rapid edits needs no ceremony.
 
-At the point of caution, run `agentctl others <session-id>`:
+At the point of caution, run `agentctl others <session-id>` (exclude a peer
+you already coordinate with via `--expect <its-id>`; Solo then means no
+surprising peers):
 
 - **Solo:** rely on the user supplement's reciprocal announcement convention;
   skip slow-gap rereads unless a user edit was announced or context was lost.

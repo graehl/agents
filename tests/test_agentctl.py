@@ -5172,6 +5172,67 @@ def test_launch_depth_blocks_resume_ancestor_recovery():
         ws.cleanup()
 
 
+def test_others_expect_excludes_known_peers():
+    # `others --expect` treats named peers as unsurprising: exit 0 means "no
+    # surprising peers", so a session that spawned a known peer keeps the
+    # `&& <step>` gate. --expect-count tolerates unnamed extras beyond the
+    # named ids; an expected peer that is DONE/absent passes with a `# ` info
+    # line on stderr, never an error.
+    ws = Workspace(git=False)
+    me = "11111111-1111-1111-1111-111111111111"
+    peer_a = "22222222-2222-2222-2222-222222222222"
+    peer_b = "33333333-3333-3333-3333-333333333333"
+    try:
+        active = ws.tmp / ".agentctl/active"
+        active.mkdir(parents=True)
+        (active / peer_a).write_text("editing fleet plugin\n")
+        (active / peer_b).write_text("reviewing docs\n")
+
+        res = ws.run("others", me)
+        _assert(res.returncode == 1, f"two unexpected peers must gate: {res}")
+        _assert(not (ws.tmp / ".agentctl/active" / me).exists(), "no claim on gate")
+
+        res = ws.run("others", me, "--expect", f"{peer_a},{peer_b}")
+        _assert(res.returncode == 0, f"csv expect must pass: {res.stderr}")
+        payload = _json_record(res.stdout)
+        _assert(payload["other_count"] == 2, payload)
+        _assert(payload["has_surprises"] is False, payload)
+        _assert(payload["unexpected_count"] == 0, payload)
+        _assert(all(p.get("expected") for p in payload["peers"]), payload)
+        _assert((active / me).exists(), "exit-0 with provided id registers caller")
+
+        res = ws.run("others", me, "--expect", peer_a, peer_b)
+        _assert(res.returncode == 0, f"multi-arg expect must pass: {res.stderr}")
+
+        res = ws.run("others", me, "--expect", peer_a)
+        _assert(res.returncode == 1, "peer_b remains surprising")
+
+        res = ws.run("others", me, "--expect", peer_a, "--expect-count", "1")
+        _assert(res.returncode == 0, "count allowance covers the unnamed peer")
+
+        res = ws.run("others", me, "--expect-count", "1")
+        _assert(res.returncode == 1, "two unnamed peers exceed count 1")
+
+        # DONE + never-registered expected peers: pass, info lines + payload field.
+        (active / peer_b).write_text("DONE reviewed docs\n")
+        ghost = "44444444-4444-4444-4444-444444444444"
+        res = ws.run("others", me, "--expect", peer_a, peer_b, ghost)
+        _assert(res.returncode == 0, f"dropouts must not gate: {res.stderr}")
+        payload = _json_record(res.stdout)
+        _assert(
+            sorted(payload["expected_absent"]) == sorted([peer_b, ghost]), payload
+        )
+        info = [
+            line
+            for line in res.stderr.splitlines()
+            if line.startswith("# expected peer")
+        ]
+        _assert(len(info) == 2, res.stderr)
+        _assert(any("DONE" in line for line in info), res.stderr)
+    finally:
+        ws.cleanup()
+
+
 # ---- Runner ----------------------------------------------------------------
 
 

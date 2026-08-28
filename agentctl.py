@@ -1119,6 +1119,30 @@ def active_list(args) -> int:
     return 0
 
 
+def _absent_expected_note(eid: str, now: float) -> str:
+    """Why an --expect peer is not in the live peer set: DONE, aged out, or gone.
+
+    Informational only — an expected peer dropping out makes the caller *more*
+    alone, never a failure. Sweep relocates entries (active/ -> done/ or
+    stale/) rather than deleting, so all three dirs are probed.
+    """
+    for d in (ACTIVE, DONE_DIR, STALE):
+        path = d / eid
+        if not path.is_file():
+            continue
+        try:
+            mtime = path.stat().st_mtime
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        line1 = lines[0].strip() if lines else ""
+        age = format_duration(now - mtime)
+        if line1.startswith("DONE"):
+            return f"DONE {age} ago: {line1}"
+        return f"aged out, {age} since last refresh: {line1}"
+    return "no entry in active/, done/, or stale/ (never registered here?)"
+
+
 def others_cmd(args) -> int:
     """`others [session-id]`: the peer-check with self excluded and a verdict.
 
@@ -1140,48 +1164,77 @@ def others_cmd(args) -> int:
     `scope:`-overlapping peers (these are the project-serial verbs). Same
     window semantics: default fresh non-DONE; --minutes 0 widens to any age
     (stale/crashed), --done adds completed peers.
+
+    `--expect <id>` (repeatable) and `--expect-count N` relax the verdict for
+    peers you already know about — e.g. one you spawned yourself: a named id,
+    and up to N unnamed peers beyond the named ones, are expected rather than
+    surprising. Exit 0 then means "no surprising peers" (still as alone as
+    believed), so the `&& <step>` gate composes without re-parsing rows each
+    time; the full peer list is still emitted, expected rows marked. An
+    expected peer that is DONE, aged out, or unregistered never fails the
+    gate — that is more solitude, not less; each dropout gets one `# ` info
+    line on stderr and an `expected_absent` payload field. The provided-id
+    claim registers on any exit-0 path, not only the truly-alone one — it
+    authors your own entry, no solitude implied.
     """
     minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
     include_done = bool(getattr(args, "done", False))
     provided = getattr(args, "uuid", None)
+    expected_ids = list(
+        dict.fromkeys(
+            part
+            for token in (getattr(args, "expect", None) or [])
+            for part in token.split(",")
+            if part
+        )
+    )
+    allowed_unexpected = max(0, int(getattr(args, "expect_count", 0) or 0))
     fmt = _resolve_acli_format(args)
     now, rows = _scan_active(minutes, include_done, provided or agent_session_id())
     window = _window_label(minutes)
     full = bool(getattr(args, "full", False))
 
     peers = [r for r in rows if not r[5]] if rows else []
-    if not peers:
-        payload = {
-            "kind": "active_peers",
-            "window": window,
-            "other_count": 0,
-            "has_peers": False,
-            "peers": [],
-            "missing_active_dir": rows is None,
-        }
-        if provided:
-            status = ensure_active_registered(provided)
-            payload["registered"] = {"id": provided, "status": status}
-            if status == "created":
-                payload["next_command"] = 'agentctl active "<status>" [<scope>...]'
-        acli.emit(payload, fmt)
-        return 0
+    unexpected = [r for r in peers if Path(r[1]).name not in expected_ids]
+    ok = len(unexpected) <= allowed_unexpected
 
-    acli.emit(
-        {
-            "kind": "active_peers",
-            "window": window,
-            "other_count": len(peers),
-            "has_peers": True,
-            "peers": [
-                _active_row_payload(now, mtime, rel, line1, scope, tending, full=full)
-                for mtime, rel, line1, scope, tending, _ in peers
-            ],
-            "missing_active_dir": rows is None,
-        },
-        fmt,
-    )
-    return 1
+    peer_names = {Path(r[1]).name for r in peers}
+    absent_expected = [e for e in expected_ids if e not in peer_names]
+    for eid in absent_expected:
+        # Informational, never a failure: a dropped-out expected peer means
+        # more solitude, not less. `# ` marks the line as meta (acli banner
+        # convention); the structured error envelope stays the last stderr line.
+        print(f"# expected peer {eid}: {_absent_expected_note(eid, now)}",
+              file=sys.stderr)
+
+    peer_rows = []
+    for mtime, rel, line1, scope, tending, _ in peers:
+        row = _active_row_payload(now, mtime, rel, line1, scope, tending, full=full)
+        if Path(rel).name in expected_ids:
+            row["expected"] = True
+        peer_rows.append(row)
+    payload = {
+        "kind": "active_peers",
+        "window": window,
+        "other_count": len(peers),
+        "has_peers": bool(peers),
+        "peers": peer_rows,
+        "missing_active_dir": rows is None,
+    }
+    if expected_ids or allowed_unexpected:
+        payload["expected_ids"] = expected_ids
+        payload["allowed_unexpected"] = allowed_unexpected
+        payload["unexpected_count"] = len(unexpected)
+        payload["has_surprises"] = not ok
+        if absent_expected:
+            payload["expected_absent"] = absent_expected
+    if ok and provided:
+        status = ensure_active_registered(provided)
+        payload["registered"] = {"id": provided, "status": status}
+        if status == "created":
+            payload["next_command"] = 'agentctl active "<status>" [<scope>...]'
+    acli.emit(payload, fmt)
+    return 0 if ok else 1
 
 
 def tending_cmd(args) -> int:
@@ -5767,13 +5820,38 @@ def build_parser() -> argparse.ArgumentParser:
         "others",
         help="List only your peers (your own active/<id> entry excluded) and "
         "lead with a count, so a stale 'peers present' belief is refuted "
-        "in one line with nothing to parse. Pass your own session id.",
+        "in one line with nothing to parse. Pass your own session id. "
+        "With --expect/--expect-count, exit 0 means no *surprising* "
+        "peers instead of no peers at all.",
     )
     s.add_argument(
         "uuid",
         nargs="?",
         help="Your own session id, excluded from the list. Omit to resolve it "
         "from the environment; if none resolves, nothing is excluded.",
+    )
+    s.add_argument(
+        "-e",
+        "--expect",
+        nargs="+",
+        action="extend",
+        metavar="SESSION-ID[,SESSION-ID...]",
+        default=None,
+        help="Known peer session id(s) whose presence is not surprising — "
+        "e.g. a peer you spawned. Multiple ids per flag, comma-separated, "
+        "or the flag repeated. Expected peers still appear in the peers "
+        "array (marked expected) but do not fail the exit-code gate, so "
+        "`others <id> --expect <peer> && <step>` proceeds while you are "
+        "still as alone as believed. An absent expected peer is fine.",
+    )
+    s.add_argument(
+        "--expect-count",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Tolerate up to N peers beyond those named by --expect without "
+        "failing the gate (default 0). Exit nonzero only when more "
+        "unexpected peers than N are present.",
     )
     s.add_argument(
         "-m",
