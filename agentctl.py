@@ -842,6 +842,252 @@ def active_register(args) -> int:
     return 0
 
 
+def _scope_claim_relation(claim: str, path: str) -> str | None:
+    """How one peer scope claim relates to a requested literal path.
+
+    Returns "exact" for an equal-or-more-specific literal claim (the same
+    path, or a literal path underneath the requested one) — these block a
+    `clear` even under --carve, because they prove the peer is on that very
+    file. Returns "covering" for any broader overlap — a wildcard/extension
+    form or a literal ancestor directory — which `clear --carve` may claim
+    through (literal-beats-covering precedence). Returns None for no
+    overlap. Wildcard matching follows the blessed anchored grammar
+    (topics/agentctl.md § Active-sessions file schema) and is deliberately
+    over-inclusive on odd forms: a false overlap costs one --carve, a
+    missed one costs a collision.
+    """
+    if claim == path:
+        return "exact"
+    if "*" not in claim:
+        if claim.startswith(path + "/"):
+            return "exact"
+        if path.startswith(claim + "/"):
+            return "covering"
+        return None
+    if claim.startswith("*."):
+        return "covering" if path.endswith(claim[1:]) else None
+    if claim.endswith(".*"):
+        base = claim[:-2]
+        if path == base or path.startswith(base + "."):
+            return "covering"
+        if "/" not in base:
+            name = path.rsplit("/", 1)[-1]
+            if name == base or name.startswith(base + "."):
+                return "covering"
+        return None
+    # Subtree/segment forms (`dir/**`, `dir/*`) and any stray anchored form:
+    # overlap when either subtree contains the other, judged by the literal
+    # anchor before the first `*` (over-inclusive for `dir/*`, by design).
+    anchor = claim.split("*", 1)[0].rstrip("/")
+    if not anchor:
+        return "covering"  # bare `*`/`**` claims everything
+    if path == anchor or path.startswith(anchor + "/") or anchor.startswith(path + "/"):
+        return "covering"
+    return None
+
+
+def _scope_claims(scope_value: str) -> list[str]:
+    """Split a `scope:` value into claim tokens (space- or comma-separated)."""
+    return [t for t in re.split(r"[,\s]+", scope_value) if t]
+
+
+def clear_cmd(args) -> int:
+    """`clear <paths...>`: am I clear to edit these files? Check + claim in one.
+
+    The per-path counterpart to `others`: scan fresh peers' `scope:` claims
+    for overlap with each requested literal path and, when every path is
+    clear, add them to this session's own scope before returning — so
+    `agentctl clear <paths> && <edit sequence>` is one atomic-ish
+    observe-then-claim, run once before an intended sequence of edits
+    rather than per edit. A path you already hold is a cheap success that
+    refreshes your entry, so re-running at each sequence start is the whole
+    staleness story: a resume or long pause starts a new sequence, and the
+    re-run either re-establishes an aged-out/cleared claim or reports the
+    conflict that grew in the meantime. The payload's `now`/`stale_at`
+    timestamps put the clock in the transcript for time-blind callers.
+
+    Verdicts (exit 0 = claimed, 1 = not, 2 = usage):
+
+      - claimed   — no overlap (or only your own); paths added to scope.
+      - carveable — only broader peer claims cover a path (wildcard,
+        extension, or ancestor literal). Without --carve nothing is
+        claimed; with --carve the paths are claimed through the covering
+        claim (literal-beats-covering precedence) and a `carve:` free line
+        records whose claim was knowingly carved. The covering holder pays
+        for breadth by re-checking at its own sequence starts.
+      - blocked   — a peer holds an equal-or-more-specific literal claim;
+        --carve does not override. Coordinate or wait.
+
+    `--drop <paths>` releases exact literal claims (and their claim/carve
+    free lines) when a file is finished, leaving wildcard scope intact; it
+    is idempotent and never scans peers. All of it is advisory, binding
+    only protocol users, like the rest of the active-sessions convention.
+    """
+    try:
+        depth = int(os.environ.get(LAUNCH_DEPTH_ENV, "0") or "0")
+    except ValueError:
+        depth = 0
+    if depth > 0:
+        print(
+            "agentctl clear: refusing to claim from inside a launched job "
+            "(a job is not an agent)",
+            file=sys.stderr,
+        )
+        return 2
+    sid = agent_session_id()
+    if not sid:
+        print(
+            "agentctl clear: no session id; set one of "
+            f"{', '.join(SESSION_ID_ENVS)}",
+            file=sys.stderr,
+        )
+        return 2
+    drop = bool(getattr(args, "drop", False))
+    carve = bool(getattr(args, "carve", False))
+    note = normalize_headline_text(getattr(args, "note", None) or "")
+    if drop and (carve or note):
+        print("agentctl clear: --drop takes no --carve/--note", file=sys.stderr)
+        return 2
+    paths = [p for p in (active_scope_path(raw) for raw in args.paths) if p]
+    if not paths:
+        print("agentctl clear: no paths", file=sys.stderr)
+        return 2
+    bad = [p for p in paths if "*" in p]
+    if bad:
+        print(
+            f"agentctl clear: literal paths only, no wildcards: {' '.join(bad)} "
+            "(claim a subtree by its directory path, or author wildcard scope "
+            "via `agentctl active`)",
+            file=sys.stderr,
+        )
+        return 2
+    fmt = _resolve_acli_format(args)
+    minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
+
+    own = ACTIVE / sid
+    own_line1: str | None = None
+    own_scope: str | None = None
+    own_tending: str | None = None
+    own_body: list[str] = []
+    if own.exists():
+        lines = own.read_text(encoding="utf-8", errors="replace").splitlines()
+        own_line1, own_scope, own_tending, own_body = _split_active_header(lines)
+    if own_line1 and own_line1.startswith("DONE"):
+        print(
+            "agentctl clear: this session's entry is DONE; revive it first "
+            'with `agentctl active "<status>"`',
+            file=sys.stderr,
+        )
+        return 2
+    own_claims = _scope_claims(_header_value(own_scope or ""))
+
+    def write_own(scope_entries: list[str], body: list[str]) -> None:
+        scope_line = ("scope: " + " ".join(scope_entries)) if scope_entries else ""
+        line1 = own_line1 or normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
+        out = [line1] + [ln for ln in (scope_line, own_tending or "") if ln] + body
+        ACTIVE.mkdir(parents=True, exist_ok=True)
+        tmp = own.parent / (own.name + ".tmp")
+        tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
+        tmp.replace(own)
+
+    now_iso = utc_now()
+    if drop:
+        kept = [c for c in own_claims if c not in paths]
+        dropped = [c for c in own_claims if c in paths]
+        prefixes = tuple(f"claim: {p} " for p in paths) + tuple(
+            f"carve: {p} " for p in paths
+        )
+        body = [ln for ln in own_body if not ln.startswith(prefixes)]
+        if own.exists():
+            try:
+                write_own(kept, body)
+            except OSError as exc:
+                print(f"agentctl clear: could not write {own}: {exc}", file=sys.stderr)
+                return 1
+        acli.emit(
+            {
+                "kind": "file_claim",
+                "verdict": "dropped",
+                "dropped": dropped,
+                "not_held": [p for p in paths if p not in dropped],
+                "scope": kept,
+                "now": now_iso,
+            },
+            fmt,
+        )
+        return 0
+
+    now, rows = _scan_active(minutes, False, sid)
+    peers = [r for r in (rows or []) if not r[5]]
+    conflicts: list[dict] = []
+    for path in paths:
+        for mtime, rel, line1, scope, _tending, _ in peers:
+            for peer_claim in _scope_claims(_header_value(scope)):
+                relation = _scope_claim_relation(peer_claim, path)
+                if relation:
+                    conflicts.append(
+                        {
+                            "path": path,
+                            "id": Path(rel).name,
+                            "claim": peer_claim,
+                            "kind": relation,
+                            "status": line1,
+                            "age_seconds": int(max(0, now - mtime)),
+                        }
+                    )
+    blocked = [c for c in conflicts if c["kind"] == "exact"]
+    covering = [c for c in conflicts if c["kind"] == "covering"]
+    payload: dict = {
+        "kind": "file_claim",
+        "paths": paths,
+        "now": now_iso,
+        "window": _window_label(minutes),
+    }
+    if blocked or (covering and not carve):
+        payload["verdict"] = "blocked" if blocked else "carveable"
+        payload["conflicts"] = conflicts
+        if not blocked:
+            payload["next_command"] = "agentctl clear --carve " + " ".join(paths)
+        acli.emit(payload, fmt)
+        return 1
+
+    new_scope = own_claims + [p for p in paths if p not in own_claims]
+    body = list(own_body)
+    carved_paths = sorted({c["path"] for c in covering})
+    suffix = f" — {note}" if note else ""
+    for path in paths:
+        holders = [c for c in covering if c["path"] == path]
+        if holders:
+            frm = ", ".join(f"{c['id']} {c['claim']}" for c in holders)
+            body.append(f"carve: {path} from {frm} at {now_iso}{suffix}")
+        elif path not in own_claims:
+            body.append(f"claim: {path} at {now_iso}{suffix}")
+    try:
+        write_own(new_scope, body)
+    except OSError as exc:
+        print(f"agentctl clear: could not write {own}: {exc}", file=sys.stderr)
+        return 1
+    stale = dt.datetime.now(dt.timezone.utc) + dt.timedelta(
+        minutes=ACTIVE_STALE_MINUTES
+    )
+    payload["verdict"] = "claimed"
+    payload["scope"] = new_scope
+    payload["claimed_at"] = now_iso
+    payload["stale_at"] = stale.strftime("%Y-%m-%dT%H:%M:%SZ")
+    payload["stale_note"] = (
+        f"claim ages out of the {ACTIVE_STALE_MINUTES}m peer window by stale_at "
+        "unless this session's entry refreshes; re-run clear at each new edit "
+        "sequence"
+    )
+    if carved_paths:
+        payload["carved"] = carved_paths
+        payload["conflicts"] = covering
+    if note:
+        payload["note"] = note
+    acli.emit(payload, fmt)
+    return 0
+
+
 _SESSION_ID_RE = re.compile(
     r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\Z"
 )
@@ -5868,6 +6114,57 @@ def build_parser() -> argparse.ArgumentParser:
     )
     acli_args.add_standard_args(s)
     s.set_defaults(func=others_cmd)
+
+    s = sub.add_parser(
+        "clear",
+        help="Am I clear to edit these files? Check fresh peers' scope claims "
+        "and, when every path is clear, claim them on this session's own "
+        "entry — one atomic-ish check+claim to run once before an "
+        "intended sequence of edits (`clear <paths> && <edit>`), not per "
+        "edit. Re-running a held claim is a cheap success that refreshes "
+        "it, so repeat at each new edit sequence (a resume or long pause "
+        "starts one). Exit 0 claimed; 1 blocked or carveable; 2 usage. "
+        "Instant; result on stdout.",
+    )
+    s.add_argument(
+        "paths",
+        nargs="+",
+        help="Literal project-root-relative file/dir paths you intend to edit "
+        "(a dir claims its subtree). No wildcards — author wildcard scope "
+        "via `agentctl active`. All-or-nothing: nothing is claimed unless "
+        "every path passes.",
+    )
+    s.add_argument(
+        "--carve",
+        action="store_true",
+        help="Claim through a peer's broader covering claim (wildcard, "
+        "extension, or ancestor dir): literal-beats-covering precedence. "
+        "A `carve:` line on your entry records whose claim you knowingly "
+        "carved. An exact/more-specific peer claim still blocks.",
+    )
+    s.add_argument(
+        "--drop",
+        action="store_true",
+        help="Release these exact literal claims (and their claim/carve "
+        "lines) from your own scope when done with the files, leaving any "
+        "wildcard scope intact. Idempotent; no peer scan.",
+    )
+    s.add_argument(
+        "-M",
+        "--note",
+        help="Optional 'what for' recorded on the claim/carve line of your "
+        "entry (free content below the header; line 1 stays yours).",
+    )
+    s.add_argument(
+        "-m",
+        "--minutes",
+        type=int,
+        default=ACTIVE_STALE_MINUTES,
+        help="Freshness window in minutes for the peer scan (default "
+        "%(default)s, the AGENTS.md stale threshold).",
+    )
+    acli_args.add_standard_args(s)
+    s.set_defaults(func=clear_cmd)
 
     s = sub.add_parser(
         "tending",
