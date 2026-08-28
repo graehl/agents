@@ -397,8 +397,21 @@ is the ambient documentation an agent actually uses.
 
 Compliance-by-calling: the package makes the principles above executable
 defaults instead of prose. It lives beside `agentctl.py` (importable as
-`acli` via the code-root PYTHONPATH agentctl already sets). Surface, in
-small pure-function modules — a library, not a framework:
+`acli` via the code-root PYTHONPATH agentctl already sets). A tool in
+another repo uses the sanctioned fallback bootstrap — one synchronized
+copy in `~/agents`, per `AGENTS.global.md`'s shared-helpers rule:
+
+```python
+try:
+    import acli
+except ImportError:
+    sys.path.insert(0, str(Path.home() / "agents"))
+    import acli
+```
+
+Vendor (`topics/vendoring.md`) only when the tool must run where
+`~/agents` is absent. Surface, in small pure-function modules — a
+library, not a framework:
 
 - `acli.session` — `is_agent_session()` and `resolve_format(args)`: the one
   place the detection disjunction lives, so a new harness marker is a
