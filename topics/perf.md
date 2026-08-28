@@ -125,27 +125,34 @@ I/O failure rate at storage aspects, and an injected crash
 probability — the janky end-user OS/browser/hardware platform is a
 real deployment target, not a tail case. Then:
 
-- **Map cascade sensitivity.** Degrade one boundary at a time and
-  measure which user-visible metrics move. Boundaries whose small
-  degradations cascade are both the optimization targets and the
-  fragile points under load.
+- **Map cascade sensitivity.** Degrade one boundary at a time, sweep
+  severity closely enough to expose non-monotonic danger zones, and
+  measure useful work plus injection, recovery, and residual phases.
+  Boundaries whose small degradations cascade are both optimization
+  candidates and fragile points under load; confirm the optimization
+  itself on/off, because slowdown is not generally the inverse of
+  speedup across queues, thresholds, batching, or failover.
 - **Start random, graduate to guided.** The easy build is the right
-  start: one global "how bad" knob, random per-boundary slowdowns,
-  random subsets relaxed back to normal. Analysis, not construction,
-  is the hard part; sensitivity ranking and composed scenarios grow
-  out of that data. The explored set must still include massive
+  start: one global "how bad" knob and random choices of one boundary
+  and severity. Add random subsets only after the single-boundary map;
+  sensitivity ranking, observed queue dependencies, and causal-cycle
+  hypotheses then guide composed scenarios. The explored set must
+  still include massive
   *correlated, adversarial* scenarios — remote-exploit DoS flooding,
   crash storms — which random sampling essentially never composes.
   There the pass criterion is sensible eventual recovery once the
   assault stops, not graceful service during it.
-- **First analyses: dual saturation probes, then flail attribution.**
+- **First analyses: dual saturation probes, then cycle attribution.**
   The opening questions are dual walks to the saturation boundary:
   what happens as load / request rate / data size increases, and what
   happens when everything slows until offered load is barely
   sustainable. Graphs are not the goal — the goal is identifying
-  which parts of the system *flail*: amplify stress or lengthen
-  recovery to normal once stress is relieved. Analysis strategies:
-  `surveys/slow-fault-injection/survey.md § Analysis methods`.
+  which parts of the system amplify stress or lengthen recovery once
+  stress is relieved. Attribute that behavior with paired
+  interventions over the same seeded scenario and inspect
+  destabilizing cycles among queues/resources rather than assigning
+  independent scalar blame. Analysis strategies: the survey's
+  `Experimental recipe implied by the literature` section.
 - **Delays, not drops.** With reliable in-order transports (the
   current stack), packet-loss injection exercises a layer that is not
   there; message delay is the perturbation of choice. Loss becomes
@@ -174,7 +181,7 @@ real deployment target, not a tail case. Then:
   browser analogue: wrap component event handlers so a test build can
   delay them like any server queue.
 
-Prior art seed (ungrounded):
+Grounded prior-art map and YA novelty check:
 [`surveys/slow-fault-injection/`](../surveys/slow-fault-injection/survey.md).
 
 ## Fresh runners when policy allows

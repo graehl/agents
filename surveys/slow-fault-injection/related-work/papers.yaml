@@ -1,0 +1,225 @@
+# Metadata manifest for surveys/slow-fault-injection.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: slow-fault-injection
+  coverage_cutoff: 2026-08-28
+  grounding_mode: grounded
+
+papers:
+  # --- A. empirical slow-fault behavior and recovery ---
+  - key: do2013-limplock
+    title: "Limplock: Understanding the Impact of Limpware on Scale-out Cloud Systems"
+    authors: ["Thanh Do", "Mingzhe Hao", "Tanakorn Leesatapornwongsa", "Tiratat Patana-anake", "Haryadi S. Gunawi"]
+    venue: "SoCC"
+    year: 2013
+    url: "https://ucare.cs.uchicago.edu/pdf/socc13-limplock.pdf"
+    doi: "10.1145/2523616.2523627"
+    grounded: false
+    verified: true
+    source: "primary paper inspected by web retrieval; author host would not produce a local extract 2026-08-28"
+    fetched: null
+    cluster: A
+
+  - key: gunawi2018-fail-slow
+    short: fail-slow-evidence
+    concept_page: concepts/fail-slow-evidence.md
+    title: "Fail-Slow at Scale: Evidence of Hardware Performance Faults in Large Production Systems"
+    authors: ["Haryadi S. Gunawi", "Riza O. Suminto", "Russell Sears", "Casey Golliher", "Swaminathan Sundararaman", "Xing Lin", "Tim Emami", "Weiguang Sheng", "Nematollah Bidokhti", "Caitie McCaffrey", "Gary Grider", "Parks M. Fields", "Kevin Harms", "Robert B. Ross", "Andree Jacobson", "Robert Ricci", "Kirk Webb", "Peter Alvaro", "H. Birali Runesha", "Mingzhe Hao", "Huaicheng Li"]
+    venue: "FAST"
+    year: 2018
+    url: "https://www.usenix.org/system/files/conference/fast18/fast18-gunawi.pdf"
+    grounded: true
+    verified: true
+    source: "USENIX paper and conference page checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: A
+
+  - key: lu2025-one-size-fits-none
+    short: slow-fault-sensitivity
+    concept_page: concepts/slow-fault-sensitivity.md
+    title: "One-Size-Fits-None: Understanding and Enhancing Slow-Fault Tolerance in Modern Distributed Systems"
+    authors: ["Ruiming Lu", "Yunchi Lu", "Yuxuan Jiang", "Guangtao Xue", "Peng Huang"]
+    venue: "NSDI"
+    year: 2025
+    url: "https://www.usenix.org/system/files/nsdi25-lu.pdf"
+    grounded: true
+    verified: true
+    source: "USENIX paper and conference BibTeX checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: A
+
+  # --- B. guided and fine-grained fault-space exploration ---
+  - key: alvaro2015-ldfi
+    short: lineage-guided-faults
+    concept_page: concepts/lineage-guided-faults.md
+    title: "Lineage-driven Fault Injection"
+    authors: ["Peter Alvaro", "Joshua Rosen", "Joseph M. Hellerstein"]
+    venue: "SIGMOD"
+    year: 2015
+    url: "https://people.ucsc.edu/~palvaro/molly.pdf"
+    doi: "10.1145/2723372.2723711"
+    grounded: true
+    verified: true
+    source: "author-hosted paper checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: B
+
+  - key: meiklejohn2021-filibuster
+    short: service-level-faults
+    concept_page: concepts/service-level-faults.md
+    title: "Service-Level Fault Injection Testing"
+    authors: ["Christopher S. Meiklejohn", "Andrea Estrada", "Yiwen Song", "Heather Miller", "Rohan Padhye"]
+    venue: "SoCC"
+    year: 2021
+    url: "https://christophermeiklejohn.com/publications/filibuster-socc-2021.pdf"
+    doi: "10.1145/3472883.3487005"
+    grounded: true
+    verified: true
+    source: "author-hosted paper checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: B
+
+  - key: chen2024-chronos
+    title: "Chronos: Finding Timeout Bugs in Practical Distributed Systems by Deep-Priority Fuzzing with Transient Delay"
+    authors: ["Yuanliang Chen", "Fuchen Ma", "Yuanhang Zhou", "Ming Gu", "Qing Liao", "Yu Jiang"]
+    venue: "IEEE Symposium on Security and Privacy"
+    year: 2024
+    url: "https://www.wingtecher.com/themes/WingTecherResearch/assets/papers/paper_from_24/Chronos_sp24.pdf"
+    doi: "10.1109/SP54263.2024.00109"
+    grounded: false
+    verified: true
+    source: "primary paper inspected by web retrieval; author host would not produce a local extract 2026-08-28"
+    fetched: null
+    cluster: B
+
+  - key: dong2025-sieve
+    short: fine-grained-slow-points
+    concept_page: concepts/fine-grained-slow-points.md
+    title: "Understanding and Detecting Fail-Slow Hardware Failure Bugs in Cloud Systems"
+    authors: ["Gen Dong", "Yu Hua", "Yongle Zhang", "Zhangyu Chen", "Menglei Chen"]
+    venue: "USENIX ATC"
+    year: 2025
+    url: "https://www.usenix.org/system/files/atc25-dong.pdf"
+    grounded: true
+    verified: true
+    source: "USENIX paper checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: B
+
+  # --- C. cascade dynamics and causal attribution ---
+  - key: bronson2021-metastable
+    short: metastable-recovery
+    concept_page: concepts/metastable-recovery.md
+    title: "Metastable Failures in Distributed Systems"
+    authors: ["Nathan Bronson", "Abutalib Aghayev", "Aleksey Charapko", "Timothy Zhu"]
+    venue: "HotOS"
+    year: 2021
+    url: "https://sigops.org/s/conferences/hotos/2021/papers/hotos21-s11-bronson.pdf"
+    doi: "10.1145/3458336.3465286"
+    grounded: true
+    verified: true
+    source: "SIGOPS paper checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: C
+
+  - key: huang2022-metastable-wild
+    short: metastable-recovery
+    concept_page: concepts/metastable-recovery.md
+    title: "Metastable Failures in the Wild"
+    authors: ["Lexiang Huang", "Matthew Magnusson", "Abishek Bangalore Muralikrishna", "Salman Estyak", "Rebecca Isaacs", "Abutalib Aghayev", "Timothy Zhu", "Aleksey Charapko"]
+    venue: "OSDI"
+    year: 2022
+    url: "https://www.usenix.org/system/files/osdi22-huang-lexiang.pdf"
+    grounded: true
+    verified: true
+    source: "USENIX paper checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: C
+
+  - key: farahbakhsh2026-characterizing-metastability
+    short: metastable-recovery
+    concept_page: concepts/metastable-recovery.md
+    title: "Characterizing Metastable Faults and Failures"
+    authors: ["Ali Farahbakhsh", "Qingjie Lu", "Lorenzo Alvisi", "Andreas Haeberlen", "Robbert Van Renesse"]
+    venue: "arXiv preprint"
+    year: 2026
+    arxiv: "2606.00942"
+    grounded: true
+    verified: true
+    source: "arXiv metadata checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: C
+
+  - key: curtsinger2015-coz
+    short: causal-perturbation
+    concept_page: concepts/causal-perturbation.md
+    title: "Coz: Finding Code that Counts with Causal Profiling"
+    authors: ["Charlie Curtsinger", "Emery D. Berger"]
+    venue: "SOSP"
+    year: 2015
+    arxiv: "1608.03676"
+    doi: "10.1145/2815400.2815409"
+    grounded: true
+    verified: true
+    source: "arXiv and author repository checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: C
+
+  # --- D. deterministic simulation and full-stack/event-loop boundaries ---
+  - key: zhou2021-foundationdb
+    short: deterministic-simulation
+    concept_page: concepts/deterministic-simulation.md
+    title: "FoundationDB: A Distributed Unbundled Transactional Key Value Store"
+    authors: ["Jingyu Zhou", "Meng Xu", "Alexander Shraer", "Bala Namasivayam", "Alex Miller", "Evan Tschannen", "Steve Atherton", "Andrew J. Beamon", "Rusty Sears", "John Leach", "Dave Rosenthal", "Xin Dong", "Will Wilson", "Ben Collins", "David Scherer", "Alec Grieser", "Young Liu", "Alvin Moore", "Bhaskar Muppana", "Xiaoge Su", "Vishesh Yadav"]
+    venue: "SIGMOD"
+    year: 2021
+    url: "https://www.foundationdb.org/files/fdb-paper.pdf"
+    doi: "10.1145/3448016.3457559"
+    grounded: true
+    verified: true
+    source: "FoundationDB-hosted paper checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: D
+
+  - key: raychev2013-eventracer
+    short: browser-event-control
+    concept_page: concepts/browser-event-control.md
+    title: "Effective Race Detection for Event-Driven Programs"
+    authors: ["Veselin Raychev", "Martin Vechev", "Manu Sridharan"]
+    venue: "OOPSLA"
+    year: 2013
+    url: "https://files.sri.inf.ethz.ch/website/papers/oopsla13-web.pdf"
+    grounded: true
+    verified: true
+    source: "author-hosted paper and IBM record checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: D
+
+  - key: endo2025-nacd
+    short: javascript-delay-injection
+    concept_page: concepts/javascript-delay-injection.md
+    title: "Event Race Detection for Node.js Using Delay Injections"
+    authors: ["André Takeshi Endo", "Anders Møller"]
+    venue: "ECOOP"
+    year: 2025
+    url: "https://users-cs.au.dk/~amoeller/papers/nacd/paper.pdf"
+    grounded: true
+    verified: true
+    source: "author page and BibTeX checked 2026-08-28"
+    fetched: "2026-08-28"
+    cluster: D
