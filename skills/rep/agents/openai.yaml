@@ -1,4 +1,4 @@
 interface:
   display_name: "Rep"
-  short_description: "Repeat or self-pace prompts across wakeups"
-  default_prompt: "Use $rep to keep checking a task until it completes."
+  short_description: "Literally repeat a prompt across wakeups"
+  default_prompt: "Use $rep [until] [interval] <prompt> to re-run an action recurringly."
