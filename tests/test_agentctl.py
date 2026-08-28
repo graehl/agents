@@ -4160,7 +4160,7 @@ def test_active_list_format_overrides_and_rejects_toon():
 
         bad = ws.run("active", "--toon")
         _assert(bad.returncode == 2, "--toon should fail for a non-table verb")
-        err = json.loads(bad.stderr)
+        err = json.loads(bad.stderr.splitlines()[-1])
         _assert(
             err["error"]["code"] == "usage",
             f"expected structured usage error: {bad.stderr!r}",

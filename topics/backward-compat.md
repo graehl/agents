@@ -9,7 +9,7 @@ Topic: `backward-compat`
 
 - 2026-07-05 `agentctl` active-session stdout — changed `active`,
   `others`, `tending`, and `alone` default non-TTY/agent output from prose to
-  ACLI JSONL; agent-first output is the contract from `topics/agent-cli.md`.
+  ACLI JSONL; agent-first output is the contract from `topics/acli.md`.
   Exit codes and `.agentctl/active` side effects stay compatible; `--pretty`
   gives indented JSON rather than restoring the old prose, because a text shim
   would keep the unstructured output path alive.
@@ -30,6 +30,14 @@ Topic: `backward-compat`
   locator; an optional first-line H1 is an alternative formal name. A research
   program's directory basename remains its local slug but does not replace the
   path locator.
+- 2026-08-28 acli capability line — the TOON token is spelled `+toon`
+  under the new bare-vs-`+` token classes, the footer/banner stays
+  `acli:`-prefixed, `capabilities=()` now renders the bare baseline claim
+  `acli: 1` instead of suppressing the line, and the owning topic renamed
+  `topics/agent-cli.md` → `topics/acli.md` to match the printed token. No
+  shim: v1 is not yet publicly adopted; the known consumers (this repo's
+  scripts/tests, YA's registration grep on `^acli: ` and comment
+  references) were swept in the same change.
 - 2026-08-15 `LengthRatioPolicy.factor_995` — renamed to
   `coverage_factor`, including serialized records and documented CLI naming,
   because configurable coverage made the percentile-specific name false. No

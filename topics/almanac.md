@@ -123,7 +123,7 @@ the repair path named.
 
 ## Engine and launchers
 
-`almanac` follows `topics/agent-cli.md`: compact JSONL default,
+`almanac` follows `topics/acli.md`: compact JSONL default,
 `--pretty` human upgrade, `--toon` on the table verbs (`list`,
 `query`, `search`), structured errors, `--acli-complete` (dataset
 names with titles, record keys with column summaries, `field=` /
@@ -134,7 +134,7 @@ prompt_toolkit is installed, install advice when not). `almanac
 --repl <name>` — what launchers pass — binds the repl to a dataset:
 each line then uses the launcher grammar (bare filters/search query
 the bound dataset, verbs optional). `--help` and
-`help <name>` end with the `acli: 1 complete repl toon` capability
+`help <name>` end with the `acli: 1 complete repl +toon` capability
 line. Verbs: `list`, `query`, `show`, `image`, `search`, `info`, `check`,
 `update`, `help`, `register`.
 
@@ -173,7 +173,7 @@ The generated shell only passes its dataset, program name, and untouched
 argv to the engine. The engine owns that grammar—including leading output
 flags and completion—so launchers cannot drift into a second parser.
 The launcher head carries the zero-execution capability marker
-(`# acli: 1 complete repl toon`).
+(`# acli: 1 complete repl +toon`).
 Registration resolves every URL and launcher conflict before stamping the
 manifest or creating any link or launcher, so a refused registration leaves
 no half-registered dataset.

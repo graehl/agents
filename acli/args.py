@@ -2,29 +2,62 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any, TextIO
 
-# Protocol version advertised by the capability line
-# (topics/agent-cli.md § Capability line and help footer).
+# Spec major version advertised by the capability line
+# (topics/acli.md § Capability line, version, and help footer). The
+# version implies the baseline conventions; bare `acli: 1` is valid.
 ACLI_PROTOCOL_VERSION = 1
+
+QUIET_FLAG = "--acli-quiet"
+QUIET_ENV = "ACLI_QUIET"
+
+_banner_emitted = False
 
 
 def capability_line(capabilities: Iterable[str]) -> str:
-    """The `acli: <version> <capability>...` discovery line."""
+    """The `acli: <version> <token>...` discovery line.
+
+    Bare tokens are consumer-protocol wiring (`complete`, `repl`);
+    `+`-prefixed tokens are beyond-baseline affordances (`+toon`).
+    """
     return f"acli: {ACLI_PROTOCOL_VERSION} {' '.join(capabilities)}".rstrip()
 
 
+def maybe_banner(
+    capabilities: Iterable[str], *, quiet: bool = False, out: TextIO | None = None
+) -> None:
+    """Print the `# acli: ...` stderr banner, once per process.
+
+    Activation, not documentation (topics/acli.md § Stderr banner at
+    launch): the `# ` prefix marks it as meta for terminal users, and
+    stdout is never touched. Suppressed by `--acli-quiet` (the `quiet`
+    argument) or a nonempty ACLI_QUIET in the environment.
+    """
+    global _banner_emitted
+    if quiet or _banner_emitted or os.environ.get(QUIET_ENV):
+        return
+    _banner_emitted = True
+    print(
+        "# " + capability_line(capabilities),
+        file=out if out is not None else sys.stderr,
+    )
+
+
 class ArgumentParser(argparse.ArgumentParser):
-    """argparse.ArgumentParser plus the ACLI help footer.
+    """argparse.ArgumentParser plus the ACLI help footer and stderr banner.
 
     `capabilities` renders the trailing `acli: <version> ...` discovery
     line (default assumes the tool calls `maybe_complete`; advertise only
-    wired capabilities — pass `()` to opt out, add "repl"/"toon" as
-    earned). `exit_codes` maps code -> one-line meaning, rendered as an
-    `exit codes:` table above the capability line. Subparsers inherit the
-    parent's capability line so every help screen agrees.
+    wired capabilities — `()` renders the bare baseline claim `acli: 1`,
+    add "repl"/"+toon" as earned). `exit_codes` maps code -> one-line
+    meaning, rendered as an `exit codes:` table above the capability line.
+    Subparsers inherit the parent's capability line so every help screen
+    agrees. `parse_args` prints the `# acli: ...` stderr banner once per
+    process (`maybe_banner`), suppressed by `--acli-quiet`/ACLI_QUIET.
     """
 
     def __init__(
@@ -38,6 +71,12 @@ class ArgumentParser(argparse.ArgumentParser):
         self.acli_capabilities = tuple(capabilities)
         self.acli_exit_codes = dict(exit_codes or {})
         super().__init__(*args, **kwargs)
+        self.add_argument(
+            QUIET_FLAG,
+            action="store_true",
+            dest="acli_quiet",
+            help="Suppress the `# acli: ...` stderr banner (env: ACLI_QUIET).",
+        )
 
     def add_subparsers(self, **kwargs):
         parent = self
@@ -59,9 +98,18 @@ class ArgumentParser(argparse.ArgumentParser):
                 for code, meaning in sorted(self.acli_exit_codes.items())
             )
             text += "\n\nexit codes:\n" + table
-        if self.acli_capabilities:
-            text += "\n\n" + capability_line(self.acli_capabilities)
+        text += "\n\n" + capability_line(self.acli_capabilities)
         return text + "\n"
+
+    def parse_args(self, args=None, namespace=None):  # type: ignore[override]
+        argv = list(sys.argv[1:] if args is None else args)
+        parsed = super().parse_args(args, namespace)
+        # A subparser run parses into a fresh namespace and copies it back,
+        # overwriting a pre-verb --acli-quiet with its own default; the raw
+        # argv scan keeps the flag honored in any position.
+        quiet = getattr(parsed, "acli_quiet", False) or QUIET_FLAG in argv
+        maybe_banner(self.acli_capabilities, quiet=quiet)
+        return parsed
 
 
 def argument_parser(*args, **kwargs) -> ArgumentParser:
@@ -135,6 +183,7 @@ def standard_flag_arity() -> dict[str, int]:
     if _STANDARD_FLAG_ARITY is None:
         probe = argparse.ArgumentParser(add_help=False)
         add_standard_args(probe, allow_toon=True)
+        probe.add_argument(QUIET_FLAG, action="store_true", dest="acli_quiet")
         _STANDARD_FLAG_ARITY = {
             option: _option_value_bounds(action)[0] if _takes_value(action) else 0
             for action in probe._actions
@@ -160,7 +209,7 @@ def skip_standard_flags(tokens: list[str]) -> int:
     return index
 
 
-# --- Completion protocol (topics/agent-cli.md § Completion protocol) ---
+# --- Completion protocol (topics/acli.md § Completion protocol) ---
 #
 # `tool --acli-complete <argv-prefix...>` emits JSONL candidates for the
 # final token of the prefix (an empty final token means "fresh token") and

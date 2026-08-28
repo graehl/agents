@@ -1,6 +1,6 @@
 """Agent-first CLI helpers.
 
-Small pure-function surface for CLIs that follow topics/agent-cli.md.
+Small pure-function surface for CLIs that follow topics/acli.md.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from .args import (
     capability_line,
     complete,
     hint,
+    maybe_banner,
     maybe_complete,
     maybe_repl,
     set_completer,
@@ -33,6 +34,7 @@ __all__ = [
     "error_envelope",
     "hint",
     "is_agent_session",
+    "maybe_banner",
     "maybe_complete",
     "maybe_repl",
     "resolve_format",
