@@ -135,6 +135,20 @@ real deployment target, not a tail case. Then:
   downstream metric or phase, and realized perturbation. A site whose
   dose sweep has no predicted end-to-end effect is negative evidence,
   not a hotspot merely because it was instrumented.
+- **Use external resource pressure where process boundaries suffice.**
+  Source hooks are unnecessary for some useful sweeps. A helper can
+  occupy and continually touch a declared amount of physical memory,
+  or consume a declared CPU/core share; prefer kernel or container
+  controls such as memory high/max limits, CPU quotas, and CPU sets
+  when they can constrain the target process tree directly. On one
+  machine, put separately launched server and browser process trees in
+  separate control groups so server and client pressure can be varied
+  independently. Otherwise use an isolated pressure host, or run the
+  client on another host through an SSH tunnel/remote forward. Record
+  both the configured knob and realized RAM, reclaim/swap/pressure, CPU
+  occupancy, and throttling. Deliberate pressure is an experimental
+  input, not permission to treat unmeasured ambient contention as a
+  ratchet-grade run.
 - **Map cascade sensitivity.** Degrade one boundary at a time, sweep
   severity closely enough to expose non-monotonic danger zones, and
   measure useful work plus injection, recovery, and residual phases.
