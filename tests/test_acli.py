@@ -319,6 +319,100 @@ def test_capability_line_and_exit_code_footer():
     )
 
 
+def test_empty_capabilities_render_bare_baseline_line():
+    args_mod = importlib.import_module("acli.args")
+    parser = args_mod.argument_parser(prog="demo-bare", capabilities=())
+    _assert(
+        parser.format_help().rstrip().endswith("acli: 1"),
+        "capabilities=() still claims the version baseline",
+    )
+
+
+def _parse_with_banner(args_mod, argv, env_quiet=None):
+    import os
+
+    args_mod._banner_emitted = False
+    parser = args_mod.argument_parser(
+        prog="demo-banner", capabilities=("complete", "+toon")
+    )
+    parser.add_argument("--x", action="store_true")
+    saved = os.environ.get(args_mod.QUIET_ENV)
+    try:
+        if env_quiet is None:
+            os.environ.pop(args_mod.QUIET_ENV, None)
+        else:
+            os.environ[args_mod.QUIET_ENV] = env_quiet
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            parser.parse_args(argv)
+        return err.getvalue()
+    finally:
+        if saved is None:
+            os.environ.pop(args_mod.QUIET_ENV, None)
+        else:
+            os.environ[args_mod.QUIET_ENV] = saved
+        args_mod._banner_emitted = False
+
+
+def test_parse_args_banners_once_on_stderr():
+    args_mod = importlib.import_module("acli.args")
+    _assert(
+        _parse_with_banner(args_mod, ["--x"]) == "# acli: 1 complete +toon\n",
+        "banner is the #-prefixed capability line on stderr",
+    )
+    args_mod._banner_emitted = False
+    parser = args_mod.argument_parser(prog="demo-once", capabilities=())
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        parser.parse_args([])
+        parser.parse_args([])
+    _assert(err.getvalue() == "# acli: 1\n", "banner emits once per process")
+    args_mod._banner_emitted = False
+
+
+def test_banner_suppressed_by_flag_and_env():
+    args_mod = importlib.import_module("acli.args")
+    _assert(
+        _parse_with_banner(args_mod, ["--acli-quiet"]) == "",
+        "--acli-quiet suppresses the banner",
+    )
+    _assert(
+        _parse_with_banner(args_mod, [], env_quiet="1") == "",
+        "ACLI_QUIET suppresses the banner",
+    )
+
+
+def test_banner_quiet_flag_survives_subparser_namespace_copy():
+    args_mod = importlib.import_module("acli.args")
+    args_mod._banner_emitted = False
+    parser = args_mod.argument_parser(prog="demo-sub-quiet", capabilities=())
+    sub = parser.add_subparsers(dest="verb", required=True)
+    sub.add_parser("list")
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        parser.parse_args(["--acli-quiet", "list"])
+    _assert(
+        err.getvalue() == "",
+        "pre-verb --acli-quiet suppresses despite subparser defaults",
+    )
+    args_mod._banner_emitted = False
+
+
+def test_completion_runs_never_banner():
+    args_mod = importlib.import_module("acli.args")
+    args_mod._banner_emitted = False
+    parser = args_mod.argument_parser(prog="demo-complete-quiet")
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stderr(err):
+        try:
+            args_mod.maybe_complete(parser, ["demo", args_mod.COMPLETE_FLAG, "-"], out)
+            _assert(False, "maybe_complete must exit")
+        except SystemExit as exc:
+            _assert(exc.code == 0, exc)
+    _assert(err.getvalue() == "", "completion is banner-free")
+    args_mod._banner_emitted = False
+
+
 def _repl_parser(formats):
     args_mod = importlib.import_module("acli.args")
     parser = args_mod.argument_parser(prog="demo5")

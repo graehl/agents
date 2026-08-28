@@ -248,7 +248,7 @@ def test_bare_fetch_refuses_to_queue_the_whole_backlog():
         _assert(
             proc.returncode == 2, "a bare fetch must not silently start N downloads"
         )
-        envelope = json.loads(proc.stderr.splitlines()[0])
+        envelope = json.loads(proc.stderr.splitlines()[-1])
         _assert("2 papers have no extract" in envelope["error"]["message"], envelope)
         _assert(
             sorted(envelope["error"]["detail"]["pending"])
@@ -873,7 +873,7 @@ def test_limit_rejects_negative_values_and_accepts_zero():
 def test_help_carries_the_acli_footer():
     proc = run(REPO_ROOT, "--help")
     _assert(proc.returncode == 0, proc.stderr)
-    _assert("acli: 1 complete toon" in proc.stdout, proc.stdout[-300:])
+    _assert("acli: 1 complete +toon" in proc.stdout, proc.stdout[-300:])
     _assert("exit codes:" in proc.stdout, proc.stdout[-300:])
 
 

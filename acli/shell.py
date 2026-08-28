@@ -1,6 +1,6 @@
 """Interactive REPL behind the reserved `--repl` flag.
 
-Contract: topics/agent-cli.md § REPL. Each input line is one invocation
+Contract: topics/acli.md § REPL. Each input line is one invocation
 of the tool (argv without the program name); Tab completion reuses the
 same candidate engine `--acli-complete` serves, so per-candidate help
 and data-peeking completers behave identically. Rich menus (candidate

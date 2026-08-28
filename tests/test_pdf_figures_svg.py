@@ -269,7 +269,10 @@ def test_missing_input_exits_not_found():
         (markdown.parent / "blocks.json").unlink()
         proc = run(markdown)
         _assert(proc.returncode == 4, (proc.returncode, proc.stderr))
-        _assert(json.loads(proc.stderr)["error"]["code"] == "not_found", proc.stderr)
+        _assert(
+            json.loads(proc.stderr.splitlines()[-1])["error"]["code"] == "not_found",
+            proc.stderr,
+        )
 
 
 def test_help_advertises_the_acli_capability_line():

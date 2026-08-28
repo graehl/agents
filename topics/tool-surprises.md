@@ -17,7 +17,7 @@ transcript exposes one, so an unrelated later edit does not count as the
 fix. That adjacency recurring across sessions is the error-analysis
 candidate this topic exists for: either the tool is hard to use (fix the
 tool: an explicit option, a composite verb, a helper — see
-`topics/agent-cli.md`), the agents' model of it is wrong (fix the
+`topics/acli.md`), the agents' model of it is wrong (fix the
 narrowest applicable instruction file), or the environment breaks an
 assumption a governing doc makes (fix the setup or the doc).
 

@@ -9,7 +9,9 @@ where: agentctl.py build_parser / parse_start_command
 protocol despite building its parsers with `acli_args.ArgumentParser`.
 Both constructions now pass `capabilities=()` so `--help` does not
 falsely advertise `complete`; the capability line contract is
-"advertise only what is wired" (`topics/agent-cli.md`).
+"advertise only what is wired" (`topics/acli.md`). Since 2026-08-28
+`capabilities=()` renders the honest bare baseline claim `acli: 1`
+(footer and stderr banner), so only the `complete` token awaits wiring.
 
 **Noticed while:** adding the capability line / help footer to
 `acli.args` for the almanac testbed — the new default `("complete",)`

@@ -1,15 +1,19 @@
-# Agent CLI (ACLI)
+# acli (agent-CLI)
 
-> An ACLI (Agent CLI) is a command-line tool built agent-first: compact
+> An acli (agent-CLI) tool is a command-line tool built agent-first: compact
 > structured output by default, named composite verbs over agent-glued
-> round-trips, structured errors and exit codes, and no interactive
+> round-trips, structured errors and exit codes, a self-identifying `acli:`
+> capability line in help and on stderr at launch, and no interactive
 > prompts that block agent callers — while protecting interactive human users
 > by *detecting* them rather than making agent-friendliness opt-in.
 
-Topic: `agent-cli`
+Topic: `acli`
 
-Our term for the pattern the AXI project (Agent eXperience Interface,
-`github.com/kunchenguid/axi`) names externally. This doc is prescriptive:
+`acli` (alternate spellings: `agent-cli`, ACLI) is our term for the pattern
+the AXI project (Agent eXperience Interface, `github.com/kunchenguid/axi`)
+names externally. The topic is named `acli` to match the token every
+compliant tool prints, so the header met in a terminal locates this doc.
+This doc is prescriptive:
 it is how we build CLI tools an agent will drive. A shared `acli` Python
 package (see *The `acli` module*) turns each rule below into a callable so
 compliance is the path of least resistance, not ten rules an author must
@@ -169,18 +173,44 @@ live data values — before composing a call, without a query round-trip
 or a docs read. Sanctioned, not just tolerated: keep completers useful
 to a blind caller (definitive hints, counts in `help`).
 
-## Capability line and help footer
+## Capability line, version, and help footer
 
 A compliant tool's `--help` ends with one line matching
-`acli: <version>( <capability>)*` — e.g. `acli: 1 complete repl toon` —
-where `<version>` is the protocol version (currently 1) and the tokens
-name wired capabilities: `complete` (`--acli-complete`), `repl`
-(`--repl`), `toon` (TOON table verbs). Advertise only what is actually
-wired. Testable: `tool --help | grep '^acli: '` — this is the hint an
+`acli: <version>( <token>)*` — e.g. `acli: 1 complete repl +toon`.
+
+`<version>` is the spec's major version, currently 1. It increments
+rarely, and it *implies the baseline*: a tool at version N honors that
+version's standard conventions (for v1: compact-JSONL default with
+`--json` accepted, human upgrade only on detection, structured errors
+and exit codes, `--full` and truncation hints, definitive empty states,
+no blocking prompts) without itemizing them. Each major version's
+baseline is defined by one topic doc — v1's is this doc; a future v2
+gets its own — so the version token doubles as the documentation
+pointer. A bare `acli: 1` is a valid line: baseline honored, nothing
+extra wired.
+
+Tokens name wired capabilities, in two classes:
+
+- **bare tokens** are consumer-protocol wiring, relevant to interactive
+  consumers rather than to invocation: `complete` (`--acli-complete`),
+  `repl` (`--repl`);
+- **`+` tokens** are affordances beyond the simple-acli baseline that an
+  invoker should know before composing a call: `+toon` (TOON table
+  verbs); reserved next: `+confirm`, `+defer`
+  ([sketches](acli.sketches.md)).
+
+Advertise only what is actually wired. Testable:
+`tool --help | grep '^acli: '` — this is the hint an
 interactive consumer's *registration* step checks (run `--help` once,
 deliberately, timeout-capped; cache the result). Tab-time invocation
 stays registry-gated as above; YA's registration flow and UI live in
 its `topics/acli-ui.md`.
+
+`--help` must be self-contained: it describes whatever is needed to
+make good use of the tool's particular main affordances — every `+`
+token's behavior included — without requiring this repository. Topic
+docs here carry design rationale and authoring rules, never facts an
+invoker needs.
 
 Script tools mirror the line as a comment in their first 1 KiB
 (`# acli: 1 complete`), readable without executing anything — the
@@ -191,6 +221,35 @@ line automatically (default `("complete",)`, matching the
 `maybe_complete` contract) and renders an `exit codes:` table above it,
 so one `--help` serves humans, agents, and detection — the agent "man
 page" is the same help text, not a parallel surface.
+
+## Stderr banner at launch
+
+Every launch prints the capability line to stderr as a `# `-prefixed
+comment — `# acli: 1 complete +toon` — immediately after argument
+parsing succeeds, once per process. The `acli` library owns emission
+(`acli.args.ArgumentParser.parse_args` calls `maybe_banner`), so a tool
+using the factory gets it for free; the library owning the parse — or
+getting a first-chance pass at it — is what makes the banner uniform.
+The banner is activation, not documentation: the `acli` token plus any
+`+` affordances tell an agent which contract applies, with `--help` as
+the self-contained detail, and the `# ` prefix tells a terminal user it
+is meta, not data. stdout is never touched, so piped consumers are
+unaffected. On stderr the banner precedes everything else, so the
+structured error envelope stays the *last* stderr line — envelope
+readers parse that final line and treat `# `-prefixed lines as meta,
+never `json.loads` the whole stream. Suppression: `--acli-quiet`, or a
+nonempty `ACLI_QUIET` in the environment; `--acli-complete` runs never
+banner (side-effect-free, consumer-parsed).
+
+## Naming acli tools in instructions
+
+When an instruction file tells an agent to use an acli tool, tag the
+introducing mention with the term — "use the acli `agentctl`" — adding
+salient `+` tokens when they matter: "the acli (+confirm)
+`deploy-pages`". The tag is a two-token typed pointer routing an
+unfamiliar reader through the glossary to this contract, and the same
+vocabulary then cross-confirms across instructions, the stderr banner,
+and `--help`. Later mentions use the bare name.
 
 ## REPL (`--repl`)
 
@@ -349,9 +408,10 @@ small pure-function modules — a library, not a framework:
 - `acli.errors` — the structured error envelope, standard exit codes, and a
   `die()` that fails loud.
 - `acli.args` — an argparse factory pre-wiring the standard flags
-  (`--format`, `--json`, `--compact`, `--full`, `--pretty`, `--toon`), the
-  agent-friendly help
-  conventions, the capability line / exit-code footer, and the
+  (`--format`, `--json`, `--compact`, `--full`, `--pretty`, `--toon`,
+  `--acli-quiet`), the agent-friendly help
+  conventions, the capability line / exit-code footer, the once-per-process
+  stderr banner (`maybe_banner`, called from `parse_args`), and the
   `--acli-complete` / `--repl` reserved verbs.
 - `acli.shell` — the `--repl` loop over a tool's parser; prompt_toolkit
   optional, readline fallback, `candidates()`-driven completion.
@@ -418,3 +478,24 @@ concern, different namespace.
   tool gets an interactive mode from the parser it already declares,
   and the dependency-free core survives; readline mode plus an install
   banner covers absence. Accepts two code paths in `acli.shell`.
+- **Topic named `acli`, matching the printed token** (vs. keeping
+  `agent-cli.md`): the header a reader meets in a terminal or help text
+  must locate the spec, so the topic basename equals the token; `agent-cli`
+  survives as a glossary alternate for stranded references. Accepts a
+  one-time rename sweep.
+- **Stderr banner on every launch, library-emitted** (vs. banner only on
+  errors/deferrals, or per-tool emission): first contact is when the
+  activation prevents contract re-derivation by retry, and a terminal
+  user reads the `# ` line as meta at a glance; emitting from
+  `parse_args` keeps it uniform and unforgeable by construction (it
+  advertises the same registration the flags come from). Accepts one
+  short stderr line per process, priced acceptable even on hot verbs;
+  `--acli-quiet`/`ACLI_QUIET` is the relief valve.
+- **`+` token class for beyond-baseline affordances** (vs. one flat
+  token list): an invoker scanning the line needs to distinguish "Tab
+  completion exists" (consumer wiring, ignorable) from "this tool has a
+  two-phase confirm flow" (changes how you call it). Accepts that
+  existing consumers of the flat list see a spelling change (`toon` →
+  `+toon`).
+
+Candidate extensions are kept in [acli sketches](acli.sketches.md).

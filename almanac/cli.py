@@ -8,7 +8,7 @@ attachment subdirs. This engine only reads, checks, and refreshes
 datasets; building or repairing one is agent work.
 
 Verbs: list, query, show, image, search, info, check, update, register.
-Output follows topics/agent-cli.md: compact JSONL by default, --pretty
+Output follows topics/acli.md: compact JSONL by default, --pretty
 for humans, --toon on table verbs, --acli-complete for completion,
 --repl for an interactive shell over the same completion.
 
@@ -53,7 +53,7 @@ NAME_RE = re.compile(r"^[a-z][a-z0-9-]{1,31}$")
 LAUNCHER_MARKER = "almanac launcher"
 ENGINE_SCRIPT = _REPO_ROOT / "scripts" / "almanac"
 EXTRACT_TIMEOUT = 600
-CAPABILITIES = ("complete", "repl", "toon")
+CAPABILITIES = ("complete", "repl", "+toon")
 EXIT_CODES = {
     0: "success",
     2: "usage error",
@@ -221,7 +221,7 @@ def emit_table(args, rows: list[dict], columns: list[str], name: str) -> None:
     if fmt is Format.TOON:
         emit({"rows": rows, "columns": columns, "name": name}, fmt)
     elif not rows and fmt is Format.COMPACT:
-        # Definitive empty state (topics/agent-cli.md): zero lines is ambiguous.
+        # Definitive empty state (topics/acli.md): zero lines is ambiguous.
         write_jsonl({"count": 0, "of": name})
     else:
         emit(rows, fmt)

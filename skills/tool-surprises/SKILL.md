@@ -55,7 +55,7 @@ environment is broken. Background and promotion criteria:
 
    - **tool** — hard to invoke correctly: add/point to an explicit
      option, a named composite verb, or a helper script
-     (`topics/agent-cli.md` conventions);
+     (`topics/acli.md` conventions);
    - **instruction** — a wrong or missing agent model of the tool:
      a line in the narrowest applicable file (harness or model
      supplement, language topic, or `AGENTS.global.md`), authored

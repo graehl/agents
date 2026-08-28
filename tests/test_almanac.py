@@ -152,7 +152,10 @@ def test_image_verb_falls_back_to_a_structured_path():
     (directory / "data.json").write_text(json.dumps(data))
     proc = run(root, "image", "cards-test", "strike")
     _assert(proc.returncode == 70, "attachment paths may not escape the dataset")
-    _assert("outside" in json.loads(proc.stderr)["error"]["message"], proc.stderr)
+    _assert(
+        "outside" in json.loads(proc.stderr.splitlines()[-1])["error"]["message"],
+        proc.stderr,
+    )
 
 
 def test_image_native_renderers():
@@ -276,7 +279,7 @@ def test_list_query_show_search():
     _assert(record["name"] == "Bash" and "text" in record)
     proc = run(root, "show", "cards-test", "stri")
     _assert(proc.returncode == 4, "ambiguous substring must not guess")
-    detail = json.loads(proc.stderr)["error"]["detail"]
+    detail = json.loads(proc.stderr.splitlines()[-1])["error"]["detail"]
     _assert(len(detail["candidates"]) == 2, detail)
 
     rows = jsonl(run(root, "search", "cards-test", "vulnerable"))
@@ -294,7 +297,7 @@ def test_help_and_no_args():
     proc = run(root, "--help")
     _assert("cards-test" in proc.stdout, "top-level --help lists datasets")
     _assert(
-        proc.stdout.rstrip().endswith("acli: 1 complete repl toon"),
+        proc.stdout.rstrip().endswith("acli: 1 complete repl +toon"),
         "--help ends with the capability line",
     )
     _assert("exit codes:" in proc.stdout and "75" in proc.stdout, proc.stdout)
@@ -303,7 +306,7 @@ def test_help_and_no_args():
     _assert("sample rows:" in proc.stdout and "Strike" in proc.stdout, proc.stdout)
     _assert("~needle" in proc.stdout, "filter syntax incl. needle grouping documented")
     _assert(
-        proc.stdout.rstrip().endswith("acli: 1 complete repl toon"),
+        proc.stdout.rstrip().endswith("acli: 1 complete repl +toon"),
         "dataset help also ends with the capability line",
     )
 
@@ -428,7 +431,7 @@ def test_refresh_mode_gates():
     _assert(run(root, "register", "saved-page", "--no-launcher").returncode == 0)
     proc = run(root, "update", "saved-page")
     _assert(proc.returncode == 69, "manual without --source cannot refresh")
-    _assert("--source" in json.loads(proc.stderr)["error"]["message"])
+    _assert("--source" in json.loads(proc.stderr.splitlines()[-1])["error"]["message"])
 
 
 def test_completion():
@@ -574,7 +577,7 @@ def test_launcher_dispatch():
     _assert("show" in completions and "search" in completions, completions)
 
     _assert(
-        "# acli: 1 complete repl toon" in Path(launcher).read_text()[:200],
+        "# acli: 1 complete repl +toon" in Path(launcher).read_text()[:200],
         "launcher head carries the zero-execution capability marker",
     )
     _assert(

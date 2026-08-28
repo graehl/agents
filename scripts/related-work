@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# acli: 1 complete toon
+# acli: 1 complete +toon
 """related-work — fetch, audit, and report a field survey's related-work tree.
 
 Contract: topics/research-survey.md in the ~/agents repo. Every field survey
@@ -10,7 +10,7 @@ owns both, so a new survey inherits fetch idempotency, HTTP revalidation, and
 manifest/disk reconciliation instead of hand-rolling a `fetch.sh`.
 
 Verbs: list, status, fetch, audit, init.
-Output follows topics/agent-cli.md: compact JSONL by default, --pretty for
+Output follows topics/acli.md: compact JSONL by default, --pretty for
 humans, --toon on the table verbs, --acli-complete for completion.
 
 Exit codes (beyond 0/2): 3 = audit found incomplete citation metadata or
@@ -64,7 +64,7 @@ except ModuleNotFoundError:  # pragma: no cover - environment guard
         detail={"install": "pip install pyyaml"},
     )
 
-CAPABILITIES = ("complete", "toon")
+CAPABILITIES = ("complete", "+toon")
 EXIT_CODES = {
     3: "audit found incomplete citation metadata or extract drift",
     4: "no such survey directory or paper key",
@@ -1552,7 +1552,7 @@ def emit_table(args, rows: list[dict], columns: list[str], name: str) -> None:
         table = [{column: row.get(column, "") for column in columns} for row in rows]
         emit({"rows": table, "columns": columns, "name": name}, fmt)
     elif not rows and fmt is Format.COMPACT:
-        # Definitive empty state (topics/agent-cli.md): zero lines is ambiguous.
+        # Definitive empty state (topics/acli.md): zero lines is ambiguous.
         write_jsonl({"count": 0, "of": name})
     else:
         emit(rows, fmt)
