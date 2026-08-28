@@ -347,10 +347,14 @@ def test_fleet_watch_wakes_for_idle_local_gpu():
             f"fleet-watch failed: rc={res.returncode}\n"
             f"stdout: {res.stdout}\nstderr: {res.stderr}",
         )
-        _assert("local" in res.stdout, f"target missing from output: {res.stdout!r}")
+        payload = _json_record(res.stdout)
         _assert(
-            "GPU capacity available" in res.stdout,
-            f"capacity wake missing: {res.stdout!r}",
+            payload["reason"] == "capacity_available",
+            f"capacity wake missing: {payload!r}",
+        )
+        _assert(
+            payload["fleet"][0]["target"] == "local",
+            f"target missing from output: {payload!r}",
         )
     finally:
         ws.cleanup()
@@ -444,9 +448,13 @@ def test_fleet_watch_requires_consecutive_capacity_samples():
             (ws.scratch / "nvidia-smi-count").read_text().strip() == "5",
             "transient capacity did not reset the consecutive-sample count",
         )
+        payload = _json_record(res.stdout)
+        capacity = next(
+            event for event in payload["events"] if event["kind"] == "capacity"
+        )
         _assert(
-            "samples=3/3" in res.stdout,
-            f"unsupported process-query fallback did not require 3 samples: {res.stdout!r}",
+            capacity["samples"] == capacity["required_samples"] == 3,
+            f"unsupported process-query fallback did not require 3 samples: {payload!r}",
         )
     finally:
         ws.cleanup()
@@ -484,6 +492,7 @@ def test_fleet_watch_extends_stability_for_live_unloaded_gpu_process():
             "0.01",
             "--timeout",
             "0.3",
+            "--full",
             env_extra={"PATH": f"{fake_bin}:{os.environ['PATH']}"},
         )
         _assert(
@@ -491,13 +500,17 @@ def test_fleet_watch_extends_stability_for_live_unloaded_gpu_process():
             f"fleet-watch failed: rc={res.returncode}\n"
             f"stdout: {res.stdout}\nstderr: {res.stderr}",
         )
-        _assert(
-            "samples=6/6" in res.stdout,
-            f"live unloaded process did not extend stability: {res.stdout!r}",
+        payload = _json_record(res.stdout)
+        capacity = next(
+            event for event in payload["events"] if event["kind"] == "capacity"
         )
         _assert(
-            f"reload-risk-pids={os.getpid()}" in res.stdout,
-            f"reload-risk PID missing: {res.stdout!r}",
+            capacity["samples"] == capacity["required_samples"] == 6,
+            f"live unloaded process did not extend stability: {payload!r}",
+        )
+        _assert(
+            os.getpid() in capacity["reload_risk_pids"],
+            f"reload-risk PID missing: {payload!r}",
         )
     finally:
         ws.cleanup()
@@ -523,10 +536,119 @@ def test_fleet_watch_wakes_for_finished_local_job_while_gpu_busy():
             f"fleet-watch failed: rc={res.returncode}\n"
             f"stdout: {res.stdout}\nstderr: {res.stderr}",
         )
+        payload = _json_record(res.stdout)
+        _assert(payload["reason"] == "work_ended", payload)
+        event = next(event for event in payload["events"] if event["kind"] == "job_end")
         _assert(
-            "done:finished" in res.stdout and "rc=0" in res.stdout,
-            f"job wake missing from output: {res.stdout!r}",
+            event["name"] == "done"
+            and event["status"] == "finished"
+            and event["returncode"] == 0,
+            f"job wake missing from output: {payload!r}",
         )
+    finally:
+        ws.cleanup()
+
+
+def test_fleet_watch_waits_for_either_of_two_local_jobs():
+    ws = Workspace()
+    proc = None
+    first_gate = ws.scratch / "first.done"
+    second_gate = ws.scratch / "second.done"
+    wait_code = (
+        "import pathlib,time,sys;"
+        "p=pathlib.Path(sys.argv[1]);"
+        "\nwhile not p.exists(): time.sleep(0.01)"
+    )
+    try:
+        _start(
+            ws,
+            "--no-aim",
+            "first",
+            "--",
+            sys.executable,
+            "-c",
+            wait_code,
+            first_gate,
+        )
+        _start(
+            ws,
+            "--no-aim",
+            "second",
+            "--",
+            sys.executable,
+            "-c",
+            wait_code,
+            second_gate,
+        )
+        _wait_status(ws, "first", "running")
+        _wait_status(ws, "second", "running")
+        env = _sequence_nvidia_smi(ws, ["0, 46000, 40000, 200, 90"])
+        proc = ws.popen(
+            "fleet-watch",
+            "--job",
+            "local=first",
+            "--job",
+            "local=second",
+            "--poll",
+            "0.01",
+            "--timeout",
+            "2",
+            env_extra=env,
+        )
+        counter = ws.scratch / "nvidia-smi-count"
+        deadline = time.monotonic() + 2
+        while not counter.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        _assert(counter.exists(), "fleet-watch did not complete its first probe")
+        readable, _, _ = select.select([proc.stdout], [], [], 0)
+        _assert(not readable, "fleet-watch returned before either watched job ended")
+
+        first_gate.write_text("done\n", encoding="utf-8")
+        stdout, stderr = proc.communicate(timeout=2)
+        _assert(proc.returncode == 0, f"fleet-watch failed: {stderr}")
+        payload = _json_record(stdout)
+        ended = {
+            event["name"] for event in payload["events"] if event["kind"] == "job_end"
+        }
+        _assert(ended == {"first"}, f"unexpected completion events: {payload!r}")
+        _assert(
+            any(
+                job["name"] == "second" and job["status"] == "running"
+                for job in payload["fleet"][0]["jobs"]
+            ),
+            f"still-running peer job missing: {payload!r}",
+        )
+    finally:
+        second_gate.write_text("done\n", encoding="utf-8")
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
+            proc.communicate(timeout=2)
+        ws.cleanup()
+
+
+def test_fleet_watch_pretty_timeout_is_structured_and_definitive():
+    ws = Workspace()
+    try:
+        res = ws.run(
+            "fleet-watch",
+            "--min-free-memory",
+            "30000",
+            "--poll",
+            "0.01",
+            "--timeout",
+            "0.03",
+            "--pretty",
+            env_extra=_fake_nvidia_smi(ws, "0, 46000, 40000, 200, 90"),
+        )
+        _assert(res.returncode == 1, f"timeout should exit 1: {res.stderr}")
+        payload = json.loads(res.stdout)
+        _assert(
+            payload["kind"] == "fleet_watch"
+            and payload["reason"] == "timeout"
+            and payload["events"] == [],
+            f"timeout event is incomplete: {payload!r}",
+        )
+        _assert("\n  " in res.stdout, f"--pretty was not indented: {res.stdout!r}")
     finally:
         ws.cleanup()
 
@@ -544,6 +666,11 @@ def test_fleet_watch_rejects_unknown_native_job():
         _assert(
             "unknown agentctl job" in res.stderr,
             f"actionable unknown-job error missing: {res.stderr!r}",
+        )
+        error = json.loads(res.stderr.splitlines()[-1])
+        _assert(
+            res.returncode == 4 and error["error"]["code"] == "not_found",
+            f"unknown job did not use the acli not-found error: {res.stderr!r}",
         )
     finally:
         ws.cleanup()
@@ -564,6 +691,11 @@ def test_fleet_watch_rejects_disabled_event_only_wake():
         _assert(
             "--min-free-memory" in res.stderr,
             f"missing actionable wake-condition error: {res.stderr!r}",
+        )
+        error = json.loads(res.stderr.splitlines()[-1])
+        _assert(
+            res.returncode == 2 and error["error"]["code"] == "usage",
+            f"invalid wake condition did not use the acli usage error: {res.stderr!r}",
         )
     finally:
         ws.cleanup()
@@ -589,6 +721,11 @@ def test_fleet_watch_rejects_alternate_local_project_root():
         _assert(
             "local target" in res.stderr and "project root" in res.stderr,
             f"missing actionable local-root error: {res.stderr!r}",
+        )
+        error = json.loads(res.stderr.splitlines()[-1])
+        _assert(
+            res.returncode == 2 and error["error"]["code"] == "usage",
+            f"invalid local root did not use the acli usage error: {res.stderr!r}",
         )
     finally:
         ws.cleanup()
@@ -617,9 +754,11 @@ def test_fleet_watch_bare_ssh_target_needs_no_remote_agentctl():
             f"bare SSH fleet-watch failed: rc={res.returncode}\n"
             f"stdout: {res.stdout}\nstderr: {res.stderr}",
         )
+        payload = _json_record(res.stdout)
         _assert(
-            "remote=64000MiB" in res.stdout,
-            f"remote capacity missing: {res.stdout!r}",
+            payload["fleet"][0]["target"] == "remote"
+            and payload["fleet"][0]["free_memory_mib"] == 64000,
+            f"remote capacity missing: {payload!r}",
         )
         _assert(
             "agentctl" not in res.stderr.lower(),
@@ -658,9 +797,13 @@ def test_fleet_watch_reads_native_agentctl_job_over_ssh():
             f"native SSH fleet-watch failed: rc={res.returncode}\n"
             f"stdout: {res.stdout}\nstderr: {res.stderr}",
         )
+        payload = _json_record(res.stdout)
+        event = next(event for event in payload["events"] if event["kind"] == "job_end")
         _assert(
-            "remote/remote-done:finished" in res.stdout and "rc=0" in res.stdout,
-            f"native remote completion missing: {res.stdout!r}",
+            event["target"] == "remote"
+            and event["name"] == "remote-done"
+            and event["returncode"] == 0,
+            f"native remote completion missing: {payload!r}",
         )
     finally:
         ws.cleanup()
@@ -699,9 +842,15 @@ def test_fleet_watch_probes_ssh_targets_concurrently():
             elapsed < 0.95,
             f"SSH probes appear serial: elapsed={elapsed:.3f}s\n{res.stdout}",
         )
+        payload = _json_record(res.stdout)
+        ended = {
+            (event["target"], event["pid"])
+            for event in payload["events"]
+            if event["kind"] == "pid_end"
+        }
         _assert(
-            "ended_pids=one/999991,two/999992" in res.stdout,
-            f"both remote PID results missing: {res.stdout!r}",
+            ended == {("one", 999991), ("two", 999992)},
+            f"both remote PID results missing: {payload!r}",
         )
     finally:
         ws.cleanup()

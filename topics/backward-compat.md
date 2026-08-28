@@ -7,6 +7,13 @@ Topic: `backward-compat`
 
 ## Decisions
 
+- 2026-08-28 `agentctl fleet-watch` stdout — changed the single wake/timeout
+  result from ad-hoc prose to the standard acli object (`kind`, `reason`,
+  `events`, `fleet`), compact JSONL by default for agents/pipes and pretty
+  JSON for interactive humans. `--full` exposes the wider snapshot and
+  errors now use structured stderr envelopes. Wake conditions and exit 0/1
+  semantics stay compatible; no prose shim, because retaining an
+  unstructured branch would defeat the requested acli contract.
 - 2026-07-05 `agentctl` active-session stdout — changed `active`,
   `others`, `tending`, and `alone` default non-TTY/agent output from prose to
   ACLI JSONL; agent-first output is the contract from `topics/acli.md`.
