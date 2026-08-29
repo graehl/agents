@@ -613,6 +613,21 @@ def trim(text: str, limit: int, full: bool) -> str:
     return text[: limit - 1] + "…"
 
 
+def event_label(event: dict[str, Any]) -> str:
+    """Example handle for an event: its command, else tool plus targets.
+
+    Non-Bash tools (Edit, Read, apply_patch handles) carry no command
+    string; the tool name plus target paths still identifies the
+    fail→fix pair for the report.
+    """
+    if event.get("command"):
+        return event["command"]
+    targets = event.get("targets") or []
+    if targets:
+        return f"{event['tool']} {' '.join(targets)}"
+    return event["tool"]
+
+
 def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
     project_root = Path(ns.project).resolve()
     exclude = set()
@@ -698,10 +713,11 @@ def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
                 recovery is not None and group["example"].get("fix") is None
             ):
                 group["example"] = {
-                    "fail": trim(fail["command"] or fail["tool"], 200, ns.full),
+                    "fail": trim(event_label(fail), 200, ns.full),
                     "error": trim(fail["error"], 200, ns.full),
-                    "fix": trim(recovery["command"], 200, ns.full)
-                    if recovery and recovery["command"]
+                    "exit": fail.get("exit"),
+                    "fix": trim(event_label(recovery), 200, ns.full)
+                    if recovery
                     else None,
                 }
 

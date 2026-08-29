@@ -149,6 +149,74 @@ def test_scan_and_recovery() -> None:
     assert recovery is not None and recovery["command"] == "rg -n foo topics/", recovery
 
 
+def test_report_example_labels_non_bash_fix() -> None:
+    def edit_call(call_id: str) -> str:
+        return _record(
+            "assistant",
+            [
+                {
+                    "type": "tool_use",
+                    "id": call_id,
+                    "name": "Edit",
+                    "input": {"file_path": "/p/x.py", "old_string": "a"},
+                }
+            ],
+        )
+
+    lines = [
+        edit_call("a"),
+        _record(
+            "user",
+            [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": "a",
+                    "is_error": True,
+                    "content": "File has not been read yet",
+                }
+            ],
+        ),
+        edit_call("b"),
+        _record(
+            "user",
+            [{"type": "tool_result", "tool_use_id": "b", "content": "ok"}],
+        ),
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        home = Path(tmp)
+        project = home / "project"
+        project.mkdir()
+        tdir = home / ".claude" / "projects" / str(project).replace("/", "-")
+        tdir.mkdir(parents=True)
+        (tdir / "s.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        ns = SimpleNamespace(
+            project=str(project),
+            harness="claude",
+            all_sessions=True,
+            days=0,
+            include_gated=False,
+            min_fails=1,
+            limit=20,
+            full=False,
+        )
+        prior_home = os.environ.get("HOME")
+        os.environ["HOME"] = str(home)
+        try:
+            _summary, patterns, _dropped = ts.build_report(ns)
+        finally:
+            if prior_home is None:
+                del os.environ["HOME"]
+            else:
+                os.environ["HOME"] = prior_home
+
+    assert len(patterns) == 1, patterns
+    assert patterns[0]["err"] == "edit-before-read", patterns
+    example = patterns[0]["example"]
+    assert example["fail"] == "Edit /p/x.py", example
+    assert example["fix"] == "Edit /p/x.py", example
+    assert example["exit"] is None, example
+
+
 def test_scan_codex_commands_and_yielded_processes() -> None:
     def call(call_id: str, name: str, args: dict) -> str:
         return _codex_record(
