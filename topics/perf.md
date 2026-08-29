@@ -151,11 +151,18 @@ real deployment target, not a tail case. Then:
   measures a site's share of one workload mix at one scale point; it
   caps neither the site's share of a single user-visible operation
   (a site diluted to a few percent of the mix can own half of one
-  operation) nor its share where a scaling parameter grows. Promote a
-  small-aggregate-share site only with a reachability story: name the
-  driving parameter (data size, session length, message rate) and why
-  real or adversarial-but-reachable use attains the regime where the
-  site governs. A scenario handcrafted so the site is the bottleneck
+  operation) nor its share where a scaling parameter grows. In an
+  interactive application the latency of every user-driven action
+  matters, so a single-workload share systematically undervalues
+  sites that govern individual actions. Triage with scenario
+  identification as an explicit intermediate step: a low-share site
+  with an obvious cheap fix enters as a speculative candidate; before
+  selecting it for improvement, identify the reachable scenario(s) it
+  bottlenecks — name the driving parameter (data size, session
+  length, message rate) and why real or adversarial-but-reachable use
+  attains that regime — then rank candidates by the importance and
+  likelihood of those scenarios, not by aggregate share. A scenario
+  handcrafted so the site is the bottleneck
   is validation apparatus, not impact evidence, until that regime is
   shown reachable. When the fix lands, record its effect on both the
   demonstration scenario and the original observed suite — an
