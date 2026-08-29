@@ -146,6 +146,28 @@ real deployment target, not a tail case. Then:
   downstream metric or phase, and realized perturbation. A site whose
   dose sweep has no predicted end-to-end effect is negative evidence,
   not a hotspot merely because it was instrumented.
+- **A small observed share is a floor conditioned on scenario and
+  scale, not a ceiling.** A dose sweep or end-to-end attribution
+  measures a site's share of one workload mix at one scale point; it
+  caps neither the site's share of a single user-visible operation
+  (a site diluted to a few percent of the mix can own half of one
+  operation) nor its share where a scaling parameter grows. Promote a
+  small-aggregate-share site only with a reachability story: name the
+  driving parameter (data size, session length, message rate) and why
+  real or adversarial-but-reachable use attains the regime where the
+  site governs. A scenario handcrafted so the site is the bottleneck
+  is validation apparatus, not impact evidence, until that regime is
+  shown reachable. When the fix lands, record its effect on both the
+  demonstration scenario and the original observed suite — an
+  off-one-operation percentage is not aggregate recovery; Amdahl
+  still caps the mix at the site's measured share there. Worked
+  incident (2026-08-29, ya
+  `gaps/perf-sprint-system-observed-followups.md`): injection sites
+  jointly under 20% of an aggregate scenario contained one owning
+  49–57% of a single server operation and one whose older-page
+  prepend ran a 1.27 s long task at real transcript scale; fixes
+  selected per-operation cut that scroll path's p95 from 200–233 ms
+  to ~17 ms.
 - **Use external resource pressure where process boundaries suffice.**
   Source hooks are unnecessary for some useful sweeps. A helper can
   occupy and continually touch a declared amount of physical memory,
