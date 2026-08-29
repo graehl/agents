@@ -49,6 +49,9 @@ review, name every gap filed during it after the verdict link.
 
 ## Upstream freshness
 
+The rule text below is kept verbatim-identical with
+`skills/harsh-review/SKILL.md` § Upstream freshness — edit both together.
+
 When the review end is selected by a moving ref — a bare invocation, bare
 `since`, or a range ending at HEAD or a branch tip — sync before freezing
 endpoints; an end the user pinned to an explicit SHA reviews as requested. The
