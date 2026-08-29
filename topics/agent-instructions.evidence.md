@@ -3814,3 +3814,37 @@ Contributing-model: Daybreak-Blue
   unmeasured.
 
 Contributing-model: Daybreak-Blue
+
+## 2026-08-29 — setsid did not survive app-server cgroup cleanup
+
+- **Incident** — a detached `agentctl` training wrapper had PPID 1 and its own
+  POSIX session, but a full YepAnywhere/Codex app-server replacement terminated
+  it at the same timestamp as the server shutdown. Ordinary interrupted
+  foreground waits did not terminate the retried wrapper.
+- **Root cause** — `start_new_session=True` changes process parent/session/group
+  relationships but leaves the process in the app server's systemd session
+  cgroup. Codex shutdown explicitly terminates tool-launched processes, so PPID
+  1 was not evidence of independent service ownership.
+- **Decision** — YepAnywhere launches now automatically place the `_run-child`
+  wrapper in a transient systemd user service; other callers can request the
+  same boundary with `--user-service` or explicitly retain the portable
+  process-session backend with `--no-user-service`. Restart preserves the
+  resolved backend, and missing user-manager support fails rather than silently
+  degrading. A mode-0600 one-use FIFO transfers the exact child environment so
+  wake credentials and other values do not enter the unit command line.
+- **Trace: launch observer dies** — a regression test terminates the foreground
+  `agentctl start` process after payload creation. The service wrapper remains
+  live in `user@<uid>.service/<unit>.service`, the payload finishes, and the
+  normal exit record reports return code zero.
+- **Trace: literal payload arguments** — a payload argument containing `$` is
+  recovered from run state inside the service rather than passed through
+  `systemd-run` argument expansion; the payload receives the literal byte.
+- **Trace: no systemd user manager** — automatic YepAnywhere or explicit
+  service launch records a terminal failure and explains the missing boundary.
+  Only the explicit `--no-user-service` form accepts the weaker guarantee.
+- **Status** — lifecycle and cgroup behavior are directly exercised on systemd
+  239. Survival through a real provider-host restart is established by the
+  ownership boundary and incident reconstruction; the end-to-end destructive
+  restart itself was not repeated during the test.
+
+Contributing-model: Daybreak-Blue
