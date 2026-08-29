@@ -45,6 +45,13 @@ tooling, the cooperative declaration helper, and project migration docs.
   observation, `--watch`, and explicit `wait`/`watch` are disposable observers.
   Losing one cannot turn a recorded exit into `returncode=unknown` or suppress
   an armed wrapper-owned completion wake.
+- **Use a user service when the app server owns a killable session cgroup**
+  (vs. treating `setsid` as a service boundary): YepAnywhere launches select a
+  transient systemd user service automatically. The explicit `--user-service`
+  form is available elsewhere, while `--no-user-service` retains the portable
+  process-session backend. The service owns the wrapper cgroup, and a private
+  one-use FIFO transfers the exact child environment without putting secrets or
+  payload arguments in the transient unit command line.
 - **Use a broad non-document source scope by default** (vs. exact `HEAD`
   equality or language dependency crawling): `--source-scope non-doc` checks
   every tracked path except Markdown and run bookkeeping, so task/status commits
@@ -162,6 +169,12 @@ window.
   `_run-child` wrapper that owns terminal-status and completion-artifact
   writes. The optional watcher observes that same run and may disappear
   without losing its eventual return code.
+- When `AGENT_LAUNCHER=yepanywhere`, `start`/`smoke` automatically submit that
+  wrapper as a transient systemd user service. `--user-service` requests the
+  same host-user-manager ownership explicitly; absence of a working user
+  manager is a launch failure, never a silent fallback. `--no-user-service`
+  forces the original `start_new_session=True` process backend. `restart`
+  preserves the original run's resolved backend.
 - Without `--watch`, `start` remains foreground through its launch observation.
   It waits through dependency/resource gates and pre-payload checks, then starts
   the `--launch-wait` clock only after `payload_started_at` records successful
@@ -635,7 +648,8 @@ The base writes a flat dict to `state.json`. Canonical keys (read freely):
 
 `job`, `launch_name`, `run_id`, `serial`, `mode`, `status`, `started_at`,
 `finished_at`, `returncode`, `pid`, `pgid`, `payload_pid`,
-`payload_started_at`, `launch_wait_seconds`, `pid_namespace`,
+`payload_started_at`, `launch_wait_seconds`, `launch_backend`, `service_unit`,
+`pid_namespace`,
 `pid_start_ticks`, `pid_cmdline`, `argv`, `cwd`, `log_path`, `headline_path`,
 `output_path`, `meta_path`, `state_path`, `exit_status_path`, `run_dir`,
 `runtime_estimate`, `runtime_estimate_seconds`, `context_note`,
@@ -644,10 +658,12 @@ The base writes a flat dict to `state.json`. Canonical keys (read freely):
 `project_env`, `git_branch`, `git_commit`, `source_snapshot`,
 `machine_snapshot`, `launch_gpu_stats`.
 
-`pid`/`pgid` identify the detached wrapper. `payload_pid` identifies the user
-process, and `payload_started_at` appears only after its `Popen` succeeds; that
-field starts the launch-observation clock. `launch_wait_seconds` records the
-requested window so `restart` preserves it.
+`pid`/`pgid` identify the detached wrapper. `launch_backend` is
+`systemd-user-service` or `process-session`; service-backed runs also record
+`service_unit`. `payload_pid` identifies the user process, and
+`payload_started_at` appears only after its `Popen` succeeds; that field starts
+the launch-observation clock. `launch_wait_seconds` records the requested
+window so `restart` preserves it.
 
 `project_env` is null when project defaults were absent or disabled. Otherwise
 it contains `path`, `sha256`, and `keys`; values are deliberately excluded.

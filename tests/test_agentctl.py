@@ -98,6 +98,7 @@ class Workspace:
         # would otherwise defeat the pops below.
         for var in (
             "AGENTCTL_SESSION_ID",
+            "AGENT_LAUNCHER",
             "CLAUDE_CODE_SESSION_ID",
             "AGENTCTL_LAUNCH_DEPTH",
             "BASH_ENV",
@@ -128,6 +129,7 @@ class Workspace:
         env = os.environ.copy()
         for var in (
             "AGENTCTL_SESSION_ID",
+            "AGENT_LAUNCHER",
             "CLAUDE_CODE_SESSION_ID",
             "AGENTCTL_LAUNCH_DEPTH",
             "BASH_ENV",
@@ -224,6 +226,20 @@ def _json_record(output: str) -> dict:
 
 def _json_records(output: str) -> list[dict]:
     return [json.loads(line) for line in output.splitlines() if line.strip()]
+
+
+def _user_systemd_available() -> bool:
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "is-system-running"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=2,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
 
 
 class _WakeHandler(http.server.BaseHTTPRequestHandler):
@@ -329,6 +345,208 @@ def _sequence_nvidia_smi(ws: Workspace, rows: list[str]) -> dict[str, str]:
 
 
 # ---- Tests -----------------------------------------------------------------
+
+
+def test_yepanywhere_launch_uses_user_service_and_preserves_payload_argv():
+    if not _user_systemd_available():
+        return
+    ws = Workspace()
+    try:
+        output = ws.scratch / "user-service-output.txt"
+        code = (
+            "import pathlib,time; "
+            f"pathlib.Path({str(output)!r}).write_text('$literal\\n' + "
+            "pathlib.Path('/proc/self/cgroup').read_text()); "
+            "time.sleep(2)"
+        )
+        result = ws.run(
+            "start",
+            "--no-aim",
+            "--launch-wait",
+            "0",
+            "service-owned",
+            "--",
+            sys.executable,
+            "-c",
+            code,
+            env_extra={"AGENT_LAUNCHER": "yepanywhere"},
+        )
+        _assert(result.returncode == 0, result.stderr)
+        state = ws.state("service-owned")
+        _assert(state["launch_backend"] == "systemd-user-service", state)
+        _assert(state["service_unit"].startswith("agentctl-run-"), state)
+        cgroup = Path(f"/proc/{state['pid']}/cgroup").read_text()
+        _assert(f"/{state['service_unit']}" in cgroup, cgroup)
+        finished = ws.wait_finished("service-owned", timeout=5)
+        _assert(finished["returncode"] == 0, finished)
+        text = output.read_text()
+        _assert(text.startswith("$literal\n"), text)
+        _assert(f"/{state['service_unit']}" in text, text)
+        _assert(
+            not (Path(state["run_dir"]) / "service-environment.pipe").exists(),
+            "service environment pipe was not removed",
+        )
+    finally:
+        try:
+            state = ws.state("service-owned")
+            if state.get("status") in {"launching", "running", "waiting"}:
+                ws.run("stop", "service-owned", "--grace", "0.2")
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        ws.cleanup()
+
+
+def test_user_service_survives_launch_observer_termination():
+    if not _user_systemd_available():
+        return
+    ws = Workspace()
+    observer = None
+    try:
+        output = ws.scratch / "observer-termination-output.txt"
+        code = (
+            "import pathlib,time; "
+            f"path=pathlib.Path({str(output)!r}); "
+            "path.write_text('started\\n'); time.sleep(1); "
+            "path.write_text('finished\\n')"
+        )
+        observer = ws.popen(
+            "start",
+            "--no-aim",
+            "--user-service",
+            "--launch-wait",
+            "100",
+            "observer-killed",
+            "--",
+            sys.executable,
+            "-c",
+            code,
+        )
+        deadline = time.monotonic() + 5
+        state = None
+        while time.monotonic() < deadline:
+            try:
+                state = ws.state("observer-killed")
+            except (FileNotFoundError, json.JSONDecodeError):
+                time.sleep(0.02)
+                continue
+            if state.get("payload_started_at"):
+                break
+            time.sleep(0.02)
+        _assert(state and state.get("payload_started_at"), state)
+        observer.terminate()
+        observer.communicate(timeout=2)
+        _assert(
+            Path(f"/proc/{state['pid']}").exists(),
+            "service wrapper died with observer",
+        )
+        finished = ws.wait_finished("observer-killed", timeout=5)
+        _assert(finished["returncode"] == 0, finished)
+        _assert(output.read_text() == "finished\n", output.read_text())
+    finally:
+        if observer is not None and observer.poll() is None:
+            observer.kill()
+            observer.communicate(timeout=2)
+        try:
+            state = ws.state("observer-killed")
+            if state.get("status") in {"launching", "running", "waiting"}:
+                ws.run("stop", "observer-killed", "--grace", "0.2")
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        ws.cleanup()
+
+
+def test_user_service_opt_out_keeps_process_session_backend():
+    ws = Workspace()
+    try:
+        result = ws.run(
+            "start",
+            "--no-aim",
+            "--no-user-service",
+            "--launch-wait",
+            "0",
+            "process-owned",
+            "--",
+            "true",
+            env_extra={"AGENT_LAUNCHER": "yepanywhere"},
+        )
+        _assert(result.returncode == 0, result.stderr)
+        state = ws.wait_finished("process-owned")
+        _assert(state["launch_backend"] == "process-session", state)
+        _assert("service_unit" not in state, state)
+    finally:
+        ws.cleanup()
+
+
+def test_user_service_unavailable_fails_without_launching_payload():
+    ws = Workspace()
+    try:
+        fake_bin = ws.scratch / "fake-bin"
+        fake_bin.mkdir()
+        fake_systemd_run = fake_bin / "systemd-run"
+        fake_systemd_run.write_text(
+            "#!/bin/sh\nprintf 'no user manager\\n' >&2\nexit 1\n"
+        )
+        fake_systemd_run.chmod(0o755)
+        output = ws.scratch / "must-not-exist.txt"
+        result = ws.run(
+            "start",
+            "--no-aim",
+            "--user-service",
+            "service-unavailable",
+            "--",
+            sys.executable,
+            "-c",
+            f"import pathlib; pathlib.Path({str(output)!r}).touch()",
+            env_extra={"PATH": f"{fake_bin}:{os.environ['PATH']}"},
+        )
+        _assert(result.returncode == 1, result)
+        _assert("user-service launch failed: no user manager" in result.stderr, result)
+        state = ws.state("service-unavailable")
+        _assert(state["status"] == "finished", state)
+        _assert(state["returncode"] == 1, state)
+        _assert(state["launch_backend"] == "systemd-user-service", state)
+        _assert(not output.exists(), output)
+    finally:
+        ws.cleanup()
+
+
+def test_restart_preserves_user_service_and_stop_controls_unit():
+    if not _user_systemd_available():
+        return
+    ws = Workspace()
+    try:
+        first = ws.run(
+            "start",
+            "--no-aim",
+            "--user-service",
+            "--launch-wait",
+            "0",
+            "service-restart",
+            "--",
+            "sleep",
+            "30",
+        )
+        _assert(first.returncode == 0, first.stderr)
+        prior = ws.state("service-restart")
+        restarted = ws.run("restart", "service-restart", "--grace", "0.2")
+        _assert(restarted.returncode == 0, restarted.stderr)
+        current = ws.state("service-restart")
+        _assert(current["run_id"] != prior["run_id"], current)
+        _assert(current["launch_backend"] == "systemd-user-service", current)
+        _assert(current["service_unit"] != prior["service_unit"], current)
+        stopped = ws.run("stop", "service-restart", "--grace", "0.2")
+        _assert(stopped.returncode == 0, stopped.stderr)
+        state = ws.state("service-restart")
+        _assert(state["status"] == "stopped", state)
+        _assert(not Path(f"/proc/{state['pid']}").exists(), state)
+    finally:
+        try:
+            state = ws.state("service-restart")
+            if state.get("status") in {"launching", "running", "waiting"}:
+                ws.run("stop", "service-restart", "--grace", "0.2")
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        ws.cleanup()
 
 
 def test_fleet_watch_wakes_for_idle_local_gpu():

@@ -70,12 +70,13 @@ before resting at a status update.
 
 A run expected to exceed about 15 minutes launches through detached
 `agentctl start ... -- <cmd>` without `--watch`. Keep `start` foreground through
-its bounded launch observation; after it returns, the detached wrapper is
-session-teardown immune. Then rely on an armed completion wake or attach the
-separately announced `agentctl wait/watch`. `start --watch` or a backgrounded
-launch shell can keep the payload in the session descendant tree. If uncertain,
-verify the payload wrapper's PPID is 1. Short smokes and janitorial jobs may
-remain attached.
+its bounded launch observation. Under YepAnywhere, `agentctl` automatically
+places the wrapper in a transient systemd user service, outside the app-server
+session cgroup; `--user-service` requests the same boundary elsewhere and
+fails visibly when no user manager is available. `--no-user-service` is an
+explicit downgrade to the process-session wrapper. Then rely on an armed
+completion wake or attach the separately announced `agentctl wait/watch`.
+Short smokes and janitorial jobs may remain attached.
 
 #### Wait watchdog discipline
 
@@ -246,16 +247,20 @@ session is torn down or restarted (UI stop, crash, Monitor timeout, process
 exit), the harness SIGKILLs its **whole descendant process tree**; a job still in
 that tree dies mid-run, a job that has left it survives.
 
-With `agentctl`: `agentctl start … -- <cmd>` **without** `--watch` forks the
-wrapper under `setsid` (`start_new_session=True`). Ordinary `start` then remains
-as a foreground launch observer through the default post-payload window; when it
-returns, the wrapper reparents to **init (PPID 1)** and leaves the descendant tree.
-What defeats durable detachment is keeping a session-tied parent alive on top of
-the wrapper: `agentctl start --watch` (the watcher blocks in the launching shell,
-re-anchoring the job as a descendant) or wrapping `start` in a backgrounded shell
-the harness still owns. Either way the teardown SIGKILL can reach the job.
-Verify once if unsure: inspect the wrapper PID recorded as `pid`; after `start`
-returns, `ps -o ppid= -p <wrapper-pid>` should print `1`.
+With `agentctl`: `agentctl start … -- <cmd>` **without** `--watch` automatically
+uses a transient systemd user service when `AGENT_LAUNCHER=yepanywhere`.
+The wrapper's `name=systemd` cgroup then ends in the recorded `service_unit`,
+under `user@<uid>.service`, instead of the launching app server's
+`session-*.scope`; that ownership boundary survives full provider-host or app-
+server replacement. `--user-service` requests it explicitly on another launch,
+and `--no-user-service` deliberately selects the portable `setsid`
+process-session backend. The latter reparents to init after `start` exits but is
+not immune to a harness that cleans up every process in its session cgroup.
+
+Ordinary `start` remains the foreground launch observer through the default
+post-payload window in either mode. `start --watch` is still inappropriate for
+long runs because it makes the launch observation unbounded; a separately
+started `wait`/`watch` remains disposable without owning the job.
 
 For a run expected to exceed 15 minutes, therefore keep detached `agentctl start`
 foreground through its launch observation, then use the armed session wake or a

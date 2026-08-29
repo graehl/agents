@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import atexit
 import datetime as dt
+import errno
 import hashlib
 import importlib
 import json
@@ -68,6 +69,8 @@ PROJECT_ENV_FILENAME = "agentctl.env"
 LIVE_JOB_STATUSES = {"running", "waiting"}
 DEFAULT_LIST_SHOW_LAST = 6
 DEFAULT_LAUNCH_WAIT_SECONDS = 5.0
+SERVICE_ENV_MAX_BYTES = 8 * 1024 * 1024
+SERVICE_START_TIMEOUT_SECONDS = 10.0
 SOURCE_SCOPES = ("non-doc", "all")
 ENVIRONMENT_CONTROL_FILES = (
     "pixi.toml",
@@ -351,6 +354,57 @@ def write_json(path: Path, obj: dict) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(obj, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     tmp.replace(path)
+
+
+def write_fifo_bytes(path: Path, data: bytes, timeout: float) -> None:
+    deadline = time.monotonic() + timeout
+    fd = -1
+    try:
+        while fd < 0:
+            try:
+                fd = os.open(path, os.O_WRONLY | os.O_NONBLOCK)
+            except OSError as exc:
+                if exc.errno != errno.ENXIO or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.02)
+        view = memoryview(data)
+        while view:
+            try:
+                written = os.write(fd, view)
+                view = view[written:]
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(
+                        f"timed out writing service environment to {path}"
+                    )
+                time.sleep(0.02)
+    finally:
+        if fd >= 0:
+            os.close(fd)
+
+
+def read_fifo_line(path: Path, timeout: float) -> bytes:
+    deadline = time.monotonic() + timeout
+    data = bytearray()
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+    try:
+        while True:
+            try:
+                chunk = os.read(fd, 65536)
+            except BlockingIOError:
+                chunk = b""
+            if chunk:
+                data.extend(chunk)
+                if len(data) > SERVICE_ENV_MAX_BYTES:
+                    raise ValueError("service environment exceeds 8 MiB")
+                newline = data.find(b"\n")
+                if newline >= 0:
+                    return bytes(data[:newline])
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"timed out reading service environment from {path}")
+            time.sleep(0.02)
+    finally:
+        os.close(fd)
 
 
 def normalize_headline_text(text: str, max_chars: int = 240) -> str:
@@ -2374,18 +2428,35 @@ def terminate_state(state: dict, *, grace: float, reason: str | None = None) -> 
     pgid = int(state.get("pgid") or state["pid"])
     if not process_group_alive(pgid) and process_visibility_limited():
         return False
-    try:
-        os.killpg(pgid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
+    service_unit = str(state.get("service_unit") or "")
+    if service_unit:
+        signaled = stop_user_service(service_unit, "SIGTERM")
+        if not signaled:
+            try:
+                os.killpg(pgid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+    else:
+        try:
+            os.killpg(pgid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
     deadline = time.time() + grace
     while time.time() < deadline and process_group_alive(pgid):
         time.sleep(0.25)
     if process_group_alive(pgid):
-        try:
-            os.killpg(pgid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        if service_unit:
+            signaled = stop_user_service(service_unit, "SIGKILL")
+            if not signaled:
+                try:
+                    os.killpg(pgid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+        else:
+            try:
+                os.killpg(pgid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
     state["status"] = "stopped"
     state["finished_at"] = utc_now()
     if reason:
@@ -3683,7 +3754,7 @@ def launch_completion_wake_text(state: dict) -> str:
 
 
 def observe_payload_launch(
-    job: str, *, wrapper: subprocess.Popen, seconds: float
+    job: str, *, wrapper: subprocess.Popen | None, seconds: float
 ) -> int:
     if seconds <= 0:
         state = load_job(job)
@@ -3736,7 +3807,7 @@ def observe_payload_launch(
             )
             reported_prelaunch = True
 
-        if wrapper.poll() is not None:
+        if wrapper is not None and wrapper.poll() is not None:
             state = load_job(job)
             if state.get("status") in LIVE_JOB_STATUSES:
                 print(
@@ -3746,6 +3817,181 @@ def observe_payload_launch(
                 )
                 return 1
         time.sleep(0.05)
+
+
+def user_service_unit(job: str, rid: str) -> str:
+    identity = f"{ROOT}\0{job}\0{rid}".encode()
+    return f"agentctl-run-{hashlib.sha256(identity).hexdigest()[:24]}.service"
+
+
+def use_user_service(args: argparse.Namespace) -> bool:
+    requested = getattr(args, "user_service", None)
+    if requested is not None:
+        return bool(requested)
+    return os.environ.get("AGENT_LAUNCHER", "").strip() == "yepanywhere"
+
+
+def wrapper_state_fields(pid: int) -> dict:
+    return {
+        "pgid": os.getpgid(pid),
+        "pid": pid,
+        "pid_cmdline": proc_cmdline(pid) or "",
+        "pid_namespace": current_pid_namespace(),
+        "pid_start_ticks": proc_start_ticks(pid) or 0,
+    }
+
+
+def activate_wrapper_state(state: dict, *, pid: int) -> dict:
+    state.update(wrapper_state_fields(pid))
+    if state.get("wait_after"):
+        state["status"] = "waiting"
+        state["queued_at"] = state.get("queued_at") or utc_now()
+    else:
+        state["status"] = "running"
+        state["started_at"] = state.get("started_at") or utc_now()
+    update_state_files(state)
+    return state
+
+
+def stop_user_service(unit: str, signal_name: str) -> bool:
+    try:
+        result = subprocess.run(
+            [
+                "systemctl",
+                "--user",
+                "kill",
+                f"--signal={signal_name}",
+                "--kill-who=all",
+                unit,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except OSError:
+        return False
+    return result.returncode == 0
+
+
+def systemd_run_arg(value: object) -> str:
+    return str(value).replace("$", "$$")
+
+
+def launch_user_service(
+    *, state: dict, env: dict[str, str], log_path: Path
+) -> tuple[subprocess.Popen | None, int]:
+    unit = user_service_unit(state["job"], state["run_id"])
+    environment_pipe = Path(state["run_dir"]) / "service-environment.pipe"
+    state["launch_backend"] = "systemd-user-service"
+    state["service_unit"] = unit
+    state["status"] = "launching"
+    update_state_files(state)
+    service_argv = [
+        "systemd-run",
+        "--user",
+        f"--unit={unit}",
+        "--collect",
+        "--quiet",
+        "--service-type=exec",
+        "--property=KillMode=control-group",
+        systemd_run_arg(f"--setenv=AGENTCTL_ROOT={ROOT}"),
+        systemd_run_arg(sys.executable),
+        systemd_run_arg(Path(__file__).resolve()),
+        "_run-service-child",
+        "--environment-pipe",
+        systemd_run_arg(environment_pipe),
+        "--log-path",
+        systemd_run_arg(log_path),
+        "--state-path",
+        systemd_run_arg(state["state_path"]),
+        "--current-path",
+        systemd_run_arg(current_path(state["job"])),
+        "--exit-status-path",
+        systemd_run_arg(state["exit_status_path"]),
+    ]
+    try:
+        os.mkfifo(environment_pipe, 0o600)
+        submitted = subprocess.run(
+            service_argv,
+            cwd=str(ROOT),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        if submitted.returncode != 0:
+            detail = submitted.stderr.strip() or submitted.stdout.strip()
+            raise RuntimeError(detail or f"systemd-run exited {submitted.returncode}")
+        payload = json.dumps(env, separators=(",", ":")).encode() + b"\n"
+        if len(payload) > SERVICE_ENV_MAX_BYTES:
+            raise ValueError("service environment exceeds 8 MiB")
+        write_fifo_bytes(environment_pipe, payload, SERVICE_START_TIMEOUT_SECONDS)
+        deadline = time.monotonic() + SERVICE_START_TIMEOUT_SECONDS
+        while time.monotonic() < deadline:
+            current = read_json(Path(state["state_path"]))
+            if current.get("status") != "launching":
+                return None, 0
+            time.sleep(0.02)
+        raise TimeoutError(f"user service {unit} did not activate its run state")
+    except (OSError, RuntimeError, TimeoutError, ValueError) as exc:
+        stop_user_service(unit, "SIGKILL")
+        print(f"agentctl: user-service launch failed: {exc}", file=sys.stderr)
+        mark_prelaunch_failed(
+            Path(state["state_path"]),
+            current_path(state["job"]),
+            Path(state["exit_status_path"]),
+            1,
+        )
+        return None, 1
+    finally:
+        environment_pipe.unlink(missing_ok=True)
+
+
+def run_service_child(args: argparse.Namespace) -> int:
+    log_path = Path(args.log_path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("ab", buffering=0) as log:
+        os.dup2(log.fileno(), sys.stdout.fileno())
+        os.dup2(log.fileno(), sys.stderr.fileno())
+    environment_pipe = Path(args.environment_pipe)
+    try:
+        raw_env = read_fifo_line(environment_pipe, SERVICE_START_TIMEOUT_SECONDS)
+        env = json.loads(raw_env)
+        if not isinstance(env, dict) or not all(
+            isinstance(key, str) and isinstance(value, str)
+            for key, value in env.items()
+        ):
+            raise ValueError("service environment must be a string-to-string object")
+    except (OSError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+        print(
+            f"agentctl: failed to receive service environment: {exc}", file=sys.stderr
+        )
+        mark_prelaunch_failed(
+            Path(args.state_path),
+            Path(args.current_path),
+            Path(args.exit_status_path),
+            1,
+        )
+        return 1
+    finally:
+        environment_pipe.unlink(missing_ok=True)
+    os.environ.clear()
+    os.environ.update(env)
+    try:
+        state = read_json(Path(args.state_path))
+        activate_wrapper_state(state, pid=os.getpid())
+    except Exception as exc:
+        print(
+            f"agentctl: failed to activate service run state: {exc!r}", file=sys.stderr
+        )
+        mark_prelaunch_failed(
+            Path(args.state_path),
+            Path(args.current_path),
+            Path(args.exit_status_path),
+            1,
+        )
+        return 1
+    args.argv = list(state["argv"])
+    return run_child(args)
 
 
 def start(args: argparse.Namespace) -> int:
@@ -4024,36 +4270,33 @@ def start(args: argparse.Namespace) -> int:
         "--",
         *final_argv,
     ]
-    log = log_path.open("ab")
-    proc = subprocess.Popen(
-        child_argv,
-        cwd=str(ROOT),
-        env=env,
-        stdout=log,
-        stderr=subprocess.STDOUT,
-        start_new_session=True,
-    )
-    log.close()
-
-    state.update(
-        {
-            "pgid": proc.pid,
-            "pid": proc.pid,
-            "pid_cmdline": proc_cmdline(proc.pid) or "",
-            "pid_namespace": current_pid_namespace(),
-            "pid_start_ticks": proc_start_ticks(proc.pid) or 0,
-            "status": "waiting" if wait_after else "running",
-            "meta": bool(args.meta),
-        }
-    )
+    state["meta"] = bool(args.meta)
     if wait_after:
         state["queued_at"] = utc_now()
-    else:
-        state["started_at"] = utc_now()
     if launch_gpu_stats is not None:
         state["launch_gpu_stats"] = launch_gpu_stats
-    update_state_files(state)
-    print(f"started {launch_name} job={job} serial={serial} run={rid} pid={proc.pid}")
+    if use_user_service(args):
+        proc, launch_rc = launch_user_service(state=state, env=env, log_path=log_path)
+        if launch_rc != 0:
+            return launch_rc
+        state = read_json(state_path)
+    else:
+        state["launch_backend"] = "process-session"
+        log = log_path.open("ab")
+        proc = subprocess.Popen(
+            child_argv,
+            cwd=str(ROOT),
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        log.close()
+        activate_wrapper_state(state, pid=proc.pid)
+    print(
+        f"started {launch_name} job={job} serial={serial} run={rid} "
+        f"pid={state['pid']} backend={state['launch_backend']}"
+    )
     print(f"log: {log_path}")
     refresh_active_register(
         summary=f"agentctl {args.mode} {launch_name}: {command_string(final_argv)}",
@@ -5299,6 +5542,7 @@ def restart(args: argparse.Namespace) -> int:
         launch_wait=float(
             state.get("launch_wait_seconds", DEFAULT_LAUNCH_WAIT_SECONDS)
         ),
+        user_service=state.get("launch_backend") == "systemd-user-service",
         watch=False,
         watch_tail=20,
         watch_poll=5.0,
@@ -5535,6 +5779,27 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
             "seconds and return its fail-fast status; 0 skips observation (default: %(default)g)."
         ),
     )
+    user_service = sp.add_mutually_exclusive_group()
+    user_service.add_argument(
+        "--user-service",
+        action="store_true",
+        dest="user_service",
+        default=None,
+        help=(
+            "Launch the detached wrapper as a transient systemd user service so it "
+            "survives launching app-server replacement. This is automatic when "
+            "AGENT_LAUNCHER=yepanywhere."
+        ),
+    )
+    user_service.add_argument(
+        "--no-user-service",
+        action="store_false",
+        dest="user_service",
+        help=(
+            "Force the process-session wrapper even under YepAnywhere; it survives "
+            "ordinary launcher exit but not an app-server-wide process cleanup."
+        ),
+    )
     sp.add_argument(
         "--watch",
         action="store_true",
@@ -5640,6 +5905,15 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--exit-status-path", required=True)
     s.add_argument("argv", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     s.set_defaults(func=run_child)
+
+    s = sub.add_parser("_run-service-child", help=argparse.SUPPRESS)
+    s.add_argument("--environment-pipe", required=True)
+    s.add_argument("--log-path", required=True)
+    s.add_argument("--state-path", required=True)
+    s.add_argument("--current-path", required=True)
+    s.add_argument("--exit-status-path", required=True)
+    s.add_argument("argv", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
+    s.set_defaults(func=run_service_child)
 
     s = sub.add_parser("status", help="Show job status.")
     s.add_argument("job", nargs="?")
