@@ -50,8 +50,11 @@ tooling, the cooperative declaration helper, and project migration docs.
   transient systemd user service automatically. The explicit `--user-service`
   form is available elsewhere, while `--no-user-service` retains the portable
   process-session backend. The service owns the wrapper cgroup, and a private
-  one-use FIFO transfers the exact child environment without putting secrets or
-  payload arguments in the transient unit command line.
+  one-use FIFO transfers the child environment without putting secrets or
+  payload arguments in the transient unit command line. It drops YA's
+  `YEP_DEV_INSTANCE_*`, `YEP_DEV_BIND_KEY`, and `YEP_DEV_SOURCE_ROOT` ownership
+  markers: those authorize old-instance reaping and must not cross the service
+  boundary whose purpose is to survive YA replacement.
 - **Use a broad non-document source scope by default** (vs. exact `HEAD`
   equality or language dependency crawling): `--source-scope non-doc` checks
   every tracked path except Markdown and run bookkeeping, so task/status commits
@@ -174,7 +177,10 @@ window.
   same host-user-manager ownership explicitly; absence of a working user
   manager is a launch failure, never a silent fallback. `--no-user-service`
   forces the original `start_new_session=True` process backend. `restart`
-  preserves the original run's resolved backend.
+  preserves the original run's resolved backend. User-service payloads omit
+  YA's four development-instance ownership markers so a subsequent full YA
+  replacement cannot mistake the detached job for an obsolete YA process;
+  process-session payloads retain the caller's environment unchanged.
 - Without `--watch`, `start` remains foreground through its launch observation.
   It waits through dependency/resource gates and pre-payload checks, then starts
   the `--launch-wait` clock only after `payload_started_at` records successful
