@@ -71,6 +71,14 @@ DEFAULT_LIST_SHOW_LAST = 6
 DEFAULT_LAUNCH_WAIT_SECONDS = 5.0
 SERVICE_ENV_MAX_BYTES = 8 * 1024 * 1024
 SERVICE_START_TIMEOUT_SECONDS = 10.0
+YEP_DEV_OWNERSHIP_ENVS = frozenset(
+    {
+        "YEP_DEV_INSTANCE_VERSION",
+        "YEP_DEV_INSTANCE_ID",
+        "YEP_DEV_BIND_KEY",
+        "YEP_DEV_SOURCE_ROOT",
+    }
+)
 SOURCE_SCOPES = ("non-doc", "all")
 ENVIRONMENT_CONTROL_FILES = (
     "pixi.toml",
@@ -3921,7 +3929,12 @@ def launch_user_service(
         if submitted.returncode != 0:
             detail = submitted.stderr.strip() or submitted.stdout.strip()
             raise RuntimeError(detail or f"systemd-run exited {submitted.returncode}")
-        payload = json.dumps(env, separators=(",", ":")).encode() + b"\n"
+        service_env = {
+            key: value
+            for key, value in env.items()
+            if key not in YEP_DEV_OWNERSHIP_ENVS
+        }
+        payload = json.dumps(service_env, separators=(",", ":")).encode() + b"\n"
         if len(payload) > SERVICE_ENV_MAX_BYTES:
             raise ValueError("service environment exceeds 8 MiB")
         write_fifo_bytes(environment_pipe, payload, SERVICE_START_TIMEOUT_SECONDS)

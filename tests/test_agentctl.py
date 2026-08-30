@@ -106,6 +106,10 @@ class Workspace:
             "AGENT_SESSION_WAKE_URL",
             "YEP_SESSION_WAKE_TOKEN",
             "YEP_SESSION_WAKE_URL",
+            "YEP_DEV_INSTANCE_VERSION",
+            "YEP_DEV_INSTANCE_ID",
+            "YEP_DEV_BIND_KEY",
+            "YEP_DEV_SOURCE_ROOT",
         ):
             env.pop(var, None)
         # Also disable parent-process-tree recovery by default: the test runner
@@ -137,6 +141,10 @@ class Workspace:
             "AGENT_SESSION_WAKE_URL",
             "YEP_SESSION_WAKE_TOKEN",
             "YEP_SESSION_WAKE_URL",
+            "YEP_DEV_INSTANCE_VERSION",
+            "YEP_DEV_INSTANCE_ID",
+            "YEP_DEV_BIND_KEY",
+            "YEP_DEV_SOURCE_ROOT",
         ):
             env.pop(var, None)
         env["AGENTCTL_NO_PROC_SESSION_ID"] = "1"
@@ -354,10 +362,15 @@ def test_yepanywhere_launch_uses_user_service_and_preserves_payload_argv():
     try:
         output = ws.scratch / "user-service-output.txt"
         code = (
-            "import pathlib,time; "
-            f"pathlib.Path({str(output)!r}).write_text('$literal\\n' + "
-            "pathlib.Path('/proc/self/cgroup').read_text()); "
-            "time.sleep(2)"
+            "import json,os,pathlib,time; "
+            f"pathlib.Path({str(output)!r}).write_text(json.dumps({{"
+            "'literal':'$literal',"
+            "'cgroup':pathlib.Path('/proc/self/cgroup').read_text(),"
+            "'dev_markers':{name:os.environ.get(name) for name in "
+            "('YEP_DEV_INSTANCE_VERSION','YEP_DEV_INSTANCE_ID',"
+            "'YEP_DEV_BIND_KEY','YEP_DEV_SOURCE_ROOT')},"
+            "'retained':os.environ.get('YEP_SERVICE_TEST_RETAINED')})); "
+            "time.sleep(0.2)"
         )
         result = ws.run(
             "start",
@@ -369,19 +382,28 @@ def test_yepanywhere_launch_uses_user_service_and_preserves_payload_argv():
             sys.executable,
             "-c",
             code,
-            env_extra={"AGENT_LAUNCHER": "yepanywhere"},
+            env_extra={
+                "AGENT_LAUNCHER": "yepanywhere",
+                "YEP_DEV_INSTANCE_VERSION": "1",
+                "YEP_DEV_INSTANCE_ID": "old-wrapper",
+                "YEP_DEV_BIND_KEY": "loopback:3400",
+                "YEP_DEV_SOURCE_ROOT": "/checkout/ya",
+                "YEP_SERVICE_TEST_RETAINED": "yes",
+            },
         )
         _assert(result.returncode == 0, result.stderr)
         state = ws.state("service-owned")
         _assert(state["launch_backend"] == "systemd-user-service", state)
         _assert(state["service_unit"].startswith("agentctl-run-"), state)
-        cgroup = Path(f"/proc/{state['pid']}/cgroup").read_text()
-        _assert(f"/{state['service_unit']}" in cgroup, cgroup)
         finished = ws.wait_finished("service-owned", timeout=5)
         _assert(finished["returncode"] == 0, finished)
-        text = output.read_text()
-        _assert(text.startswith("$literal\n"), text)
-        _assert(f"/{state['service_unit']}" in text, text)
+        payload = json.loads(output.read_text())
+        _assert(payload["literal"] == "$literal", payload)
+        _assert(f"/{state['service_unit']}" in payload["cgroup"], payload)
+        _assert(
+            all(value is None for value in payload["dev_markers"].values()), payload
+        )
+        _assert(payload["retained"] == "yes", payload)
         _assert(
             not (Path(state["run_dir"]) / "service-environment.pipe").exists(),
             "service environment pipe was not removed",
@@ -458,6 +480,7 @@ def test_user_service_survives_launch_observer_termination():
 def test_user_service_opt_out_keeps_process_session_backend():
     ws = Workspace()
     try:
+        output = ws.scratch / "process-session-environment.txt"
         result = ws.run(
             "start",
             "--no-aim",
@@ -466,13 +489,23 @@ def test_user_service_opt_out_keeps_process_session_backend():
             "0",
             "process-owned",
             "--",
-            "true",
-            env_extra={"AGENT_LAUNCHER": "yepanywhere"},
+            sys.executable,
+            "-c",
+            (
+                "import os,pathlib; "
+                f"pathlib.Path({str(output)!r}).write_text("
+                "os.environ['YEP_DEV_INSTANCE_ID'])"
+            ),
+            env_extra={
+                "AGENT_LAUNCHER": "yepanywhere",
+                "YEP_DEV_INSTANCE_ID": "process-session-owner",
+            },
         )
         _assert(result.returncode == 0, result.stderr)
         state = ws.wait_finished("process-owned")
         _assert(state["launch_backend"] == "process-session", state)
         _assert("service_unit" not in state, state)
+        _assert(output.read_text() == "process-session-owner", output.read_text())
     finally:
         ws.cleanup()
 
