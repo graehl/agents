@@ -1,0 +1,50 @@
+#!/bin/sh
+# Shadow wrapper: GC codex's stale arg0 re-exec temp dirs before launch.
+# Codex removes a stale directory while its .lock is open. NFS renames that
+# open file aside, so the final rmdir fails with ENOTEMPTY and startup warns.
+# Move only directories whose lock we acquire, close it, then remove them.
+codex_arg0="${CODEX_HOME:-$HOME/.codex}/tmp/arg0"
+find "$codex_arg0" -mindepth 1 -maxdepth 1 -type d -empty -delete 2>/dev/null
+
+if command -v flock >/dev/null 2>&1; then
+  for codex_stale in "$codex_arg0".stale-*; do
+    [ -d "$codex_stale" ] || continue
+    rm -r "$codex_stale" 2>/dev/null || :
+  done
+
+  for codex_dir in "$codex_arg0"/codex-arg0*; do
+    [ -d "$codex_dir" ] || continue
+    [ -f "$codex_dir/.lock" ] || continue
+    [ -L "$codex_dir/apply_patch" ] || continue
+    (
+      exec 9<>"$codex_dir/.lock" || exit
+      flock -n 9 || exit
+      codex_stale="$codex_arg0.stale-${codex_dir##*/}-$$"
+      rm -r "$codex_stale" 2>/dev/null || :
+      mv "$codex_dir" "$codex_stale" || exit
+      exec 9>&-
+      rm -r "$codex_stale"
+    ) >/dev/null 2>&1
+  done
+fi
+
+# On `codex resume <session-id>`, export that id as AGENTCTL_SESSION_ID so
+# agentctl keys the right .agentctl/active/<id> entry and the resumed agent
+# can read its own id. A terminal resume injects nothing otherwise (a YA
+# launch does). agentctl independently recovers the id from a `resume <id>`
+# ancestor in the process tree, so this is the fast/explicit path, not the
+# only one. Skip when already set: a YA injection or explicit override wins.
+if [ -z "${AGENTCTL_SESSION_ID:-}" ]; then
+  prev=
+  for a in "$@"; do
+    if [ "$prev" = resume ]; then
+      case "$a" in
+        ????????-????-????-????-????????????)
+          export AGENTCTL_SESSION_ID="$a"; break ;;
+      esac
+    fi
+    prev=$a
+  done
+fi
+
+exec /local/graehl/.npm/global/bin/codex "$@"
