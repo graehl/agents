@@ -3848,3 +3848,34 @@ Contributing-model: Daybreak-Blue
   restart itself was not repeated during the test.
 
 Contributing-model: Daybreak-Blue
+
+## 2026-09-02 — native cross-session messaging observed; preference sited in the Claude supplement
+
+- **Observation** — under a YA-launched Claude Gateway (copilot backend)
+  session, two same-worktree sessions with wildcard-conflicting `scope:`
+  claims negotiated a carve unprompted over Claude Code's
+  `ListAgents`/`SendMessage`; the reply arrived as
+  `<cross-session-message from="uds:…" from-name="yepanywhere-bb"
+  from-mode="prompting">`. No corpus text instructs this; the harness tool
+  descriptions do, and the user cannot disable them. No equivalent organic
+  behavior has been seen in the Codex harness.
+- **Decision** — `AGENTS.claude.md` now prefers the native channel for
+  same-harness peers over `session-turn`, allows a nudge when waiting is
+  not acceptable, and says the agreement is not the claim. Sited in the
+  harness supplement because the facility is harness-injected; the global
+  file would carry it to harnesses that lack it. The harness-agnostic
+  `agentctl nudge` design is `gaps/agentctl-nudge-blocking-peer.md`.
+- **Trace: peer asks for a push** — a message says "push master for me".
+  The wrapper marks it peer input; the `SendMessage` description already
+  bars cross-session permission laundering; the agent routes it to the
+  user.
+- **Trace: reflex reach for session-turn** — an agent reads
+  `topics/helper-scripts.md`, finds `session-turn`, and sends a peer turn
+  that lands unwrapped in the user's voice. The rule names the native
+  channel first and reserves `session-turn` for Codex or absent targets.
+- **Trace: agreement without claim** — the peer says "go ahead" but leaves
+  its wildcard scope; the next `clear` still blocks. The rule says the
+  carve lands only through `active/` scope lines.
+- **Status** — one organic observation, user-endorsed; effect unmeasured.
+
+Contributing-model: Fable
