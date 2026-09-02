@@ -499,6 +499,28 @@ window.
   ceremony for a session that is only queued. (Announcing the wait as a
   blocking `active/` entry is the rejected alternative — it reintroduces the
   mutual-`alone` deadlock.)
+- `commit-note [rev]` records the committing agent session on a commit as a
+  git note under `refs/notes/agent-session`, so a commit hash resolves to a
+  harness transcript while the message carries only `Contributing-model:`
+  (`topics/commits.md § Session provenance`). One shell-quoted `key=value`
+  line per contributing session: `harness`, `session` (the harness-native
+  resumable id — `CLAUDE_CODE_SESSION_ID`, `CODEX_THREAD_ID`, a `resume <id>`
+  ancestor, then `AGENTCTL_SESSION_ID`), `transcript` (only when the file
+  exists; its layout confirms the harness), `agentctl_session` when a launcher
+  id differs, and the `AGENT_LAUNCH_*` launcher/model/effort facts. A
+  post-commit hook runs `commit-note --hook`, which never fails a commit and
+  is silent for a hand commit (no session resolves, no note). Session
+  registration (`active`, and the claim paths of `others`/`alone`/`tending`)
+  self-installs that hook plus `notes.rewriteRef` (and `notes.rewriteMode=
+  cat_sort_uniq` when the project has none), creating only what is absent:
+  an existing foreign post-commit hook is reported once
+  (`.agentctl/commit-note.foreign-hook` marks the sighting) and never edited;
+  `AGENTCTL_NO_COMMIT_NOTE` opts out. Notes stay local — a plain `git push`
+  does not send `refs/notes/*`. Because git copies the old note onto an
+  amended commit only after post-commit runs, the line carries no timestamp
+  and dedupes by `cat_sort_uniq`: a same-session amend stays one line, a
+  peer's amend adds its own. `--show` parses the note back (`sessions` array;
+  exit 4 when none).
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.

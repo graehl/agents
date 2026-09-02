@@ -4476,6 +4476,238 @@ def test_active_verb_depth_guard():
         ws.cleanup()
 
 
+# ---- commit-note: commit provenance as git notes ---------------------------
+
+
+def _hermetic_env(home: Path, **extra: str) -> dict:
+    """The env ws.run() builds (ambient session vars dropped), plus HOME and extras."""
+    env = os.environ.copy()
+    for var in (
+        "AGENTCTL_SESSION_ID",
+        "AGENT_LAUNCHER",
+        "AGENT_LAUNCH_HARNESS",
+        "AGENT_LAUNCH_MODEL",
+        "AGENT_LAUNCH_EFFORT",
+        "CLAUDE_CODE_SESSION_ID",
+        "CODEX_THREAD_ID",
+        "AGENTCTL_LAUNCH_DEPTH",
+        "BASH_ENV",
+    ):
+        env.pop(var, None)
+    env["AGENTCTL_NO_PROC_SESSION_ID"] = "1"
+    env["HOME"] = str(home)
+    env.update(extra)
+    return env
+
+
+def _commit_as(
+    ws: Workspace, env: dict, message: str, *, amend: bool = False
+) -> tuple[str, str]:
+    """Commit (or amend) a touched file under `env`; return (new sha, commit stderr)."""
+    marker = ws.scratch / "commit-note-file.txt"
+    marker.write_text(f"{message} {time.time_ns()}\n")
+    rel = str(marker.relative_to(ws.tmp))
+    subprocess.run(["git", "add", "--", rel], cwd=ws.tmp, check=True, env=env)
+    cmd = ["git", "commit", "-q"] + (
+        ["--amend", "--no-edit"] if amend else ["-m", message]
+    )
+    res = subprocess.run(cmd, cwd=ws.tmp, check=True, env=env, capture_output=True, text=True)
+    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ws.tmp, text=True).strip()
+    return sha, res.stderr
+
+
+def _claude_transcript_for(ws: Workspace, home: Path, sid: str) -> Path:
+    """Fake Claude transcript where the hook (cwd = worktree realpath) will look."""
+    project = str(ws.tmp.resolve()).replace("/", "-")
+    path = home / ".claude" / "projects" / project / f"{sid}.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('{"type":"summary"}\n')
+    return path
+
+
+def _show_note(ws: Workspace, home: Path, rev: str = "HEAD") -> tuple[int, dict]:
+    res = ws.run("commit-note", "--show", rev, env_extra={"HOME": str(home)})
+    return res.returncode, _json_record(res.stdout)
+
+
+def test_commit_note_hook_self_installs_on_active():
+    # First registration installs the post-commit hook and the notes config,
+    # creating only what is absent; a second registration reports nothing.
+    ws = Workspace()
+    home = ws.scratch / "home"
+    home.mkdir()
+    hook = ws.tmp / ".git/hooks/post-commit"
+    try:
+        _assert(not hook.exists(), "fixture repo must start without a post-commit hook")
+        res = ws.run(
+            "active",
+            "first registration",
+            env_extra={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-cn1"},
+        )
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        payload = _json_record(res.stdout)
+        _assert(
+            payload.get("commit_note_hook") == "installed",
+            f"first registration should report the install: {payload!r}",
+        )
+        text = hook.read_text()
+        _assert("# agentctl commit-note hook" in text, f"hook lacks marker: {text!r}")
+        _assert(os.access(hook, os.X_OK), "hook must be executable")
+        refs = subprocess.check_output(
+            ["git", "config", "--get-all", "notes.rewriteRef"], cwd=ws.tmp, text=True
+        ).split()
+        _assert("refs/notes/agent-session" in refs, f"rewriteRef not set: {refs!r}")
+        mode = subprocess.check_output(
+            ["git", "config", "--get", "notes.rewriteMode"], cwd=ws.tmp, text=True
+        ).strip()
+        _assert(mode == "cat_sort_uniq", f"rewriteMode should be set when unset: {mode!r}")
+        again = ws.run(
+            "active",
+            "second registration",
+            env_extra={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-cn1"},
+        )
+        _assert("commit_note_hook" not in _json_record(again.stdout), "no re-report when present")
+        _assert(hook.read_text() == text, "an existing agentctl hook is never rewritten")
+    finally:
+        ws.cleanup()
+
+
+def test_commit_note_records_claude_session_and_transcript():
+    # A commit made inside a Claude session gets a note naming the harness,
+    # the ambient session id, and the transcript path when the file exists.
+    ws = Workspace()
+    home = ws.scratch / "home"
+    home.mkdir()
+    sid = "11111111-2222-4333-8444-555555555555"
+    try:
+        res = ws.run("active", "working", env_extra={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        transcript = _claude_transcript_for(ws, home, sid)
+        env = _hermetic_env(home, CLAUDE_CODE_SESSION_ID=sid, AGENTCTL_SESSION_ID="ya-1")
+        sha, err = _commit_as(ws, env, "agent commit")
+        _assert("# commit-note:" in err, f"hook should report: {err!r}")
+        rc, payload = _show_note(ws, home, sha)
+        _assert(rc == 0 and payload["found"], f"note missing: {payload!r}")
+        sessions = payload["sessions"]
+        _assert(len(sessions) == 1, f"one session line expected: {sessions!r}")
+        rec = sessions[0]
+        _assert(rec["harness"] == "claude" and rec["session"] == sid, f"identity wrong: {rec!r}")
+        _assert(rec["transcript"] == str(transcript), f"transcript wrong: {rec!r}")
+        _assert(rec["agentctl_session"] == "ya-1", f"launcher id should ride along: {rec!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_commit_note_codex_thread_id_resolves_rollout():
+    # Codex exports its thread id, which equals the rollout filename id; the
+    # explicit verb self-installs and records harness=codex plus the rollout.
+    ws = Workspace()
+    home = ws.scratch / "home"
+    sid = "019f6b85-b391-7241-9ed4-0f89fc428329"
+    rollout = home / ".codex/sessions/2026/09/02" / f"rollout-2026-09-02T00-00-00-{sid}.jsonl"
+    try:
+        rollout.parent.mkdir(parents=True)
+        rollout.write_text('{"type":"session_meta"}\n')
+        res = ws.run("commit-note", env_extra={"HOME": str(home), "CODEX_THREAD_ID": sid})
+        _assert(res.returncode == 0, f"commit-note failed: {res.stderr}")
+        payload = _json_record(res.stdout)
+        _assert(payload["action"] == "added", f"expected a fresh note: {payload!r}")
+        _assert(payload["setup"]["hook"] == "installed", f"explicit run should self-install: {payload!r}")
+        rec = payload["session"]
+        _assert(rec["harness"] == "codex" and rec["session"] == sid, f"identity wrong: {rec!r}")
+        _assert(rec["transcript"] == str(rollout), f"rollout wrong: {rec!r}")
+        rc, shown = _show_note(ws, home)
+        _assert(rc == 0 and shown["sessions"][0]["session"] == sid, f"show mismatch: {shown!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_commit_note_foreign_hook_left_alone():
+    # An unrelated post-commit hook is reported once and never edited; the
+    # explicit verb still records the note.
+    ws = Workspace()
+    home = ws.scratch / "home"
+    home.mkdir()
+    hook = ws.tmp / ".git/hooks/post-commit"
+    foreign = "#!/bin/sh\necho foreign-hook-ran\n"
+    try:
+        hook.write_text(foreign)
+        hook.chmod(0o755)
+        env_extra = {"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-foreign"}
+        res = ws.run("active", "registering", env_extra=env_extra)
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        _assert(_json_record(res.stdout).get("commit_note_hook") == "foreign", res.stdout)
+        _assert("not installed" in res.stderr, f"first sight should explain: {res.stderr!r}")
+        _assert(hook.read_text() == foreign, "foreign hook must be untouched")
+        _assert((ws.tmp / ".agentctl/commit-note.foreign-hook").exists(), "once-marker missing")
+        again = ws.run("active", "registering again", env_extra=env_extra)
+        _assert("not installed" not in again.stderr, f"should not nag: {again.stderr!r}")
+        explicit = ws.run("commit-note", env_extra=env_extra)
+        _assert(explicit.returncode == 0, f"commit-note failed: {explicit.stderr}")
+        payload = _json_record(explicit.stdout)
+        _assert(payload["setup"]["hook"] == "foreign" and payload["action"] == "added", payload)
+    finally:
+        ws.cleanup()
+
+
+def test_commit_note_amend_keeps_author_and_adds_amender():
+    # Same-session amend stays one line; an amend from another session adds
+    # its line while the original author's survives the rewrite.
+    ws = Workspace()
+    home = ws.scratch / "home"
+    home.mkdir()
+    a, b = "sess-author", "sess-amender"
+    try:
+        res = ws.run("active", "working", env_extra={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": a})
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        env_a = _hermetic_env(home, CLAUDE_CODE_SESSION_ID=a)
+        env_b = _hermetic_env(home, CLAUDE_CODE_SESSION_ID=b)
+        _commit_as(ws, env_a, "authored")
+        _commit_as(ws, env_a, "authored", amend=True)
+        _, payload = _show_note(ws, home)
+        ids = [rec["session"] for rec in payload["sessions"]]
+        _assert(ids == [a], f"same-session amend must not duplicate: {ids!r}")
+        _commit_as(ws, env_b, "amended by peer", amend=True)
+        _, payload = _show_note(ws, home)
+        ids = sorted(rec["session"] for rec in payload["sessions"])
+        _assert(ids == sorted([a, b]), f"both sessions expected after peer amend: {ids!r}")
+        _commit_as(ws, env_b, "amended by peer again", amend=True)
+        _, payload = _show_note(ws, home)
+        _assert(len(payload["sessions"]) == 2, f"repeat amend must not grow: {payload!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_commit_note_human_commit_leaves_no_note():
+    # With no agent session in the environment the hook is silent and writes
+    # nothing; --show then exits NOT_FOUND. The opt-out env skips the install.
+    ws = Workspace()
+    home = ws.scratch / "home"
+    home.mkdir()
+    try:
+        res = ws.run("active", "working", env_extra={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-x"})
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        sha, err = _commit_as(ws, _hermetic_env(home), "hand commit")
+        _assert(err.strip() == "", f"hook should be silent: {err!r}")
+        rc, payload = _show_note(ws, home, sha)
+        _assert(rc == 4 and payload["found"] is False, f"expected no note: rc={rc} {payload!r}")
+        explicit = ws.run("commit-note", env_extra={"HOME": str(home)})
+        _assert(explicit.returncode == 3, f"no identity should be a DATA failure: {explicit.stdout}")
+    finally:
+        ws.cleanup()
+    ws2 = Workspace()
+    try:
+        res = ws2.run(
+            "active",
+            "opted out",
+            env_extra={"HOME": str(ws2.scratch), "CLAUDE_CODE_SESSION_ID": "sess-y", "AGENTCTL_NO_COMMIT_NOTE": "1"},
+        )
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        _assert(not (ws2.tmp / ".git/hooks/post-commit").exists(), "opt-out must skip the install")
+    finally:
+        ws2.cleanup()
+
+
 def _seed_active(ws, name: str, text: str, age_minutes: float = 0.0) -> Path:
     """Write a .agentctl/active/<name> entry with an mtime age_minutes in the past."""
     active = ws.tmp / ".agentctl/active"

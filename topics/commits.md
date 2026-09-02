@@ -197,6 +197,20 @@ is never stripped. Conversely it must never grow toward the banned
 forms — no email, no link, no banner sentence — which would both
 break the short-name requirement and trip the scan.
 
+## Session provenance
+
+`Contributing-model:` is enough detail for outsiders; session ids stay
+out of the message by user decision (2026-09-02). The hash-to-session
+join lives instead in a local git note under `refs/notes/agent-session`,
+written by a post-commit hook that `agentctl` self-installs on a
+session's first registration and never pushed by a plain `git push`.
+The note names the harness, the harness-native resumable session id,
+and the transcript path it resolves to, so a commit hash leads to its
+rollout without any of that in the message. Read one with
+`agentctl commit-note --show <rev>` or `git log --notes=agent-session`;
+mechanics and the amend behavior are in `topics/agentctl.md` under the
+`commit-note` verb.
+
 ## Amends
 
 For ALL amends of ALL commits:

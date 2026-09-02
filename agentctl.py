@@ -719,6 +719,7 @@ def ensure_active_registered(
     if not sid:
         return "noop"
     scope_paths = scope_paths or []
+    ensure_commit_note_hook()
     placeholder = normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
     path = ACTIVE / sid
     try:
@@ -879,6 +880,7 @@ def active_register(args) -> int:
     except OSError as exc:
         print(f"agentctl active: could not write {path}: {exc}", file=sys.stderr)
         return 1
+    note_setup = ensure_commit_note_hook()
 
     try:
         shown: Path | str = path.relative_to(ROOT)
@@ -891,6 +893,8 @@ def active_register(args) -> int:
         "id": sid,
         "banner": banner,
     }
+    if note_setup["hook"] in ("installed", "foreign", "error"):
+        payload["commit_note_hook"] = note_setup["hook"]
     scope_value = _header_value(scope_line)
     tending_value = _header_value(tending_line)
     if scope_value:
@@ -1888,6 +1892,360 @@ def sweep_stale_entries(
                 print(f"moved {path.name} -> {kind}/")
         moved[kind] += 1
     return moved
+
+
+# ---- Commit provenance notes ----
+#
+# `Contributing-model:` in the commit message names the model for outsiders;
+# the session behind a commit stays out of the message and lives in a git
+# note under COMMIT_NOTE_REF: one shell-quoted `key=value` line per
+# contributing session, keyed by the harness-native resumable id and the
+# transcript it resolves to. Notes are local (never pushed by a plain `git
+# push`) and follow amends/rebases through `notes.rewriteRef`. A post-commit
+# hook writes the line; session registration self-installs that hook and the
+# config on first use, creating only what is absent — an existing foreign
+# post-commit hook is never edited.
+COMMIT_NOTE_REF = "refs/notes/agent-session"
+COMMIT_NOTE_HOOK_MARKER = "# agentctl commit-note hook"
+# Set non-empty to skip the self-install and the hook write entirely (hermetic
+# tests, or a project that keeps provenance elsewhere).
+NO_COMMIT_NOTE_ENV = "AGENTCTL_NO_COMMIT_NOTE"
+# Codex exports its thread id, which equals the rollout filename id that
+# `codex resume <id>` takes (verified against a rollout whose shell env
+# printed the same uuid as its filename). It is a provenance identity here,
+# deliberately not a SESSION_ID_ENVS member (topics/AGENT_ENV_VARS.md).
+CODEX_THREAD_ID_ENV = "CODEX_THREAD_ID"
+
+
+def commit_note_identity() -> dict[str, str]:
+    """The committing agent's most accurate session identity, or {}.
+
+    Preference order for `session`: the harness-native id (Claude's
+    `CLAUDE_CODE_SESSION_ID`, Codex's `CODEX_THREAD_ID`), then a `resume <id>`
+    ancestor, then `AGENTCTL_SESSION_ID`. A launcher id that differs from the
+    harness id is kept as `agentctl_session` so a YA session stays joinable
+    from either side. `transcript` is set only when the rollout/transcript
+    file actually exists — the harness is confirmed by the file layout when
+    no launch marker says otherwise. Empty at launch depth > 0 (a job is not
+    an agent) and when nothing resolves (a human commit).
+    """
+    try:
+        depth = int(os.environ.get(LAUNCH_DEPTH_ENV, "0") or "0")
+    except ValueError:
+        depth = 0
+    if depth > 0:
+        return {}
+    env = os.environ
+    harness = env.get("AGENT_LAUNCH_HARNESS", "").strip()
+    claude_sid = env.get("CLAUDE_CODE_SESSION_ID", "").strip()
+    codex_sid = env.get(CODEX_THREAD_ID_ENV, "").strip()
+    agentctl_sid = env.get("AGENTCTL_SESSION_ID", "").strip()
+    if claude_sid:
+        sid, harness = claude_sid, harness or "claude"
+    elif codex_sid:
+        sid, harness = codex_sid, harness or "codex"
+    else:
+        sid = session_id_from_proc_tree() or agentctl_sid
+    if not sid:
+        return {}
+    identity: dict[str, str] = {"harness": harness or "unknown", "session": sid}
+    transcript = _claude_transcript(sid) if harness != "codex" else None
+    if transcript is not None:
+        identity["harness"] = "claude"
+    elif harness != "claude":
+        transcript = _codex_transcript(sid)
+        if transcript is not None:
+            identity["harness"] = "codex"
+    if transcript is not None:
+        identity["transcript"] = str(transcript)
+    if agentctl_sid and agentctl_sid != sid:
+        identity["agentctl_session"] = agentctl_sid
+    for key, var in (
+        ("launcher", "AGENT_LAUNCHER"),
+        ("model", "AGENT_LAUNCH_MODEL"),
+        ("effort", "AGENT_LAUNCH_EFFORT"),
+    ):
+        value = env.get(var, "").strip()
+        if value:
+            identity[key] = value
+    return identity
+
+
+def _claude_transcript(sid: str) -> Path | None:
+    """Claude's transcript for `sid`: `~/.claude/projects/<cwd as dashes>/<sid>.jsonl`.
+
+    The project directory is the session's launch cwd with `/` replaced by
+    `-`; the hook runs at the worktree root, so try the literal cwd, its
+    real path, and the project root.
+    """
+    projects = Path.home() / ".claude" / "projects"
+    seen: dict[str, None] = {}
+    for cwd in (os.getcwd(), str(Path(os.getcwd()).resolve()), str(ROOT)):
+        seen.setdefault(cwd, None)
+    for cwd in seen:
+        candidate = projects / cwd.replace("/", "-") / f"{sid}.jsonl"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _codex_transcript(sid: str) -> Path | None:
+    """Codex's rollout for `sid`: `~/.codex/sessions/YYYY/MM/DD/rollout-<ts>-<sid>.jsonl`."""
+    sessions = Path.home() / ".codex" / "sessions"
+    if not sessions.is_dir():
+        return None
+    hits = sorted(sessions.glob(f"*/*/*/rollout-*-{sid}.jsonl"))
+    return hits[-1] if hits else None
+
+
+def commit_note_line(identity: dict[str, str]) -> str:
+    """One shell-quoted `key=value` note line; `shlex.split` parses it back.
+
+    Deliberately carries no timestamp: git copies the old note onto an
+    amended commit only *after* post-commit runs (verified on git 2.43), so
+    the hook cannot dedupe against it; identical lines instead collapse
+    under `notes.rewriteMode=cat_sort_uniq`, which the self-install sets
+    when unset. The commit's own dates and the notes ref history carry time.
+    """
+    return " ".join(f"{key}={shlex.quote(value)}" for key, value in identity.items())
+
+
+def parse_commit_note(text: str) -> list[dict[str, str]]:
+    """Parse note lines back into dicts; malformed lines are kept under `raw`."""
+    records: list[dict[str, str]] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            tokens = shlex.split(line)
+        except ValueError:
+            records.append({"raw": line})
+            continue
+        if not tokens or any("=" not in tok for tok in tokens):
+            records.append({"raw": line})
+            continue
+        records.append(dict(tok.split("=", 1) for tok in tokens))
+    return records
+
+
+def _git_hooks_dir() -> Path | None:
+    """The repo's hooks directory (honors core.hooksPath and worktrees), or None."""
+    raw = git_value(["rev-parse", "--git-path", "hooks"])
+    if not raw:
+        return None
+    path = Path(raw)
+    return path if path.is_absolute() else (ROOT / path)
+
+
+def ensure_commit_note_hook() -> dict[str, str]:
+    """Self-install the post-commit hook and `notes.rewriteRef`, creating only what is absent.
+
+    Returns `{"hook": <state>, "config": <state>}` where hook is one of
+    `installed` (written now), `present` (ours already), `foreign` (an
+    unrelated post-commit hook exists and is left untouched), `disabled`
+    (NO_COMMIT_NOTE_ENV set), `no-git`, or `error`; config is `added`,
+    `present`, or `skipped`. A foreign hook is reported once per project on
+    stderr (marker file under .agentctl/) so a registering session is not
+    nagged; `agentctl commit-note` always reports it in its payload.
+    """
+    if os.environ.get(NO_COMMIT_NOTE_ENV, "").strip():
+        return {"hook": "disabled", "config": "skipped"}
+    hooks_dir = _git_hooks_dir()
+    if hooks_dir is None:
+        return {"hook": "no-git", "config": "skipped"}
+    hook = hooks_dir / "post-commit"
+    try:
+        if hook.exists() or hook.is_symlink():
+            try:
+                text = hook.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                text = ""
+            hook_state = "present" if COMMIT_NOTE_HOOK_MARKER in text else "foreign"
+        else:
+            hooks_dir.mkdir(parents=True, exist_ok=True)
+            wrapper = CODE_ROOT / "agentctl"
+            hook.write_text(
+                "#!/bin/sh\n"
+                f"{COMMIT_NOTE_HOOK_MARKER}\n"
+                "# Installed by agentctl on first session registration. Records\n"
+                f"# the committing agent session under {COMMIT_NOTE_REF} so a\n"
+                "# commit hash resolves to its harness transcript without a\n"
+                "# session id in the message. Safe to delete: agentctl reinstalls\n"
+                "# only when absent and never edits a foreign post-commit hook.\n"
+                f"exec {shlex.quote(str(wrapper))} commit-note --hook --acli-quiet\n",
+                encoding="utf-8",
+            )
+            hook.chmod(hook.stat().st_mode | 0o111)
+            hook_state = "installed"
+    except OSError as exc:
+        print(f"warning: commit-note hook: {hook}: {exc}", file=sys.stderr)
+        hook_state = "error"
+    # Two settings, each added only when absent: our ref in the multi-valued
+    # notes.rewriteRef so notes follow amends/rebases, and cat_sort_uniq as
+    # the rewrite mode (only when the project has none) so a same-session
+    # amend collapses to one line instead of concatenating a duplicate.
+    wanted: list[list[str]] = []
+    if COMMIT_NOTE_REF not in git_value(["config", "--get-all", "notes.rewriteRef"]).split():
+        wanted.append(["--add", "notes.rewriteRef", COMMIT_NOTE_REF])
+    if not git_value(["config", "--get", "notes.rewriteMode"]):
+        wanted.append(["notes.rewriteMode", "cat_sort_uniq"])
+    config_state = "present"
+    for setting in wanted:
+        try:
+            subprocess.run(
+                ["git", "config", *setting],
+                cwd=ROOT,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            config_state = "added"
+        except (OSError, subprocess.SubprocessError):
+            config_state = "skipped"
+            break
+    if hook_state == "foreign":
+        marker = STATE / "commit-note.foreign-hook"
+        if not marker.exists():
+            try:
+                STATE.mkdir(parents=True, exist_ok=True)
+                marker.write_text(f"{hook}\n", encoding="utf-8")
+            except OSError:
+                pass
+            print(
+                f"note: commit-note hook not installed: {hook} exists and is not "
+                f"agentctl's; to record commit provenance add this line to it: "
+                f"{shlex.quote(str(CODE_ROOT / 'agentctl'))} commit-note --hook --acli-quiet",
+                file=sys.stderr,
+            )
+    return {"hook": hook_state, "config": config_state}
+
+
+def _commit_note_show(sha: str) -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "notes", "--ref", COMMIT_NOTE_REF, "show", sha],
+            cwd=ROOT,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+
+
+def commit_note_cmd(args) -> int:
+    """`commit-note [rev]`: record (or `--show`) the committing session on a commit.
+
+    Written by the post-commit hook (`--hook`: exit 0 whatever happens, one
+    stderr line on success, silent when no agent session resolves — a human
+    commit leaves no note). An explicit run also self-installs the hook and
+    config, so `agentctl commit-note` on any repo is the whole setup. A note
+    already naming this harness+session is left unchanged; a note copied
+    onto an amended commit by `notes.rewriteRef` from a different session
+    gains a second line, so the author and the amender both stay resolvable.
+    """
+    fmt = _resolve_acli_format(args)
+    hook_mode = bool(getattr(args, "hook", False))
+    rev = getattr(args, "rev", None) or "HEAD"
+    if not git_value(["rev-parse", "--git-dir"]):
+        if hook_mode:
+            return 0
+        acli.die(f"agentctl commit-note: {ROOT} is not a git repository", acli.ExitCode.USAGE)
+    sha = git_value(["rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"])
+    if not sha:
+        if hook_mode:
+            return 0
+        acli.die(f"agentctl commit-note: no commit at {rev!r}", acli.ExitCode.NOT_FOUND)
+    if getattr(args, "show", False):
+        raw = _commit_note_show(sha)
+        payload = {
+            "kind": "commit_note",
+            "rev": rev,
+            "sha": sha,
+            "found": bool(raw),
+            "sessions": parse_commit_note(raw),
+        }
+        if bool(getattr(args, "full", False)):
+            payload["raw"] = raw
+        acli.emit(payload, fmt)
+        return 0 if raw else int(acli.ExitCode.NOT_FOUND)
+
+    setup = {"hook": "skipped", "config": "skipped"}
+    if not hook_mode:
+        setup = ensure_commit_note_hook()
+    identity = commit_note_identity()
+    if not identity:
+        if hook_mode:
+            return 0
+        payload = {
+            "kind": "commit_note",
+            "ok": False,
+            "sha": sha,
+            "action": "skipped",
+            "reason": "no agent session resolves in this environment",
+            "setup": setup,
+        }
+        acli.emit(payload, fmt)
+        return int(acli.ExitCode.DATA)
+    if os.environ.get(NO_COMMIT_NOTE_ENV, "").strip():
+        if hook_mode:
+            return 0
+        acli.emit(
+            {
+                "kind": "commit_note",
+                "ok": False,
+                "sha": sha,
+                "action": "skipped",
+                "reason": f"{NO_COMMIT_NOTE_ENV} is set",
+                "setup": setup,
+            },
+            fmt,
+        )
+        return int(acli.ExitCode.DATA)
+    existing = _commit_note_show(sha)
+    same = [
+        rec
+        for rec in parse_commit_note(existing)
+        if rec.get("harness") == identity["harness"]
+        and rec.get("session") == identity["session"]
+    ]
+    if same:
+        action = "unchanged"
+    else:
+        line = commit_note_line(identity)
+        verb = "append" if existing.strip() else "add"
+        try:
+            subprocess.run(
+                ["git", "notes", "--ref", COMMIT_NOTE_REF, verb, "-m", line, sha],
+                cwd=ROOT,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            detail = getattr(exc, "stderr", "") or str(exc)
+            if hook_mode:
+                print(f"warning: commit-note: {detail.strip()}", file=sys.stderr)
+                return 0
+            acli.die(f"agentctl commit-note: git notes {verb} failed: {detail.strip()}", acli.ExitCode.SOFTWARE)
+        action = "appended" if verb == "append" else "added"
+    if hook_mode:
+        if action != "unchanged":
+            print(
+                f"# commit-note: {sha[:10]} {identity['harness']} {identity['session']}",
+                file=sys.stderr,
+            )
+        return 0
+    payload = {
+        "kind": "commit_note",
+        "ok": True,
+        "sha": sha,
+        "action": action,
+        "session": identity,
+        "setup": setup,
+    }
+    acli.emit(payload, fmt)
+    return 0
 
 
 def active_cmd(args) -> int:
@@ -6548,6 +6906,36 @@ def build_parser() -> argparse.ArgumentParser:
     )
     acli_args.add_standard_args(s)
     s.set_defaults(func=alone_cmd)
+
+    s = sub.add_parser(
+        "commit-note",
+        help="Record the committing agent session on a commit as a git note "
+        f"under {COMMIT_NOTE_REF} (harness, resumable session id, transcript "
+        "path), keeping session ids out of the commit message. Self-installs "
+        "the post-commit hook and notes.rewriteRef config on first use; an "
+        "existing foreign post-commit hook is reported, never edited. "
+        "--show reads the note instead.",
+    )
+    s.add_argument(
+        "rev",
+        nargs="?",
+        default="HEAD",
+        help="Commit to annotate or show (default HEAD).",
+    )
+    s.add_argument(
+        "--show",
+        action="store_true",
+        help="Print the parsed note for REV instead of writing one; exit 4 when "
+        "the commit has no note.",
+    )
+    s.add_argument(
+        "--hook",
+        action="store_true",
+        help="Post-commit hook mode: never fail the commit, skip self-install, "
+        "silent when no agent session resolves.",
+    )
+    acli_args.add_standard_args(s)
+    s.set_defaults(func=commit_note_cmd)
 
     _call_hook("register_verbs", sub)
 
