@@ -523,3 +523,109 @@ papers:
     source: "ACL Anthology metadata checked 2026-08-23"
     fetched: 2026-08-23
     cluster: F
+
+  - key: tenney2019-bert-pipeline
+    short: token-classifier-objectives
+    concept_page: concepts/token-classifier-objectives.md
+    title: "BERT Rediscovers the Classical NLP Pipeline"
+    authors: ["Ian Tenney", "Dipanjan Das", "Ellie Pavlick"]
+    venue: "ACL"
+    year: 2019
+    url: "https://aclanthology.org/P19-1452.pdf"
+    doi: "10.18653/v1/P19-1452"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-09-03"
+    fetched: 2026-09-03
+    cluster: F
+
+  - key: hewitt2019-control-probes
+    short: token-classifier-objectives
+    concept_page: concepts/token-classifier-objectives.md
+    title: "Designing and Interpreting Probes with Control Tasks"
+    authors: ["John Hewitt", "Percy Liang"]
+    venue: "EMNLP-IJCNLP"
+    year: 2019
+    url: "https://aclanthology.org/D19-1275.pdf"
+    doi: "10.18653/v1/D19-1275"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-09-03"
+    fetched: 2026-09-03
+    cluster: F
+
+  - key: voita2020-mdl-probing
+    short: token-classifier-objectives
+    concept_page: concepts/token-classifier-objectives.md
+    title: "Information-Theoretic Probing with Minimum Description Length"
+    authors: ["Elena Voita", "Ivan Titov"]
+    venue: "EMNLP"
+    year: 2020
+    url: "https://aclanthology.org/2020.emnlp-main.14.pdf"
+    doi: "10.18653/v1/2020.emnlp-main.14"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-09-03"
+    fetched: 2026-09-03
+    cluster: F
+
+  # --- G. multilingual invariance in contextual representations ---
+  - key: reimers2019-sentence-bert
+    short: multilingual-representation-probes
+    concept_page: concepts/multilingual-representation-probes.md
+    title: "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks"
+    authors: ["Nils Reimers", "Iryna Gurevych"]
+    venue: "EMNLP-IJCNLP"
+    year: 2019
+    url: "https://aclanthology.org/D19-1410.pdf"
+    doi: "10.18653/v1/D19-1410"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-09-03"
+    fetched: 2026-09-03
+    cluster: G
+
+  - key: conneau2020-crosslingual-structure
+    short: multilingual-representation-probes
+    concept_page: concepts/multilingual-representation-probes.md
+    title: "Emerging Cross-lingual Structure in Pretrained Language Models"
+    authors: ["Alexis Conneau", "Shijie Wu", "Haoran Li", "Luke Zettlemoyer", "Veselin Stoyanov"]
+    venue: "ACL"
+    year: 2020
+    url: "https://aclanthology.org/2020.acl-main.536.pdf"
+    doi: "10.18653/v1/2020.acl-main.536"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-09-03"
+    fetched: 2026-09-03
+    cluster: G
+
+  - key: jalilisabet2020-simalign
+    short: multilingual-representation-probes
+    concept_page: concepts/multilingual-representation-probes.md
+    title: "SimAlign: High Quality Word Alignments Without Parallel Training Data Using Static and Contextualized Embeddings"
+    authors: ["Masoud Jalili Sabet", "Philipp Dufter", "François Yvon", "Hinrich Schütze"]
+    venue: "Findings of EMNLP"
+    year: 2020
+    url: "https://aclanthology.org/2020.findings-emnlp.147.pdf"
+    doi: "10.18653/v1/2020.findings-emnlp.147"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-09-03"
+    fetched: 2026-09-03
+    cluster: G
+
+  - key: dou2021-awesome-align
+    short: multilingual-representation-probes
+    concept_page: concepts/multilingual-representation-probes.md
+    title: "Word Alignment by Fine-tuning Embeddings on Parallel Corpora"
+    authors: ["Zi-Yi Dou", "Graham Neubig"]
+    venue: "EACL"
+    year: 2021
+    url: "https://aclanthology.org/2021.eacl-main.181.pdf"
+    doi: "10.18653/v1/2021.eacl-main.181"
+    grounded: true
+    verified: true
+    source: "ACL Anthology metadata checked 2026-09-03"
+    fetched: 2026-09-03
+    cluster: G
