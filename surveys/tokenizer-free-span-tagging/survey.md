@@ -8,7 +8,7 @@
 
 ## Grounding and coverage
 
-- **Grounding mode: `grounded`.** 34 primary sources. 26 were fetched and read
+- **Grounding mode: `grounded`.** 41 primary sources. 33 were fetched and read
   into this survey's own `related-work/extract/` (`[G]`); 8 were read from the
   sibling survey's committed extracts rather than duplicating its cache (`[S]` —
   CANINE, ByT5, Charformer, Gillick, Cao, Sun, Flair, CharacterBERT). Effectiveness
@@ -24,6 +24,11 @@
   on subword pooling, constrained decoding, PU supervision, and
   linear-versus-CRF encoder heads. This targeted addition does not advance the
   broad-search cutoff above.
+- **Targeted intake: 2026-09-03.** Grounded frozen task probes and a separate
+  multilingual representation-probe subsurvey covering pooled sentence
+  similarity, post-hoc representation mapping, frozen token alignment, and
+  alignment-specific fine-tuning. This targeted addition also leaves the broad
+  cutoff unchanged.
 - **Anchor set:** CharNER, Gillick's byte tagger, ID-CNN, CANINE, ByT5.
   Forward citations were pulled by both recency and citation count; direct
   keyword search covered the newest uncited edge.
@@ -56,7 +61,8 @@ The regenerable manifest is
 | C | [industrial hash CNN](concepts/industrial-hash-cnn.md) `[G]` | Miranda et al. 2022 | the deployed 8-layer width-96 CNN scores 0.77–0.79 on Spanish CoNLL; dropping character-derived features raises error ~50% |
 | D | [char-word hybrids](concepts/char-word-hybrid.md) `[G]` | dos Santos and Guimarães; Lample; Ma and Hovy; 2025 reproduction | the character channel adds +0.7 to +3.7 F1 *on top of* word embeddings; 91.21 → 91.18 reproduced |
 | E | [distilled small tagger](concepts/distilled-small-tagger.md) `[G]` | Hinton et al.; XtremeDistil; Wang et al.; Farina et al.; Nityasya et al. | foundational soft-target recipe; 35×/51× compression at 95% of teacher F1; at 100 gold sentences a 1M-parameter student beats its 220M teacher |
-| F | [token-classifier objectives](concepts/token-classifier-objectives.md) `[G]` | Pereyra et al.; Kiryo et al.; Peng et al.; Ács et al.; Lester et al.; Verma et al. | pooling should be measured; constrained CE trains ~2× faster than a CRF with mostly tied F1; modern CRF results reverse by dataset; PU applies only to incomplete labels |
+| F | [token-classifier objectives](concepts/token-classifier-objectives.md) `[G]` | Pereyra et al.; Kiryo et al.; Peng et al.; Ács et al.; Lester et al.; Verma et al.; Tenney et al.; Hewitt and Liang; Voita and Titov | before fine-tuning, sweep frozen layer × pooling with linear, control/selectivity, and MDL probes; constrained CE trains ~2× faster than a CRF with mostly tied F1; PU applies only to incomplete labels |
+| G | [multilingual representation probes](concepts/multilingual-representation-probes.md) `[G]` | Sentence-BERT; Conneau et al.; SimAlign; Awesome-Align | pooled retrieval and token alignment test different invariances; the best layer depends on granularity/model; frozen alignment, post-hoc alignability, and alignment-tuned representations support different claims |
 
 ## Map: what each family establishes
 
@@ -190,6 +196,19 @@ structure-level distillation recovers 0.4 of that ~2-point gap.
 
 ### F. Above XLM-R token representations, structure beats generic regularization `[G]`
 
+Before fine-tuning, use a frozen layer × subtoken-pooling sweep to test whether
+the label information is cheaply accessible. The primary diagnostic is a
+regularized linear probe scored on held-out strict span F1; pair it with a
+lexical-type control task and selectivity [Hewitt and
+Liang](https://aclanthology.org/D19-1275/), then compare label-efficiency or
+online MDL [Voita and Titov](https://aclanthology.org/2020.emnlp-main.14/).
+Layer-wise probing localizes accessible information but does not establish that
+the final classifier will use it [Tenney et
+al.](https://aclanthology.org/P19-1452/). Plot the quantitative result as a
+layer × pooling heatmap; PCA/UMAP/t-SNE clusters are exploratory, not
+confirmation. The full controls and stopping rule are in the
+[classifier-objective digest](concepts/token-classifier-objectives.md#frozen-pre-flight-is-task-information-usable-before-fine-tuning).
+
 For flat word-level BIOES, start with end-to-end encoder fine-tuning, a linear
 cross-entropy head, one emission per annotated word from an explicit subtoken
 selection or pooling rule, and hard-constrained Viterbi decoding. BIOES does not
@@ -225,6 +244,47 @@ contains missed entities. The direct NER descendant intentionally reduces
 incomplete dictionary supervision to binary entity-word detection rather than
 BIOES [Peng et al.](https://aclanthology.org/P19-1231/), confirming that raw
 nnPU is not a drop-in loss for a fully labelled structured tagger.
+
+### G. Meaning-equivalent translations require pooled and aligned probes `[G]`
+
+There is no single multilingual-invariance picture. At sentence or span level,
+sweep layer × pooling and test whether translations or meaning-preserving
+rewrites outrank hard meaning-changing controls under cosine retrieval. Report
+positive-minus-negative margins, P@1/Recall@1 or MRR, and similarity
+distributions. Raw mean/`CLS` BERT vectors can fail semantic cosine while
+remaining useful to a fitted logistic classifier [Sentence-BERT](https://aclanthology.org/D19-1410/),
+so a pooled-cosine failure rejects that readout, not every task-accessible
+signal in the encoder.
+
+Where local correspondences exist, evaluate token × token similarity matrices
+against human word or span links. State how subtokens become words; report
+precision, recall, F1, and alignment error rate for every layer. SimAlign finds
+a roughly parabolic layer curve in frozen mBERT/XLM-R and selects layer 8 in its
+tested setup [Jalili Sabet et
+al.](https://aclanthology.org/2020.findings-emnlp.147/). That is evidence to
+sweep layers, not a universal layer-8 rule. Free paraphrases that add, delete,
+or restructure content need span or pooled tests rather than forced one-to-one
+word alignment.
+
+Keep the claim matched to what was fitted. A frozen shared encoder that passes
+human-link or paired-retrieval tests is already usefully aligned. Success only
+after an orthogonal mapping establishes **alignability**; Conneau et al. find
+different best layers for mapped sentence retrieval and contextual transfer,
+while CKA chiefly favours early layers [Conneau et
+al.](https://aclanthology.org/2020.acl-main.536/). CKA is rotation-invariant, so
+similar subspace geometry does not prove that paired items are near in the
+original coordinates. Awesome-Align explicitly fine-tunes on parallel and
+alignment objectives [Dou and
+Neubig](https://aclanthology.org/2021.eacl-main.181/); its stronger links show
+alignment-tunability, not what the untouched encoder already represented.
+Compare candidate encoders with a fixed, externally declared language order:
+an annotated, grayscale-safe encoder × language heatmap is primary; an optional
+cumulative macro plus worst-tail coverage curve and a pairwise label-margin
+matrix expose high-resource or European-language imbalance that one
+multilingual average hides. The separate
+[multilingual probe digest](concepts/multilingual-representation-probes.md)
+gives those displays, the brief frozen-head scorecard, and the full claim
+ladder.
 
 ## What a chars-only tagger must beat, and cite
 

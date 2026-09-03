@@ -1,8 +1,9 @@
 # token-classifier-objectives — what still transfers above a strong token encoder
 
 > Read-backed digest `[G]` (cluster F, trust `single-source` each). The three
-> requested classifier papers are grounded here against four direct NER
-> checks. The generic papers do not themselves test XLM-R, BIOES, or span F1.
+> requested classifier papers are grounded here against four direct NER checks
+> and three frozen-representation probing papers. The generic papers do not
+> themselves test XLM-R, BIOES, or span F1.
 
 **Requested papers.** [Hinton, Vinyals, and Dean,
 “Distilling the Knowledge in a Neural Network”](https://arxiv.org/abs/1503.02531);
@@ -19,6 +20,81 @@ NER](https://aclanthology.org/2023.bionlp-1.24/); [Ács et al., subword pooling
 for mBERT and XLM-R NER](https://aclanthology.org/2021.eacl-main.194/). Full
 text is cached under
 `related-work/extract/`.
+
+## Frozen pre-flight: is task information usable before fine-tuning?
+
+No visualization alone confirms that an encoder will fine-tune well. A useful
+pre-flight asks the narrower question: **does a frozen encoder expose the
+target distinctions through the simple readout the planned classifier can
+actually use?** Here “before fine-tuning” permits fitting a small diagnostic
+readout but never updates the encoder. The probe can reject a poor layer,
+pooling rule, or encoder cheaply; the matched end-to-end run remains the
+confirmation.
+
+Freeze every encoder parameter and cache representations for every layer. Use
+the same annotated-token boundaries and subtoken-to-word rules intended for
+the eventual BIOES model. Evaluate on held-out documents, and when surface
+memorization is a deployment risk also split by entity string or lexical type.
+Otherwise a probe can reward lookup of recurring names rather than contextual
+boundary/type information.
+
+The common probe stack, from least to most fitted, is:
+
+1. **Parameter-free retrieval:** compare within-label versus between-label
+   distances, nearest-neighbour label purity, and class-centroid retrieval.
+   These use labeled references but no optimized classifier; they are useful
+   screens only when the chosen metric is meaningful.
+2. **Frozen linear probe:** fit only a regularized linear token classifier for
+   each layer and pooling rule. Score strict span F1 after the same legal BIOES
+   decoding planned downstream, plus boundary/type confusion and label-wise
+   precision/recall. [Tenney et
+   al.](https://aclanthology.org/P19-1452/) use frozen layer-wise edge probes to
+   localize accessible linguistic information and show that different tasks
+   peak at different depths. Their own caveat applies: success identifies
+   information available to the probe, not information the final model must
+   use.
+3. **Control/selectivity probe:** repeat the same probe on a control task that
+   assigns random labels to lexical types while preserving the task's label
+   frequencies. Report selectivity—task score minus control score—alongside
+   task score. [Hewitt and
+   Liang](https://aclanthology.org/D19-1275/) show that a sufficiently expressive
+   probe can memorize such type labels and make a representation look
+   informative; higher task accuracy with low control accuracy is the desired
+   pattern.
+4. **Label-efficiency/MDL probe:** train the frozen linear readout on increasing
+   fractions of the labeled set, plot its learning curve, and compute online
+   minimum description length (MDL) or compression. [Voita and
+   Titov](https://aclanthology.org/2020.emnlp-main.14/) use this to distinguish
+   representations that reach similar final accuracy but require very
+   different amounts of supervision to extract the information.
+
+The compact report is a **layer × pooling heatmap** of held-out span F1, paired
+with a selectivity heatmap and the label-efficiency curves for the finalists.
+Add a confusion matrix for boundary/type failures and distributions of
+within-label versus hard-negative similarities. A PCA, UMAP, or t-SNE plot may
+expose gross clustering, lexical shortcuts, and outliers, but is descriptive:
+projection choices can create or erase apparent clusters, and class separation
+in two dimensions is neither necessary nor sufficient for a token classifier.
+
+For predeclared hard confusions such as PERSON versus ORG, report a pairwise
+margin rather than relying on the confusion matrix alone. With frozen
+representations, use the true-class minus contrast-class prototype cosine
+margin; with the linear probe, use the corresponding logit margin. Give its
+median, lower decile, and fraction at or below zero per language. This reveals
+an encoder that has acceptable aggregate span F1 but systematically collapses
+one commercially important label distinction or language. Do not compare raw
+logit margins across probes without development-set calibration or
+standardization; their scales depend on the fitted weights and regularization.
+
+Advance an encoder/layer/pooling combination when it beats label-prior,
+lexical-lookup, and random/untrained-representation baselines; retains useful
+selectivity; learns from few labels; and is stable over seeds and realistic
+splits. A negative result is local to the probes tried—information may reside
+in another layer, pooling rule, nonlinear readout, or emerge only through
+fine-tuning. Keep the final test set untouched while probing: fit diagnostic
+readouts on training data, select the encoder/layer/pooling rule on development
+data, and evaluate the locked probe and matched final system on the test set
+only in the final comparison.
 
 ## Decision for XLM-R token representations → BIOES
 
