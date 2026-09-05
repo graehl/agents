@@ -3879,3 +3879,40 @@ Contributing-model: Daybreak-Blue
 - **Status** — one organic observation, user-endorsed; effect unmeasured.
 
 Contributing-model: Fable
+
+## 2026-09-05 — prove integration before expensive optimization
+
+- **Observed failure** — the draft PII trainer's mapped single-head path
+  bypassed configured BIOES structure-margin and risk controls. A live
+  long-running trajectory could therefore carry those flags without applying
+  their loss behavior. Helper tests and saved configuration were insufficient;
+  the missing check was through the active trainer path. Investigation is in
+  draft session `01a06e7f-9d23-74c2-822a-237efd98fbb4`, source
+  `2e6afb0bef8760ed87247dcdaedf0da2a514ad1f`,
+  `scripts/pii_encoder_train.py`, `DualHeadLossMixin.compute_loss`.
+- **User direction** — require durable integration-smoke guidance before
+  using long-running trainer/optimizer changes, generalized to behavior
+  changes. The user clarified that training's precise outputs are not known
+  in advance, then endorsed comparisons across versions/configurations with
+  subjective judgment where appropriate for behavior quality.
+- **Decision** — strengthen the existing global Feature validation rule,
+  put execution-path details in `testing.md`, and extend the existing
+  `soft-checks.md` comparison contract. Mechanical activation and quality
+  acceptance remain separate; neither predicts exact trained weights.
+- **Trace: accepted but ignored flag** — a tiny activating batch changes
+  loss/gradients in the enabled arm and fails under a deliberate bypass. A
+  successful process exit or echoed option cannot pass this check.
+- **Trace: inactive or stochastic effect** — a zero residual or a warmup
+  step with zero learning rate may produce equal outputs correctly, while
+  differing seeds can produce unequal outputs without the feature. The rule
+  requires activation and matched controls with noise accounted for; it does
+  not insist that every arbitrary batch differ.
+- **Trace: unknown quality and cheap deterministic work** — a tiny training
+  smoke may have worse F1 despite correct wiring, so benefit is evaluated
+  separately with matched outputs, metrics and explicit semantic judgment.
+  A simple deterministic edit can use a direct manual behavioral check; it
+  does not acquire an expensive experiment or judge requirement.
+- **Validation scope** — forward trace simulation supports the wording;
+  instruction effectiveness has not been measured in an outcome ablation.
+
+Contributing-model: 6-Astra

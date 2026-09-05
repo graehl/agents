@@ -43,6 +43,24 @@ translation and other model outputs, prompt debugging, codegen, layout
   introduces no entity absent from the source"), not vibes ("looks
   good"). Noisy criteria produce noisy loops.
 
+## Comparing behavior whose exact answer is unknown
+
+For a change to training, optimization or generative behavior, compare the
+incumbent and changed versions/configurations on matched inputs and declared
+criteria. Unknown final outputs do not remove the need for the mechanical
+[integration smoke](testing.md#behavioral-integration-smoke): a predictable
+relationship can establish that the change is active before its benefit is
+known. A difference alone establishes neither correctness nor improvement.
+
+For quality evaluation, use computable metrics and invariants where adequate,
+then inspect representative paired outputs, including regressions and
+disagreements. Use subjective judgment when semantic adequacy, usefulness or
+tradeoffs require it; state the rubric and keep those judgments distinguishable
+from mechanical scores. Control randomness or repeat matched comparisons when
+variation could explain the result. Do not demand an exact golden answer or a
+quality win from a tiny smoke, and do not replace a computable check with a
+judge merely because the overall task has no exact answer.
+
 ## Invariants
 
 - **Keep failing cases as a regression set.** The durable artifact is

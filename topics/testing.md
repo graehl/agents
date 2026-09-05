@@ -27,6 +27,33 @@ Topic: `testing`
   string match — see [`soft-checks`](soft-checks.md). Don't skip verification because
   the output isn't pinnable; pick the cheapest adequate oracle.
 
+## Behavioral integration smoke
+
+Before relying on changed behavior, exercise the real entrypoint and affected
+execution mode at the smallest useful scale. Choose a case that activates the
+change and state an expected effect that would be absent if its implementation
+were omitted or bypassed. Check that the test rejects that failure, using the
+previous version, a disabled configuration, or a bounded deliberate bypass as
+appropriate. Merely accepting an option, logging its value, returning success,
+or testing a helper in isolation does not establish integration.
+
+For training and optimization changes, hold inputs, initialization and random
+state fixed between controls; account for remaining numerical noise. Exercise
+the actual option-to-batch-to-loss-to-update path for a few steps. Assert the
+relevant loss, gradient, parameter update, routing or output relation; check
+save/reload when the change crosses checkpoint persistence. A zero learning
+rate, inactive margin or zero-initialized residual may legitimately hide an
+effect: construct an activating case rather than accepting an insensitive
+smoke. Verify the disabled setting recovers the baseline when that is part of
+the contract.
+
+The exact final weights and quality score need not be predictable. This check
+establishes that the mechanism operates; it does not require a tiny run to
+improve a downstream metric. Judge benefit separately through the matched
+comparisons and output review in [soft-checks](soft-checks.md). Keep checks
+proportionate: a direct manual check can suffice for a simple change; no large
+test harness or quality study is implied by this smoke requirement.
+
 ## Invariants
 
 - **Red before green; never refactor while red.** Each cycle is

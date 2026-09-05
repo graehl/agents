@@ -572,6 +572,14 @@ Full procedure: `topics/vendoring.md`.
 
 ## Feature validation
 
+For a behavior-changing implementation, run a small integration check through
+the real execution path that would fail if the change were omitted or
+bypassed. Before a long-running trainer/optimizer uses changed code or
+options, this smoke is required; the long run cannot substitute for it.
+Read `topics/testing.md` for the affected-path checks. When exact outputs
+are not knowable in advance, read `topics/soft-checks.md` and compare versions
+or configurations using stated properties and appropriate judgment.
+
 For a feature affecting runtime, memory, model quality, or conclusions, plan an
 on/off comparison unless the effect is mechanically obvious and low risk.
 Scale it from smoke timing to a recorded contrastive run/task deferral.
