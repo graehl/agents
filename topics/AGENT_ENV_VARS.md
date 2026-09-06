@@ -140,6 +140,19 @@ then dual-publish or canonical-publish with legacy aliases, then removal after
 consumers have moved. The YA implementation work and its compatibility/test
 surfaces are tracked in `~/ya/gaps/agent-facing-env-markers.md`.
 
+## YA late publication
+
+YA normally publishes the canonical session id and session capabilities through
+`BASH_ENV` after the id becomes known. They appear in ordinary Bash calls, not
+the agent process's own `/proc/self/environ`. Early absence on a fresh session
+is normal; a resume may carry the id from the start. The published spellings
+and pending canonical replacements are recorded in the tables above.
+
+Wake values are YA-owned outputs, never operator inputs. Browser-debug
+credentials require a separately pasted tab grant. Never log or persist the
+tokens. A complete canonical pair wins over a complete legacy pair; never
+combine one canonical value with one legacy value.
+
 ## Fresh native session boundary
 
 `session-turn` native fallback copies the caller environment because unrelated

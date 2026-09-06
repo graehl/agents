@@ -99,11 +99,12 @@ Create or revise program instructions only from explicit user direction. In
 particular, inferring a missing charter or handling “update program scope” must
 not invent, remove, or reinterpret them.
 
-At project entry, locate and fully read every project-owned `PROGRAM.md` so the
-set of program scopes forms a compact map of the project. A root charter may
-list significant subprograms for navigation, but the list is optional and not
-authoritative; discovery still scans for charters. Exclude vendored dependencies
-and nested external repositories.
+At project entry, discover project-owned `PROGRAM.md` paths and read the root
+charter when present. Before interpreting or acting in a subtree, read its full
+ancestor program chain, including its own charter. Read all programs for
+project-wide orientation, scope selection across programs, audits, or changes.
+A root charter's optional child list is not authoritative; discovery still
+scans for charters. Exclude vendored dependencies and external repositories.
 
 On “update program scope,” choose the nearest applicable glossary scope and
 reconcile its descriptive charter against, in order: explicit recent user

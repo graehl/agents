@@ -3984,3 +3984,110 @@ Contributing-model: 6-Astra
   headline. These are design checks, not executed experiments.
 
 Contributing-model: 6-Astra
+
+## 2026-09-06 — apply shared reductions by intent and scoped extraction
+
+- **Authorization and evidence** — the user moved from proposals to direct
+  improvements for commit review, and reports scoped extractions honored
+  since at least Opus 4.8/Sol. This supports using the technique without
+  waiting for an expensive experiment; it does not measure a rule's outcome
+  effect or justify a different post-compaction refresh cadence.
+- **Generalized intent** — judgment applies across `~/agents`. Historical
+  facilities/checklists may be speculative or repairs for older models.
+  Preserve sessions' ability to introspect, leave reachable continuity notes,
+  and record correct provenance. Keep deliberate disagreements with model
+  defaults, including the shared-workdir approach and non-flattering,
+  non-clever prose/code style. Improving defaults do not erase those choices.
+- **Local facts versus defaults** — YA environment and agentctl conventions
+  are useful because as-trained models cannot know this local arrangement.
+  Their normal-path facts remain in boot. If reliable identity routes fail,
+  recovery is open-ended, with optional clues in the rare section. "Newest
+  session not currently active" can rank candidates, but cannot prove identity
+  when fresh peers are unregistered or a resumed caller is already active.
+
+Displaced-content map; these routes were checked against their actual owners:
+
+| Former boot detail | Current owner / retained immediate obligation |
+|---|---|
+| Handoff placement and advisor identity/header mechanics | `topics/handoffs.md`; global still requires the governing handoff, milestone upkeep, the read before authoring, and real ids. |
+| Commit narrative, partial-series format, amend mechanics, scoped topic names | The matching `topics/commits.md` sections; global retains proactive scoped commits, provenance, preservation, and rewrite gates. |
+| Full program map at every entry | Discover paths, read root and the entered ancestor chain; read all for project-wide work or scope selection. `TOPICS.md` and `AGENTS/instruction-system.md` agree. |
+| Rare Codex identity recovery and job-wait mechanics | Separate sections of `topics/codex-session.md`; boot retains normal id resolution and unconsumed-work ownership. |
+| YA capability tables and late-publication details | `topics/AGENT_ENV_VARS.md`; boot retains launch markers, the Bash-bridge cue, credential rules, and the supervising-server protection. |
+| gra marker-pdf recipe | `topics/pdf.md`, triggered only for PDF extraction; isolation remains in global boot. |
+| Repeated preference explanations and the Codex edit-anchor restatement | Preferences remain in `AGENTS.user.md`; exact-source editing remains global. Removed examples/rationale are recoverable at the parent revision, including the cache-plan before/after example. |
+
+Mechanical source comparison against parent
+`88af5aec9f4030686090ee85c9f691178e63b65e`:
+
+| Shared Astra/Codex/YA source | Before bytes | After bytes |
+|---|---:|---:|
+| `AGENTS.global.md` | 47,201 | 44,516 |
+| `AGENTS.user.md` | 12,896 | 7,235 |
+| `AGENTS.codex.md` | 7,683 | 4,134 |
+| `AGENTS.frontier.md` | 2,735 | 2,486 |
+| `AGENTS.ya.md` | 4,836 | 3,292 |
+| `AGENTS.astra.md` | 341 | 341 |
+| Total | 75,692 | 62,004 |
+
+The shared selection shrank 13,688 bytes (18.1%). This excludes project boot
+and conditional reads and is not a tokenizer, billing, or latency measurement.
+The two new conditional topics total 4,427 bytes; existing owner topics can
+also be read at their triggers. No route is counted as free merely because its
+body left boot. The full displaced source remains recoverable in Git.
+
+- **Identity traces and live check** — a present YA id registers directly
+  without loading recovery; a missing environment id can use a resume ancestor;
+  unresolved identity reaches the optional clues and requires session-specific
+  evidence. This session's real `agentctl active` entry and
+  `agentctl commit-note --show HEAD` agree with its existing rollout header.
+  No fake session or testbed call was needed.
+- **Program and read traces** — a targeted child edit loads root/ancestor
+  charters even if the root omits that child; choosing a project-wide direction
+  still loads every charter. A foreign-repo pivot still fully reads its private
+  amendment. A relevant ledger search loads complete entries, including
+  counterevidence; a matching heading or truncated body is insufficient.
+- **Continuity and provenance traces** — a partial shared artifact still needs
+  an honest committed cutoff; private continuity uses its governing artifact
+  rather than repointing `tasks/ROOT`. An advisor handoff loads the owner that
+  preserves metadata, canonical ids or best durable addresses, and intake ids.
+  A partial-series commit still reads the three-label format; every authored
+  commit still carries the verified model trailer. Nontrivial commit and
+  handoff readers retain the substantive contracts removed from boot.
+- **Latitude and style traces** — an already-satisfied routine step needs no
+  public deduction, while a material alternative needs its reason. A compacted
+  summary does not discharge a source-read trigger, and observable gates and
+  work-preservation bans remain. Concise dialogue still names its referents;
+  an outward artifact keeps its own audience. Shared-workdir and candid-prose
+  preferences survive improved model capability.
+- **Scope and limits** — updated the capability register and promoted the
+  implemented sketch portions. Corrected this checkout's stale private commit
+  amendment after a local backup. No helper behavior, active-session schema,
+  provider integration, publish action, or expensive outcome experiment was
+  changed or launched. Trace checks support the wording; effectiveness remains
+  unmeasured.
+
+Contributing-model: 6-Astra
+
+## 2026-09-06 — retain clarification examples outside ordinary boot
+
+The user approved removing examples from ordinary context while retaining
+ones needed for exceptional clarification and making others available in
+appendices/evidence. The shared rule already permits concrete-ambiguity
+examples. This preserves the removed `AGENTS.user.md` illustration alongside
+its 2026-08-03 provenance above. The negative is a reconstruction, not a
+verbatim historical transcript or measured comparison.
+
+> **Before:** `ProjectPathIndex.findExisting` provides the right presence
+> truth because its directory listings are mtime-validated. That still does
+> not detect edits to an existing `GLOSSARY.md` ... I'll therefore reuse the
+> index for nearest-file resolution, stat the selected glossary separately,
+> and keep the parsed matcher in process memory for v1.
+>
+> **After:** Decision: memory-only glossary cache for v1.
+>
+> - Nearest-file truth: reuse `ProjectPathIndex.findExisting`.
+> - Content invalidation: stat the selected `GLOSSARY.md`.
+> - Persistence: reconsider only if cold compilation measures badly.
+
+Contributing-model: 6-Astra

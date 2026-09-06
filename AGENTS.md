@@ -8,6 +8,14 @@ the global policy from being injected again as project context in this repo.
 
 ## Design objective
 
+Use judgment across this repository to recover and serve the user's generalized
+intent. Existing facilities and checklists may be speculative designs or repairs
+for older models' failures; revise their strategy when a simpler one serves
+the aim. Preserve load-bearing outcomes—sessions can introspect, leave reachable
+continuity notes, and record correct provenance—along with local contracts,
+explicit preferences, authorization, and work preservation. Historical wording
+alone is not a reason to retain a procedure.
+
 The principal thematic thrust of all work here is actionable and correctly
 scoped guidance: an instruction earns its place by letting a reader with only
 the corpus tell when it fires and what to do. The
@@ -53,7 +61,8 @@ governs this project.
 ## Working in this repository
 
 - Before editing agent-facing instructions, read
-  `topics/agent-instructions.md` and its `.evidence.md` ledger. Read
+  the applicable sections of `topics/agent-instructions.md` and complete
+  `.evidence.md` entries for the affected rules or failure classes. Read
   `topics/agent-instructions.testing.md` when behavior or loading changes.
 - Put reusable cross-project policy in `AGENTS.global.md` or its routed
   supplements. Keep this file limited to the authoring and installation rules

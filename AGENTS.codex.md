@@ -28,49 +28,12 @@ follows the model across harnesses rather than assuming Codex always runs Sol.
 
 ## Session Identity
 
-**Never fabricate a session id — recover the real one.** Your
-active-session entry (`.agentctl/active/<id>`) must be keyed by the
-resumable id you would `codex resume`, never a hand-picked personal
-tag. This overrides the AGENTS.global.md "a personal tag is a last resort"
-clause: in Codex a real id is *always* recoverable, so the last resort
-never applies here. A tasteful invented id (`codex-recap-quote-reply`)
-is worse than useless. Agent-set env does not survive a bash call, so
-you cannot even keep the invented id stable across your own turns;
-meanwhile on resume the wrapper or process tree hands back the *real*
-id, orphaning the invented entry so nothing ever DONE-marks it. It then
-reads as a live peer for the full 70-minute window and stalls other
-agents over work already finished — and a sibling `~/ya` shell, which
-exports the real uuid, keys a different entry for the same session. That
-is unintentional-fork territory.
-
-**Normal path — let `agentctl` resolve it.** `agentctl active
-"<banner>" [scope...]` (and `others` / `alone`) key the entry from
-`$AGENTCTL_SESSION_ID`, else a `resume <id>` ancestor in the process
-tree — pass no id, and never hand-write `.agentctl/active/<name>`
-yourself. The `~/bin/codex` wrapper exports `AGENTCTL_SESSION_ID` from a
-positional `codex resume <id>` (not `--resume`); when it was bypassed,
-`agentctl` walks the process tree for the id.
-`AGENTCTL_NO_PROC_SESSION_ID` disables that fallback; full mechanics in
-`topics/agentctl.md`.
-
-**If `agentctl active` refuses with "no session id"** — a fresh session
-with empty env and no resume ancestor — that is the cue to do the work,
-not to invent a tag. The real id is the first-line
-`session_meta.payload.id` of this cwd's transcript under
-`~/.codex/sessions/` (also embedded in the filename,
-`rollout-<ts>-<id>.jsonl`). One command prints it:
-
-```bash
-find ~/.codex/sessions -name '*.jsonl' -printf '%T@ %p\n' | sort -rn |
-while read -r _ f; do
-  head -1 "$f" | grep -qF "\"cwd\":\"$PWD\"" &&
-    { basename "$f" | grep -oE '[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}'; break; }
-done
-```
-
-Then, in a single bash call (env does not persist between calls),
-`export AGENTCTL_SESSION_ID=<id>` before the `agentctl active` you
-retry.
+Register the real resumable Codex id, never an invented tag. Normally use
+`agentctl active "<banner>" [scope...]` without an id; `active`, `others`, and
+`alone` resolve `$AGENTCTL_SESSION_ID`, else a `resume <id>` process ancestor.
+If resolution reports "no session id", read `topics/codex-session.md`
+§ Identity recovery and recover this session's real id before retrying.
+Do not create a placeholder entry. `topics/agentctl.md` owns helper semantics.
 
 ## Session Logs
 
@@ -99,15 +62,6 @@ can still lower it. Required reads approaching the smaller active budget use
 separate calls or bounded ranges; any truncation warning or elision marker
 means the read remains incomplete.
 
-## Patch hunk context
-
-`apply_patch` verifies hunk context exactly. Construct each hunk from the
-smallest current-file context that identifies its site, copied from visible
-output rather than composed indentation, surrounding lines, or escapes. Merely
-running a same-file command does not establish matching context; use the bytes
-that command actually displayed. An intervening writer or formatter invalidates
-them.
-
 ## Code-mode cell handles
 
 A terminal `wait` result consumes its `cell_id`; do not wait on that id again.
@@ -116,37 +70,12 @@ still running with that cell id.
 
 ## Turn-End Is A Dead Stop
 
-Codex has no scheduled wakeup, cron, or background-job completion
-notification: a new turn arrives only when a message arrives or a tool
-call returns. Ending a turn with work still owed is therefore a dead
-stop — an announced "I'll proceed/monitor" after your final message
-never happens. Observed cost: a session ended its turn with a queued
-training chain running; the chain finished 15 minutes later and the
-GPU sat idle ten hours until the user typed.
-
-Invariant: do not end a turn while you own unconsumed work — a running
-or queued job whose result you will consume, or an idle-GPU successor
-decision — unless the user explicitly deferred it. Either consume and
-launch now, or end the turn inside the announced foreground `agentctl
-wait`/`watch` at the earned rung
-(`_RUNS/monitoring.md` § Wait watchdog discipline).
-Interactive questions do not suspend this: answer, then re-enter the
-wait in the same turn. Compaction does not clear the obligation —
-re-verify job state and re-enter the wait.
-
-Mechanics: the unified-exec `wait` honors long yields and returns
-early on completion (yields ≥ 600 s verified in practice), so prefer
-one rung-length wait over a chain of 30–60 s polls — fewer calls, and
-no turn boundary to drift through.
-
-For a Codex session running GPT-5.6 or later, override RUNS.md's
-foreground-wait ladder with `5 → 10 → 20 → 28 minutes`: never take
-its 40- or 55-minute rungs. OpenAI documents a 30-minute minimum
-prompt-cache lifetime for these models; 28 minutes leaves two minutes
-for tool return and the next model continuation request. A wait still
-returns immediately when the job finishes, and a 28-minute timeout
-still carries the same consume/status/re-wait obligation above. Other
-models retain RUNS.md's ordinary ladder.
+Do not send a final response while you own an unconsumed running/queued job or
+its successor decision unless the user explicitly deferred it. Consume the
+result or stay in a foreground wait; a promise to resume is not a wakeup.
+Before launching, resuming, or waiting on such work, read
+`topics/codex-session.md` § Job ownership and waits alongside the triggered
+RUNS packets. User questions and compaction do not discharge ownership.
 
 ## Skills Path Aliasing
 

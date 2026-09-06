@@ -48,9 +48,10 @@ YA-launched Claude session reads both.
 Symlinks and hardlinks to the same target are the same loaded
 source for provider-supplement routing.
 
-`~/agents/topics/agent-instructions.md` (and its `.evidence.md`
-ledger) carry the reasoning behind these instructions and the
-rules for writing new ones. Read it before writing or editing any
+`~/agents/topics/agent-instructions.md` and its `.evidence.md`
+ledger carry the reasoning behind these instructions and the
+rules for writing new ones. Read applicable topic sections and complete ledger
+entries for the affected rules/failure classes before writing or editing any
 agent instruction in any project — whenever the user asks for an
 "AGENTS instruction/note/advice/rule", a "global rule", or a
 "project(-level) rule" — and on demand when unsure how to safely
@@ -89,18 +90,18 @@ The same bar applies to rationale: "good because" prose that doesn't
 sharpen the decision surface moves to the relevant `.evidence.md` ledger
 (create one if needed) rather than padding the rule or being deleted.
 
-Non-frontier agents occasionally edit these projects, so keep redundancy —
-worked examples, and the rationale behind counterintuitive rules — that
-stops a weaker agent reasoning its way around a rule, even where a frontier
-agent would not need it.
+The shared editing/thinking corpus targets frontier models. Keep worked
+examples and rationale when they resolve a concrete ambiguity for that
+population; scaffolding needed only by smaller models belongs in scoped
+supplements or failure routes.
 
 ### Project-level instructions
 
 Before using tools in a repo for the first time in a session — at
 launch or when work pivots into another project mid-session — read its
 root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, any `README.md` they
-name as an instruction source, and every project-owned `PROGRAM.md` found
-after those instruction reads. The duty
+name as an instruction source. Then discover project-owned `PROGRAM.md` paths
+and read the root program when present. The duty
 binds to the repo being acted on, not the launch cwd; the harness
 injects nothing for a foreign repo, so these reads are the only way
 its rules load. Copy this list rather than recalling it — a
@@ -112,11 +113,11 @@ session are not re-read on later returns. Task files do not
 substitute for this. If a file is unreadable or a symlink is broken,
 report once and continue.
 
-Every project-owned `PROGRAM.md` is deliberately part of project orientation
-and may also contain binding program instructions. Locate and fully read all of
-them; a root charter may list significant subprograms for navigation, but that
-optional list is not a discovery index. Exclude vendored dependencies and
-nested external repositories.
+Before interpreting or acting in a subtree, read its full ancestor program
+chain, including its own charter. Read all programs for project-wide
+orientation, scope selection across programs, audits, or changes. A root
+charter's optional child list is not the discovery index. Exclude vendored
+dependencies and external repositories.
 
 When a request targets a project other than the one this session was
 launched in, weigh where the work lands best: a fresh agent launched
@@ -208,9 +209,10 @@ An optional `PROGRAM.md` beside a `GLOSSARY.md` is that scope's concise charter:
 the durable aspirations, themes, and boundaries that explain why its topics
 belong together. It is not a plan, progress report, topic index, or activity
 log. A nested charter narrows or specializes its parent without restating it.
-Read it for scope choice and program-wide orientation. At project entry, read
-every project-owned charter, not only the root one. A root charter may point to
-significant children but need not maintain an exhaustive index.
+Read the root charter at project entry and each ancestor charter before entering
+a subtree. Project-wide orientation, scope selection, audits, and changes read
+all project-owned charters. A root charter may point to significant children
+but need not maintain an exhaustive index.
 
 The title is optional. A first-line `# Program <short name>` is an alternative
 formal name, while the containing directory path remains the canonical
