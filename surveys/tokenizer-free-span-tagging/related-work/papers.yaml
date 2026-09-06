@@ -632,14 +632,15 @@ papers:
 
   - key: zaratiana2024-gliner
     short: label-conditioned-span-classification
+    concept_page: concepts/label-conditioned-span-classification.md
     title: "GLiNER: Generalist Model for Named Entity Recognition using Bidirectional Transformer"
     authors: ["Urchade Zaratiana", "Nadi Tomeh", "Pierre Holat", "Thierry Charnois"]
     venue: "NAACL-HLT"
     year: 2024
     url: "https://aclanthology.org/2024.naacl-long.300.pdf"
     doi: "10.18653/v1/2024.naacl-long.300"
-    grounded: false
+    grounded: true
     verified: true
-    source: "ACL Anthology metadata checked 2026-09-06; user-requested span-head comparator, full-text extraction pending"
-    fetched: null
+    source: "ACL Anthology metadata and full paper checked 2026-09-06"
+    fetched: 2026-09-06
     cluster: F

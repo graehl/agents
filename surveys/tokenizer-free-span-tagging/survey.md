@@ -29,6 +29,10 @@
   similarity, post-hoc representation mapping, frozen token alignment, and
   alignment-specific fine-tuning. This targeted addition also leaves the broad
   cutoff unchanged.
+- **Targeted intake: 2026-09-06.** Added GLiNER as a label-conditioned span-head
+  comparator. Its endpoint compression, negative-type sampling and greedy
+  span decoding expose separate ablations; no result establishes superiority
+  over a matched BIOES tagger. The broad-search cutoff is unchanged.
 - **Anchor set:** CharNER, Gillick's byte tagger, ID-CNN, CANINE, ByT5.
   Forward citations were pulled by both recency and citation count; direct
   keyword search covered the newest uncited edge.
@@ -63,6 +67,7 @@ The regenerable manifest is
 | E | [distilled small tagger](concepts/distilled-small-tagger.md) `[G]` | Hinton et al.; XtremeDistil; Wang et al.; Farina et al.; Nityasya et al. | foundational soft-target recipe; 35×/51× compression at 95% of teacher F1; at 100 gold sentences a 1M-parameter student beats its 220M teacher |
 | F | [token-classifier objectives](concepts/token-classifier-objectives.md) `[G]` | Pereyra et al.; Kiryo et al.; Peng et al.; Ács et al.; Lester et al.; Verma et al.; Tenney et al.; Hewitt and Liang; Voita and Titov | before fine-tuning, sweep frozen layer × pooling with linear, control/selectivity, and MDL probes; constrained CE trains ~2× faster than a CRF with mostly tied F1; PU applies only to incomplete labels |
 | G | [multilingual representation probes](concepts/multilingual-representation-probes.md) `[G]` | Sentence-BERT; Conneau et al.; SimAlign; Awesome-Align | pooled retrieval and token alignment test different invariances; the best layer depends on granularity/model; frozen alignment, post-hoc alignability, and alignment-tuned representations support different claims |
+| F | [label-conditioned span classification](concepts/label-conditioned-span-classification.md) `[G]` | GLiNER | contextual type-marker and endpoint FFNs learn dot-product compatibility; a 12-word cap and first-subword endpoint compression need auditing for long privacy spans |
 
 ## Map: what each family establishes
 
