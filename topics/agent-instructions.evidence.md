@@ -3962,3 +3962,25 @@ Contributing-model: 6-Astra
   not executed experiments.
 
 Contributing-model: 6-Astra
+
+## 2026-09-06 — evolve the simulated user and expose useful artifacts
+
+- **User direction** — the unattended evaluator can include separately
+  instructed simulated-user auditing and instruction suggestions; refinement
+  may edit that role's instructions. Fully evolved results are preferred;
+  human input is an optional comparison. The user wants broad adoption
+  independent of credit and suggests the public hook "look at the coding
+  style guide the AI evolved," expecting familiar advice emphasized by
+  contextual error analysis rather than necessarily novel principles.
+- **Design boundary** — the mutable auditor is development feedback, while
+  fixed requirements, sealed grading, and measurement remain external.
+  Its instructions and inference are charged to the whole fork. Separately
+  addressing its instructions does not impose a meta/non-meta partition.
+- **Traces** — a critic that evolves unconditional praise cannot certify a
+  win; external confirmation still decides. A human interjection creates an
+  assisted branch, while recorded simulated-user feedback remains autonomous.
+  An attractive style guide without a measured effect remains a candidate;
+  a familiar or almost empty guide can succeed on fitness despite a quieter
+  headline. These are design checks, not executed experiments.
+
+Contributing-model: 6-Astra

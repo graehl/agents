@@ -28,16 +28,19 @@ Distinguish roles at use time, without assuming a clean partition of files:
 
 - **Authoring guidance:** how the writer diagnoses traces and decides whether
   to add, change, move, or remove an instruction, or leave guidance alone.
+- **Simulated-user guidance:** how an automated auditor examines permitted
+  testbed evidence and requests guidance improvements. The writer can evolve
+  this separately addressable instruction component too.
 - **Working guidance:** what the task-solving agent receives, including its
   model-, harness-, project-, and defect-scoped selection.
 - **External objective and measurement:** task requirements, preserved user
-  work, real acceptance tests, resource accounting, and the sealed evaluator.
-  These remain outside the writer's editable world.
+  work, real acceptance tests, resource accounting, and the sealed grader.
+  These remain outside the evolving fork's editable world.
 
-One passage may play both authoring and task-solving roles; participants need
-not label every clause as meta or non-meta. The whole fork is the treatment.
+One passage may serve several roles; participants need not label every clause
+as meta or non-meta. The whole fork is the treatment.
 The firm boundary is between that evolving fork and the external objective,
-evaluator, and measurement record. Role annotations help analyze a run; they
+sealed grader, and measurement record. Role annotations help analyze a run; they
 do not establish separate causal effects.
 
 A trajectory contains successive versions of the fork, its
@@ -52,12 +55,46 @@ flowchart LR
   F --> A[Guidance revision episode]
   A --> F
   F --> T[Fresh task episodes]
-  T --> E[External outcomes and cost]
+  T --> E[Permitted development outcomes and cost]
   E --> A
+  F --> U[Simulated user audits evidence]
+  E --> U
+  U --> A
   E --> D[Compare successful and failed trajectories]
   D --> P[Distill recurring themes and smaller seeds]
   P --> H[Held-out adaptation and task families]
 ```
+
+### An evolvable simulated user
+
+The unattended loop can include a model acting as the user who audits testbed
+performance and suggests new instructions. Its own instructions are a distinct
+editable component of the fork, revised by the guidance-refinement step.
+Separating this interface lets us vary how feedback is produced without
+asserting a fundamental meta/non-meta distinction. It is a candidate arm;
+the smallest successful seed might omit it.
+
+The auditor receives designated development tasks, traces, measured outcomes,
+and cost records. It can diagnose failures or wasted work and request added,
+revised, deleted, or more narrowly scoped guidance, including changes to its
+own audit instructions. Leaving guidance alone is valid. Record the auditor
+version that produced each request before the writer acts; a subsequent edit
+does not rewrite earlier feedback. This creates an autonomous feedback loop
+whose critic and writer can co-evolve.
+
+The auditor's judgments are development feedback. It cannot change the fixed
+task requirements, sealed grader, accounting, or recorded outcomes, and has no
+access to sealed confirmation cases or results during candidate refinement.
+A critic that learns to praise the writer has not improved fitness unless
+external task outcomes improve. Preserve both its assessment and the measured
+evidence so such divergence remains visible.
+
+Count auditor instructions and supporting machinery in the seed/package
+footprint, and all its prompts and calls in adaptation cost. Record its model and
+effective context separately from writer and solver. Compare an evolved
+auditor with a fixed auditor and direct evidence without an auditor, under
+matched total budgets and access to the same underlying development evidence.
+Extra critique must earn its cost; the simulated user is not free human labor.
 
 ### What would count as a fixed point
 
@@ -118,10 +155,11 @@ minimum unconstrained by use.
 
 The unit is a complete adaptation trajectory, not an isolated task or a
 single error. Pair trajectories on their environment, starting state,
-opportunity sequence, task budget, and available feedback. Separate writer
-model from task-solver model; rotate them to detect a writer producing advice
-that only its own family can use. Pin model/backend/harness versions and
-effective system/developer/tool prompts, effort, permissions, and compaction
+opportunity sequence, task budget, and available feedback. Record writer,
+task-solver, and optional auditor models separately; vary role assignments to
+detect advice that only helps its writer's family or its usual auditor.
+Pin model/backend/harness versions and effective system/developer/tool prompts,
+effort, permissions, and compaction
 behavior. When immutable provider versions are unavailable, record that limit
 and interleave comparisons in the same time window.
 
@@ -225,7 +263,8 @@ Use separate pools for writer feedback, seed/theme selection, and sealed
 confirmation. Final confirmation comprises fresh *adaptation episodes*:
 the candidate may learn from that episode's designated feedback tasks, then
 is evaluated on unseen tasks without seeing their scores or hidden tests.
-The writer never sees sealed results while still revising that candidate.
+Neither writer nor simulated user sees sealed results while that candidate
+can still be revised.
 Rotate successor models, repos, defect families, and synthetic generators at
 the outer boundary; paraphrases and random seeds from one template do not
 provide this separation.
@@ -233,8 +272,8 @@ provide this separation.
 Check recurrence across unrelated seeds and inspect losers, too. A theme
 common to every successful and failed trajectory may simply be a prior. Use
 ablation, rescoping, and independent rediscovery to distinguish causal value
-from a compelling retrospective story. Generated authoring guidance must not
-edit the evaluator, the external objective, or the selection history.
+from a compelling retrospective story. Evolved instructions must not edit the
+sealed grader, the external objective, or the selection history.
 
 ### Groundwork and relation to existing proposals
 
@@ -267,18 +306,24 @@ telemetry, reward program, or request for participants.
 
 ### Two evidence streams and a fork ecosystem
 
+**Fully evolved trajectories are preferred.** Donated compute runs
+independently assigned trajectories under declared seeds without in-run human
+coaching. The simulated user can generate feedback and evolve along with the
+writer's guidance; this remains autonomous evolution. The useful output is
+evidence about the guidance process; no project patch need be produced for a
+real user. Record where every starting component came from: "fully evolved"
+describes the subsequent trajectory, not an absence of human-designed seeds,
+testbeds, or model training.
+
 **Human-steered evolution.** A participant reports that a fork now works well
 for their workflow. Preserve the natural history that produced it, including
 their requests to tweak behavior. Those requests may explain most of the win;
 the guidance must not absorb the human's credit by default. This stream
 supplies candidate themes and realistic adaptation episodes, even when no
-causal attribution is yet possible.
-
-**Blind evolution.** Donated compute runs independently assigned trajectories
-under candidate seeds without task-specific human coaching. The useful output
-is evidence about the guidance process; no project patch need be produced for
-a real user. Participants can contribute either kind of work, but the
-aggregator never pools the two as interchangeable success rates.
+causal attribution is yet possible. Interested participants may add their own
+input; label that branch as assisted and retain any autonomous parent. Keep
+the streams separate in reported success rates, and seek autonomous
+rediscovery or fresh confirmation of candidates found through human steering.
 
 People can naturally fork whoever claims the latest best, tweak the guidance,
 and submit a challenger. Blindness applies to an evaluation trajectory's
@@ -305,6 +350,9 @@ immutable trees, and a record linking:
 - The exact user request and all observable prompts supplied to the guidance
   writer, including selected guidance, harness/tool instructions, retrieved
   context, and subsequent corrections.
+- Whether each request came from a human or simulated user; for generated
+  requests, the auditor's instruction revision, inputs, outputs, and cost.
+  Preserve no-change audits and revisions to the auditor itself.
 - Task-solver prompts and trace references, supplied feedback, relevant tool
   outputs, and which outcomes were visible before the revision.
 - Effective model/backend/harness identity, default-prompt/version fingerprints
@@ -312,8 +360,8 @@ immutable trees, and a record linking:
   revision. Mark inaccessible provider prompts as opaque; do not invent them.
 - Actual loaded bytes, including private amendments and uncommitted overlays,
   rather than inferring the treatment from HEAD alone. Annotate authoring,
-  solving, routing, reference, and runner roles where informative, allowing
-  overlap and unknowns.
+  solving, auditing, routing, reference, and runner roles where informative,
+  allowing overlap and unknowns.
 - Descendant runs, seeds, costs, failures, grading revisions, and whether the
   result was nominated by a human, assigned blindly, or selected after other
   attempts. Record all attempts, not just the submitted winner.
@@ -366,7 +414,7 @@ hidden challenge assignments or reruns where gaming would distort the study.
 Score every fork on both boot size and total size, with a manifest defining
 the boundary. Report bytes and named-tokenizer counts separately. Boot size
 includes all initial instruction layers and measured per-request selection;
-total guidance size includes instructions in either role, examples, skills,
+total guidance size includes instructions in every role, examples, skills,
 transitive referenced packets, embedded prompts, and generated copies.
 Report repository source size separately so Git history, optional research
 archives, and data are visible without being confused with active guidance.
@@ -400,6 +448,10 @@ failure of the study.
 
 ### Social incentives without selecting only flattering evidence
 
+Broad use is an explicit aspiration, independent of personal credit: people
+who already use agent guidance may want to see what an autonomous process
+learns and try it in their own projects.
+
 Candidate incentives include visible credit for donated compute, independent
 replication, useful failures, new defect coverage, and compact transferable
 seeds. Keep contribution credit separate from fitness ranking. Randomly assign
@@ -413,3 +465,27 @@ result packet small enough to inspect. The expensive ideal includes independent
 replication and fresh hidden cases; the first implementation can be a manifest
 and importer plus manual review, without building a social platform. Donation
 is voluntary and never inferred from a public fork or a model release.
+
+### A public artifact: the coding style guide the AI evolved
+
+"Look at the coding style guide the AI evolved" is a possible public-interest
+hook. The artifact gives a reader something concrete to inspect, reuse, and
+fork. The user's expectation is that much of its advice will be familiar,
+with selection and emphasis shaped by testbed error analysis. That is a
+hypothesis worth testing: usefulness need not require novel wording or novel
+programming wisdom. Contextual selection, scope, ordering, and omission may be
+the result.
+
+A shareable example would pair the exact evolved guide with its starting seed
+and a compact account of the defects that prompted revisions, the advice it
+removed or declined to add, and the quality/cost observed with and without it.
+Name the model/harness and task scope, distinguish fully evolved from assisted
+lineages, and retain failures and transfer limits. A human-readable explanation
+can accompany the raw artifact; an edited guide is a new version to evaluate.
+Expose the seed and runner so readers can try the process as well as copy its
+current output.
+
+Readable, surprising, or widely shared guides are outreach artifacts, not
+fitness measures. A conventional-looking guide that improves held-out work,
+or evidence that a better model needs very little added guidance, can carry
+the story. Preserve that outcome even if it offers a less dramatic headline.

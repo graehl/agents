@@ -17,8 +17,11 @@ can evolve guidance toward both testbed fitness and appropriate scoped wins.
 
 **Fix sketch:** the linked
 [guidance-evolution design](../topics/instruction-ablation.sketches.md)
-defines the mutable authoring/working guidance, external objective,
-fixed-point candidates, seed minimization, pinned real-project and synthetic
+defines mutable authoring/working guidance and a separately instructed
+simulated user that audits development performance and requests revisions.
+Its audit instructions can evolve too; the external objective and sealed
+grader remain fixed. The design also covers fixed-point candidates,
+seed minimization, pinned real-project and synthetic
 testbeds, controls, fitness, and held-out adaptation. The present
 [reduction proposals](../topics/agent-instructions.sketches.md#astra-and-shared-instruction-reductions)
 are judgment-based candidate interventions, not discovered fixed points.
@@ -43,10 +46,19 @@ seed is a valid result. Building a harness or writing an attractive seed alone
 does not close the empirical gap.
 
 **Distributed extension:** the same sketch describes a git-history aggregator
-for human-steered successful collaborations and donated blind-evolution runs.
+for optional human-steered collaborations and preferred fully evolved runs,
+including co-evolution of the simulated user. Count that role's instructions
+and inference cost rather than treating generated feedback as free labor.
 Record revision prompts and before/after trees to expose co-evolution; compare
 whole forks without requiring a meta/non-meta partition. Score boot and total
 size, count the runner, and search fresh for minimal successful added guidance
 at each frontier harness/model/default-prompt step. Forking a claimed best is
 part of the proposed social process; independent confirmation and attribution
 to human steering remain separate from contribution credit.
+
+**Adoption aspiration:** an inspectable "coding style guide the AI evolved"
+could invite broad use and participation, regardless of personal credit.
+Familiar advice selected and emphasized by error analysis may be a useful
+result; show its lineage, scope, omissions, and measured effect rather than
+treating novelty or popularity as fitness. This is a proposed public artifact,
+not a publication action or an empirical claim.
