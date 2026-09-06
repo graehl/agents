@@ -325,7 +325,10 @@ and beats `All` on 14 of 23), a learned per-channel sigmoid weight *without* a
 sparsity penalty stays within 0.5 of `All`, and the subset that trained
 through the search beats the same subset retrained from scratch by 0.4 (NER),
 0.9 (POS) and 2.0 (aspect extraction), tying elsewhere. The authors attribute
-the last to each step starting from the previous step's weights. Its
+the last to each step starting from the previous step's weights; the
+comparison is also a dev-selected best-of-30 checkpoint against single runs,
+and the retrained subset beats `All` by only 0.1–0.4, so most of the headline
+gain is trajectory, budget and selection rather than the chosen subset. Its
 character channel is chosen in about a third of English sequence-task winners
 and over half of multilingual NER winners, on top of word and subword
 channels.
@@ -523,7 +526,10 @@ and both involve pretraining budgets far beyond a small from-scratch tagger.
 
 ACE's search gains over concatenating everything are 0.0–2.3 F1 on the four
 CoNLL NER sets, from three-seed averages with no interval, so most sit inside
-the ±1 significance width. Its headline Spanish result with fine-tuned
+the ±1 significance width. Random search at the same budget captures about
+half of the average gain, and the pure subset effect (the searched subset
+retrained from scratch against `All`) is 0.1–0.4; the rest is a best-of-30
+dev-selected trajectory against single runs. Its headline Spanish result with fine-tuned
 candidates, 95.9 against 89.3 for fine-tuned XLM-R alone, is ten times the
 gain on the other three languages and should be reproduced before it is
 cited.

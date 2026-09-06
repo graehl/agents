@@ -8,6 +8,9 @@
 > training across the search; the subset it commits to beats concatenating
 > everything, and the continue-trained subset beats the same subset retrained
 > from scratch. `train-then-mask` is this survey's handle, not a field term.
+> graehl's framing, which the survey adopts: not a strong paper, an
+> inspiring one — it jogs the memory on distillation ideas and on the
+> possibility of using them before a full converged training.
 
 **Paper.** Wang, Jiang, Bach, Wang, Huang, Huang, and Tu, "Automated
 Concatenation of Embeddings for Structured Prediction," ACL-IJCNLP 2021.
@@ -100,6 +103,19 @@ Three readings matter here.
 3. **ACE beats the test-set-searched ensemble**, which the authors read as
    concatenation letting channels interact inside one model where voting
    cannot.
+4. **The table compares a best-of-30 checkpoint with single runs.** `ACE`,
+   `Random` and the search half of `Retrain` report the best-dev model over
+   a 30-evaluation trajectory; `All`, `All+Weight` and each Retrain seed are
+   one run evaluated once. Dev-selected best-of-30 carries an upward bias on
+   test by itself, before any transfer story. The tables allow a
+   decomposition: `Retrain − All` is 0.1–0.4 everywhere, which is the pure
+   subset-selection effect; `ACE − Retrain` is 0–2.0, which is trajectory
+   order, total training budget and best-of-N selection together. Nearly all
+   of the headline gain over `All` sits in the second term, `Random` enjoys
+   it too, and the controller itself adds about 0.5 over random search at
+   equal budget while the reward-function ablation (Table 5, 2000-sentence
+   CoNLL subset, 50 steps) separates its three variants by 0.1–0.2 with no
+   variance.
 
 With per-task fine-tuned transformers (AdamW 5e-6, 10 epochs, then frozen)
 plus XLNet and RoBERTa as extra candidates and document-level context for
@@ -221,6 +237,21 @@ was in hand; the responses are the survey's, after the read and the search.
   compares its recovery against ACE-style continue-training under a
   controller. That combination is recorded as Void 3 in
   [`frontier.md`](../frontier.md).
+- *"My initial feeling was that they threw an RL step in for no good reason
+  when exhaustive trajectories would do probably at least as well."* At
+  eleven channels (2047 subsets, about 1.5 GPU-hours per step) exhaustive is
+  out of reach, which is presumably why the space was scaled to eleven; but
+  the paper's own `Random` row shows the controller buying about 0.5 over
+  random search at the same budget, and its reward ablation separating
+  variants by 0.1–0.2. The search signal is thin by the paper's own tables.
+- *"B.3 is indeed interesting if reproducible, but it is easy to obtain a bad
+  and good trajectory."* Agreed, and reading 4 above is the concrete form:
+  the trajectory is order-dependent, three searches are averaged without a
+  spread, and the reported number is a dev-selected best-of-30 against
+  single runs. The controls that would separate transfer from trajectory
+  luck are in [`frontier.md`](../frontier.md): continue from the `All`
+  checkpoint under the searched mask for one schedule, retrain with a matched
+  epoch budget, and report the across-trajectory spread.
 - *"Out of all possible architectures, imagine an everything-thrown-in
   variant and auto-ablate before full training investment on each subset."*
   Field term: one-shot or weight-sharing NAS; the everything-thrown-in variant

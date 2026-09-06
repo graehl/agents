@@ -213,7 +213,9 @@ with a sparsity penalty without naming it as such.
   scratch"** (ACE Appendix B.3: +0.4 NER, +0.9 POS, +2.0 aspect extraction,
   ties elsewhere). Regime: frozen contextual channels, BiLSTM-CRF task model,
   CoNLL-scale data, three seeds, no interval; the continue-trained model had up
-  to thirty schedules against one. Independent check: none located. Cheapest
+  to thirty schedules against one and is a dev-selected best-of-30 checkpoint
+  against single runs, while the retrained subset beats `All` by only
+  0.1–0.4. Independent check: none located. Cheapest
   discriminating check: retrain with a matched total epoch budget, and
   separately continue from the `All` checkpoint under the searched mask for one
   schedule. Revisit when Void 3's check runs. The Spanish `ACE+Fine-tune` 95.9
