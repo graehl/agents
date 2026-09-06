@@ -193,6 +193,62 @@ asks the converse question, whether the subset would have trained as well from
 its original initialization; Zhou et al. show a mask alone, over untrained
 weights, already carries accuracy.
 
+## Does committing early pay? `[R]`
+
+The aspiration behind this node is that simplifying *before* the full
+training investment yields a faster successful trajectory, or a better one,
+than training everything and then distilling or pruning. A 2026-09-06 search
+(web plus arXiv abstracts; no full text read; every grade `single-source`)
+found repeated positive evidence, concentrated at one point in training, and
+clear negative evidence at both extremes.
+
+**Positive, NLP.** EarlyBERT (Chen et al. 2021) finds structured early-bird
+tickets in BERT — heads and FFN units slimmed once the mask stabilizes early —
+and trains the slim model: 35–45% less training time in pretraining and
+fine-tuning at comparable GLUE and SQuAD. Super tickets (Liang et al. 2021)
+prune *during* fine-tuning and improve generalization, +0.9 GLUE task average
+on BERT-base and +1.0 on BERT-large, with a phase transition that strengthens
+as the model grows and the data shrinks — the regime of a small-gold span
+tagger. Progressive subnetworks (RaPTr, Panigrahi et al. 2024) train random
+layer subsets in stages for a 33% pretraining speedup and +1.5% on SuperGLUE
+and QA; progressive stacking (Gong et al. 2019) is the grow direction, 25%
+shorter BERT training at matched quality.
+
+**Positive, general.** Early-bird tickets (You et al. 2020) emerge early, are
+detectable by mask distance, and give up to 4.7× training-energy savings at
+comparable or better accuracy. RigL (Evci et al. 2020) never trains dense and
+matches or beats dense-then-prune at fewer FLOPs. EarlyCroP (Rachwan et al.
+2022) prunes early by preserving gradient flow at dense-comparable accuracy.
+DynaBERT and LayerDrop produce sub-models that beat DistilBERT and TinyBERT,
+but train the full model first: train once and serve many, not cheaper
+training. Hyperband (Li et al. 2018) is the principled multi-fidelity form of
+"ablate before full investment" for independent candidates; population based
+training (Jaderberg et al. 2017) is the trajectory-preserving form.
+
+**Negative.** Pruning at initialization (Frankle et al. 2021): SNIP, GraSP
+and SynFlow beat random pruning but stay below magnitude pruning after
+training, their per-weight choices can be replaced by per-layer ratios, and
+full accuracy returns only when pruning happens about halfway into training.
+Train large, then compress (Li et al. 2020): for fixed compute, train the
+largest model, stop early, then compress; heavily compressed large models beat
+lightly compressed small ones. Proxy rankings: weight-sharing rankings are
+uncorrelated with stand-alone training in RNN space (Yu et al. 2020, τ ≈ 0)
+and NAS methods average out to random policy; zero-cost proxies barely beat
+parameter count (White et al. 2022). Sheared LLaMA and Minitron beat
+small-from-scratch at 3% of the compute or 40× fewer tokens, but only from a
+fully trained parent — evidence for the baseline the aspiration contrasts
+with.
+
+**Reconciled reading.** Sparse structure is determined in the early phase of
+training, so the supported recipe is: train the everything-thrown-in model
+for a short prefix until the mask stabilizes, commit, then train the
+simplified model. Deciding at initialization or from a proxy loses; deciding
+after full training works but forfeits the saving. In the small-data
+fine-tuning regime the commitment can improve generalization. None of these
+selects input channels, so Void 3 in [`frontier.md`](../frontier.md) stands,
+and EarlyBERT's mask-distance stopping rule is the natural trigger for its
+"prune at the plateau" step.
+
 ## Commentary
 
 Recorded 2026-09-06 from graehl's reading of the paper before the full text

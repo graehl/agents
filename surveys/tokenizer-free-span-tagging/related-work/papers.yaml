@@ -914,3 +914,201 @@ papers:
     source: "arXiv 2006.14827 carries the preprint title 'Memory-efficient Embedding for Recommendations'; WWW title/DOI from ACM DL search hit 2026-09-06, unconfirmed against the page; recall-level lineage citation"
     fetched: null
     cluster: H
+
+  # --- H (continued): does committing to a simplified structure early pay?
+  # Located by the 2026-09-06 search; abstracts checked via the arXiv API,
+  # papers not read ([R]).
+  - key: chen2021-earlybert
+    title: "EarlyBERT: Efficient BERT Training via Early-bird Lottery Tickets"
+    authors: ["Xiaohan Chen", "Yu Cheng", "Shuohang Wang", "Zhe Gan", "Zhangyang Wang", "Jingjing Liu"]
+    venue: "ACL-IJCNLP"
+    year: 2021
+    url: "https://aclanthology.org/2021.acl-long.171.pdf"
+    doi: "10.18653/v1/2021.acl-long.171"
+    arxiv: "2101.00063"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: ACL-IJCNLP 2021); recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: liang2021-super-tickets
+    title: "Super Tickets in Pre-Trained Language Models: From Model Compression to Improving Generalization"
+    authors: ["Chen Liang", "Simiao Zuo", "Minshuo Chen", "Haoming Jiang", "Xiaodong Liu", "Pengcheng He", "Tuo Zhao", "Weizhu Chen"]
+    venue: "ACL-IJCNLP"
+    year: 2021
+    url: "https://aclanthology.org/2021.acl-long.510.pdf"
+    doi: "10.18653/v1/2021.acl-long.510"
+    arxiv: "2105.12002"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: ACL 2021); recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: panigrahi2024-progressive-subnetworks
+    title: "Efficient Stagewise Pretraining via Progressive Subnetworks"
+    authors: ["Abhishek Panigrahi", "Nikunj Saunshi", "Kaifeng Lyu", "Sobhan Miryoosefi", "Sashank Reddi", "Satyen Kale", "Sanjiv Kumar"]
+    venue: "arXiv"
+    year: 2024
+    url: "https://arxiv.org/abs/2402.05913"
+    arxiv: "2402.05913"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06; recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: gong2019-progressive-stacking
+    title: "Efficient Training of BERT by Progressively Stacking"
+    authors: ["Linyuan Gong", "Di He", "Zhuohan Li", "Tao Qin", "Liwei Wang", "Tie-Yan Liu"]
+    venue: "ICML"
+    year: 2019
+    url: "https://proceedings.mlr.press/v97/gong19a.html"
+    grounded: false
+    verified: false
+    source: "PMLR listing surfaced by web search 2026-09-06; author list from recall, unconfirmed; recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: you2020-early-bird
+    title: "Drawing Early-Bird Tickets: Towards More Efficient Training of Deep Networks"
+    authors: ["Haoran You", "Chaojian Li", "Pengfei Xu", "Yonggan Fu", "Yue Wang", "Xiaohan Chen", "Richard G. Baraniuk", "Zhangyang Wang", "Yingyan Celine Lin"]
+    venue: "ICLR"
+    year: 2020
+    url: "https://arxiv.org/abs/1909.11957"
+    arxiv: "1909.11957"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: ICLR 2020 spotlight); recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: evci2020-rigl
+    title: "Rigging the Lottery: Making All Tickets Winners"
+    authors: ["Utku Evci", "Trevor Gale", "Jacob Menick", "Pablo Samuel Castro", "Erich Elsen"]
+    venue: "ICML"
+    year: 2020
+    url: "https://arxiv.org/abs/1911.11134"
+    arxiv: "1911.11134"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: ICML 2020); recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: rachwan2022-earlycrop
+    title: "Winning the Lottery Ahead of Time: Efficient Early Network Pruning"
+    authors: ["John Rachwan", "Daniel Zügner", "Bertrand Charpentier", "Simon Geisler", "Morgane Ayle", "Stephan Günnemann"]
+    venue: "ICML"
+    year: 2022
+    url: "https://arxiv.org/abs/2206.10451"
+    arxiv: "2206.10451"
+    grounded: false
+    verified: false
+    source: "arXiv API title/authors/abstract checked 2026-09-06; venue from recall, unconfirmed; recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: hou2020-dynabert
+    title: "DynaBERT: Dynamic BERT with Adaptive Width and Depth"
+    authors: ["Lu Hou", "Zhiqi Huang", "Lifeng Shang", "Xin Jiang", "Xiao Chen", "Qun Liu"]
+    venue: "NeurIPS"
+    year: 2020
+    url: "https://arxiv.org/abs/2004.04037"
+    arxiv: "2004.04037"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: NeurIPS 2020 spotlight); recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: chen2020-bert-lottery
+    title: "The Lottery Ticket Hypothesis for Pre-trained BERT Networks"
+    authors: ["Tianlong Chen", "Jonathan Frankle", "Shiyu Chang", "Sijia Liu", "Yang Zhang", "Zhangyang Wang", "Michael Carbin"]
+    venue: "NeurIPS"
+    year: 2020
+    url: "https://arxiv.org/abs/2007.12223"
+    arxiv: "2007.12223"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: NeurIPS 2020); recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: frankle2021-pruning-at-init
+    title: "Pruning Neural Networks at Initialization: Why are We Missing the Mark?"
+    authors: ["Jonathan Frankle", "Gintare Karolina Dziugaite", "Daniel M. Roy", "Michael Carbin"]
+    venue: "ICLR"
+    year: 2021
+    url: "https://arxiv.org/abs/2009.08576"
+    arxiv: "2009.08576"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: ICLR 2021); recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: li2020-train-large-then-compress
+    title: "Train Large, Then Compress: Rethinking Model Size for Efficient Training and Inference of Transformers"
+    authors: ["Zhuohan Li", "Eric Wallace", "Sheng Shen", "Kevin Lin", "Kurt Keutzer", "Dan Klein", "Joseph E. Gonzalez"]
+    venue: "ICML"
+    year: 2020
+    url: "https://arxiv.org/abs/2002.11794"
+    arxiv: "2002.11794"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: ICML 2020); recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: yu2020-nas-search-phase
+    title: "Evaluating the Search Phase of Neural Architecture Search"
+    authors: ["Kaicheng Yu", "Christian Sciuto", "Martin Jaggi", "Claudiu Musat", "Mathieu Salzmann"]
+    venue: "ICLR"
+    year: 2020
+    url: "https://arxiv.org/abs/1902.08142"
+    arxiv: "1902.08142"
+    grounded: false
+    verified: false
+    source: "arXiv API title/authors/abstract checked 2026-09-06; venue from the ICLR 2020 virtual listing surfaced by web search; recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: white2022-zero-cost-proxies
+    title: "A Deeper Look at Zero-Cost Proxies for Lightweight NAS"
+    authors: ["Colin White", "Mikhail Khodak", "Renbo Tu", "Shital Shah", "Sébastien Bubeck", "Debadeepta Dey"]
+    venue: "ICLR Blog Track"
+    year: 2022
+    url: "https://iclr-blog-track.github.io/2022/03/25/zero-cost-proxies/"
+    grounded: false
+    verified: false
+    source: "Blog post surfaced by web search 2026-09-06; author list from the linked post announcement, unconfirmed against the page; recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: jaderberg2017-pbt
+    title: "Population Based Training of Neural Networks"
+    authors: ["Max Jaderberg", "Valentin Dalibard", "Simon Osindero", "Wojciech M. Czarnecki", "Jeff Donahue", "Ali Razavi", "Oriol Vinyals", "Tim Green", "Iain Dunning", "Karen Simonyan", "Chrisantha Fernando", "Koray Kavukcuoglu"]
+    venue: "arXiv"
+    year: 2017
+    url: "https://arxiv.org/abs/1711.09846"
+    arxiv: "1711.09846"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06; recall-level citation"
+    fetched: null
+    cluster: H
+
+  - key: li2018-hyperband
+    title: "Hyperband: A Novel Bandit-Based Approach to Hyperparameter Optimization"
+    authors: ["Lisha Li", "Kevin Jamieson", "Giulia DeSalvo", "Afshin Rostamizadeh", "Ameet Talwalkar"]
+    venue: "JMLR"
+    year: 2018
+    url: "https://arxiv.org/abs/1603.06560"
+    arxiv: "1603.06560"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: updated to JMLR version); recall-level citation"
+    fetched: null
+    cluster: H
