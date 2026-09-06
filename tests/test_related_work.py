@@ -30,6 +30,11 @@ sys.modules["related_work"] = rw
 _loader.exec_module(rw)
 
 
+# Captured before any test patches `rw.subprocess.run`: `rw.subprocess` is this
+# same module object, so a patch there replaces `subprocess.run` here too.
+_REAL_RUN = subprocess.run
+
+
 def _assert(cond, msg="assertion failed"):
     if not cond:
         raise AssertionError(msg)
@@ -388,7 +393,61 @@ def test_audit_requires_tracked_markdown_provenance_and_local_assets():
         _assert(("alpha2020-one", "authority-source") in rules, sorted(rules))
 
 
+def test_stage_force_adds_only_the_audited_subset():
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace = Path(tmp)
+        root = survey(workspace)
+        related = root / "related-work"
+        (related / ".gitignore").write_text(
+            "extract/**\n!extract/**/\n!extract/**/*.md\n!extract/**/.fetched\n"
+        )
+        directory = related / "extract" / "alpha2020-one"
+        markdown = directory / "paper.md"
+        markdown.write_text("# One\n\n![Result](fig/figure.svg)\n")
+        (directory / "fig").mkdir()
+        (directory / "fig" / "figure.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg"></svg>\n'
+        )
+        (directory / "fig" / "stray.jpeg").write_bytes(b"\xff\xd8leftover")
+        (directory / "paper.pdf").write_bytes(b"%PDF-1.4 raw source")
+        sentinel_path = directory / ".fetched"
+        sentinel = json.loads(sentinel_path.read_text())
+        sentinel["markdown_sha256"] = rw._sha256_file(markdown)
+        sentinel_path.write_text(json.dumps(sentinel))
+
+        proc = run(root, "stage")
+        _assert(proc.returncode == 2, proc.stderr)  # not a git repository yet
+
+        subprocess.run(["git", "init", "-q", str(workspace)], check=True)
+        proc = run(root, "stage", "alpha2020-one")
+        _assert(proc.returncode == 0, proc.stderr)
+        (row,) = jsonl(proc)
+        _assert(row["status"] == "staged" and row["files"] == 3, row)
+        listed = subprocess.run(
+            ["git", "-C", str(workspace), "ls-files", "--", str(directory)],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split()
+        names = sorted(Path(p).name for p in listed)
+        _assert(names == [".fetched", "figure.svg", "paper.md"], names)
+        _assert(run(root, "audit").returncode == 0)
+
+        # A plain directory add must still leave the cache alone.
+        subprocess.run(["git", "-C", str(workspace), "add", "--", str(directory)], check=True)
+        listed = subprocess.run(
+            ["git", "-C", str(workspace), "ls-files", "--", str(directory)],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split()
+        _assert(len(listed) == 3, listed)
+
+
 def _passthrough_html2text(command, **kwargs):
+    if command and command[0] == "git":
+        # fetch stages each new extract after derivation; let git run for real.
+        return _REAL_RUN(command, **kwargs)
     _assert("html2text==2025.4.15" in command, command)
     _assert("--body-width=0" in command, command)
     return subprocess.CompletedProcess(command, 0, stdout=kwargs["input"], stderr="")
