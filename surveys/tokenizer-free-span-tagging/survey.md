@@ -12,9 +12,9 @@
   into this survey's own `related-work/extract/` (`[G]`); 8 were read from the
   sibling survey's committed extracts rather than duplicating its cache (`[S]` —
   CANINE, ByT5, Charformer, Gillick, Cao, Sun, Flair, CharacterBERT). A further
-  19 citations in cluster H are recall-level (`[R]`): metadata checked, paper
-  not read. Effectiveness claims are `single-source` unless a row says
-  otherwise.
+  34 citations in cluster H are recall-level (`[R]`): metadata and abstract
+  checked, paper not read. Effectiveness claims are `single-source` unless a
+  row says otherwise.
 - **Coverage cutoff: 2026-08-16.** Search scope: ACL Anthology, arXiv (cs.CL),
   OpenAlex forward citations, and arXiv full-text search. Query terms covered
   character-level and byte-level NER, tokenizer-free and token-free models,
@@ -347,6 +347,20 @@ parent). Two lineage facts bound ACE's design choice: DARTS-style continuous
 relaxations are known to collapse on discretization, and at the weight level
 Gale et al. found `L0` gates, variational dropout and plain magnitude pruning
 reaching the same accuracy for a given sparsity.
+
+Whether committing early pays is answered, at recall level `[R]`, by a
+consistent pattern: early-bird tickets in BERT cut training time 35–45% at
+matched GLUE and SQuAD (EarlyBERT), pruning during fine-tuning can *improve*
+GLUE by about a point with the effect strongest for large models on small
+data (super tickets), and staged random-subnetwork pretraining is 33% faster
+and slightly better (RaPTr); against that, pruning at initialization stays
+below post-training magnitude pruning until roughly halfway through training
+(Frankle et al. 2021), proxy and weight-sharing rankings are near random (Yu
+et al. 2020; White et al. 2022), and for a fixed budget training the largest
+model briefly then compressing beats training the small one (Li et al. 2020).
+The supported recipe is a short dense prefix until the mask stabilizes, then
+commit; the [digest](concepts/train-then-mask.md#does-committing-early-pay-r)
+lists the fifteen papers.
 
 **Commentary (graehl, 2026-09-06; responses are the survey's after the read).**
 The masking-while-training mechanism was read as a cousin of jointly training
