@@ -131,3 +131,143 @@ Trace-simulation risks any promotion must survive
 ("observed both forms" cited to accumulate branch debt in durable
 scripts); probe inflation (the bounded probe becoming a research detour);
 log noise (the fired-branch line polluting quiet pipelines).
+
+## Astra and shared instruction reductions
+
+Proposal, 2026-09-06; behavioral reductions below are not active guidance.
+The user describes Astra as "sol but fewer mistakes, nothing fundamentally
+different" and wants fewer tokens spent supplying judgment it already has.
+The intended editing/thinking population is Astra and the Opus/Sol/Fable/
+Grok-4.6 tier, not smaller models used for bounded data processing. This is
+user experience and workload selection, not a measured capability ordering.
+
+The first decision is a shared competent-agent baseline plus small named
+exceptions. `AGENTS.sol.md` already existed. `AGENTS.astra.md` now has its own
+route, with no active patches; do not copy Sol's exceptions into it merely
+because Astra is a successor. An empty behavioral delta is an honest starting
+point. Adding a supplement does not itself reduce the shared prompt.
+
+### What the inspection establishes
+
+At source revision `657dca3d4a82e193c1cd55bfdc2b01e393b36b13`, the five
+shared files this Astra/YA/Codex launch selects have these sizes:
+
+| Source | Bytes |
+|---|---:|
+| `AGENTS.global.md` | 47,201 |
+| `AGENTS.user.md` | 12,896 |
+| `AGENTS.codex.md` | 7,571 |
+| `AGENTS.frontier.md` | 2,735 |
+| `AGENTS.ya.md` | 4,836 |
+| Total before project instructions and action-triggered reads | 75,239 |
+
+These are file bytes, not tokenizer counts, effective injected context, billed
+tokens, or latency measurements. The five listed files constitute that shared
+selection; the new Astra supplement adds a small route-specific file. Runtime
+cost also includes rereads, generated reasoning, retries, tool calls, and human
+correction. Moving prose to a packet every task must read saves no first-read
+volume; a useful extraction makes that read conditional.
+
+No outcome ablation has been run on this corpus. Historical ledgers contain
+observed failures and some retry counts, which establish failure occurrence,
+not the benefit of the resulting instructions. This Astra review itself hit
+tool-output truncation through over-batching and undersized result budgets,
+then recovered the omitted reads. That supports retaining the concrete
+Codex output-budget fact, not attributing the error exclusively to Sol or
+adding another universal verification ritual.
+
+OpenAI's current [Astra guidance](https://developers.openai.com/api/docs/guides/latest-model#prompting-best-practices)
+describes increased instruction sensitivity and recommends auditing loaded
+guidance. That is vendor advice, not evidence for any cut below. Our inference:
+overbroad instructions may become more costly when followed more faithfully.
+
+### Recommended first pass: shared reductions by judgment
+
+Each row is a proposed change to its named owner. Preserve repository-specific
+facts, user choices, authorization, and work-preservation contracts. Put
+incident stories in the existing ledger rather than boot text. No numerical
+performance improvement is claimed.
+
+| Priority and owner | Proposed change | Boundary to preserve |
+|---|---|---|
+| First: `agent-instructions.md`, Verifying instruction changes | Replace the assumption that non-frontier agents perform real editing with the user's actual target population. Keep an example only if it resolves a plausible ambiguity for those models; weaker-model reminders belong in their supplement. | Capability does not make local facts inferable or erase observed frontier failures. |
+| First: `AGENTS.codex.md`, Session Identity | Retain the real-id invariant, normal `agentctl` resolution, and one explicit failure route. Move the long invented-id story and rare discovery recipe to the session-mechanics owner. | A missing id triggers recovery, never invention; a present launcher id is already the answer. |
+| First: `AGENTS.global.md`, Project-level instructions; `TOPICS.md`, Program scope charters | Read root boot and ancestor program instructions for the paths about to be acted on; discover other program paths cheaply and read their bodies on entry. Reserve all-program reading for project-wide orientation or changes. | Before touching a newly reached subtree, read its entire applicable program chain. Root/project boot and local amendments remain mandatory. |
+| First: instruction-authoring ledger route | Locate and read full entries for the affected rule/failure class rather than treating the entire growing ledger as a required read. | Preserve historical entries and inspect actual evidence, not a heading that sounds supportive. |
+| Next: `AGENTS.user.md`, Writing and summary style | Keep the concise preference, peer register, exact-phrasing signal, and diagnostic-gloss rule; move worked before/after examples and incident explanations out of ordinary boot. | These are user preferences, not defaults inferred from the model. Retain examples that distinguish easily confused preferences. |
+| Next: `AGENTS.frontier.md`, End-state over checklist | Require an explanation only for a material procedural deviation a reviewer needs to assess, rather than a public deduction for every already-satisfied step. | Observable gates, coordination, exact source reads after context loss, and explicit stops remain excluded from latitude. |
+| Next: method-topic reading routes | Replace broad whole-topic obligations with exact matching sections where the topic actually has separable concerns; retain full relevant modules when editing unfamiliar code. | Do not let a filename lookup stand in for reading the contract, or an isolated code line stand in for its callers and guards. |
+| Next: global and Codex edit-anchor text | Keep one shared copy-from-visible-source invariant and only harness-specific syntax in the supplement. Remove repeated rationale after checking the combined reading path. | Escaped source characters, intervening writers, truncation, and consumed tool handles are real mechanics, not assumed model competence. |
+
+Suggested replacement for the authoring population sentence:
+
+> Author the shared corpus for the frontier models used for real editing,
+> reasoning, and implementation. Keep redundancy when it resolves a concrete
+> ambiguity for that population; do not retain it solely for smaller models.
+
+Suggested replacement for the program-reading obligation:
+
+> At project entry, discover project-owned `PROGRAM.md` paths and read the
+> root program when present. Before acting in a subtree, read every applicable
+> ancestor program in full. Read all programs for a project-wide orientation,
+> audit, or change; exclude vendored and external repositories.
+
+These are reviewable drafts, not permissions to ignore the existing rule.
+The program change has a straightforward scope argument, but its effect on
+discovery mistakes still needs observation. Do not change post-compaction
+refresh based merely on the claim that Astra remembers better.
+
+### Astra-specific candidates
+
+Start with no additional teaching of ordinary competence. If a behavior still
+fails under the shared reduction, use its actual model, harness, request class,
+and defect class to choose scope. A raw error-rate difference between Astra and
+Sol does not show that a rule helps one more than the other: the question is
+the with/without-rule difference within each model, then their interaction.
+
+First candidates for an Astra presumption switch are the explanatory ceremony
+and generic design/checklist coaching above, not authorization, shared dirty
+work, exact model identity, shell escaping, or active-run ownership. Keep the
+same tests and acceptance contract. Any benefit should appear in less
+unnecessary reading/reasoning or fewer clarification turns without additional
+repair work. This session does not activate a presumption switch.
+
+Do not put negative overrides in `AGENTS.astra.md` merely to cancel paragraphs
+it still has to load from the shared source. Shared cuts benefit all selected
+models; genuinely model-dependent loading reductions require the separately
+proposed [durable boot compiler](../gaps/agent-specific-durable-boot-compilation.md).
+Model-scoped relaxations also require an explicit change to the current
+authoring policy, which presently admits tightenings only in model files.
+
+### Project amendments and the growth ratchet
+
+The project-local review covered `~/agents`, `~/ya`, `~/draft`, and `~/x`.
+YA-specific corrections belong in YA: its local and tracked instructions were
+reconciled around the existing formatting, blame, and isolated UI-verification
+contracts. Do not copy its operator recipes into global guidance.
+
+Other candidates remain proposals: the agents checkout's local commit section
+describes an obsolete global ask-before-commit default; draft's root boot still
+names `~/agents/AGENTS.md` as the global source; X repeats Gerrit identity and
+single-review requirements in several places. Preserve the actual per-project
+workflow and private exceptions while removing stale authority descriptions
+and repetitions. Do not infer from the shared frontier population that a
+temporary project model block, vendor boundary, or publish restriction expired.
+
+The authoring change worth trying is a replacement decision, not another
+per-incident checklist: after a mistake, consider no instruction change, a
+tool/interface fix, clarification of the owning rule, scoped text, and deletion
+of a misleading rule alongside addition. Price recurrence and consequence
+against repeated reading and compliance cost. One incident can justify a
+short protection against catastrophic loss; one cheap retry need not buy a
+permanent paragraph. Avoid a fixed one-in/one-out quota and automatic expiry
+of safety rules. These are candidate authoring themes, not discovered optima.
+
+The larger search is now specified in
+[`instruction-ablation.sketches.md`](instruction-ablation.sketches.md): find
+themes recurring in successful guidance-evolution trajectories, then project
+back to a minimal reasonable seed that can regenerate useful model-scoped,
+defect-scoped guidance. The deferred
+[testbed gap](../gaps/instruction-guidance-evolution-testbed.md) tracks that
+missing capability. Wait for a later model and explicit budget before running
+it; this proposal is not a queued experiment.

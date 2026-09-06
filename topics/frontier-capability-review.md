@@ -59,6 +59,7 @@ review occurred.
 | Opus continuation through long, compacted sessions | **Model-specific tightening.** | [`AGENTS.opus.md`](../AGENTS.opus.md) | Narrow or retire if a successor generation stops inferring false context exhaustion, or a harness exposes a reliable capacity signal the model uses correctly. |
 | Copilot route's strict delegation proof | **Route-specific tightening; the former global delegation gate is retired.** | [`AGENTS.copilot.md`](../AGENTS.copilot.md) | Relax if current route traces no longer show planning-subagent or overdelegation pressure; retain if the harness tendency persists. |
 | Post-compaction routed-packet refresh | **Conservative unknown-capability default; exact harness reconstruction may discharge it.** | [`AGENTS.global.md`](../AGENTS.global.md) and [`agent-instructions.md`](agent-instructions.md) | Adjust only from observed residency/retrieval behavior for the named harness, model, effort, packet, and request class, with a safe fallback. |
+| Shared procedural scaffolding on Astra and peer frontier models | **Reduction proposals only; no behavioral relaxation activated.** | [`agent-instructions.sketches.md`](agent-instructions.sketches.md#astra-and-shared-instruction-reductions) | Review broad reading obligations, repeated rationale, and public checklist deductions against useful work and correction cost. The [deferred testbed](../gaps/instruction-guidance-evolution-testbed.md) would test evolving guidance and minimal seeds; a model release alone does not authorize its expense. |
 
 ## Review output
 

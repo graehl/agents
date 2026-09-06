@@ -22,6 +22,13 @@ It is a **proposal**: as of writing, no instruction ablation has been
 run here. Treat the numbers and power estimates below as design
 targets, not results. <!-- assumed -->
 
+The deferred [guidance-evolution sketch](instruction-ablation.sketches.md)
+extends the question to authoring guidance itself: discover themes recurring
+in successful revision trajectories, then find a minimal seed that can evolve
+appropriate model- and defect-scoped instructions. Its
+[testbed gap](../gaps/instruction-guidance-evolution-testbed.md) tracks execution;
+the user has deferred expensive experiments until a later model and budget.
+
 ## Why this is hard, not just expensive
 
 The effect we are chasing is small. SWE-agent's interface ablation —
