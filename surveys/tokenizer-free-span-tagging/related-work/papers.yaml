@@ -644,3 +644,272 @@ papers:
     source: "ACL Anthology metadata and full paper checked 2026-09-06"
     fetched: 2026-09-06
     cluster: F
+
+  # --- H. train-then-mask: selecting a sub-architecture while training ---
+  # ACE is the grounded seed. The rest are the lineage located by the
+  # 2026-09-06 prior-art search; they are cited at recall level ([R]) with
+  # title/authors/year checked against the arXiv API, and venue verified
+  # only where the arXiv record states it.
+  - key: wang2021-ace
+    short: train-then-mask
+    title: "Automated Concatenation of Embeddings for Structured Prediction"
+    authors: ["Xinyu Wang", "Yong Jiang", "Nguyen Bach", "Tao Wang", "Zhongqiang Huang", "Fei Huang", "Kewei Tu"]
+    venue: "ACL-IJCNLP"
+    year: 2021
+    url: "https://aclanthology.org/2021.acl-long.206.pdf"
+    doi: "10.18653/v1/2021.acl-long.206"
+    arxiv: "2010.05006"
+    grounded: false
+    verified: true
+    source: "ACL Anthology metadata checked 2026-09-06; user-requested seed for the train-then-mask lineage, full-text extraction pending"
+    fetched: null
+    cluster: H
+
+  - key: han2015-weights-connections
+    title: "Learning both Weights and Connections for Efficient Neural Networks"
+    authors: ["Song Han", "Jeff Pool", "John Tran", "William J. Dally"]
+    venue: "NeurIPS"
+    year: 2015
+    url: "https://arxiv.org/abs/1506.02626"
+    arxiv: "1506.02626"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: NIPS 2015); recall-level lineage citation, not read for this survey"
+    fetched: null
+    cluster: H
+
+  - key: zhu2017-gradual-pruning
+    title: "To prune, or not to prune: exploring the efficacy of pruning for model compression"
+    authors: ["Michael Zhu", "Suyog Gupta"]
+    venue: "ICLR Workshop"
+    year: 2018
+    url: "https://arxiv.org/abs/1710.01878"
+    arxiv: "1710.01878"
+    grounded: false
+    verified: false
+    source: "arXiv API title/authors checked 2026-09-06; venue from recall, unconfirmed; recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: louizos2018-l0
+    title: "Learning Sparse Neural Networks through L0 Regularization"
+    authors: ["Christos Louizos", "Max Welling", "Diederik P. Kingma"]
+    venue: "ICLR"
+    year: 2018
+    url: "https://arxiv.org/abs/1712.01312"
+    arxiv: "1712.01312"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: ICLR 2018); recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: frankle2019-lottery-ticket
+    title: "The Lottery Ticket Hypothesis: Finding Sparse, Trainable Neural Networks"
+    authors: ["Jonathan Frankle", "Michael Carbin"]
+    venue: "ICLR"
+    year: 2019
+    url: "https://arxiv.org/abs/1803.03635"
+    arxiv: "1803.03635"
+    grounded: false
+    verified: false
+    source: "arXiv API title/authors checked 2026-09-06; venue from recall, unconfirmed; recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: zhou2019-supermask
+    title: "Deconstructing Lottery Tickets: Zeros, Signs, and the Supermask"
+    authors: ["Hattie Zhou", "Janice Lan", "Rosanne Liu", "Jason Yosinski"]
+    venue: "NeurIPS"
+    year: 2019
+    url: "https://arxiv.org/abs/1905.01067"
+    arxiv: "1905.01067"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: NeurIPS 2019); recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: gale2019-state-of-sparsity
+    title: "The State of Sparsity in Deep Neural Networks"
+    authors: ["Trevor Gale", "Erich Elsen", "Sara Hooker"]
+    venue: "arXiv"
+    year: 2019
+    url: "https://arxiv.org/abs/1902.09574"
+    arxiv: "1902.09574"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06; recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: renda2020-rewinding
+    title: "Comparing Rewinding and Fine-tuning in Neural Network Pruning"
+    authors: ["Alex Renda", "Jonathan Frankle", "Michael Carbin"]
+    venue: "ICLR"
+    year: 2020
+    url: "https://arxiv.org/abs/2003.02389"
+    arxiv: "2003.02389"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: ICLR 2020); recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: michel2019-sixteen-heads
+    title: "Are Sixteen Heads Really Better than One?"
+    authors: ["Paul Michel", "Omer Levy", "Graham Neubig"]
+    venue: "NeurIPS"
+    year: 2019
+    url: "https://arxiv.org/abs/1905.10650"
+    arxiv: "1905.10650"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: NeurIPS 2019); recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: voita2019-head-pruning
+    title: "Analyzing Multi-Head Self-Attention: Specialized Heads Do the Heavy Lifting, the Rest Can Be Pruned"
+    authors: ["Elena Voita", "David Talbot", "Fedor Moiseev", "Rico Sennrich", "Ivan Titov"]
+    venue: "ACL"
+    year: 2019
+    url: "https://arxiv.org/abs/1905.09418"
+    arxiv: "1905.09418"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: ACL 2019); recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: sanh2020-movement-pruning
+    title: "Movement Pruning: Adaptive Sparsity by Fine-Tuning"
+    authors: ["Victor Sanh", "Thomas Wolf", "Alexander M. Rush"]
+    venue: "NeurIPS"
+    year: 2020
+    url: "https://arxiv.org/abs/2005.07683"
+    arxiv: "2005.07683"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: NeurIPS 2020); recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: xia2022-cofi
+    title: "Structured Pruning Learns Compact and Accurate Models"
+    authors: ["Mengzhou Xia", "Zexuan Zhong", "Danqi Chen"]
+    venue: "ACL"
+    year: 2022
+    url: "https://aclanthology.org/2022.acl-long.107.pdf"
+    doi: "10.18653/v1/2022.acl-long.107"
+    arxiv: "2204.00408"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: ACL 2022); recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: xia2023-sheared-llama
+    title: "Sheared LLaMA: Accelerating Language Model Pre-training via Structured Pruning"
+    authors: ["Mengzhou Xia", "Tianyu Gao", "Zhiyuan Zeng", "Danqi Chen"]
+    venue: "ICLR"
+    year: 2024
+    url: "https://arxiv.org/abs/2310.06694"
+    arxiv: "2310.06694"
+    grounded: false
+    verified: false
+    source: "arXiv API title/authors checked 2026-09-06; venue from the authors' repository description, unconfirmed; recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: muralidharan2024-minitron
+    title: "Compact Language Models via Pruning and Knowledge Distillation"
+    authors: ["Saurav Muralidharan", "Sharath Turuvekere Sreenivas", "Raviraj Joshi", "Marcin Chochowski", "Mostofa Patwary", "Mohammad Shoeybi", "Bryan Catanzaro", "Jan Kautz", "Pavlo Molchanov"]
+    venue: "arXiv"
+    year: 2024
+    url: "https://arxiv.org/abs/2407.14679"
+    arxiv: "2407.14679"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06; recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: pham2018-enas
+    title: "Efficient Neural Architecture Search via Parameter Sharing"
+    authors: ["Hieu Pham", "Melody Y. Guan", "Barret Zoph", "Quoc V. Le", "Jeff Dean"]
+    venue: "ICML"
+    year: 2018
+    url: "https://arxiv.org/abs/1802.03268"
+    arxiv: "1802.03268"
+    grounded: false
+    verified: false
+    source: "arXiv API title/authors checked 2026-09-06; venue from recall, unconfirmed; recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: liu2019-darts
+    title: "DARTS: Differentiable Architecture Search"
+    authors: ["Hanxiao Liu", "Karen Simonyan", "Yiming Yang"]
+    venue: "ICLR"
+    year: 2019
+    url: "https://arxiv.org/abs/1806.09055"
+    arxiv: "1806.09055"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: ICLR 2019); recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: cai2020-once-for-all
+    title: "Once-for-All: Train One Network and Specialize it for Efficient Deployment"
+    authors: ["Han Cai", "Chuang Gan", "Tianzhe Wang", "Zhekai Zhang", "Song Han"]
+    venue: "ICLR"
+    year: 2020
+    url: "https://arxiv.org/abs/1908.09791"
+    arxiv: "1908.09791"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata checked 2026-09-06 (comment: ICLR 2020); recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: fan2020-layerdrop
+    title: "Reducing Transformer Depth on Demand with Structured Dropout"
+    authors: ["Angela Fan", "Edouard Grave", "Armand Joulin"]
+    venue: "ICLR"
+    year: 2020
+    url: "https://arxiv.org/abs/1909.11556"
+    arxiv: "1909.11556"
+    grounded: false
+    verified: false
+    source: "arXiv API title/authors checked 2026-09-06; venue from recall, unconfirmed; recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: neverova2015-moddrop
+    title: "ModDrop: adaptive multi-modal gesture recognition"
+    authors: ["Natalia Neverova", "Christian Wolf", "Graham W. Taylor", "Florian Nebout"]
+    venue: "IEEE TPAMI"
+    year: 2016
+    url: "https://arxiv.org/abs/1501.00102"
+    arxiv: "1501.00102"
+    grounded: false
+    verified: false
+    source: "arXiv API title/authors checked 2026-09-06 (arXiv v1 2014); journal venue/year from recall, unconfirmed; recall-level lineage citation"
+    fetched: null
+    cluster: H
+
+  - key: zhao2021-autodim
+    title: "AutoDim: Field-aware Embedding Dimension Search in Recommender Systems"
+    authors: ["Xiangyu Zhao", "Haochen Liu", "Hui Liu", "Jiliang Tang", "Weiwei Guo", "Jun Shi", "Sida Wang", "Huiji Gao", "Bo Long"]
+    venue: "WWW"
+    year: 2021
+    url: "https://dl.acm.org/doi/10.1145/3442381.3450124"
+    doi: "10.1145/3442381.3450124"
+    arxiv: "2006.14827"
+    grounded: false
+    verified: false
+    source: "arXiv 2006.14827 carries the preprint title 'Memory-efficient Embedding for Recommendations'; WWW title/DOI from ACM DL search hit 2026-09-06, unconfirmed against the page; recall-level lineage citation"
+    fetched: null
+    cluster: H
