@@ -652,6 +652,7 @@ papers:
   # only where the arXiv record states it.
   - key: wang2021-ace
     short: train-then-mask
+    concept_page: concepts/train-then-mask.md
     title: "Automated Concatenation of Embeddings for Structured Prediction"
     authors: ["Xinyu Wang", "Yong Jiang", "Nguyen Bach", "Tao Wang", "Zhongqiang Huang", "Fei Huang", "Kewei Tu"]
     venue: "ACL-IJCNLP"
@@ -659,10 +660,10 @@ papers:
     url: "https://aclanthology.org/2021.acl-long.206.pdf"
     doi: "10.18653/v1/2021.acl-long.206"
     arxiv: "2010.05006"
-    grounded: false
+    grounded: true
     verified: true
-    source: "ACL Anthology metadata checked 2026-09-06; user-requested seed for the train-then-mask lineage, full-text extraction pending"
-    fetched: null
+    source: "ACL Anthology metadata checked 2026-09-06; full text read from the arXiv HTML extract the same day"
+    fetched: 2026-09-06
     cluster: H
 
   - key: han2015-weights-connections

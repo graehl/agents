@@ -67,6 +67,47 @@ student disagree about tokenization, but they agree about *character offsets*, s
 teacher span decisions and even token-level posteriors can be projected onto
 character positions. No located paper does this.
 
+### Void 3 — prior-gated input-channel selection with hard pruning and recovery from the full model
+
+Axes for this void, from the [train-then-mask](concepts/train-then-mask.md)
+digest: **what is masked** (input channels here) × **who decides** (validation
+reward through a discrete controller / sparsity prior on continuous gates /
+magnitude or movement schedule / random drop) × **recovery after the
+commitment** (none / fine-tune / rewind / continued training / distillation
+from the unpruned parent).
+
+| what is masked | who decides | recovery | status | evidence |
+|---|---|---|---|---|
+| input channels, structured prediction | discrete controller, dev reward | none (continue-trained model is kept) | `filled` | ACE `[G]`: beats `All`; continue beats retrain |
+| input channels, structured prediction | soft gate, no prior | none | `tried-failed` | ACE `All+Weight` stays at `All` |
+| input modalities | random drop | none | `filled` | ModDrop `[R]` |
+| embedding dimensions, recommenders | Gumbel-softmax gate, then argmax | retrain from scratch | `filled` | AutoDim `[R]` |
+| heads / widths / layers of one transformer | `L0` gates | distillation from the unpruned model | `filled` | CoFi `[R]`; Minitron `[R]` (prune then distil); Sheared LLaMA `[R]` (continued pretraining) |
+| input channels, structured prediction | sparsity prior on gates, hard prune at the plateau | continue training with distillation from the full model | **`untried`** | no located work |
+
+**Why it is unexplored, plausibly:** ACE needed a discrete controller because
+dev accuracy is not differentiable and its own soft gate did not select; the
+prior-based pruning line targets the internals of one pretrained transformer,
+where the gate sits inside a differentiable loss; AutoDim did gate embedding
+choices with a prior but retrained from scratch rather than continuing with
+the parent as teacher. Nobody has needed to cross the two.
+
+**Why it would matter:** for the chars-only tagger the candidate channels
+(deep character CNN, hashed n-grams, hashed orthographic features, task-trained
+character embedding, and a training-only frozen subword channel) are exactly
+the heterogeneous inputs ACE selects among, and ACE's continue-beats-retrain
+result says the recovery step is where the value is. If a prior-gated version
+matches ACE at a fraction of its 45 GPU-hours per dataset, channel selection
+becomes a routine pre-flight rather than a search campaign.
+
+**Cheapest discriminating check:** on one CoNLL language, gate the channels
+with hard-concrete `L0` under one shared tagger; prune when the gates
+plateau; continue training the survivors with and without distillation from
+the unpruned checkpoint; compare against ACE-style random search at equal GPU
+budget and against `All`. Report the selected subset, the recovery delta, and
+whether the training-only subword channel is dropped by the gate before
+deployment.
+
 ## Falsification gate
 
 `prior-art-checked: 2026-08-16`
@@ -102,6 +143,28 @@ combination (character input + convolutional backbone + distilled from a
 multilingual encoder + span tagging) and only **moderate** for each ingredient
 pair, since applied work that does not describe itself in these terms is the
 residual risk.
+
+`prior-art-checked: 2026-09-06` (Void 3)
+
+- Semantic Scholar forward citations of ACE (arXiv:2010.05006, 100 most
+  recent): applied NER/parsing systems and surveys; the only embedding-fusion
+  descendant is CEEF (2025, contextual-entity embedding fusion); nothing
+  revisits the search mechanism or adds a recovery step.
+- Web search on pruning-during-training lineages: gradual magnitude pruning,
+  `L0` regularization, lottery tickets and supermasks, rewinding versus
+  fine-tuning, head pruning (Michel; Voita), movement pruning, CoFi, Sheared
+  LLaMA, Minitron; one-shot NAS (ENAS, DARTS and its discretization gap,
+  once-for-all); structured dropout (LayerDrop, ModDrop); embedding-selection
+  NAS in recommenders (AutoEmb, AutoDim). All target model internals, whole
+  modalities, or embedding sizes; none gates heterogeneous input channels of
+  a structured predictor and recovers with the full model as teacher.
+- Web search for learned embedding-type selection in sequence labelling
+  (Flair stacked embeddings, "embedding selection", learned input masks):
+  returned ACE itself and stacking recipes; no gated or pruned variant.
+
+Void 3 survives. Novelty confidence is **moderate**: the ingredients are all
+standard, so the residual risk is an applied paper that gates input features
+with a sparsity penalty without naming it as such.
 
 ## Capstone ranking
 
@@ -146,3 +209,12 @@ residual risk.
   13.8 F1). `single-source`, one architecture, one pretraining setup. This is the
   load-bearing assumption of capstone 1; the check above tests it directly and
   cheaply.
+- **"The continue-trained channel subset beats the same subset retrained from
+  scratch"** (ACE Appendix B.3: +0.4 NER, +0.9 POS, +2.0 aspect extraction,
+  ties elsewhere). Regime: frozen contextual channels, BiLSTM-CRF task model,
+  CoNLL-scale data, three seeds, no interval; the continue-trained model had up
+  to thirty schedules against one. Independent check: none located. Cheapest
+  discriminating check: retrain with a matched total epoch budget, and
+  separately continue from the `All` checkpoint under the searched mask for one
+  schedule. Revisit when Void 3's check runs. The Spanish `ACE+Fine-tune` 95.9
+  against 89.3 is filed with it as an unreproduced outlier.
