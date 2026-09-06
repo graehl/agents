@@ -32,40 +32,20 @@ prefer `AGENT_LAUNCH_ROUTE` and `AGENT_LAUNCH_BACKEND` when present.
 
 ## Markers delivered through the Bash bridge
 
-YA normally delivers these once it knows the canonical session id, through the
-`BASH_ENV` file rather than the agent process environment. They appear in
-ordinary Bash calls and are absent from the agent process's own
-`/proc/self/environ`; an early absence on a new session is normal, and a resume
-can carry the id from the start. Current builds publish `AGENTCTL_SESSION_ID`
-plus the two legacy `YEP_*` pairs. The canonical pair rows are reader contracts
-for the pending publisher migration, not claims that current YA publishes them.
-
-| Marker | Publication / meaning |
-|---|---|
-| `AGENTCTL_SESSION_ID` | current canonical YA session id — the resumable id to register and to pass to `agentctl` |
-| `AGENT_SESSION_WAKE_URL`, `AGENT_SESSION_WAKE_TOKEN` | canonical wake target; prefer the complete pair when published; never log the token |
-| `YEP_SESSION_WAKE_URL`, `YEP_SESSION_WAKE_TOKEN` | current YA compatibility outputs for the canonical wake pair |
-| `AGENT_BROWSER_DEBUG_BROKER_URL`, `AGENT_BROWSER_DEBUG_CALLER_TOKEN` | canonical browser-debug target; prefer the complete pair when published; never log the token |
-| `YEP_BROWSER_DEBUG_AGENT_URL`, `YEP_BROWSER_DEBUG_CALLER_TOKEN` | current YA compatibility outputs for the canonical browser-debug pair |
-
-The wake values are YA-owned outputs, never operator inputs. Browser-debug
-credentials are useful only with a separately pasted tab grant. A complete
-canonical pair wins; do not combine one canonical value with one legacy value.
+YA may publish `AGENTCTL_SESSION_ID` and session capabilities late through
+`BASH_ENV`; check an ordinary Bash call, not the agent process environment.
+An early absence on a fresh session is normal. Before using or diagnosing
+wake/browser credentials or child-environment propagation, read the matching
+sections of `topics/AGENT_ENV_VARS.md`, including YA late publication and
+compatibility names. Prefer complete canonical pairs; never mix a canonical
+and legacy value or log a token. Browser access also needs the separate tab
+grant; wake values are YA-owned outputs, not operator inputs.
 
 ## Namespace transition
 
-YA strips inherited `YEP_*` and `YA_*` from the environment it hands a provider
-child on purpose: its own configuration is not the agent's, and a leaked value
-changes tooling behavior inside the project. Canonical agent-facing values use
-`AGENT_*`. Current product-prefixed session outputs survive only because YA
-explicitly injects or allowlists them; they remain compatibility aliases while
-`~/ya/gaps/agent-facing-env-markers.md` tracks the publisher migration.
-
-Do not use those aliases as naming precedent. `YEP_AGENT_HARNESS`,
-`YEP_AGENT_INITIAL_MODEL`, and `YEP_AGENT_INITIAL_EFFORT` were set on the
-provider worker but filtered back out one process later, so no Claude session
-ever saw them between their introduction and 2026-08-17. The complete variable
-inventory and child-boundary behavior is in `topics/AGENT_ENV_VARS.md`.
+Agent-facing names use `AGENT_*`. Accept only the compatibility aliases in
+`topics/AGENT_ENV_VARS.md`; do not use `YEP_*`/`YA_*` as naming precedent.
+That topic owns filtering and migration details.
 
 ## The server supervising you
 

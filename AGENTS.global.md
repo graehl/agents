@@ -50,24 +50,11 @@ When a resumed handoff starts with `/goal X`, process that line as a separate
 user turn immediately preceding the remaining handoff, which is the following
 request.
 
-A handoff that relies on a durable advisor-type co-session records its logical
-metadata path and every serving incumbent's verified canonical durable harness
-resume id immediately after the optional `/goal X` line. When a public address
-or provider-native handle differs, the local address records each available
-identity. If the durable id is not yet recoverable, record that fact and the
-best durable address instead. An instruction to consult the advisor also
-carries a stable intake id. `topics/handoffs.md` owns the repeatable syntax,
-session-id check, deduplication, completeness-review packet, and treatment of
-advisor claims.
-
 Before creating or updating a handoff, read `topics/handoffs.md` (repo-local,
-else global). Maintain the handoff already governing the work only at
-significant milestones that make its state or next step materially false, not
-between routine edit/build/test actions. When no artifact governs material
-unfinished work, that topic chooses between a project gap and private
-`tasks/auto-handoff-<slug>.md`, while non-blocking candidate improvements stay
-in the owning topic's `.sketches.md` companion or an established plan;
-`tasks/ROOT` is irrelevant to this choice.
+else global). Keep the governing artifact current at significant milestones,
+not between routine edits/tests. That topic owns fallback placement, advisor
+metadata and verified resume ids, stable consultation intake ids, and review
+mechanics. Record an unrecoverable advisor id as such; never invent one.
 
 ## Active sessions
 
@@ -201,10 +188,11 @@ markers and capabilities that launcher publishes into the session and the
 behavior that depends on it being the launcher.
 
 Before writing/editing any agent instruction, global/project rule, supplement,
-skill, glossary row, or instruction topic, read
-`topics/agent-instructions.md` and its evidence ledger; follow
-`topics/evidence-ledger.md` for ledger changes. Optional pre-compression
-clarification is grouped by activation concern under `AGENTS/`.
+skill, glossary row, or instruction topic, read the applicable sections of
+`topics/agent-instructions.md` and locate and read complete evidence-ledger
+entries for the affected rules/failure classes. The whole ledger is not a
+routine read. Follow `topics/evidence-ledger.md` when changing a ledger.
+Optional clarification is grouped by activation concern under `AGENTS/`.
 
 ## Point to authored instruction text
 
@@ -222,13 +210,15 @@ Persist labeled rules:
 
 ## Load-bearing instructions
 
-Keep only text that changes capable-agent behavior: user preferences,
-project-specific context, deliberate counters to defaults, and rules preventing
-observed failures. Move rationale that does not sharpen a decision surface to
-the evidence ledger. Preserve examples/redundancy that stop weaker agents
-reasoning around counterintuitive rules. A routed main file retains its trigger,
-action, and persistence span; supplemental clarification never becomes the
-only place a binding rule exists.
+Choose and revise procedures by the user's actual intent and required outcomes.
+Author shared guidance for the frontier models used for real editing,
+reasoning, and implementation. Keep user preferences, project facts, deliberate
+counters to defaults, and observed-failure protections. Retain redundancy only
+when it resolves a concrete ambiguity for that population; keep weaker-only
+scaffolding in scoped supplements or failure routes. Move non-steering rationale
+to the evidence ledger. A routed main retains the trigger, immediate action, and
+persistence span; binding detail lives at that route, never only in optional
+clarification.
 
 ## Project-level instructions
 
@@ -238,15 +228,16 @@ repo—fully read, when present:
 1. root `AGENTS.md`;
 2. `AGENTS.local.md`;
 3. `CLAUDE.md`;
-4. any README named by those as instruction source; and
-5. every project-owned `PROGRAM.md`, located after reading the instruction
-   files above.
+4. any README named by those as an instruction source.
 
-Program files are concise project orientation and may contain scoped binding
-instructions; fully read all of them rather than assuming a root charter lists
-every subprogram. Exclude vendored/external repositories. An existence
-probe/slice and task files do not satisfy these reads. Do not reread on later
-returns in the same session. Report an unreadable/broken file once.
+Then discover project-owned `PROGRAM.md` paths and read the root program, if
+present. Before interpreting or acting in a subtree, read its full ancestor
+program chain, including its own charter. Read all programs for project-wide
+orientation, scope selection across programs, audits, or changes. A root
+charter's optional child list is not the discovery index. Exclude vendored and
+external repositories. Probes/slices and task files do not substitute for the
+required bodies. Do not repeat project-entry reads on later returns in the
+same session; report an unreadable/broken file once.
 
 When an unfamiliar subdirectory's purpose, placement rules, or local
 conventions remain unclear, read the nearest `README.md` in that directory or
@@ -474,56 +465,31 @@ narrows it.
 
 ## Commit messages
 
-Trivial commits may be subject-only plus model trailer. A non-trivial message
-is a reviewer on-ramp for a fresh human with no session context: lead with why,
-decision, and outcome; account for each non-trivial file group at that level;
-include material user decisions/non-obvious rejected paths and real coverage
-gaps; omit secrets, iteration chronology, and test lists.
-
-When a commit lands only part of the current user-requested goal, begin its body
-(after any `Onboarding:` line) with `Series goal:`, `This commit:`, and
-`Remaining after this commit:` as line-start labels in that order; blank lines
-between them are optional. State the active request scope, the landed portion,
-and the substantive remainder. Cite an accurate committed topic/gap/plan when
-available; otherwise summarize the active task in place. Use ordinary narrative
-when the commit lands the whole goal; never emit empty labels or `None`.
-
-Before first review, revise toward one printed page or less. Keep only the
-shortest orienting what. Trivial small changes may name every edit. Durable
-implementation detail belongs, after journal review, in
-`topics/journals/<task-or-topic>.md`.
-
-When a committed topic governs the work, put
-`Onboarding: <project-relative-topic-path>` immediately after the subject. That
-topic must be self-contained for the fresh reviewer before the diff. Keep
-`Topic:` trailers.
-Split thematically unrelated large work; keep closely related work together.
-Read `topics/commits.md` before any non-trivial message or history rewrite.
+Trivial commits may be subject-only plus model trailer. Before a non-trivial
+message, read `topics/commits.md` § Commit messages: lead with why, decision,
+and outcome for a fresh reviewer; format and lint the message. When a topic
+governs the work, include `Onboarding: <project-relative-topic-path>` after the
+subject. Partial landings state the series goal, this portion, and substantive
+remainder using `commits.md`'s three-label format. Omit empty labels, iteration
+chronology, and test lists. Split unrelated large work; keep related changes
+together.
 
 ### Amends
 
-Keep the subject and full existing message except deliberate corrections;
-capture the complete message before editing. Preserve trailers/Change-Id and
-collapse process logs into one current purpose/outcome synthesis. Never amend
-after a PR opens.
-
-Before any rewrite, require no active peers and verify the target commit is
-this session's intended work. Do not rewind shared HEAD to reorganize while a
-peer is active; use a forward commit, separate worktree, or `agentctl alone`.
-A multi-command rewrite holds
-`agentctl alone <id> -b "REWRITE: <what>"` for its full duration and clears the
-banner afterward. Before every commit, wait while a fresh non-self `REWRITE`
-entry exists. One-command amend needs the same peer check but no rewrite banner.
-Full preservation/filter mechanics: `topics/commits.md`.
+Before any history rewrite, read the matching amend/rewrite sections of
+`topics/commits.md`, require no active peers, and verify the target is this
+session's intended work. Capture the complete existing message before an
+amend; preserve it and its trailers/Change-Id except deliberate corrections.
+Never amend after a PR opens. A multi-command rewrite holds the `agentctl
+alone` REWRITE banner throughout. Before every commit, wait while a fresh
+non-self REWRITE entry exists. Never rewind shared HEAD around a peer's work.
 
 ### Topic trailers
 
 Related-series commits carry `Topic: <topic-name>`, copied verbatim across the
-series; multiple topics mean multiple trailers. A project-wide topic keeps its
-basename. A glossary-scoped topic prefixes that basename with the owning
-glossary directory, omitting the mechanical `topics/` segment: for example,
-`research/pii/topics/redaction.md` is `Topic: research/pii/redaction`. It marks
-thread membership, not merely a touched topic file.
+series. Before choosing a new series name, read `topics/commits.md` § Topic
+trailers for glossary-scoped naming. The trailer marks thread membership,
+not merely a touched file; multiple topics get separate trailers.
 
 ### Contributing-model trailer
 
@@ -643,50 +609,36 @@ for a directory that already existed unless the user asks.
 
 ## Project topics
 
-Every `GLOSSARY.md` defines a topic scope. Its named terms are topic-like even
-when their canonical docs live elsewhere. Existing glossary-linked docs win;
-do not move or duplicate one merely to fit the layout. Formal topic docs hold
-cross-cutting contracts/invariants/project-facing knowledge, not module notes
-or changelogs. Before a root glossary exists, the project root is the implicit
-topic scope and owns root `topics/*.md` (or the alternate
-`docs/topics/*.md`). A project-root glossary, once present, owns that same
-collection; a scoped glossary owns its sibling `topics/*.md`.
+Formal topics hold cross-cutting contracts and project-facing knowledge.
+Follow an existing glossary-linked canonical doc before creating or moving one.
+Each glossary owns sibling `topics/`; the project root is the implicit scope
+before a root glossary exists. Before creating a topic or choosing its scope,
+read `TOPICS.md` § Landing-site principles and Glossary-owned topic scopes.
+Default to the current project and the broadest scope where the concern fits
+naturally; use `~/agents` only for reusable agent workflow or explicit user
+direction. Create collections on first need. Candidate designs belong in the
+owning `.sketches.md`, outside routine topic reads.
 
-When creating a topic doc, default to the current project and choose the
-broadest active glossary scope that naturally owns the concern. Keep it local
-when a parent-scope doc would mostly speak in qualified subtree/program names;
-promote it as its real audience widens. Use `~/agents` only for clearly
-reusable general agent workflow or explicit user direction. Create `topics/`
-on first need, not proactively. Read `TOPICS.md` when choosing granularity or
-scope. Dormant or candidate designs belong in the owning topic's
-`.sketches.md` companion so ordinary topic reads do not mix current guidance
-with possible futures.
-
-An optional `PROGRAM.md` beside a `GLOSSARY.md` declares a program scope and
-states its durable spanning aspirations, themes, and boundaries—not plans or
-current status. The directory path is its canonical locator; an optional
-first-line `# Program <short name>` supplies an alternative formal name. A
-Markdown section headed exactly `Program instructions` is binding for work in
-that directory subtree, including its nested subsections until the next heading
-of equal or higher level. Applicable global and project agent instruction files
-win; ancestor program instructions apply inward and the nearer rule wins on a
-conflict. Other `PROGRAM.md` content is descriptive.
-
-On “update program scope,” revise or infer only the nearest applicable
-descriptive charter from recent user direction and repository evidence; “all
-program scopes” applies that pass project-wide. Do not infer or revise program
-instructions without explicit user direction, or create a charter where no
-coherent program is inferable. Read `TOPICS.md` for full scope and parent/child
-mechanics.
+`PROGRAM.md` declares a scope's durable aspirations and boundaries. Its exact
+`Program instructions` heading binds the subtree through the next equal/higher
+heading; nested subsections belong to it. Ancestor rules apply inward, nearer
+program rules win conflicts, and global/project agent instructions take
+precedence. Other charter text is descriptive. Before creating, updating, or
+interpreting a charter's scope, read `TOPICS.md` § Program scope charters.
+“Update program scope” revises/infers the nearest descriptive charter; “all
+program scopes” applies that project-wide. Never infer or revise binding
+program instructions without explicit user direction, or invent a charter
+without a coherent program.
 
 Before changing a concern, committing a significant plan, resuming, or
-responding to bearings/orientation language, read its topic and
+responding to bearings/orientation language, read its relevant topic sections and
 `.bearings.md` companion. Method topics load at their verb (debug/test/
 prototype). Bearings orient but do not replace live evidence.
 
-Before finalizing a non-trivial commit, read topics for the changed concern,
-check whether the diff falsifies them, add/update a cross-cutting topic when
-needed, and decide trailers. Read `topics/topic-doc-format.md` before creating/
+Before finalizing a non-trivial commit, read relevant topic sections for the
+changed concern, check whether the diff falsifies them, add/update a
+cross-cutting topic when needed, and decide trailers. Read
+`topics/topic-doc-format.md` before creating/
 normalizing topic docs, companion suffixes, bearings, or epistemic labels.
 
 ## Alternate directory layouts

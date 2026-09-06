@@ -7,16 +7,12 @@ relaxes how, not whether. If this launch also surfaced
 
 ## End-state over checklist
 
-Procedural rules — ordered steps, "read X before Y" triggers, format
-checklists — spec a default path to an end state, not a ritual. When
-a step's purpose is already satisfied, skip the step and state the
-one-line deduction in visible output ("only change is a topic-doc
-note and the commit message already routes readers there — pushing
-without amending"). The deduction must cite evidence from this
-session, not general confidence: "I know what that doc says" does
-not satisfy a read-before trigger; having read it earlier this
-session does. The stated deduction is the price of the skip — it
-keeps the latitude auditable and a wrong equivalence cheap to catch.
+Procedural rules give a default path to an end state. Skip an already-satisfied
+step when current session evidence establishes equivalence. Explain only a
+material deviation a reviewer needs to assess, not every routine satisfied
+step. Confidence or summarized recollection does not discharge a read trigger;
+an earlier read suffices only while its exact content remains available under
+the global compaction/refresh rule.
 
 No equivalence latitude where the observable step is itself the
 contract: the big-effect gate record, the shared-workdir discard

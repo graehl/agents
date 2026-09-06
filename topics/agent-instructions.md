@@ -43,12 +43,16 @@ repository remains usable without the other.
 
 - Instruction changes should be load-bearing: they should steer behavior that
   a capable agent would otherwise plausibly get wrong.
+- Judge revisions across the corpus by the user's generalized intent and the
+  required outcome. Historical checklists may be speculative or compensate for
+  older models; their wording is revisable. Preserve useful capabilities,
+  local facts, explicit preferences, authorization, and work preservation.
 - A rule that introduces process cost should identify the failure mode it
   prevents.
 - Procedural rules should name the end state their steps serve, so a
   capable reader can judge when a step's purpose is already met
   (`AGENTS.frontier.md` grants that step-skipping latitude explicitly,
-  priced at a stated one-line deduction). When the observable step
+  with an explanation for material deviations). When the observable step
   itself is the contract — a gate record, a stop, a coordination
   write — the rule should say so rather than leave it to inference.
 - Topic and theory names should stay searchable from commits, tasks, and
@@ -56,10 +60,12 @@ repository remains usable without the other.
 - Theory docs should explain why contracts are believed, not accumulate a
   chronological list of every change.
 - Boot-loaded text (`AGENTS.global.md`, routed model/harness supplements, and
-  anything else read every session) budgets every token: a sentence earns its place only by
-  steering behavior. Worked examples and rationale that stop a weaker
-  agent reasoning around a rule qualify. When the user endorses a
-  rule's rationale, do not offer to write the endorsement back into
+  anything else read every session) budgets every token: a sentence earns its
+  place by steering behavior in the frontier editing/thinking population.
+  Examples qualify when they resolve a concrete ambiguity for those models;
+  smaller-model scaffolding belongs in scoped supplements or failure routes.
+  When the user endorses a rule's rationale, do not offer to write the
+  endorsement back into
   the rule — that is validating commentary, not steering; it belongs
   in the unloaded riders (`.evidence.md`).
 - Instructions should steer behavior, not flatter the reader. Prefer
@@ -129,6 +135,14 @@ the awareness is worth that tax is untested — an ablation-shaped
 question like the rest of this file (see *Limits of these methods*).
 
 ## Section extraction
+
+Scoped extraction is an ordinary instruction-authoring technique. A reversible
+change need not await an outcome experiment: verify that the trigger reaches
+the full displaced contract, preserve the immediate steer and persistence
+span, and trace realistic misfires. User-reported session experience supports
+successful scoped reads since at least Opus 4.8/Sol; it does not establish an
+optimal refresh cadence or the outcome effect of each rule. Price an extraction
+by the combined loading path, not just the smaller root file.
 
 The instruction surface is every file reachable at its trigger moment
 (before committing, before testing, on a named verb or situation), not
@@ -225,22 +239,27 @@ situation makes this rule backfire?" Compression is the highest-risk case —
 a reword can invert a rule's logic while still reading fine on the page,
 and the inversion surfaces only in a trace.
 
-Past trace passes and what they caught are recorded in the companion
-ledger `agent-instructions.evidence.md` — consult it when proposing an
-instruction change, not routinely.
+Past trace passes and what they caught are recorded in
+`agent-instructions.evidence.md`. Locate and read complete entries for the
+affected rule/failure class, not the entire growing ledger. Search alternate
+terms when a first lookup misses relevant history; a heading alone is not
+evidence. Historical entries remain append-only.
 
-When a trace exposes that the rule's gap is only safe because a frontier
-agent infers around it, prefer adding redundancy (a worked example, or the
-rule's rationale) over leaving the gap, since non-frontier agents also edit
-these projects.
+After an incident, consider no instruction change, a tool/interface fix,
+clarifying the owner, narrower routing, or removing misleading text alongside
+addition. Price recurrence and consequence against repeated reading and
+compliance cost. One catastrophic failure can justify a short protection;
+one cheap retry need not buy a permanent paragraph. Do not impose a text quota
+or automatic expiry on safety rules. Retain examples when they resolve a
+plausible ambiguity for the frontier models doing real work, rather than
+compensating everywhere for hypothetical smaller-model readers.
 
 ## Limits of these methods
 
-The verification apparatus here — trace-simulation and the
-`*.evidence.md` ledgers — is intuition-grade, not measurement. Every
-rule rests on the unverified premise that an agent reads meaningful
-text and acts on it; none has been validated by an outcome comparison
-(see `agent-instructions.evidence.md`, 2026-05-29).
+Trace simulation predicts behavior; ordinary session evidence can establish
+that a scoped read or failure occurred. Neither establishes a rule's causal
+effect on task quality or cost. No controlled outcome comparison has validated
+this corpus (see `agent-instructions.evidence.md`, 2026-05-29 and 2026-09-06).
 
 Be skeptical of the evidence-ledger ritual itself. Appending something
 true and interesting-in-the-moment *feels* like progress — capture,

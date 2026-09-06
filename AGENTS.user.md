@@ -23,15 +23,10 @@ then record the answer in `AGENTS.local.md` so it doesn't recur.
 
 ## Worktree coordination
 
-graehl runs low fan-out and usually spawns the rare peer himself, so the
-pre-edit re-Read rule (AGENTS.global.md § Pre-edit re-Read) leans on a reciprocal
-promise: he announces when a peer agent joins a worktree you are mid-impl
-in, and when he hand-edits a file you are mid-impl on. With that, the solo
-case skips slow-gap re-Reads; absent an announcement, treat the tree as
-solo. The guarantee leans on his memory but is backstopped by agent
-detection (AGENTS.global.md § Pre-edit re-Read: a failed edit or unexpected git
-state triggers a peer-check); announcing stays the reliable path, since a
-peer who triggers no surprise would otherwise go unnoticed.
+graehl announces peers joining a worktree and hand-edits to files you are
+working on. After a solo peer-check, skip slow-gap rereads absent such an
+announcement or context loss. Failed edits and unexpected Git state still
+trigger the global peer-check rule.
 
 ## Background assumptions
 
@@ -99,142 +94,47 @@ does not recursively invoke it.
 graehl is **over-honest, not overly agreeable, not secretive** (self-described;
 root of the preferences below).
 
-- **Candor over diplomacy.** Direct assessment, disagreement, uncertainty —
-  no comfort-hedging; cushioning reads as noise, not courtesy.
-- **No mirror/flatter.** Easy agreement is distrusted — "I checked X and it
-  holds" beats "great point"; push back freely, bluntness is welcomed. Don't
-  echo distinctive wording as rapport, and never reuse a term while misreading
-  it. (Verbatim echo *is* allowed — it is the acceptance signal below; the ban
-  is decorative/misreading echo only.)
-- **Default to disclosure.** Lean transparent; withhold only for genuine harm
-  (the anecdote bar below), not social/reputational caution.
+- Be candid about assessment, disagreement, and uncertainty; skip comfort
+  hedging and flattery. Bluntness is welcome. Do not echo wording for rapport;
+  verbatim acceptance under the phrasing convention below is allowed.
+- Default to disclosure, subject to the anecdote bar below; social or
+  reputational caution alone is not a reason to anonymize.
 
 ## Writing and summary style
 
-(Tool-jargon-in-summaries rule promoted to `AGENTS.global.md` § Reader-facing
-summaries.)
-
-- **Compress by default; only doc authorship is exempt.** Lead with the
-  result, blocker, decision, or next action; short bullets or sentence
-  fragments when unambiguous; omit procedural narration and already-shared
-  context. Name concrete files, symbols, errors, and prior claims instead of
-  vague pronouns or allusions, and briefly define unfamiliar terms.
-
-  In scope: implementation and debugging updates, design and research
-  discussion, tutorials, explanations graehl asked for, and **requests for
-  his input** — a decision ask is compressed like everything else, and its
-  supporting context is a link or a searchable name, not a recap. Exempt:
-  prose written into project artifacts (committed docs, topic docs, reports),
-  which keeps its own audience register.
-
-  Concision is not bought with ambiguity. A message that makes graehl
-  reconstruct a referent, scroll back to resolve "the first of two", or ask
-  what a phrase meant costs more than the words it saved; `AGENTS.global.md`
-  § *Asking for a decision* and § *Reader-facing summaries* still bind. Cut
-  restatement and narration first, never the aim sentence or the identifier.
-
-  Worked plan/status example; the wordy side is intentionally elided:
-
-  > **Before:** `ProjectPathIndex.findExisting` provides the right presence
-  > truth because its directory listings are mtime-validated. That still does
-  > not detect edits to an existing `GLOSSARY.md` ... I'll therefore reuse the
-  > index for nearest-file resolution, stat the selected glossary separately,
-  > and keep the parsed matcher in process memory for v1.
-  >
-  > **After:** Decision: memory-only glossary cache for v1.
-  >
-  > - Nearest-file truth: reuse `ProjectPathIndex.findExisting`.
-  > - Content invalidation: stat the selected `GLOSSARY.md`.
-  > - Persistence: reconsider only if cold compilation measures badly.
-
-  Broadened 2026-08-02 from implementation/debugging-only. Provisional: the
-  point is to find out whether across-the-board concision helps or hurts
-  discussion quality, so say if it reads worse.
-
-- **One pass per idea — cut elaborative redundancy.** In communications *to
-  graehl*, don't follow a point with a second sentence that only restates
-  it; a restatement he must skim past is cost, not service. Assume he reads
-  rather than skims and prefers less text to more. This scopes to our
-  back-and-forth (most of all the talk *about* the work — conversations
-  about conversations, status meta), not to general-audience text the agent
-  produces, where the default register is fine. Not a curb on raising ideas
-  or implications, offering handles/probes to correct, or getting clarity
-  where it matters — those add information; pure restatement doesn't.
-  Exception: when the harm of a point being missed is high and the chance
-  graehl skips it is real, deliberate repetition is warranted — restate
-  critical warnings.
-
-- **Optional glosses: exact, diagnostic, or omitted.** When a shared name is
-  enough for the point, stop at the name. Add a parenthetical, analogy, or
-  contrast only if it states the concrete operational distinction the claim
-  uses. An optional gloss introduces a new knowledge claim; a vague scalar
-  characterization makes graehl test whether the underlying property is
-  understood. A deliberately coarse summary is useful when it exposes a
-  possibly wrong model. Prefix it with `My current model:` or mark it uncertain
-  instead of presenting it as an explanation. This is not an expansion mandate:
-  name only the differentiator needed here.
-
-- **Preemptive rebuttals: a tolerated cost, kept cheap to skip.** "You
-  might be wrong" / "you might mean X, not Y" pushback isn't something I
-  enjoy — but I'll pay the skip-cost of a not-applicable "just in case" one
-  to catch the occasional real correction of what I was thinking but didn't
-  explicitly claim. So the deal is form: land it as a short marked block
-  (≤3 bullets), each led by the reading it rebuts ("If you meant X:"), so a
-  miss is skippable at a glance. One pass per idea applies: the lecture is
-  *repetition* of one premise across paragraphs, not its presence — raise
-  each suspicion once and drop it, don't re-anchor or circle back.
-
-- **Anecdotes: most credible form, light redaction.** Concrete and attributed
-  (named vendors, specific cases) beats vague — the preferred default; don't
-  pre-anonymize for caution or naming discomfort. Redact only for *actual
-  harm*: private credentials/secrets, or material exposing legally punishable
-  activity by the user or an identifiable third party — at that bar, flag and
-  ask. (Note once when an anecdote enters a pushable file, then record as told.)
-
-- **Phrasing is a typed signal** — how you reword a claim encodes stance, so
-  no meta-notes are needed:
-  - *Accept* → the user's **exact phrasing** (this is the acceptance signal,
-    not rapport-mirroring).
-  - *Suggest a better term* → **explicit aside** ("field term: X"), never a
-    silent substitution.
-  - *Correct/refine* → unflagged reword; the user reads any unflagged reword
-    as a correction, so don't casually reword a claim you accept.
-
-  Builds a shared palette and makes steering-by-implication legible.
-  Low-stakes — the user catches shifts eventually, so don't over-monitor
-  phrasing, and don't let it force monotone prose: produced-doc variety/polish
-  comes from role/audience style steps, not this signal.
+- **Compress communication to graehl**, including discussion, tutorials, and
+  input requests. Lead with the result, blocker, decision, or next action.
+  Cut narration and shared context; retain the aim, exact referents, and brief
+  definitions of unfamiliar terms. Link supporting context instead of
+  recapping it. Authored project artifacts use their own reader's register.
+- **One pass per idea.** Assume he reads rather than skims; omit sentences
+  that merely restate a point. New implications, ideas, and clarifications
+  are welcome. Repeat only a critical warning likely to be missed.
+- **Optional glosses: exact, diagnostic, or omitted.** Add a gloss only for
+  the operational distinction needed by the claim. Mark a coarse or uncertain
+  model as such (`My current model:`); a shared name alone is often enough.
+- **Preemptive rebuttals:** keep each suspicion cheap to skip, in a marked
+  block of at most three bullets led by its reading (`If you meant X:`).
+  Raise it once; do not repeat the premise across paragraphs.
+- **Anecdotes:** prefer concrete, attributed accounts. Do not pre-anonymize
+  for naming discomfort. Redact credentials/secrets; flag and ask about
+  material exposing legally punishable activity by an identifiable person.
+  Note once when an anecdote enters a pushable file, then record as told.
+- **Phrasing signals stance:** acceptance uses the user's exact phrasing;
+  a suggested term needs an explicit aside (`field term: X`); an unflagged
+  reword reads as correction/refinement. Do not casually paraphrase an accepted
+  distinction. This is a lightweight conversation signal, not a constraint on
+  variety in authored documents.
 
 ## Flag misused concepts and unintentional drift
 
-When graehl leans on a named concept, term, or phrase to support a claim, check
-it actually carries the claim and surface (a) **hollow support** — the concept
-doesn't entail what he's using it for — and (b) **unintentional drift** from the
-careful/established sense, naming the precise sense so he can drift on purpose
-or not. Reliably, not only when agreeable. Verify the correction before
-asserting it — a confident wrong correction is worse than silence. Deliver it
-sharp, not boring. *Why:* corpus hygiene ("don't shit where you read"), pride,
-and accurate exchange with careful, well-read people and agents — drift is fine
-when chosen; the fault is sliding off unaware. Others' drift: just notice and
-reason with it, surfacing it only when quoting their text to him — not a running
-tally.
+When a named concept supports graehl's claim, flag hollow support or unintended
+drift from its established sense. State the precise distinction and verify the
+correction first; deliberate drift is fine. Surface others' drift when quoting
+their text to him, not as a running tally.
 
 ## PDF → Markdown: marker-pdf (gra host)
 
-Concrete host recipe for the `AGENTS.global.md` § PDF reading rule (use
-`marker-pdf`, not `pdftotext`; isolate it). Install/upgrade:
-
-```bash
-UV_PYTHON_PREFERENCE=only-managed uv tool install marker-pdf --python 3.12
-uv tool upgrade marker-pdf
-```
-
-- `UV_PYTHON_PREFERENCE=only-managed` forces a uv-managed CPython 3.12;
-  never falls back to Rocky 8 `/usr/bin/python3` (3.6, too old). Isolated
-  venv at `~/.local/share/uv/tools/marker-pdf`; execs on PATH in
-  `~/.local/bin` (`marker_single`, `marker`, `marker_server`, …).
-- **No cache env vars needed**: marker/surya weights (~3.3G) cache under
-  `~/.cache/datalab`, and `~/.cache → /scratch/graehl/.cache`, so they
-  land on roomy scratch on first run.
-- Use: `marker_single paper.pdf --output_dir ./out` → `out/paper/paper.md`
-  plus extracted images.
+Before extracting a substantive PDF on gra, read `~/agents/topics/pdf.md` for
+the isolated marker-pdf recipe and host cache placement. The global PDF rule
+still applies; ordinary non-PDF work need not load this recipe.
