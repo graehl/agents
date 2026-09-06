@@ -919,6 +919,8 @@ papers:
   # Located by the 2026-09-06 search; abstracts checked via the arXiv API,
   # papers not read ([R]).
   - key: chen2021-earlybert
+    short: train-then-mask
+    concept_page: concepts/train-then-mask.md
     title: "EarlyBERT: Efficient BERT Training via Early-bird Lottery Tickets"
     authors: ["Xiaohan Chen", "Yu Cheng", "Shuohang Wang", "Zhe Gan", "Zhangyang Wang", "Jingjing Liu"]
     venue: "ACL-IJCNLP"
@@ -926,13 +928,15 @@ papers:
     url: "https://aclanthology.org/2021.acl-long.171.pdf"
     doi: "10.18653/v1/2021.acl-long.171"
     arxiv: "2101.00063"
-    grounded: false
+    grounded: true
     verified: true
-    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: ACL-IJCNLP 2021); recall-level citation"
-    fetched: null
+    source: "arXiv API metadata checked 2026-09-06 (comment: ACL-IJCNLP 2021); full text read from the arXiv HTML extract the same day"
+    fetched: 2026-09-06
     cluster: H
 
   - key: liang2021-super-tickets
+    short: train-then-mask
+    concept_page: concepts/train-then-mask.md
     title: "Super Tickets in Pre-Trained Language Models: From Model Compression to Improving Generalization"
     authors: ["Chen Liang", "Simiao Zuo", "Minshuo Chen", "Haoming Jiang", "Xiaodong Liu", "Pengcheng He", "Tuo Zhao", "Weizhu Chen"]
     venue: "ACL-IJCNLP"
@@ -940,10 +944,10 @@ papers:
     url: "https://aclanthology.org/2021.acl-long.510.pdf"
     doi: "10.18653/v1/2021.acl-long.510"
     arxiv: "2105.12002"
-    grounded: false
+    grounded: true
     verified: true
-    source: "arXiv API metadata and abstract checked 2026-09-06 (comment: ACL 2021); recall-level citation"
-    fetched: null
+    source: "arXiv API metadata checked 2026-09-06 (comment: ACL 2021); full text read from the arXiv HTML extract the same day"
+    fetched: 2026-09-06
     cluster: H
 
   - key: panigrahi2024-progressive-subnetworks
