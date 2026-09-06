@@ -9,7 +9,7 @@ referenced assets under `extract/`; raw source cache remains ignored. This tool
 owns both, so a new survey inherits fetch idempotency, HTTP revalidation, and
 manifest/disk reconciliation instead of hand-rolling a `fetch.sh`.
 
-Verbs: list, status, fetch, audit, init.
+Verbs: list, status, fetch, stage, audit, init.
 Output follows topics/acli.md: compact JSONL by default, --pretty for
 humans, --toon on the table verbs, --acli-complete for completion.
 
@@ -1302,7 +1302,7 @@ def _local_markdown_assets(markdown: Path, extract_root: Path) -> list[Path]:
     return assets
 
 
-def _git_tracked_extract_paths(survey: Survey) -> set[Path] | None:
+def _git_repository(survey: Survey) -> Path | None:
     top = subprocess.run(
         ["git", "-C", str(survey.root), "rev-parse", "--show-toplevel"],
         capture_output=True,
@@ -1311,7 +1311,60 @@ def _git_tracked_extract_paths(survey: Survey) -> set[Path] | None:
     )
     if top.returncode != 0:
         return None
-    repository = Path(top.stdout.strip()).resolve()
+    return Path(top.stdout.strip()).resolve()
+
+
+def authoritative_extract_files(survey: Survey, paper: Paper) -> list[Path]:
+    """The committed subset of one extract: sentinel, Markdown, linked figures.
+
+    This is the same set `audit` requires to be tracked. Assets the Markdown
+    links but that are HTML or missing are left to the audit to report.
+    """
+    directory = survey.extract_dir(paper.key)
+    files = [survey.sentinel_path(paper.key)]
+    for markdown_file in sorted(directory.rglob("*.md")):
+        files.append(markdown_file)
+        for asset in _local_markdown_assets(markdown_file, survey.extract_root):
+            if asset.suffix.lower() in (".htm", ".html") or not asset.is_file():
+                continue
+            files.append(asset)
+    return [path for path in files if path.is_file()]
+
+
+def stage_extract(survey: Survey, paper: Paper) -> dict:
+    """Stage one completed extract's committed subset; return a result row.
+
+    The survey's `.gitignore` hides all of `extract/` except Markdown and the
+    sentinel so that `git add <dir>` and `commit -a` never sweep in saved
+    HTML/PDF or unlinked figures. The linked figures therefore need a forced
+    add, and the tool does it here rather than leaving `git add -f` to the
+    author: no ignore pattern can express "referenced by the Markdown".
+    """
+    row: dict = {"key": paper.key}
+    repository = _git_repository(survey)
+    if repository is None:
+        return {**row, "status": "unstaged", "reason": "not inside a git repository"}
+    if read_sentinel(survey.sentinel_path(paper.key)) is None:
+        return {**row, "status": "skipped", "reason": "no completed extract"}
+    try:
+        files = authoritative_extract_files(survey, paper)
+    except HtmlDerivationError as exc:
+        return {**row, "status": "failed", "reason": str(exc)}
+    added = subprocess.run(
+        ["git", "-C", str(repository), "add", "-f", "--", *map(str, files)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if added.returncode != 0:
+        return {**row, "status": "failed", "reason": added.stderr.strip()}
+    return {**row, "status": "staged", "files": len(files)}
+
+
+def _git_tracked_extract_paths(survey: Survey) -> set[Path] | None:
+    repository = _git_repository(survey)
+    if repository is None:
+        return None
     relative = survey.extract_root.resolve().relative_to(repository)
     listed = subprocess.run(
         ["git", "-C", str(repository), "ls-files", "-z", "--", str(relative)],
@@ -1737,6 +1790,15 @@ def verb_fetch(args) -> int:
             )
         )
         failed = failed or results[-1]["status"] == "failed"
+    if not args.no_stage:
+        for row in results:
+            if row["status"] in ("fetched", "derived"):
+                staged = stage_extract(survey, survey.find(row["key"]))
+                if staged["status"] == "staged":
+                    row["staged"] = f"{staged['files']} files"
+                else:
+                    row["staged"] = f"{staged['status']}: {staged['reason']}"
+                    failed = failed or staged["status"] == "failed"
     emit_table(
         args,
         results,
@@ -1749,10 +1811,32 @@ def verb_fetch(args) -> int:
             "html",
             "fidelity",
             "figures",
+            "staged",
         ],
         "results",
     )
     return int(ExitCode.TEMPORARY) if failed else 0
+
+
+def verb_stage(args) -> int:
+    survey = resolve(args)
+    if _git_repository(survey) is None:
+        die(
+            f"{survey.root} is not inside a git repository",
+            ExitCode.USAGE,
+            detail={"path": str(survey.root)},
+        )
+    if args.keys:
+        wanted = [survey.find(key) for key in args.keys]
+    else:
+        wanted = [p for p in survey.papers if survey.sentinel_path(p.key).exists()]
+    results = [stage_extract(survey, paper) for paper in wanted]
+    emit_table(args, results, ["key", "status", "files", "reason"], "results")
+    return (
+        int(ExitCode.TEMPORARY)
+        if any(row["status"] == "failed" for row in results)
+        else 0
+    )
 
 
 MANIFEST_TEMPLATE = """\
@@ -1908,8 +1992,24 @@ def build_parser():
         action="store_true",
         help="Keep marker's fixed-resolution raster figure crops; skip the pdf-figures-svg recut.",
     )
+    p.add_argument(
+        "--no-stage",
+        action="store_true",
+        help="Do not git-stage the committed subset of each new extract (see the stage verb).",
+    )
     add_standard_args(p, allow_toon=True)
     p.set_defaults(func=verb_fetch)
+
+    p = sub.add_parser(
+        "stage",
+        help="git-add the committed subset of completed extracts: sentinel, Markdown, and the figures the Markdown links; the survey .gitignore keeps everything else out.",
+    )
+    keys = p.add_argument(
+        "keys", nargs="*", help="Citation keys; default is every completed extract."
+    )
+    set_completer(keys, key_completer("."))
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=verb_stage)
 
     p = sub.add_parser("init", help="Scaffold a related-work/ for a new survey.")
     p.add_argument("--slug", help="Field slug (default: the parent directory name).")

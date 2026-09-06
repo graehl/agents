@@ -78,7 +78,7 @@ surveys/<field-slug>/
   concepts/<short>.md  committed per-concept understanding/summary page
                        (our distillation; records source URL); the primary
                        artifact we reason/traverse on
-  related-work/      driven by `related-work` (fetch / audit / status / init);
+  related-work/      driven by `related-work` (fetch / stage / audit / status / init);
                        never a per-survey fetch script
     papers.yaml        metadata manifest (carries each concept's short handle)
     extract/<key>/     full-text extract + images — .gitignored, workdir-durable,

@@ -32,10 +32,11 @@
 - **`related-work/` is driven by the shared `related-work` engine, never by a
   per-survey script.** `~/agents/scripts/related-work` (on `PATH`) owns fetch,
   extraction, and reconciliation for every survey: `init` scaffolds a new
-  `related-work/`, `fetch` builds extracts, `audit` validates required citation
-  metadata, reconciles `papers.yaml` against `extract/`, and exits 3 on drift;
-  `status` derives the grounding banner's counts, and `list` reports the
-  manifest. Do not write a survey-local
+  `related-work/`, `fetch` builds extracts and stages their committed subset,
+  `stage` re-stages that subset for existing extracts, `audit` validates
+  required citation metadata, reconciles `papers.yaml` against `extract/`,
+  and exits 3 on drift; `status` derives the grounding banner's counts, and
+  `list` reports the manifest. Do not write a survey-local
   `fetch.sh`: the last one accumulated three defects the engine now has tests
   for — extracts rekeyed out from under their sentinels, a manifest that
   silently drifted from disk, and a bare invocation that queued every pending
@@ -65,10 +66,19 @@
   every already-fetched extract the day a handle is assigned.
 - **Committed Markdown is the full-text extract authority.** Every fetched
   survey commits its `.md`, `.fetched` provenance, and each local figure or
-  image the Markdown references. Saved HTML/PDF, scripts, styles, fonts,
-  and unrelated page requisites are rebuildable source cache and remain
-  ignored; they may stay in the author's workdir for fidelity review without
-  becoming repository authority. Source preference: when an HTML view exists
+  image the Markdown references — and only those. Saved HTML/PDF, scripts,
+  styles, fonts, unrelated page requisites, and figure files the Markdown
+  does not link (superseded raster crops, the rest of an arXiv page bundle)
+  are rebuildable source cache and remain ignored; they may stay in the
+  author's workdir for fidelity review without becoming repository
+  authority. The survey's `related-work/.gitignore` hides all of `extract/`
+  except Markdown and `.fetched`, so `git add <dir>` and `git commit -a`
+  can never sweep cache in; the linked figures are staged by
+  `related-work stage`, which `fetch` runs on every new extract and which
+  force-adds exactly the set `audit` checks. Do not hand-type `git add -f`
+  for extract assets, and do not loosen the ignore rules to admit images by
+  extension: no pattern can express "referenced by the Markdown". Source
+  preference: when an HTML view exists
   (`arxiv.org/html/<id>`, a blog page), derive the `.md` from it — cleaner and
   cheaper than PDF reconstruction; fall back to **marker-pdf**
   (`AGENTS.global.md § PDF reading` + the `AGENTS.user.md` host recipe) only
