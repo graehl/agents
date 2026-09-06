@@ -3916,3 +3916,49 @@ Contributing-model: Fable
   instruction effectiveness has not been measured in an outcome ablation.
 
 Contributing-model: 6-Astra
+
+## 2026-09-06 — Astra routing and guidance-evolution proposals
+
+- **User direction** — Astra is experienced as "sol but fewer mistakes,
+  nothing fundamentally different." Optimize instructions for the frontier
+  models used for real editing/thinking/implementation; do not pay a permanent
+  growth ratchet after every mistake. Propose expensive testbeds now and defer
+  running them until a later model and budget make the work worthwhile.
+- **Inspection** — `AGENTS.sol.md` already exists. The five shared sources
+  selected by this Astra/Codex/YA launch total 75,239 bytes at
+  `657dca3d4a82e193c1cd55bfdc2b01e393b36b13`, excluding project files and
+  triggered reads. File size is not runtime token/cost evidence. This Astra
+  session itself over-batched/under-budgeted required reads, saw explicit
+  truncation, and recovered the omitted text. The existing Codex budget fact
+  remains justified as a concrete mechanic; no new per-read ritual was added.
+- **Applied** — a small Astra supplement and matching routes in both Codex
+  and Claude harness files. Sol's patches remain Sol-only. The new file states
+  no active Astra behavior patches; it is not a relaxation of shared policy.
+  The detailed reduction candidates remain in the unloaded sketches.
+- **Routing traces** — `gpt-6-astra` in Codex loads Codex mechanics plus Astra;
+  the same id through Claude Gateway loads Claude mechanics plus Astra, not
+  Sol. `gpt-5.6-sol` keeps its existing Sol patch. Opus-family and unknown
+  family routes do not acquire Astra. Missing evidence of an Astra failure
+  does not remove shared safeguards or change compaction refresh.
+- **Broadened intent** — the testbed should discover stable guidance themes
+  in successful revision trajectories, then project back to minimal seeds
+  that produce appropriate model/defect-scoped wins. A socially distributed
+  study can aggregate forks, complete revision-prompt histories, and paired
+  before/after trees from ordinary collaborations and donated blind runs.
+  Human requests may explain the gains; causal attribution must not silently
+  credit the corpus. Meta/non-meta are overlapping roles, not a required
+  partition: the whole fork is the treatment.
+- **Model-step comparison** — minimize added guidance plus the runner against
+  the measured harness/model/default-prompt combination, including an empty
+  added-guidance arm. Count boot, total reachable guidance, runtime reads, and
+  machinery that could otherwise hide the burden. No optimum or instruction
+  effectiveness has been established. The committed gap records the missing
+  empirical capability and the user's explicit deferral.
+- **Study-design traces** — an exact human fix request is credited as steering
+  until a matched intervention shows more; a short seed pointing to a huge
+  packet is charged for the packet; a new model release triggers a candidate
+  comparison, not permission to spend; a theme that persists in failed and
+  successful trajectories is not thereby useful. These are design checks,
+  not executed experiments.
+
+Contributing-model: 6-Astra
