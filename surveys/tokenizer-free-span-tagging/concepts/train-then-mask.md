@@ -1,9 +1,9 @@
 # train-then-mask — auto-ablating an everything-thrown-in model while it trains
 
-> Read-backed digest `[G]` for ACE (cluster H, trust `single-source`), plus
-> the lineage it belongs to at recall level `[R]`: nineteen papers located by
-> the 2026-09-06 prior-art search, metadata checked against the arXiv API,
-> none fetched or read for this survey. ACE decides which of eleven frozen
+> Read-backed digest `[G]` for ACE, EarlyBERT and super tickets (cluster H,
+> trust `single-source`), plus the lineage they belong to at recall level
+> `[R]`: thirty-two papers located by the 2026-09-06 prior-art searches,
+> metadata checked against the arXiv API, not read. ACE decides which of eleven frozen
 > embedding channels a shared BiLSTM-CRF keeps, while that task model keeps
 > training across the search; the subset it commits to beats concatenating
 > everything, and the continue-trained subset beats the same subset retrained
@@ -193,23 +193,18 @@ asks the converse question, whether the subset would have trained as well from
 its original initialization; Zhou et al. show a mask alone, over untrained
 weights, already carries accuracy.
 
-## Does committing early pay? `[R]`
+## Does committing early pay? `[G]` `[R]`
 
 The aspiration behind this node is that simplifying *before* the full
 training investment yields a faster successful trajectory, or a better one,
 than training everything and then distilling or pruning. A 2026-09-06 search
-(web plus arXiv abstracts; no full text read; every grade `single-source`)
-found repeated positive evidence, concentrated at one point in training, and
-clear negative evidence at both extremes.
+(web plus arXiv abstracts; every grade `single-source`) found repeated
+positive evidence, concentrated at one point in training, and clear negative
+evidence at both extremes. Two of the papers were then fetched and read
+(`[G]`, subsections below); the rest remain recall-level.
 
-**Positive, NLP.** EarlyBERT (Chen et al. 2021) finds structured early-bird
-tickets in BERT — heads and FFN units slimmed once the mask stabilizes early —
-and trains the slim model: 35–45% less training time in pretraining and
-fine-tuning at comparable GLUE and SQuAD. Super tickets (Liang et al. 2021)
-prune *during* fine-tuning and improve generalization, +0.9 GLUE task average
-on BERT-base and +1.0 on BERT-large, with a phase transition that strengthens
-as the model grows and the data shrinks — the regime of a small-gold span
-tagger. Progressive subnetworks (RaPTr, Panigrahi et al. 2024) train random
+**Positive, NLP.** EarlyBERT and super tickets are read below. Progressive
+subnetworks (RaPTr, Panigrahi et al. 2024) train random
 layer subsets in stages for a 33% pretraining speedup and +1.5% on SuperGLUE
 and QA; progressive stacking (Gong et al. 2019) is the grow direction, 25%
 shorter BERT training at matched quality.
@@ -243,11 +238,107 @@ with.
 training, so the supported recipe is: train the everything-thrown-in model
 for a short prefix until the mask stabilizes, commit, then train the
 simplified model. Deciding at initialization or from a proxy loses; deciding
-after full training works but forfeits the saving. In the small-data
-fine-tuning regime the commitment can improve generalization. None of these
-selects input channels, so Void 3 in [`frontier.md`](../frontier.md) stands,
-and EarlyBERT's mask-distance stopping rule is the natural trigger for its
-"prune at the plateau" step.
+after full training works but forfeits the saving. The "better, not only
+cheaper" claim rests on super tickets and is not established (below). None
+of these selects input channels, so Void 3 in [`frontier.md`](../frontier.md)
+stands, and EarlyBERT's mask-distance stopping rule is the natural trigger
+for its "prune at the plateau" step.
+
+### EarlyBERT, read `[G]`
+
+[Chen, Cheng, Wang, Gan, Wang, and Liu, ACL-IJCNLP 2021](https://aclanthology.org/2021.acl-long.171.pdf)
+· [arXiv HTML](https://arxiv.org/html/2101.00063) ·
+[local extract](../related-work/extract/chen2021-earlybert/html/2101.00063.md).
+
+Three stages. *Search:* train BERT jointly with a scalar coefficient on each
+attention head and each FFN intermediate neuron under an `ℓ1` penalty
+(`λ = 1e-4`; the ablation finds `λ` barely matters) for 0.2 epochs of
+fine-tuning, under 7% of a standard 3-epoch run, or 400 steps of
+pretraining, under 3%. *Draw:* prune the 4 of 12 heads per layer (6 of 16 for
+large) with the smallest coefficients, layer-wise because global head pruning
+empties whole layers, and the 40% of FFN neurons with the smallest
+coefficients globally (30% for pretraining, which is more sensitive). *Train:*
+reset and train the slim model for 2 epochs at doubled learning rate (80% of
+the steps for pretraining). The mask's Hamming distance between checkpoints
+stabilizes early in both regimes; accuracy jumps when the search stops at 20%
+of the first epoch and barely moves after, so 20–40% is the recommended stop.
+
+Fine-tuning, BERT-base (Table 2): MNLI 81.81 vs. 83.16, QNLI 89.18 vs.
+90.59, QQP 90.06 vs. 90.34, SST-2 90.71 vs. 91.70, SQuAD 86.13 vs. 87.50, at
+40–45% less measured training time (42.97% on QQP, search stage included).
+Random pruning at the same ratio is far worse (MNLI 79.92); LayerDrop
+dropping a third of layers for three full epochs saves ~33% and lands below
+EarlyBERT on four of five. Pretraining saves 30–35% at within 1 point on the
+large downstream tasks, with large drops on CoLA and MRPC and a gain on RTE.
+Against iterative magnitude pruning on BERT (Chen et al. 2020): IMP loses
+0.4 on SQuAD at 6× training time and 4.69× FLOPs; EarlyBERT loses 1.37 at
+0.76×. Pruning only a third of the heads (Table 1) is within noise of the
+full model and above it on three of seven tasks.
+
+*What it establishes:* a genuine early-commit datapoint, about one point for
+about 40% of the time, measured honestly. *What it lacks:* the compute-matched
+control. The full model trained for the same reduced wall-clock (two epochs
+at doubled learning rate, the recipe given to the pruned model, or ~57% of the
+schedule) is never run, so "cheaper at a small loss" is shown and "better per
+unit of compute" is not.
+
+### Super tickets, read `[G]`
+
+[Liang, Zuo, Chen, Jiang, Liu, He, Zhao, and Chen, ACL-IJCNLP 2021](https://aclanthology.org/2021.acl-long.510.pdf)
+· [arXiv HTML](https://arxiv.org/html/2105.12002) ·
+[local extract](../related-work/extract/liang2021-super-tickets/html/2105.12002.md).
+
+Not an early-commit method, despite the earlier recall-level summary above.
+The recipe is: fine-tune BERT fully; score every head and FFN by the
+expected absolute loss gradient with respect to its mask variable, in one
+backward pass; one-shot prune the lowest-scoring 10%, 20%, …, 80% of heads
+and FFNs; for each level, rewind the survivors to the pretrained weights and
+fine-tune again with the original schedule; pick the level with the best
+validation score on a random 10% of the GLUE dev set. The chosen "super
+ticket" keeps 87% (base) or 82% (large) of the weights on average, 83% on RTE
+and 93% on QQP.
+
+Reported (Table 1, GLUE dev, 5 seeds): +0.9 task average on BERT-base and
++1.0 on BERT-large, concentrated on the smallest tasks (RTE +3.3 base /
++2.0 large, CoLA +1.0 / +2.2) and near zero on the largest (QQP +0.4 / +0.1,
+MNLI 0.0 / +0.3). GLUE test server: 80.4 vs. 79.6 for base, with the baseline
+row quoted from Devlin et al. rather than rerun. The paper's thesis is
+variance reduction: seed standard deviation on RTE falls from 1.17 to 0.72
+and on MRPC from 0.61 to 0.20 (large), and the phase transition sharpens on
+subsampled training data.
+
+*What it lacks, and why the gain is unestablished.* Each experiment is one
+fine-tuning plus eight prune-rewind-fine-tune runs, nine times the baseline's
+compute, and the ticket is chosen among eight candidates while the baseline
+is one configuration. The 10% dev split used for selection is part of the dev
+set reported on. The baseline's own seed spread on the small tasks (RTE 1.17,
+CoLA 1.32, MRPC 0.61) is the size of the reported gains there, which is what
+choosing the best of nine seeds on a small validation split would deliver by
+itself. No dropout, weight-decay, patience, or learning-rate-schedule sweep is
+reported for the baseline, and the variance-reduction story is exactly what
+such a sweep would test. Frankle et al.'s finding that per-weight pruning
+choices can be replaced by per-layer ratios points the same way: the effect
+may be a capacity knob plus selection rather than the structure found. The
+matched baselines that would settle it are a nine-seed best-of selection on
+the same 10% split, a regularization sweep at equal compute, and the
+small-data fine-tuning recipes (small learning rate, more iterations,
+re-initialized top layers, bias-corrected Adam) reported to buy gains of the
+same size on RTE `[R]`.
+
+### The baseline objection, generally
+
+graehl's position, 2026-09-06: any paper showing a *performance* benefit from
+pruning is suspected of lacking a proper baseline, since it is solving the
+difficulty of training too many parameters on too little data, which dropout
+priors, sufficient patience, and other general trajectory-health measures also
+solve; peeking and cherry-picking add to it. Same-compute superior outcomes
+are nonetheless believed possible in principle, even against intelligently
+chosen non-pruning baselines. The two reads above support the suspicion in
+its specific form: super tickets is the one "better" claim in this section
+and has every listed defect; EarlyBERT claims only time and lacks the
+compute-matched control. The in-principle claim's cleanest recall-level
+support is RigL (matched FLOPs, sparse from the start) and the converse
+same-compute result in Train Large, Then Compress.
 
 ## Commentary
 

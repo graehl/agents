@@ -8,11 +8,11 @@
 
 ## Grounding and coverage
 
-- **Grounding mode: `grounded`.** 43 primary sources. 35 were fetched and read
+- **Grounding mode: `grounded`.** 45 primary sources. 37 were fetched and read
   into this survey's own `related-work/extract/` (`[G]`); 8 were read from the
   sibling survey's committed extracts rather than duplicating its cache (`[S]` —
   CANINE, ByT5, Charformer, Gillick, Cao, Sun, Flair, CharacterBERT). A further
-  34 citations in cluster H are recall-level (`[R]`): metadata and abstract
+  32 citations in cluster H are recall-level (`[R]`): metadata and abstract
   checked, paper not read. Effectiveness claims are `single-source` unless a
   row says otherwise.
 - **Coverage cutoff: 2026-08-16.** Search scope: ACL Anthology, arXiv (cs.CL),
@@ -74,7 +74,7 @@ The regenerable manifest is
 | F | [token-classifier objectives](concepts/token-classifier-objectives.md) `[G]` | Pereyra et al.; Kiryo et al.; Peng et al.; Ács et al.; Lester et al.; Verma et al.; Tenney et al.; Hewitt and Liang; Voita and Titov | before fine-tuning, sweep frozen layer × pooling with linear, control/selectivity, and MDL probes; constrained CE trains ~2× faster than a CRF with mostly tied F1; PU applies only to incomplete labels |
 | G | [multilingual representation probes](concepts/multilingual-representation-probes.md) `[G]` | Sentence-BERT; Conneau et al.; SimAlign; Awesome-Align | pooled retrieval and token alignment test different invariances; the best layer depends on granularity/model; frozen alignment, post-hoc alignability, and alignment-tuned representations support different claims |
 | F | [label-conditioned span classification](concepts/label-conditioned-span-classification.md) `[G]` | GLiNER | contextual type-marker and endpoint FFNs learn dot-product compatibility; a 12-word cap and first-subword endpoint compression need auditing for long privacy spans |
-| H | [train-then-mask](concepts/train-then-mask.md) `[G]` `[R]` | Wang et al. 2021 (ACE); pruning and one-shot-NAS lineage at recall | choosing which of 11 frozen embedding channels feed one shared BiLSTM-CRF beats concatenating all by 0.9 averaged over 23 test sets; the subset that kept training through the search beats the same subset retrained from scratch by up to 2.0; a soft per-channel gate with no sparsity pressure stays at `All` |
+| H | [train-then-mask](concepts/train-then-mask.md) `[G]` `[R]` | Wang et al. 2021 (ACE); EarlyBERT; super tickets; pruning and one-shot-NAS lineage at recall | choosing which of 11 frozen embedding channels feed one shared BiLSTM-CRF beats concatenating all by 0.9 averaged over 23 test sets; the subset that kept training through the search beats the same subset retrained from scratch by up to 2.0; a soft per-channel gate with no sparsity pressure stays at `All` |
 
 ## Map: what each family establishes
 
@@ -349,11 +349,14 @@ Gale et al. found `L0` gates, variational dropout and plain magnitude pruning
 reaching the same accuracy for a given sparsity.
 
 Whether committing early pays is answered, at recall level `[R]`, by a
-consistent pattern: early-bird tickets in BERT cut training time 35–45% at
-matched GLUE and SQuAD (EarlyBERT), pruning during fine-tuning can *improve*
-GLUE by about a point with the effect strongest for large models on small
-data (super tickets), and staged random-subnetwork pretraining is 33% faster
-and slightly better (RaPTr); against that, pruning at initialization stays
+consistent pattern: early-bird tickets in BERT cut measured training time
+35–45% at about one point of GLUE and SQuAD (EarlyBERT `[G]`, which never
+runs the compute-matched full model), pruning after fine-tuning with rewinding
+reports about a point of GLUE gain concentrated on the smallest tasks (super
+tickets `[G]`, at nine times the compute, selecting among eight candidates on
+a split of the reported dev set, with gains the size of the baseline's seed
+spread), and staged random-subnetwork pretraining is 33% faster and slightly
+better (RaPTr); against that, pruning at initialization stays
 below post-training magnitude pruning until roughly halfway through training
 (Frankle et al. 2021), proxy and weight-sharing rankings are near random (Yu
 et al. 2020; White et al. 2022), and for a fixed budget training the largest
