@@ -8,11 +8,13 @@
 
 ## Grounding and coverage
 
-- **Grounding mode: `grounded`.** 41 primary sources. 33 were fetched and read
+- **Grounding mode: `grounded`.** 43 primary sources. 35 were fetched and read
   into this survey's own `related-work/extract/` (`[G]`); 8 were read from the
   sibling survey's committed extracts rather than duplicating its cache (`[S]` —
-  CANINE, ByT5, Charformer, Gillick, Cao, Sun, Flair, CharacterBERT). Effectiveness
-  claims are `single-source` unless a row says otherwise.
+  CANINE, ByT5, Charformer, Gillick, Cao, Sun, Flair, CharacterBERT). A further
+  19 citations in cluster H are recall-level (`[R]`): metadata checked, paper
+  not read. Effectiveness claims are `single-source` unless a row says
+  otherwise.
 - **Coverage cutoff: 2026-08-16.** Search scope: ACL Anthology, arXiv (cs.CL),
   OpenAlex forward citations, and arXiv full-text search. Query terms covered
   character-level and byte-level NER, tokenizer-free and token-free models,
@@ -33,6 +35,10 @@
   comparator. Its endpoint compression, negative-type sampling and greedy
   span decoding expose separate ablations; no result establishes superiority
   over a matched BIOES tagger. The broad-search cutoff is unchanged.
+- **Targeted intake: 2026-09-06 (ACE).** Grounded Automated Concatenation of
+  Embeddings as the seed of a train-then-mask node (cluster H) and recorded the
+  pruning and one-shot-NAS lineage located by a same-day prior-art search at
+  recall level. The broad-search cutoff is unchanged.
 - **Anchor set:** CharNER, Gillick's byte tagger, ID-CNN, CANINE, ByT5.
   Forward citations were pulled by both recency and citation count; direct
   keyword search covered the newest uncited edge.
@@ -68,6 +74,7 @@ The regenerable manifest is
 | F | [token-classifier objectives](concepts/token-classifier-objectives.md) `[G]` | Pereyra et al.; Kiryo et al.; Peng et al.; Ács et al.; Lester et al.; Verma et al.; Tenney et al.; Hewitt and Liang; Voita and Titov | before fine-tuning, sweep frozen layer × pooling with linear, control/selectivity, and MDL probes; constrained CE trains ~2× faster than a CRF with mostly tied F1; PU applies only to incomplete labels |
 | G | [multilingual representation probes](concepts/multilingual-representation-probes.md) `[G]` | Sentence-BERT; Conneau et al.; SimAlign; Awesome-Align | pooled retrieval and token alignment test different invariances; the best layer depends on granularity/model; frozen alignment, post-hoc alignability, and alignment-tuned representations support different claims |
 | F | [label-conditioned span classification](concepts/label-conditioned-span-classification.md) `[G]` | GLiNER | contextual type-marker and endpoint FFNs learn dot-product compatibility; a 12-word cap and first-subword endpoint compression need auditing for long privacy spans |
+| H | [train-then-mask](concepts/train-then-mask.md) `[G]` `[R]` | Wang et al. 2021 (ACE); pruning and one-shot-NAS lineage at recall | choosing which of 11 frozen embedding channels feed one shared BiLSTM-CRF beats concatenating all by 0.9 averaged over 23 test sets; the subset that kept training through the search beats the same subset retrained from scratch by up to 2.0; a soft per-channel gate with no sparsity pressure stays at `All` |
 
 ## Map: what each family establishes
 
@@ -199,6 +206,12 @@ multilingual tax that any single joint model pays: per-language teachers average
 89.38 on CoNLL NER, a joint multilingual student 87.36, and their best
 structure-level distillation recovers 0.4 of that ~2-point gap.
 
+The same group's ACE (family H below) is the input-side complement to this
+cluster: rather than shrinking a trained model, it decides which frozen
+embedding channels one shared task model keeps while that model trains, and
+its discussion names structure-level distillation as the step that would
+follow to make the searched model both stronger and faster.
+
 ### F. Above XLM-R token representations, structure beats generic regularization `[G]`
 
 Before fine-tuning, use a frozen layer × subtoken-pooling sweep to test whether
@@ -291,6 +304,73 @@ multilingual average hides. The separate
 gives those displays, the brief frozen-head scorecard, and the full claim
 ladder.
 
+### H. Train-then-mask: auto-ablate an everything-thrown-in model while it trains `[G]` `[R]`
+
+ACE `[G]` keeps every candidate word-representation channel in the graph
+(eleven for English: ELMo, Flair both directions, BERT, GloVe, fastText, a
+task-trained character embedding, multilingual Flair both directions, M-BERT,
+XLM-R) and lets a controller of independent per-channel Bernoulli logits mask
+subsets. Because the concatenation feeds one linear layer, masking a channel is
+deleting a slice of that matrix, so one BiLSTM-CRF serves all 2047 subsets and
+**keeps its parameters from one search step to the next**. Each step trains to
+its schedule under the sampled mask, reads dev accuracy, and updates the
+controller by REINFORCE with a reward in which every earlier sample votes on
+each channel that changed, discounted by how many changed at once. Thirty steps
+cost 45 P100 GPU-hours on CoNLL English; the best-dev model of the search is
+the deliverable, with no retraining.
+
+The results that carry over: searched subsets beat concatenating everything
+(86.2 vs. 85.3 averaged over 23 test sets; random search already gets 85.7,
+and beats `All` on 14 of 23), a learned per-channel sigmoid weight *without* a
+sparsity penalty stays within 0.5 of `All`, and the subset that trained
+through the search beats the same subset retrained from scratch by 0.4 (NER),
+0.9 (POS) and 2.0 (aspect extraction), tying elsewhere. The authors attribute
+the last to each step starting from the previous step's weights. Its
+character channel is chosen in about a third of English sequence-task winners
+and over half of multilingual NER winners, on top of word and subword
+channels.
+
+The general technique, for which `train-then-mask` is this survey's handle
+and not a field term, is one-shot or weight-sharing architecture search when a
+controller decides, prune-during-training when a score or a sparsity prior
+decides, and structured dropout when the mask is random. The
+[digest](concepts/train-then-mask.md) sorts the recall-level lineage `[R]` on
+three axes — what is masked (input channels, heads, layers, widths, weights,
+operations), who decides (validation reward through a discrete controller; a
+sparsity prior on continuous gates then a threshold; a magnitude or movement
+schedule; random drop), and what recovers the committed sub-model (nothing,
+fine-tuning, rewinding, continued pretraining, distillation from the unpruned
+parent). Two lineage facts bound ACE's design choice: DARTS-style continuous
+relaxations are known to collapse on discretization, and at the weight level
+Gale et al. found `L0` gates, variational dropout and plain magnitude pruning
+reaching the same accuracy for a given sparsity.
+
+**Commentary (graehl, 2026-09-06; responses are the survey's after the read).**
+The masking-while-training mechanism was read as a cousin of jointly training
+multiple heads on differently labelled data: a subset selected before full
+task training may retain something learned while the discarded channels were
+present. ACE's retrain-versus-continue result points that way, with two
+confounds the digest states (thirty schedules against one, and frozen
+channels, so the transfer lives in the task model). A sparsifying prior in the
+objective was proposed as the smooth alternative to ACE's delayed discrete
+controller; ACE's `All+Weight` row shows a smooth gate needs that pressure to
+select at all, and the prior-based route (`L0` hard-concrete gates, Voita's
+head pruning, CoFi) exists for model-internal structure. The full recipe —
+prior, near-unused part, hard prune, continue training with distillation to
+recover — was correctly noted as absent from ACE; it is well populated in
+CoFi, Minitron and Sheared LLaMA for transformer internals and unpopulated
+for input-channel selection in structured prediction, which
+[`frontier.md`](frontier.md) records as Void 3 with its cheapest check.
+
+**Design decision it changes.** The chars-only proposal has its own
+everything-thrown-in variant (deep character CNN, hashed n-grams, hashed
+orthographic features, a task-trained character embedding, and a
+training-only frozen subword channel). ACE supports deciding which survive
+under one shared tagger before the expensive run, and keeping the tagger that
+trained with the discarded channels present rather than a fresh one on the
+survivors. Both are `single-source`, from frozen-encoder CoNLL-scale regimes
+with three-seed averages and no reported interval.
+
 ## What a chars-only tagger must beat, and cite
 
 This section exists to serve one planned contrastive: a chars-only, tokenizer-free
@@ -322,6 +402,10 @@ known answer.
    Lester, Verma. Measure subword pooling, use constrained cross-entropy and a
    CRF ablation on both encoder arms, reserve PU risk for incomplete annotations,
    and reserve confidence regularization for a diagnosed calibration problem.
+6. *Channel selection under a shared task model* — ACE. Cite for the search
+   recipe and the retrain-versus-continue result, not as evidence about
+   characters: its character channel is a task-trained embedding added to
+   word and subword vectors.
 
 **Design commitments the literature already supports.**
 
@@ -355,6 +439,12 @@ known answer.
 - **Distill rather than train on gold alone.** The character family's documented
   weakness is sample efficiency, and the distillation cluster's documented
   strength is manufacturing supervision from unlabelled text.
+- **Auto-ablate the input channels under one shared tagger, and keep that
+  tagger.** ACE (`single-source`) finds that a searched channel subset beats
+  the full concatenation and that the model which trained with the discarded
+  channels present beats the same subset retrained from scratch. Budget the
+  search (a day of single-GPU time per dataset in ACE's regime) or run the
+  prior-gated variant in `frontier.md` Void 3.
 
 **Measurements the comparison must report to be credible.**
 
@@ -414,6 +504,12 @@ known answer.
 - **Naive depth stops working.** VDCNN degrades from 29 to 49 layers without
   residual connections (35.28 → 37.41 test error, with training error rising
   too).
+- **A soft channel gate without sparsity pressure does not select.** ACE's
+  `All+Weight`, a learned sigmoid weight per embedding channel and no penalty,
+  stays within 0.5 of plain `All` on all eight reported test sets and below
+  the searched mask on all eight. The continuous relaxation helps only with a
+  prior or a discretization step that forces channels off, and the
+  discretization step has its own documented failure (DARTS `[R]`).
 
 ## Baseline sensitivity
 
@@ -424,6 +520,13 @@ matched comparison), or a from-scratch BiLSTM (the hybrids' ablations). The two
 comparisons against a *pretrained* subword model that hold the pretraining data
 constant — CANINE vs. retrained mBERT, ByT5 vs. parameter-matched mT5 — disagree,
 and both involve pretraining budgets far beyond a small from-scratch tagger.
+
+ACE's search gains over concatenating everything are 0.0–2.3 F1 on the four
+CoNLL NER sets, from three-seed averages with no interval, so most sit inside
+the ±1 significance width. Its headline Spanish result with fine-tuned
+candidates, 95.9 against 89.3 for fine-tuned XLM-R alone, is ten times the
+gain on the other three languages and should be reproduced before it is
+cited.
 
 The honest position for a chars-only CNN pilot is therefore: the literature
 supports that the architecture can work and specifies how to build it (deep,
