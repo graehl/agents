@@ -75,6 +75,18 @@ proportional fonts, so `60ch` renders wider than 60 average characters
 (Butterick); longer measures want more leading so the eye finds the next
 line. Headings, being short, want *tighter* leading (≈ 100–115%).
 
+**Optical alignment.** When authoring any UI element, judge the visible ink
+and visual weight against its surroundings. Bordered controls make uneven
+padding especially obvious: center the label optically in both axes, and check
+whether an icon or shortcut pulls its apparent center away from the box center.
+Use shared text baselines for related labels and controls where appropriate.
+Give dots and icons a deliberate reference, such as the first line's visual
+center, accounting for the content's padding. Start with structural alignment;
+make small optical adjustments only when the rendered font and geometry warrant
+them. Check the actual font, weight, wrapping, and touch layout; CSS centering
+alone does not establish visual balance, and a fixed pixel nudge is not a
+universal recipe.
+
 **Vertical rhythm.** Choose a base spacing unit (often the body
 line-height) and make margins, padding, and line-heights multiples of it,
 so text and elements share a regular cadence down the page. It is the

@@ -4091,3 +4091,27 @@ verbatim historical transcript or measured comparison.
 > - Persistence: reconsider only if cold compilation measures badly.
 
 Contributing-model: 6-Astra
+
+## 2026-09-06 — optical alignment during UI authoring
+
+The user rejected YA question-card buttons after captures had been inspected:
+the Save label still appeared high inside its border, and its dim shortcut
+displaced the label's visual center. A semibold label, independent shortcut,
+and small vertical adjustment were accepted. The user then identified Copy
+and an assistant-text marker with the same alignment concern and generalized
+the instruction to all UI authoring, especially bordered elements and shared
+text baselines. Session: 01a07847-857a-7390-94cb-dd1a76d0e747.
+
+- Decision: add a scoped UI-authoring rule in global policy and explain optical
+  alignment in functional-layout. Merely adding another screenshot requirement
+  would miss this failure: captures were taken but judged against box geometry.
+- Trace: a bordered label plus faint shortcut is geometrically centered as a
+  group; the rule calls for examining the label's visual center separately.
+- Trace: a dot beside padded multiline text takes the first line's visual
+  center as its reference, including top padding, rather than an arbitrary top.
+- Counter-trace: a font or locale change already looks balanced; no fixed 1px
+  nudge or forced baseline alignment of unrelated elements is prescribed.
+- Status: user-directed and trace-simulated. General improvement in first-pass
+  UI quality remains assumed; this is not a measured instruction ablation.
+
+Contributing-model: 6-Astra

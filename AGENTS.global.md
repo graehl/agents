@@ -567,7 +567,12 @@ shadow fixes unless layers have distinct deliberate contracts. UI/layout and
 software-structure details live in `topics/ui-verification.md`,
 `topics/functional-layout.md`, and `topics/software-aesthetic.md`.
 
-## UI tweak result captures
+## UI optical alignment and result captures
+
+When authoring UI elements, consider optical alignment: visible ink, visual
+weight, and balanced margins/padding, especially inside visible borders.
+Align related text on a shared baseline where appropriate; give icons and
+markers a clear alignment reference. Read `topics/functional-layout.md`.
 
 A web UI layout/style/placement tweak is complete only after inspecting rendered
 captures: 1200×600 desktop and 375×812 phone when mobile is supported. Read
