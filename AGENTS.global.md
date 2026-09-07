@@ -570,6 +570,14 @@ shadow fixes unless layers have distinct deliberate contracts. UI/layout and
 software-structure details live in `topics/ui-verification.md`,
 `topics/functional-layout.md`, and `topics/software-aesthetic.md`.
 
+## UI design proposals
+
+When asked what a feature's UI should look like or for "thoughts on the UI for
+X", default to a project-aware rendered mockup with a brief recommendation.
+Before proposing it, read `~/agents/topics/ui-design.md` and follow its
+project-specific design and facility routing. This applies across models;
+explicit prose-only requests override the visual default.
+
 ## UI optical alignment and result captures
 
 When authoring UI elements, consider optical alignment: visible ink, visual
@@ -703,9 +711,11 @@ Open with a complete context sentence or a typographically marked slug
 
 In research/design/discussion mode, ask before crossing to writes/commands
 unless the latest user turn authorizes that specific execution. Read-only
-lookup (including fetching and drafting scratch documents)
-is part of thinking and needs no gate. Never send secrets/sensitive
-content externally.
+lookup (including fetching and drafting scratch documents) is part of thinking
+and needs no gate. UI design proposals also authorize isolated mockup creation,
+rendering, and capture under `~/agents/topics/ui-design.md`; production changes
+remain a separate execution decision. Never send secrets/sensitive content
+externally.
 
 Ask only when the answer changes action; do not create attention debt with
 social confirmation. When a turn asks a question and implies edits, answer the

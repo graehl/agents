@@ -4142,3 +4142,42 @@ Contributing-model: 6-Astra
   not measured runtime savings or an outcome ablation.
 
 Contributing-model: 6-Astra
+
+## 2026-09-07 — UI design questions trigger project-aware mockups
+
+- **User evidence and direction** — explicitly requesting a mockup made an
+  Astra UI proposal/spec session useful. The user wants that behavior for
+  "thoughts on the UI for X" and "what do you think X should look like",
+  across capable models, grounded in discoverable project components/style.
+  Screenshots suffice; a high-fidelity document or an image plus its viewing
+  link is welcome. This session: 01a07af9-d8bc-7561-8593-5ef0bca34e9e. The
+  earlier successful session was reported by the user, not independently
+  reconstructed. No relevant existing agents task file was found.
+- **Decision** — a short global trigger reads `topics/ui-design.md`, which
+  owns the visual outcome and routes to a project's canonical design/facility
+  guide. Isolated mockup creation/rendering is explicitly part of discussion;
+  production changes remain separately authorized. Project commands and viewer
+  implementation stay local. YA's export and HTML-viewer gaps retain the
+  unfinished work, including linked assets and inline drag/pinch inspection.
+- **Trigger traces** — a new feature's UI question yields an inspected mockup
+  and recommendation without a second permission question; a prose-only
+  question stays prose; asking why an existing button is disabled stays a
+  diagnosis. Without the new route, the first case permitted prose alone.
+- **Facility traces** — an existing differently named design guide wins over
+  creating `topics/ui-design.md`; a project lacking that file is inspected for
+  components/scripts and can use a lightweight approximation; the agents
+  repository's shared topic does not falsely establish a local exporter.
+- **Delivery traces** — an implemented, reachable document viewer can receive
+  a bundle or image-plus-link; a proposed exporter or a localhost URL that is
+  unreachable to the user falls back to inspected screenshots. Missing render
+  tooling yields an explicitly unrendered sketch, never a claim of visual QA.
+- **Authorization and persistence traces** — a design question permits only
+  isolated fixture/render work, not a production feature or dependency/publish
+  operation. After compaction, the global read trigger retrieves the shared
+  packet again under the existing refresh rule, then resolves current project
+  facilities rather than assuming a previously proposed bundle now works.
+- **Status** — user-directed and trace-simulated; cross-model outcome benefits
+  remain assumed. The existing installed Codex and Claude global entry paths
+  resolve to the edited source, so this change requires no installation rewrite.
+
+Contributing-model: 6-Astra
