@@ -137,6 +137,30 @@ remains optional and unimplemented.
 
 ### Stdout-aligned commentary
 
+**Output activation:** a CLI emitting commentary must write one of these
+declarations, terminated by a newline, as its first stderr line, before any
+diagnostics or stdout data:
+
+```text
+# acli: 1 +commentary
+# acli-capabilities: commentary/1
+```
+
+These are alternatives: full-acli tools include `+commentary` among their
+affordances; partial tools include the exact `commentary/1` package token.
+Other advertised tokens may share that line. Keep the declaration within
+4096 characters, including the comment prefix. Bare `acli: 1` does not activate
+commentary parsing. Consumers may inspect only the first stderr line; when a
+wrapper merges streams, inspect the first line of the decoded output instead.
+They need not scan later lines, execute help, or infer support from `_acli`.
+
+Explicit banner suppression through an implemented quiet option remains
+allowed, but disables automatic output-based activation; metadata alone is
+not a replacement declaration. `--no-commentary` omits commentary, so no
+commentary-specific banner is required then (a full-acli tool still follows
+its normal launch-banner contract). Successful `--help` remains side-effect
+free and declares capability in its stdout footer, without a stderr banner.
+
 Tools adopting `+commentary` emit commentary by default alongside their JSON
 results. `_acli` is reserved on any object, including nested objects. Its
 current schema is exactly `{"commentary":[{"text":"Nonempty prose."}]}`:
@@ -363,9 +387,11 @@ is supplied yet.
 
 A simple runnable used through specific agent instructions need not implement
 unrelated acli protocols. For example, commentary support does not require
-completion, a REPL, environment/config equivalents, a startup banner, or the
-full baseline's output-mode defaults. It does require the entire advertised
-commentary contract in the structured modes named by its help: valid metadata,
+completion, a REPL, environment/config equivalents, or the full baseline's
+output-mode defaults. Emitting commentary does require the first-line stderr
+declaration above, without implying those other protocols. It also requires
+the entire advertised commentary contract in the structured modes named by
+its help: valid metadata,
 Markdown fidelity, default inclusion there, and `--no-commentary` suppression.
 Constructing the reserved object members and serializing them directly is
 sufficient; there is no requirement to import Python or build a parser library.
@@ -477,8 +503,9 @@ page" is the same help text, not a parallel surface.
 ## Stderr banner at launch
 
 For full-acli tools, every ordinary launch prints the capability line to stderr
-as a `# `-prefixed comment — `# acli: 1 complete +toon` — immediately after
-argument parsing succeeds, once per process. The `acli` library owns emission
+as a `# `-prefixed comment — `# acli: 1 complete +toon` — on the first stderr
+line, immediately after argument parsing succeeds and before ordinary work,
+once per process. The `acli` library owns emission
 (`acli.args.ArgumentParser.parse_args` calls `maybe_banner`), so a tool
 using the factory gets it for free; the library owning the parse — or
 getting a first-chance pass at it — is what makes the banner uniform.
