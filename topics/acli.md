@@ -110,6 +110,27 @@ self, staleness, DONE, and expected-peer handling.
 pass `text="..."` to `acli.emit(value, fmt, text=...)`; other formats retain
 the original value, and omitting `text` retains JSON for `Format.TEXT`.
 
+### Tool-mediated user communication
+
+When an instruction requires communicating something to the user, consider
+calling an acli tool whose declared presentation behavior effects that
+communication. Tool help or calling instructions must brief the agent on what
+is presented and what successful delivery means. Once that contract establishes
+the required text was presented, count the communication as done; repeat it
+only when additional explanation is useful. A tool's operation succeeding or
+merely emitting data does not by itself establish user-facing presentation.
+
+The agent must retain what was communicated and its delivery state in its
+tool result or conversation history. Synthetic assistant-message injection is
+optional: a briefed agent can recognize tool-mediated presentation without
+believing it authored the text. Presentation means available in the user's
+conversation, not proof the user read it.
+
+The shared commentary encoding and presentation adapters are not implemented.
+The approved direction is [stdout-aligned commentary](acli.sketches.md#stdout-aligned-commentary),
+default-on for implementing tools, with optional
+[history injection](../gaps/acli-commentary-history-injection.md).
+
 ### Schema-announced workflow output
 
 When creating or updating an acli tool with schema-announced workflow output,

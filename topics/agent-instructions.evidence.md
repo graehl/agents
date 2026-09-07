@@ -4243,3 +4243,36 @@ Contributing-model: 6-Astra
   behavioral improvement and cache-hit benefit remain unmeasured.
 
 Contributing-model: 6-Astra
+
+## 2026-09-07 — tools can fulfill user-facing communication
+
+- **User direction:** consider an acli tool call as effecting required
+  presentation to the user. A briefed caller need not mistake tool-authored
+  text for its own. Prefer stdout-aligned commentary, default-on for tools
+  adopting it; keep assistant-history injection optional and capture that
+  avenue as a gap, possibly through YA and a `session-turn` enhancement.
+- **Decision:** put conditional caller guidance in `topics/acli.md`; keep the
+  unimplemented encoding in its sketches companion. No new boot rule or
+  claimed library/YA capability. The user explicitly requested gap placement
+  for injection despite its being an optional idea.
+- **Trace: supported presentation:** help declares the presentation contract
+  and the result confirms the warning was presented. The caller counts that
+  communication as complete without repeating it or requiring injection.
+- **Trace: raw or queued output:** commentary JSON reaches only a data pipe,
+  or a broker acknowledges queue admission. Neither establishes presentation;
+  the caller retains the communication obligation.
+- **Trace: partial failure:** an announcement was presented before the tool's
+  operation failed. Preserve the announcement's delivery state and report the
+  operation failure; neither event erases the other.
+- **Status:** guidance trace-simulated; encoding, presentation adapters, and
+  injection remain unimplemented by this change. No outcome benefit measured.
+
+- **Presentation refinement:** the user wants YA to collect commentary into a
+  list or paragraphs styled like assistant prose while retaining the normal
+  output box. The proposal allows reserved `_acli` metadata on nested objects;
+  extraction preserves ordinary containers and array positions. Record/array
+  order is explicit; nested member traversal is presentation order, not proof
+  of chronology. JSON-looking strings and nonparticipating outputs are not
+  recursively interpreted.
+
+Contributing-model: 6-Astra
