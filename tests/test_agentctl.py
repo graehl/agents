@@ -4920,6 +4920,33 @@ def test_others_reports_none_when_only_self():
         ws.cleanup()
 
 
+def test_others_text_keeps_exit_status_and_claim_filtering():
+    ws = Workspace()
+    try:
+        _seed_active(ws, "self", "own work")
+        _seed_active(ws, "done", "DONE finished")
+        _seed_active(ws, "old", "old work", age_minutes=100)
+        env = {"AGENTCTL_SESSION_ID": "self"}
+        clear = ws.run("others", "--text", env_extra=env)
+        _assert(clear.returncode == 0, clear.stderr)
+        _assert(clear.stdout == "No other active sessions\n", clear.stdout)
+        _seed_active(ws, "peer", "Fixing parser\nscope: src/**")
+        blocked = ws.run("others", "--text", env_extra=env)
+        _assert(blocked.returncode == 1, blocked.stderr)
+        _assert(
+            blocked.stdout == "1 other active session: Fixing parser\n", blocked.stdout
+        )
+        expected = ws.run("others", "--text", "--expect", "peer", env_extra=env)
+        _assert(expected.returncode == 0, expected.stderr)
+        _assert(expected.stdout.startswith("No unexpected peers; "), expected.stdout)
+        legacy = ws.run("others", "--json", env_extra=env)
+        _assert(_json_record(legacy.stdout)["other_count"] == 1)
+        fallback = ws.run("active", "--text", env_extra=env)
+        _assert(_json_record(fallback.stdout)["kind"] == "active_sessions")
+    finally:
+        ws.cleanup()
+
+
 def test_others_resolves_self_from_env_when_id_omitted():
     # No positional id -> fall back to the resolved session id for exclusion.
     ws = Workspace()

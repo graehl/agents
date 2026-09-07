@@ -170,6 +170,17 @@ but imposes no re-Read ceremony. `alone` refreshes its own entry each
 poll and removes it on exit; a crashed waiter's entry simply ages out of the
 window.
 
+## Concise readiness output
+
+For a concise readiness caption, `agentctl others --text` prints one plain
+status line. It returns immediately with the existing peer-gate exit code:
+0 when clear under the selected exclusions, 1 when blocked. Default output
+remains structured; self-exclusion, the freshness window, DONE filtering, and
+expected-peer options are unchanged. Text lists up to three peer status lines
+plus a remaining count; `--full` includes every peer. This is advisory and
+does not add a temporary claim or wait. Other verbs accept `--text` through
+acli and may retain JSON until they receive their own text renderer.
+
 ## Claim-clearance dialogue
 
 Use the acli `agentctl clear <paths...>` before an edit sequence. It checks

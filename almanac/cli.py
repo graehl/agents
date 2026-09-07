@@ -220,7 +220,7 @@ def emit_table(args, rows: list[dict], columns: list[str], name: str) -> None:
     fmt = resolve_format(args)
     if fmt is Format.TOON:
         emit({"rows": rows, "columns": columns, "name": name}, fmt)
-    elif not rows and fmt is Format.COMPACT:
+    elif not rows and fmt in {Format.COMPACT, Format.TEXT}:
         # Definitive empty state (topics/acli.md): zero lines is ambiguous.
         write_jsonl({"count": 0, "of": name})
     else:

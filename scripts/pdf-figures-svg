@@ -327,7 +327,7 @@ def convert(args) -> int:
         # carries `native` or `svg_bytes` only when its outcome had one.
         table = [{column: row.get(column, "") for column in TOON_COLUMNS} for row in rows]
         emit({"rows": table, "columns": list(TOON_COLUMNS), "name": "figures"}, fmt)
-    elif not rows and fmt is Format.COMPACT:
+    elif not rows and fmt in {Format.COMPACT, Format.TEXT}:
         write_jsonl({"count": 0, "of": "figures"})
     else:
         emit(rows, fmt)

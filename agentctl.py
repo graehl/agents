@@ -1583,7 +1583,20 @@ def others_cmd(args) -> int:
         payload["registered"] = {"id": provided, "status": status}
         if status == "created":
             payload["next_command"] = 'agentctl active "<status>" [<scope>...]'
-    acli.emit(payload, fmt)
+    if not peers:
+        summary = "No other active sessions"
+    else:
+        shown = peer_rows if full else peer_rows[:3]
+        statuses = [" ".join(row["status"].split()) or row["id"] for row in shown]
+        summary = (
+            f"{len(peers)} other active session{'s' if len(peers) != 1 else ''}: "
+            + "; ".join(statuses)
+        )
+        if len(peers) > len(shown):
+            summary += f"; {len(peers) - len(shown)} more (--full)"
+        if ok:
+            summary = "No unexpected peers; " + summary
+    acli.emit(payload, fmt, text=summary)
     return 0 if ok else 1
 
 
@@ -6752,6 +6765,9 @@ def build_parser() -> argparse.ArgumentParser:
         "in one line with nothing to parse. Pass your own session id. "
         "With --expect/--expect-count, exit 0 means no *surprising* "
         "peers instead of no peers at all.",
+        description="Immediate peer check: exit 0 when clear, 1 when blocked. "
+        "--text prints one plain status line with up to three peer summaries; "
+        "--full includes every peer. Default output remains structured JSON.",
     )
     s.add_argument(
         "uuid",

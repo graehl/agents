@@ -14,6 +14,7 @@ ACLI_PROTOCOL_VERSION = 1
 
 QUIET_FLAG = "--acli-quiet"
 QUIET_ENV = "ACLI_QUIET"
+TEXT_HELP = "Prefer concise readable text; verbs without a text renderer may still output JSON. Explicit encoding flags take precedence."
 
 _banner_emitted = False
 
@@ -72,6 +73,13 @@ class ArgumentParser(argparse.ArgumentParser):
         self.acli_exit_codes = dict(exit_codes or {})
         super().__init__(*args, **kwargs)
         self.add_argument(
+            "--text",
+            action="store_true",
+            dest="acli_text",
+            default=argparse.SUPPRESS,
+            help=TEXT_HELP,
+        )
+        self.add_argument(
             QUIET_FLAG,
             action="store_true",
             dest="acli_quiet",
@@ -122,12 +130,20 @@ def add_standard_args(
     """Add ACLI output flags to an argparse parser."""
     if getattr(parser, "_acli_standard_args", False):
         return
+    if "--text" not in parser._option_string_actions:
+        parser.add_argument(
+            "--text",
+            action="store_true",
+            dest="acli_text",
+            default=argparse.SUPPRESS,
+            help=TEXT_HELP,
+        )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--format",
-        choices=["compact", "jsonl", "pretty", "toon"],
+        choices=["compact", "jsonl", "pretty", "toon", "text"],
         dest="format",
-        help="Output format. compact/jsonl is JSON Lines; pretty is indented JSON; toon is flat-table TOON.",
+        help="Output format. compact/jsonl is JSON Lines; pretty is indented JSON; toon is flat-table TOON; text prefers readable output with JSON fallback.",
     )
     group.add_argument(
         "--compact",

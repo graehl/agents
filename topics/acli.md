@@ -83,6 +83,33 @@ tables for humans, gate them behind higher-confidence detection (real TTY
 *and* no markers *and* a capable `TERM`) so a misread never lands an agent
 on the one format it cannot read.
 
+### Readable text preference
+
+Every tool using the shared parser accepts `--text`. It requests concise,
+unstructured, human-readable stdout without changing the command's behavior,
+exit codes, or stderr error contract. It is never selected automatically.
+JSON is explicitly allowed: a verb without a text renderer keeps its existing
+output, and the shared emitter falls back to compact JSONL. Implement text
+rendering piecemeal; accepting this preference does not require rewriting every
+verb before releasing the library.
+
+Where standard output flags are installed, `--format text` selects the same
+preference. An explicit encoding such as `--json` or `--pretty` takes precedence
+over `--text`. Consumers requiring parseable JSON must request `--json`;
+consumers requiring prose must use a verb whose help promises that rendering.
+
+Text renderers belong to the command, which knows the useful summary. Prefer
+plain text without ANSI decoration or guessed terminal-width wrapping. Keep
+empty results explicit and preserve a visible truncation count with `--full`
+for details. `agentctl others --text` is the first example: one status line,
+exit 0 when the normal peer gate passes and 1 when it blocks, with unchanged
+self, staleness, DONE, and expected-peer handling.
+
+`acli.argument_parser()` accepts `--text` even without the other output flags;
+`add_standard_args()` also adds it to ordinary argparse parsers. Renderers
+pass `text="..."` to `acli.emit(value, fmt, text=...)`; other formats retain
+the original value, and omitting `text` retains JSON for `Format.TEXT`.
+
 ### Schema-announced workflow output
 
 When creating or updating an acli tool with schema-announced workflow output,
@@ -433,7 +460,7 @@ library, not a framework:
 - `acli.errors` — the structured error envelope, standard exit codes, and a
   `die()` that fails loud.
 - `acli.args` — an argparse factory pre-wiring the standard flags
-  (`--format`, `--json`, `--compact`, `--full`, `--pretty`, `--toon`,
+  (`--format`, `--json`, `--compact`, `--full`, `--pretty`, `--toon`, `--text`,
   `--acli-quiet`), the agent-friendly help
   conventions, the capability line / exit-code footer, the once-per-process
   stderr banner (`maybe_banner`, called from `parse_args`), and the

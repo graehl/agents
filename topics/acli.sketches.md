@@ -58,6 +58,16 @@ the capability line the way `+confirm` surfaces the two-phase form, with
 the same registration-brings-flags-and-help mechanism (`--timeout`,
 channel selection, the envelope's `ref`/status fields).
 
+## Optional color for text output
+
+Possible later affordance, with no current implementation intent: opt into
+color for `--text` output, using detected terminal capabilities (`TERM` and
+terminal presence) or an explicit terminal specification, including `plain`.
+Keep structured JSON output unchanged. The shared library would own capability
+selection and styling so individual text renderers do not invent incompatible
+color flags. Plain output remains available for captions, logs, and pipes;
+the exact flag names and detection precedence are undecided.
+
 ## Calling-agent dialogue
 
 [Dormant gap](../gaps/acli-calling-agent-dialogue.md): tools may request answers

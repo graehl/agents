@@ -132,14 +132,22 @@ def write_toon_table(
         out.write(f"  {delimiter.join(values)}\n")
 
 
-def emit(value: Any, fmt: Format | str, out: TextIO = sys.stdout) -> None:
+def emit(
+    value: Any,
+    fmt: Format | str,
+    out: TextIO = sys.stdout,
+    *,
+    text: str | None = None,
+) -> None:
     if isinstance(fmt, Format):
         resolved = fmt
     elif str(fmt).strip().lower() == "jsonl":
         resolved = Format.COMPACT
     else:
         resolved = Format(fmt)
-    if resolved is Format.COMPACT:
+    if resolved is Format.TEXT and text is not None:
+        out.write(text.rstrip("\n") + "\n")
+    elif resolved in {Format.COMPACT, Format.TEXT}:
         write_jsonl(value, out)
     elif resolved is Format.PRETTY:
         write_pretty(value, out)
