@@ -364,6 +364,33 @@ positions; reordering the underlying messages would lose that distinction.
 When asked to give a script, skill, or informal procedure schema-governed
 output, use this topic as the authoring contract:
 
+Request wording such as **"Create/update X with schema-announced workflow
+output"** routes here through `AGENTS.global.md` for skills, acli tools, and
+agent-managed procedures. Add **"inline"** to select the quick whitelist form
+without a schema file; the author chooses meaningful stage keys when none are
+specified. Ordinary skill/tool creation does not automatically opt into this
+protocol. The acli authoring topic also routes matching requests here.
+
+For an inline skill or informal procedure, put an instruction like this in its
+body, adapting the keys to the work:
+
+```text
+At workflow start, emit this line verbatim, outside a code fence:
+@@visualization-schema/1 ["build","test","report"]
+Prefix progress at each stage with [build], [test], or [report] at column one.
+Following activity belongs to that stage until the next recognized prefix.
+Report the actual result, including failures and intentionally skipped stages.
+```
+
+Do not put the inline list in `metadata.visualization-schema`; that field is
+for file pointers. A fenced example in skill content is not activation: the
+instruction above makes the agent emit the live line when executing the work.
+An acli tool may instead emit activation and tags on its documented progress
+stream; preserve [acli's structured result and error contracts](acli.md#schema-announced-workflow-output).
+Wrapping an existing tool with caller-emitted markers needs no tool changes.
+
+For either form:
+
 1. For a quick case, emit the inline whitelist with meaningful key atoms. Use
    a separate declaration when titles, stage structure, or tool policy need
    more control. Keep encoding separate from the stage model; use JSON until
@@ -371,12 +398,12 @@ output, use this topic as the authoring contract:
 2. Place prefixes at actual work boundaries. Full-schema agent paths include
    its root key; tool paths are relative to the calling stage. One script can emit
    all its substeps without becoming several invocations.
-3. Set `containsTags` from the output the tool actually emits. For output that
+3. In a file declaration, set `containsTags` from actual tool output. For output that
    intentionally permits arbitrary bracketed paths, omit `whitelist`. For
    mixed logs, whitelist only the progress paths that should define sections,
    such as `[build][types]` and `[push]`, leaving `[INFO]` as ordinary output.
    Entries are exact complete paths, not patterns or implicit descendant rules.
-4. Choose `matching-lines` when the compact view should contain only the
+4. In a file declaration, choose `matching-lines` to show only the
    selected progress lines, or `spans` when their intervening output belongs
    beneath each stage. Titles describe the work; they are not matching rules.
 5. Wire activation through `metadata.visualization-schema` for a skill, or a

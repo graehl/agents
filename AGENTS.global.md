@@ -883,6 +883,14 @@ For multi-line or iterative ad-hoc code, write a scratch file and rerun it
 rather than embedding fragile shell quoting. Remove it when done; use durable
 scratch storage if it must survive a gap.
 
+## Schema-announced workflows
+
+When creating or updating a skill, agent-managed procedure (including an
+informal skill), or tool with **schema-announced** workflow output, read
+`~/agents/topics/workflow-tags.md` before authoring. Requests for an **inline
+workflow schema** take the same route. Wire activation and stage reporting into
+the instructions or tool output, using the requested inline or file form.
+
 ## Multiple-use helper tools
 
 A new helper CLI meant to outlive its task — committed, named in
