@@ -22,8 +22,7 @@ Then load the model-scoped behavior patches selected by that same recorded id:
 an id containing `claude` reads `~/agents/AGENTS.anthropic.md`; an id containing
 `opus` also reads `~/agents/AGENTS.opus.md`; an id containing a `sol`
 model-family segment (for example, `gpt-5.6-sol`) reads
-`~/agents/AGENTS.sol.md`; an id containing an `astra` model-family segment
-(for example, `gpt-6-astra`) reads `~/agents/AGENTS.astra.md`. This routing
+`~/agents/AGENTS.sol.md`. This routing
 follows the model across harnesses rather than assuming Codex always runs Sol.
 
 ## Session Identity

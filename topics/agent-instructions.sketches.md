@@ -144,10 +144,9 @@ Grok-4.6 tier, not smaller models used for bounded data processing. This is
 user experience and workload selection, not a measured capability ordering.
 
 The first decision is a shared competent-agent baseline plus small named
-exceptions. `AGENTS.sol.md` already existed. `AGENTS.astra.md` now has its own
-route, with no active patches; do not copy Sol's exceptions into it merely
-because Astra is a successor. An empty behavioral delta is an honest starting
-point. Adding a supplement does not itself reduce the shared prompt.
+exceptions. Astra has no active model-specific patches; its empty supplement
+and boot routes were removed on 2026-09-07. The existing Sol route selects only
+Sol model ids. No additional Astra file is needed to express that distinction.
 
 ### What the inspection establishes
 
@@ -165,7 +164,7 @@ shared files this Astra/YA/Codex launch selects have these sizes:
 
 These are file bytes, not tokenizer counts, effective injected context, billed
 tokens, or latency measurements. The five listed files constitute that shared
-selection; the new Astra supplement adds a small route-specific file. Runtime
+selection; the subsequently removed Astra placeholder added 341 bytes. Runtime
 cost also includes rereads, generated reasoning, retries, tool calls, and human
 correction. Moving prose to a packet every task must read saves no first-read
 volume; a useful extraction makes that read conditional.
@@ -198,7 +197,7 @@ Current authoring policy and the extraction contract are in
 the before/after source sizes, displaced-content map, and trace checks. No
 outcome improvement or new post-compaction refresh latitude is claimed.
 
-### Astra-specific candidates
+### Candidates whose Astra specificity is unestablished
 
 Start with no additional teaching of ordinary competence. If a behavior still
 fails under the shared reduction, use its actual model, harness, request class,
@@ -213,8 +212,8 @@ same tests and acceptance contract. Any benefit should appear in less
 unnecessary reading/reasoning or fewer clarification turns without additional
 repair work. This session does not activate a presumption switch.
 
-Do not put negative overrides in `AGENTS.astra.md` merely to cancel paragraphs
-it still has to load from the shared source. Shared cuts benefit all selected
+Do not add an Astra supplement merely to cancel paragraphs it still has to
+load from the shared source. Shared cuts benefit all selected
 models; genuinely model-dependent loading reductions require the separately
 proposed [durable boot compiler](../gaps/agent-specific-durable-boot-compilation.md).
 Model-scoped relaxations also require an explicit change to the current

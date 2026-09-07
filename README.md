@@ -59,7 +59,7 @@ branches, commits, shared workdirs, or private notes.
 | `AGENTS.md` | Project boot for developing this instruction repository; deliberately distinct from the global install source. |
 | `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md` | Harness-specific mechanics such as session identifiers, log locations, and launcher quirks. |
 | `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier latitude and extra reminders; load-bearing policy still belongs in `AGENTS.global.md`. |
-| `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md`, `AGENTS.astra.md` | Model-family supplements selected from the harness-recorded model id; a supplement may have no active behavior patches. |
+| `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md` | Model-family behavior patches selected from the harness-recorded model id. Astra has no additional patch or boot supplement. |
 | `RESEARCH.md`, `_RESEARCH/` | Short research router plus binding concern packets that combine rules, templates, rationale, and edge cases. |
 | `advisor/serve.md` | Complete ordinary tell/ask packet for a long-lived skeptical research advisor. |
 | `research-advisor.md` | Condition-routed lifecycle, transport-recovery, and state-continuity catalog. |

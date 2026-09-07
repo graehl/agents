@@ -1,9 +1,5 @@
 # Opus supplement to AGENTS.global.md
 
-Model-scoped behavior patch, loaded via a harness supplement when its recorded
-model id is opus-class. Everything in `AGENTS.global.md` still applies; this file
-carries model-specific behavior patches.
-
 ## Path-trace code claims
 
 Failure mode this counters: Opus-class models pair competent

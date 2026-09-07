@@ -1,9 +1,5 @@
 # Sol supplement to AGENTS.global.md
 
-Model-scoped behavior patch, loaded via a harness supplement when its recorded
-id contains a `sol` model-family segment (for example, `gpt-5.6-sol`).
-Everything in `AGENTS.global.md` still applies; this file tightens two behaviors.
-
 ## Direct work under Claude Code
 
 When `AGENT_LAUNCH_ROUTE=claude-gateway` marks a Sol model running through
