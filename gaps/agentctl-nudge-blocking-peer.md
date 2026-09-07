@@ -48,10 +48,12 @@ absent-session resume.
 
 User-directed question, 2026-09-07. Contributing-model: 6-Astra.
 
-The user requested checking whether peers may leave coordination comments
-in another session's active record, with at least Linux-safe atomic delivery,
-possibly through an `agentctl` verb. This also needs a delivery path when the
-recipient is in foreground activity rather than idle.
+The user requested a reliable coordination path while the recipient is in
+foreground activity: opt-in busy-session queuing in `session-turn`, and/or
+notices posted through an `agentctl` verb. A preferred candidate is to put
+outbound notices in the sender's own active record, avoiding writes into the
+recipient's owner-controlled file. This is design thinking to retain; the
+advised agent mechanisms will be decided later.
 
 Current evidence:
 
@@ -74,11 +76,14 @@ Current evidence:
 
 Resolve the design before recommending hand-written peer comments:
 
-- Define whether notices belong inside the active record or in a separate
-  inbox. If sharing the record, every cooperating owner/peer writer must use
-  one Linux-safe locking protocol covering the whole update and temporary-file
-  lifecycle. A separate inbox may avoid replacing owner-controlled state.
-  State behavior for readers, crashes, and unsupported platforms explicitly.
+- Evaluate sender-owned outbound notices first: include the intended recipient
+  or relevant claim/path and let readers discover them in the sender's active
+  record. This avoids multiple sessions editing the recipient's file, but
+  does not by itself serialize the sender's own concurrent helper writes.
+  Define at least a Linux-safe locking/atomic-write protocol covering the
+  complete update and temporary-file lifecycle, plus reader/crash behavior.
+  A separate inbox and peer-written fields remain alternatives to compare;
+  unsupported-platform behavior must be explicit.
 - Define sender/recipient and notice identity, acknowledgment/removal, retry
   deduplication, and the observation point where a busy recipient reads pending
   notices. Distinguish persisted/queued, delivered, and acted-on; writing a
@@ -86,10 +91,19 @@ Resolve the design before recommending hand-written peer comments:
 - Do not let a peer notice refresh the recipient's apparent liveness, revive a
   DONE/stale session, replace its banner/scope, or release its claims. Preserve
   notices across legitimate owner updates and settle archive/sweep behavior.
-- Decide whether busy `session-turn` delivery should durably queue instead,
-  with explicit acceptance/receipt semantics, or whether an agentctl notice
-  complements its existing live-session delivery. Keep the no-native-fallback
-  and no-implicit-resume constraints above for automated nudges.
+- A clearance wait should notice when the active owner it is waiting on posts
+  an addressed comment, then emit a nonbuffered message line immediately
+  (flush the structured output stream). Emit each new notice once rather than
+  repeating it at every poll; keep waiting for actual clearance. Define which
+  existing or future wait surface owns this behavior: `clear` currently checks
+  once, while `alone` waits for whole-project solitude. This is not a claim
+  that a wait-for-clear verb already exists. Test prompt visibility through
+  the actual pipe/harness path, not only after the wait process exits.
+- Consider opt-in durable queuing for a busy `session-turn` recipient, with
+  explicit acceptance/receipt semantics, independently or alongside notices.
+  Distinguish queued follow-up from steering the running turn. Keep the
+  no-native-fallback and no-implicit-resume constraints above for automated
+  nudges; the present rejection behavior need not change for non-opted-in calls.
 
 Closure needs concurrent owner-update/peer-write tests (including two senders),
 crash/retry and duplicate-delivery cases, no false liveness refresh, and a busy
