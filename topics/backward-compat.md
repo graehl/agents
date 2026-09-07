@@ -7,6 +7,12 @@ Topic: `backward-compat`
 
 ## Decisions
 
+- 2026-09-07 `tagged-stages/1` tool-output matching — `whitelist` is always
+  additive to declared descendants; it no longer closes matching by its
+  presence. Use `closed: true` for a finite accepted set; false or omitted
+  accepts every valid path when tool tags are enabled. No legacy matching
+  shim or version bump, by explicit user direction: update the sole existing
+  prototype in place. Quick inline lists retain their exact-path interpretation.
 - 2026-08-28 `agentctl fleet-watch` stdout — changed the single wake/timeout
   result from ad-hoc prose to the standard acli object (`kind`, `reason`,
   `events`, `fleet`), compact JSONL by default for agents/pipes and pretty
