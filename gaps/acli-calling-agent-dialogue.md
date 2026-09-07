@@ -4,8 +4,8 @@ noticed: 2026-09-07
 where: acli/
 ---
 
-**Status:** dormant idea, captured as a gap at the user's request. No specific
-application is identified; implementation waits for a concrete need.
+**Status:** dormant idea, captured as a gap at the user's request. The examples
+below do not establish a missing capability; no implementation is scheduled.
 
 **Gap:** an optional avenue through the Python `acli` library for a tool to
 request an answer from its calling agent and continue using that answer.
@@ -18,17 +18,36 @@ workflow. The user favors allowing useful interaction styles independently,
 while leaving capabilities that are not yet needed unimplemented.
 
 **Design sketch:** keep tool behavior separate from its interaction route.
-The first candidate to test is instructed stdin/stdout dialogue: the tool
-flushes a complete request line, the calling agent reads and answers it by
-writing stdin, and the tool continues with its local state intact. Structured
-line records can distinguish requests, replies, and results; diagnostics stay
-on stderr. Explicit flushing at message boundaries is sufficient.
+Existing watched-process handling is the baseline. In a live stdin/stdout
+exchange, the tool flushes a request line, the calling agent answers through
+stdin, and the tool continues with its local state intact. That route needs
+partial-output delivery, retained writable stdin, and control returned to the
+agent while the process remains alive. Structured line records can distinguish
+requests, replies, and results; diagnostics stay on stderr.
 
-The execution harness must expose partial stdout, retain writable stdin, and
-yield control to the calling agent while the process remains alive. Unbuffered
-output alone cannot make a wait-until-exit execution interface interactive.
-Tool instructions must tell the caller how to service requests rather than
-simply wait for completion. Verify this path in the intended harness.
+Alternatively, each exchange can launch a fresh stdout-writing process that
+attaches to the underlying tool session, optionally submits the agent's reply,
+and streams the next response. The tool session owns the interaction state;
+neither the attachment process nor its stdin must survive between exchanges.
+Each attachment can use ordinary foreground or tracked background execution.
+A daemon can start on demand. A long-lived subscriber is another attachment
+shape, not a prerequisite for a running interaction.
+
+Verify delivery, reply, and continuation behavior in the intended harness.
+Unbuffering alone does not make a wait-until-exit interface interactive, and
+saving background stdout alone does not ensure another agent turn. With those
+behaviors supported, watched stdout is already a general callback channel.
+
+**Self-documentation and pending results:** help and discoverable instructions
+must explain the interaction style, session/request IDs, how the calling agent
+answers, and how to distinguish an intermediate exchange from final completion.
+Status, cancellation, and reconnect behavior should be explicit where offered;
+retries may need request IDs and event cursors to avoid duplicate submissions
+or missed output. A native harness task is useful but optional: the calling
+session can instead retain the identifier and expected follow-up. Delivery
+alone does not establish that the agent consumed the result. An occupancy
+notification is also only an observation: before assigning work, recheck live
+worker usage and pending launches; an outstanding watch reserves no capacity.
 
 For async flows, a host broker can deliver a notification or request back to
 the calling agent after the arranging invocation returns. Bind the destination
@@ -41,6 +60,9 @@ the authority distinction. Keep replies correlated with their requests.
 The broker needs an explicit delivery rule for a busy, idle, or disconnected
 caller. Many harnesses could plausibly expose this facility; actual support,
 message placement, and wake/resume behavior must be verified per harness.
+Durable queues, shared routing, and recovery can also sit behind a process
+attachment that streams broker events to stdout; they do not require another
+agent-facing transport.
 
 **Candidate shared owner:** the proposed YA provider daemon for cron-like,
 session-involved actions could also own callback delivery. A scheduled trigger
@@ -49,8 +71,7 @@ queuing, delivery receipts, wake/resume, and reply routing. Preserve the
 origin and authority of each source; delivery alone grants no new authority.
 This is a proposed ownership boundary, not a claim that YA implements it.
 
-Return-and-resume continuations remain useful when the live process cannot be
-retained. MCP is another possible route: reuse its official Python SDK where
+MCP is another possible route: reuse its official Python SDK where
 the semantics fit, keeping ordinary `acli` use independent of that dependency.
 These avenues are independently optional. Select no public API until an
 application establishes what is needed.
@@ -62,9 +83,31 @@ and let the calling agent answer while the tool is suspended or yielded.
 Unsupported routes, cancellation, and caller disappearance need explicit
 outcomes; they must not silently turn into human prompts.
 
-**Revisit when:** a tool needs calling-agent judgment during its workflow.
-Exercise a complete request, agent answer, and continuation through the chosen
-route before advertising it as an `acli` capability.
+**Examples considered:**
+
+- `agentctl fleet-watch` already combines local and SSH-worker capacity,
+  job, and PID conditions. Together with `wait`/`watch`, `wait-work`, and the
+  existing best-effort completion wake, it offers concrete async workflows to
+  compare if delivery or pending-result handling proves inadequate. See
+  [agentctl](../topics/agentctl.md#fleet-capacity-watch).
+- Project-file substring, semantic, or LSP-backed search can keep indexes and
+  search state in an auto-started daemon. Successive CLI queries can refine
+  candidates or answer clarification requests. This example does not itself
+  justify another callback mechanism.
+
+**Interface choice:** with equivalent session semantics, prefer the physical
+interface the harness/model pair handles most competently. Saving processes is
+not a motivating efficiency at agent token latencies; avoidable model round
+trips, misunderstood output, forgotten work, and failed continuation matter
+more. The live exchange below establishes feasibility, not comparative
+superiority. The existing acli duration/channel contract needs no expansion
+merely to preserve these options.
+
+**Revisit when:** a concrete workflow exposes repeated protocol friction, a
+lifecycle limitation, or evidence that another interface works better. Compare
+the same workflow through the candidate routes, including its pending results
+and required recovery behavior. Exercise a complete request, calling-agent
+answer, and continuation before advertising an `acli` dialogue capability.
 
 ## Provider feasibility — 2026-09-07
 

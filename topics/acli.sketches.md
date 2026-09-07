@@ -60,8 +60,11 @@ channel selection, the envelope's `ref`/status fields).
 
 ## Calling-agent dialogue
 
-[Dormant gap](../gaps/acli-calling-agent-dialogue.md): optional library routes
-for tools to request answers from the calling agent and resume. Candidates are
-instructed stdin/stdout dialogue for live exchanges and a broker for async
-delivery with trusted invocation provenance. No application is selected; the
-gap preserves the distinction from human input.
+[Dormant gap](../gaps/acli-calling-agent-dialogue.md): tools may request answers
+from the calling agent and resume through existing watched-process handling.
+A live stdin/stdout exchange or a fresh process attaching to the same tool
+session can carry the interaction. No new mechanism is needed for the examples
+considered. The gap records self-documentation, pending-result tracking, and
+optional broker/standard adapters; interface choice waits for a concrete
+workflow and evidence of harness/model competence. Human input remains a
+different interaction.
