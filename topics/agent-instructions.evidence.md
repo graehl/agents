@@ -4310,3 +4310,40 @@ Contributing-model: 6-Astra
   child that emits commentary before it exits. UI presentation is deferred.
 
 Contributing-model: 6-Astra
+
+## 2026-09-07 — portable acli v1 and focused implementation guidance
+
+- **User direction:** revise v1 freely before public adoption, preparing to
+  vendor only `acli.md` and `acli-spec.md`. Keep implementation advice and
+  future proposals separate. Allow partial packages witnessed in help or a
+  tool's agent guide; no library or unrelated protocols are required.
+- **Decision:** the user guide routes to the complete spec; neither depends
+  on other local files. The implementer guide owns Python APIs and integration
+  limits. Speculative deferral/confirmation, mixed framing, history insertion,
+  dialogue, and configuration designs live only in sketches.
+- **Trace: guide-only runnable:** a TypeScript tool declares `commentary/1`
+  and its exact structured invocation in instructions. The caller can use it
+  without guessing `--help`, importing Python, or requiring baseline defaults.
+- **Trace: full tool:** the caller can select JSONL or one JSON document,
+  inspect the final stderr error, distinguish an empty result from missing
+  output, and avoid mistaking a deferred acknowledgement for completed work.
+  Existing flag spellings and commentary projection are retained.
+- **Trace: presentation:** nested source context is resolved before metadata
+  projection; prose remains exact Markdown. Emission, delivery, and authorship
+  remain distinct, even when the UI styles prose as an assistant message.
+- **Observed gaps and authorized repair:** Python emitted nothing for an empty
+  row list, accepted NaN JSON, and used plain argparse usage errors. The user
+  asked to fix these. Regression tests failed on each before repair; result
+  writers now reject invalid numbers before writing the affected value, empty
+  results emit `[]`, and parser errors use a structured usage envelope.
+- **Caller trace:** almanac's dataset-launcher completion used the result
+  writer for a whole candidate list. It now emits each candidate separately,
+  preserving completion's intentional zero-record answer. A missing record
+  prefix legitimately produces a hint, so the empty-answer test uses an
+  unmatched option prefix instead.
+- **Evidence:** 40 ACLI, 16 almanac, and 8 agentctl peer-gate tests pass;
+  focused Ruff checks pass. Doc checks validate local link closure, retained
+  inbound anchors, and JSON examples. No YA code was changed or vendored;
+  Python helper coverage is not a claim that every existing tool is compliant.
+
+Contributing-model: 6-Astra

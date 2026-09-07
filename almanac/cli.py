@@ -1207,7 +1207,8 @@ def run_launcher(parser, rest: list[str]) -> int:
     name, prog, *tokens = rest
     dataset_dir(name)
     if tokens[:1] == ["--acli-complete"]:
-        write_jsonl(launcher_completion_rows(parser, name, tokens[1:]))
+        for row in launcher_completion_rows(parser, name, tokens[1:]):
+            write_jsonl(row)
         return 0
     if tokens[:1] == ["--repl"]:
         if len(tokens) != 1:
