@@ -31,7 +31,12 @@ from pathlib import Path
 from typing import ClassVar
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-AGENTCTL_FILES = ("agentctl", "agentctl.py", "artifact_meta.py")
+AGENTCTL_FILES = (
+    "agentctl",
+    "agentctl.py",
+    "agentctl_coordination.py",
+    "artifact_meta.py",
+)
 AGENTCTL_DIRS = ("agentctl_plugins", "acli")
 
 
@@ -5741,16 +5746,14 @@ def test_clear_checks_peers_and_claims_paths():
         entry = (active / me).read_text()
         _assert("scope: docs/notes.txt" in entry, entry)
 
-        res = ws.run("clear", "src/util.py", env_extra=env)
+        res = ws.run("clear", "--no-wait", "src/util.py", env_extra=env)
         _assert(res.returncode == 1, "covering wildcard must gate without --carve")
         payload = _json_record(res.stdout)
         _assert(payload["verdict"] == "carveable", payload)
         _assert(payload["conflicts"][0]["id"] == wide, payload)
         _assert("src/util.py" not in (active / me).read_text(), "no claim on gate")
 
-        res = ws.run(
-            "clear", "src/util.py", "--carve", "-M", "helpers", env_extra=env
-        )
+        res = ws.run("clear", "src/util.py", "--carve", "-M", "helpers", env_extra=env)
         _assert(res.returncode == 0, f"--carve claims through wildcard: {res.stderr}")
         payload = _json_record(res.stdout)
         _assert(payload["carved"] == ["src/util.py"], payload)
@@ -5759,11 +5762,11 @@ def test_clear_checks_peers_and_claims_paths():
         _assert(f"carve: src/util.py from {wide} src/**" in entry, entry)
         _assert("helpers" in entry, entry)
 
-        res = ws.run("clear", "src/parse.py", "--carve", env_extra=env)
+        res = ws.run("clear", "--no-wait", "src/parse.py", "--carve", env_extra=env)
         _assert(res.returncode == 1, "exact peer claim must block --carve")
         _assert(_json_record(res.stdout)["verdict"] == "blocked", res.stdout)
 
-        res = ws.run("clear", "src", "--carve", env_extra=env)
+        res = ws.run("clear", "--no-wait", "src", "--carve", env_extra=env)
         _assert(res.returncode == 1, "peer's more-specific literal blocks dir claim")
         _assert(_json_record(res.stdout)["verdict"] == "blocked", res.stdout)
 

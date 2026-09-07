@@ -7,6 +7,11 @@ Topic: `backward-compat`
 
 ## Decisions
 
+- 2026-09-07 `agentctl clear` — waits and streams notices by default, by
+  explicit user direction; `--no-wait` preserves the immediate blocked or
+  carveable verdict, and `--drop` stays immediate. `--deaf` waits without
+  accepting notices. Existing one-shot regression callers use `--no-wait`;
+  coordination instructions and CLI help describe the choice.
 - 2026-09-07 `tagged-stages/1` tool-output matching — `whitelist` is always
   additive to declared descendants; it no longer closes matching by its
   presence. Use `closed: true` for a finite accepted set; false or omitted

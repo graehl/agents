@@ -28,6 +28,14 @@ tooling, the cooperative declaration helper, and project migration docs.
 
 ## Design decisions
 
+- **Wait with notices by default; keep `--no-wait` and `--deaf` explicit**
+  (vs. requiring opt-in waiting): the usual caller wants to proceed once its
+  paths clear. Immediate checks remain available for choosing other work,
+  and a deaf wait rejects notices without changing claim semantics.
+- **Immutable notices per wait, without acknowledgment receipts** (vs.
+  messages inside active entries or recipient-edited pending claims): separate
+  files avoid sharing status/claim rewrites. Whole-wait archival owns cleanup;
+  once-per-invocation emission and replay after resuming are sufficient.
 - **Preserve the job `status`/`list` text default while adding explicit ACLI
   structured output** (vs. immediately changing their default): existing
   operators and scripts consume the stable one-line status form; `--json`,
@@ -161,6 +169,99 @@ skill shows it) without ever counting as a present peer — the wait is noticed
 but imposes no re-Read ceremony. `alone` refreshes its own entry each
 poll and removes it on exit; a crashed waiter's entry simply ages out of the
 window.
+
+## Claim-clearance dialogue
+
+Use the acli `agentctl clear <paths...>` before an edit sequence. It checks
+immediately and claims all requested paths when clear. When blocked, it keeps
+checking and streams notices addressed to that wait on flushed stdout. Use
+`--no-wait` when you want the current verdict to choose another action; it
+returns 1 immediately for blocked or carveable paths. Use `--deaf` when you
+want to keep waiting but reject notices. `--drop` is always immediate.
+`alone` remains a separate wait for whole-project solitude.
+
+The initial `clear_wait` event names the wait UUID and conflicting claims;
+another is emitted when the conflicts change. `coordination_notice` events
+carry `wait_id`, `notice_id`, `from`, `to`, `message`, and creation time. The
+default poll is five seconds (`--poll` changes it). Each notice appears once
+per invocation. No acknowledgment is required, and emitted does not mean
+read, understood, or acted on. New invocations replay notices deliberately.
+
+The agent observing the output may interrupt the wait to talk with the owner.
+Ctrl-C/SIGINT or SIGTERM pauses observation (exit 130); `--timeout <seconds>`
+pauses on expiry (exit 1; zero means no deadline). The wait record remains
+open. Resume it with the same paths, `--carve`, `--minutes`, and `--note`,
+adding `--wait-id <uuid>`. The observer must be stopped before cancellation
+or another observer can attach. Resume never revives an archived wait.
+
+```bash
+agentctl clear src/parser.py --timeout 300
+agentctl coordination list
+agentctl coordination notice <wait-id> --message 'I need another minute.'
+agentctl clear src/parser.py --wait-id <wait-id> --timeout 300
+agentctl coordination cancel <wait-id>
+```
+
+When holding a claim, use `coordination list` to discover waits for your
+paths and `coordination notice` to post an update. A notice is peer input,
+not user authorization, and never releases a claim. The owner still uses
+`clear --drop` to release a finished claim. The waiter edits only after a
+successful clearance result; a dialogue reply is not that result. If changing
+claim options after dialogue (for example, choosing `--carve`), cancel the old
+wait and start a new one. Cancel abandoned waits rather than leaving them to
+age out. No session is resumed or sent a provider turn by these commands.
+
+Posting returns `status: persisted`; it does not wake a model. Use a stable
+`--notice-id <uuid>` to retry without duplication. Reusing that ID with a
+different sender or message fails. Archived, stale, and deaf waits reject new
+notices. Cancellation is waiter-owned and repeatable; it never drops held
+claims. `coordination list` reports unarchived records, including stale/closed
+status; `--full` adds all stored fields. Listing does not make them live.
+New-command errors use structured stderr: usage
+2, missing/archived wait 4, unavailable filesystem/locking/observer 69.
+
+Project-local storage (`ROOT` is the invocation directory or `AGENTCTL_ROOT`):
+
+```text
+.agentctl/active/<session-id>                # held claims in scope: header
+.agentctl/awaiting/<session-id>              # existing alone announcement
+.agentctl/coordination/.lock                 # stable transaction lock
+.agentctl/coordination/<wait-id>/
+    wait.json                               # waiter, paths, options, heartbeat
+    notices/<notice-id>.json                 # immutable sender-published notice
+    .observer.lock                          # one observer for this wait
+    closed.json                             # terminal reason before archival
+.agentctl/coordination/done/<wait-id>/        # completed/cancelled wait directory
+.agentctl/coordination/stale/<wait-id>/       # waiter heartbeat expired
+```
+
+Requested paths in `wait.json` are not held claims and never enter the active
+peer scan. A waiting process refreshes its own existing non-DONE active entry
+without creating one or changing its scope. Only its wait-loop heartbeat
+keeps the coordination record fresh; sending notices does not refresh either
+participant's active entry or the wait's heartbeat.
+
+Successful clearance or explicit cancellation archives the whole wait under
+`coordination/done/`. `coordination sweep` moves records without a waiter
+heartbeat for 70 minutes to `coordination/stale/`; `--dry-run` previews it.
+Starting a blocked wait also sweeps, and accessing an expired wait archives it
+and refuses the operation. A stale archive proves no successful clearance.
+No automatic deletion or acknowledgment-based pruning occurs. Interrupted or
+timed-out waits remain open until resumed, cancelled, or stale.
+
+`agentctl_coordination.py` owns this storage and lifecycle. Helper transactions
+use POSIX `flock` on the stable `.lock` file, including complete notice
+publication and directory archival. Unique temporary files are written and
+renamed under that lock; temporary files are never read as notices. A process
+crash releases locks; a terminal marker left before a crash completes its
+archive on the next sweep/access. Incomplete initial directories age into
+stale archives, and orphaned temporary files travel with their wait. Linux is
+tested; systems without `fcntl.flock` fail explicitly. This is a local
+filesystem/process-crash contract, not a guarantee against power loss or
+noncooperating writers. Hand-written active entries retain their existing
+advisory contract. Concurrent `clear` calls serialize their check-and-claim
+transactions; the wait does not hold that lock while sleeping or streaming
+notices.
 
 ## Contracts
 
@@ -417,8 +518,8 @@ window.
   `/others` skill's peer bucket — pass your *real* session id, since a wrong id
   would count your own entry as a peer and re-manufacture the stale belief.
 - `clear <paths...>` is the per-path counterpart to `others`: one atomic-ish
-  check+claim, run once before an intended sequence of edits — `agentctl
-  clear <paths> && <edits>` — not per edit. It scans fresh peers' `scope:`
+  check+claim with waiting by default, run once before an intended sequence of
+  edits — `agentctl clear <paths> && <edits>` — not per edit. It scans fresh peers' `scope:`
   claims for overlap with each requested literal path (wildcards in the
   request are refused; a directory path claims its subtree) and,
   all-or-nothing, adds cleared paths to the caller's own scope.
@@ -434,7 +535,9 @@ window.
   the staleness story is simply "re-run `clear` at each new edit
   sequence" — a resume or long pause starts a new sequence, and the re-run
   either re-establishes an aged-out or manually cleared claim or reports
-  the conflict that grew meanwhile. The payload surfaces `now`,
+  the conflict that grew meanwhile. `--no-wait` returns that verdict immediately;
+  the default waits as described in § Claim-clearance dialogue. The payload
+  surfaces `now`,
   `claimed_at`, and `stale_at` so a time-blind agent sees the clock in its
   transcript. `clear --drop <paths>` releases finished literal claims and
   their claim/carve lines, leaving wildcard scope — encouraged at sequence
