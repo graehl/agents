@@ -349,9 +349,26 @@ invocation method. MCP and service endpoints are not implied by a CLI marker.
 
 Keep invocation, capability contracts, and producer libraries distinct. A tool
 may implement the protocol in any language. The Python package is a convenience,
-not the definition of compliance; small libraries for individual capability
-groups in other languages may implement the same wire contract without
-reproducing the whole package. No shared TypeScript producer is supplied yet.
+not the definition of compliance.
+
+### Separate capability packages in any language
+
+Adopt independently versioned capability packages: each package specifies its
+wire format, options, defaults, and interpretation. Here a package is a group
+of protocol requirements, not a required library or package-manager dependency.
+A TypeScript, JavaScript, shell, or other runnable may implement just the
+packages its callers need, directly in its existing parser and output code.
+Small shared implementations can follow reuse; no shared TypeScript producer
+is supplied yet.
+
+A simple runnable used through specific agent instructions need not implement
+unrelated acli protocols. For example, commentary support does not require
+completion, a REPL, environment/config equivalents, a startup banner, or the
+full baseline's output-mode defaults. It does require the entire advertised
+commentary contract in the structured modes named by its help: valid metadata,
+Markdown fidelity, default inclusion there, and `--no-commentary` suppression.
+Constructing the reserved object members and serializing them directly is
+sufficient; there is no requirement to import Python or build a parser library.
 
 For a tool implementing only selected groups, the narrow declaration is:
 
@@ -359,22 +376,57 @@ For a tool implementing only selected groups, the narrow declaration is:
 acli-capabilities: commentary/1
 ```
 
-Put it in help and, for executable scripts, a comment near the start of the
-file. It promises only the listed versioned group contracts, not the acli v1
+Put it on the final nonempty line of `--help` and, for executable scripts,
+mirror it in a comment within the first 1 KiB using that language's comment
+syntax. It promises only the listed versioned group contracts, not the acli v1
 baseline. `commentary/1` names the encoding, default emission, suppression,
 and interpretation rules in [Stdout-aligned commentary](#stdout-aligned-commentary).
 The equivalent full-acli affordance is `+commentary`. Other independently
 versioned groups are not defined yet; do not infer them from bare flag names.
 
-Discovery consumers must deliberately recognize this narrow declaration;
-existing `acli:`-only detection will not. Neither marker authorizes executing
-an unregistered program to probe it. Advertise actual producer support
-separately from UI presentation or provider-history delivery: emitting
+### Interrogation through help
+
+Agents checking a tool for acli support inspect its documented entry point's
+`--help` for either `acli: <version> ...` or
+`acli-capabilities: <group>/<version> ...`. The first declares the full baseline;
+the second declares only the listed packages. Use the accompanying help to
+choose flags and output modes; do not infer unrelated options from either a
+language, a package-manager launcher, or a partial marker. Unknown package
+versions are not evidence that the caller understands their contracts.
+
+Successful explicit `--help` writes help to stdout and exits 0. Its final
+nonempty line is the applicable capability declaration; stderr is for
+diagnostics, not a second help/capability channel. Help must work without
+required action operands and return without performing the tool's ordinary
+work. Error-triggered usage may go to stderr with a nonzero exit; it is not a
+successful capability interrogation. A proposed TypeScript entry point could
+answer `pnpm -s artifact:capture --help` from its documented project directory with:
+
+```text
+Usage: pnpm -s artifact:capture <html-path> [options]
+
+--json             Emit a compact JSON result with Markdown commentary metadata.
+--no-commentary    Omit _acli.commentary metadata; retain ordinary result data.
+--text             Emit readable text without structured commentary metadata.
+
+Commentary is included by default with --json. An aware consumer may present
+it as prose beside the result; emission alone does not confirm presentation.
+acli-capabilities: commentary/1
+```
+
+This is an illustrative help contract, not a claim about that script's current
+flags. Describe only implemented modes. A one-record JSONL result is also a
+JSON document; tools emitting multiple JSONL records must say so in their help.
+
+Discovery consumers must implement recognition of both declarations;
+existing `acli:`-only detection will not recognize partial support. Neither
+marker authorizes executing an unregistered program to probe it. Advertise
+actual producer support separately from UI presentation or provider-history delivery: emitting
 `commentary/1` cannot claim that YA has rendered or injected anything.
 
 ## Capability line, version, and help footer
 
-A compliant tool's `--help` ends with one line matching
+A full-acli tool's final nonempty `--help` line matches
 `acli: <version>( <token>)*` — e.g. `acli: 1 complete repl +toon`.
 
 `<version>` is the spec's major version, currently 1. It increments
@@ -400,7 +452,7 @@ Tokens name wired capabilities, in two classes:
   ([sketches](acli.sketches.md)).
 
 Advertise only what is actually wired. Testable:
-`tool --help | grep '^acli: '` — this is the hint an
+`tool --help | rg '^acli(-capabilities)?: '` — this is the hint an
 interactive consumer's *registration* step checks (run `--help` once,
 deliberately, timeout-capped; cache the result). Tab-time invocation
 stays registry-gated as above; YA's registration flow and UI live in
@@ -424,9 +476,9 @@ page" is the same help text, not a parallel surface.
 
 ## Stderr banner at launch
 
-Every launch prints the capability line to stderr as a `# `-prefixed
-comment — `# acli: 1 complete +toon` — immediately after argument
-parsing succeeds, once per process. The `acli` library owns emission
+For full-acli tools, every ordinary launch prints the capability line to stderr
+as a `# `-prefixed comment — `# acli: 1 complete +toon` — immediately after
+argument parsing succeeds, once per process. The `acli` library owns emission
 (`acli.args.ArgumentParser.parse_args` calls `maybe_banner`), so a tool
 using the factory gets it for free; the library owning the parse — or
 getting a first-chance pass at it — is what makes the banner uniform.
@@ -439,7 +491,8 @@ structured error envelope stays the *last* stderr line — envelope
 readers parse that final line and treat `# `-prefixed lines as meta,
 never `json.loads` the whole stream. Suppression: `--acli-quiet`, or a
 nonempty `ACLI_QUIET` in the environment; `--acli-complete` runs never
-banner (side-effect-free, consumer-parsed).
+banner (side-effect-free, consumer-parsed). Explicit `--help` exits before
+ordinary launch and does not emit a startup banner.
 
 ## Naming acli tools in instructions
 
@@ -450,6 +503,10 @@ salient `+` tokens when they matter: "the acli (+confirm)
 unfamiliar reader through the glossary to this contract, and the same
 vocabulary then cross-confirms across instructions, the stderr banner,
 and `--help`. Later mentions use the bare name.
+
+For partial support, name the package instead: "use `artifact:capture` with
+acli `commentary/1` support," followed by its exact invocation and help command.
+Do not call it a full acli tool unless it honors the baseline.
 
 ## REPL (`--repl`)
 
@@ -595,9 +652,9 @@ is the ambient documentation an agent actually uses.
 
 ## The `acli` module
 
-Compliance-by-calling: the package makes the principles above executable
-defaults instead of prose. It lives beside `agentctl.py` (importable as
-`acli` via the code-root PYTHONPATH agentctl already sets). A tool in
+For Python tools, compliance-by-calling: the package makes the principles above
+executable defaults instead of prose. It lives beside `agentctl.py` (importable
+as `acli` via the code-root PYTHONPATH agentctl already sets). A tool in
 another repo uses the sanctioned fallback bootstrap — one synchronized
 copy in `~/agents`, per `AGENTS.global.md`'s shared-helpers rule:
 
