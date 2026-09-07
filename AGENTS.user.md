@@ -126,6 +126,22 @@ root of the preferences below).
   distinction. This is a lightweight conversation signal, not a constraint on
   variety in authored documents.
 
+## Copyable file references
+
+Resolve graehl's vague file references to the actual file and echo its owning
+project's relative path as copyable conversation text. After creating or
+updating a gap, topic, or any other requested file, include that path at a
+useful completion/review point; a sequence of revisions need not repeat it
+after each edit. Natural prose or a list is fine; no fixed `done:` prefix.
+Markdown links use the actual project-relative path as their visible text,
+not a descriptive title. For cross-project files, also supply a verified
+home-relative (`~/project/path`) or absolute locator, in the link target or
+alongside the relative path, so the owning project is unambiguous. Preserve
+the copyable relative path when adding line references. These references let
+YA offer file viewing and a new session prefilled with the relative path;
+verify support before claiming YA recognizes home aliases or resolved symlink
+paths.
+
 ## Flag misused concepts and unintentional drift
 
 When a named concept supports graehl's claim, flag hollow support or unintended
