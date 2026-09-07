@@ -57,3 +57,11 @@ per-verb behavior documented in help. A `+defer` token would surface it in
 the capability line the way `+confirm` surfaces the two-phase form, with
 the same registration-brings-flags-and-help mechanism (`--timeout`,
 channel selection, the envelope's `ref`/status fields).
+
+## Calling-agent dialogue
+
+[Dormant gap](../gaps/acli-calling-agent-dialogue.md): optional library routes
+for tools to request answers from the calling agent and resume. Candidates are
+instructed stdin/stdout dialogue for live exchanges and a broker for async
+delivery with trusted invocation provenance. No application is selected; the
+gap preserves the distinction from human input.
