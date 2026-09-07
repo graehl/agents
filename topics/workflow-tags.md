@@ -8,8 +8,9 @@ Topic: `workflow-tags`
 
 Status: Initial producer convention, 2026-09-07. The single `tagged-stages/1`
 prototype is updated in place, including closed matching and collecting
-presentation; these additions do not introduce another version. Consumer
-migration remains tracked in `gaps/workflow-closed-tags.md` until complete.
+presentation; these additions do not introduce another version. YA implements
+the matching rules and validates the presentation fields; its collecting
+renderer remains future work.
 A skill or project instruction
 opts into it; this topic does not require tags for ordinary work. Renderer and
 harness support are separate capabilities. Read this topic when adopting or
