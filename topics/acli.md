@@ -126,10 +126,109 @@ optional: a briefed agent can recognize tool-mediated presentation without
 believing it authored the text. Presentation means available in the user's
 conversation, not proof the user read it.
 
-The shared commentary encoding and presentation adapters are not implemented.
-The approved direction is [stdout-aligned commentary](acli.sketches.md#stdout-aligned-commentary),
-default-on for implementing tools, with optional
-[history injection](../gaps/acli-commentary-history-injection.md).
+The library implements the encoding below. YA presentation is a separate
+consumer integration; [history injection](../gaps/acli-commentary-history-injection.md)
+remains optional and unimplemented.
+
+### Stdout-aligned commentary
+
+Tools adopting `+commentary` emit commentary by default alongside their JSON
+results. `_acli` is reserved on any object, including nested objects. Its
+current schema is exactly `{"commentary":[{"text":"Nonempty prose."}]}`:
+a nonempty array of objects containing only a nonblank `text` string. The
+library rejects malformed or unknown reserved metadata before writing that
+record. Ordinary `commentary` and `announcements` fields remain application
+data. JSON-looking strings are literal; metadata is not searched recursively
+inside `_acli` itself. When forwarding arbitrary external JSON that uses the
+reserved name literally, carry it as a string rather than protocol metadata.
+
+`text` is Markdown prose, not a log caption or a string to paraphrase. Preserve
+it exactly after JSON decoding, including whitespace, line breaks, Unicode,
+links, and math delimiters. Render it through the same prose path as assistant
+messages, so supported links, math, and later inline media previews have the
+same semantics. Renderer support determines which extensions work; the
+producer does not claim an unimplemented viewer exists. The consumer may wrap
+items in a list or paragraphs, but must not rewrite their content or display
+them as escaped JSON/code. Apply the ordinary assistant-prose rendering and
+link policy, including invocation context for resolving relative references.
+Use statements supported by the tool's actions and observations; do not invent
+the calling agent's reasoning or independent verification.
+
+```jsonl
+{"remote":"a","ok":true}
+{"_acli":{"commentary":[{"text":"Remote a responded."}]}}
+{"remote":"b","ok":false,"_acli":{"commentary":[{"text":"Remote b failed."}]}}
+```
+
+**Presentation and context are interpretation rules.** An aware consumer
+collects commentary per invocation as readable prose, paragraphs, or a list
+alongside the ordinary output. Preserve JSONL record order, array order, and
+depth-first serialized member encounter order within objects. This collection
+order does not imply execution chronology. Commentary-bearing JSON writers
+preserve member insertion order instead of sorting keys.
+
+Resolve context against the original structured output before hiding metadata:
+
+| Commentary placement | Commented-on context |
+| --- | --- |
+| Attached to an object with ordinary data members | That enclosing object, excluding metadata. |
+| Metadata-only object in a JSON array | The nearest preceding data item in that array. |
+| Metadata-only top-level JSONL record | The nearest preceding data record in that invocation's stdout stream. |
+| No preceding data, or a standalone object outside an array/JSONL stream | No specific context; never guess one from another invocation. |
+
+Skip metadata-only predecessors when finding the preceding data item/record.
+Retain the association even if prose is collected away from the data. Context
+may be offered through a hover hint or margin note, with an equivalent
+keyboard/touch affordance. A top-level map normally needs no duplicate context
+tooltip: the full output is already nearby and can be reached by scrolling.
+Nested maps and preceding items/records are the useful focused-context cases.
+These rules belong to acli rather than to one renderer's implementation.
+
+For the ordinary data view, remove recognized `_acli` members while preserving
+surrounding containers, empty objects, and nested array positions. A
+metadata-only top-level JSONL record produces no data row. Thus a standalone
+commentary element inside a JSON document's array becomes `{}` in its data
+projection; attach commentary to the data object when an extra array element
+is undesirable. Preserve original source separately for context resolution.
+Consumers must not erase the caller's knowledge of what was communicated or
+invent a presentation receipt from an output write.
+
+**Library use:** `acli.commentary(*texts, value=object)` returns a new object
+with commentary appended, without mutating the input. Omit `value` for a
+standalone record. Place returned objects anywhere in a JSON document.
+
+```python
+parser = acli.argument_parser(capabilities=("complete", "+commentary"))
+acli.add_standard_args(parser)
+acli.maybe_complete(parser)
+args = parser.parse_args()
+acli.emit(
+    acli.commentary("Remote a responded.", value={"remote": "a", "ok": True}),
+    acli.resolve_format(args),
+    commentary=not args.no_commentary,
+)
+```
+
+`emit`, `write_jsonl`, and `write_pretty` accept keyword `commentary=True`.
+The parser factory supplies `args.no_commentary`, false by default; the flag
+works before or after subcommands. `add_standard_args` also adds the flag to
+ordinary argparse parsers, whose callers use
+`getattr(args, "no_commentary", False)` when absent. Producers must pass the
+choice to their writers before advertising `+commentary`; accepting a flag
+alone is not implementation. Help explains the convention; completion emits
+only its usual candidate records.
+
+JSONL writes complete records and flushes after each commentary-bearing record,
+including all preceding buffered output. Pretty JSON flushes its complete
+document; incremental presentation needs a streaming parser. Downstream
+buffering can still delay visibility. With `commentary=False`, the writers
+apply the data projection above. Emission never claims presentation succeeded.
+
+Text without a renderer still uses JSONL. An explicit text renderer or TOON
+output with commentary raises a clear error before writing: choose `--json`,
+`--pretty`, or `--no-commentary`. Suppression permits the ordinary text/TOON
+path. Mixed framing for those encodings remains a
+[candidate extension](acli.sketches.md#stdout-aligned-commentary).
 
 ### Schema-announced workflow output
 
@@ -233,6 +332,42 @@ live data values — before composing a call, without a query round-trip
 or a docs read. Sanctioned, not just tolerated: keep completers useful
 to a blind caller (definitive hints, counts in `help`).
 
+## Invocation and capability discovery
+
+The external invocation method currently specified by acli is the command
+line. Document the exact launcher command, required working directory, argument
+grammar, and help invocation; an implementation source path alone is not a
+callable interface. A package-manager script can be the command entry point,
+but its existence does not establish acli compliance. Help must describe the
+capabilities available through that particular entry point. A Python import is
+a producer implementation API, not a second externally discoverable tool
+invocation method. MCP and service endpoints are not implied by a CLI marker.
+
+Keep invocation, capability contracts, and producer libraries distinct. A tool
+may implement the protocol in any language. The Python package is a convenience,
+not the definition of compliance; small libraries for individual capability
+groups in other languages may implement the same wire contract without
+reproducing the whole package. No shared TypeScript producer is supplied yet.
+
+For a tool implementing only selected groups, the narrow declaration is:
+
+```text
+acli-capabilities: commentary/1
+```
+
+Put it in help and, for executable scripts, a comment near the start of the
+file. It promises only the listed versioned group contracts, not the acli v1
+baseline. `commentary/1` names the encoding, default emission, suppression,
+and interpretation rules in [Stdout-aligned commentary](#stdout-aligned-commentary).
+The equivalent full-acli affordance is `+commentary`. Other independently
+versioned groups are not defined yet; do not infer them from bare flag names.
+
+Discovery consumers must deliberately recognize this narrow declaration;
+existing `acli:`-only detection will not. Neither marker authorizes executing
+an unregistered program to probe it. Advertise actual producer support
+separately from UI presentation or provider-history delivery: emitting
+`commentary/1` cannot claim that YA has rendered or injected anything.
+
 ## Capability line, version, and help footer
 
 A compliant tool's `--help` ends with one line matching
@@ -256,7 +391,8 @@ Tokens name wired capabilities, in two classes:
   `repl` (`--repl`);
 - **`+` tokens** are affordances beyond the simple-acli baseline that an
   invoker should know before composing a call: `+toon` (TOON table
-  verbs); reserved next: `+confirm`, `+defer`
+  verbs), `+commentary` (default-on Markdown commentary in JSON/JSONL with
+  `--no-commentary` suppression); reserved next: `+confirm`, `+defer`
   ([sketches](acli.sketches.md)).
 
 Advertise only what is actually wired. Testable:
@@ -478,11 +614,13 @@ library, not a framework:
   one-line edit, not a sweep across every script.
 - `acli.emit` — `write_jsonl()`, `write_pretty()`, `write_toon_table()`,
   and the writer selection keyed off `resolve_format`.
+- `acli.commentary` — `commentary()` builds standalone or attached prose
+  metadata; the JSON writers validate it and implement optional suppression.
 - `acli.errors` — the structured error envelope, standard exit codes, and a
   `die()` that fails loud.
 - `acli.args` — an argparse factory pre-wiring the standard flags
   (`--format`, `--json`, `--compact`, `--full`, `--pretty`, `--toon`, `--text`,
-  `--acli-quiet`), the agent-friendly help
+  `--no-commentary`, `--acli-quiet`), the agent-friendly help
   conventions, the capability line / exit-code footer, the once-per-process
   stderr banner (`maybe_banner`, called from `parse_args`), and the
   `--acli-complete` / `--repl` reserved verbs.

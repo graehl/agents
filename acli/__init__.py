@@ -17,6 +17,7 @@ from .args import (
     maybe_repl,
     set_completer,
 )
+from .commentary import commentary
 from .emit import emit, write_jsonl, write_pretty, write_toon_table
 from .errors import ExitCode, die, error_envelope
 from .session import Format, is_agent_session, resolve_format
@@ -28,6 +29,7 @@ __all__ = [
     "argument_parser",
     "candidates",
     "capability_line",
+    "commentary",
     "complete",
     "die",
     "emit",

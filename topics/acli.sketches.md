@@ -70,67 +70,17 @@ the exact flag names and detection precedence are undecided.
 
 ## Stdout-aligned commentary
 
-User-approved direction; shared library encoding and YA presentation remain
-unimplemented. [Caller guidance](acli.md#tool-mediated-user-communication)
-applies now when a tool and its consumer already declare such presentation.
+JSON/JSONL production and general presentation/context interpretation are now
+specified in [the acli contract](acli.md#stdout-aligned-commentary). The Python
+library emits and suppresses metadata; YA's prose/list rendering remains
+consumer work. Optional provider history insertion stays in the
+[injection gap](../gaps/acli-commentary-history-injection.md).
 
-Keep commentary aligned with ordinary stdout results. For implementing tools,
-emit it by default; do not require `--commentary`. A proposed
-`--no-commentary` suppresses commentary metadata and metadata-only records for
-callers needing only result data. Existing consumers should be inspected and
-updated where needed, without inventing a compatibility population. This is
-an extension adopted by a tool, not a claim that every current acli v1 consumer
-already accepts it.
-
-Participating tools reserve `_acli` on any JSON object, including nested
-objects; `_acli.commentary` holds an array of commentary items. Result fields
-stay in their existing locations. Indicative encoding, not a wired API:
-
-```jsonl
-{"_acli":{"commentary":[{"text":"Checking the configured remotes."}]}}
-{"remote":"a","ok":true,"_acli":{"commentary":[{"text":"Remote a responded."}]}}
-{"remote":"b","ok":false}
-{"_acli":{"commentary":[{"text":"Finished: one remote responded; one failed."}]}}
-```
-
-The initial YA presentation collects commentary into a `ul` or paragraphs
-styled like assistant prose while retaining the normal output box. Collect per
-tool invocation, preserving JSONL record order and commentary-array order;
-the rendered commentary need not be physically interleaved with data rows.
-Within nested JSON, walk members in serialized encounter order and arrays in
-index order. That is deterministic presentation order, not a claim about
-execution chronology; use an explicit commentary array or separate JSONL
-records when semantic ordering matters.
-
-Recognize metadata only in output of tools adopting this convention. Recurse
-through ordinary objects and arrays, but not into `_acli` metadata or strings
-that happen to contain JSON. For the normal output view, remove recognized
-`_acli` members while preserving surrounding containers, empty objects, and
-array positions. A metadata-only top-level JSONL record produces no data row.
-Ordinary fields named `commentary` or `announcements` are application data.
-Tools forwarding arbitrary external JSON must account for the reserved-name
-collision before adopting recursive extraction; literal-data escaping remains
-an implementation decision.
-
-Serialize complete records on the same stdout stream and flush at commentary
-boundaries for prompt delivery; flushing cannot overcome downstream buffering.
-YA can strip protocol syntax from the displayed result, but the agent must
-retain the announcement text and evidence that it was presented, as required
-by the caller guidance.
-
-A complete JSON document can use metadata on any contained object; a bare
-scalar or an array without objects needs an envelope or another agreed
-representation to carry commentary. Incremental commentary in a single
-JSON document needs a streaming parser. Text and TOON require explicit packet
-framing if they share stdout with commentary. Marked stderr packets remain an
-alternative when stdout must stay unchanged, but do not supply the same
-cross-stream ordering. Exact framing outside JSONL remains undecided.
-
-Use fluent statements scoped to the tool's actual observations and actions;
-do not invent the calling agent's reasoning, intentions, or independent checks.
-Normal acli operation remains independent of YA. A YA parser may upgrade the
-presentation; provider history injection is separately opt-in and tracked in
-the [injection gap](../gaps/acli-commentary-history-injection.md).
+Mixed stdout framing for text and TOON remains undecided. A future packet
+format could carry typed output and commentary in one ordered stream. Marked
+stderr packets preserve stdout but cannot provide the same cross-stream
+ordering. Current emitters require JSON/JSONL or explicit commentary suppression
+instead of silently changing another encoding.
 
 ## Calling-agent dialogue
 

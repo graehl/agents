@@ -4276,3 +4276,37 @@ Contributing-model: 6-Astra
   recursively interpreted.
 
 Contributing-model: 6-Astra
+
+## 2026-09-07 — acli commentary production and interpretation
+
+- **User direction:** implement acli emission, open a YA presentation gap,
+  and place general presentation/context rules in the spec. Focus context
+  hints on enclosing nested maps or preceding data items/records; a top-level
+  map normally needs no tooltip because its full output is nearby. Preserve
+  commentary as assistant-style Markdown, including links, math, and future
+  supported media previews.
+- **Decision:** implement JSON/JSONL with default-on metadata and explicit
+  suppression. Preserve member order for commentary-bearing documents and
+  flush completed commentary records. Text/TOON framing remains undefined,
+  so those paths require suppression rather than silently discarding prose.
+- **Discovery:** distinguish exact CLI invocation from protocol compliance and
+  producer libraries. Full `acli: 1 +commentary` and narrow
+  `acli-capabilities: commentary/1` declare different scopes. The latter is a
+  specified consumer convention, not an existing YA discovery feature. No
+  TypeScript library or non-CLI invocation route is claimed.
+- **Trace: nested results:** metadata is recognized only at reserved object
+  members; literal strings and ordinary commentary-named fields survive.
+  Collection retains source context before stripping metadata. Array positions
+  stay intact in a JSON document; metadata-only JSONL rows are omitted from
+  the data projection.
+- **Trace: Markdown:** Unicode, relative links, math escapes, whitespace, and
+  paragraph breaks survive serialization exactly. Presentation uses the
+  consumer's ordinary prose path; emitting syntax cannot prove a viewer exists.
+- **Trace: actor and delivery:** producer capability, UI rendering, and
+  history injection remain separate. A presentation gap stays visible while
+  library callers can already emit the protocol; no receipt is manufactured.
+- **Evidence:** public-library tests exercise parser-to-emitter suppression,
+  nested data preservation, malformed metadata rejection, and a real piped
+  child that emits commentary before it exits. UI presentation is deferred.
+
+Contributing-model: 6-Astra

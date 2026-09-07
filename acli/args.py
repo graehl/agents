@@ -15,8 +15,19 @@ ACLI_PROTOCOL_VERSION = 1
 QUIET_FLAG = "--acli-quiet"
 QUIET_ENV = "ACLI_QUIET"
 TEXT_HELP = "Prefer concise readable text; verbs without a text renderer may still output JSON. Explicit encoding flags take precedence."
+COMMENTARY_HELP = "Omit commentary metadata and standalone JSONL commentary records; keep ordinary result data."
 
 _banner_emitted = False
+
+
+def _add_commentary_arg(parser: argparse.ArgumentParser) -> None:
+    if "--no-commentary" not in parser._option_string_actions:
+        parser.add_argument(
+            "--no-commentary",
+            action="store_true",
+            default=argparse.SUPPRESS,
+            help=COMMENTARY_HELP,
+        )
 
 
 def capability_line(capabilities: Iterable[str]) -> str:
@@ -72,6 +83,7 @@ class ArgumentParser(argparse.ArgumentParser):
         self.acli_capabilities = tuple(capabilities)
         self.acli_exit_codes = dict(exit_codes or {})
         super().__init__(*args, **kwargs)
+        _add_commentary_arg(self)
         self.add_argument(
             "--text",
             action="store_true",
@@ -99,6 +111,16 @@ class ArgumentParser(argparse.ArgumentParser):
 
     def format_help(self) -> str:
         text = super().format_help().rstrip("\n")
+        if "+commentary" in self.acli_capabilities:
+            text += (
+                "\n\nCommentary: JSON/JSONL includes _acli.commentary Markdown by default,"
+                " including on nested objects. An aware consumer may collect it as"
+                " verbatim prose beside ordinary output, using normal assistant"
+                " link and math rendering. Emission alone does not confirm"
+                " presentation to the user. Attached commentary refers to its"
+                " enclosing object; standalone items refer to the previous list"
+                " item or JSONL output record. Use --no-commentary for data only."
+            )
         if self.acli_exit_codes:
             width = max(len(str(code)) for code in self.acli_exit_codes)
             table = "\n".join(
@@ -112,6 +134,8 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_args(self, args=None, namespace=None):  # type: ignore[override]
         argv = list(sys.argv[1:] if args is None else args)
         parsed = super().parse_args(args, namespace)
+        if not hasattr(parsed, "no_commentary"):
+            parsed.no_commentary = False
         # A subparser run parses into a fresh namespace and copies it back,
         # overwriting a pre-verb --acli-quiet with its own default; the raw
         # argv scan keeps the flag honored in any position.
@@ -130,6 +154,7 @@ def add_standard_args(
     """Add ACLI output flags to an argparse parser."""
     if getattr(parser, "_acli_standard_args", False):
         return
+    _add_commentary_arg(parser)
     if "--text" not in parser._option_string_actions:
         parser.add_argument(
             "--text",
