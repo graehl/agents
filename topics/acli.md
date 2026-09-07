@@ -83,6 +83,18 @@ tables for humans, gate them behind higher-confidence detection (real TTY
 *and* no markers *and* a capable `TERM`) so a misread never lands an agent
 on the one format it cannot read.
 
+### Schema-announced workflow output
+
+When creating or updating an acli tool with schema-announced workflow output,
+including an inline workflow schema, follow
+[workflow-tags: Authoring scripts and skills](workflow-tags.md#authoring-scripts-and-skills).
+Document the activation and stage-output contract in the tool's help or its
+calling skill. Preserve this topic's result encoding: do not insert raw marker
+or tag lines into JSONL stdout. The caller can emit them around tool calls;
+a tool that emits them itself needs a documented progress stream separate from
+its structured results. A stderr progress stream must preserve the final error
+envelope and stay silent during completion requests.
+
 ## TOON as an orthogonal agent opt-in
 
 TOON (see `GLOSSARY.md`) is an upgrade *within* the compact branch, never
