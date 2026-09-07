@@ -205,6 +205,22 @@ open. Resume it with the same paths, `--carve`, `--minutes`, and `--note`,
 adding `--wait-id <uuid>`. The observer must be stopped before cancellation
 or another observer can attach. Resume never revives an archived wait.
 
+For edit clearance, use `--timeout 300`. After five minutes blocked, stop
+waiting and ask the claim owner about releasing the paths or agreeing a longer
+wait; do not silently restart another five-minute wait. To contact the owning
+session, read [helper-scripts.md § session-turn](helper-scripts.md#session-turn)
+and consider `session-turn send <harness> <provider-id> --eventual --live-only`,
+using the verified owner identity. Identify yourself and label the message as
+peer input; include the paths, wait ID, and request. Follow any harness-specific
+preference for native peer messaging. If delivery is unavailable or the owner
+has not replied, work elsewhere or report the blocker rather than entering a
+longer wait without agreement.
+
+Eventual delivery queues a separate turn behind the owner's current turn, so
+it may not break a deadlock. Queue acceptance is neither an answer nor edit
+clearance; the useful minimum is to end the blind wait and seek coordination.
+Resume the wait only after agreement, and edit only after `clear` succeeds.
+
 ```bash
 agentctl clear src/parser.py --timeout 300
 agentctl coordination list

@@ -410,6 +410,9 @@ surprising peers):
   (`--carve` claims through a peer's covering wildcard; an exact peer claim
   always blocks). `clear` waits and streams peer notices by default; use
   `--no-wait` for an immediate verdict, or `--deaf` to wait without notices.
+  Bound edit-clearance waits with `--timeout 300`: after five minutes blocked,
+  stop waiting and ask the claim owner before entering a longer wait. Read
+  `topics/agentctl.md` § Claim-clearance dialogue for contacting that session.
   Pause/resume, posting notices, and cancellation: `topics/agentctl.md`
   § Claim-clearance dialogue. A file you hold a fresh specific claim on needs no
   per-edit ceremony; a resume or long pause starts a new sequence, so
