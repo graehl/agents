@@ -26,6 +26,11 @@ output*, gated on detecting that a human is actually there.
 
 ## Output format
 
+Baseline acli requires both JSONL and whole-document JSON output:
+`--json` / `--compact` / `--format jsonl` select JSONL, and `--pretty`
+selects indented JSON. TOON support is optional and advertised with `+toon`;
+consumers of baseline acli need only support JSONL and JSON.
+
 **Compact by default; detect the human; flags win.** The no-opt-in rule
 bites only when the fallback is hostile. Forgetting the base format would
 drop an agent to pretty human output — hostile — so compact structured
@@ -244,12 +249,11 @@ envelope and stay silent during completion requests.
 
 ## TOON as an orthogonal agent opt-in
 
-TOON (see `GLOSSARY.md`) is an upgrade *within* the compact branch, never
-auto-selected. It is opt-in — and that does not violate the no-opt-in rule,
-because forgetting `--toon` drops you to compact JSONL, which is already
-friendly. It *should* be opt-in: only the calling agent knows the payload
-is large and uniform and that it will treat rows as CSV. The tool cannot
-know that; the caller can.
+TOON (see `GLOSSARY.md`) is an optional capability *within* the compact
+branch. A tool may omit it entirely, including for table-producing commands.
+When supported, it is selected only by explicit request, never automatically:
+the caller chooses it when the payload and its parser suit the format.
+Without that request, the ordinary JSONL/JSON selection still applies.
 
 Scope, enforced by the tooling rather than by prose:
 
@@ -260,9 +264,9 @@ Scope, enforced by the tooling rather than by prose:
   better.
 - **Static per subcommand, not dynamic per call.** A subcommand's output
   format must be statically predictable so the consumer's parser is fixed;
-  never flip format at runtime on actual row count. Gate at design time: a
-  subcommand *expected* to emit large uniform tables is a TOON subcommand,
-  and it emits TOON even on the occasional short result.
+  never flip format at runtime on actual row count. A tool may offer TOON
+  for subcommands expected to emit large uniform tables; when requested,
+  those subcommands emit TOON even on the occasional short result.
 - **We write our own encoder — no dependency.** Our sanctioned use is the
   flat-uniform-table subset (`name[N]{c1,c2,...}:` header + delimited
   rows), which is a ~20-line encoder. Implement only that subset and raise
@@ -375,8 +379,8 @@ A compliant tool's `--help` ends with one line matching
 
 `<version>` is the spec's major version, currently 1. It increments
 rarely, and it *implies the baseline*: a tool at version N honors that
-version's standard conventions (for v1: compact-JSONL default with
-`--json` accepted, human upgrade only on detection, structured errors
+version's standard conventions (for v1: JSONL and JSON support, compact-JSONL
+default with `--json` accepted, human upgrade only on detection, structured errors
 and exit codes, `--full` and truncation hints, definitive empty states,
 no blocking prompts) without itemizing them. Each major version's
 baseline is defined by one topic doc — v1's is this doc; a future v2
