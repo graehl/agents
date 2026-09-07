@@ -11,6 +11,7 @@ class Format(str, Enum):
     COMPACT = "compact"
     PRETTY = "pretty"
     TOON = "toon"
+    TEXT = "text"
 
 
 _AGENT_ENV_NAMES = (
@@ -57,6 +58,8 @@ def _normalize_format(raw: Any) -> Format:
         return Format.PRETTY
     if text == "toon":
         return Format.TOON
+    if text == "text":
+        return Format.TEXT
     raise ValueError(f"unknown output format {raw!r}")
 
 
@@ -69,6 +72,8 @@ def resolve_format(
     raw = getattr(args, "format", None)
     if raw:
         fmt = _normalize_format(raw)
+    elif getattr(args, "acli_text", False):
+        fmt = Format.TEXT
     else:
         fmt = Format.COMPACT if is_agent_session(stdout, env) else Format.PRETTY
     if fmt is Format.TOON and not bool(getattr(args, "acli_toon_allowed", False)):

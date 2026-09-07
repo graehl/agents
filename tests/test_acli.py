@@ -88,6 +88,29 @@ def test_jsonl_and_pretty_emit_parseable_json():
     _assert("\n  " in out.getvalue(), "pretty JSON should be indented")
 
 
+def test_text_preference_is_available_without_a_text_renderer():
+    parser = _acli.argument_parser()
+    sub = parser.add_subparsers(dest="verb")
+    child = sub.add_parser("status")
+    _acli.add_standard_args(child)
+    for argv in (
+        ["--text", "status"],
+        ["status", "--text"],
+        ["status", "--format", "text"],
+    ):
+        parsed = parser.parse_args(argv)
+        fmt = resolve_format(parsed)
+        _assert(fmt is Format.TEXT)
+        out = io.StringIO()
+        _acli.emit({"ok": True}, fmt, out)
+        _assert(json.loads(out.getvalue()) == {"ok": True})
+        out = io.StringIO()
+        _acli.emit({"ok": True}, fmt, out, text="Ready")
+        _assert(out.getvalue() == "Ready\n")
+    parsed = parser.parse_args(["--text", "status", "--json"])
+    _assert(resolve_format(parsed) is Format.COMPACT)
+
+
 def test_toon_table_quotes_scalars_and_preserves_inner_spaces():
     rows = [
         {"id": 1, "name": "Alice Smith", "note": "hello, world", "literal": "true"},

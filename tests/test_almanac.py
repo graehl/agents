@@ -287,6 +287,8 @@ def test_list_query_show_search():
 
     empty = jsonl(run(root, "query", "cards-test", "tier=z"))
     _assert(empty == [{"count": 0, "of": "records"}], "definitive empty state")
+    text_empty = jsonl(run(root, "query", "cards-test", "tier=z", "--text"))
+    _assert(text_empty == empty, "text fallback preserves the explicit empty state")
 
 
 def test_help_and_no_args():
