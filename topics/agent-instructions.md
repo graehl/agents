@@ -381,8 +381,8 @@ Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.
 Anything binding belongs in `AGENTS.global.md`.
 
-`AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.sol.md`, and `AGENTS.astra.md`
-are model-scoped supplements. Both harness supplements route to them from the
+`AGENTS.anthropic.md`, `AGENTS.opus.md`, and `AGENTS.sol.md` are model-scoped
+supplements. Both harness supplements route to them from the
 harness-recorded id, so a model keeps its patch when served through another
 harness. The Anthropic-family patch requires technical glosses to state the
 relevant operational distinction, expose uncertainty, or be omitted. Opus
@@ -391,8 +391,9 @@ unread code, the boot-list check before calling a request verb ambiguous, and a
 long-session rule that rejects model-inferred context exhaustion as a reason to
 stop. Sol carries the confirmation rule formerly housed in the Codex supplement
 and the direct-work correction for Sol served through Claude Gateway. Astra
-has a separate route with no active behavior patches; that is not evidence
-that shared safeguards are unnecessary. Proposed reductions live in
+has no active behavior patches and no additional boot supplement. Its shared
+policy, applicable frontier latitude, and harness mechanics still apply;
+Sol's model-id condition does not select Astra. Proposed reductions live in
 [`agent-instructions.sketches.md`](agent-instructions.sketches.md#astra-and-shared-instruction-reductions),
 outside ordinary model boot.
 

@@ -1,10 +1,5 @@
 # Anthropic-model supplement to AGENTS.global.md
 
-Model-family behavior patch, loaded by a harness supplement when its recorded
-model id contains `claude` (for example, `claude-fable-5`). Everything in
-`AGENTS.global.md` and `AGENTS.user.md` still applies; this file tightens one
-communication behavior.
-
 ## Technical glosses: exact, diagnostic, or omitted
 
 Apply `AGENTS.user.md`'s optional-gloss rule and `AGENTS.global.md`'s

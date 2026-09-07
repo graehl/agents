@@ -4115,3 +4115,30 @@ text baselines. Session: 01a07847-857a-7390-94cb-dd1a76d0e747.
   UI quality remains assumed; this is not a measured instruction ablation.
 
 Contributing-model: 6-Astra
+
+## 2026-09-07 — remove model-supplement preambles and empty Astra boot
+
+- **User direction** — justify or remove Astra's introductory context, then
+  remove equivalent introductory matter from other model-specific boot files.
+- **Inspection and decision** — Astra's only revision contained a title and
+  one paragraph, with no behavior sections. Its warning against inheriting Sol
+  repeated the model-id selection already present in both harness routes.
+  Removed the empty file and both reads; retained its status in the inventory
+  and instruction topic. Removed Anthropic, Opus, and Sol preambles because
+  their selection conditions and shared-policy ownership already have owners.
+- **Scope evidence** — the Astra sketches propose generic design/checklist
+  reductions, with no demonstrated Astra-specific benefit. Renamed that heading
+  to expose the uncertainty. Existing patches retain their observed failure
+  examples; model-specific routing alone does not establish differential value.
+- **Checks and traces** — the three retained supplements' bodies from their
+  first behavior heading are byte-identical to HEAD before this change. Astra
+  under either harness keeps shared/frontier/harness policy without an empty
+  read or a Sol match; Sol still selects its patch; Claude/Opus still select
+  their family/subtype patches. Removed-file references survive only in the
+  historical ledger. No relevant existing task file was found.
+- **Cost and limits** — the six affected boot sources shrink from 21,365 to
+  20,109 bytes in total; an Astra launch saves 453 source bytes and one routed
+  file read under either harness. These are source counts and routing traces,
+  not measured runtime savings or an outcome ablation.
+
+Contributing-model: 6-Astra
