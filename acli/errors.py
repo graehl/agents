@@ -42,7 +42,11 @@ def die(
     out: TextIO = sys.stderr,
 ) -> NoReturn:
     print(
-        json.dumps(error_envelope(message, code, detail=detail), separators=(",", ":")),
+        json.dumps(
+            error_envelope(message, code, detail=detail),
+            separators=(",", ":"),
+            allow_nan=False,
+        ),
         file=out,
     )
     raise SystemExit(int(code))

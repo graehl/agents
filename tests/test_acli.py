@@ -114,6 +114,15 @@ def test_text_preference_is_available_without_a_text_renderer():
     _assert(resolve_format(parsed) is Format.COMPACT)
 
 
+def test_empty_results_are_explicit_in_both_json_formats() -> None:
+    for fmt in (Format.COMPACT, Format.PRETTY):
+        for value in ([], ()):
+            out = io.StringIO()
+            _acli.emit(value, fmt, out)
+            _assert(json.loads(out.getvalue()) == [])
+            _assert(out.getvalue().endswith("\n"))
+
+
 def test_commentary_round_trip_and_data_only_output():
     source = {"id": 1, "nested": {"ok": True}}
     attached = _acli.commentary("Checked this item.", value=source)
@@ -126,6 +135,25 @@ def test_commentary_round_trip_and_data_only_output():
     out = io.StringIO()
     _acli.emit(rows, Format.COMPACT, out, commentary=False)
     _assert(json.loads(out.getvalue()) == source)
+
+
+def test_json_rejects_non_finite_numbers_before_writing_the_value() -> None:
+    for fmt in (Format.COMPACT, Format.PRETTY):
+        for number in (float("nan"), float("inf"), float("-inf")):
+            out = io.StringIO()
+            try:
+                _acli.emit({"first": "valid", "nested": [number]}, fmt, out)
+            except ValueError:
+                _assert(out.getvalue() == "", "invalid JSON must not be partly written")
+            else:
+                raise AssertionError(f"accepted non-finite number in {fmt}")
+    out = io.StringIO()
+    try:
+        _acli.emit([{"ok": 1}, {"bad": float("nan")}], Format.COMPACT, out)
+    except ValueError:
+        _assert(out.getvalue() == '{"ok":1}\n', "retain completed prior records")
+    else:
+        raise AssertionError("accepted invalid trailing record")
 
 
 def test_commentary_flag_survives_subcommands_and_repeated_parses():
@@ -274,6 +302,30 @@ def test_commentary_real_cli_flag_and_completion():
     _assert(completion.stderr == "")
 
 
+def test_real_cli_usage_errors_are_structured_and_help_uses_stdout() -> None:
+    command = [sys.executable, str(Path(__file__).resolve()), "--commentary-demo"]
+    for argv in (
+        ["--unknown-acli-probe"],
+        ["--format", "invalid"],
+        ["--format"],
+        ["--json", "--pretty"],
+    ):
+        result = subprocess.run(
+            [*command, *argv], capture_output=True, text=True, timeout=10
+        )
+        _assert(result.returncode == 2 and result.stdout == "", result)
+        failure = json.loads(result.stderr.splitlines()[-1])
+        _assert(failure["exit_code"] == 2 and failure["ok"] is False)
+        _assert(failure["error"]["code"] == "usage")
+        _assert(failure["error"]["message"])
+        _assert("usage:" in failure["error"]["detail"]["usage"])
+    help_result = subprocess.run(
+        [*command, "--help"], capture_output=True, text=True, timeout=10
+    )
+    _assert(help_result.returncode == 0 and help_result.stderr == "")
+    _assert(help_result.stdout.rstrip().endswith("acli: 1 complete +commentary"))
+
+
 def test_commentary_flushes_before_the_tool_finishes():
     command = [
         sys.executable,
@@ -362,6 +414,18 @@ def test_die_emits_structured_error_envelope():
     _assert(payload["ok"] is False)
     _assert(payload["error"]["code"] == "usage")
     _assert(payload["error"]["message"] == "bad flag")
+
+
+def test_error_details_reject_non_finite_json_without_partial_output() -> None:
+    out = io.StringIO()
+    try:
+        die("bad data", ExitCode.DATA, detail={"value": float("nan")}, out=out)
+    except ValueError:
+        _assert(out.getvalue() == "")
+    except SystemExit as exc:
+        raise AssertionError("invalid error detail was serialized") from exc
+    else:
+        raise AssertionError("non-finite error detail must fail serialization")
 
 
 def _demo_name_completer(prefix, tokens):

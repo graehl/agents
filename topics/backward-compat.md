@@ -7,6 +7,17 @@ Topic: `backward-compat`
 
 ## Decisions
 
+- 2026-09-07 acli v1 specification — separate the portable user guide and
+  normative spec from implementation advice and future sketches; allow
+  partial capabilities declared by help or an agent guide. The indicative
+  deferral envelope is a proposal, not a required v1 wire protocol. No version
+  bump: the user explicitly permits revising v1 before public adoption.
+- 2026-09-07 acli Python output/errors — empty list/tuple results now emit
+  one `[]` JSONL record, parser errors use the structured usage envelope, and
+  result/error writers reject non-finite JSON numbers before writing the
+  affected value. Completion retains its separate zero-record convention;
+  the almanac launcher writes candidates individually. These correct the
+  intended contracts under the user's explicit instruction to fix the gaps.
 - 2026-09-07 `agentctl clear` — waits and streams notices by default, by
   explicit user direction; `--no-wait` preserves the immediate blocked or
   carveable verdict, and `--drop` stays immediate. `--deaf` waits without

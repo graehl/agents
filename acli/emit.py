@@ -20,15 +20,19 @@ def write_jsonl(
 ) -> None:
     """Write compact JSON Lines.
 
-    A list/tuple is treated as rows; any other value is one JSONL record.
+    A nonempty list/tuple is treated as rows; an empty one emits [].
+    Any other value is one JSONL record.
     """
-    rows = value if isinstance(value, (list, tuple)) else [value]
+    rows = value if isinstance(value, (list, tuple)) and value else [value]
     for row in rows:
         prepared, found = prepare_commentary(row, include=commentary)
         if not commentary and isinstance(row, dict) and set(row) == {"_acli"}:
             continue
         out.write(
-            json.dumps(prepared, separators=(",", ":"), sort_keys=not found) + "\n"
+            json.dumps(
+                prepared, separators=(",", ":"), sort_keys=not found, allow_nan=False
+            )
+            + "\n"
         )
         if found:
             out.flush()
@@ -39,8 +43,8 @@ def write_pretty(
 ) -> None:
     """Write human fallback JSON."""
     prepared, found = prepare_commentary(value, include=commentary)
-    json.dump(prepared, out, indent=2, sort_keys=not found)
-    out.write("\n")
+    encoded = json.dumps(prepared, indent=2, sort_keys=not found, allow_nan=False)
+    out.write(encoded + "\n")
     if found:
         out.flush()
 

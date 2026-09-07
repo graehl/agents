@@ -578,6 +578,14 @@ def test_launcher_dispatch():
     completions = [json.loads(line)["completion"] for line in proc.stdout.splitlines()]
     _assert("show" in completions and "search" in completions, completions)
 
+    proc = subprocess.run(
+        [launcher, "--acli-complete", "--no-such-option"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    _assert(proc.returncode == 0 and proc.stdout == "", proc.stdout + proc.stderr)
+
     _assert(
         "# acli: 1 complete repl +toon" in Path(launcher).read_text()[:200],
         "launcher head carries the zero-execution capability marker",

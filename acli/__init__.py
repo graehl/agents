@@ -1,6 +1,6 @@
 """Agent-first CLI helpers.
 
-Small pure-function surface for CLIs that follow topics/acli.md.
+Small pure-function surface for CLIs that follow topics/acli-spec.md.
 """
 
 from __future__ import annotations

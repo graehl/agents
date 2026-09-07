@@ -5,10 +5,12 @@ import json
 import os
 import sys
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, TextIO
+from typing import Any, NoReturn, TextIO
+
+from .errors import ExitCode, die
 
 # Spec major version advertised by the capability line
-# (topics/acli.md § Capability line, version, and help footer). The
+# (topics/acli-spec.md § Discovery and help). The
 # version implies the baseline conventions; bare `acli: 1` is valid.
 ACLI_PROTOCOL_VERSION = 1
 
@@ -44,7 +46,7 @@ def maybe_banner(
 ) -> None:
     """Print the `# acli: ...` stderr banner, once per process.
 
-    Activation, not documentation (topics/acli.md § Stderr banner at
+    Activation, not documentation (topics/acli-spec.md § Stderr banner at
     launch): the `# ` prefix marks it as meta for terminal users, and
     stdout is never touched. Suppressed by `--acli-quiet` (the `quiet`
     argument) or a nonempty ACLI_QUIET in the environment.
@@ -130,6 +132,14 @@ class ArgumentParser(argparse.ArgumentParser):
             text += "\n\nexit codes:\n" + table
         text += "\n\n" + capability_line(self.acli_capabilities)
         return text + "\n"
+
+    def error(self, message: str) -> NoReturn:
+        die(
+            message,
+            ExitCode.USAGE,
+            detail={"usage": self.format_usage().strip()},
+            out=sys.stderr,
+        )
 
     def parse_args(self, args=None, namespace=None):  # type: ignore[override]
         argv = list(sys.argv[1:] if args is None else args)
@@ -250,7 +260,7 @@ def skip_standard_flags(tokens: list[str]) -> int:
     return index
 
 
-# --- Completion protocol (topics/acli.md § Completion protocol) ---
+# --- Completion protocol (topics/acli-spec.md § Completion package) ---
 #
 # `tool --acli-complete <argv-prefix...>` emits JSONL candidates for the
 # final token of the prefix (an empty final token means "fresh token") and

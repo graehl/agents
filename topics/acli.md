@@ -1,800 +1,181 @@
-# acli (agent-CLI)
+# acli: using agent-facing command-line tools
 
-> An acli (agent-CLI) tool is a command-line tool built agent-first: compact
-> structured output by default, named composite verbs over agent-glued
-> round-trips, structured errors and exit codes, a self-identifying `acli:`
-> capability line in help and on stderr at launch, and no interactive
-> prompts that block agent callers — while protecting interactive human users
-> by *detecting* them rather than making agent-friendliness opt-in.
+> acli (agent-CLI) provides discoverable command-line contracts: a full
+> structured-output baseline or separately declared capabilities.
 
 Topic: `acli`
 
-`acli` (alternate spellings: `agent-cli`, ACLI) is our term for the pattern
-the AXI project (Agent eXperience Interface, `github.com/kunchenguid/axi`)
-names externally. The topic is named `acli` to match the token every
-compliant tool prints, so the header met in a terminal locates this doc.
-This doc is prescriptive:
-it is how we build CLI tools an agent will drive. A shared `acli` Python
-package (see *The `acli` module*) turns each rule below into a callable so
-compliance is the path of least resistance, not ten rules an author must
-remember. `agentctl.py` is the flagship consumer.
+Read this guide when a tool identifies itself as acli, or when its agent
+instructions declare acli capabilities. Use the tool's exact invocation and
+help/guide for its application-specific arguments. The accompanying
+[v1 specification](acli-spec.md) defines the complete contracts.
+These two documents are sufficient for users and consumers; no library,
+repository layout, or particular session host is required.
 
-The core stance, from which the rest follows: **the agent-friendly shape is
-the default, never the opt-in.** An agent that forgets a flag must still get
-usable output. What we make conditional is the *upgrade to human-readable
-output*, gated on detecting that a human is actually there.
+## Discover what the tool supports
+
+Use the entry point supplied by the tool's instructions, including its working
+directory and any launcher prefix. For example, a documented package script
+might expose help through `pnpm -s artifact:capture --help`.
+A TypeScript source path alone does not tell you how to invoke it.
+
+### Capability line, version, and help footer
+
+Look for one of these declarations:
+
+```text
+acli: 1 complete +commentary
+```
+
+This promises the full v1 baseline, completion, and commentary.
+
+```text
+acli-capabilities: commentary/1
+```
+
+This promises only the commentary package. A small runnable may declare it
+in `--help` **or its agent instruction guide**. A guide-only tool need not
+provide help or unrelated baseline options. Do not infer `--pretty`,
+completion, a banner, environment settings, or other features from partial
+support. Implementations may use any language and need no acli library.
+
+Successful explicit `--help` writes to stdout, exits 0, and ends with the
+declaration as its final nonempty line. Keep stderr separate: error-triggered
+usage is not successful help interrogation. Read any subcommand restrictions
+before applying a root command's capability list.
+
+| Seen in full help | Seen in a partial declaration | What it lets you do |
+| --- | --- | --- |
+| `+commentary` | `commentary/1` | Receive Markdown commentary with declared JSON/JSONL output. |
+| `complete` | `complete/1` | Request argument candidates. |
+| `repl` | `repl/1` | Start an explicit command loop. |
+| `+toon` | `toon/1` | Select documented flat-table TOON output. |
+
+None of these packages is implied by bare `acli: 1`. Use capabilities whose
+versions you understand. A script-header marker can help identify a candidate,
+but does not authorize trial execution of arbitrary programs. Use the approved
+entry point or the consumer's tool registry.
 
 ## Output format
 
-Baseline acli requires both JSONL and whole-document JSON output:
-`--json` / `--compact` / `--format jsonl` select JSONL, and `--pretty`
-selects indented JSON. TOON support is optional and advertised with `+toon`;
-consumers of baseline acli need only support JSONL and JSON.
+For a full acli tool:
 
-**Compact by default; detect the human; flags win.** The no-opt-in rule
-bites only when the fallback is hostile. Forgetting the base format would
-drop an agent to pretty human output — hostile — so compact structured
-output is the mandatory default. The tool decides format per call as:
-
-```
-compact (default) if ANY of:
-    not isatty(stdout)              # workhorse: piped/redirected → machine consumer
-    AGENTCTL_SESSION_ID set         # repo launcher (see agentctl active-sessions)
-    AGENT_GUARD set                 # agent-guarded wrapper (provider-agnostic)
-    CLAUDECODE / CLAUDE_CODE_* set  # Claude harness (survives a bare `claude`)
-    CI set                          # defensive convention
-    CODEX_THREAD_ID set             # Codex (thread-scoped id; presence ⇒ agent)
-    PI_CODING_AGENT set             # pi (@earendil-works/pi-coding-agent) — explicit bool, cleanest
-    # grok: no reliable marker found — omit rather than guess
-pretty otherwise                    # real TTY AND none of the above → interactive human
-
-# explicit --format / --compact / --pretty / --toon overrides the heuristic in both directions
-```
-
-Why a disjunction, not one env var: any single marker is sometimes absent
-(a subshell that dropped it, a bare invocation, a different launcher).
-`isatty(stdout)==false` already catches every piped or redirected call
-regardless of env — most agent calls and every `| jq` / `> file`. The env
-markers only cover the residual "real TTY but not an interactive human"
-case (a PTY-allocating harness). Keep the whole disjunction in one function
-(`acli.session`) so a new harness marker is a one-line edit. It is
-deliberately *broader* than the session-id set agentctl uses for active
-sessions (`AGENTS.global.md § Active sessions`): detection needs only *presence*,
-so `PI_CODING_AGENT` (a boolean, not an id) and `CODEX_THREAD_ID`
-(thread-scoped — finer than a session) both answer "is this an agent?" but
-are not drop-in session ids.
-
-**A "reasonable" heuristic is enough because both sides have an override.**
-Detection sets only the *default*; an explicit flag always wins. A
-mis-detected human passes `--pretty`; a mis-detected agent passes
-`--compact` (or just parses the JSON anyway). The cost of a miss is one
-flag, not a broken workflow — so ship a good disjunction, not an exhaustive
-one.
-
-**Accept `--json` even when JSON is already the default.** Every JSON-emitting
-ACLI surface exposes `--json` as an explicit alias for compact JSONL. Agents
-commonly state the serialization they require rather than first discovering a
-tool's default; rejecting the redundant flag creates a failed call and retry
-without protecting any ambiguity. `--compact` and `--format jsonl` remain
-equivalent spellings.
-
-**Default machine format is JSONL; the human fallback is pretty JSON, not a
-table.** "Pretty JSONL" is a contradiction — JSON Lines is one compact
-object per line, and indenting it breaks the line contract. So the human
-path is a *different* format: a pretty (indented) JSON value. Prefer that
-over an ANSI/box-drawing table as the fallback, because a mis-detected
-agent still parses pretty JSON but chokes on a rendered table. If you want
-tables for humans, gate them behind higher-confidence detection (real TTY
-*and* no markers *and* a capable `TERM`) so a misread never lands an agent
-on the one format it cannot read.
-
-### Readable text preference
-
-Every tool using the shared parser accepts `--text`. It requests concise,
-unstructured, human-readable stdout without changing the command's behavior,
-exit codes, or stderr error contract. It is never selected automatically.
-JSON is explicitly allowed: a verb without a text renderer keeps its existing
-output, and the shared emitter falls back to compact JSONL. Implement text
-rendering piecemeal; accepting this preference does not require rewriting every
-verb before releasing the library.
-
-Where standard output flags are installed, `--format text` selects the same
-preference. An explicit encoding such as `--json` or `--pretty` takes precedence
-over `--text`. Consumers requiring parseable JSON must request `--json`;
-consumers requiring prose must use a verb whose help promises that rendering.
-
-Text renderers belong to the command, which knows the useful summary. Prefer
-plain text without ANSI decoration or guessed terminal-width wrapping. Keep
-empty results explicit and preserve a visible truncation count with `--full`
-for details. `agentctl others --text` is the first example: one status line,
-exit 0 when the normal peer gate passes and 1 when it blocks, with unchanged
-self, staleness, DONE, and expected-peer handling.
-
-`acli.argument_parser()` accepts `--text` even without the other output flags;
-`add_standard_args()` also adds it to ordinary argparse parsers. Renderers
-pass `text="..."` to `acli.emit(value, fmt, text=...)`; other formats retain
-the original value, and omitting `text` retains JSON for `Format.TEXT`.
-
-### Tool-mediated user communication
-
-When an instruction requires communicating something to the user, consider
-calling an acli tool whose declared presentation behavior effects that
-communication. Tool help or calling instructions must brief the agent on what
-is presented and what successful delivery means. Once that contract establishes
-the required text was presented, count the communication as done; repeat it
-only when additional explanation is useful. A tool's operation succeeding or
-merely emitting data does not by itself establish user-facing presentation.
-
-The agent must retain what was communicated and its delivery state in its
-tool result or conversation history. Synthetic assistant-message injection is
-optional: a briefed agent can recognize tool-mediated presentation without
-believing it authored the text. Presentation means available in the user's
-conversation, not proof the user read it.
-
-The library implements the encoding below. YA presentation is a separate
-consumer integration; [history injection](../gaps/acli-commentary-history-injection.md)
-remains optional and unimplemented.
-
-### Stdout-aligned commentary
-
-**Output activation:** a CLI emitting commentary must write one of these
-declarations, terminated by a newline, as its first stderr line, before any
-diagnostics or stdout data:
-
-```text
-# acli: 1 +commentary
-# acli-capabilities: commentary/1
-```
-
-These are alternatives: full-acli tools include `+commentary` among their
-affordances; partial tools include the exact `commentary/1` package token.
-Other advertised tokens may share that line. Keep the declaration within
-4096 characters, including the comment prefix. Bare `acli: 1` does not activate
-commentary parsing. Consumers may inspect only the first stderr line; when a
-wrapper merges streams, inspect the first line of the decoded output instead.
-They need not scan later lines, execute help, or infer support from `_acli`.
-
-Explicit banner suppression through an implemented quiet option remains
-allowed, but disables automatic output-based activation; metadata alone is
-not a replacement declaration. `--no-commentary` omits commentary, so no
-commentary-specific banner is required then (a full-acli tool still follows
-its normal launch-banner contract). Successful `--help` remains side-effect
-free and declares capability in its stdout footer, without a stderr banner.
-
-Tools adopting `+commentary` emit commentary by default alongside their JSON
-results. `_acli` is reserved on any object, including nested objects. Its
-current schema is exactly `{"commentary":[{"text":"Nonempty prose."}]}`:
-a nonempty array of objects containing only a nonblank `text` string. The
-library rejects malformed or unknown reserved metadata before writing that
-record. Ordinary `commentary` and `announcements` fields remain application
-data. JSON-looking strings are literal; metadata is not searched recursively
-inside `_acli` itself. When forwarding arbitrary external JSON that uses the
-reserved name literally, carry it as a string rather than protocol metadata.
-
-`text` is Markdown prose, not a log caption or a string to paraphrase. Preserve
-it exactly after JSON decoding, including whitespace, line breaks, Unicode,
-links, and math delimiters. Render it through the same prose path as assistant
-messages, so supported links, math, and later inline media previews have the
-same semantics. Renderer support determines which extensions work; the
-producer does not claim an unimplemented viewer exists. The consumer may wrap
-items in a list or paragraphs, but must not rewrite their content or display
-them as escaped JSON/code. Apply the ordinary assistant-prose rendering and
-link policy, including invocation context for resolving relative references.
-Use statements supported by the tool's actions and observations; do not invent
-the calling agent's reasoning or independent verification.
-
-```jsonl
-{"remote":"a","ok":true}
-{"_acli":{"commentary":[{"text":"Remote a responded."}]}}
-{"remote":"b","ok":false,"_acli":{"commentary":[{"text":"Remote b failed."}]}}
-```
-
-**Presentation and context are interpretation rules.** An aware consumer
-collects commentary per invocation as readable prose, paragraphs, or a list
-alongside the ordinary output. Preserve JSONL record order, array order, and
-depth-first serialized member encounter order within objects. This collection
-order does not imply execution chronology. Commentary-bearing JSON writers
-preserve member insertion order instead of sorting keys.
-
-Resolve context against the original structured output before hiding metadata:
-
-| Commentary placement | Commented-on context |
+| Need | Selection |
 | --- | --- |
-| Attached to an object with ordinary data members | That enclosing object, excluding metadata. |
-| Metadata-only object in a JSON array | The nearest preceding data item in that array. |
-| Metadata-only top-level JSONL record | The nearest preceding data record in that invocation's stdout stream. |
-| No preceding data, or a standalone object outside an array/JSONL stream | No specific context; never guess one from another invocation. |
+| Compact machine output | Default for pipes/agents; `--json` explicitly selects JSONL. |
+| One JSON document | `--pretty`. |
+| Readable summary | `--text`, if the verb promises a text renderer; otherwise JSONL is allowed. |
+| Omitted details | `--full`. |
+| Data without commentary | `--no-commentary`, when commentary is supported. |
+| TOON table | `--toon`, only on an advertised supporting verb. |
 
-Skip metadata-only predecessors when finding the preceding data item/record.
-Retain the association even if prose is collected away from the data. Context
-may be offered through a hover hint or margin note, with an equivalent
-keyboard/touch affordance. A top-level map normally needs no duplicate context
-tooltip: the full output is already nearby and can be reached by scrolling.
-Nested maps and preceding items/records are the useful focused-context cases.
-These rules belong to acli rather than to one renderer's implementation.
+V1's `--json` means one JSON value per line, possibly multiple records.
+A command's help tells you whether it emits rows or a single response envelope.
+`--pretty` provides one document. Both are baseline requirements; TOON is
+optional. Explicit encodings override the text preference and session detection.
+Do not combine conflicting encoding flags.
 
-For the ordinary data view, remove recognized `_acli` members while preserving
-surrounding containers, empty objects, and nested array positions. A
-metadata-only top-level JSONL record produces no data row. Thus a standalone
-commentary element inside a JSON document's array becomes `{}` in its data
-projection; attach commentary to the data object when an extra array element
-is undesirable. Preserve original source separately for context resolution.
-Consumers must not erase the caller's knowledge of what was communicated or
-invent a presentation receipt from an output write.
+Without flags, an interactive human TTY receives indented JSON; pipes and
+detected agent sessions receive JSONL. Neither text nor TOON is auto-selected.
+Partial tools choose their own documented default and supported modes.
 
-**Library use:** `acli.commentary(*texts, value=object)` returns a new object
-with commentary appended, without mutating the input. Omit `value` for a
-standalone record. Place returned objects anywhere in a JSON document.
+Treat an explicit empty result as definitive. A missing result is not evidence
+of zero matches. Read truncation counts and pagination boundaries before asking
+for more; `--full` restores available omitted content, not additional authority
+or an unbounded stream.
 
-```python
-parser = acli.argument_parser(capabilities=("complete", "+commentary"))
-acli.add_standard_args(parser)
-acli.maybe_complete(parser)
-args = parser.parse_args()
-acli.emit(
-    acli.commentary("Remote a responded.", value={"remote": "a", "ok": True}),
-    acli.resolve_format(args),
-    commentary=not args.no_commentary,
-)
+## Results, errors, and completion of work
+
+Capture stdout, stderr, and process status. Full tools use stdout for results.
+Failures end stderr with a compact error envelope, for example:
+
+```json
+{"ok":false,"exit_code":4,"error":{"code":"not_found","message":"Artifact not found."}}
 ```
 
-`emit`, `write_jsonl`, and `write_pretty` accept keyword `commentary=True`.
-The parser factory supplies `args.no_commentary`, false by default; the flag
-works before or after subcommands. `add_standard_args` also adds the flag to
-ordinary argparse parsers, whose callers use
-`getattr(args, "no_commentary", False)` when absent. Producers must pass the
-choice to their writers before advertising `+commentary`; accepting a flag
-alone is not implementation. Help explains the convention; completion emits
-only its usual candidate records.
+Parse that last line, not the entire stderr stream. A tool may document a
+negative predicate as a normal result with a nonzero status. Signals or
+interruption may leave no envelope. Preserve prior valid stream records while
+reporting that the overall call failed or did not finish.
 
-JSONL writes complete records and flushes after each commentary-bearing record,
-including all preceding buffered output. Pretty JSON flushes its complete
-document; incremental presentation needs a streaming parser. Downstream
-buffering can still delay visibility. With `commentary=False`, the writers
-apply the data projection above. Emission never claims presentation succeeded.
+### Stderr banner at launch
 
-Text without a renderer still uses JSONL. An explicit text renderer or TOON
-output with commentary raises a clear error before writing: choose `--json`,
-`--pretty`, or `--no-commentary`. Suppression permits the ordinary text/TOON
-path. Mixed framing for those encodings remains a
-[candidate extension](acli.sketches.md#stdout-aligned-commentary).
+A full tool normally emits `# acli: 1 ...` on stderr once at launch.
+It is metadata, not an error or a stdout record. `--acli-quiet` or nonempty
+`ACLI_QUIET` suppresses it. Explicit help and completion omit it.
+Partial tools need not emit a banner.
+
+### Expected duration and output channel
+
+Check duration, delivery channel, and completion conditions before choosing
+how to run a slow tool. If it returns a job acknowledgement, use its documented
+status/wait/retrieval method. Do not treat arrangement as completion or infer
+a standard deferral protocol. A timeout does not prove that a mutation had
+no effect; check state before retrying.
 
 ### Schema-announced workflow output
 
-When creating or updating an acli tool with schema-announced workflow output,
-including an inline workflow schema, follow
-[workflow-tags: Authoring scripts and skills](workflow-tags.md#authoring-scripts-and-skills).
-Document the activation and stage-output contract in the tool's help or its
-calling skill. Preserve this topic's result encoding: do not insert raw marker
-or tag lines into JSONL stdout. The caller can emit them around tool calls;
-a tool that emits them itself needs a documented progress stream separate from
-its structured results. A stderr progress stream must preserve the final error
-envelope and stay silent during completion requests.
+If a tool documents workflow tags or other progress protocols, use their
+declared stream. Raw progress text does not belong in JSONL result or
+completion output. See the spec's [stream rules](acli-spec.md#long-running-work-and-progress).
 
-## TOON as an orthogonal agent opt-in
+## Tool-mediated user communication
 
-TOON (see `GLOSSARY.md`) is an optional capability *within* the compact
-branch. A tool may omit it entirely, including for table-producing commands.
-When supported, it is selected only by explicit request, never automatically:
-the caller chooses it when the payload and its parser suit the format.
-Without that request, the ordinary JSONL/JSON selection still applies.
+A tool may satisfy an instruction to communicate something to the user when
+its declared presentation behavior and delivery result establish that the
+communication occurred. Know what was presented and retain its delivery state.
+Then count the communication as done; repeat it only when more explanation
+is useful.
 
-Scope, enforced by the tooling rather than by prose:
+Operation success, commentary emission, and presentation are different facts.
+Metadata in a raw pipe or a queue acknowledgement does not prove the user has
+the prose in their conversation. Conversely, failure of the operation does
+not erase commentary already delivered. Assistant-history injection is optional;
+a briefed agent need not believe it authored the tool's text.
 
-- **Large uniform tables with named columns only.** The saving comes from
-  writing column names once instead of per row, so it amortizes over *rows*
-  (roughly ≥ ~10 uniform rows). On nested, heterogeneous, or small payloads
-  the saving shrinks to ~0 or reverses and compact JSON is as good or
-  better.
-- **Static per subcommand, not dynamic per call.** A subcommand's output
-  format must be statically predictable so the consumer's parser is fixed;
-  never flip format at runtime on actual row count. A tool may offer TOON
-  for subcommands expected to emit large uniform tables; when requested,
-  those subcommands emit TOON even on the occasional short result.
-- **We write our own encoder — no dependency.** Our sanctioned use is the
-  flat-uniform-table subset (`name[N]{c1,c2,...}:` header + delimited
-  rows), which is a ~20-line encoder. Implement only that subset and raise
-  on nested/non-uniform input, so the scope is self-enforcing rather than a
-  rule to remember. (Consult `toonformat.dev` for the exact delimiter and
-  quoting/escaping rules at implementation time.)
+### Stdout-aligned commentary
+
+Participating JSON/JSONL may contain `_acli.commentary` on any object:
+
+```json
+{"path":"capture.png","_acli":{"commentary":[{"text":"Captured [the page](capture.png)."}]}}
+```
+
+Its `text` is exact Markdown prose. An aware UI may collect it as paragraphs
+or a list alongside ordinary output, using its normal assistant-prose renderer
+for links, math, and supported media. Emission does not promise UI support.
+
+Attached commentary refers to its enclosing object. A metadata-only array
+item or JSONL record refers to the nearest preceding data item/record.
+Top-level-map context normally needs no tooltip; nested maps and preceding
+items are useful hover or margin-note context. Consumers resolve associations
+before hiding metadata. Detailed ordering and data-preservation rules are in
+the [commentary contract](acli-spec.md#commentary-package-commentary1).
+
+Use `--no-commentary` for the ordinary data projection. Do not blindly strip
+similarly named fields from unrelated tools or reinterpret JSON-looking strings.
+Malformed participating metadata is an error, not prose to render.
 
 ## Completion protocol
 
-Interactive consumers (YA's `!!` bang composer is the first) can offer
-per-tool argument completion by invoking the tool itself:
+With `complete/1`, invoke the documented entry point followed by
+`--acli-complete` and the partial arguments. The last token is being completed;
+pass a final empty string for a new argument. Results replace that token.
+Preserve candidate order and never insert display-only hint rows.
 
-```
-tool --acli-complete <argv-prefix...>
-```
-
-- `--acli-complete` must be argv[1]; everything after it is the partial
-  argv being completed. A trailing empty-string argument means "complete a
-  fresh token" — consumers spawn with an explicit argv array (no shell), so
-  an empty final arg is expressible.
-- Output is compact JSONL, one candidate per line:
-  `{"completion": "...", "kind": "flag|value|path|subcommand|hint",
-  "help": "...", "nospace": true}` — `completion` required (empty only
-  on `hint` rows), the rest optional. No prompts, no TTY use. `help` is
-  a one-line description (≲80 chars) rendered beside the candidate;
-  value completers should attach their own (a record summary, a match
-  count) — slot-level guidance belongs in a single `hint` row, never
-  repeated onto every candidate. `nospace: true` asks the consumer not
-  to append a space on acceptance (`field=`, `--flag=`).
-- A `hint` row (`kind:"hint"`, empty `completion`) is display-only
-  guidance for the current slot — zsh's `_message` analog — for
-  unbounded free-text slots, syntax reminders, and truncation notices
-  ("50 of 312 shown"). Consumers render it dimmed and never insert it;
-  naive consumers already drop empty completions safely.
-- Candidates arrive in tool-chosen order and consumers must preserve it
-  (dedupe is fine). Data order is often meaningful — a tier list's
-  S,A,B,… reading order would be destroyed by re-sorting.
-- Completion runs must be side-effect-free and fast (soft ~1s budget);
-  consumers enforce a timeout and treat nonzero exit as "no protocol".
-- Exit 0 with zero lines is the definitive "no completions" (per
-  *Definitive empty states*); consumers then fall back to generic path
-  completion. Any emitted line — including a lone `hint` — means the
-  protocol answered: no path fallback. A tool that wants path
-  completion for a slot simply emits nothing for it.
-- **Consumers must gate invocation on an explicit compliant-tool registry**
-  (config/allowlist), never on trial invocation: fail-loud-on-unknown-flags
-  protects compliant tools, but a lax non-compliant tool could ignore the
-  flag and execute its default action — Tab must never run an arbitrary
-  program.
-- `acli.args` wires the verb automatically from the argparse spec: call
-  `maybe_complete(parser)` before normal parsing (and before any side
-  effect) and flags, subcommands, and `choices` values complete for free;
-  `set_completer(action, fn)` adds opt-in value completion, where `fn`
-  takes `(prefix, tokens)` and yields strings or
-  `{"completion", "kind", "help", "nospace"}` dicts, with `hint(text)`
-  building guidance rows. `candidates(parser, tokens)` exposes the same
-  rows in-process (the repl's completer). Worked examples: `almanac`
-  (`scripts/almanac`, dataset/record-key/filter completers with
-  data-derived help) uses the wiring; `harness-check` in the yepanywhere
-  repo (`packages/server/test/bang/fixtures/harness-check`) implements
-  the verb by hand, including comma-list value completion for
-  `--harnesses`.
-
-Completion is also agent-facing introspection: `--acli-complete` is the
-cheapest way for an agent to enumerate valid values — datasets, fields,
-live data values — before composing a call, without a query round-trip
-or a docs read. Sanctioned, not just tolerated: keep completers useful
-to a blind caller (definitive hints, counts in `help`).
-
-## Invocation and capability discovery
-
-The external invocation method currently specified by acli is the command
-line. Document the exact launcher command, required working directory, argument
-grammar, and help invocation; an implementation source path alone is not a
-callable interface. A package-manager script can be the command entry point,
-but its existence does not establish acli compliance. Help must describe the
-capabilities available through that particular entry point. A Python import is
-a producer implementation API, not a second externally discoverable tool
-invocation method. MCP and service endpoints are not implied by a CLI marker.
-
-Keep invocation, capability contracts, and producer libraries distinct. A tool
-may implement the protocol in any language. The Python package is a convenience,
-not the definition of compliance.
-
-### Separate capability packages in any language
-
-Adopt independently versioned capability packages: each package specifies its
-wire format, options, defaults, and interpretation. Here a package is a group
-of protocol requirements, not a required library or package-manager dependency.
-A TypeScript, JavaScript, shell, or other runnable may implement just the
-packages its callers need, directly in its existing parser and output code.
-Small shared implementations can follow reuse; no shared TypeScript producer
-is supplied yet.
-
-A simple runnable used through specific agent instructions need not implement
-unrelated acli protocols. For example, commentary support does not require
-completion, a REPL, environment/config equivalents, or the full baseline's
-output-mode defaults. Emitting commentary does require the first-line stderr
-declaration above, without implying those other protocols. It also requires
-the entire advertised commentary contract in the structured modes named by
-its help: valid metadata,
-Markdown fidelity, default inclusion there, and `--no-commentary` suppression.
-Constructing the reserved object members and serializing them directly is
-sufficient; there is no requirement to import Python or build a parser library.
-
-For a tool implementing only selected groups, the narrow declaration is:
-
-```text
-acli-capabilities: commentary/1
-```
-
-Put it on the final nonempty line of `--help` and, for executable scripts,
-mirror it in a comment within the first 1 KiB using that language's comment
-syntax. It promises only the listed versioned group contracts, not the acli v1
-baseline. `commentary/1` names the encoding, default emission, suppression,
-and interpretation rules in [Stdout-aligned commentary](#stdout-aligned-commentary).
-The equivalent full-acli affordance is `+commentary`. Other independently
-versioned groups are not defined yet; do not infer them from bare flag names.
-
-### Interrogation through help
-
-Agents checking a tool for acli support inspect its documented entry point's
-`--help` for either `acli: <version> ...` or
-`acli-capabilities: <group>/<version> ...`. The first declares the full baseline;
-the second declares only the listed packages. Use the accompanying help to
-choose flags and output modes; do not infer unrelated options from either a
-language, a package-manager launcher, or a partial marker. Unknown package
-versions are not evidence that the caller understands their contracts.
-
-Successful explicit `--help` writes help to stdout and exits 0. Its final
-nonempty line is the applicable capability declaration; stderr is for
-diagnostics, not a second help/capability channel. Help must work without
-required action operands and return without performing the tool's ordinary
-work. Error-triggered usage may go to stderr with a nonzero exit; it is not a
-successful capability interrogation. A proposed TypeScript entry point could
-answer `pnpm -s artifact:capture --help` from its documented project directory with:
-
-```text
-Usage: pnpm -s artifact:capture <html-path> [options]
-
---json             Emit a compact JSON result with Markdown commentary metadata.
---no-commentary    Omit _acli.commentary metadata; retain ordinary result data.
---text             Emit readable text without structured commentary metadata.
-
-Commentary is included by default with --json. An aware consumer may present
-it as prose beside the result; emission alone does not confirm presentation.
-acli-capabilities: commentary/1
-```
-
-This is an illustrative help contract, not a claim about that script's current
-flags. Describe only implemented modes. A one-record JSONL result is also a
-JSON document; tools emitting multiple JSONL records must say so in their help.
-
-Discovery consumers must implement recognition of both declarations;
-existing `acli:`-only detection will not recognize partial support. Neither
-marker authorizes executing an unregistered program to probe it. Advertise
-actual producer support separately from UI presentation or provider-history delivery: emitting
-`commentary/1` cannot claim that YA has rendered or injected anything.
-
-## Capability line, version, and help footer
-
-A full-acli tool's final nonempty `--help` line matches
-`acli: <version>( <token>)*` — e.g. `acli: 1 complete repl +toon`.
-
-`<version>` is the spec's major version, currently 1. It increments
-rarely, and it *implies the baseline*: a tool at version N honors that
-version's standard conventions (for v1: JSONL and JSON support, compact-JSONL
-default with `--json` accepted, human upgrade only on detection, structured errors
-and exit codes, `--full` and truncation hints, definitive empty states,
-no blocking prompts) without itemizing them. Each major version's
-baseline is defined by one topic doc — v1's is this doc; a future v2
-gets its own — so the version token doubles as the documentation
-pointer. A bare `acli: 1` is a valid line: baseline honored, nothing
-extra wired.
-
-Tokens name wired capabilities, in two classes:
-
-- **bare tokens** are consumer-protocol wiring, relevant to interactive
-  consumers rather than to invocation: `complete` (`--acli-complete`),
-  `repl` (`--repl`);
-- **`+` tokens** are affordances beyond the simple-acli baseline that an
-  invoker should know before composing a call: `+toon` (TOON table
-  verbs), `+commentary` (default-on Markdown commentary in JSON/JSONL with
-  `--no-commentary` suppression); reserved next: `+confirm`, `+defer`
-  ([sketches](acli.sketches.md)).
-
-Advertise only what is actually wired. Testable:
-`tool --help | rg '^acli(-capabilities)?: '` — this is the hint an
-interactive consumer's *registration* step checks (run `--help` once,
-deliberately, timeout-capped; cache the result). Tab-time invocation
-stays registry-gated as above; YA's registration flow and UI live in
-its `topics/acli-ui.md`.
-
-`--help` must be self-contained: it describes whatever is needed to
-make good use of the tool's particular main affordances — every `+`
-token's behavior included — without requiring this repository. Topic
-docs here carry design rationale and authoring rules, never facts an
-invoker needs.
-
-Script tools mirror the line as a comment in their first 1 KiB
-(`# acli: 1 complete`), readable without executing anything — the
-zero-execution detection path for consumers scanning local bin dirs.
-
-`acli.args.argument_parser(capabilities=..., exit_codes=...)` emits the
-line automatically (default `("complete",)`, matching the
-`maybe_complete` contract) and renders an `exit codes:` table above it,
-so one `--help` serves humans, agents, and detection — the agent "man
-page" is the same help text, not a parallel surface.
-
-## Stderr banner at launch
-
-For full-acli tools, every ordinary launch prints the capability line to stderr
-as a `# `-prefixed comment — `# acli: 1 complete +toon` — on the first stderr
-line, immediately after argument parsing succeeds and before ordinary work,
-once per process. The `acli` library owns emission
-(`acli.args.ArgumentParser.parse_args` calls `maybe_banner`), so a tool
-using the factory gets it for free; the library owning the parse — or
-getting a first-chance pass at it — is what makes the banner uniform.
-The banner is activation, not documentation: the `acli` token plus any
-`+` affordances tell an agent which contract applies, with `--help` as
-the self-contained detail, and the `# ` prefix tells a terminal user it
-is meta, not data. stdout is never touched, so piped consumers are
-unaffected. On stderr the banner precedes everything else, so the
-structured error envelope stays the *last* stderr line — envelope
-readers parse that final line and treat `# `-prefixed lines as meta,
-never `json.loads` the whole stream. Suppression: `--acli-quiet`, or a
-nonempty `ACLI_QUIET` in the environment; `--acli-complete` runs never
-banner (side-effect-free, consumer-parsed). Explicit `--help` exits before
-ordinary launch and does not emit a startup banner.
-
-## Naming acli tools in instructions
-
-When an instruction file tells an agent to use an acli tool, tag the
-introducing mention with the term — "use the acli `agentctl`" — adding
-salient `+` tokens when they matter: "the acli (+confirm)
-`deploy-pages`". The tag is a two-token typed pointer routing an
-unfamiliar reader through the glossary to this contract, and the same
-vocabulary then cross-confirms across instructions, the stderr banner,
-and `--help`. Later mentions use the bare name.
-
-For partial support, name the package instead: "use `artifact:capture` with
-acli `commentary/1` support," followed by its exact invocation and help command.
-Do not call it a full acli tool unless it honors the baseline.
+A successful empty stream allows path fallback. A hint alone suppresses that
+fallback. Failure or malformed output is not a successful empty answer.
+Completion must not execute the ordinary action. Use registered entry points.
+See the [completion contract](acli-spec.md#completion-package-complete1) for
+candidate fields and quoting responsibilities.
 
 ## REPL (`--repl`)
 
-The reserved `--repl` flag (argv[1], like `--acli-complete`) starts an
-interactive shell over the tool's own parser: each line is one
-invocation (argv without the program name), Tab completion reuses
-`candidates()` in-process — per-candidate help, hint rows, and
-data-peeking completers included — and the per-line output default
-flips to pretty (explicit format flags still win). `maybe_repl(parser)`
-beside `maybe_complete` wires the bare form (it rejects further argv);
-`acli.shell.run(parser)` is the loop.
+With `repl/1`, an explicit `--repl` starts a command loop. Use it when the
+documented repeated-call interaction is useful; do not assume every tool has it.
+`exit`, `quit`, or EOF ends it. A failed line is reported and the loop continues.
 
-Argv after `--repl` is tool-defined: a tool with a bound personality
-dispatches it itself and passes `shell.run(parser, rewrite=...,
-prog=..., intro=...)`. The `rewrite` hook maps each line's tokens into
-engine argv — preserving the final token, which is what completion is
-completing — so a launcher's grammar survives into its repl
-(`sts2-cards --repl` ≡ `almanac --repl sts2-cards`: bare
-`tier=S` / `~needle` lines query the bound dataset, verbs still pass
-through). Completion in a bound repl offers the union of the rewritten
-and raw grammars, so both spellings of a line complete.
-A verb's `SystemExit` (argparse errors, `die()`) is caught per line and
-reported as `# exit N`, never ending the session; `exit`/`quit`/Ctrl-D
-end it. With a non-TTY stdin the repl reads lines without prompts, so a
-piped command script batches N invocations in one process.
-
-Rich menus (descriptions beside candidates, a bottom-toolbar hint) use
-`prompt_toolkit`, imported lazily so the package stays dependency-free.
-Without it, an interactive repl still completes via stdlib readline and
-its banner names the exact install command for the running interpreter
-(`<python> -m pip install --user prompt_toolkit`). History persists per
-tool under `$XDG_STATE_HOME/acli/` on the prompt_toolkit path.
-
-## Kill round-trips without becoming a scripting language
-
-Round-trips (each a full agent turn: inference + latency + context growth)
-are the real cost lever — far bigger than serialization. Own the common
-multi-step paths *in the tool*, two mechanisms in priority order:
-
-- **Named composite verbs (porcelain) for hot paths.** This is where
-  "pre-computed aggregates" belong — as opt-in verbs, not fields baked into
-  every base verb's output, which would fight *Minimal default schemas*
-  below. `git pull` (= `fetch` + `merge`) and `git status` (an aggregate
-  over the index) are the model. Agents want mostly porcelain; primitives
-  stay underneath.
-- **Closed-loop, pipeable I/O for the long tail.** "Output of one = input
-  of the next" only works without glue if each verb *accepts on stdin the
-  same compact format it emits*. Most CLIs break this — emit JSON, accept
-  only flags — forcing the agent to parse-and-re-serialize between steps.
-  That reshape *is* the ad-hoc script we are avoiding, leaking in at the
-  seams. A closed-loop format lets `A | B` run as one invocation.
-
-Two failure modes bound the design: too few named combos and the agent
-experiments with composition (an unspecified scripting language —
-non-deterministic, token-costly, mistake-prone); too many and you get verb
-sprawl with its own discovery cost. **Name the empirically-hot paths; make
-the rest pipeable.** Note the round-trip *win* needs single-invocation
-composition (a pipe or a named verb) — a sequence of separate calls is
-still N turns no matter how obvious the defaults; obvious defaults buy lower
-mistake-rate, not fewer turns.
-
-## Expected duration and output channel
-
-An agent deciding how to invoke a verb needs two facts the input schema
-does not carry: how long the call should take, and on which channel the
-result arrives. Input is discoverable (`-h`, or the caller was told);
-duration and channel usually are not, and a wrong guess costs a blocked
-turn (foreground-waiting on a slow verb) or a lost result (backgrounding
-a verb whose only output was stdout). Every ACLI verb therefore declares
-a duration class (instant / seconds / minutes / open-ended) and its
-output channel in help. The three channels:
-
-1. **Unbuffered stdout, blocking** — the default for instant/seconds
-   verbs: the caller waits and the result is the process output,
-   unbuffered so a streaming reader sees progress instead of a silent
-   hang.
-2. **Arranged IPC message** — the call returns immediately and the
-   result arrives through a broker: a helper that posts a turn into the
-   calling agent session (YA's wake/ask-reply path), a named pipe, a
-   socket. Help names the broker; the immediate stdout acknowledgement
-   carries the job/request id.
-3. **Named watched file** — the work edits a file the caller watches.
-   The arranging call creates/touches the file (or establishes the
-   parent-directory watch target) before returning, so the watcher never
-   races the first write. Help names the path or the flag that sets it.
-
-**Deferral envelope: sync until an invoker timeout, then a structured
-handoff.** When the caller does not choose a channel, the verb runs as
-channel 1 up to an invoker-configured timeout (`--timeout <s>`; `0` =
-immediate deferral, i.e. pure async). On expiry the verb exits reporting
-successful *arrangement*: its last stdout line is a reserved JSONL
-deferral envelope — indicatively
-`{"kind":"deferred","id":...,"output":{"channel":"turn"|"pipe"|"file",
-...},"expected":"minutes","status":"<verb> status <id>"}` — naming where
-the result will arrive, the expected remaining duration when known, and
-how to poll. The detached work must never also write partial results to
-stdout: the result arrives wholly on stdout (in time) or wholly on the
-deferred channel, and for a file channel the file exists before the
-envelope is emitted. This is the sanctioned exception to
-static-per-subcommand output: a verb may switch channels at runtime only
-through the reserved envelope, never silently. Open-ended verbs must not
-offer unbounded channel-1 blocking except behind an explicit `--wait`.
-
-## The remaining principles
-
-- **Minimal default schemas.** 3–4 fields per list item, not 10, with a
-  `--full` / `-o wide` escape hatch. Real benefit both ways: fewer tokens
-  and less distraction. The escape hatch is what keeps it from costing the
-  human anything.
-- **Content truncation with a size hint and `--full`.** Stops one huge blob
-  eating the context window. The hint must state *how much* was cut and
-  `--full` must be lossless.
-- **Definitive empty states.** Explicit "0 results", not ambiguous empty
-  output — kills the retry-on-ambiguity loop. Good for both readers.
-- **Structured errors and exit codes.** Idempotent mutations, a consistent
-  error envelope, and fail-loud on unknown flags. "No interactive prompts"
-  means *suppressible* (non-TTY or `--yes`), not *absent* — do not drop a
-  destructive-op confirmation a human relies on; suppress it when the
-  caller is an agent. We already lean on exit-code verbs: `agentctl others`
-  answers by exit code (0 alone / nonzero peers), likewise `alone`,
-  `tending`.
-- **Consistent, concise help.** Per-subcommand reference an agent can pull
-  on demand. We already carry the mechanics — `AGENTS.global.md § Agent-facing CLI
-  help`: no terminal-width hard-wrapping (human-wrapped via explicit
-  opt-in), reuse the shared parser/formatter, keep option names greppable
-  between logs and `--help`.
-
-## Ambient context (#7) — organic, not designed up front
-
-AXI's ambient-context principle (install opt-in session integrations, then
-offer an on-demand skill) is the one that arrives by discovery rather than
-by design, and we already do it implicitly: tools here read ambient
-project-context paths without being told — `research/ROOT.md`, run metadata
-under `.agentctl/`, the active-session files, the paths `RESEARCH.md` /
-`RUNS.md` establish. That is ambient context in practice; it will keep
-accreting as the need occurs to us, not as a big up-front integration.
-
-**Ship worked examples.** AXI ships reference CLIs named by an `-axi`
-suffix — `gh-axi`, `chrome-devtools-axi`, `lavish-axi` — each demonstrating
-the principles against a real service. Our ACLI scripts should carry `-acli`
-worked examples the same way; a principle with a runnable example beside it
-is the ambient documentation an agent actually uses.
-
-## The `acli` module
-
-For Python tools, compliance-by-calling: the package makes the principles above
-executable defaults instead of prose. It lives beside `agentctl.py` (importable
-as `acli` via the code-root PYTHONPATH agentctl already sets). A tool in
-another repo uses the sanctioned fallback bootstrap — one synchronized
-copy in `~/agents`, per `AGENTS.global.md`'s shared-helpers rule:
-
-```python
-try:
-    import acli
-except ImportError:
-    sys.path.insert(0, str(Path.home() / "agents"))
-    import acli
-```
-
-Vendor (`topics/vendoring.md`) only when the tool must run where
-`~/agents` is absent. Surface, in small pure-function modules — a
-library, not a framework:
-
-- `acli.session` — `is_agent_session()` and `resolve_format(args)`: the one
-  place the detection disjunction lives, so a new harness marker is a
-  one-line edit, not a sweep across every script.
-- `acli.emit` — `write_jsonl()`, `write_pretty()`, `write_toon_table()`,
-  and the writer selection keyed off `resolve_format`.
-- `acli.commentary` — `commentary()` builds standalone or attached prose
-  metadata; the JSON writers validate it and implement optional suppression.
-- `acli.errors` — the structured error envelope, standard exit codes, and a
-  `die()` that fails loud.
-- `acli.args` — an argparse factory pre-wiring the standard flags
-  (`--format`, `--json`, `--compact`, `--full`, `--pretty`, `--toon`, `--text`,
-  `--no-commentary`, `--acli-quiet`), the agent-friendly help
-  conventions, the capability line / exit-code footer, the once-per-process
-  stderr banner (`maybe_banner`, called from `parse_args`), and the
-  `--acli-complete` / `--repl` reserved verbs.
-- `acli.shell` — the `--repl` loop over a tool's parser; prompt_toolkit
-  optional, readline fallback, `candidates()`-driven completion.
-
-Distinct from the `agentctl` cooperative-declaration helpers
-(`declare_input` / `declare_output`, a provenance protocol) — different
-concern, different namespace.
-
-## Design decisions
-
-- **Agent-friendly default, human upgrade gated** (vs. agent output behind
-  a flag): forgetting a flag must never yield hostile output; only the
-  human upgrade can be conditional, because its fallback (compact) is
-  harmless to an agent. Accepts that a mis-detected agent occasionally gets
-  pretty JSON — a token waste, not a break, and overridable.
-- **Disjunction + isatty over a single env var** (vs. keying on
-  `AGENTCTL_SESSION_ID` alone): any one marker is sometimes absent; `isatty`
-  carries most of the load and the env markers cover the PTY residual.
-  Accepts that detection is heuristic, made safe by the two-sided override.
-- **Pretty JSON, not a table, as the human fallback** (vs. rendered
-  tables): degrades safely under mis-detection. Accepts a less pretty human
-  experience unless detection confidence is high.
-- **TOON opt-in and static per subcommand** (vs. default, or dynamic on row
-  count): keeps the base format friendly and the consumer's parser fixed;
-  the caller holds the knowledge of when TOON pays. Accepts the occasional
-  short TOON payload.
-- **Own our TOON encoder, flat-table subset only** (vs. a dependency or the
-  full spec): matches the dependency-free ethos and self-enforces the
-  large-uniform-table scope by raising on anything else.
-- **Aggregates as named verbs, not default fields** (vs. bundling summaries
-  into every output): reconciles round-trip elimination with minimal
-  schemas — you opt into the aggregate when you want it.
-- **Completion by invoking the tool, registry-gated** (vs. per-shell
-  completion scripts): `--acli-complete` reuses the tool's own parser and
-  needs no bash/zsh/fish artifacts; the consumer-side allowlist carries the
-  safety burden, because probing an unknown tool with an unknown flag can
-  execute a lax tool's default action.
-- **Capability line inside `--help`, not a dedicated manifest flag**
-  (vs. an `--acli` JSON manifest): one invocation serves humans,
-  agents, and consumer registration, and a second probe flag would be
-  one more thing a lax tool could misparse into its default action.
-  Accepts that machine consumers grep one anchored line out of human
-  help text.
-- **Any emitted line suppresses the consumer's path fallback** (vs. an
-  explicit no-files directive field): a lone `hint` row is the natural
-  "answered; paths are noise here" signal, and a tool that wants path
-  completion just stays silent for that slot. Accepts that one slot
-  cannot both hint and request path fallback.
-- **Per-candidate help from completers; slot guidance as one `hint`
-  row** (vs. inheriting the argparse action help onto every value):
-  inheritance repeated a whole syntax paragraph on every candidate in
-  practice (almanac filters). Accepts bare value rows when a completer
-  attaches nothing.
-- **Tool-chosen candidate order, preserved end to end** (vs. central
-  alphabetization): data order carries meaning (tier ranking, reading
-  order — the almanac order contract). Accepts inconsistent ordering
-  conventions across tools.
-- **Redundant `--json` is accepted** (vs. requiring callers to discover that
-  compact JSONL is already the default): explicit serialization intent is a
-  common agent-CLI convention, and accepting it costs one alias while avoiding
-  a failed discovery round-trip.
-- **REPL in the library behind a reserved flag, prompt_toolkit
-  optional** (vs. a hard dependency or per-tool shells): every ACLI
-  tool gets an interactive mode from the parser it already declares,
-  and the dependency-free core survives; readline mode plus an install
-  banner covers absence. Accepts two code paths in `acli.shell`.
-- **Topic named `acli`, matching the printed token** (vs. keeping
-  `agent-cli.md`): the header a reader meets in a terminal or help text
-  must locate the spec, so the topic basename equals the token; `agent-cli`
-  survives as a glossary alternate for stranded references. Accepts a
-  one-time rename sweep.
-- **Stderr banner on every launch, library-emitted** (vs. banner only on
-  errors/deferrals, or per-tool emission): first contact is when the
-  activation prevents contract re-derivation by retry, and a terminal
-  user reads the `# ` line as meta at a glance; emitting from
-  `parse_args` keeps it uniform and unforgeable by construction (it
-  advertises the same registration the flags come from). Accepts one
-  short stderr line per process, priced acceptable even on hot verbs;
-  `--acli-quiet`/`ACLI_QUIET` is the relief valve.
-- **`+` token class for beyond-baseline affordances** (vs. one flat
-  token list): an invoker scanning the line needs to distinguish "Tab
-  completion exists" (consumer wiring, ignorable) from "this tool has a
-  two-phase confirm flow" (changes how you call it). Accepts that
-  existing consumers of the flat list see a spelling change (`toon` →
-  `+toon`).
-
-Candidate extensions are kept in [acli sketches](acli.sketches.md).
+The loop's final status does not summarize every command. Its output is not
+automatically one JSONL stream; separate invocations are easier for consumers
+requiring individual result boundaries. See the
+[REPL contract](acli-spec.md#repl-package-repl1).
