@@ -128,17 +128,18 @@ root of the preferences below).
 
 ## Copyable file references
 
-Resolve graehl's vague file references to the actual file and echo its owning
-project's relative path as copyable conversation text. After creating or
-updating a gap, topic, or any other requested file, include that path at a
-useful completion/review point; a sequence of revisions need not repeat it
-after each edit. Natural prose or a list is fine; no fixed `done:` prefix.
-Markdown links use the actual project-relative path as their visible text,
-not a descriptive title. For cross-project files, also supply a verified
-home-relative (`~/project/path`) or absolute locator, in the link target or
-alongside the relative path, so the owning project is unambiguous. Preserve
-the copyable relative path when adding line references. These references let
-YA offer file viewing and a new session prefilled with the relative path;
+Resolve graehl's vague file references to the actual file and echo a verified
+full path in conversation, including enough to identify its owning project
+even across projects, without leaving conversation view or expanding tool
+activity. Use an absolute or home-relative (`~/project/path`)
+locator as copyable text or the target of a Markdown link. Prefer the owning
+project's relative path as the link's visible text, not a descriptive title;
+this shortening is cosmetic, and a full path is also usable within a session
+opened on that project. After creating or updating a gap, topic, or any other
+requested file, include the reference at a useful completion/review point;
+successive revisions need not repeat it after each edit. Natural prose or a
+list is fine; no fixed `done:` prefix. The intent is YA file viewing and
+project-aware new-session links, with the relative path in the prompt prefill;
 verify support before claiming YA recognizes home aliases or resolved symlink
 paths.
 
