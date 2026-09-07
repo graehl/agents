@@ -14,30 +14,31 @@ activation is separate from its outline/tag interpretation.
 
 ## Explicit activation
 
-Ordinary bracketed text never activates a visualization. An activation record
-consists of the uncommon, column-one marker `@@visualization-schema/1` followed
-immediately by a fenced `json` block. Its payload is exactly one of:
+Activation is one column-one line: the fixed marker, a space, and a schema path.
 
-- the complete declaration, identified by `type` and `id`;
-- `{ "schema": "~/agents/path/to/schema.json" }`, a declaration pointer; or
-- `{ "skillFile": "~/agents/skills/example/SKILL.md" }`, a pointer to a skill
-  whose metadata supplies the declaration pointer described below.
+```text
+@@visualization-schema/1 ~/ya/topics/publish-workflow.local.md#ya-publish/1
+```
+
+Everything after the marker's separating space is the path, with surrounding
+whitespace trimmed. No JSON wrapper, quotes, or following code fence is needed.
+If later activation needs structure incompatible with that path, use a new
+marker such as `@@viz-2`; keep the current marker's path interpretation intact.
 
 The record must be surfaced in the current turn's agent output or a tool
 result. Reading an opted-in skill can also activate through its metadata.
 Having a schema file on disk, listing an installed skill, mentioning its name,
 or seeing `[A]` in a log is insufficient.
 
-The record's `type` selects the visualization contract; `id` identifies the
-specific declaration. `tagged-stages/1` is the first predefined type, not the
-meaning of every activation record. Other types may define different views
+The loaded declaration's `type` selects the visualization contract; `id`
+identifies the specific declaration. `tagged-stages/1` is the first predefined
+type, not the meaning of every activation record. Other types may define different views
 and update conventions. Unknown types remain readable data without activating
 this tag parser. Conflicting declarations under the same schema ID are invalid.
 
-The activation marker is outside the following JSON fence; examples quoting
-the whole record are not activation. A producer can surface the record directly
-or through skill/tool content, then refer to the resolved schema ID when
-opening a workflow. Do not re-emit its full declaration at every stage.
+Quoted or fenced examples are not activation. A producer can emit the line
+directly or through skill/tool content, then refer to the resolved schema ID
+when opening a workflow. Do not repeat activation at every stage.
 Activation lasts for the current turn and does not itself execute anything.
 
 `toolOutput.containsTags` and its whitelist govern stage-prefix recognition
@@ -73,9 +74,9 @@ Resolve locations on the host that owns the session, through its existing
 file-access path:
 
 1. A provider-reported skill-definition path is authoritative for the resolved
-   invocation. Otherwise use the observed skill-read tool's source path or an
-   explicit `skillFile` pointer. A skill name alone is insufficient; do not
-   invent precedence by searching guessed skill directories.
+   invocation. Otherwise use the observed skill-read tool's source path. A skill
+   name alone is insufficient; do not invent precedence by searching guessed
+   skill directories.
 2. Absolute paths refer to that host. Expand `~/` using that session owner's
    home directory, never the browser's home or a different YA host's home.
    Thus `~/agents/...` explicitly names the shared agents checkout; it is not
@@ -83,14 +84,14 @@ file-access path:
 3. Inside skill metadata, resolve a relative pointer against the directory of
    the resolved skill file, following symlinks to its actual source. An
    installed alias therefore keeps the source skill's adjacent resources.
-4. A standalone `schema` or `skillFile` pointer must be absolute or `~/`-relative.
+4. The activation line's schema path must be absolute or `~/`-relative.
    Reject an unbased `path/to/schema` rather than guessing between project cwd,
    home, and `~/agents`. A displayed `[path/to/schema]` is not itself activation.
-5. A schema pointer names a JSON declaration or a document containing explicit
-   activation/declaration blocks. A `#schema-id` fragment selects the exact
+5. A schema pointer names a JSON declaration or a document containing fenced
+   JSON declarations. A `#schema-id` fragment selects the exact
    declaration ID; without it, the document must contain exactly one declaration.
    For example, `~/ya/topics/publish-workflow.local.md#ya-publish/1` is explicit.
-   Do not follow chains of pointer blocks as if they were declarations.
+   Select declaration data; do not recursively follow activation lines in the file.
 
 Instructions need not know the checkout's installation location. Prefer
 skill-relative metadata when the schema travels with the skill. The provider's
