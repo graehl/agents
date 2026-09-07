@@ -6,9 +6,9 @@ where: agentctl.py (`alone`, active-entry header), scripts/session-turn
 
 **Gap:** `agentctl alone` waits for solitude and nothing more. A session
 blocked on a peer's wildcard `scope:` has no agentctl way to tell that
-peer someone is queued and for what; a peer cannot even be addressed,
-because an `active/` entry holds only the gist and `scope:` while
-`session-turn` needs `<harness> <provider-session-id>`. Claude Code
+peer someone is queued and for what. The active-entry header does not
+declare a harness, while `session-turn` needs
+`<harness> <provider-session-id>`. Claude Code
 sessions now have an instructed hand nudge over the harness's native
 session messaging (`AGENTS.claude.md § Peer coordination over native
 session messaging`), which a script cannot call and Codex lacks, so the
@@ -43,3 +43,56 @@ ordinary native resume-and-send forks the YA session, so a nudge that
 falls back to native resume is worse than no nudge. `session-turn`'s
 native fallback therefore has to be off for this verb, not merely the
 absent-session resume.
+
+## Peer-written notices and busy recipients
+
+User-directed question, 2026-09-07. Contributing-model: 6-Astra.
+
+The user requested checking whether peers may leave coordination comments
+in another session's active record, with at least Linux-safe atomic delivery,
+possibly through an `agentctl` verb. This also needs a delivery path when the
+recipient is in foreground activity rather than idle.
+
+Current evidence:
+
+- `topics/agentctl.md` permits free content below the header and says brief
+  readers stop at that header. It does not define peer-writable notice fields,
+  sender identity, required notice reads, acknowledgment, or delivery semantics.
+  `claim:`/`carve:` notes are written in the caller's own entry, not a mailbox.
+- `agentctl.py`'s `write_active_entry` and `clear`'s `write_own` preserve the
+  body by reading it, then writing a fixed `<session-id>.tmp` and replacing the
+  destination. These paths have no interprocess lock around the read/modify/
+  replace operation. Atomic rename alone does not prevent a concurrent owner
+  update from losing a peer's appended notice; concurrent writers also share
+  the temporary filename. The existing header/body preservation test is
+  sequential, not evidence of safe concurrent delivery.
+- During YA workflow file release, two `session-turn send codex` attempts
+  against the live recipient returned `outcome: busy`, `accepted: false`,
+  `Provider session is not idle`, and exit 11. The observed provider-host path
+  did not queue the notice. This establishes rejection of these submissions,
+  not that all harness delivery paths reject busy recipients.
+
+Resolve the design before recommending hand-written peer comments:
+
+- Define whether notices belong inside the active record or in a separate
+  inbox. If sharing the record, every cooperating owner/peer writer must use
+  one Linux-safe locking protocol covering the whole update and temporary-file
+  lifecycle. A separate inbox may avoid replacing owner-controlled state.
+  State behavior for readers, crashes, and unsupported platforms explicitly.
+- Define sender/recipient and notice identity, acknowledgment/removal, retry
+  deduplication, and the observation point where a busy recipient reads pending
+  notices. Distinguish persisted/queued, delivered, and acted-on; writing a
+  comment does not wake a model or prove it was read.
+- Do not let a peer notice refresh the recipient's apparent liveness, revive a
+  DONE/stale session, replace its banner/scope, or release its claims. Preserve
+  notices across legitimate owner updates and settle archive/sweep behavior.
+- Decide whether busy `session-turn` delivery should durably queue instead,
+  with explicit acceptance/receipt semantics, or whether an agentctl notice
+  complements its existing live-session delivery. Keep the no-native-fallback
+  and no-implicit-resume constraints above for automated nudges.
+
+Closure needs concurrent owner-update/peer-write tests (including two senders),
+crash/retry and duplicate-delivery cases, no false liveness refresh, and a busy
+recipient eventually observing a notice without a competing native resume.
+This entry records the question and observed gap; it does not authorize a
+coordination implementation or another session's task execution.
