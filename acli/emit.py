@@ -7,6 +7,7 @@ import sys
 from collections.abc import Iterable
 from typing import Any, TextIO
 
+from .commentary import prepare_commentary
 from .session import Format
 
 _KEY_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*\Z")
@@ -14,21 +15,34 @@ _NUMBERISH_RE = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\Z")
 _DELIMITERS = {",", "\t", "|"}
 
 
-def write_jsonl(value: Any, out: TextIO = sys.stdout) -> None:
+def write_jsonl(
+    value: Any, out: TextIO = sys.stdout, *, commentary: bool = True
+) -> None:
     """Write compact JSON Lines.
 
     A list/tuple is treated as rows; any other value is one JSONL record.
     """
     rows = value if isinstance(value, (list, tuple)) else [value]
-    out.writelines(
-        json.dumps(row, separators=(",", ":"), sort_keys=True) + "\n" for row in rows
-    )
+    for row in rows:
+        prepared, found = prepare_commentary(row, include=commentary)
+        if not commentary and isinstance(row, dict) and set(row) == {"_acli"}:
+            continue
+        out.write(
+            json.dumps(prepared, separators=(",", ":"), sort_keys=not found) + "\n"
+        )
+        if found:
+            out.flush()
 
 
-def write_pretty(value: Any, out: TextIO = sys.stdout) -> None:
+def write_pretty(
+    value: Any, out: TextIO = sys.stdout, *, commentary: bool = True
+) -> None:
     """Write human fallback JSON."""
-    json.dump(value, out, indent=2, sort_keys=True)
+    prepared, found = prepare_commentary(value, include=commentary)
+    json.dump(prepared, out, indent=2, sort_keys=not found)
     out.write("\n")
+    if found:
+        out.flush()
 
 
 def _validate_key(text: str, kind: str) -> None:
@@ -138,6 +152,7 @@ def emit(
     out: TextIO = sys.stdout,
     *,
     text: str | None = None,
+    commentary: bool = True,
 ) -> None:
     if isinstance(fmt, Format):
         resolved = fmt
@@ -145,12 +160,22 @@ def emit(
         resolved = Format.COMPACT
     else:
         resolved = Format(fmt)
+    if resolved in {Format.COMPACT, Format.TEXT} and (
+        resolved is Format.COMPACT or text is None
+    ):
+        write_jsonl(value, out, commentary=commentary)
+        return
+    if resolved is Format.PRETTY:
+        write_pretty(value, out, commentary=commentary)
+        return
+    prepared, found = prepare_commentary(value, include=False)
+    if commentary and found:
+        raise ValueError(
+            "commentary requires JSON/JSONL; use --json, --pretty, or --no-commentary"
+        )
+    value = prepared
     if resolved is Format.TEXT and text is not None:
         out.write(text.rstrip("\n") + "\n")
-    elif resolved in {Format.COMPACT, Format.TEXT}:
-        write_jsonl(value, out)
-    elif resolved is Format.PRETTY:
-        write_pretty(value, out)
     elif resolved is Format.TOON:
         if isinstance(value, dict) and "rows" in value:
             write_toon_table(

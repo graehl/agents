@@ -8,7 +8,10 @@ import contextlib
 import importlib
 import io
 import json
+import queue
+import subprocess
 import sys
+import threading
 import time
 import traceback
 from pathlib import Path
@@ -109,6 +112,203 @@ def test_text_preference_is_available_without_a_text_renderer():
         _assert(out.getvalue() == "Ready\n")
     parsed = parser.parse_args(["--text", "status", "--json"])
     _assert(resolve_format(parsed) is Format.COMPACT)
+
+
+def test_commentary_round_trip_and_data_only_output():
+    source = {"id": 1, "nested": {"ok": True}}
+    attached = _acli.commentary("Checked this item.", value=source)
+    rows = [attached, _acli.commentary("Finished.")]
+    out = io.StringIO()
+    _acli.emit(rows, Format.COMPACT, out)
+    parsed = [json.loads(line) for line in out.getvalue().splitlines()]
+    _assert(parsed == rows)
+    _assert("_acli" not in source, "attaching commentary must not mutate data")
+    out = io.StringIO()
+    _acli.emit(rows, Format.COMPACT, out, commentary=False)
+    _assert(json.loads(out.getvalue()) == source)
+
+
+def test_commentary_flag_survives_subcommands_and_repeated_parses():
+    parser = _acli.argument_parser(capabilities=("complete", "+commentary"))
+    _acli.add_standard_args(parser)
+    child = parser.add_subparsers(dest="verb").add_parser("show")
+    _acli.add_standard_args(child)
+    for argv in (["--no-commentary", "show"], ["show", "--no-commentary"]):
+        args = parser.parse_args(argv)
+        _assert(args.no_commentary)
+        out = io.StringIO()
+        _acli.emit(
+            _acli.commentary("Done.", value={"ok": True}),
+            resolve_format(args),
+            out,
+            commentary=not args.no_commentary,
+        )
+        _assert(json.loads(out.getvalue()) == {"ok": True})
+    _assert(not parser.parse_args(["show"]).no_commentary)
+    _assert("--no-commentary" in parser.format_help())
+    _assert("presentation" in child.format_help())
+    rows = _complete_lines(importlib.import_module("acli.args"), parser, ["--no-c"])
+    _assert([row["completion"] for row in rows] == ["--no-commentary"])
+
+
+def test_nested_commentary_preserves_order_and_data_structure():
+    value = {
+        "z": _acli.commentary("Z checked.", value={"id": 1}),
+        "a": [0, _acli.commentary("About zero."), {}],
+        "commentary": "ordinary data",
+        "literal": '{"_acli":{"commentary":[{"text":"literal"}]}}',
+    }
+    out = io.StringIO()
+    _acli.emit(value, Format.PRETTY, out)
+    parsed = json.loads(out.getvalue())
+    _assert(list(parsed) == list(value), "commentary traversal preserves member order")
+    _assert(parsed == value)
+    out = io.StringIO()
+    _acli.emit(value, Format.PRETTY, out, commentary=False)
+    cleaned = json.loads(out.getvalue())
+    _assert(cleaned["z"] == {"id": 1})
+    _assert(cleaned["a"] == [0, {}, {}], "nested array positions remain intact")
+    _assert(cleaned["commentary"] == value["commentary"])
+    _assert(cleaned["literal"] == value["literal"])
+    _assert("_acli" in value["z"], "suppression must not mutate the caller's data")
+
+
+def test_commentary_preserves_markdown_exactly():
+    prose = "  [report](./report.html)\n\n$x^2$ — café\n\n$$\\sum_i x_i$$\n"
+    value = _acli.commentary(prose)
+    for fmt in (Format.COMPACT, Format.PRETTY):
+        out = io.StringIO()
+        _acli.emit(value, fmt, out)
+        _assert(json.loads(out.getvalue())["_acli"]["commentary"][0]["text"] == prose)
+
+
+def test_commentary_rejects_malformed_reserved_metadata_before_writing():
+    for metadata in (None, {}, {"commentary": []}, {"commentary": [{"text": 4}]}):
+        out = io.StringIO()
+        try:
+            _acli.emit({"nested": {"_acli": metadata}}, Format.COMPACT, out)
+        except ValueError:
+            _assert(out.getvalue() == "")
+        else:
+            raise AssertionError(f"accepted malformed metadata: {metadata!r}")
+    for texts in ((), ("",), (" ",), (None,)):
+        try:
+            _acli.commentary(*texts)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"accepted invalid commentary: {texts!r}")
+    once = _acli.commentary("First.", value={"id": 1})
+    twice = _acli.commentary("Second.", value=once)
+    _assert(
+        [item["text"] for item in twice["_acli"]["commentary"]] == ["First.", "Second."]
+    )
+    _assert(len(once["_acli"]["commentary"]) == 1)
+
+
+def test_commentary_non_json_output_requires_explicit_suppression():
+    value = _acli.commentary("Checked.", value={"id": 1})
+    for fmt, data, text in (
+        (Format.TEXT, value, "Ready"),
+        (Format.TOON, [value], None),
+    ):
+        out = io.StringIO()
+        try:
+            _acli.emit(data, fmt, out, text=text)
+        except ValueError as exc:
+            _assert("--no-commentary" in str(exc))
+            _assert(out.getvalue() == "")
+        else:
+            raise AssertionError("non-JSON output silently lost commentary")
+        _acli.emit(data, fmt, out, text=text, commentary=False)
+        _assert("_acli" not in out.getvalue())
+    out = io.StringIO()
+    _acli.emit(value, Format.TEXT, out)
+    _assert(json.loads(out.getvalue()) == value, "text without renderer stays JSONL")
+
+
+def _commentary_demo(argv):
+    parser = _acli.argument_parser(capabilities=("complete", "+commentary"))
+    _acli.add_standard_args(parser)
+    parser.add_argument("--pause", action="store_true")
+    _acli.maybe_complete(parser, ["demo", *argv])
+    args = parser.parse_args(argv)
+    fmt = resolve_format(args)
+    _acli.emit(
+        _acli.commentary("Checked item.", value={"id": 1}),
+        fmt,
+        commentary=not args.no_commentary,
+    )
+    if args.pause:
+        input()
+    _acli.emit(_acli.commentary("Finished."), fmt, commentary=not args.no_commentary)
+    return 0
+
+
+def test_commentary_real_cli_flag_and_completion():
+    command = [sys.executable, str(Path(__file__).resolve()), "--commentary-demo"]
+    enabled = subprocess.run(
+        [*command, "--json"], capture_output=True, text=True, timeout=10, check=True
+    )
+    disabled = subprocess.run(
+        [*command, "--json", "--no-commentary"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=True,
+    )
+    records = [json.loads(line) for line in enabled.stdout.splitlines()]
+    _assert(
+        [row["_acli"]["commentary"][0]["text"] for row in records]
+        == ["Checked item.", "Finished."]
+    )
+    _assert(json.loads(disabled.stdout) == {"id": 1})
+    completion = subprocess.run(
+        [*command, "--acli-complete", "--no-c"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=True,
+    )
+    _assert(json.loads(completion.stdout)["completion"] == "--no-commentary")
+    _assert(completion.stderr == "")
+
+
+def test_commentary_flushes_before_the_tool_finishes():
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "--commentary-demo",
+        "--json",
+        "--pause",
+    ]
+    with subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    ) as process:
+        lines = queue.Queue()
+        reader = threading.Thread(
+            target=lambda: lines.put(process.stdout.readline()), daemon=True
+        )
+        reader.start()
+        try:
+            line = lines.get(timeout=5)
+            reader.join(timeout=1)
+            _assert(
+                json.loads(line)["_acli"]["commentary"][0]["text"] == "Checked item."
+            )
+            _assert(process.poll() is None, "commentary arrives before process exit")
+            tail, _ = process.communicate("\n", timeout=5)
+            _assert(process.returncode == 0)
+            _assert(json.loads(tail)["_acli"]["commentary"][0]["text"] == "Finished.")
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.communicate(timeout=5)
+            reader.join(timeout=1)
 
 
 def test_toon_table_quotes_scalars_and_preserves_inner_spaces():
@@ -576,4 +776,6 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--commentary-demo"]:
+        sys.exit(_commentary_demo(sys.argv[2:]))
     sys.exit(main(sys.argv[1:]))
