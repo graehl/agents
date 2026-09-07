@@ -50,6 +50,25 @@ For Codex running GPT-5.6 or later, the configured foreground ladder is
 the cache-margin policy recorded in `agent-instructions.evidence.md` under
 "2026-08-10 — GPT-5.6 Codex waits stay inside cache minimum"; it is not a
 claim about a newly verified provider cache guarantee. Other models retain
-the ordinary RUNS ladder. Every timeout still requires status, consumption if
-complete, or another wait if work remains. Use completion-returning waits and
-the longest earned duration permitted by the current tools and higher policy.
+the ordinary RUNS ladder. This bounds observer lifetime, not passive time
+without model continuation. Every observer timeout still requires status,
+consumption if complete, or another wait if work remains.
+
+During waits, schedule return to the model at most 540 seconds apart, allowing
+for return/continuation overhead before ten minutes. This is the user's
+cache-warmth precaution, not a verified eviction threshold; it supersedes the
+older allowance for a passive 28-minute tool call. A printed command heartbeat
+alone does not establish model continuation. If the harness cannot yield back
+to the model while the observer lives, shorten the observer timeout accordingly,
+within the earned rung and any stricter tool limits.
+
+A tool's `yield_time_ms` controls one call's blocking interval; it does not set
+`agentctl wait --timeout`. Continue the same live terminal `session_id` with
+`write_stdin`, or the same still-running orchestration `cell_id` with
+`functions.wait`. Do not hide repeated short yields inside an orchestration
+loop that withholds model continuation beyond 540 seconds. Required short tool
+yields are transport polling; repeatedly launching short-lived observers adds
+unnecessary polling and announcements. Announce a new observer, not each yield.
+`--poll` checks job state; `--heartbeat` prints status. Neither sets observer
+lifetime or proves cache warmth. Consume a terminal result instead of reusing
+its handle.
