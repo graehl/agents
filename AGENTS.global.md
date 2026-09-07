@@ -408,7 +408,10 @@ surprising peers):
   by peer `scope:` when available — or claim it once: `agentctl clear <paths>`
   before an intended sequence of edits checks peers and claims on exit 0
   (`--carve` claims through a peer's covering wildcard; an exact peer claim
-  always blocks). A file you hold a fresh specific claim on needs no
+  always blocks). `clear` waits and streams peer notices by default; use
+  `--no-wait` for an immediate verdict, or `--deaf` to wait without notices.
+  Pause/resume, posting notices, and cancellation: `topics/agentctl.md`
+  § Claim-clearance dialogue. A file you hold a fresh specific claim on needs no
   per-edit ceremony; a resume or long pause starts a new sequence, so
   re-run `clear` then — claims age out. Drop finished file claims
   (`clear --drop <paths>`), keeping wildcard scope. Your own wildcard

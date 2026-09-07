@@ -66,6 +66,11 @@ a watched job ends or the awaited resource becomes available, consume the
 result and launch or attach an already-approved successor in the same turn
 before resting at a status update.
 
+For claim-clearance waits (`agentctl clear`), a streamed peer notice is also
+an observation point: the agent may pause the wait to converse, then resume or
+cancel it under `topics/agentctl.md` § Claim-clearance dialogue. The notice
+grants neither clearance nor user authorization.
+
 #### Detach long runs from the session
 
 A run expected to exceed about 15 minutes launches through detached

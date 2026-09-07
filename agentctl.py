@@ -8,6 +8,7 @@ import errno
 import hashlib
 import importlib
 import json
+import math
 import os
 import platform
 import re
@@ -20,6 +21,7 @@ from pathlib import Path
 
 import acli
 import acli.args as acli_args
+import agentctl_coordination as coordination
 
 CODE_ROOT = Path(__file__).resolve().parent
 ROOT = Path(os.environ.get("AGENTCTL_ROOT") or os.getcwd()).expanduser().resolve()
@@ -957,7 +959,69 @@ def _scope_claims(scope_value: str) -> list[str]:
     return [t for t in re.split(r"[,\s]+", scope_value) if t]
 
 
+def coordination_cmd(args) -> int:
+    try:
+        if int(os.environ.get(LAUNCH_DEPTH_ENV, "0") or "0") > 0:
+            raise ValueError("coordination is for sessions, not launched jobs")
+        return coordination.command(
+            coordination.Coordination(STATE, ACTIVE_STALE_MINUTES),
+            args,
+            agent_session_id(),
+        )
+    except FileNotFoundError as exc:
+        acli.die(str(exc), acli.ExitCode.NOT_FOUND)
+    except ValueError as exc:
+        acli.die(str(exc), acli.ExitCode.USAGE)
+    except (OSError, RuntimeError) as exc:
+        acli.die(str(exc), acli.ExitCode.UNAVAILABLE)
+
+
 def clear_cmd(args) -> int:
+    store = coordination.Coordination(STATE, ACTIVE_STALE_MINUTES)
+    try:
+        if args.drop or args.no_wait:
+            if args.wait_id or args.deaf:
+                raise ValueError(
+                    "--wait-id and --deaf require waiting, not --drop or --no-wait"
+                )
+            with store.locked():
+                code, result = clear_once(args)
+            coordination.emit(result, _resolve_acli_format(args))
+            return code
+
+        args.paths = [active_scope_path(path) for path in args.paths]
+        if not all(args.paths) or any("*" in path for path in args.paths):
+            raise ValueError("clear requires literal nonempty paths")
+        if (
+            not agent_session_id()
+            or int(os.environ.get(LAUNCH_DEPTH_ENV, "0") or "0") > 0
+        ):
+            raise ValueError(
+                "clear requires an agent session id, outside launched jobs"
+            )
+        if not 0 < args.poll < ACTIVE_STALE_MINUTES * 60:
+            raise ValueError(
+                "--poll must be positive and shorter than the 70-minute stale window"
+            )
+        if not math.isfinite(args.timeout):
+            raise ValueError("--timeout must be finite (0 waits indefinitely)")
+
+        return coordination.follow(
+            store,
+            args,
+            agent_session_id(),
+            lambda: clear_once(args),
+            touch_active_entry,
+        )
+    except FileNotFoundError as exc:
+        acli.die(str(exc), acli.ExitCode.NOT_FOUND)
+    except ValueError as exc:
+        acli.die(str(exc), acli.ExitCode.USAGE)
+    except (OSError, RuntimeError) as exc:
+        acli.die(str(exc), acli.ExitCode.UNAVAILABLE)
+
+
+def clear_once(args) -> tuple[int, dict]:
     """`clear <paths...>`: am I clear to edit these files? Check + claim in one.
 
     The per-path counterpart to `others`: scan fresh peers' `scope:` claims
@@ -994,40 +1058,30 @@ def clear_cmd(args) -> int:
     except ValueError:
         depth = 0
     if depth > 0:
-        print(
+        raise ValueError(
             "agentctl clear: refusing to claim from inside a launched job "
-            "(a job is not an agent)",
-            file=sys.stderr,
+            "(a job is not an agent)"
         )
-        return 2
     sid = agent_session_id()
     if not sid:
-        print(
-            "agentctl clear: no session id; set one of "
-            f"{', '.join(SESSION_ID_ENVS)}",
-            file=sys.stderr,
+        raise ValueError(
+            f"agentctl clear: no session id; set one of {', '.join(SESSION_ID_ENVS)}"
         )
-        return 2
     drop = bool(getattr(args, "drop", False))
     carve = bool(getattr(args, "carve", False))
     note = normalize_headline_text(getattr(args, "note", None) or "")
     if drop and (carve or note):
-        print("agentctl clear: --drop takes no --carve/--note", file=sys.stderr)
-        return 2
+        raise ValueError("agentctl clear: --drop takes no --carve/--note")
     paths = [p for p in (active_scope_path(raw) for raw in args.paths) if p]
     if not paths:
-        print("agentctl clear: no paths", file=sys.stderr)
-        return 2
+        raise ValueError("agentctl clear: no paths")
     bad = [p for p in paths if "*" in p]
     if bad:
-        print(
+        raise ValueError(
             f"agentctl clear: literal paths only, no wildcards: {' '.join(bad)} "
             "(claim a subtree by its directory path, or author wildcard scope "
-            "via `agentctl active`)",
-            file=sys.stderr,
+            "via `agentctl active`)"
         )
-        return 2
-    fmt = _resolve_acli_format(args)
     minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
 
     own = ACTIVE / sid
@@ -1039,12 +1093,10 @@ def clear_cmd(args) -> int:
         lines = own.read_text(encoding="utf-8", errors="replace").splitlines()
         own_line1, own_scope, own_tending, own_body = _split_active_header(lines)
     if own_line1 and own_line1.startswith("DONE"):
-        print(
+        raise ValueError(
             "agentctl clear: this session's entry is DONE; revive it first "
-            'with `agentctl active "<status>"`',
-            file=sys.stderr,
+            'with `agentctl active "<status>"`'
         )
-        return 2
     own_claims = _scope_claims(_header_value(own_scope or ""))
 
     def write_own(scope_entries: list[str], body: list[str]) -> None:
@@ -1065,23 +1117,15 @@ def clear_cmd(args) -> int:
         )
         body = [ln for ln in own_body if not ln.startswith(prefixes)]
         if own.exists():
-            try:
-                write_own(kept, body)
-            except OSError as exc:
-                print(f"agentctl clear: could not write {own}: {exc}", file=sys.stderr)
-                return 1
-        acli.emit(
-            {
-                "kind": "file_claim",
-                "verdict": "dropped",
-                "dropped": dropped,
-                "not_held": [p for p in paths if p not in dropped],
-                "scope": kept,
-                "now": now_iso,
-            },
-            fmt,
-        )
-        return 0
+            write_own(kept, body)
+        return 0, {
+            "kind": "file_claim",
+            "verdict": "dropped",
+            "dropped": dropped,
+            "not_held": [p for p in paths if p not in dropped],
+            "scope": kept,
+            "now": now_iso,
+        }
 
     now, rows = _scan_active(minutes, False, sid)
     peers = [r for r in (rows or []) if not r[5]]
@@ -1114,8 +1158,7 @@ def clear_cmd(args) -> int:
         payload["conflicts"] = conflicts
         if not blocked:
             payload["next_command"] = "agentctl clear --carve " + " ".join(paths)
-        acli.emit(payload, fmt)
-        return 1
+        return 1, payload
 
     new_scope = own_claims + [p for p in paths if p not in own_claims]
     body = list(own_body)
@@ -1128,11 +1171,7 @@ def clear_cmd(args) -> int:
             body.append(f"carve: {path} from {frm} at {now_iso}{suffix}")
         elif path not in own_claims:
             body.append(f"claim: {path} at {now_iso}{suffix}")
-    try:
-        write_own(new_scope, body)
-    except OSError as exc:
-        print(f"agentctl clear: could not write {own}: {exc}", file=sys.stderr)
-        return 1
+    write_own(new_scope, body)
     stale = dt.datetime.now(dt.timezone.utc) + dt.timedelta(
         minutes=ACTIVE_STALE_MINUTES
     )
@@ -1150,8 +1189,7 @@ def clear_cmd(args) -> int:
         payload["conflicts"] = covering
     if note:
         payload["note"] = note
-    acli.emit(payload, fmt)
-    return 0
+    return 0, payload
 
 
 _SESSION_ID_RE = re.compile(
@@ -6769,7 +6807,16 @@ def build_parser() -> argparse.ArgumentParser:
         "edit. Re-running a held claim is a cheap success that refreshes "
         "it, so repeat at each new edit sequence (a resume or long pause "
         "starts one). Exit 0 claimed; 1 blocked or carveable; 2 usage. "
-        "Instant; result on stdout.",
+        "Waits by default and streams notices on flushed stdout; --no-wait checks once. "
+        "Ctrl-C/SIGTERM or --timeout pauses the wait; resume with --wait-id and the same "
+        "paths/claim options, or retire it with coordination cancel. Notices are peer "
+        "input, not permission or clearance. --drop is always instant.",
+        description="Wait for all requested paths and claim them, streaming peer notices on flushed stdout. "
+        "Use --no-wait for an immediate verdict, --deaf to reject notices while waiting. "
+        "Ctrl-C/SIGTERM pauses (exit 130); --timeout pauses (exit 1). "
+        "Use coordination list to find waits and coordination notice WAIT_ID --message TEXT to post. "
+        "Stop the observer, then resume with --wait-id or retire with coordination cancel WAIT_ID. "
+        "Notices never grant clearance or user authorization. --drop stays immediate.",
     )
     s.add_argument(
         "paths",
@@ -6809,7 +6856,43 @@ def build_parser() -> argparse.ArgumentParser:
         "%(default)s, the AGENTS.md stale threshold).",
     )
     acli_args.add_standard_args(s)
+    waiting = s.add_mutually_exclusive_group()
+    waiting.add_argument(
+        "--wait",
+        dest="no_wait",
+        action="store_false",
+        help="Wait for clearance and stream notices (default); open-ended unless --timeout is given.",
+    )
+    waiting.add_argument(
+        "--no-wait",
+        action="store_true",
+        help="Check once; exit 1 immediately if blocked or carveable. No wait record is created.",
+    )
+    s.set_defaults(no_wait=False)
+    s.add_argument(
+        "--deaf",
+        action="store_true",
+        help="Keep waiting but reject notices and emit none.",
+    )
+    s.add_argument(
+        "--wait-id",
+        type=coordination.identifier,
+        help="Resume your paused wait UUID with the same paths, --carve, --minutes and --note; notices may replay.",
+    )
+    s.add_argument(
+        "--poll",
+        type=nonnegative_float,
+        default=5.0,
+        help="Seconds between clearance/notice checks (default 5; positive and below the 70-minute stale window).",
+    )
+    s.add_argument(
+        "--timeout",
+        type=nonnegative_float,
+        default=0.0,
+        help="Pause after this many seconds (exit 1); 0 waits indefinitely. The wait stays open for dialogue/resume.",
+    )
     s.set_defaults(func=clear_cmd)
+    coordination.register(sub, coordination_cmd)
 
     s = sub.add_parser(
         "tending",

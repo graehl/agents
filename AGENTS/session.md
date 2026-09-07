@@ -143,6 +143,10 @@ check+claim before an intended sequence of edits, after which the held
 files need no per-edit re-check while your entry stays fresh. `--carve`
 claims through a peer's covering wildcard (an exact peer claim blocks);
 `clear --drop <paths>` releases finished files, keeping wildcard scope.
+The default waits and streams peer notices. Use `--no-wait` to get an
+immediate verdict and choose other work, or `--deaf` to wait without notices.
+For dialogue, pause the wait, then resume or cancel it as described in
+`topics/agentctl.md` § Claim-clearance dialogue; a notice grants no clearance.
 Re-run `clear` when a new sequence starts — a resume or long pause is a
 new sequence, and re-claiming a held path is a cheap refresh.
 
