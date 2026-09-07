@@ -6,7 +6,11 @@
 
 Topic: `workflow-tags`
 
-Status: Initial producer convention, 2026-09-07. A skill or project instruction
+Status: Initial producer convention, 2026-09-07. The single `tagged-stages/1`
+prototype is updated in place, including closed matching and collecting
+presentation; these additions do not introduce another version. Consumer
+migration remains tracked in `gaps/workflow-closed-tags.md` until complete.
+A skill or project instruction
 opts into it; this topic does not require tags for ordinary work. Renderer and
 harness support are separate capabilities. Read this topic when adopting or
 changing a `tagged-stages/1` workflow. This is one visualization schema type;
@@ -46,9 +50,10 @@ for an explicit workflow opening; the quick form opens its display span itself.
 Do not repeat activation at every stage.
 Activation lasts for the current turn and does not itself execute anything.
 
-`toolOutput.containsTags` and its whitelist govern stage-prefix recognition
-after activation. They do not govern the separate activation record. Merely
-printing a bracketed lifecycle-looking path in tool output is not activation.
+`toolOutput.containsTags`, `closed`, and the additive whitelist govern
+stage-prefix recognition after activation. They do not govern the separate
+activation record. Merely printing a bracketed lifecycle-looking path in tool
+output is not activation.
 
 ## Quick inline whitelist
 
@@ -192,8 +197,8 @@ frontmatter of an existing skill merely carries a string pointer to this data.
       "title": "Publish hosted client",
       "toolOutput": {
         "containsTags": true,
-        "view": "spans",
-        "whitelist": ["[build][types]", "[build][bundle]", "[copy]", "[push]"]
+        "closed": true,
+        "view": "spans"
       },
       "children": [
         {
@@ -214,13 +219,17 @@ frontmatter of an existing skill merely carries a string pointer to this data.
 
 In a full declaration, `type`, `id`, `key`, `title`, and `stages` are required.
 The quick preset above supplies its own defaults. Each declared stage requires
-`key`; `title`, `children`, and `toolOutput` are optional. A component such as
+`key`; `title`, `children`, `toolOutput`, and `presentation` are optional. The
+root may also have `presentation`. A component such as
 `[B]` uses the title declared at that path, or displays `B` when none is given.
 Keys are nonempty, case-sensitive strings without brackets or newlines, unique
 among siblings.
-The full key path is the stable stage identity. Array order is display order,
-not an execution schedule. A schema ID identifies an immutable revision of its
-interpretation. The root key `workflow` is reserved for agent lifecycle lines.
+The full key path is the stable stage identity. Array order supplies the default
+sibling order in a collecting view, not an execution schedule or a reason to
+reorder linear history. A schema ID identifies the declaration's
+interpretation; update the existing prototype declarations in place during
+this initial convention change. The root key `workflow` is reserved for agent
+lifecycle lines.
 
 The declaration describes possible stages. A single opaque script can implement
 a parent whose children are not individually observable yet. Unobserved children
@@ -265,7 +274,7 @@ With a full declaration, agent commentary recognizes the declared root/stage
 paths and lifecycle lines; the quick form instead recognizes its inline list.
 Quoted examples and code fences are not emitted markers. Other bracketed gate
 checks remain ordinary commentary. The tool-output matching rule below is
-deliberately broader when no whitelist is given.
+deliberately broader when `closed` is false or omitted.
 
 Advancing to another stage is not a claim that the previous stage succeeded.
 Report results in ordinary text. Terminal `status` is `completed`, `blocked`,
@@ -279,26 +288,51 @@ for each stage.
 
 ## Tool-output matching
 
-`toolOutput.containsTags` is a Boolean, defaulting to `false`. A stage may
-replace the nearest ancestor's complete `toolOutput` policy; otherwise it
-inherits that policy from the root. Capture the effective policy and active
-stage when a tool invocation starts.
+`toolOutput.containsTags` is the Boolean switch for parsing tool-output tags,
+defaulting to `false`. `toolOutput.closed` is a Boolean, defaulting to `false`.
+A stage may replace the nearest ancestor's complete `toolOutput` policy;
+otherwise it inherits that policy from the root. Replacement is not a
+field-by-field merge: omitted fields in a replacement take their defaults.
+Capture the effective policy and active stage when a tool invocation starts.
+Within a declared policy, explicit `false` and omission have the same meaning
+for Boolean fields. Omitting the whole policy instead inherits it as above.
 
 | Effective policy | What matches in that invocation's output |
 | --- | --- |
 | `containsTags: false` | Nothing; all output is ordinary content, even if it resembles a prefix. |
-| `containsTags: true`, whitelist absent | Every syntactically valid start-of-line bracketed path, including undeclared keys. |
-| `containsTags: true`, whitelist present | Only complete bracketed paths exactly listed in the whitelist. An empty list matches nothing. |
+| `containsTags: true`, `closed: false` or omitted | Every syntactically valid start-of-line bracketed path, including undeclared keys, whether or not a whitelist is present. |
+| `containsTags: true`, `closed: true` | Declared descendant paths of the captured calling stage, plus exact whitelist entries. With neither descendants nor whitelist entries, nothing matches. |
+
+The whitelist is always additive; it never restricts declared descendants or
+implicitly enables closed matching. An absent or empty whitelist adds nothing.
+With open matching the accepted set is already unrestricted. Thus an enabled
+policy with no children or whitelist is useful for arbitrary tagged output;
+`closed: true` with no children gives whitelist-only matching.
+
+Derive declared paths relative to the captured calling stage, including every
+intermediate descendant. Children `build/types`, `build/bundle`, and `copy`
+admit `[build]`, `[build][types]`, `[build][bundle]`, and `[copy]`. They do not
+admit `[INFO]` or `[build][other]`. Adding `whitelist: ["[INFO]"]` admits
+`[INFO]` without removing any of those declared paths.
+
+Inheritance copies the policy, not a precomputed descendant set. A tool called
+under `publish/client/build` with an inherited closed policy recognizes
+`[types]` and `[bundle]`, not `[build][types]` or the sibling `[copy]`.
+Whitelist entries are likewise interpreted relative to that invocation's
+captured stage. Matching uses the complete prefix, never a shorter admitted
+ancestor of an otherwise unrecognized path.
 
 Whitelist entries are literal paths such as `[build][types]`; they are not
 regular expressions or implicit subtree prefixes. Listing `[build]` does not
 match `[build][types]`. Entries need not be declared stages. A nonmatching
-prefix remains content in the current span. Validate the declaration's field
-types and path syntax; do not silently ignore an invalid whitelist.
+prefix remains content in the current span. Closed matching controls tag
+recognition; it does not delete unmatched source output. Validate the
+declaration's field types and path syntax; do not silently ignore an invalid
+whitelist.
 
-Matching examines tool-output lines directly. Without a whitelist, a line
+Matching examines tool-output lines directly. With open matching, a line
 beginning `[INFO]` or `[link](url)` also starts a span; surrounding log content
-or a code fence does not suppress it. Choose a whitelist when those should
+or a code fence does not suppress it. Choose `closed: true` when those should
 remain ordinary output. Leading whitespace prevents a column-one match.
 
 ## Tool substeps and concurrent activity
@@ -336,11 +370,59 @@ An enabled `toolOutput` policy may set `view`, defaulting to `spans`:
   following output up to the next match form an outline segment. Untagged
   output before the first match belongs directly to the captured parent.
 
-Matching and presentation are independent: the same whitelist selects
+Matching and presentation are independent: the same accepted path set selects
 boundaries in either view. A nonmatching tagged-looking line is omitted from
 the first view's summary and retained in the current segment in the second.
 Both retain the full original output in detail view. Neither interpretation
 requires converting tool substeps into separate tool invocations.
+
+## Collecting presentation
+
+These fields specify a collecting view when a renderer supports one; they do
+not require that view to exist. Linear history always preserves source order.
+A stage can request:
+
+```json
+{ "presentation": { "collect": true, "order": 10 } }
+```
+
+`collect` is a Boolean, defaulting to `false` (separate occurrences).
+`order` is an optional finite number, defaulting to `0`. Validate both fields
+when present. These settings apply to the declared stage itself and are not
+inherited by children.
+Undeclared paths and quick inline paths use the defaults.
+
+In a collecting view, construct displayed parent groups from the root inward:
+
+- `collect: true` gathers nonadjacent occurrences with the same full stage path
+  under the same displayed parent, within one workflow instance and producer
+  context. Assistant and tool streams do not merge. Each tool invocation and
+  each independently delivered output stream retains its own context.
+- `collect: false` keeps each occurrence as a distinct displayed instance.
+  Children of separate parent instances cannot collect across those instances.
+  If a parent collects, its children follow their own occurrence settings within
+  the collected parent; tool invocation boundaries still apply.
+- Order sibling groups and separate instances by ascending `order`, using `0`
+  when omitted. Ties use declaration-array order. Explicit `0` and omission
+  are identical; `-1` precedes default-order siblings and `1` follows them.
+  Undeclared paths use `0`, after declared siblings with that same value and
+  in first-appearance order among themselves. Repeated separate instances of
+  one stage retain their relative source order.
+
+The existing `stages` and `children` arrays are sufficient to specify default
+display order. The optional numeric override lets an author change one stage's
+position without moving its declaration or repeating sibling keys in another
+list. Ordering is local to siblings; it never lifts a child out of its parent.
+The root's `order` has no effect because a workflow has only one root.
+
+For source `A1, B1, A2, B2`, with A collecting, B separate, and declaration
+order A then B, display the A group containing A1 then A2, followed by separate
+B1 and B2 instances. Giving B `order: -1` displays B1 and B2 before the A group.
+This is a reversible view: retain source activity/segment identities, original
+positions, and invocation ancestry. Preserve occurrence chronology inside a
+collected stage; its child-group layout may use the sibling-order rules above.
+Switching back to linear history restores `A1, B1, A2, B2` exactly, and neither
+collection nor ordering changes tag matching or reports a new outcome.
 
 ## Visualization progression
 
@@ -350,10 +432,9 @@ requires converting tool substeps into separate tool invocations.
 - **V1, linear outline:** render titles and nested segments in source order,
   using the selected tool presentation. Repeated paths stay in their original
   positions.
-- **Later, regrouped view:** collect all segments with the same full path under
-  one outline node. A, B, A can appear as A containing both A segments, then B.
-  Ordering groups by first appearance is one possible presentation; retain
-  within-group chronology and source links, and keep the linear view available.
+- **Later, collecting view:** apply the occurrence and sibling-order settings
+  above, retaining source links and keeping the linear view available. Only
+  stages that opt into collection gather their repeated occurrences.
 
 Regrouping is a distinct later projection, not a change to emitted paths or
 the canonical transcript. It needs segment identities and their original
@@ -398,11 +479,12 @@ For either form:
 2. Place prefixes at actual work boundaries. Full-schema agent paths include
    its root key; tool paths are relative to the calling stage. One script can emit
    all its substeps without becoming several invocations.
-3. In a file declaration, set `containsTags` from actual tool output. For output that
-   intentionally permits arbitrary bracketed paths, omit `whitelist`. For
-   mixed logs, whitelist only the progress paths that should define sections,
-   such as `[build][types]` and `[push]`, leaving `[INFO]` as ordinary output.
-   Entries are exact complete paths, not patterns or implicit descendant rules.
+3. In a file declaration, set `containsTags` from actual tool output. Leave
+   `closed` false or omitted to permit arbitrary bracketed paths. For mixed
+   logs, use `closed: true` to admit declared descendants, leaving `[INFO]`
+   ordinary unless explicitly added. Use `whitelist` only for extra exact
+   paths; do not repeat declared children there. Whitelist entries are not
+   patterns or implicit descendant rules.
 4. In a file declaration, choose `matching-lines` to show only the
    selected progress lines, or `spans` when their intervening output belongs
    beneath each stage. Titles describe the work; they are not matching rules.
@@ -412,7 +494,7 @@ For either form:
    absolute or home-relative schema path. Include the full workflow's opening,
    stage reporting, and honest terminal result in the calling instructions.
    The quick form only needs activation and tagged output.
-6. Check the emitted paths against the declaration and chosen whitelist using
+6. Check the emitted paths against the declaration and effective policy using
    the completion, failure/no-op, and noisy/concurrent traces below. Do not
    require YA rendering to be implemented before authoring usable output.
 
@@ -425,9 +507,9 @@ build-only or no-op path must not claim a push happened just because its command
 returned zero.
 
 For an existing opaque tool, declare possible children and leave `containsTags`
-false. Enable it when that tool actually emits the convention; choose the
-optional whitelist according to the matching table. Do not manufacture a child
-timeline from an opaque final success line.
+false. Enable it when that tool actually emits the convention; choose `closed`
+and any additive whitelist according to the matching table. Do not manufacture
+a child timeline from an opaque final success line.
 
 The minimum contract traces are:
 
@@ -437,16 +519,30 @@ The minimum contract traces are:
 | Inline `["A",["B","C"]]` | Match `[A]` and `[B][C]` in assistant/tool output; no schema file is read. |
 | Inline `["A"]`, output `[A][B]` | No match: the inline atom permits only the exact one-component path. |
 | A schema path whose filename contains brackets | Read the path normally; its absolute or home-relative prefix distinguishes it from a list. |
-| Enabled tool tags, no whitelist, `[new][B] detail` | Match the full path; undeclared keys create child groups, with `B` as title fallback. |
-| Whitelist `[A]`, output `[A][B] detail` | No match: whitelisting a parent does not whitelist descendants. |
-| Enabled tool tags with an empty whitelist | No tag lines match. |
-| `[A]`, `[B]`, `[A]` | Three chronological segments in v1; a later regrouped view may collect both A segments. |
+| Enabled open tool tags, no children, absent or empty whitelist, `[new][B] detail` | Match the full path; undeclared keys create child groups, with `B` as title fallback. |
+| Enabled open tool tags, whitelist `[A]`, output `[B]` | Match: a whitelist never makes open matching restrictive. |
+| Closed tool tags, child `build/types`, output `[build]` then `[build][types]` | Both match, including the intermediate declared path. |
+| Same closed policy, output `[build][other]` or `[INFO]` | Neither matches; do not shorten the first prefix to `[build]`. |
+| Same closed policy, whitelist `[INFO]` | Declared paths and `[INFO]` match; an empty whitelist still admits declared paths. |
+| Closed tool tags, no children, whitelist `[A]`, output `[A][B] detail` | No match: an exact whitelist entry does not admit descendants. |
+| Closed tool tags, no children, absent or empty whitelist | No tag lines match; original output remains available. |
+| Closed policy inherited by a call under `build`, whose child is `types` | Match `[types]` relative to `build`; reject `[build][types]`. |
+| Child replaces a closed enabled policy with `{ "containsTags": true }` | Open matching: replacement defaults `closed` to false and does not retain the ancestor's whitelist. |
+| `containsTags: false` with children, `closed: true`, and a whitelist | No tool tags match; the explicit parsing switch is off. |
+| `[A]`, `[B]`, `[A]` | Three chronological segments in linear history; collect both A segments only if A opts in and their parent/producer contexts agree. |
+| `A1, B1, A2, B2`; A collects, B stays separate | Collect A1 then A2; keep B1 and B2 as distinct instances in sibling display order. |
+| Same stages; B has `order: -1`, A has no explicit order | B1 and B2 precede the collected A group; source order inside each stage is preserved. |
+| Equal order, including explicit `0` versus omission | Declared sibling order resolves ties; omission has the numeric value `0`. |
+| Declared A at `order: 1`, undeclared X, declared B with omitted order | Display B, X, A: undeclared X uses `0` after declared zero-order siblings. |
+| Repeated separate parent P, collecting child A | Each P occurrence retains its own A group; collection does not cross separate parents or tool invocations. |
+| Collecting parent P, separate child A | P may gather its occurrences, but A occurrences remain distinct. |
+| Switch from collecting view to linear history | Restore the exact original activity order and invocation ancestry. |
 | Tool launched under A, agent advances to B, tool emits `[build]` | Tool content remains beneath A/build. |
 | Publisher returns success after preparing only | Report preparation; do not claim publication completed. |
 
 Before adopting a declaration, trace ordinary completion, partial/failure, and
-concurrent or noisy output. Check path identity, whitelist presence versus
-absence, terminal meaning, and retention of unmatched text. A future renderer
+concurrent or noisy output. Check path identity, open versus closed matching,
+additive entries, terminal meaning, and retention of unmatched text. A future renderer
 must fold the same source sequence identically live and after reload, including
 recovering the declaration, opening, and active paths at a tail boundary.
 
