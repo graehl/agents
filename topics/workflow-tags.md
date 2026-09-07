@@ -14,14 +14,18 @@ activation is separate from its outline/tag interpretation.
 
 ## Explicit activation
 
-Activation is one column-one line: the fixed marker, a space, and a schema path.
+Activation is one column-one line: the fixed marker, a space, and either a
+schema path or an inline JSON whitelist.
 
 ```text
 @@visualization-schema/1 ~/ya/topics/publish-workflow.local.md#ya-publish/1
+@@visualization-schema/1 ["build","test","report"]
 ```
 
-Everything after the marker's separating space is the path, with surrounding
-whitespace trimmed. No JSON wrapper, quotes, or following code fence is needed.
+Trim surrounding whitespace after the marker's separating space. An operand
+starting with `[` is the inline list below; otherwise the entire operand is the
+schema path. No wrapper or following code fence is needed. This is unambiguous
+because an absolute or `~/`-relative path cannot begin with `[`.
 If later activation needs structure incompatible with that path, use a new
 marker such as `@@viz-2`; keep the current marker's path interpretation intact.
 
@@ -30,25 +34,61 @@ result. Reading an opted-in skill can also activate through its metadata.
 Having a schema file on disk, listing an installed skill, mentioning its name,
 or seeing `[A]` in a log is insufficient.
 
-The loaded declaration's `type` selects the visualization contract; `id`
-identifies the specific declaration. `tagged-stages/1` is the first predefined
+For a file, the declaration's `type` selects the visualization contract and
+`id` identifies the declaration. `tagged-stages/1` is the first predefined
 type, not the meaning of every activation record. Other types may define different views
 and update conventions. Unknown types remain readable data without activating
 this tag parser. Conflicting declarations under the same schema ID are invalid.
 
 Quoted or fenced examples are not activation. A producer can emit the line
-directly or through skill/tool content, then refer to the resolved schema ID
-when opening a workflow. Do not repeat activation at every stage.
+directly or through skill/tool content. The file form supplies the schema ID
+for an explicit workflow opening; the quick form opens its display span itself.
+Do not repeat activation at every stage.
 Activation lasts for the current turn and does not itself execute anything.
 
 `toolOutput.containsTags` and its whitelist govern stage-prefix recognition
 after activation. They do not govern the separate activation record. Merely
 printing a bracketed lifecycle-looking path in tool output is not activation.
 
+## Quick inline whitelist
+
+Use the inline list for quickly authored output that needs tag grouping but no
+separate schema file. Each string is one literal key atom: `["build","test"]`
+recognizes `[build]` and `[test]`. For an exact nested path, use an array entry:
+
+```text
+@@visualization-schema/1 ["build",["check","types"],"report"]
+```
+
+That recognizes `[build]`, `[check][types]`, and `[report]`. It does not
+recognize `[build][other]`. Entries are exact paths, not regexes or implicit
+descendant rules. Strings and nested path components obey the key syntax below;
+path arrays must be nonempty. An empty outer list matches nothing. A malformed
+list is an unresolved activation, never a filename or an unrestricted match.
+
+The quick form selects a generic preset of `tagged-stages/1`:
+
+- The list is the exact whitelist for both assistant prefixes and tool-output
+  prefixes; there is no required root key or predeclared stage tree.
+- Titles are the key atoms themselves. Paths use the current calling context;
+  tool paths remain beneath their invocation's captured parent.
+- Tool tags are enabled, with the `spans` view. Unmatched lines remain ordinary
+  content under the preceding matched path; source/quote rules still apply.
+- The activation source identifies the display span, which runs until the next
+  activation or the turn boundary. No separate workflow ID, start marker, or
+  terminal result is required, and stopping the span claims no task completion.
+
+A quick activation emitted inside a tool result applies to that invocation's
+following output and subsequent activity; earlier output is not reclassified.
+Other already-started invocations retain their captured context and policy.
+Use a schema file for custom titles, declared stage structure, different
+tool policies, or an explicitly identified workflow with reported outcomes.
+
 ## Skill metadata and file resolution
 
 The skill-content field is **`metadata.visualization-schema`**, a string in
-`SKILL.md` YAML frontmatter:
+`SKILL.md` YAML frontmatter. Its value remains a file pointer; the inline list
+is an activation-text shorthand:
 
 ```yaml
 ---
@@ -132,6 +172,12 @@ tags. Keep the declaration beside the skill or procedure, as JSON or one
 identified JSON block in its documentation. The same declaration is intended
 for the agent and a viewer; no generated renderer code is required.
 
+The schema is structured data. JSON is the initial concrete encoding. Compact,
+token-efficient structured encodings may be added with a specified decoder for
+the same data model; full YAML is not a schema format. Encoding changes that
+still load from a path do not require changing the activation line. The YAML
+frontmatter of an existing skill merely carries a string pointer to this data.
+
 ```json
 {
   "type": "tagged-stages/1",
@@ -166,7 +212,8 @@ for the agent and a viewer; no generated renderer code is required.
 }
 ```
 
-`type`, `id`, `key`, `title`, and `stages` are required. Each stage requires
+In a full declaration, `type`, `id`, `key`, `title`, and `stages` are required.
+The quick preset above supplies its own defaults. Each declared stage requires
 `key`; `title`, `children`, and `toolOutput` are optional. A component such as
 `[B]` uses the title declared at that path, or displays `B` when none is given.
 Keys are nonempty, case-sensitive strings without brackets or newlines, unique
@@ -181,8 +228,8 @@ remain unobserved, rather than becoming fictitious progress.
 
 ## Prefixes, lifecycle, and grouping
 
-Open a workflow in agent-authored commentary with a fresh instance ID and the
-declared schema ID. Emit fixed stage prefixes when entering stages, and close
+For a full declaration, open a workflow in agent-authored commentary with a
+fresh instance ID and the declared schema ID. Emit stage prefixes, and close
 with an explicit result:
 
 ```text
@@ -214,8 +261,9 @@ stage. Grouping is a projection: preserve the chronological source transcript.
 For the initial linear outline, `[A]`, `[B]`, `[A]` remains three segments;
 stable path identity does not by itself move the second A beside the first.
 
-Agent commentary recognizes the declared root/stage paths and lifecycle lines;
-quoted examples and code fences are not emitted markers. Other bracketed gate
+With a full declaration, agent commentary recognizes the declared root/stage
+paths and lifecycle lines; the quick form instead recognizes its inline list.
+Quoted examples and code fences are not emitted markers. Other bracketed gate
 checks remain ordinary commentary. The tool-output matching rule below is
 deliberately broader when no whitelist is given.
 
@@ -311,6 +359,36 @@ Regrouping is a distinct later projection, not a change to emitted paths or
 the canonical transcript. It needs segment identities and their original
 positions; reordering the underlying messages would lose that distinction.
 
+## Authoring scripts and skills
+
+When asked to give a script, skill, or informal procedure schema-governed
+output, use this topic as the authoring contract:
+
+1. For a quick case, emit the inline whitelist with meaningful key atoms. Use
+   a separate declaration when titles, stage structure, or tool policy need
+   more control. Keep encoding separate from the stage model; use JSON until
+   another compact encoding has an explicit decoder contract.
+2. Place prefixes at actual work boundaries. Full-schema agent paths include
+   its root key; tool paths are relative to the calling stage. One script can emit
+   all its substeps without becoming several invocations.
+3. Set `containsTags` from the output the tool actually emits. For output that
+   intentionally permits arbitrary bracketed paths, omit `whitelist`. For
+   mixed logs, whitelist only the progress paths that should define sections,
+   such as `[build][types]` and `[push]`, leaving `[INFO]` as ordinary output.
+   Entries are exact complete paths, not patterns or implicit descendant rules.
+4. Choose `matching-lines` when the compact view should contain only the
+   selected progress lines, or `spans` when their intervening output belongs
+   beneath each stage. Titles describe the work; they are not matching rules.
+5. Wire activation through `metadata.visualization-schema` for a skill, or a
+   one-line activation emitted by the caller or surfaced procedure content.
+   With files, prefer a skill-relative pointer; otherwise emit the actual
+   absolute or home-relative schema path. Include the full workflow's opening,
+   stage reporting, and honest terminal result in the calling instructions.
+   The quick form only needs activation and tagged output.
+6. Check the emitted paths against the declaration and chosen whitelist using
+   the completion, failure/no-op, and noisy/concurrent traces below. Do not
+   require YA rendering to be implemented before authoring usable output.
+
 ## Adoption and verification
 
 The procedure owns the work and the meaning of done. Its instructions name the
@@ -329,6 +407,9 @@ The minimum contract traces are:
 | Input or condition | Required interpretation |
 | --- | --- |
 | Ordinary `[A]` before activation | No visualization is activated. |
+| Inline `["A",["B","C"]]` | Match `[A]` and `[B][C]` in assistant/tool output; no schema file is read. |
+| Inline `["A"]`, output `[A][B]` | No match: the inline atom permits only the exact one-component path. |
+| A schema path whose filename contains brackets | Read the path normally; its absolute or home-relative prefix distinguishes it from a list. |
 | Enabled tool tags, no whitelist, `[new][B] detail` | Match the full path; undeclared keys create child groups, with `B` as title fallback. |
 | Whitelist `[A]`, output `[A][B] detail` | No match: whitelisting a parent does not whitelist descendants. |
 | Enabled tool tags with an empty whitelist | No tag lines match. |
