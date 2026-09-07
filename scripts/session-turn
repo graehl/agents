@@ -282,8 +282,17 @@ def hosted_turn(
         "session-turn-await" if stop_after_acceptance or wait_timeout > 0 else None
     )
     descriptor, token = discover_provider_host(required_feature)
+    for option, feature in (
+        (getattr(args, "eventual", False), "session-turn-eventual"),
+        (getattr(args, "live_only", False), "session-turn-live-only"),
+        (args.idle_timeout is not None, "session-turn-idle-timeout"),
+    ):
+        if option and feature not in descriptor["features"]:
+            raise TransportFailure(f"provider host does not advertise {feature}")
     fields = common_fields(args, submission_id, "provider-host")
-    resume_if_absent = descriptor["hostProtocolVersion"] >= 3
+    resume_if_absent = descriptor["hostProtocolVersion"] >= 3 and not getattr(
+        args, "live_only", False
+    )
     resume_recent_runtime = (
         resume_if_absent
         and "recent-runtime-recovery" in descriptor.get("features", [])
@@ -318,6 +327,13 @@ def hosted_turn(
         "sessionOptions": SESSION_OPTIONS,
         "timeoutMs": int(args.timeout * 1000),
         **({"resumeRecentRuntime": True} if resume_recent_runtime else {}),
+        **({"eventual": True} if getattr(args, "eventual", False) else {}),
+        **({"liveOnly": True} if getattr(args, "live_only", False) else {}),
+        **(
+            {"idleTimeoutMs": int(args.idle_timeout * 1000)}
+            if args.idle_timeout is not None
+            else {}
+        ),
     }
     if resume_if_absent:
         request["launch"] = {
@@ -1024,6 +1040,11 @@ def turn_parser(*, include_wait_timeout: bool = True) -> argparse.ArgumentParser
     result.add_argument("--model", help="absent-session model override")
     result.add_argument("--effort", help="absent-session effort override")
     result.add_argument(
+        "--idle-timeout",
+        type=float,
+        help="resumed worker idle retention in seconds (host default: 3600); does not change an incumbent's policy",
+    )
+    result.add_argument(
         "--timeout",
         type=float,
         default=30 * 60,
@@ -1047,6 +1068,16 @@ def send_parser() -> argparse.ArgumentParser:
     result.prog = "session-turn send"
     result.description = (
         "Send one hosted provider turn and detach after durable acceptance."
+    )
+    result.add_argument(
+        "--eventual",
+        action="store_true",
+        help="queue a follow-up when busy; resume an absent worker if needed",
+    )
+    result.add_argument(
+        "--live-only",
+        action="store_true",
+        help="require an existing live worker; never resume an absent session",
     )
     return result
 
@@ -1105,6 +1136,14 @@ def main() -> int:
         or getattr(args, "wait_timeout", 0) < 0
     ):
         argument_parser.error("--wait-timeout must be non-negative")
+    if args.idle_timeout is not None and (
+        not math.isfinite(args.idle_timeout) or not 1 <= args.idle_timeout <= 86400
+    ):
+        argument_parser.error("--idle-timeout must be between 1 and 86400 seconds")
+    if getattr(args, "live_only", False) and args.idle_timeout is not None:
+        argument_parser.error(
+            "--idle-timeout requires permission to resume an absent worker"
+        )
     message = read_turn()
     submission_id = args.submission_id or str(uuid.uuid4())
     try:
@@ -1115,7 +1154,7 @@ def main() -> int:
             stop_after_acceptance=send_only,
         )
     except (NativeFallback, TransportFailure) as exc:
-        if send_only or args.wait_timeout > 0:
+        if send_only or args.wait_timeout > 0 or args.idle_timeout is not None:
             fields = common_fields(args, submission_id, "provider-host")
             print(
                 "session-turn: provider host did not accept a detach-capable "

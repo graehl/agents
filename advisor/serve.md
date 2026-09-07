@@ -141,6 +141,13 @@ when the address is a YA session, and use the advisor project root as `--cwd`.
 Verified current model/effort may be native-fallback overrides. Retain the
 helper's submission id separately from the multi-turn interaction id.
 
+For a follow-up that should wait behind a busy advisor, use `send --eventual`,
+then `await` that submission when its response is needed. This may wake an
+absent advisor; add `--live-only` only when wakeup is unwanted. Read
+`topics/helper-scripts.md` § session-turn for feature gates, one-hour helper
+worker retention, and `--idle-timeout`. Detached send success means queued
+acceptance; only a terminal receipt completes the consultation's provider turn.
+
 The helper alone owns hosted-versus-native selection and receipts. Exit 0 with
 a terminal receipt completes a turn. Exit 12 requires receipt lookup without
 resubmission; exits 10 and 11 likewise do not authorize guessing or a raw

@@ -1351,6 +1351,106 @@ def test_every_grammar_accepts_the_explicit_json_alias():
         _assert(args.json is True, (parser.prog, args))
 
 
+def test_eventual_live_only_negotiates_and_omits_resume():
+    features = [
+        "session-turn",
+        "session-turn-await",
+        "session-turn-eventual",
+        "session-turn-live-only",
+        "session-turn-idle-timeout",
+        "recent-runtime-recovery",
+    ]
+
+    def status(request):
+        return [
+            {
+                "id": request["id"],
+                "ok": True,
+                "result": {"protocolVersion": 3, "features": features},
+            }
+        ]
+
+    def turn(request):
+        return [
+            {
+                "id": request["id"],
+                "type": "accepted",
+                "delivery": "queued",
+                "submissionId": request["submissionId"],
+            }
+        ]
+
+    host = FakeProviderHost([status, turn], host_protocol_version=3, features=features)
+    proc = _run(
+        host,
+        "send",
+        "codex",
+        "target",
+        "--eventual",
+        "--live-only",
+        "--submission-id",
+        "queued-1",
+    )
+    _assert(proc.returncode == 0, proc.stderr)
+    request = host.requests[-1]
+    _assert(request["eventual"] is True and request["liveOnly"] is True, request)
+    _assert("launch" not in request and "resumeRecentRuntime" not in request, request)
+    _assert(_records(proc)[-1]["delivery"] == "queued", proc.stdout)
+
+
+def test_eventual_resume_carries_idle_timeout_and_recovery():
+    features = [
+        "session-turn",
+        "session-turn-await",
+        "session-turn-eventual",
+        "session-turn-idle-timeout",
+        "recent-runtime-recovery",
+    ]
+
+    def status(request):
+        return [
+            {
+                "id": request["id"],
+                "ok": True,
+                "result": {"protocolVersion": 3, "features": features},
+            }
+        ]
+
+    def turn(request):
+        return [{"id": request["id"], "type": "accepted", "delivery": "queued"}]
+
+    host = FakeProviderHost([status, turn], host_protocol_version=3, features=features)
+    proc = _run(
+        host, "send", "claude", "asleep", "--eventual", "--idle-timeout", "3600"
+    )
+    _assert(proc.returncode == 0, proc.stderr)
+    request = host.requests[-1]
+    _assert(request["idleTimeoutMs"] == 3600000, request)
+    _assert(request["launch"]["providerName"] == "claude", request)
+    _assert(request["resumeRecentRuntime"] is True, request)
+
+
+def test_new_options_fail_closed_on_old_hosts():
+    features = ["session-turn", "session-turn-await"]
+
+    def status(request):
+        return [
+            {
+                "id": request["id"],
+                "ok": True,
+                "result": {"protocolVersion": 3, "features": features},
+            }
+        ]
+
+    for options in (("--eventual",), ("--live-only",), ("--idle-timeout", "3600")):
+        host = FakeProviderHost([status], host_protocol_version=3, features=features)
+        proc = _run(host, "send", "codex", "target", *options)
+        _assert(proc.returncode == 11, proc.stderr)
+        _assert(len(host.requests) == 1, host.requests)
+        _assert(_records(proc)[-1]["accepted"] is False, proc.stdout)
+        _assert("does not advertise" in proc.stderr, proc.stderr)
+
+
 def _collect_tests():
     return [
         (name, fn)

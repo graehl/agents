@@ -4181,3 +4181,30 @@ Contributing-model: 6-Astra
   resolve to the edited source, so this change requires no installation rewrite.
 
 Contributing-model: 6-Astra
+
+## 2026-09-07 — eventual sends separate queue admission from completion
+
+- **User direction:** implement eventual send, preserve an explicit live-only
+  refusal for sleeping recipients, and retain helper-resumed workers for one
+  hour by default with an argument override. No separate lifecycle gap.
+- **Decision:** `send --eventual` uses YA's worker-owned deferred queue;
+  `--live-only` disables both launch and recent-runtime recovery atomically.
+  Host feature negotiation fails before sending to an older host. Native
+  fallback stays available only under its prior combined-call contract.
+- **Busy advisor trace:** send reports queued acceptance, then the caller
+  awaits the receipt before using the answer. Queue admission cannot be
+  mistaken for consultation completion. Worker/ledger integration tests
+  exercise busy rejection, FIFO separate turns, and repeated submission IDs.
+- **Sleeping peer trace:** a live-only nudge refuses rather than creating a
+  second resume. Deliberately waking an advisor omits that flag. Socket tests
+  show the host refuses live-only even with launch/recovery fields supplied.
+- **Peer authority trace:** the caller labels sender and peer input; neither
+  successful delivery nor a reply grants user authority or file clearance.
+  Agentctl notice persistence remains independent of provider delivery.
+- **Lost worker trace:** queued cancellation does not interrupt the active
+  provider turn; worker death produces a terminal receipt. A caller follows
+  the same receipt instead of creating a new ID and duplicating uncertain work.
+- **Status:** executable transport tests passed; future caller-choice effects
+  remain assumed. Full wrapper restart is user-owned and required for adoption.
+
+Contributing-model: 6-Astra

@@ -216,10 +216,13 @@ not select a research advisor or impose an advisor protocol.
   lookup.
 
 Turn options are `[--ya-session-id <id>] [--submission-id <id>] [--cwd
-<path>] [--model <name>] [--effort <level>] [--timeout <seconds>]`; the
-combined form additionally accepts `[--wait-timeout <seconds>]`. The turn body
+<path>] [--model <name>] [--effort <level>] [--timeout <seconds>]
+[--idle-timeout <seconds>]`; `send` additionally accepts `--eventual` and
+`--live-only`. The combined form additionally accepts
+`[--wait-timeout <seconds>]`. The turn body
 is stdin. Turn `--timeout` defaults to 30 minutes, accepts 1 second through 2
-hours, and bounds provider work; a native provider CLI owns its own duration.
+hours, and bounds queue waiting plus provider work; a native provider CLI owns
+its own duration.
 Combined `--wait-timeout` begins after host acceptance, defaults to zero (wait
 through terminal), and bounds only observation. Await `--timeout` has the same
 observer meaning and zero means unbounded. `--cwd`, `--model`, and `--effort`
@@ -227,6 +230,54 @@ apply when protocol 3 resumes an absent worker and when native resume is
 required. An incumbent provider-host worker retains its owning project and
 configuration. stdout is compact JSONL and flushes after every record;
 warnings, continuation commands, and native provider diagnostics go to stderr.
+
+**Eventual send and live-only delivery**:
+
+Use `session-turn send <harness> <provider-id> --eventual` when a follow-up
+should wait for a busy recipient. It resumes an absent worker if necessary.
+Without `--eventual`, busy rejection remains immediate. Add `--live-only` to
+require an existing live worker: the host checks that requirement within
+admission, refuses `not-alive` when absent, and cannot use either a launch
+recipe or recent-runtime recovery. Both forms stay on the host transport.
+
+An eventual send returns after a durable acceptance receipt with
+`delivery:"queued"`. This is queue admission, not a completed response.
+`session-turn await <submission-id>` follows `sessionOptions` (options applied
+when dispatching), `started`, provider events, and the terminal receipt. Queued
+turns wait for the existing provider turn and queue to finish, then execute
+individually in arrival order; they never steer or merge with the running turn.
+The host bounds retained submissions at 1,000. Cancellation of a queued turn
+removes only that turn. Worker death before dispatch yields an accepted
+terminal `not-alive`; host shutdown/recovery terminates accepted receipts and
+does not replay queued bodies into a replacement worker. Acceptance survives
+as a receipt, not a promise of execution after worker or host loss.
+
+Retain `--submission-id` across a retry of the identical request. On the same
+host this replays the existing submission; changed content or delivery options
+conflict. After disconnect or exit 12, use `receipt`/`await` before any new
+submission. The host keeps receipts for 24 hours (at most 1,000); after pruning
+or restart, use receipt lookup rather than treating an old ID as eternal
+deduplication.
+
+For an authorized automated peer nudge, use `send --eventual --live-only`,
+resolve the target harness/provider id explicitly, and identify the body as
+peer input with its sender. The message confers no user authority or file
+claim. Never bypass a missing host feature with native resume or a separate
+liveness-check-then-send sequence. This does not enable automatic agentctl
+delivery.
+
+Host-resumed helper workers default to **one hour idle retention** after their
+last submission. `--idle-timeout <seconds>` overrides this for an absent worker
+(1–86400 seconds), preserving an incumbent's policy; it cannot accompany
+`--live-only`. Retention is independent of the turn/observer deadlines and the
+30-second controller-attachment deadline. It avoids eager teardown but does
+not guarantee a provider cache hit. YA may claim the worker into its ordinary
+session lifecycle.
+
+The options require negotiated features `session-turn-eventual`,
+`session-turn-live-only`, and `session-turn-idle-timeout`, respectively. An
+older host fails before submission with exit 11. Using `--idle-timeout` also
+disables native fallback, whose idle lifecycle the helper cannot control.
 
 **Transport selection**:
 
@@ -277,7 +328,8 @@ supplying the last observed cursor drains only later records. After the host
 has pruned the in-memory stream or restarted, await can return its durable
 terminal receipt but cannot recreate discarded provider events.
 
-**Exit codes**: 0 completed; 10 provider failed or the submitted turn was
+**Exit codes**: 0 completed, or durably accepted for detached `send`;
+10 provider failed, a queued recipient died, or the submitted turn was
 interrupted; 11 transport failed before acceptance; 12 delivery is uncertain
 after acceptance; 13 the observer deadline expired while the accepted turn
 remains active or available for later observation; 2 argparse usage. Exit 13
@@ -333,7 +385,7 @@ session can remain busy until that already accepted turn reaches terminal.
    worker inside that `sessionTurn` request, reports `resumeIfAbsent:true`, and
    reaches acceptance without Hono. Explicit cwd/model/effort values become
    launch and reattachment facts; the host reaps an unclaimed auxiliary worker
-   after its idle deadline.
+   after its one-hour idle deadline (or the supplied `--idle-timeout`).
 3. The same command with no descriptor emits the native-resume fork-risk
    warning, wraps Claude's stream JSON, and exits according to the native
    process result. Native Claude can form a different-parent branch under
