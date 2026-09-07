@@ -4208,3 +4208,38 @@ Contributing-model: 6-Astra
   remain assumed. Full wrapper restart is user-owned and required for adoption.
 
 Contributing-model: 6-Astra
+
+## 2026-09-07 — separate observer lifetime from model continuation
+
+- **Observed failure:** Codex researcher session
+  `01a075a8-3339-7110-a496-4f3d52b30675` repeatedly announced and launched
+  `agentctl wait --timeout 50 --poll 2` between 09:40 and 09:44 UTC. It
+  attributed this to applying a short tool-wait limit to the observer.
+  Its correction at 09:45 used `--timeout 540` and resumed live handles.
+- **User clarification:** repeated short waits are polling; the purpose of
+  540 seconds is cache warmth, with suspected eviction risk after ten minutes
+  passively waiting. This supersedes the August 10 entry's passive 28-minute
+  allowance; the August 26 sparse-output decision alone does not meet this aim.
+- **Mechanism:** `agentctl.py:wait_job` prints heartbeat lines and continues
+  its loop. Printing does not itself return from the command or establish a
+  model continuation. The current tool contract separately exposes live
+  terminal handles and still-running orchestration cells.
+- **Decision:** clarify the already-routed Codex job-wait packet. Preserve the
+  earned observer ladder, but schedule model continuation at most 540 seconds
+  apart. Continue the same observer across tool yields; if such yields are
+  unavailable, shorten its lifetime. Do not loop over yields inside a tool
+  past the model-continuation bound. Actual cache retention remains unverified.
+- **Trace: short tool limit:** a 50-second tool yield with a live terminal id
+  resumes that id without relaunching or announcing. The model regains control
+  each time; a tool's shorter hard limit remains binding.
+- **Trace: long observer:** an earned 20-minute observer may survive several
+  model continuations, each scheduled within nine minutes. Its printed
+  heartbeat cannot justify one passive 20-minute tool call. Without live
+  yields, its timeout is shortened; an initial wait still respects five minutes.
+- **Trace: terminal result:** observer timeout triggers a fresh status check
+  and, when needed, a newly announced observer. Completion or failure is
+  consumed; a completed orchestration cell is never resumed as if live.
+- **Status:** trace-simulated against current routing and tool contracts;
+  behavioral improvement and cache-hit benefit remain unmeasured.
+
+Contributing-model: 6-Astra
