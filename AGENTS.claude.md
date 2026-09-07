@@ -165,6 +165,10 @@ the peer is allowed when waiting is not: confirm it is live in
 `ListAgents`, then ask it to narrow or carve its claim. For a
 same-harness peer use this native channel, not `session-turn`;
 `session-turn` is for Codex peers or a target that is not running.
+For an authorized automated nudge through that transport, use
+`session-turn send ... --eventual --live-only` and mark the body as peer input.
+Read `topics/helper-scripts.md` § session-turn for receipts and unavailable-host
+handling; waking an absent target requires deliberately omitting `--live-only`.
 `ListAgents` names are not agentctl ids, so identify the peer by its cwd
 and claimed scope, or ask it. The agreement is not the claim: it lands
 only when the peer refreshes its `active/` `scope:` line or you run

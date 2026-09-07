@@ -711,9 +711,16 @@ provider session id, otherwise `Session ID`; and pass
 `--ya-session-id <Session ID>` when the address is a YA session. Use the
 advisor project's root as `--cwd`.
 Pass the verified current model and effort as optional overrides when known;
-they affect only native fallback. Let the helper allocate a fresh submission
-id for each provider turn and retain that id from its JSONL output; an advisor
+they affect absent-worker launch and native fallback. Let the helper allocate
+a fresh submission id for each provider turn and retain that id from its JSONL output; an advisor
 interaction id may span several turns and is not a transport submission id.
+
+Use `send --eventual` for a follow-up that should wait behind a busy advisor,
+and `await` its submission when the answer is needed. Omit `--live-only` when
+waking the advisor is intended. The helper's retention, option gates, and
+queued-versus-completed receipt contract are in
+`topics/helper-scripts.md` § session-turn; detached acceptance alone never
+completes a consultation requiring a response.
 
 `session-turn` alone owns host-versus-native selection, acceptance, duplicate
 avoidance, interruption, and receipts. Do not bypass it with YA HTTP, a direct
