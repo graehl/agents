@@ -39,6 +39,29 @@ Topic: `debugging`
   site. No such seam → the absence is the finding, recorded as a
   structural coverage gap; a too-shallow test is worse than no test.
 
+## Resource pressure
+
+For slow, stalled, or intermittently buggy interactions, check system resource
+pressure alongside the application path, early enough to capture a live stall
+and before stopping at an unexplained cause. Passing focused tests, successful
+delivery, or eventual completion do not rule out contention.
+
+Check the affected host and process/container: available memory and limits,
+active swap-in/out or paging, CPU contention, and disk I/O wait; inspect pressure
+metrics and OOM events where available. Use a short sampled observation to
+distinguish ongoing pressure from accumulated counters, and identify competing
+processes when pressure appears. Swap occupancy alone does not establish
+thrashing. Extend to other resources when the symptom warrants it.
+
+Match evidence to the incident's timestamp. If it has subsided, look for
+retained metrics and relevant system/application logs; current healthy readings
+cannot rule out earlier pressure, and current pressure cannot prove the past
+cause. Report what was checked and whether pressure is supported, ruled out
+for the observed interval, or remains unknown because historical evidence or
+host access is unavailable. Do not manufacture certainty or require an
+indefinite investigation when evidence is missing. This diagnostic check does
+not authorize killing processes or changing resource limits.
+
 ## Invariants
 
 - **Greppable debug tags.** Every debug log line carries a unique

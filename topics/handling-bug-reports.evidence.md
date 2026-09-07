@@ -67,3 +67,29 @@
   demonstrates the behavioral before/after claim; when the cause itself
   remains uncertain, a separate discriminating probe must distinguish
   that hypothesis from alternatives.
+
+## 2026-09-07 — resource pressure omitted from stall diagnosis
+
+- **User-reported incident:** an upload/submission appeared stuck at 0%.
+  The agent reported 26 passing focused tests and later confirmed provider
+  receipt and a reply, but left the delay unexplained without checking system
+  memory or swap pressure. The user said it settled somewhat and suspected
+  pressure as the main cause. That causal hypothesis is unverified here; the
+  reported omission motivates the instruction change.
+- **Decision:** add a global slow/stalled-interaction trigger, with resource
+  checks owned by `debugging.md`. The trigger also covers active implementation
+  feedback, which deliberately bypasses standalone intake. Require an early
+  check and an explicit evidence limit before an unknown-cause conclusion;
+  do not demand that unavailable historical evidence exclude pressure.
+- **Trace: live stall despite passing tests:** sample memory, paging, CPU,
+  and I/O pressure alongside the application path while the symptom persists;
+  passing tests and eventual delivery no longer terminate diagnosis alone.
+- **Trace: recovered stall, no historical telemetry:** seek incident-time
+  evidence, distinguish it from current readings, and report pressure as
+  unresolved if necessary. Neither healthy memory now nor occupied swap
+  licenses a historical causal claim.
+- **Trace: feedback during implementation:** the global symptom trigger
+  reaches the same check without restarting bug-report intake. An unrelated
+  deterministic typo does not activate the resource-pressure procedure.
+- **Validation:** instruction trace simulation only; improvement in live
+  diagnosis remains assumed. Contributing-model: 6-Astra.

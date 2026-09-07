@@ -149,6 +149,13 @@ occurred while checking whether the exact defect exists here now. A correction
 inside active implementation is part of that feedback loop, not standalone
 intake. Diagnose without implementing when the user asked only for diagnosis.
 
+## Slow or stalled interactions
+
+When diagnosing a slow, stalled, or intermittently buggy interaction, check
+system resource pressure early and before concluding the cause is unknown,
+even during active implementation. Read `topics/debugging.md` § Resource
+pressure; passing tests or eventual completion do not discharge this check.
+
 # Authority and instruction files
 
 `~/agents/AGENTS.global.md` is the authoritative global source; global policy
