@@ -151,10 +151,13 @@ intake. Diagnose without implementing when the user asked only for diagnosis.
 
 ## Slow or stalled interactions
 
-When diagnosing a slow, stalled, or intermittently buggy interaction, check
-system resource pressure early and before concluding the cause is unknown,
-even during active implementation. Read `topics/debugging.md` § Resource
-pressure; passing tests or eventual completion do not discharge this check.
+For a complaint of something presently hung or slower than previously, first
+run a cheap numeric resource check on the affected host, before investigating
+the application. On Linux, available RAM percent is one number:
+`LC_ALL=C free | awk '/^Mem:/ {printf "%.1f\n", 100*$7/$2}'`.
+Then follow `topics/debugging.md` § Resource pressure for interpretation and
+follow-up, including intermittent or recovered stalls. This also applies
+during active implementation; passing tests do not replace the preflight.
 
 # Authority and instruction files
 

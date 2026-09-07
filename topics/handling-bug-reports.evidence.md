@@ -93,3 +93,22 @@
   deterministic typo does not activate the resource-pressure procedure.
 - **Validation:** instruction trace simulation only; improvement in live
   diagnosis remains assumed. Contributing-model: 6-Astra.
+
+## 2026-09-07 — numeric preflight precedes live-stall investigation
+
+- **User correction:** a specific cheap query returning one number should run
+  before investigating a presently hung or slower-than-previously interaction.
+  The earlier "early and before concluding" wording did not make the ordering
+  concrete enough and left a broad diagnostic checklist as the first action.
+- **Decision:** put the available-RAM-percent query directly in the global
+  trigger and debugging packet, before hypothesis lists, searches, and tests.
+  It is an initial memory-headroom signal, not proof that all pressure is
+  absent. On this host `/proc/pressure/` metrics were unavailable; the verified
+  `free` query returned one numeric percentage, so the default does not depend
+  on kernel pressure-stall accounting being enabled.
+- **Traces:** a live slowdown gets the number before code investigation;
+  high available RAM still permits CPU/I/O or container pressure investigation;
+  an inaccessible host leaves an explicit evidence limit without blocking
+  other diagnosis. A recovered incident retains the historical-evidence rule.
+- **Validation:** executed the query and checked these instruction traces;
+  live diagnostic benefit remains assumed. Contributing-model: 6-Astra.

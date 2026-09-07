@@ -23,7 +23,8 @@ Topic: `debugging`
   rather than computes (a model, a prompt, an MT system), the loop is a
   soft check — a property or rubric oracle over a kept set of cases, see
   [`soft-checks`](soft-checks.md) — not an exact-match assertion.
-- **Ranked falsifiable hypotheses before any new-diagnosis probe.** 3–5
+- **Ranked falsifiable hypotheses before application diagnosis.** After
+  the resource preflight below when applicable, form 3–5
   hypotheses, each stating its prediction ("if X is the cause then
   changing Y will make the bug disappear"). Surface the ranked list
   as an interruptible checkpoint; the user often re-ranks instantly.
@@ -41,10 +42,22 @@ Topic: `debugging`
 
 ## Resource pressure
 
-For slow, stalled, or intermittently buggy interactions, check system resource
-pressure alongside the application path, early enough to capture a live stall
-and before stopping at an unexplained cause. Passing focused tests, successful
-delivery, or eventual completion do not rule out contention.
+For a complaint of something presently hung or slower than previously, run
+the cheap numeric preflight before hypothesis lists, code/log searches, or
+reproduction tests. On the affected Linux host, print available RAM as a
+percentage of total RAM:
+
+```bash
+LC_ALL=C free | awk '/^Mem:/ {printf "%.1f\n", 100*$7/$2}'
+```
+
+Record the number with its host and observation time. This measures memory
+headroom, not all resource pressure: low headroom prioritizes memory/paging
+checks, while high headroom does not exclude CPU, I/O, container limits, or
+earlier contention. If the host or command is unavailable, state that and use
+an accessible platform equivalent when possible; do not let the preflight
+block application investigation. Passing tests, successful delivery, or
+eventual completion do not rule out contention.
 
 Check the affected host and process/container: available memory and limits,
 active swap-in/out or paging, CPU contention, and disk I/O wait; inspect pressure
