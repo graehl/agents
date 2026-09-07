@@ -23,7 +23,7 @@ Activation is one column-one line: the fixed marker, a space, and either a
 schema path or an inline JSON whitelist.
 
 ```text
-@@visualization-schema/1 ~/ya/topics/publish-workflow.local.md#ya-publish/1
+@@visualization-schema/1 ~/ya/.agents/skills/publish/references/workflow.json#ya-publish/1
 @@visualization-schema/1 ["build","test","report"]
 ```
 
@@ -136,7 +136,8 @@ file-access path:
 5. A schema pointer names a JSON declaration or a document containing fenced
    JSON declarations. A `#schema-id` fragment selects the exact
    declaration ID; without it, the document must contain exactly one declaration.
-   For example, `~/ya/topics/publish-workflow.local.md#ya-publish/1` is explicit.
+   For example, `~/ya/.agents/skills/publish/references/workflow.json#ya-publish/1`
+   is explicit.
    Select declaration data; do not recursively follow activation lines in the file.
 
 Instructions need not know the checkout's installation location. Prefer
