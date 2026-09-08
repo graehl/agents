@@ -31,6 +31,7 @@ Optional packages are:
 | Package | Full-acli token | Contract |
 | --- | --- | --- |
 | `commentary/1` | `+commentary` | Markdown metadata in declared JSON/JSONL modes. |
+| `commentary-lines/1` | `+commentary-lines` | Marked Markdown lines on an explicitly activated text stream. |
 | `complete/1` | `complete` | Argument completion through `--acli-complete`. |
 | `repl/1` | `repl` | An explicitly requested command loop through `--repl`. |
 | `toon/1` | `+toon` | Explicitly selected flat-table TOON output. |
@@ -316,8 +317,9 @@ Flush commentary-bearing JSONL records and all preceding buffered stdout.
 Flush whole-document JSON when complete; incremental rendering needs a
 capable document parser.
 
-V1 defines no commentary framing for text or TOON. A tool may document those
-as separate modes without commentary. Do not silently discard already
+`commentary/1` defines no commentary framing for text or TOON. The separate
+`commentary-lines/1` package below supports marked text or stderr lines.
+A tool may also document modes without commentary. Do not silently discard already
 constructed commentary when changing encoding: reject that combination with
 an actionable error or require `--no-commentary`. Text with JSONL fallback
 can carry metadata normally.
@@ -343,6 +345,87 @@ Assistant-history injection is optional and not defined by `commentary/1`.
 A briefed agent can recognize tool-mediated presentation without believing it
 authored the text. Preserve tool origin and delivery state even when the UI
 uses assistant-prose styling.
+
+## Line commentary package: commentary-lines/1
+
+This package lets a shell script emit Markdown using `printf`, without JSON
+escaping, a library, or the full acli baseline. It does not change
+`commentary/1` or permit comment lines in declared JSON/JSONL output.
+
+### Activation and framing
+
+The first physical line of each participating stream must be a capability
+declaration prefixed by `# `, for example:
+
+```text
+# acli-capabilities: commentary-lines/1
+```
+
+`# acli: 1 ... +commentary-lines` is the full-tool spelling. The declaration
+activates line framing on that stream only. A stdout declaration does not
+activate stderr, or vice versa. Help/guide declarations describe support;
+the initial output declaration establishes that this stream is participating.
+Emit it before ordinary output, even when commentary will appear only later.
+Only the initial declaration is control metadata; later matching lines are
+ordinary output. Unknown packages/versions do not activate interpretation.
+
+Each commentary record is one physical UTF-8 line with the exact column-one
+prefix `# _acli.commentary: ` followed by nonblank Markdown. Remove exactly
+that prefix and the line terminator; preserve all payload characters and
+whitespace. LF and CRLF terminate records. Producers must terminate records;
+consumers may accept the final unterminated line at end of output. Partial
+lines must not be rendered while the stream remains open. Each record is an
+independent Markdown item; adjacent records are not joined into a document.
+Use JSON commentary when paragraphs, fenced blocks, or other multiline
+Markdown must form one item.
+
+Unmarked lines, ordinary `# ` comments, indented markers, and unsupported
+spellings remain ordinary output. A blank payload is malformed and must
+remain visible as raw output; consumers must not silently strip it. The exact
+prefix is reserved on participating streams, so producers must not emit
+ordinary data with that prefix. JSON-looking text is not recursively decoded
+in line mode. When both commentary packages are advertised, the line package
+selects line framing for the stream carrying that initial declaration; use
+separate streams or invocations for JSON metadata and marked text.
+
+### Sequencing and context
+
+On stdout, a commentary line refers to the immediately preceding contiguous
+block of ordinary stdout lines. Consecutive commentary lines share that block;
+ordinary output after commentary starts a new block. The initial declaration
+is excluded. With no preceding block there is no focused context.
+
+The producer must flush preceding buffered stdout before emitting its
+commentary, and flush each complete commentary line. Same-pipe byte order
+preserves this relationship; source-code order across separate buffers does
+not establish it. A foreground command finishing before the shell prints the
+commentary is a simple way to order its completed output.
+
+Commentary anywhere other than known stdout is **unsequenced relative to
+stdout**. Stderr, other channels, and observer output whose original stream
+identity was lost receive invocation-level context only. Never infer an
+attachment from arrival order, timestamps, or flushing across descriptors.
+Observers should retain stream identity before merging outputs. Within each
+stream retain commentary order; ordering between streams is unspecified.
+
+### Suppression and presentation
+
+Commentary is enabled by default in participating modes. `--no-commentary`
+must omit commentary records and their line terminators while preserving
+ordinary output. The declaration may remain. Banner suppression, where
+supported, does not remove commentary; without an initial declaration an
+observer must retain the stream as ordinary output.
+
+An aware consumer may hide the initial declaration and successfully rendered
+records in its data view, retaining the original output separately. Unsupported
+formats, malformed records, rendering failures, and resource-limit failures
+retain affected output literally. Exit status and ordinary stderr diagnostics
+remain visible; a full tool's final error envelope must still be last.
+
+The Markdown, tool-origin, and delivery rules under
+[Communication and delivery](#communication-and-delivery) apply unchanged.
+Declaration or emission alone does not establish presentation. No new
+assistant-history insertion or acknowledgement protocol is implied.
 
 ## Completion package: complete/1
 
@@ -458,5 +541,8 @@ Check the declared entry point, not just library functions:
   metadata-only records, and Markdown escapes. Resolve context before projection.
 - For completion, check partial/fresh tokens, hints, empty answers, and failures
   without performing an ordinary command action.
+- For line commentary, check real shell output, suppression, chunk-split
+  prefixes, CRLF, unknown/late declarations, ordinary hash lines, and literal
+  JSON. Verify stdout block context and unsequenced stderr/unknown channels.
 - Verify any asynchronous completion or UI delivery claim against its own
   contract rather than treating process success as proof.

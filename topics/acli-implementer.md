@@ -44,6 +44,34 @@ Build exact argv from the documented invocation; do not discover invocation
 methods by guessing how to execute a source file. Include capability scope
 in both guide and help when supplying both. Keep mirrored declarations aligned.
 
+### Small shell scripts
+
+Use `commentary-lines/1` for text-producing scripts. A complete minimal
+guide-declared example needs no JSON serializer:
+
+```sh
+#!/bin/sh
+# Agent guide: ./report.sh [--no-commentary]; prints text and exits when done.
+# acli-capabilities: commentary-lines/1
+case "$#:$1" in
+  0:) commentary=yes ;;
+  1:--no-commentary) commentary=no ;;
+  *) printf '%s\n' 'usage: report.sh [--no-commentary]' >&2; exit 2 ;;
+esac
+printf '%s\n' '# acli-capabilities: commentary-lines/1'
+printf '%s\n' 'Report complete.'
+if [ "$commentary" = yes ]; then
+  printf '%s\n' '# _acli.commentary: The report completed successfully.'
+fi
+```
+
+This partial tool does not claim the full acli interface or its JSON error
+envelopes. Use the application's existing option parser when it has one.
+Send both the declaration and marked lines to stderr when stdout must retain
+another format; such commentary is unsequenced relative to stdout. Flush
+buffered stdout before a stdout note about it. Each marked line is one
+independent Markdown item; multiline items still use JSON commentary.
+
 ## Implementation boundaries
 
 Use the program's existing parser and serializer for simple partial support.
@@ -82,6 +110,9 @@ The optional [Python library](../acli/) provides dependency-free protocol
 helpers; rich REPL editing is optional. The importing application controls how
 the library is installed or vendored. No home-directory bootstrap is part of
 the protocol, and non-Python tools need not launch a Python subprocess.
+
+The Python writers implement `commentary/1`; they do not emit the separate
+`commentary-lines/1` format. Shell producers can implement that format directly.
 
 | Module | Surface | Integration responsibility |
 | --- | --- | --- |
