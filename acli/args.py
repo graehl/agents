@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
+import re
 import sys
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any, NoReturn, TextIO
@@ -20,6 +22,24 @@ TEXT_HELP = "Prefer concise readable text; verbs without a text renderer may sti
 COMMENTARY_HELP = "Omit commentary metadata and standalone JSONL commentary records; keep ordinary result data."
 
 _banner_emitted = False
+
+
+def duration_seconds(value: str) -> float:
+    """Parse finite seconds or compact s/m/h/d components without rounding."""
+    raw = value.strip().lower()
+    try:
+        seconds = float(raw)
+    except ValueError:
+        parts = list(re.finditer(r"(\d+(?:\.\d+)?)([smhd])", raw))
+        if not parts or "".join(part.group() for part in parts) != raw:
+            raise argparse.ArgumentTypeError(
+                "expected seconds or a duration such as 5m or 2h30m"
+            ) from None
+        scales = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+        seconds = sum(float(part[1]) * scales[part[2]] for part in parts)
+    if not math.isfinite(seconds):
+        raise argparse.ArgumentTypeError("duration must be finite")
+    return seconds
 
 
 def _add_commentary_arg(parser: argparse.ArgumentParser) -> None:

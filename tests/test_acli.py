@@ -32,6 +32,42 @@ write_pretty = _emit.write_pretty
 write_toon_table = _emit.write_toon_table
 
 
+def test_duration_seconds():
+    for raw, expected in (
+        ("300", 300),
+        ("0", 0),
+        ("-1", -1),
+        ("0.25", 0.25),
+        ("1e2", 100),
+        ("5m", 300),
+        ("10h", 36000),
+        ("2d", 172800),
+        ("2d1s", 172801),
+        ("0.01m", 0.6),
+        ("1h30m", 5400),
+        (" 2H ", 7200),
+    ):
+        actual = _acli.args.duration_seconds(raw)
+        _assert(actual == expected, f"{raw}: {actual} != {expected}")
+    for raw in (
+        "",
+        "10 m",
+        "2 d 1 s",
+        "5ms",
+        "1h garbage",
+        "1m2",
+        "nan",
+        "inf",
+        "1e999",
+    ):
+        try:
+            _acli.args.duration_seconds(raw)
+        except argparse.ArgumentTypeError:
+            pass
+        else:
+            raise AssertionError(f"invalid duration accepted: {raw!r}")
+
+
 class FakeStdout:
     def __init__(self, tty: bool):
         self.tty = tty

@@ -292,6 +292,13 @@ notices.
 
 ## Contracts
 
+- Timeout options (`--timeout`, `--after-timeout`, `--wait-timeout`) accept
+  bare seconds or compact `s`/`m`/`h`/`d` suffixes, including `5m`, `2d1s`,
+  and fractional values. Zero retains each option's unbounded-wait meaning;
+  timeout values are not rounded. `watch` and `clear` retain their rejection
+  of negative timeouts. Invalid units, internal spaces, and non-finite values
+  fail as usage errors before the action. Runtime estimates use the same
+  converter but retain whole-second rounding.
 - The base writes canonical run state to
   `.agentctl/runs/<job>/<run-id>/state.json` and mirrors a pointer to
   `.agentctl/jobs/<job>/current.json`. These files are the ground truth for

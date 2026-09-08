@@ -103,6 +103,13 @@ def nonnegative_float(value: str) -> float:
     return number
 
 
+def nonnegative_duration_seconds(value: str) -> float:
+    seconds = acli_args.duration_seconds(value)
+    if seconds < 0:
+        raise argparse.ArgumentTypeError("must be non-negative")
+    return seconds
+
+
 # ---- Plugin loader ----
 #
 # Plugins live in CODE_ROOT/agentctl_plugins/<name>.py and expose any subset of these
@@ -209,18 +216,12 @@ def parse_utc(ts: str) -> dt.datetime:
 
 def parse_duration_seconds(text: str) -> int:
     raw = text.strip().lower()
-    if not raw:
-        raise ValueError("empty duration")
     if raw.isdigit():
         return int(raw)
-    total = 0.0
-    matches = list(re.finditer(r"(\d+(?:\.\d+)?)([smhd])", raw))
-    if not matches or "".join(m.group(0) for m in matches) != raw:
-        raise ValueError(f"invalid duration {text!r}")
-    scales = {"s": 1.0, "m": 60.0, "h": 3600.0, "d": 86400.0}
-    for match in matches:
-        total += float(match.group(1)) * scales[match.group(2)]
-    return round(total)
+    try:
+        return round(nonnegative_duration_seconds(text))
+    except argparse.ArgumentTypeError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def format_duration(seconds: float | None) -> str:
@@ -6019,9 +6020,9 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
     )
     sp.add_argument(
         "--after-timeout",
-        type=float,
+        type=acli_args.duration_seconds,
         default=0.0,
-        help="Maximum seconds to wait for --after dependencies; 0 means no timeout.",
+        help="Maximum wait for --after dependencies (seconds or s/m/h/d suffix); 0 means no timeout.",
     )
     sp.add_argument(
         "--env", action="append", default=[], help="Extra environment KEY=VALUE."
@@ -6188,9 +6189,9 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
     )
     sp.add_argument(
         "--wait-timeout",
-        type=float,
+        type=acli_args.duration_seconds,
         default=0.0,
-        help="Maximum seconds to wait before launch; 0 means no timeout.",
+        help="Maximum wait before launch (seconds or s/m/h/d suffix); 0 means no timeout.",
     )
     sp.add_argument(
         "--launch-wait",
@@ -6519,9 +6520,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument(
         "--timeout",
-        type=nonnegative_float,
+        type=nonnegative_duration_seconds,
         default=0.0,
-        help="Maximum seconds to watch; 0 means no timeout.",
+        help="Maximum watch duration (seconds or s/m/h/d suffix); 0 means no timeout.",
     )
     s.add_argument(
         "--gpu",
@@ -6606,9 +6607,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument(
         "--timeout",
-        type=float,
+        type=acli_args.duration_seconds,
         default=0.0,
-        help="Maximum seconds to wait; 0 means no timeout.",
+        help="Maximum wait (seconds or s/m/h/d suffix); 0 means no timeout.",
     )
     s.add_argument(
         "--tail",
@@ -6637,9 +6638,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument(
         "--timeout",
-        type=float,
+        type=acli_args.duration_seconds,
         default=0.0,
-        help="Maximum seconds to wait; 0 means no timeout.",
+        help="Maximum wait (seconds or s/m/h/d suffix); 0 means no timeout.",
     )
     s.set_defaults(func=wait_gpu)
 
@@ -6672,9 +6673,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument(
         "--timeout",
-        type=float,
+        type=acli_args.duration_seconds,
         default=0.0,
-        help="Maximum seconds to wait; 0 means no timeout.",
+        help="Maximum wait (seconds or s/m/h/d suffix); 0 means no timeout.",
     )
     s.set_defaults(func=wait_work)
 
@@ -6903,9 +6904,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument(
         "--timeout",
-        type=nonnegative_float,
+        type=nonnegative_duration_seconds,
         default=0.0,
-        help="Pause after this many seconds (exit 1); 0 waits indefinitely. The wait stays open for dialogue/resume.",
+        help="Pause after this duration (seconds or s/m/h/d suffix; exit 1); 0 waits indefinitely. The wait stays open for dialogue/resume.",
     )
     s.set_defaults(func=clear_cmd)
     coordination.register(sub, coordination_cmd)
@@ -6999,9 +7000,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument(
         "--timeout",
-        type=float,
+        type=acli_args.duration_seconds,
         default=0.0,
-        help="Maximum seconds to wait; 0 means wait forever.",
+        help="Maximum wait (seconds or s/m/h/d suffix); 0 means wait forever.",
     )
     acli_args.add_standard_args(s)
     s.set_defaults(func=alone_cmd)

@@ -2360,6 +2360,32 @@ def test_start_after_marker_without_sidecar_does_not_launch_payload():
         ws.cleanup()
 
 
+def test_timeout_duration_options():
+    sys.path.insert(0, str(REPO_ROOT))
+    import agentctl
+
+    parser = agentctl.build_parser()
+    for command in (
+        ["wait", "duration"],
+        ["watch", "duration"],
+        ["wait-gpu"],
+        ["wait-work"],
+        ["clear", "src/example.py"],
+        ["alone"],
+    ):
+        args = parser.parse_args([*command, "--timeout", "5m"])
+        _assert(args.timeout == 300, (command, args.timeout))
+    args = agentctl.parse_start_command(
+        "start",
+        "start",
+        ["duration", "--after-timeout", "2h", "--wait-timeout", "1d", "--", "true"],
+    )
+    _assert(args.after_timeout == 7200, args.after_timeout)
+    _assert(args.wait_timeout == 86400, args.wait_timeout)
+    _assert(agentctl.parse_duration_seconds("1h30m") == 5400)
+    _assert(agentctl.parse_duration_seconds("0.6s") == 1)
+
+
 def test_wait_and_watch_default_heartbeat_is_nine_minutes():
     sys.path.insert(0, str(REPO_ROOT))
     import agentctl
@@ -2472,6 +2498,8 @@ def test_wait_tail_prints_only_after_completion():
             "0",
             "--tail",
             "3",
+            "--timeout",
+            "5m",
         )
         _assert(res.returncode == 0, f"wait --tail failed: {res.stderr!r}")
         _assert("line-13\nline-14\nline-15\n" in res.stdout, res.stdout)
@@ -2983,7 +3011,7 @@ def test_wait_work_times_out_when_nothing_new():
     ws = Workspace()
     try:
         res = ws.run(
-            "wait-work", "--timeout", "0.5", "--poll", "0.1", "--heartbeat", "0"
+            "wait-work", "--timeout", "0.01m", "--poll", "0.1", "--heartbeat", "0"
         )
         _assert(
             res.returncode == 1,
