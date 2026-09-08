@@ -48,14 +48,12 @@ the protocol should not mandate a particular launcher or backgrounding trick.
 
 ## Mixed commentary framing
 
-`commentary/1` currently uses JSON/JSONL metadata. Text and TOON could later
-use a packet format carrying ordinary output and commentary in one ordered
-stream. Alternatively, marked stderr packets could preserve an application's
-stdout format, but cannot provide a reliable total order across both streams.
-
-Before selecting a framing scheme, test a real fixed-format consumer,
-incremental parsing, flushing, malformed packets, suppression, and source
-context. Raw prose in JSONL is not an implementation of this proposal.
+Marked single-line text and unsequenced stderr commentary are specified as
+[`commentary-lines/1`](acli-spec.md#line-commentary-package-commentary-lines1).
+Multiline packets and an explicit TOON/commentary multiplex remain possible
+extensions. They need record boundaries, escaping, flushing, suppression,
+incremental parsing, and source-context contracts before adoption. Neither
+package permits raw prose in JSONL.
 
 ## Optional assistant-history insertion
 

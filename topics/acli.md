@@ -47,6 +47,7 @@ before applying a root command's capability list.
 | Seen in full help | Seen in a partial declaration | What it lets you do |
 | --- | --- | --- |
 | `+commentary` | `commentary/1` | Receive Markdown commentary with declared JSON/JSONL output. |
+| `+commentary-lines` | `commentary-lines/1` | Receive marked Markdown lines on an activated text stream. |
 | `complete` | `complete/1` | Request argument candidates. |
 | `repl` | `repl/1` | Start an explicit command loop. |
 | `+toon` | `toon/1` | Select documented flat-table TOON output. |
@@ -155,6 +156,34 @@ the [commentary contract](acli-spec.md#commentary-package-commentary1).
 Use `--no-commentary` for the ordinary data projection. Do not blindly strip
 similarly named fields from unrelated tools or reinterpret JSON-looking strings.
 Malformed participating metadata is an error, not prose to render.
+
+### Shell-friendly line commentary
+
+A script can opt a stream into `commentary-lines/1`, then print ordinary
+output and marked Markdown with no JSON escaping:
+
+```sh
+printf '%s\n' '# acli-capabilities: commentary-lines/1'
+printf '%s\n' 'report.html'
+printf '%s\n' '# _acli.commentary: Built [the report](report.html).'
+```
+
+The declaration must be the stream's first line. Only the exact
+`# _acli.commentary: ` prefix carries commentary; ordinary `# ` lines stay
+data. Each marked line is a separate Markdown item. Use JSON commentary for
+one item containing multiline Markdown.
+
+On stdout, commentary refers to the preceding block of ordinary lines;
+consecutive notes share that block. Flush buffered output before its note.
+Sending the declaration and commentary to stderr with `>&2` preserves stdout's
+format, but that commentary is unsequenced relative to stdout and gets only
+invocation context. The same applies when an observer lost the original stream
+identity. Do not infer associations from cross-stream arrival order.
+
+`--no-commentary` omits marked records and retains ordinary data. Unaware
+consumers retain readable text. The complete
+[line commentary contract](acli-spec.md#line-commentary-package-commentary-lines1)
+defines activation, framing, malformed input, and presentation.
 
 ## Completion protocol
 
