@@ -204,6 +204,49 @@ a learning curve with additional independent documents. Before declaring a
 representation limit, compare heads on the same encoder, then allow controlled
 encoder adaptation. Memorizing a tiny set demonstrates fit, not generalization.
 
+## Architecture and input changes with an annotation-only teacher
+
+The same hard labels can supervise several substantially different students.
+Teacher access constrains the distillation signal; it does not constrain the
+student to a token-affine head. The following connections reuse read-backed
+regions of the existing surveys rather than claim new primary readings here.
+
+| Intervention | Additional available input | Distinction a fair comparison must retain |
+|---|---|---|
+| Fixed-label span scoring | Endpoint states, optionally interior-span states | Change the head on one encoder before attributing a released system's gain to span scoring |
+| Label conditioning | Type names, descriptions, or examples at inference | Compare with a fixed-label span head; label semantics, score factorization, and pretraining are different factors |
+| Representation combination | Two locally accessible encoder channels | Compare both single channels and their combination at disclosed training/inference cost |
+| Surface sidecar | Characters, n-grams, lexical counts, locale evidence | Measure complementary information after the strong semantic baseline; a small extra network is also extra capacity |
+| Document context | Neighboring source sentences while predicting one target sentence | Hold the target and annotations fixed; additional information and longer computation arrive together |
+| Local intermediate distillation | States or distributions of a locally trained student/ensemble | Those are a new teacher's signals, not recovered internals of the original closed teacher |
+
+The [GLiNER digest][span-head] distinguishes span scoring, type conditioning,
+interior compression, and decoding. Its original architecture jointly encodes
+type markers and text, so a label-conditioned span system is not necessarily a
+separate text/type bi-encoder. Its paper reports useful results under its own
+pretraining and label-sampling regime (**single-source**); it does not isolate
+an advantage over a mature matched multilingual BIOES tagger.
+
+The [ACE digest][combination] supplies a direct representation-combination
+precedent (**single-source**). Its shared task model continues training while
+embedding subsets change. The cost, trajectory, and best-of-many selection
+therefore matter when interpreting its advantage over one all-channel run.
+An initial two-channel comparison can test complementarity without importing
+the whole search procedure. Distillation or removal becomes useful to study
+after the extra channel has demonstrated a gain.
+
+The [surface-sidecar map][surface] contains positive and negative evidence:
+character likelihood features and local branches sometimes help, while gains
+can shrink sharply with a stronger token encoder. Spelling features and
+surface-generation augmentation are distinct interventions. Neither a sample
+that looks realistic nor an auxiliary model's lower loss proves better span
+tagging.
+
+These connections suggest testing input sufficiency and head accessibility
+alongside acquisition. They do not justify simultaneously changing the
+encoder, context, head, and labels and then assigning the result to one cause.
+No teacher hidden-state or probability access is needed for these comparisons.
+
 ## Research questions worth testing
 
 The [frontier note](frontier.md) gives a bounded proposal: use existing outcomes
@@ -214,3 +257,6 @@ rule about when to buy labels, supply context, or change the decoder—even if
 the final student remains substantially behind the teacher.
 
 [small-tagger]: ../tokenizer-free-span-tagging/concepts/distilled-small-tagger.md
+[span-head]: ../tokenizer-free-span-tagging/concepts/label-conditioned-span-classification.md
+[combination]: ../tokenizer-free-span-tagging/concepts/train-then-mask.md
+[surface]: ../shallow-surface-encoders/survey.md

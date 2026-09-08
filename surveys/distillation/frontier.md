@@ -64,6 +64,27 @@ proxy predicts current errors but fails to predict training benefit. A stronger
 positive result identifies which proxy forecasts improvement across more than
 one encoder or data regime. Neither result requires claiming teacher parity.
 
+## Test the choice of intervention, not just the next annotation
+
+The [architecture and input connections](survey.md#architecture-and-input-changes-with-an-annotation-only-teacher)
+expand the prospective question beyond selecting data. One bounded design
+crosses token versus span head with isolated-target versus neighboring-context
+input, retaining the same encoder initialization, target labels, and source
+splits. This measures separate head/context effects and their interaction.
+Frozen-feature pilots screen accessibility; matched adaptation establishes
+whether the finding survives training the encoder.
+
+For a forecast, predict before running the intervention which error strata
+will improve. Compare with initial error rate, training support, random
+ranking, and always choosing the cheapest intervention. A forecast that merely
+finds difficult examples is insufficient. Measure cost including review,
+acquisition, diagnostics, training, and deployment changes. Test another
+encoder or domain before presenting a general decision rule.
+
+The component methods are established or ordinary experimental controls.
+Their combination is a proposed evaluation design, not a newly established
+algorithm or an assertion that this combination has never been studied.
+
 ## Remaining falsification search
 
 Before claiming novelty, read the queued work on reducible loss, active NER,
