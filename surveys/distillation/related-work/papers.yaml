@@ -1,0 +1,164 @@
+# Metadata manifest for surveys/distillation.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: distillation
+  coverage_cutoff: 2026-09-08
+  grounding_mode: grounded
+
+papers:
+  - key: chang2020-error-decay
+    title: "Using Error Decay Prediction to Overcome Practical Issues of Deep Active Learning for Named Entity Recognition"
+    authors: ["Haw-Shiuan Chang", "Shankar Vembu", "Sunil Mohan", "Rheeya Uppaal", "Andrew McCallum"]
+    venue: "Machine Learning"
+    year: 2020
+    arxiv: "1911.07335"
+    doi: "10.1007/s10994-020-05897-1"
+    grounded: true
+    verified: true
+    source: "arXiv primary metadata and linked journal DOI checked 2026-09-08; found in disconfirming search for active NER prediction of training benefit"
+    fetched: 2026-09-08
+    short: error-decay
+    concept_page: concepts/error-decay.md
+    cluster: probes
+  - key: li2021-dynamic-kd
+    title: "Dynamic Knowledge Distillation for Pre-trained Language Models"
+    authors: ["Lei Li", "Yankai Lin", "Shuhuai Ren", "Peng Li", "Jie Zhou", "Xu Sun"]
+    venue: "EMNLP"
+    year: 2021
+    arxiv: "2109.11295"
+    doi: "10.18653/v1/2021.emnlp-main.31"
+    grounded: true
+    verified: true
+    source: "ACL primary paper and OpenAlex W3200808010 checked 2026-09-08"
+    fetched: 2026-09-08
+    short: dynamic-selection
+    concept_page: concepts/dynamic-selection.md
+    cluster: selection
+  - key: udandarao2025-active-curation
+    title: "Active Data Curation Effectively Distills Large-Scale Multimodal Models"
+    authors: ["Vishaal Udandarao", "Nikhil Parthasarathy", "Muhammad Ferjad Naeem", "Talfan Evans", "Samuel Albanie", "Federico Tombari", "Yongqin Xian", "Alessio Tonioni", "Olivier J. Hénaff"]
+    venue: "CVPR"
+    year: 2025
+    arxiv: "2411.18674"
+    grounded: true
+    verified: true
+    source: "arXiv primary metadata and CVPR 2025 proceedings checked 2026-09-08; found by forward citation from Dynamic KD"
+    fetched: 2026-09-08
+    short: learnable-selection
+    concept_page: concepts/learnable-selection.md
+    cluster: selection
+  - key: swayamdipta2020-cartography
+    title: "Dataset Cartography: Mapping and Diagnosing Datasets with Training Dynamics"
+    authors: ["Swabha Swayamdipta", "Roy Schwartz", "Nicholas Lourie", "Yizhong Wang", "Hannaneh Hajishirzi", "Noah A. Smith", "Yejin Choi"]
+    venue: "EMNLP"
+    year: 2020
+    arxiv: "2009.10795"
+    grounded: true
+    verified: true
+    source: "arXiv primary metadata checked 2026-09-08"
+    fetched: 2026-09-08
+    short: training-dynamics
+    concept_page: concepts/training-dynamics.md
+    cluster: probes
+  - key: beyer2022-patient-consistent
+    title: "Knowledge Distillation: A Good Teacher Is Patient and Consistent"
+    authors: ["Lucas Beyer", "Xiaohua Zhai", "Amélie Royer", "Larisa Markeeva", "Rohan Anil", "Alexander Kolesnikov"]
+    venue: "CVPR"
+    year: 2022
+    arxiv: "2106.05237"
+    grounded: true
+    verified: true
+    source: "arXiv primary metadata and CVPR 2022 proceedings checked 2026-09-08"
+    fetched: 2026-09-08
+    short: patient-consistent
+    concept_page: concepts/patient-consistent.md
+    cluster: optimization
+  - key: mirzadeh2020-teacher-assistant
+    title: "Improved Knowledge Distillation via Teacher Assistant"
+    authors: ["Seyed-Iman Mirzadeh", "Mehrdad Farajtabar", "Ang Li", "Nir Levine", "Akihiro Matsukawa", "Hassan Ghasemzadeh"]
+    venue: "AAAI"
+    year: 2020
+    arxiv: "1902.03393"
+    doi: "10.1609/aaai.v34i04.5963"
+    grounded: true
+    verified: true
+    source: "arXiv full text and AAAI proceedings https://ojs.aaai.org/index.php/AAAI/article/view/5963 checked 2026-09-08"
+    fetched: 2026-09-08
+    short: teacher-assistants
+    concept_page: concepts/teacher-assistants.md
+    cluster: capacity
+  - key: meoni2023-clinical-instructors
+    title: "Large Language Models as Instructors: A Study on Multilingual Clinical Entity Extraction"
+    authors: ["Simon Meoni", "Eric De la Clergerie", "Theo Ryffel"]
+    venue: "BioNLP"
+    year: 2023
+    url: "https://aclanthology.org/2023.bionlp-1.15.pdf"
+    doi: "10.18653/v1/2023.bionlp-1.15"
+    grounded: true
+    verified: true
+    source: "ACL Anthology primary metadata checked 2026-09-08; found by forward citation from Dynamic KD"
+    fetched: 2026-09-08
+    short: annotation-only-teachers
+    concept_page: concepts/annotation-only-teachers.md
+    cluster: black-box
+  - key: hinton2015-distilling-knowledge
+    title: "Distilling the Knowledge in a Neural Network"
+    authors: ["Geoffrey Hinton", "Oriol Vinyals", "Jeff Dean"]
+    venue: "NeurIPS Deep Learning Workshop"
+    year: 2014
+    arxiv: "1503.02531"
+    grounded: false
+    verified: true
+    source: "Borrowed committed full text: surveys/tokenizer-free-span-tagging/related-work/extract/hinton2015-distilling-knowledge/html/1503.02531.md; not fetched twice"
+    fetched: null
+    cluster: signals
+  - key: mukherjee2020-xtremedistil
+    title: "XtremeDistil: Multi-stage Distillation for Massive Multilingual Models"
+    authors: ["Subhabrata Mukherjee", "Ahmed Hassan Awadallah"]
+    venue: "ACL"
+    year: 2020
+    url: "https://aclanthology.org/2020.acl-main.202.pdf"
+    doi: "10.18653/v1/2020.acl-main.202"
+    grounded: false
+    verified: true
+    source: "Borrowed committed full text: surveys/tokenizer-free-span-tagging/related-work/extract/mukherjee2020-xtremedistil/mukherjee2020-xtremedistil.md; not fetched twice"
+    fetched: null
+    cluster: signals
+  - key: wang2020-structure-kd
+    title: "Structure-Level Knowledge Distillation For Multilingual Sequence Labeling"
+    authors: ["Xinyu Wang", "Yong Jiang", "Nguyen Bach", "Tao Wang", "Fei Huang", "Kewei Tu"]
+    venue: "ACL"
+    year: 2020
+    url: "https://aclanthology.org/2020.acl-main.304.pdf"
+    doi: "10.18653/v1/2020.acl-main.304"
+    grounded: false
+    verified: true
+    source: "Borrowed committed full text: surveys/tokenizer-free-span-tagging/related-work/extract/wang2020-structure-kd/wang2020-structure-kd.md; not fetched twice"
+    fetched: null
+    cluster: structure
+  - key: farina2023-seqlabel-distillation
+    title: "Distillation of encoder-decoder transformers for sequence labelling"
+    authors: ["Marco Farina", "Duccio Pappadopulo", "Anant Gupta", "Leslie Huang", "Ozan Irsoy", "Thamar Solorio"]
+    venue: "Findings of EACL"
+    year: 2023
+    arxiv: "2302.05454"
+    grounded: false
+    verified: true
+    source: "Borrowed committed full text: surveys/tokenizer-free-span-tagging/related-work/extract/farina2023-seqlabel-distillation/html/2302.05454.md; not fetched twice"
+    fetched: null
+    cluster: signals
