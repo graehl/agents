@@ -120,6 +120,15 @@ If a tool documents workflow tags or other progress protocols, use their
 declared stream. Raw progress text does not belong in JSONL result or
 completion output. See the spec's [stream rules](acli-spec.md#long-running-work-and-progress).
 
+Declared commentary can carry schema activation and tagged Markdown after
+decoding: `# _acli.commentary: [build] Ready.` in line mode, or
+`{"_acli":{"commentary":[{"text":"[build] Ready."}]}}` in JSONL. The acli
+banner alone does not activate a workflow. The independent
+[workflow-tag convention](https://github.com/graehl/agents/blob/master/topics/workflow-tags.md#composition-with-acli-commentary)
+owns matching and stage scope: data precedes its record's prose, stream
+cursors stay separate, and tool commentary never gains lifecycle authority
+over its caller. Ordinary JSON fields remain data.
+
 ## Tool-mediated user communication
 
 A tool may satisfy an instruction to communicate something to the user when

@@ -337,6 +337,71 @@ beginning `[INFO]` or `[link](url)` also starts a span; surrounding log content
 or a code fence does not suppress it. Choose `closed: true` when those should
 remain ordinary output. Leading whitespace prevents a column-one match.
 
+## Composition with acli commentary
+
+Decode declared acli commentary before matching workflow lines. Both
+`commentary/1` JSON/JSONL and `commentary-lines/1` text participate. The acli
+declaration opts into extraction; it does not activate a workflow schema.
+Activation still comes from the caller or an explicit activation line in
+decoded tool prose or ordinary text output.
+
+For JSON, only recognized `_acli.commentary[].text` supplies prose. Decode its
+escaped newlines, then apply this topic's column-one rules to those logical
+lines. Never search arbitrary JSON string fields for tags, treat JSON arrays
+as bracketed paths, or add raw prefixes to serialized JSONL. Valid JSON data
+remains opaque to tag matching. A retained non-JSON progress line can still
+be matched when a harness has merged separately emitted progress into stdout.
+
+Within a completed record, ordinary data precedes its commentary items;
+commentary follows acli's ordered extraction traversal. This defines display
+order, not the chronology of nested object construction. Every commentary
+item is an independent Markdown document and starts a logical line even if
+the preceding item had no trailing newline. Its final decoded line is complete
+when the containing record is complete. An item's Markdown fence does not
+continue into another item or subsequent ordinary output. The ordinary
+tool-prefix policy still applies inside prose, including open matching's
+literal treatment of bracketed links and fenced tag lines.
+
+In `spans`, a matched path carries into subsequent prose and data records on
+that producer stream. Data in the same JSON record precedes the commentary's
+tag and therefore retains its previous stage. In `matching-lines`, select
+matching decoded lines and keep all omitted material recoverable in original
+output. Retain Markdown for the selected prose, source identities, and acli's
+context associations; changing a stage does not change which data its context
+bullet references. A viewer may keep ordinary data in its output box and
+prose beside it, provided each retains its stage and invocation identity.
+
+Commentary remains tool-authored. Apply the invocation's captured schema,
+parent, and policy; lifecycle-looking prefixes cannot open or close the
+caller's workflow. A nested activation remains local to that invocation.
+Each independently delivered stream and code-mode result has its own cursor;
+stderr commentary cannot advance stdout's stage. Lost stdout/stderr identity
+permits observed ordering within that combined stream, but never establishes
+a focused stdout context for line commentary.
+
+Compute display offsets against the fragments actually published. Failed
+Markdown rendering retains the affected raw record and must not apply ranges
+from a successful extraction to it. Keep the exact original result available.
+Turning off commentary presentation must make no commentary-render requests;
+an independently enabled workflow viewer can still show decoded logical lines
+as plain text. Turning off both restores ordinary tool output.
+
+For example, this shell output activates both conventions without JSON
+escaping or a helper library:
+
+```sh
+printf '%s\n' '# acli-capabilities: commentary-lines/1'
+printf '%s\n' '# _acli.commentary: @@visualization-schema/1 ["build","report"]'
+printf '%s\n' '# _acli.commentary: [build] Building the report.'
+printf '%s\n' 'compiler output belongs to build'
+printf '%s\n' '# _acli.commentary: [report] Open [the report](report.html).'
+```
+
+When a caller already announced the schema, omit the tool's activation line
+and use paths relative to its captured calling stage. Full-schema lifecycle
+records remain the calling agent's responsibility. Supporting producers also
+honor acli's `--no-commentary` suppression contract.
+
 ## Tool substeps and concurrent activity
 
 Tool paths are relative to the stage captured at invocation start. A publisher
