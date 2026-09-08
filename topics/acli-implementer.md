@@ -121,8 +121,18 @@ The Python writers implement `commentary/1`; they do not emit the separate
 | `acli.commentary` | `commentary`; writer-side validation/projection | Pass the suppression choice to the emitter. |
 | `acli.errors` | `ExitCode`, `error_envelope`, `die` | Translate application failures at the execution boundary. |
 | `acli.args` | `argument_parser`, `add_standard_args`, capability footer/banner | Advertise only wired capabilities; define application arguments and help. |
+| `acli.args` | `duration_seconds` | Use as an argument type for finite seconds or compact `s`/`m`/`h`/`d` durations; enforce option-specific bounds. |
 | `acli.args` | `maybe_complete`, `set_completer`, `candidates`, `hint` | Dispatch completion before action side effects. |
 | `acli.shell` | `run`; `maybe_repl` is exported from `acli` | Supply command callbacks; optionally bind a grammar with `rewrite`. |
+
+### Duration arguments
+
+`duration_seconds` returns floating-point seconds without rounding. Bare
+numbers default to seconds; compact values such as `5m`, `10h`, `2d1s`, and
+`0.5s` accept case-insensitive suffixes. Internal spaces and unknown units
+are rejected, as are non-finite results. Bare signed numbers remain valid;
+the application owns nonnegative or positive constraints. This small argument
+converter stays in `acli.args` without a separate library dependency.
 
 ### Output and errors
 
