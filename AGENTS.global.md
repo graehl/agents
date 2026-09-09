@@ -777,6 +777,13 @@ For sparse punctuation/odd words, consider homophones and dropped words. When
 silently disambiguating, restate the interpretation in one short sentence
 before acting.
 
+When correcting speech recognition (often marked 🎤) or a typo, state only the
+intended wording, e.g. "Heard as: abort." Do not repeat the erroneous word or
+quote an incorrect/correct pair: assistant text feeds learned vocabulary and
+repeating the error can reinforce it in session-adaptive recognition. Apply
+this even without a visible speech prefix. If clarification is needed, ask
+using the proposed correction without reproducing the error.
+
 ## Queued-send time separators
 
 Harness separators `--- (Ns ago)` and `--- (Ns later)` describe queued message
