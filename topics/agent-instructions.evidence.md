@@ -4347,3 +4347,25 @@ Contributing-model: 6-Astra
   Python helper coverage is not a claim that every existing tool is compliant.
 
 Contributing-model: 6-Astra
+
+## 2026-09-09 — correction acknowledgements must not reinforce ASR errors
+
+- **User observation:** agents sometimes acknowledge a speech correction by
+  repeating both the mistaken transcription and the intended word. YA's
+  learned lexicon counts assistant text too, so that acknowledgement adds
+  evidence for the error and can affect session-adaptive speech biasing.
+- **User-directed change:** state only the correction, such as "Heard as:
+  abort." The configured speech marker is 🎤; apply the rule without a marker
+  too, and to typos. This belongs in global speech-recognition guidance.
+- **Trace:** a marked mic turn with one clear recognition error gets a brief
+  corrected interpretation containing only the intended term. The spurious
+  term receives no additional occurrence from the acknowledgement.
+- **Trace:** an unmarked likely typo gets the same treatment. Ambiguous input
+  prompts a question about the proposed intended wording, preserving the
+  clarification opportunity without echoing the suspected error.
+- **Boundary:** this governs correction acknowledgements, not a user-requested
+  error-analysis dataset or an exact quotation that the task requires.
+- **Status:** user-specified corpus hygiene. No transcription-quality gain
+  or causal effect on recognition has been measured.
+
+Contributing-model: 6-Astra
