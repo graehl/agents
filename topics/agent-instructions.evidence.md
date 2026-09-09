@@ -4369,3 +4369,26 @@ Contributing-model: 6-Astra
   or causal effect on recognition has been measured.
 
 Contributing-model: 6-Astra
+
+## 2026-09-09 — YA-launched sessions must not search transcripts for session id
+
+- **User observation:** a YA-launched Grok session recovered its id from
+  `~/.grok/sessions/` because the host never exported `AGENTCTL_SESSION_ID`
+  (`BASH_ENV` unset; launch markers `AGENT_LAUNCHER`/`AGENT_LAUNCH_HARNESS`
+  were present).
+- **User-directed change:** YA-launched sessions should already have that
+  env var. Do not search transcripts to find the session id. Report a host
+  defect if it is missing after a Bash check in an already-running session.
+- **Prior rule this revises:** 2026-08-11 trust-if-present still stands for
+  launch markers; provider-log discovery is no longer the fallback for a
+  missing `AGENTCTL_SESSION_ID` when `AGENT_LAUNCHER` is set.
+- **Trace: marked YA Grok** — `AGENT_LAUNCHER=yepanywhere` and Bash
+  `$AGENTCTL_SESSION_ID` set; register that id and skip `~/.grok/sessions/`.
+- **Trace: YA Grok with missing var** — after init, Bash check is empty;
+  report a host publication defect instead of opening transcript directories.
+- **Trace: hand-launched Grok** — no `AGENT_LAUNCHER`; recover from
+  `~/.grok/sessions/<urlencoded-cwd>/` as the Grok supplement now documents.
+- **Boundary:** the first moments before provider init may still lack the
+  var; that is not a cue to search transcripts either.
+
+Contributing-model: grok-4.6

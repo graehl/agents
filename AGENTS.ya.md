@@ -32,14 +32,24 @@ prefer `AGENT_LAUNCH_ROUTE` and `AGENT_LAUNCH_BACKEND` when present.
 
 ## Markers delivered through the Bash bridge
 
-YA may publish `AGENTCTL_SESSION_ID` and session capabilities late through
-`BASH_ENV`; check an ordinary Bash call, not the agent process environment.
-An early absence on a fresh session is normal. Before using or diagnosing
-wake/browser credentials or child-environment propagation, read the matching
-sections of `topics/AGENT_ENV_VARS.md`, including YA late publication and
-compatibility names. Prefer complete canonical pairs; never mix a canonical
-and legacy value or log a token. Browser access also needs the separate tab
-grant; wake values are YA-owned outputs, not operator inputs.
+YA publishes `AGENTCTL_SESSION_ID` for every hosted provider session.
+Check an ordinary Bash call, not only the agent process environment: a
+resume may also set the process env, while a new session writes the id
+through `BASH_ENV` once the provider reports it, before the first
+user-turn tool shells. An early absence only in the first moments before
+that init remains possible.
+
+When `AGENT_LAUNCHER=yepanywhere`, that value is the session id. Do not
+search provider transcripts to recover it. If it is still unset after a
+Bash check in an already-running session, the host failed to publish;
+report that defect rather than substituting a transcript-derived id.
+
+Before using or diagnosing wake/browser credentials or child-environment
+propagation, read the matching sections of `topics/AGENT_ENV_VARS.md`,
+including YA late publication and compatibility names. Prefer complete
+canonical pairs; never mix a canonical and legacy value or log a token.
+Browser access also needs the separate tab grant; wake values are
+YA-owned outputs, not operator inputs.
 
 ## Namespace transition
 
