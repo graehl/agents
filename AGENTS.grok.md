@@ -17,30 +17,33 @@ Primary mechanism: the launcher-injected `$AGENTCTL_SESSION_ID`. It is
 harness-agnostic — a launcher such as yepanywhere (YA) exports it per
 command through a `BASH_ENV` bridge that the `agentctl` bash wrapper
 sources regardless of provider — so it works for Grok with no
-Grok-specific discovery snippet. If it is set in your Bash env, use it
-verbatim as the session id for `.agentctl/active/<session-id>` and skip
-any further lookup; `agentctl` adopts the same var first, so its `active/`
-entry and yours name the same file.
+Grok-specific discovery snippet. Check an ordinary Bash call, not only
+the agent process environment. If it is set, use it verbatim as the
+session id for `.agentctl/active/<session-id>` and skip any further
+lookup; `agentctl` adopts the same var first, so its `active/` entry and
+yours name the same file.
 
-If Grok exposes a native resumable session id (a var, or an id a
-resume/list command would use), prefer it, and have the launcher mint
-`AGENTCTL_SESSION_ID` to equal it so the entry and any transcript agree —
-the same pattern as Claude's `claude --session-id <uuid>`. Until such a
-mechanism is confirmed for Grok, the YA-injected id is effectively a
-personal tag: `active/` stays self-consistent across peers but may not map
-to a provider transcript. Record the tag once and reuse it across
-compaction/resume.
+YA uses Grok's native session id (UUIDv7 directory name under
+`~/.grok/sessions/`) as the canonical YA session id, so the env var
+matches the transcript directory when YA launched this session.
 
-If no `AGENTCTL_SESSION_ID` is present and no native id is exposed, fall
-back to a personal tag per `AGENTS.global.md` § Active sessions and note that the
-launcher bridge was absent.
+When `AGENT_LAUNCHER=yepanywhere`, do not search transcripts for a
+substitute. If `$AGENTCTL_SESSION_ID` is still unset after a Bash check
+in an already-running session, report a YA host publication defect.
+
+If no launcher is present (hand-launched Grok) and the var is unset,
+recover the id from the newest matching
+`~/.grok/sessions/<urlencoded-cwd>/` directory for this cwd. Do not
+invent a personal tag when that directory exists.
 
 ## Session Logs
 
-The on-disk location of Grok transcripts (if any) is not documented here
-yet. When `AGENTS.global.md` says to search provider session logs, discover the
-transcript directory from the running harness and record it in this file
-once known; do not assume a path from training data.
+Grok stores each session at
+`~/.grok/sessions/<urlencoded-cwd>/<session-id>/` (`GROK_HOME` overrides
+`~/.grok`). `updates.jsonl` is the conversation log. When
+`AGENTS.global.md` says to search provider session logs, search there,
+excluding your own `$AGENTCTL_SESSION_ID` directory. A YA-launched
+session still must not use that search to recover its own id.
 
 ## Confirm before hard-to-reverse or outward-facing actions
 

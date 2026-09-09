@@ -59,11 +59,13 @@ mechanics. Record an unrecoverable advisor id as such; never invent one.
 ## Active sessions
 
 On the first planning-to-act step in a shared workdir, register
-`.agentctl/active/<real-resumable-session-id>`. Recover the provider's actual id
-using its supplement; never invent an id where transcript/provider state can
-recover one. Line 1 is a present-tense gist; optional line 2 is
-`scope: <paths/globs>`. Refresh at milestones, after ten minutes of continuous
-work, and at least hourly. On completion, line 1 begins `DONE`.
+`.agentctl/active/<real-resumable-session-id>`. Use `$AGENTCTL_SESSION_ID`
+when present. When `AGENT_LAUNCHER` is set, that launcher publishes the
+id — do not search transcripts for a substitute. Otherwise recover the
+provider's actual id using its supplement; never invent an id. Line 1 is
+a present-tense gist; optional line 2 is `scope: <paths/globs>`. Refresh
+at milestones, after ten minutes of continuous work, and at least hourly.
+On completion, line 1 begins `DONE`.
 
 Pure read-only/interview sessions may skip registration. At caution points,
 recheck active peers rather than carrying an old belief:
@@ -172,7 +174,9 @@ Trust present `AGENT_LAUNCHER`, `AGENT_LAUNCH_HARNESS`,
 `AGENT_LAUNCH_ROUTE`, `AGENT_LAUNCH_BACKEND`, `AGENT_LAUNCH_MODEL`,
 `AGENT_LAUNCH_EFFORT`, and `AGENTCTL_SESSION_ID` values as launcher-recorded
 facts. Use the harness marker for supplement routing; launch model and effort
-remain launch facts after a mid-session change. Query provider state or logs
+remain launch facts after a mid-session change. When `AGENT_LAUNCHER` is
+set, `$AGENTCTL_SESSION_ID` is that session's id after a Bash check; do
+not search provider logs for a replacement. Query provider state or logs
 only for a required fact that no present marker supplies. Canonical
 agent-facing launcher/session outputs use `AGENT_*`; product-prefixed aliases
 explicitly listed in `topics/AGENT_ENV_VARS.md` are migration inputs, not naming
