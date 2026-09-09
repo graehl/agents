@@ -3834,8 +3834,10 @@ def write_meta(state: dict) -> dict:
             "source_status",
             str((state.get("source_snapshot") or {}).get("status", "")),
         ),
-        ("started_at", state["started_at"]),
-        ("pid", str(state["pid"])),
+        # A job refused before its payload launched (dependency or source-gate
+        # failure) has no started_at/pid; render what it does have.
+        ("started_at", state.get("started_at") or state.get("queued_at") or ""),
+        ("pid", str(state.get("pid") or "")),
     ]
     machine_snapshot_record = state.get("machine_snapshot") or {}
     for key in ("hostname", "architecture", "kernel", "python_version"):
