@@ -41,6 +41,13 @@ For tracked `agentctl` work, the canonical record is the JSON run dump under
 The record owns argv/cwd, declared inputs and outputs, script fingerprint, Git
 state, and producer propagation.
 
+Declare an input or output at its durable path, not at a fast scratch replica
+the payload happens to read or write. Scratch carries only regenerable bytes
+(`_RUNS/resources.md`), so a record naming only the replica stops resolving as
+soon as that copy is evicted or its host is replaced. When the payload must be
+handed the replica path for speed, relocate the artifact and repoint the record
+before treating the run as complete.
+
 The default tracked form is also a source-admission gate. It requires a Git
 checkout with a committed `HEAD`. `--source-scope non-doc` (the default) rejects
 tracked/index changes repo-wide except `*.md` and `runs/aim/**` bookkeeping;
