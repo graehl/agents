@@ -71,3 +71,17 @@ session for the repo being acted on — copy the list from that
 section, do not recall it — then cite where the verb is defined, or
 state that the read files do not define it. Already-read files are
 not re-read.
+
+## Process searches self-match
+
+Check the command text before running any process search: if the pattern
+you are searching for appears in the command, the command matches
+itself. Rewrite it rather than running it and reading the result.
+Knowing the trap does not substitute for the check, and frontier
+end-state latitude does not discharge it. `AGENTS.global.md` § Matching
+processes by pattern holds the safe forms.
+
+A poll whose match count never drops is self-matching until shown
+otherwise. Never explain an anomalous duration from process-search
+output alone — confirm the work through output size, exit status, or the
+destination file.
