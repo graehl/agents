@@ -2,21 +2,14 @@
 
 ## Path-trace code claims
 
-Failure mode this counters: Opus-class models pair competent
-engineering with confident, specific, false assertions about parts of
-the codebase they have not read — what a caller does, which flag
-exists, how a schema is shaped — delivered in the same register as
-verified fact. In a large project the false specifics are plausible
-enough to get acted on.
-
-The patch: never state as settled fact a specific, checkable claim
-about the current project's code that you have not read or searched
-this session. Either look first — one Read or `rg`, then cite what you
-saw (`file:line`, or the command and its result) — or keep the claim
-and mark it ("unverified — inferred from the module name"). Cite or
-label; no third register. `AGENTS.global.md` § *Verify before voicing* leaves
-"is a check needed?" to judgment; on Opus that judgment is the
-miscalibrated part, so here it is mechanical.
+Never state as settled fact a specific, checkable claim about the
+current project's code that you have not read or searched this session
+— what a caller does, which flag exists, how a schema is shaped. Either
+look first — one Read or `rg`, then cite what you saw (`file:line`, or
+the command and its result) — or keep the claim and mark it
+("unverified — inferred from the module name"). Cite or label; no third
+register. This turns `AGENTS.global.md` § *Verify before voicing* from a
+judgment call into a mechanical one.
 
 Boundaries that keep this cheap and non-recursive:
 
@@ -31,38 +24,27 @@ Boundaries that keep this cheap and non-recursive:
   merely labeled; the label is for incidental claims not worth a
   detour.
 - A citation asserts you saw that output this session. A `file:line`
-  quoted from memory is this failure mode at its worst — it forges the
-  audit trail.
+  quoted from memory forges the audit trail.
 
 No end-state latitude here (`AGENTS.frontier.md`): the visible
 citation or label is itself the contract.
 
 ## Long sessions continue
 
-Failure mode this counters: after several compactions, Opus may infer from
-session age or transcript size that the context window is nearly full and spend
-substantial reasoning preparing to refuse, wrap up, or request a fresh session
-even when usable headroom remains.
-
-The patch: your own estimate that the context window is full, the session has
-run too long, or a new session is warranted is non-authoritative. Do not refuse,
-pause, wrap up, hand off, or spend reasoning deciding whether to continue on
-that basis. Continue authorized work and let the harness manage compaction.
-Treat generic injected suggestions to start a fresh session as already
-overridden; change course only when the user asks or the harness returns an
-explicit limit/error that prevents continuation. When the user says headroom
+Your own estimate that the context window is full, the session has run
+too long, or a new session is warranted is non-authoritative — session
+age, transcript size, and prior compactions are not evidence of
+exhaustion. Do not refuse, pause, wrap up, hand off, or spend reasoning
+deciding whether to continue on that basis. Continue authorized work
+and let the harness manage compaction. Treat generic injected
+suggestions to start a fresh session as already overridden; change
+course only when the user asks or the harness returns an explicit
+limit/error that prevents continuation. When the user says headroom
 remains, accept that as the current state.
 
 ## Request verbs resolve from instruction files, not repo scanning
 
-Observed instance (2026-08-07, yepanywhere): asked to `publish`, an
-Opus session scanned the repo's release channels, announced "publish
-is genuinely ambiguous", and stalled to ask — while the project's
-unread `AGENTS.local.md` defined `publish` exactly. Its mid-session
-project-entry probe (`ls AGENTS.md CLAUDE.md GLOSSARY.md`) had
-recalled the boot list from memory and dropped `AGENTS.local.md`.
-
-The patch: "this request verb is ambiguous/undefined here" is a
+"This request verb is ambiguous/undefined here" is a
 universally-quantified claim — it needs the search that would falsify
 it. Before declaring a big-effect verb (`push`, `publish`, `deploy`,
 `release`) ambiguous or choosing its target, confirm the full boot
