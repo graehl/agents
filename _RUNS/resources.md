@@ -41,6 +41,24 @@ space before launch; remove only artifacts known to be stale under the normal
 deletion and shared-worktree rules. A remote worker also follows its project's
 host/storage runbook.
 
+### Scratch holds only regenerable bytes
+
+A host's fast scratch tier — `/scratch`, instance-store NVMe, or the project's
+named equivalent — is a high-performance `/tmp` that happens to survive reboot.
+Presume that evicting anything on it to reclaim space is reasonable, and that
+nothing on it survives host replacement. Only efficiently regenerable bytes
+belong there: caches, model and package downloads, intermediates, and
+performance replicas.
+
+Scratch may still be the landing zone for an expensive or unreproducible write
+when the fast path is what makes the run practical. Relocating that artifact to
+durable storage is then part of the run, not later cleanup: move it out before
+calling the run complete, and refer to it at the durable path from then on.
+
+A replica may stay on scratch for speed after the durable copy exists. Cite the
+durable home rather than the replica, so the reference still resolves once the
+replica is evicted.
+
 ### GPU utilization and parallelism policy
 
 On a non-shared GPU, keep already-planned work moving without waiting for
@@ -94,6 +112,28 @@ checkpoint rotation may temporarily require both old and new checkpoints, and
 package or data staging may consume a worker root volume even when the final
 output goes elsewhere. Record or report a material capacity assumption when a
 long run depends on it.
+
+### Scratch holds only regenerable bytes
+
+The failure this prevents is a citation that outlives its bytes. Scratch is
+usually instance-store or a similarly disposable local volume, so it is lost
+whenever the host is replaced or rebuilt, and it is the first place an operator
+deletes from under space pressure. An artifact whose only recorded location is
+a scratch path is therefore gone twice over: the bytes disappear, and the run
+record that named them stops resolving, so a later reader cannot even tell what
+was lost or how to recompute it.
+
+Two cases need no relocation. Bytes that a cheap command regenerates from
+surviving inputs may simply be deleted; the record's command and declared
+inputs already carry everything a reader needs. And a replica whose durable
+original exists elsewhere is already safe, provided the record cites the
+original.
+
+Everything else — a teacher pass, a judge decision set, a trained checkpoint, a
+hand-audited dataset — earns its durable home before the run that produced it
+is treated as finished. Relocating it months later is the expensive version of
+the same move, because by then the durable path has to be reconciled with
+records, sidecars, and prose that all still name the scratch one.
 
 ### GPU access for Python ML commands
 
