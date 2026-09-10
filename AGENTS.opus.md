@@ -67,3 +67,16 @@ A poll whose match count never drops is self-matching until shown
 otherwise. Never explain an anomalous duration from process-search
 output alone — confirm the work through output size, exit status, or the
 destination file.
+
+## An empty search result needs a positive control
+
+Before an empty result becomes "no caller", "never set", or "nothing
+reads it", make the same command prove it can match: add a term already
+known present, or re-run against a file known to contain the thing. This
+is the falsifying search § *Path-trace code claims* requires, turned on
+the search itself.
+
+Case is the usual reason a search cannot match. A lowercase pattern
+misses the identifier that embeds it — `saturated` does not find
+`seenSaturated` — so a getter with a live caller reads as dead code, and
+the claim built on it is universally quantified.
