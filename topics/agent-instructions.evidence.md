@@ -4450,5 +4450,14 @@ Contributing-model: grok-4.6
   `2026-08-07, yepanywhere` instance and two "Failure mode this counters"
   preambles. Those predecessors are unchanged here; stripping them is a
   separate pass the user has not asked for.
+- **Follow-up, user-directed** — the user then asked for those strips.
+  `AGENTS.opus.md` now opens every section on its directive: 37 lines of
+  narration out, 19 back, no rule removed. The removed accounts are already
+  held here — path-trace under 2026-07-25, the truncated boot list and
+  "ambiguous publish" under 2026-08-07, long-session self-termination under
+  2026-08-19 — so nothing was lost, only unloaded. Two rationale clauses were
+  kept because they steer rather than recount: that the path-trace rule
+  converts § *Verify before voicing* from judgment to mechanism, and that a
+  remembered `file:line` forges the audit trail.
 
 Contributing-model: Opus 5
