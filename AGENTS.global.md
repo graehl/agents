@@ -944,11 +944,15 @@ Leave `-f` off `rm` and prefer `rm -r` unless missing targets must not fail.
 Force flags trigger destructive gates without changing deletion of an existing
 path.
 
-## Killing by pattern
+## Matching processes by pattern
 
-`pkill -f`/`pgrep -f` from an agent shell can match the shell's own
-wrapper, whose command line contains the pattern. `pgrep -f` first and
-kill named PIDs, or narrow the pattern past self-match.
+A command-line process search from an agent shell — `pgrep -f`,
+`pkill -f`, `ps | grep` — also matches the shell wrapper running that
+very search, so a finished job reads as still running and a wait loop
+never drains. Prefer name matching (`pgrep -x rsync`), which ignores
+argv and so cannot match on the search text. When the command line is
+required, list candidates with `ps -o pid=,args= -p <pids>` and drop
+your own shell before believing the result or killing anything.
 
 ## Agent-facing CLI help
 

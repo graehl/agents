@@ -54,6 +54,15 @@ conversation. If an edit errors with "have not read this file", do not
 retry the edit — Read first, then Edit. More generally: when a tool call
 fails, read the error and adjust, rather than reissuing the same call.
 
+## Process searches match your own shell
+
+`ps aux | grep foo`, `pgrep -f foo`, and `pkill -f foo` also match the
+shell running them, because `foo` is in that shell's own command line.
+The match is you, not the job — so a finished process looks alive, and a
+wait loop on that search never ends. Search by process name instead
+(`pgrep -x foo`), or run `ps -o pid=,args= -p <pids>` and read the
+command lines before believing the result or killing anything.
+
 ## Conditional file loads
 
 Load these files when the corresponding trigger first fires in the

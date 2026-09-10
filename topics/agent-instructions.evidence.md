@@ -4392,3 +4392,63 @@ Contributing-model: 6-Astra
   var; that is not a cue to search transcripts either.
 
 Contributing-model: grok-4.6
+
+## 2026-09-10 — Self-matching process searches: global broadening plus an Opus patch
+
+- **User observation** — Opus repeatedly writes `ps | grep <pattern>` from an
+  agent shell and reads the resulting self-match as a live process; the user
+  reports no other model doing this. Asked afterwards why a 200MB copy appeared
+  to take ten minutes, the same session explained the self-match trap correctly
+  and by name. Knowledge is present; it does not fire at compose time.
+- **Verified in-harness (this session, `claude-opus-5` under Claude Code)** —
+  for a marker present only in the probe command itself: `ps auxww | grep MARK`
+  printed three matches (the tool's `/bin/bash -c` wrapper, its subshell, and
+  the grep); `pgrep -f MARK` matched the wrapper and exited 0; name-only
+  `pgrep MARK` exited 1. So the wrapper, not just the grep process, is the
+  self-match source — the `[m]ARK` bracket trick and `grep -v grep` both fail
+  against `pgrep -f`, while name matching is clean.
+- **Why the existing rule missed it** — `AGENTS.global.md` § *Killing by
+  pattern* named only `pkill -f`/`pgrep -f` and only the kill hazard. The
+  reported failure is detection: the false positive makes a finished job read as
+  running, and a poll loop on it never drains. Section renamed *Matching
+  processes by pattern*, `ps | grep` named explicitly, name matching given as
+  the primary safe form, and `ps -o pid=,args= -p <pids>` as the fallback when
+  the command line is genuinely required.
+- **Placement** — the detection hazard is model-general, so the broadened rule
+  is global (weak-file edit policy also requires the load-bearing text to live
+  there). `AGENTS.opus.md` takes only the model-specific part: the trap is
+  recalled on demand but not applied while composing, so the patch is a
+  compose-time check on the command text, explicitly not discharged by frontier
+  end-state latitude, plus the two harms observed — a never-draining poll and a
+  cause narrated from search output alone.
+- **User-directed duplication** — the user asked for the rule in
+  `AGENTS.weak.md` as well. That file's stated remit is restatement of frontier
+  defaults, and this is a case where a frontier model demonstrably lacks the
+  default; the restatement is still legitimate under its edit policy because the
+  binding text is in `AGENTS.global.md`. Left the weak file's self-description
+  unchanged.
+- **Trace: `perf-sweep`** — `topics/perf.md` requires argv-marker matching, which
+  the global rule's "prefer name matching" would appear to forbid. It does not:
+  the fallback branch covers it, and `scripts/perf-sweep` already excludes its
+  own ancestors (`ancestors(os.getpid())`) and refuses to group-signal a group
+  containing itself. No perf change needed.
+- **Trace: killing a named daemon** — `pgrep -x node` matches every peer's node
+  too. The rule steers away from self-match, not toward broad name kills;
+  `topics/perf.md` § *Kill only by marker* remains the governing rule there.
+- **Status** — one user-reported recurrence plus one in-session mechanical
+  verification. No measurement that the compose-time framing beats the plain
+  rule; if Opus keeps self-matching with the patch loaded, the next move is a
+  tool-level fix (a `procmatch` helper that excludes the caller's ancestry) over
+  more instruction text.
+- **Authoring correction (user, same session)** — the first draft of the Opus
+  section opened with a dated incident narration (the 200MB copy, the
+  explains-it-when-asked observation). Boot-loaded text carries the trigger and
+  the directive only; the incident belongs in this ledger. § *Invariants* above
+  already says so — rationale and validating commentary go to the unloaded
+  rider — and it was not applied because the three neighboring sections in
+  `AGENTS.opus.md` model the older narrated style, including a dated
+  `2026-08-07, yepanywhere` instance and two "Failure mode this counters"
+  preambles. Those predecessors are unchanged here; stripping them is a
+  separate pass the user has not asked for.
+
+Contributing-model: Opus 5
