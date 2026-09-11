@@ -396,9 +396,11 @@ a topic doc; details live in `topics/commits.md`.
 #### Contributing-model trailer
 
 Every commit an agent authors carries a `Contributing-model: <name>`
-trailer — an intentional abbreviation of the model name
-(`claude-fable-5` → `Fable`, `claude-opus-5` → `Opus 5`,
-`gpt-5.6-sol` → `5.6-Sol`); vendor or harness names (`Pi`,
+trailer — the model family plus version, lowercase and hyphenated
+as the harness id spells them, vendor prefix dropped
+(`claude-fable-5-1` → `fable-5.1`, `claude-opus-5` → `opus-5`,
+`gpt-5.6-sol` → `5.6-Sol`); a bare family name loses the version,
+and vendor or harness names (`Pi`,
 `Copilot`), emails, and links are not welcome. Recover the id per
 the harness supplement's transcript check; models misreport their
 own names. One trailer per contributing model, additive across

@@ -4461,3 +4461,23 @@ Contributing-model: grok-4.6
   remembered `file:line` forges the audit trail.
 
 Contributing-model: Opus 5
+
+## 2026-09-11 — Contributing-model short names carry the version
+
+- **User instruction (yepanywhere session e5cb53a3)** — "contributing-model
+  fable-5.1 makes more sense than fable and you can make this durable i guess
+  in ~/agents." The trailer rule's examples mapped `claude-fable-5` → `Fable`,
+  which drops the version the trailer exists to record; practice had already
+  diverged (`opus-5` 99 uses vs the documented `Opus 5`, `Fable` 22 uses,
+  `fable-5` once).
+- **Decision** — value grammar is family plus version, lowercase, hyphenated
+  as the harness-recorded id spells them, vendor prefix dropped:
+  `claude-fable-5-1` → `fable-5.1`, `claude-opus-5` → `opus-5`; `5.6-Sol`
+  stays as the established spelling. Updated `topics/commits.md`
+  § Contributing-model trailer, `AGENTS/change-delivery.md` § Contributing-model
+  trailer, and the `GLOSSARY.md` row. `AGENTS.global.md` already says only
+  "short model names", so the boot text did not change.
+- **Not done** — no rewrite of historical trailers; the `[no-attrib]` scan
+  never matched either spelling, so nothing trips.
+
+Contributing-model: fable-5.1
