@@ -174,9 +174,11 @@ Every commit an agent authors names the model(s) that did the work
 in `Contributing-model:` trailers — deliberate provenance the user
 wants for fair attribution of effort across models and sessions.
 
-Value grammar: an intentional abbreviation of the model name —
-`claude-fable-5` → `Fable`, `claude-opus-5` → `Opus 5`,
-`gpt-5.6-sol` → `5.6-Sol`. Vendor or harness names (`Pi`,
+Value grammar: the model family plus its version, lowercase and
+hyphenated as the harness-recorded id spells them, with the vendor
+prefix dropped — `claude-fable-5-1` → `fable-5.1`, `claude-opus-5` →
+`opus-5`, `gpt-5.6-sol` → `5.6-Sol`. A bare family name (`Fable`)
+loses the version and is not enough. Vendor or harness names (`Pi`,
 `Copilot`) are not welcome, nor an email or link. Models misreport
 their own names, so recover the id the way the harness supplement
 specifies (transcript grep), not from self-knowledge.
