@@ -99,6 +99,10 @@ A fresh-per-consult policy retains the metadata line but removes the incumbent
 line after closure. Full intake, resume, and unavailable-id handling is in
 `topics/handoffs.md`.
 
+Every handoff ends with `Source session: <harness> | <session id>` for the
+session that wrote it, so the transcript behind the summary stays reachable;
+`topics/handoffs.md` § Contents owns the id source and the multi-session rule.
+
 ### Active sessions
 
 On the first planning-to-act step in a shared workdir, write

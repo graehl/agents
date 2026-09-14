@@ -106,9 +106,17 @@ Include only what that reader needs to resume accurately:
 - the single best next action, followed by other live next steps;
 - concrete paths, symbols, commits, artifacts, and task/topic links;
 - active jobs with job/run identity, log and output paths, plus the action to
-  take when each finishes; and
-- other source-session or environment metadata only when it materially helps
-  deeper recovery.
+  take when each finishes;
+- other environment metadata only when it materially helps deeper recovery;
+  and
+- as the final line, `Source session: <harness> | <session id>`, so a reader
+  can open the writing session's transcript for detail the handoff compresses.
+  Use the harness family name the launch marker uses (`claude`, `codex`,
+  `grok`, …) and the same canonical durable resume id the harness supplement
+  gives for active-session registration; never invent one, and write `id
+  unavailable` when it is unrecoverable. Keep one line per session whose
+  transcript still backs content in the handoff, oldest first; drop a line
+  when the handoff no longer relies on that session's work.
 
 An opening `/goal X` needs no additional handoff structure by itself;
 applicable advisor metadata, incumbent, intake, and output-policy lines still
