@@ -26,8 +26,11 @@ handoff, choose the narrowest truthful fallback:
 - put a nice-to-have or dreamed improvement that exposes no current defect or
   blocker in the owning topic's `.sketches.md` companion; a requested plan is
   not a gap merely because it is unimplemented;
+- for a research program, use its governed subtree under
+  [program-scoped handoffs and recovery](../_RESEARCH/workflow.md#program-scoped-handoffs-and-recovery),
+  so the handoff path leads to its full governing `PROGRAM.md` chain;
 - use `tasks/auto-handoff-<slug>.md` for private continuity state that is not a
-  project gap; or
+  project gap and has no owning research program; or
 - use an established project-specific task/handoff location instead of
   creating a parallel convention.
 

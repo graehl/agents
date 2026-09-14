@@ -101,7 +101,8 @@ Before using tools in a repo for the first time in a session — at
 launch or when work pivots into another project mid-session — read its
 root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, any `README.md` they
 name as an instruction source. Then discover project-owned `PROGRAM.md` paths
-and read the root program when present. The duty
+and read the governing chain for the named scope, or the root program when no
+scope is named. The duty
 binds to the repo being acted on, not the launch cwd; the harness
 injects nothing for a foreign repo, so these reads are the only way
 its rules load. Copy this list rather than recalling it — a
@@ -113,9 +114,13 @@ session are not re-read on later returns. Task files do not
 substitute for this. If a file is unreadable or a symlink is broken,
 report once and continue.
 
-Before interpreting or acting in a subtree, read its full ancestor program
-chain, including its own charter. Read all programs for project-wide
-orientation, scope selection across programs, audits, or changes. A root
+Before interpreting or acting in a subtree, read its full governing program
+chain, including its own charter and unlinked parents. Stop program-parent
+reads and inheritance only at an explicit `Program root: self` declaration;
+user authorization and context-compilation requirements are in
+`TOPICS.md` § Self-rooted programs. Global/project agent instructions still
+apply. Read all programs for project-wide orientation, scope selection across
+programs, audits, or changes. A root
 charter's optional child list is not the discovery index. Exclude vendored
 dependencies and external repositories.
 

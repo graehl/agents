@@ -81,7 +81,8 @@ directory path remains the program's canonical locator, and discovery never
 depends on the title.
 
 A nested `PROGRAM.md` specializes the nearest parent charter and should not
-repeat it. Read the parent when interpreting or updating the child. An old
+repeat it. Read the parent when interpreting or updating the child, except at
+an explicit [self-rooted boundary](#self-rooted-programs). An old
 `Research program: <slug>` glossary header may coexist as inert compatibility
 metadata, but program discovery uses `PROGRAM.md` only.
 
@@ -91,18 +92,21 @@ A Markdown heading at any level named exactly `Program instructions` marks a
 binding section of `PROGRAM.md`. Its content and nested subsections govern work
 in the directory containing that file and its descendants; the section ends at
 the next heading of equal or higher level. Program instructions in ancestor
-directories apply inward, and the nearer rule wins when two conflict. They do
-not override applicable global or project agent instruction files. All content
-outside such sections remains descriptive.
+directories apply inward within the governing chain, and the nearer rule wins
+when two conflict. They do not override applicable global or project agent
+instruction files. Outside such sections, only the explicit self-rooted
+declaration below changes program inheritance; other text is descriptive.
 
 Create or revise program instructions only from explicit user direction. In
 particular, inferring a missing charter or handling “update program scope” must
 not invent, remove, or reinterpret them.
 
-At project entry, discover project-owned `PROGRAM.md` paths and read the root
-charter when present. Before interpreting or acting in a subtree, read its full
-ancestor program chain, including its own charter. Read all programs for
-project-wide orientation, scope selection across programs, audits, or changes.
+At project entry, discover project-owned `PROGRAM.md` paths. For a named scope,
+fully read its governing chain: its own charter and every parent through the
+nearest self-rooted declaration, or the project root when none exists. Parent
+links are unnecessary. With no named scope, read the root charter when present.
+Read all programs for project-wide orientation, scope selection across
+programs, audits, or changes.
 A root charter's optional child list is not authoritative; discovery still
 scans for charters. Exclude vendored dependencies and external repositories.
 
@@ -115,6 +119,29 @@ consequential uncertainty rather than converting it into false certainty.
 “Update all program scopes” repeats this for every existing charter and every
 glossary scope whose artifacts support such a program; a plain vocabulary
 scope does not gain a charter merely to make the sweep exhaustive.
+
+### Self-rooted programs
+
+Only on an explicit user request to make a program self-rooted, place the
+standalone line `Program root: self` near the top of its `PROGRAM.md`, outside
+code examples. That charter becomes the program root for itself and descendants
+until a deeper self-rooted declaration. Subsequent sessions stop program-parent
+reads and inheritance there; they need not check parents for changes. Ordinary
+scope inference or a convenience wish to shorten boot does not authorize the
+declaration.
+
+Before establishing the boundary, read the existing governing chain and compile
+the inherited intent, applicable requirements, and needed vocabulary into the
+subtree's charter and locally owned detail documents. Preserve trigger, action,
+and persistence spans; record any deliberately omitted or changed requirement
+and its user authorization. The resulting program must be usable without
+parent-policy consultation. Do not add the declaration while that compilation
+has unresolved dependencies. Historical source references may remain without
+restoring inheritance; future parent changes apply only through a deliberate
+update of the compiled context.
+
+This boundary affects program context only. Global/project `AGENTS.md`, local
+amendments, and other independently governing instructions still apply.
 
 ## By domain
 

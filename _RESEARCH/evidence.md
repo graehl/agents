@@ -120,9 +120,10 @@ a user-facing readout — and always when the result is negative or surprising:
   truncation, retries, empty decodes, guard rejections, fallbacks — before
   summarizing; a hit routes to the post-run option audit in
   `_RESEARCH/judgment.md`.
-- Reread the governing guidance: the frozen protocol and every `PROGRAM.md`
-  from the artifact's directory upward, for stated requirements the failing
-  path may not implement (for example, sentence-segmenting data on intake).
+- Reread the governing guidance: the frozen protocol and the artifact's full
+  governing `PROGRAM.md` chain, respecting explicit self-rooted boundaries,
+  for stated requirements the failing path may not implement (for example,
+  sentence-segmenting data on intake).
 - State the failure class in the readout: invocation error, harness/resource
   error, protocol defect (a design artifact such as an output ceiling or
   oversized chunk, or an unmet stated requirement), or genuine model-output

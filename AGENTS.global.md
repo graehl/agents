@@ -244,10 +244,14 @@ repo—fully read, when present:
 3. `CLAUDE.md`;
 4. any README named by those as an instruction source.
 
-Then discover project-owned `PROGRAM.md` paths and read the root program, if
-present. Before interpreting or acting in a subtree, read its full ancestor
-program chain, including its own charter. Read all programs for project-wide
-orientation, scope selection across programs, audits, or changes. A root
+Then discover project-owned `PROGRAM.md` paths. Before interpreting or acting
+in a named subtree, fully read its governing program chain, including its own
+charter and parents even when unlinked; with no named scope, read the root
+program when present. An explicit `Program root: self` declaration stops program
+parent reads and inheritance at that charter. Establish it only on user request,
+after compiling required inherited context under `TOPICS.md` § Self-rooted
+programs; global/project agent instructions still apply. Read all programs for
+project-wide orientation, scope selection across programs, audits, or changes. A root
 charter's optional child list is not the discovery index. Exclude vendored and
 external repositories. Probes/slices and task files do not substitute for the
 required bodies. Do not repeat project-entry reads on later returns in the
@@ -655,8 +659,9 @@ owning `.sketches.md`, outside routine topic reads.
 `PROGRAM.md` declares a scope's durable aspirations and boundaries. Its exact
 `Program instructions` heading binds the subtree through the next equal/higher
 heading; nested subsections belong to it. Ancestor rules apply inward, nearer
-program rules win conflicts, and global/project agent instructions take
-precedence. Other charter text is descriptive. Before creating, updating, or
+program rules win conflicts within the governing chain, and global/project
+agent instructions take precedence. Apart from an explicit `Program root: self`
+boundary, other charter text is descriptive. Before creating, updating, or
 interpreting a charter's scope, read `TOPICS.md` § Program scope charters.
 “Update program scope” revises/infers the nearest descriptive charter; “all
 program scopes” applies that project-wide. Never infer or revise binding
