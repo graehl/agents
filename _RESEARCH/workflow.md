@@ -3,11 +3,70 @@
 > Rules, templates, and rationale for on-deck work, subtasks, checkpoints, direction roots, paths, and resume.
 
 Read this packet before queueing, resuming, checkpointing, or autonomously
-selecting research work. `RESEARCH.md` is the router and wins on conflict.
+selecting research work, or creating or updating a research handoff.
+`RESEARCH.md` is the router and wins on conflict.
 
 ## Binding rules
 
 ### Workflow and continuity
+
+#### Program-scoped handoffs and recovery
+
+Place new research handoffs inside the program they resume, normally
+`research/<program>/handoffs/<scope>.md`, beneath the appropriate `PROGRAM.md`.
+Use a deeper child program when it owns the work; use the common parent for a
+cross-child handoff and link the affected children. Prefer an existing
+in-program handoff directory. Do not put a new program handoff in root
+`tasks/`; task tracking may stay there and link to it. Placement does not make
+private state publishable: preserve the project's tracked/private convention
+and exclude a newly created private directory through `.git/info/exclude`.
+Follow [handoffs.md](../topics/handoffs.md) for contents and maintenance.
+
+When an older handoff lives outside its program, record its owning program
+path explicitly and follow that program's chain on resume. Relocation must
+preserve the old entry point and update known references; do not silently move
+a peer's live handoff or change `tasks/ROOT`.
+
+On session resume or takeover of research work, including a supplied handoff:
+
+1. Resolve the named scope under the global resume-source priority. Locate and
+   fully read the governing `PROGRAM.md` chain through the owning program,
+   including unlinked parents. Stop only at an explicit `Program root: self`
+   boundary under [TOPICS.md](../TOPICS.md#self-rooted-programs), or the project
+   root when none exists. A command run from root `scripts/` still serves the
+   program owning its research
+   inputs/outputs; its working directory does not bypass those requirements.
+2. Read the process map's overall flow, applicable stage contracts and selected
+   variations, plus the relevant inventories' status/identity conventions and
+   entries for the active inputs, ancestry, and comparison/reserved sets.
+   Follow their required detail-document routes. Read enough to reconstruct
+   the active path; do not ingest unrelated programs or every historical row.
+3. Reconcile the handoff with those records and live artifacts/run receipts.
+   Establish the actual versions and roles in use, inherited model/data
+   exposure, and the evidence required before the next stage. For additional
+   data, establish what it must be additional to and locate the program's
+   deduplication method and comparison inventory before annotation or split
+   admission; a filename or hash-only check cannot stand in for a required
+   partial-overlap check.
+4. Give a compact account of the reconstructed path, the next action's
+   load-bearing requirements, and satisfied/open gates with evidence links.
+   Resolve missing, stale, or contradictory evidence before the dependent
+   action; continue independent authorized work. A handoff's assertion that
+   checks passed is insufficient when its receipt does not bind current inputs.
+
+Demonstrate understanding by applying the records to the next action.
+If required process records are missing, follow
+[program guidance and process records](artifacts.md#program-guidance-and-process-records)
+to reconstruct them from evidence within the authorized scope; mark unknowns
+instead of inventing clearance. Keep the governing handoff current at meaningful
+milestones, including changed input/prompt versions or reopened gates.
+
+Compaction within active work does not trigger this full resume orientation.
+At the next governed action, refresh applicable program instructions and stage
+contracts under the global refresh rule, and check current input/gate evidence.
+Broaden recovery only when scope, versions, or live state changed or the next
+action's prerequisites cannot be reconstructed. A fresh specific request is
+not a resume; ordinary project-entry and scoped action reads still apply.
 
 #### On-deck research runs
 
@@ -49,9 +108,12 @@ another.
 
 On explicit `/hi` or resume of research work:
 
-1. resolve the named handoff/task, or for bare `/hi` the default discovery hint,
-   under “Resume source priority” in [AGENTS.global.md](../AGENTS.global.md);
-2. reconcile it with live state;
+1. perform [program-scoped recovery](#program-scoped-handoffs-and-recovery)
+   when a program governs the work; otherwise resolve the named handoff/task,
+   or for bare `/hi` the default discovery hint, under the global resume-source
+   priority and reconcile it with live state;
+2. follow the program's canonical document paths when declared, using branch
+   naming only as the fallback;
 3. skim `research/ROOT.md` when present;
 4. skim the branch paper/current framing;
 5. read the governing task's Subtasks section and listed in-progress subtask
@@ -160,19 +222,7 @@ When a fresh agent is asked to "update the research log" or "update the research
 it should run `git branch --show-current` to get the branch name, then write to
 `research/<branchname>.log.md` or `research/<branchname>.md` respectively.
 
-When resuming a session with `/hi`:
-0. If `research/ROOT.md` exists, skim it for the current fruitful-project
-   direction (see above) before choosing what to resume.
-1. Recover the active root task and live state per `AGENTS.global.md` § Resume
-   source priority (`tasks/ROOT`, `.agentctl/active/`, run metadata) — not a
-   session summary.
-2. Skim `research/<branchname>.md` (paper) for current framing, findings, and
-   tables; if the governing task mentions a different paper path, skim that
-   paper too.
-3. Read the active root task — check its Subtasks section and any summary of
-   what needs to be synced into the paper.
-4. Read any in-progress subtask files it lists.
-5. Check `research/<branchname>.log.md` for the most recent session's notes
-
-Do not run this checklist for a fresh, specific request that lacks an explicit
-`/hi` or resume signal; follow the AGENTS.md session-opening rule instead.
+For resume, follow the single binding procedure under
+[Research document paths and resume](#research-document-paths-and-resume).
+These branch-name examples are fallbacks for work without declared program
+paths; they do not redirect a named handoff or program paper to the root branch.

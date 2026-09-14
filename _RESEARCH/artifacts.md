@@ -6,8 +6,8 @@
 
 Read this packet before creating, reorganizing, or materially updating a
 research branch's paper proposal, paper, handout, research blog, log, task
-structure, program, result table, or progress report. `RESEARCH.md` is the
-router and wins on conflict.
+structure, program, process map, artifact inventory, result table, or progress
+report. `RESEARCH.md` is the router and wins on conflict.
 
 ## Binding rules
 
@@ -43,6 +43,63 @@ program/advisor discovery; an old
 glossary without `PROGRAM.md` scopes vocabulary only; it does not create an
 advisor/program boundary. Declare a program only when its evidence stream and
 narrative are independent enough to benefit from separate advising.
+
+#### Program guidance and process records
+
+When establishing or maintaining a research program, read
+[TOPICS.md § Program scope charters](../TOPICS.md#program-scope-charters).
+Create a missing descriptive charter only when the authorized work and
+established project evidence support a coherent program. Add links to its
+canonical process map, inventories, and handoff location as those become
+necessary. Reuse existing owners; a pipeline stage or run variant does not
+need its own program. Creating or revising binding `Program instructions`
+still requires explicit user direction, including when promoting a discovered
+convention into a requirement.
+
+Keep `PROGRAM.md` concise. Group requirements by the activity they govern;
+each routed section names when a detail document must be read and the immediate
+requirement before proceeding. Put shared requirements at the nearest common
+owning program and specializations in its children. A child inherits every
+ancestor program whether or not it links them, up to an explicit self-rooted
+boundary under TOPICS.md. Keep stage mechanics in detail documents and dated
+decisions, failures, and current run state in their
+existing owners, rather than accumulating them in the charter.
+
+For a multi-stage program that reuses or revises data, annotations, prompts,
+models, or evaluation views, maintain a process map and artifact inventories.
+Extend the existing records; a small program may use sections of one document.
+Keep these distinct:
+
+- **Process map:** stage inputs/outputs, allowed variations and feedback,
+  acceptance requirements, the detail/checker that owns each requirement, and
+  whether enforcement is implemented or still manual. Include gates before
+  costly annotation and split admission where applicable.
+- **Inventories:** exact artifact identities and versions, producer and input
+  ancestry, intended role, admission/quarantine/supersession state, and gate
+  evidence. Track source-group and prior-use/exposure history where separation
+  matters; the current train file alone cannot establish a model's history.
+- **Current realization/handoff:** the chosen route, exact versions in use,
+  satisfied and open gates, and next decision, linked to executed evidence.
+
+Versions identify their own component: source membership, annotation prompt
+and examples, label schema, alignment/projection, admitted dataset, recipe,
+checkpoint, or scorer/reference view. Pin the actual bytes or immutable
+revision used; a shared `vN` suffix or a mutable `latest` path does not bind
+these components together. Preserve old inputs, raw outputs, and producing
+records when deriving a replacement. An inventory may remain a current index
+if its historical artifact identities remain recoverable.
+
+A feedback step consumes a named earlier output as input to a **new** execution
+and version; it does not rewrite the earlier execution. Record whether the new
+input adds to, replaces, or reannotates existing material. Prompt revisions
+retain their examples' source ancestry and affect only named new annotation
+products. A change record names the affected descendants, checks that must
+rerun, and justified reuse; a repaired dataset does not undo a checkpoint's
+past exposure. Explicitly consuming development or evaluation data in a final
+fit changes the evaluation eligibility of that model and its descendants:
+scores on consumed data cannot support held-out generalization claims for
+either. Record the exposed membership and last unexposed checkpoint under the
+local policy; documenting this possibility does not authorize such a fit.
 
 #### Paper proposals and program drafts
 

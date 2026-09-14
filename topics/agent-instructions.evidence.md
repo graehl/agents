@@ -4523,3 +4523,67 @@ Contributing-model: fable-5.1
   contributing session in a private file, plus 11 lines in the routed topic.
 
 Contributing-model: fable-5.1
+
+## 2026-09-14 — research resume follows program contracts and lineage
+
+- **User-reported failure** — a PII session treated an additional-data draw's
+  hash-only exclusion as adequate despite the documented partial-overlap
+  detector. The user also reported handoff-based sessions missing basic
+  deduplication and train/validation separation requirements. The requested
+  correction was scoped program/process/inventory recovery on session resume,
+  without a full inventory reread after every compaction.
+- **Repository evidence** — inspected `~/draft/research/pii/PROGRAM.md`, its
+  root/research/frontier ancestor chain, the ontology-v2 process map, and the
+  gold, teacher, Final35, prompt-example, and text-source inventories. The map
+  already distinguishes stable stages, current realization, executed evidence,
+  versioned views, exposure, and claim scope. Its pre-annotation enforcement
+  gap records the held Hebrew draw. Another session owns that implementation;
+  this change neither certifies its live wiring nor audits all historical data.
+- **Decision** — extend the existing RESEARCH workflow/artifacts packets.
+  Resume reconstructs the active path and next gate from governing charters,
+  relevant map/inventory sections, and live evidence. Program requirements
+  apply to root-level scripts serving that program too. Compaction retains
+  action-scoped refresh rather than restarting full program orientation.
+  New program handoffs live beneath their owning PROGRAM; older external
+  handoffs retain explicit owner links until coordinated relocation.
+- **Version contract** — preserve component identities, input/output lineage,
+  source-group and prior-use history, and gate evidence. A feedback edge adds
+  a new execution/version. Distinguish additional input, replacement, and
+  reannotation; no version bump retroactively changes earlier evidence or
+  checkpoint exposure. Local detector, ontology, budget, and split rules stay
+  local. Maps label implemented versus manual enforcement rather than
+  implying that instructions already supply an executable gate.
+- **Further user direction** — parents must be read even when the deepest
+  charter does not link them; PROGRAM sections should route to detail by
+  observable activity. The explicit exception is a user-requested self-rooted
+  program, after compiling needed containing context. `Program root: self`
+  marks that boundary; global/project agent instructions still apply. No
+  existing program was made self-rooted in this change.
+- **Trace: nested and legacy handoffs** — a frontier handoff reads root,
+  research, PII, and frontier charters without relying on child links. A legacy
+  root-task handoff follows its explicit owner. A new private handoff goes
+  beneath the program without becoming publishable or moving a peer's work.
+- **Trace: compaction and unrelated work** — an active annotation continuation
+  refreshes its applicable program/stage requirements and input evidence; it
+  does not reload all inventories or invoke `/hi`. A fresh narrow request
+  keeps ordinary scoped reads and incurs no resume procedure.
+- **Trace: additional data and changed prompts** — a new filename, source ID,
+  prompt revision, or successful exact-hash check cannot satisfy a program's
+  required partial-overlap receipt. Reannotation is recorded as such; a stale
+  receipt blocks dependent spend while independent authorized work continues.
+- **Trace: final fit and repair** — consuming held-out rows makes the resulting
+  model and descendants exposed. Deleting those rows from the current training
+  file does not clear their history; old unexposed weights and source receipts
+  remain necessary. The guidance itself authorizes no final fit.
+- **Trace: self-rooted boundary** — a named subtree stops at its nearest marked
+  charter without reading program parents above it. Creating the mark first
+  requires explicit user direction and compilation of inherited requirements;
+  ordinary scope inference cannot silently erase them. Project AGENTS still
+  loads, and project-wide orientation may still read the other program scopes.
+- **Validation and cost** — trace-simulation and changed-link/whitespace checks
+  cover instruction reachability and the cases above. The global main grows
+  47,809 → 48,221 bytes; RESEARCH 2,404 → 2,820; workflow 8,490 → 11,812;
+  artifacts 27,889 → 31,510; handoffs 17,337 → 17,604. These are retrieval and
+  application hypotheses, not measured improvements in session compliance.
+
+Contributing-model: 6-Astra

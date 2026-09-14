@@ -3,8 +3,9 @@
 Load this routing index before substantive research or experimentation:
 notebooks, train/eval work, significance or comparison claims, paper/report
 proposal or drafting, handout or research-blog writing, field surveys,
-prior-art or direction ranking, and research-advisor decisions. Read every
-packet whose observable condition matches the next action.
+prior-art or direction ranking, research-program resume or handoff, and
+research-advisor decisions. Read every packet whose observable condition
+matches the next action.
 
 After compaction or resume, an earlier read is not proof that this policy
 survived. Re-read this index at the next research action boundary unless the
@@ -19,8 +20,8 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 
 - [`_RESEARCH/artifacts.md`](_RESEARCH/artifacts.md) — before creating,
   reorganizing, or materially updating a research branch's paper proposal,
-  paper, handout, research blog, log, task structure, program, result table, or
-  progress report.
+  paper, handout, research blog, log, task structure, program, process map,
+  artifact inventory, result table, or progress report.
 - [`_RESEARCH/direction.md`](_RESEARCH/direction.md) — before field-survey,
   prior-art, or direction-ranking work, and when a material decision or changed
   evidence state triggers the research advisor; also when an advisor-governed
@@ -36,7 +37,12 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
   multiple differences, reading a tie on a revision built for stated reasons,
   or parking a substantial weak or surprising line.
 - [`_RESEARCH/workflow.md`](_RESEARCH/workflow.md) — before queueing, resuming,
-  checkpointing, or autonomously selecting research work.
+  checkpointing, or autonomously selecting research work, or creating or
+  updating a research handoff. On program resume, read the full governing
+  `PROGRAM.md` chain (respecting explicit self-rooted boundaries) and the
+  scoped process map/inventories before acting from the handoff. Compaction
+  alone refreshes the next action's governing
+  contracts; it does not repeat the full program orientation.
 
 When one action matches multiple conditions, read all matching packets. Do not
 load the directory indiscriminately.
