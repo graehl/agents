@@ -4481,3 +4481,45 @@ Contributing-model: Opus 5
   never matched either spelling, so nothing trips.
 
 Contributing-model: fable-5.1
+
+## 2026-09-14 — handoffs end with the writing session's harness and id
+
+- **User direction** — "end of handoff doc should contain the harness and
+  session-id (allowing retrieval of detail if needed)". The prior bullet in
+  `topics/handoffs.md` § Contents admitted source-session metadata only "when
+  it materially helps deeper recovery", which in practice meant never: the
+  live `tasks/auto-handoff-session-turn-recovery.md` ends with no session
+  pointer, so its compressed content cannot be expanded from the transcript.
+- **Decision** — the final line is `Source session: <harness> | <session id>`,
+  mirroring the `<harness> | <id>` shape of the incumbent-advisor line. The id
+  is the same canonical durable resume id used for active-session
+  registration; the harness supplement owns recovering it, and a YA launch
+  supplies it as `$AGENTCTL_SESSION_ID` (2026-09-09 entry). Unrecoverable ids
+  are written as `id unavailable`, never invented (2026-08-12 entries).
+  `AGENTS/session.md` § Handoff audience gains a one-sentence mirror;
+  `AGENTS.global.md` is unchanged because its existing "read
+  `topics/handoffs.md` before creating or updating a handoff" trigger already
+  reaches the rule.
+- **Relation to 2026-09-02 (`topics/commits.md` § Session provenance)** —
+  session ids stay out of pushed commit messages and live in a local git
+  note. A handoff is a private local artifact whose reader is the user or a
+  successor on this host, so the inline pointer does not conflict with that
+  decision.
+- **Trace: multi-session handoff** — session A writes the handoff; session B
+  resumes and rewrites current state from A's summary plus new work. A's
+  transcript still holds detail behind content B kept, so both lines remain,
+  oldest first. `tasks/` is git-ignored in this repo, so history cannot
+  substitute for the accumulated lines. When C later removes the scope A
+  contributed, A's line goes; this keeps the tail from becoming an activity
+  log, which § Maintaining a working handoff forbids.
+- **Trace: `/goal`-headed handoff** — the goal and advisor lines keep the
+  opening; the source line is last, after next steps and active jobs, so
+  resume semantics of the first lines are untouched.
+- **Trace: compaction before update** — an agent updating a handoff after
+  compaction rereads the topic at the governed action and appends its own
+  line; it does not overwrite the earlier session's line merely because it
+  no longer remembers writing one.
+- **Status** — user-directed; behavior unmeasured. Cost is one line per
+  contributing session in a private file, plus 11 lines in the routed topic.
+
+Contributing-model: fable-5.1
