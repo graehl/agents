@@ -10,6 +10,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Self
 
+from .messages import FixedMessage
+
 APP_SERVER_JSONL_LIMIT_BYTES = 8 * 1024 * 1024
 TURN_INTERRUPT_TIMEOUT_SECONDS = 30.0
 TERMINAL_TURN_STATUSES = frozenset({"completed", "failed", "interrupted"})
@@ -241,6 +243,15 @@ class CodexAppServer:
         self._require_isolated_instructions(thread)
         self._thread_id(thread)
         return thread
+
+    async def inject_fixed_messages(
+        self, thread_id: str, messages: Sequence[FixedMessage]
+    ) -> Mapping[str, Any]:
+        """Append authored context without starting inference; caller owns receipts."""
+        return await self.request(
+            "thread/inject_items",
+            {"threadId": thread_id, "items": [m.response_item() for m in messages]},
+        )
 
     async def read_thread(self, thread_id: str) -> Mapping[str, Any]:
         result = await self.request(

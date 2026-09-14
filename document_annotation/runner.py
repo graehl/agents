@@ -15,6 +15,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from .codex import CodexAppServer
+from .messages import FixedMessage
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,7 @@ class AnnotationConfig:
     retries: int = 1
     timeout: float = 300
     validator_id: str | None = None
+    fixed_messages: tuple[FixedMessage, ...] = ()
 
     def __post_init__(self) -> None:
         if not all(
@@ -59,10 +61,19 @@ class AnnotationConfig:
             not isinstance(self.validator_id, str) or not self.validator_id
         ):
             raise ValueError("validator_id must be a nonempty versioned identity")
+        if not isinstance(self.fixed_messages, tuple) or not all(
+            isinstance(message, FixedMessage) for message in self.fixed_messages
+        ):
+            raise TypeError("fixed_messages must be a tuple of FixedMessage values")
+
+    def record(self) -> dict[str, Any]:
+        result = asdict(self)
+        result["fixed_messages"] = [asdict(message) for message in self.fixed_messages]
+        return result
 
     def identity(self) -> str:
         return hashlib.sha256(
-            json.dumps(asdict(self), sort_keys=True).encode()
+            json.dumps(self.record(), sort_keys=True).encode()
         ).hexdigest()
 
 
@@ -207,6 +218,28 @@ class DocumentAnnotator:
                                 "thread": dict(thread),
                             }
                         )
+                        if cfg.fixed_messages:
+                            record(
+                                {
+                                    "kind": "fixed_messages_start",
+                                    "thread_id": thread_id,
+                                    "index": index,
+                                    "provenance": "caller_authored",
+                                    "messages": [asdict(m) for m in cfg.fixed_messages],
+                                    "config_sha256": cfg.identity(),
+                                }
+                            )
+                            receipt = await self.server.inject_fixed_messages(
+                                thread_id, cfg.fixed_messages
+                            )
+                            record(
+                                {
+                                    "kind": "fixed_messages_complete",
+                                    "thread_id": thread_id,
+                                    "index": index,
+                                    "response": dict(receipt),
+                                }
+                            )
                     attempt_id = str(uuid.uuid4())
                     record(
                         {

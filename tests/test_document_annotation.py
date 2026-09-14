@@ -5,6 +5,7 @@ from builtins import ExceptionGroup
 import pytest
 
 from document_annotation.codex import CodexAppServer
+from document_annotation.messages import FixedMessage
 from document_annotation.runner import AnnotationConfig, DocumentAnnotator, Segment
 
 FAKE_SERVER = r"""
@@ -27,7 +28,7 @@ for line in sys.stdin:
         pass
     elif method == 'thread/start':
         tid = str(len(threads) + 1)
-        threads[tid] = {'prefix': p['baseInstructions'], 'prompts': [], 'turns': []}
+        threads[tid] = {'prefix': p['baseInstructions'], 'prompts': [], 'turns': [], 'fixed': []}
         send({'id': m['id'], 'result': {'thread': {'id': tid, 'instructionSources': []}}})
     elif method == 'thread/resume':
         tid = p['threadId']
@@ -36,12 +37,15 @@ for line in sys.stdin:
     elif method == 'thread/read':
         tid = p['threadId']
         send({'id': m['id'], 'result': {'thread': {'id': tid, 'turns': threads[tid]['turns']}}})
+    elif method == 'thread/inject_items':
+        threads[p['threadId']]['fixed'].extend(p['items'])
+        send({'id': m['id'], 'result': {}})
     elif method == 'turn/start':
         next_turn += 1
         tid, turn = p['threadId'], str(next_turn)
         prompt = p['input'][0]['text']
         history = threads[tid]['prompts']
-        text = json.dumps({'prefix': threads[tid]['prefix'], 'prior': list(history), 'prompt': prompt})
+        text = json.dumps({'prefix': threads[tid]['prefix'], 'prior': list(history), 'prompt': prompt, 'fixed': threads[tid]['fixed']})
         if prompt == 'retry' and prompt not in rejected:
             rejected.add(prompt)
             text = 'invalid'
@@ -62,7 +66,8 @@ for line in sys.stdin:
 """
 
 
-def test_documents_keep_order_without_sharing_history_and_retry_fresh(tmp_path):
+@pytest.mark.parametrize("seeded", [False, True])
+def test_documents_keep_order_without_sharing_history_and_retry_fresh(tmp_path, seeded):
     import json
 
     async def exercise():
@@ -80,6 +85,12 @@ def test_documents_keep_order_without_sharing_history_and_retry_fresh(tmp_path):
                     max_input_tokens=1000,
                     retries=1,
                     validator_id="json-v1",
+                    fixed_messages=(
+                        FixedMessage("user", "Label carefully."),
+                        FixedMessage("assistant", "I will do a good job."),
+                    )
+                    if seeded
+                    else (),
                 ),
             )
             events = []
@@ -111,6 +122,12 @@ def test_documents_keep_order_without_sharing_history_and_retry_fresh(tmp_path):
     assert len([e for e in events if e["kind"] == "attempt_response"]) == 5
     assert results[2]["attempts"] == 2
     assert results[2]["usage"]["input_tokens"] == 203
+    assert len([e for e in events if e["kind"] == "fixed_messages_complete"]) == (
+        3 if seeded else 0
+    )
+    fixed = [json.loads(row["text"])["fixed"] for row in results]
+    assert all(items == fixed[0] for items in fixed)
+    assert len(fixed[0]) == (2 if seeded else 0)
 
 
 def test_no_validator_retains_raw_outputs_without_format_retries(tmp_path):
@@ -244,6 +261,9 @@ def test_resume_keeps_completed_prefix_without_repeating_annotation(tmp_path):
                     cwd=str(tmp_path),
                     max_segments_per_session=8,
                     max_input_tokens=1000,
+                    fixed_messages=(
+                        FixedMessage("assistant", "I will do a good job."),
+                    ),
                 ),
             )
             first = Segment("A", "1", "one")
@@ -254,6 +274,8 @@ def test_resume_keeps_completed_prefix_without_repeating_annotation(tmp_path):
             )
             assert len([e for e in events if e["kind"] == "attempt_start"]) == 1
             assert json.loads(result[1]["text"])["prior"] == ["one"]
+            assert len(json.loads(result[1]["text"])["fixed"]) == 1
+            assert not any(e["kind"].startswith("fixed_messages") for e in events)
 
     asyncio.run(exercise())
 
@@ -272,8 +294,9 @@ def test_journal_refuses_unfinished_attempts_and_partial_lines(tmp_path):
 
 
 @pytest.mark.parametrize("with_validator", [False, True])
+@pytest.mark.parametrize("with_fixed_messages", [False, True])
 def test_cli_runs_real_stdio_transport_and_refuses_changed_resume(
-    tmp_path, with_validator
+    tmp_path, with_validator, with_fixed_messages
 ):
     import json
     import subprocess
@@ -299,7 +322,14 @@ def test_cli_runs_real_stdio_transport_and_refuses_changed_resume(
     )
     prompt.write_bytes(b"fixed\r\n")
     inputs.write_text(
-        json.dumps({"document_id": "A", "segment_id": "1", "prompt": "retry"}) + "\n"
+        json.dumps(
+            {
+                "document_id": "A",
+                "segment_id": "1",
+                "prompt": "retry" if with_validator else "one",
+            }
+        )
+        + "\n"
     )
     entry = Path(__file__).resolve().parents[1] / "scripts/document-annotate"
     command = [
@@ -330,6 +360,17 @@ def test_cli_runs_real_stdio_transport_and_refuses_changed_resume(
             'async def check(text, segment):\n    return "invalid JSON" if text == "invalid" else None\n'
         )
         command += ["--validator", "annotation_check:check"]
+    messages = tmp_path / "fixed-messages.json"
+    if with_fixed_messages:
+        messages.write_text(
+            json.dumps(
+                [
+                    {"role": "user", "content": "Follow the annotation protocol."},
+                    {"role": "assistant", "content": "I will do a good job.\r\n"},
+                ]
+            )
+        )
+        command += ["--fixed-messages", str(messages)]
     first = subprocess.run(command, cwd=tmp_path, text=True, capture_output=True)
     assert first.returncode == 0, first.stderr
     assert (
@@ -339,6 +380,14 @@ def test_cli_runs_real_stdio_transport_and_refuses_changed_resume(
         json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()
     ]
     assert rows[0]["attempts"] == (2 if with_validator else 1)
+    fixed = json.loads(rows[0]["text"])["fixed"]
+    assert len(fixed) == (2 if with_fixed_messages else 0)
+    if with_fixed_messages:
+        assert [(item["role"], item["content"][0]["type"]) for item in fixed] == [
+            ("user", "input_text"),
+            ("assistant", "output_text"),
+        ]
+        assert fixed[1]["content"][0]["text"] == "I will do a good job.\r\n"
     assert (output / "prefix.txt").read_bytes() == b"fixed\r\n"
     assert (output / ".codex/auth.json").stat().st_mode & 0o777 == 0o600
     events_before = (output / "events.jsonl").read_bytes()
@@ -351,6 +400,14 @@ def test_cli_runs_real_stdio_transport_and_refuses_changed_resume(
     )
     assert resumed.returncode == 0, resumed.stderr
     assert (output / "events.jsonl").read_bytes() == events_before
+    if with_fixed_messages:
+        messages.write_text("[]")
+        changed = subprocess.run(
+            command + ["--resume"], cwd=tmp_path, text=True, capture_output=True
+        )
+        assert changed.returncode != 0
+        assert "changed" in changed.stderr
+        assert (output / "events.jsonl").read_bytes() == events_before
     prompt.write_text("changed")
     changed = subprocess.run(
         command + ["--resume"], cwd=tmp_path, text=True, capture_output=True

@@ -12,7 +12,6 @@ import shutil
 import subprocess
 import sys
 from builtins import ExceptionGroup
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +21,7 @@ from acli.args import duration_seconds
 from .codex import CodexAppServer
 from .isolation import CONFIG, prepare_profile
 from .journal import Journal
+from .messages import FixedMessage
 from .runner import AnnotationConfig, DocumentAnnotator, Segment, Validator
 
 
@@ -64,6 +64,18 @@ def load_validator(spec: str | None) -> tuple[Validator | None, str | None]:
     return callback, spec + "@sha256:" + sha256(Path(module.__file__).read_bytes())
 
 
+def read_fixed_messages(data: bytes | None) -> tuple[FixedMessage, ...]:
+    if data is None:
+        return ()
+    values = json.loads(data)
+    if not isinstance(values, list) or any(
+        not isinstance(value, dict) or set(value) != {"role", "content"}
+        for value in values
+    ):
+        raise ValueError("--fixed-messages requires an array of role/content objects")
+    return tuple(FixedMessage(**value) for value in values)
+
+
 def parser() -> Any:
     result = acli.argument_parser(
         description="Annotate ordered document segments through Codex subscription sessions (seconds to hours; final summary on stdout, durable attempts in --out/events.jsonl).",
@@ -81,6 +93,11 @@ def parser() -> Any:
         type=Path,
         required=True,
         help="Complete fixed instruction prefix, passed byte-for-byte as baseInstructions.",
+    )
+    result.add_argument(
+        "--fixed-messages",
+        type=Path,
+        help="Optional JSON array of authored user/assistant role/content messages, injected once into each fresh thread. Annotation-quality effect is unqualified.",
     )
     result.add_argument(
         "--out",
@@ -165,6 +182,7 @@ def run(args: Any) -> dict[str, Any]:
     segments = read_segments(input_bytes)
     validate, validator_id = load_validator(args.validator)
     prefix = args.prompt.read_bytes().decode("utf-8")
+    messages_bytes = args.fixed_messages.read_bytes() if args.fixed_messages else None
     config = AnnotationConfig(
         prefix,
         args.model,
@@ -176,6 +194,7 @@ def run(args: Any) -> dict[str, Any]:
         args.retries,
         args.timeout,
         validator_id,
+        fixed_messages=read_fixed_messages(messages_bytes),
     )
     executable = shutil.which(args.codex_command)
     if executable is None:
@@ -194,7 +213,10 @@ def run(args: Any) -> dict[str, Any]:
     manifest = {
         "schema": "document-annotation/v1",
         "backend": "codex-subscription",
-        "config": asdict(config),
+        "config": config.record(),
+        "fixed_messages_sha256": sha256(messages_bytes)
+        if messages_bytes is not None
+        else None,
         "input_sha256": sha256(input_bytes),
         "prefix_sha256": sha256(prefix.encode()),
         "implementation": implementation,
@@ -222,6 +244,8 @@ def run(args: Any) -> dict[str, Any]:
             )
             (output / "prefix.txt").write_bytes(prefix.encode())
             (output / "input.jsonl").write_bytes(input_bytes)
+            if messages_bytes is not None:
+                (output / "fixed-messages.json").write_bytes(messages_bytes)
         results = asyncio.run(
             execute(args, env, config, segments, validate, journal, completed)
         )
