@@ -530,5 +530,5 @@ def test_profile_copies_only_subscription_auth_and_blocks_api_key(
     assert not (output / ".codex/AGENTS.md").exists()
     assert (output / ".codex/config.toml").read_text() != "not annotation config"
     (auth / "auth.json").write_text(json.dumps({"OPENAI_API_KEY": "fixture-key"}))
-    with pytest.raises(ValueError, match="API-key transport is not implemented"):
+    with pytest.raises(ValueError, match="API keys require --backend"):
         prepare_profile(auth, tmp_path / "other", resume=False)

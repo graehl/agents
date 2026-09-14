@@ -52,7 +52,7 @@ def prepare_profile(auth_home: Path, output: Path, *, resume: bool) -> dict[str,
         or parsed.get("OPENAI_API_KEY")
     ):
         raise ValueError(
-            "auth-home must contain a ChatGPT subscription login; API-key transport is not implemented"
+            "auth-home must contain a ChatGPT subscription login; API keys require --backend openai-chat-completions"
         )
     profile, ordinary_home, work = output / ".codex", output / ".home", output / "work"
     if resume:

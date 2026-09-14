@@ -72,3 +72,40 @@
 - **Validation:** CLI tests contrast enabled/disabled fixed messages and
   validators; document tests check clean retries, separation and resume. The
   annotation-quality, retention and cache-cost comparison remains unperformed.
+
+## 2026-09-14 — opt-in Chat Completions and explicit prefix caching
+
+- **User direction:** supplied the official prompt-caching citation, then
+  authorized preemptive key-route implementation despite lacking GPT-5.6 API
+  access. Live qualification may remain in a gap. This resolves the earlier
+  entry's provider/endpoint uncertainty without inventing access or a benchmark.
+- **Sources checked:** the current prompt-caching guide and Chat Completions
+  create reference linked in the main topic. The endpoint schema supports the
+  text blocks used here, including assistant text, request cache mode/TTL and
+  cache-write/read usage fields. The implementation does not generalize the
+  supplied summary's multimodal/refusal-block claims beyond these verified
+  text inputs. The guide and endpoint differ in their long-history lookup-window
+  descriptions; this adapter writes one fixed boundary, so it does not depend
+  on either window count.
+- **Boundary trace:** with developer instructions, a fixed user message, a
+  canned assistant reply and a variable segment, the marker lands on the canned
+  reply's last text block. Marking only the developer message would omit useful
+  fixed history. Appending accepted document turns never moves that boundary.
+  Automatic mode omits the new fields for earlier models; unsupported explicit
+  requests fail without an implicit-mode fallback.
+- **Billing trace:** a discovered environment key does not change the default
+  backend. Missing key or output bound fails setup. The API adapter uses an
+  owned async HTTP client with no retries or redirects; the key is excluded
+  from saved requests and campaign identity. Transport failures leave an
+  unfinished attempt that blocks automatic resume. Refusal, truncation and
+  empty answers consume the bounded rejection budget even without a validator.
+- **History trace:** an accepted result following a rejected attempt starts a
+  new local session. Resume reconstructs that session's accepted turns only,
+  restoring the fixed sequence exactly once. It does not replay earlier failed
+  requests, mix documents or present local session IDs as provider threads.
+- **Verification:** 31 tests pass across subscription subprocess and API HTTP
+  fixtures, including the CLI argument-to-request path, cache enabled/automatic
+  contrast, usage mapping, changed-manifest rejection, history/resume, async
+  validation, context resets, incomplete outputs, cancellation, timeouts,
+  malformed responses and no-replay failures. No live API request was made.
+  The access, cache and quality/cost qualification remains a committed gap.
