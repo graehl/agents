@@ -35,12 +35,91 @@ no compaction. A new prompt or validator version is a new campaign linked to
 its predecessor. Preserve whether it adds data, replaces labels or reannotates
 the same sources; new output filenames do not change their exposure history.
 
+## Rendered-prompt boundary convention
+
+Draft's `--codex-protocol-root` mode consumes exactly one literal
+`<!-- CODEX_SESSION_TURN -->` marker in **each rendered prompt**. It marks the
+end of fixed content and the start of the per-turn segment:
+
+```text
+Fixed task instructions, schema and demonstrations.
+<!-- CODEX_SESSION_TURN -->
+Per-segment guidance, if any.
+Segment:
+{text}
+Output:
+```
+
+The marker is a coordinator convention, not special Codex syntax. Draft's
+`split_codex_protocol_prompt` removes it, applies `rstrip()` to the fixed part
+and `lstrip()` to the per-turn part, and rejects missing/repeated markers or
+empty parts. It then requires one exact common fixed prefix across the rendered
+batch. Put all row-dependent text, guidance and metadata after the boundary;
+language-dependent demonstrations require separate batches when their fixed
+prefixes differ. Freeze both the rendered source and effective split content.
+
+For a fork experiment using a markerless template, create a separately named
+copy, place the marker before its first variable content, and pass that copy
+explicitly. Keep the ordinary template version intact. Never infer the boundary
+from a heading or silently treat a markerless whole prompt as the fixed part.
+
+The shared `document-annotate` CLI already takes the two parts separately:
+`--prompt` supplies fixed instructions and each input record's `prompt` supplies
+the per-turn suffix. It does not parse the marker; do not add it to those files.
+When adapting a combined draft template, render and split it first under the
+convention above.
+
+## Fixed user/assistant messages
+
+Optionally pass `--fixed-messages fixed-messages.json` alongside `--prompt`:
+
+```json
+[
+  {"role":"user","content":"Apply the annotation protocol to every segment."},
+  {"role":"assistant","content":"I will do a good job."}
+]
+```
+
+The fixed context can therefore contain several role-tagged messages. The
+Python equivalent is `AnnotationConfig(..., fixed_messages=(
+FixedMessage("user", "..."), FixedMessage("assistant", "...")))`, with
+`FixedMessage` imported from `document_annotation.messages`. Roles are limited
+to `user` and `assistant`, content is nonempty text, and order is preserved.
+These are caller-authored messages, including canned/fictitious assistant
+replies; they are not recorded as model-generated answers or annotation evidence.
+
+The runner uses Codex's documented
+[`thread/inject_items`](https://learn.chatgpt.com/docs/app-server#inject-items-into-a-thread)
+to insert the sequence after thread creation and before its first segment.
+Insertion persists history without starting generation. It is performed once
+for every fresh thread, including validation retries and length resets, and
+is not repeated when continuing or resuming that thread. It adds to the fixed
+`baseInstructions`; it does not turn every message into a separate inference
+request. Codex still adds its native permissions/environment context.
+
+Exact roles, content and order belong to the campaign identity. The CLI also
+freezes the source JSON bytes; changing either file requires a new campaign.
+Journal entries distinguish authored-message injection from inferred turns.
+An injection failure stops before the segment request; resume can abandon that
+unused thread and create a fresh one instead of reinjecting into it.
+
+Mechanics have subprocess tests and a real app-server injection/persistence
+check with zero inference requests. **The annotation-quality effect is
+unqualified.** Before adopting role-play acknowledgments or demonstrations,
+compare the same fixed segments with and without the message sequence. Keep
+demonstration sources disjoint from those segments; hold model, task
+instructions, validator and session policy fixed. Measure semantic quality,
+format failures, retention and total input/cache cost.
+Injection alone does not prefill the model or establish a cache hit. This
+option does not alter draft's existing PII annotation recipe.
+
 ## Session and retry policy
 
 Each document gets its own thread and ordered segment turns. Documents may run
 concurrently; their histories are never combined. A turn sees the fixed prefix,
-that thread's previous segment prompts and accepted assistant answers, and the
-current segment prompt. The prefix is passed unchanged as `baseInstructions`.
+any fixed user/assistant messages, that thread's previous segment prompts and
+accepted assistant answers, and the current segment prompt. The prefix is
+passed unchanged as `baseInstructions`.
 
 At the configured segment limit, start a fresh thread. An output rejection,
 reported compaction, or excessive input-token count also discards the thread
@@ -49,8 +128,9 @@ retry allowance. The input-token ceiling is a **post-response** check, so the
 rejected attempt still costs tokens. An exhausted rejection is recorded and
 the next segment starts fresh.
 
-Fresh retries receive the same fixed prefix and segment prompt, with neither
-earlier document turns nor the rejected response or rejection explanation.
+Fresh retries receive the same fixed prefix, fixed messages and segment prompt,
+with neither earlier document turns nor the rejected response or rejection
+explanation.
 Make segments self-contained enough for that case. If a task requires earlier
 document context or correction feedback, the calling project must explicitly
 assemble and version those inputs or own a different retry coordinator.
@@ -183,8 +263,8 @@ segment. Optional counters absent in the app-server protocol normalize to zero
 in the compatibility response; inspect raw events before interpreting an absent
 counter as a measured cache-write or reasoning-token zero.
 
-CLI resume verifies the entire input, exact prefix, settings, validator module,
-implementation hashes, Codex version and managed configuration. Completed
+CLI resume verifies the entire input, exact prefix and fixed messages, settings,
+validator module, implementation hashes, Codex version and managed configuration. Completed
 segments must form a prefix within each document. Before reusing an unfinished
 document's thread, its last completed turn must match the saved receipt.
 Changing a campaign requires a new output directory and explicit lineage.

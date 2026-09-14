@@ -38,3 +38,37 @@
   needs the exact provider contract. Official OpenAI prompt-caching and Codex
   app-server documentation were consulted; they do not resolve that specific
   recalled guarantee. Keep the key route in the linked gap until verified.
+
+## 2026-09-14 — explicit boundary and fixed role-tagged messages
+
+- **User direction:** preserve the `<!-- CODEX_SESSION_TURN -->` convention
+  discovered while preparing a fork-experiment template, and support a fixed
+  context that can include several user and canned assistant messages. The
+  user explicitly distinguished possible annotation value from tested value.
+- **Boundary evidence:** draft's `split_codex_protocol_prompt` already
+  enforces one marker, nonempty parts and whitespace trimming at the split;
+  `run` rejects differing fixed prefixes after rendering. The shared runner's
+  separate prefix/segment inputs need no marker parser. Documentation now
+  explains that mapping and keeps marker additions in experimental copies.
+- **Transport evidence:** Codex CLI 0.154.0's generated schema includes
+  `ThreadInjectItemsParams`; the official app-server documentation's “Inject
+  items into a thread” section specifies persisted model-visible history
+  without generation. This route is distinct from the Cloud-only unstable
+  `thread/resume.history` parameter, which the implementation does not use.
+- **Live check:** a real isolated app-server accepted and persisted a fixed
+  user message followed by a canned assistant response, preserving their text,
+  order and input/output content types. No `turn/start` or inference request
+  was issued. The rollout also contained native permissions and environment
+  messages, so the authored fixed sequence is not the complete provider wrapper.
+- **Trace: fresh retry and resume:** every new thread gets the same authored
+  sequence before inference; a resumed existing thread receives no duplicate
+  injection. Config and source-file hashes prevent changed roles/content/order
+  from silently entering a prior campaign. Injection receipts are marked
+  `caller_authored` and never become annotation labels or generated evidence.
+- **Trace: markerless or varying template:** a separately named copy receives
+  its explicit boundary; a different language's demonstrations require a
+  separate common-prefix batch. The generic CLI continues to use separate
+  input fields, avoiding a literal marker inadvertently sent to the model.
+- **Validation:** CLI tests contrast enabled/disabled fixed messages and
+  validators; document tests check clean retries, separation and resume. The
+  annotation-quality, retention and cache-cost comparison remains unperformed.
