@@ -20,8 +20,9 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 
 - [`topics/document-annotation.md`](topics/document-annotation.md) — before
   building or running fixed-prompt, segmented-document annotation through
-  Codex. Use the shared transport/runner where its session policy fits; keep
-  the calling program's pre-annotation data gates and validator requirements.
+  Codex or OpenAI Chat Completions. Use the shared transport/runner where its
+  session policy fits; keep the calling program's pre-annotation data gates
+  and validator requirements.
 - [`_RESEARCH/artifacts.md`](_RESEARCH/artifacts.md) — before creating,
   reorganizing, or materially updating a research branch's paper proposal,
   paper, handout, research blog, log, task structure, program, process map,

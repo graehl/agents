@@ -16,6 +16,7 @@ from typing import Any
 
 from .codex import CodexAppServer
 from .messages import FixedMessage
+from .sessions import Backend, CodexSessions, Session
 
 
 @dataclass(frozen=True)
@@ -78,9 +79,24 @@ class AnnotationConfig:
 
 
 class DocumentAnnotator:
-    def __init__(self, server: CodexAppServer, config: AnnotationConfig) -> None:
+    def __init__(
+        self, server: CodexAppServer | Backend, config: AnnotationConfig
+    ) -> None:
         self.server = server
         self.config = config
+        self.backend = (
+            CodexSessions(server) if isinstance(server, CodexAppServer) else server
+        )
+        self.config_sha256 = (
+            config.identity()
+            if self.backend.identity is None
+            else hashlib.sha256(
+                json.dumps(
+                    {"config": config.record(), "backend": self.backend.identity},
+                    sort_keys=True,
+                ).encode()
+            ).hexdigest()
+        )
 
     async def annotate(
         self,
@@ -122,7 +138,7 @@ class DocumentAnnotator:
             ):
                 raise ValueError("invalid or duplicate completed segment index")
             segment = segments[index]
-            if row["config_sha256"] != self.config.identity() or row["input"] != asdict(
+            if row["config_sha256"] != self.config_sha256 or row["input"] != asdict(
                 segment
             ):
                 raise ValueError(
@@ -162,10 +178,10 @@ class DocumentAnnotator:
     ) -> list[dict[str, Any]]:
         cfg = self.config
         results = []
+        session: Session | None = None
         thread_id = None
         session_segments = 0
         restore = False
-        last_turn_id = None
         async with semaphore:
             for index, segment in entries:
                 if index in saved:
@@ -177,69 +193,20 @@ class DocumentAnnotator:
                         thread_id is not None
                         and session_segments < cfg.max_segments_per_session
                     )
-                    last_turn_id = row["turn_id"]
                     continue
                 if restore:
-                    await self.server.resume_thread(
-                        thread_id,
-                        base_instructions=cfg.prefix,
-                        cwd=cfg.cwd,
-                        model=cfg.model,
-                    )
-                    thread = await self.server.read_thread(thread_id)
-                    turns = thread.get("turns")
-                    if (
-                        thread.get("id") != thread_id
-                        or not isinstance(turns, list)
-                        or not turns
-                        or not isinstance(turns[-1], Mapping)
-                        or turns[-1].get("id") != last_turn_id
-                        or turns[-1].get("status") != "completed"
-                    ):
-                        raise ValueError(
-                            "saved document thread no longer ends at its completed receipt"
-                        )
+                    session = await self.backend.resume(cfg, results)
                     restore = False
                 total_usage: dict[str, int] = defaultdict(int)
                 for attempt in range(cfg.retries + 1):
                     if (
-                        thread_id is None
+                        session is None
                         or session_segments >= cfg.max_segments_per_session
                     ):
-                        thread = await self.server.start_protocol_root(
-                            base_instructions=cfg.prefix, cwd=cfg.cwd, model=cfg.model
+                        session = await self.backend.start(
+                            cfg, record, index, segment.document_id
                         )
-                        thread_id, session_segments = str(thread["id"]), 0
-                        record(
-                            {
-                                "kind": "session_start",
-                                "document_id": segment.document_id,
-                                "index": index,
-                                "thread": dict(thread),
-                            }
-                        )
-                        if cfg.fixed_messages:
-                            record(
-                                {
-                                    "kind": "fixed_messages_start",
-                                    "thread_id": thread_id,
-                                    "index": index,
-                                    "provenance": "caller_authored",
-                                    "messages": [asdict(m) for m in cfg.fixed_messages],
-                                    "config_sha256": cfg.identity(),
-                                }
-                            )
-                            receipt = await self.server.inject_fixed_messages(
-                                thread_id, cfg.fixed_messages
-                            )
-                            record(
-                                {
-                                    "kind": "fixed_messages_complete",
-                                    "thread_id": thread_id,
-                                    "index": index,
-                                    "response": dict(receipt),
-                                }
-                            )
+                        thread_id, session_segments = session.id, 0
                     attempt_id = str(uuid.uuid4())
                     record(
                         {
@@ -254,14 +221,27 @@ class DocumentAnnotator:
                         }
                     )
                     started = time.monotonic()
+
+                    def record_response(
+                        raw: dict[str, Any],
+                        *,
+                        attempt_id: str = attempt_id,
+                        index: int = index,
+                        started: float = started,
+                    ) -> None:
+                        record(
+                            {
+                                "kind": "attempt_response",
+                                "attempt_id": attempt_id,
+                                "index": index,
+                                "elapsed_seconds": time.monotonic() - started,
+                                "response": raw,
+                            }
+                        )
+
                     try:
-                        response = await self.server.run_turn(
-                            thread_id,
-                            segment.prompt,
-                            cwd=cfg.cwd,
-                            model=cfg.model,
-                            effort=cfg.effort,
-                            timeout=cfg.timeout,
+                        response = await session.run_turn(
+                            segment.prompt, record_response
                         )
                     except BaseException as error:
                         record(
@@ -274,25 +254,14 @@ class DocumentAnnotator:
                             }
                         )
                         raise
-                    record(
-                        {
-                            "kind": "attempt_response",
-                            "attempt_id": attempt_id,
-                            "index": index,
-                            "elapsed_seconds": time.monotonic() - started,
-                            "response": response,
-                        }
-                    )
                     session_segments += 1
-                    for key, count in response["usage"].items():
+                    for key, count in response.usage.items():
                         total_usage[key] += count
-                    text = response["content"][0]["text"]
-                    reason = None
-                    if response["usage"]["input_tokens"] > cfg.max_input_tokens:
+                    text = response.text
+                    reason = response.rejection
+                    if response.usage["input_tokens"] > cfg.max_input_tokens:
                         reason = "context input-token ceiling exceeded"
-                    elif any(_compacted(event) for event in response["codex_events"]):
-                        reason = "context was compacted"
-                    elif validate is not None:
+                    elif reason is None and validate is not None:
                         reason = validate(text, segment)
                         if inspect.isawaitable(reason):
                             reason = await reason
@@ -313,13 +282,14 @@ class DocumentAnnotator:
                     if reason is None:
                         break
                     thread_id, session_segments = None, 0
+                    session = None
                 row = {
                     "kind": "segment_result",
                     "index": index,
                     "document_id": segment.document_id,
                     "segment_id": segment.segment_id,
                     "input": asdict(segment),
-                    "config_sha256": cfg.identity(),
+                    "config_sha256": self.config_sha256,
                     "status": "rejected"
                     if reason
                     else ("validated" if validate else "unvalidated"),
@@ -327,19 +297,11 @@ class DocumentAnnotator:
                     "text": text,
                     "attempts": attempt + 1,
                     "usage": dict(total_usage),
-                    "thread_id": response["app_server"]["thread_id"],
-                    "turn_id": response["app_server"]["turn_id"],
+                    "thread_id": response.session_id,
+                    "turn_id": response.turn_id,
                     "continuation_thread_id": thread_id,
                     "session_segments": session_segments,
                 }
                 record(row)
                 results.append(row)
         return results
-
-
-def _compacted(event: Mapping[str, Any]) -> bool:
-    if "compact" in str(event.get("method", "")).lower():
-        return True
-    params = event.get("params")
-    item = params.get("item") if isinstance(params, Mapping) else None
-    return isinstance(item, Mapping) and "compact" in str(item.get("type", "")).lower()
