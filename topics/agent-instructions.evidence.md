@@ -4587,3 +4587,37 @@ Contributing-model: fable-5.1
   application hypotheses, not measured improvements in session compliance.
 
 Contributing-model: 6-Astra
+
+## 2026-09-14 — route reusable document annotation at its action
+
+- **User direction** — generalize draft's fixed-prefix, document-segment
+  subscription annotation machinery, with optional callable validation and a
+  deferred API-key route. This follows the earlier repeated-prefix facility
+  remaining task-local failure class; caching claims still need measurement.
+- **Decision** — add one four-line RESEARCH route to `document-annotation`.
+  The package owns transport/session/attempt mechanics; caller programs own
+  domain schemas, pre-annotation additionality and split gates, and admission.
+  A separate skill or unconditional global boot paragraph adds no reachability.
+- **Trace: a new annotation project** — the research action reaches the shared
+  driver and accepts its own synchronous/asynchronous validator. It does not
+  inherit PII ontology, model, quota or paragraph-replay rules. A different
+  session policy may reuse the low-level transport with caller coordination.
+- **Trace: external batch validation** — omitting a callback produces raw
+  `unvalidated` receipts. The project can validate and select retries later,
+  while exact-ID uniqueness cannot masquerade as source/text deduplication.
+- **Trace: a prompt revision after resume** — the existing campaign rejects
+  changed input/config/validator identities. A new campaign retains ancestry;
+  a fresh thread does not erase old data exposure or grant split admission.
+- **Trace: rejection or interrupted spend** — a rejected answer is retained
+  before a bounded clean retry; a lost response or validator bug stops without
+  implicit regeneration. The fresh attempt's loss of earlier document context
+  is explicit, so callers needing that context must include it in the input.
+- **Trace: compaction and unrelated research** — the existing action-boundary
+  RESEARCH refresh reaches this topic only for matching annotation work.
+  Ordinary training/scoring does not load an annotation manual. A detected
+  API key or subscription failure never silently changes billing route.
+- **Status** — user-directed and trace-simulated; subprocess integration tests
+  cover driver behavior. Instruction compliance and cache/quality improvements
+  have not been measured.
+
+Contributing-model: 6-Astra
