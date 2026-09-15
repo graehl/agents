@@ -23,3 +23,15 @@ Fix+warn: at the output stage, detect problems, fix them, warn, and keep output 
 ## Canonical utilities
 
 Reuse existing canonical utilities rather than creating bespoke near-duplicates. Logic belongs in the module that already owns the concept. Requires an established and consistently maintained canonical layer; in a project without one, this is aspirational rather than actionable.
+
+## One spelling per concept
+
+<!-- speculative: adopted 2026-09-15 with software-aesthetic § Names are search queries; see software-aesthetic.evidence.md -->
+
+Pick `organizationId` or `orgId` and use it everywhere; every synonym halves every future search. Reuse the vocabulary already in the codebase being edited rather than coining a near-synonym; where the project has a `GLOSSARY.md`, it is the arbiter. Pays off only when the whole codebase holds to it; in a mixed codebase, match the nearest neighbors of the edit.
+
+## Colocated tests
+
+<!-- speculative: see § One spelling per concept -->
+
+Put a unit's test beside it (`foo.test.ts` next to `foo.ts`) so one search finds behavior and its specification together. Where the project already keeps a separate test tree (common in Python), follow it; introducing colocation into such a project splits the test corpus.
