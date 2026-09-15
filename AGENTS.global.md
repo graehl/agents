@@ -314,6 +314,11 @@ win on packet conflict.
     `_RUNS/monitoring.md`.
 - `feature-branch.md` — when project instructions name it or the repo plainly
   uses feature branches; otherwise stay branch-agnostic.
+- `REVIEWS.md` — when project instructions name it: after pushing or updating
+  a code review, when asked what a review is waiting on, when catching up on
+  review activity, and before answering about a review's current state. One
+  private `reviews/` file per change; the file is never the authority, so
+  re-query the backend (`reviews sync`) first.
 - `AGENTS/` — optional slow-path detail only for a matching named section or a
   rare ambiguity. Do not load the directory indiscriminately:
   - handoff/session registration/resume/scheduled prompt → `AGENTS/session.md`;

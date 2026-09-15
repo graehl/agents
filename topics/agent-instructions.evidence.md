@@ -4267,6 +4267,47 @@ Contributing-model: 6-Astra
 - **Status:** guidance trace-simulated; encoding, presentation adapters, and
   injection remain unimplemented by this change. No outcome benefit measured.
 
+## 2026-09-15 — review tracking: one file per change, watermark, helper as accelerator
+
+- **Provenance:** an Opus session added an xmt-local `reviews/` rule (one
+  file per Gerrit review number, state in the path) and seeded a stub that
+  told the next agent to work out which of two same-subject reviews
+  "supersedes" the other and abandon the loser. Live query showed the two
+  were one Change-Id on `master` and `xmt-19.0` — the normal backport pair in
+  that project. The user then asked for a generic, project-activated
+  `REVIEWS.md` suited to Gerrit and GitHub, one file per change with every
+  branch's review inside, the ticket and a Change-Id fragment in the
+  filename, and an acli catch-up script with commentary — explicitly "an
+  accelerator for routine checks" whose procedure the guidance states so an
+  agent can do it by hand from the Gerrit UI or `gh`.
+- **Decision:** `~/agents/REVIEWS.md` (project-activated via
+  `reviews/config.toml` and a project-instruction mention; global
+  § Optional supplements bullet), `scripts/reviews` (Gerrit verified,
+  GitHub smoke-only → `gaps/reviews-github-backend.md`), `/reviews` skill as
+  a thin entry to the topic's catch-up procedure. Key design points: the
+  `Seen:` watermark is a timestamp, not a comment count, because votes,
+  revisions, and CI results are all timestamped and counts cannot express
+  edits or deletions; votes are not separate events because Gerrit posts a
+  change message per vote; bot accounts are CI on every label (Jenkins votes
+  Code-Review-2 on failure); `--mark` is the only write that appends a log,
+  so repeated looks never duplicate entries; a malformed file is skipped
+  and reported rather than blocking every verb.
+- **Trace: backport pair:** one file, two table rows; a sibling's Verified+1
+  is not this review's vote; the file moves only when both close. Under the
+  old per-number rule the stub's advice would have abandoned a live review.
+- **Trace: agent without the helper:** the topic's four steps name the
+  exact Gerrit query and `gh` calls and the same `### Observed` block; the
+  end state is identical minus the auto-appended log.
+- **Trace: stale file:** an agent asked "is 42765 verified?" reads the
+  table's dated observation, must re-query per the never-authority rule,
+  and the global bullet carries that rule so the read trigger survives
+  compaction without the topic loaded.
+- **Status:** user-directed; Gerrit path exercised live on three changes
+  (show, new, sync with merge-check, find, status); mark/move path exercised
+  once. Whether the file discipline improves review turnaround is unmeasured.
+
+Contributing-model: Fable-5.1
+
 - **Presentation refinement:** the user wants YA to collect commentary into a
   list or paragraphs styled like assistant prose while retaining the normal
   output box. The proposal allows reserved `_acli` metadata on nested objects;
