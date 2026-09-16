@@ -19,14 +19,23 @@
 # mode — not an adversary. See topics/ (agent-guard) for the discussion.
 set -euo pipefail
 
-[ $# -ge 1 ] || { echo "usage: agent-guarded <command> [args...]" >&2; exit 2; }
+[ $# -ge 1 ] || {
+	echo "usage: agent-guarded <command> [args...]" >&2
+	exit 2
+}
 
 here="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 guard="$here/agent-guard-git"
-[ -x "$guard" ] || { echo "agent-guarded: missing or non-executable $guard" >&2; exit 1; }
+[ -x "$guard" ] || {
+	echo "agent-guarded: missing or non-executable $guard" >&2
+	exit 1
+}
 
 realgit="$(command -v git || true)"
-[ -n "$realgit" ] || { echo "agent-guarded: no git found on PATH" >&2; exit 1; }
+[ -n "$realgit" ] || {
+	echo "agent-guarded: no git found on PATH" >&2
+	exit 1
+}
 
 shimdir="${AGENT_GUARD_SHIMDIR:-${XDG_CACHE_HOME:-$HOME/.cache}/agent-guard/shim}"
 mkdir -p "$shimdir"

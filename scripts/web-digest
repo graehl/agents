@@ -13,28 +13,28 @@ out=digest/claude-web.md
 includes=()
 excludes=()
 while IFS= read -r line; do
-  line="${line%%#*}"
-  line="${line#"${line%%[![:space:]]*}"}"
-  line="${line%"${line##*[![:space:]]}"}"
-  [[ -z $line ]] && continue
-  if [[ $line == '!'* ]]; then
-    excludes+=("${line#!}")
-  else
-    includes+=("$line")
-  fi
+	line="${line%%#*}"
+	line="${line#"${line%%[![:space:]]*}"}"
+	line="${line%"${line##*[![:space:]]}"}"
+	[[ -z $line ]] && continue
+	if [[ $line == '!'* ]]; then
+		excludes+=("${line#!}")
+	else
+		includes+=("$line")
+	fi
 done <"$manifest"
 
 selected=()
 while IFS= read -r f; do
-  for pat in "${excludes[@]}"; do
-    [[ $f == $pat ]] && continue 2
-  done
-  selected+=("$f")
+	for pat in "${excludes[@]}"; do
+		[[ $f == $pat ]] && continue 2
+	done
+	selected+=("$f")
 done < <(git ls-files -- "${includes[@]}")
 
 if [[ ${#selected[@]} -eq 0 ]]; then
-  echo "web-digest: $manifest matched no tracked files" >&2
-  exit 1
+	echo "web-digest: $manifest matched no tracked files" >&2
+	exit 1
 fi
 
 dirty=""
@@ -42,16 +42,16 @@ git diff --quiet HEAD -- "${selected[@]}" || dirty=" plus uncommitted edits"
 
 mkdir -p "$(dirname "$out")"
 {
-  printf '# agents repo — web digest\n\n'
-  printf 'Generated %s from github.com/graehl/agents commit %s%s.\n' \
-    "$(date -u +%Y-%m-%d)" "$(git rev-parse --short HEAD)" "$dirty"
-  printf 'Scope: %s (%d files, %s words).\n\n' \
-    "$manifest" "${#selected[@]}" "$(cat "${selected[@]}" | wc -w)"
-  printf 'One source file per section; each `## FILE:` header carries the repo path.\n'
-  for f in "${selected[@]}"; do
-    printf '\n---\n\n## FILE: %s\n\n' "$f"
-    cat "$f"
-  done
+	printf '# agents repo — web digest\n\n'
+	printf 'Generated %s from github.com/graehl/agents commit %s%s.\n' \
+		"$(date -u +%Y-%m-%d)" "$(git rev-parse --short HEAD)" "$dirty"
+	printf 'Scope: %s (%d files, %s words).\n\n' \
+		"$manifest" "${#selected[@]}" "$(cat "${selected[@]}" | wc -w)"
+	printf 'One source file per section; each `## FILE:` header carries the repo path.\n'
+	for f in "${selected[@]}"; do
+		printf '\n---\n\n## FILE: %s\n\n' "$f"
+		cat "$f"
+	done
 } >"$out"
 
 echo "web-digest: wrote $out (${#selected[@]} files, $(wc -w <"$out") words)"
@@ -63,5 +63,5 @@ extract=digest/paste-into-claude.ai-preferences.md
 src_t=$(git log -1 --format=%ct -- AGENTS.md AGENTS.user.md)
 ext_t=$(git log -1 --format=%ct -- "$extract")
 if [[ -n $src_t && -n $ext_t && $src_t -gt $ext_t ]]; then
-  echo "web-digest: $extract may be stale — AGENTS.md/AGENTS.user.md have newer commits; re-check the distillation" >&2
+	echo "web-digest: $extract may be stale — AGENTS.md/AGENTS.user.md have newer commits; re-check the distillation" >&2
 fi
