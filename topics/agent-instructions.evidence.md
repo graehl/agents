@@ -4662,3 +4662,58 @@ Contributing-model: 6-Astra
   have not been measured.
 
 Contributing-model: 6-Astra
+
+## 2026-09-16 — save command output rather than discarding it
+
+- **User direction** — "for significant (non search/edit) commands e.g.
+  build/generate never `2>/dev/null` - always save in a tmp file. it is
+  acceptible for agents to not want to read large amounts of output but it
+  should be readable after the command (which may have value to YA UI or in
+  troubleshooting unexpected results)... `>/dev/null` is always better as
+  `>/tmp/file`". Follow-up in the same turn: "i just wish to allow simple
+  `find ... 2>/dev/null` and the like. describe the scope so it leaves room
+  for those sort of routine ops". Requested the rule be token-efficient with
+  reasons parked here.
+- **Why it steers** — three distinct payoffs, none visible at the moment the
+  redirect is typed. (1) An agent's "I only need the exit status" judgment is
+  made before the result is known; when the result then surprises, the
+  evidence that would explain it has already been destroyed and the command
+  must be rerun, sometimes non-reproducibly. (2) The launcher UI (YA) can
+  surface a retained log to the user; `/dev/null` removes that surface for
+  everyone, not just the agent. (3) Discarding stderr specifically inverts
+  the usual signal ratio — stderr is where the diagnostic lives, so
+  `2>/dev/null` on a build silently converts a diagnosable failure into a
+  bare nonzero exit. Cost of compliance is near zero: a scratch file plus a
+  `tail`, versus a rerun.
+- **Scope wording** — the rule is stated positively ("a command that does
+  work — build, codegen, install, test run, data job") with an explicit
+  exemption for routine probes and searches (`find`, `ls`, `command -v`),
+  rather than as a blanket ban with exceptions. A blanket "never `/dev/null`"
+  would misfire on `if command -v x >/dev/null`, on `find ... 2>/dev/null`
+  suppressing permission noise, and on every cheap existence probe — the
+  cases the user explicitly wanted left alone. Quieting via the program's own
+  option (`grep -q`) is kept legal because it discards nothing an agent would
+  later want: the program never produced it.
+- **Placement** — `AGENTS.global.md` § Tooling conventions, inline rather
+  than routed. It fires on ordinary shell use with no distinctive verb to
+  hang a trigger on, so a routed read would never be reached in time; six
+  lines is within the inline budget.
+- **Relation to existing text** — `_RUNS/monitoring.md` already required
+  builds/tests under job tracking to `tee` to a log and show only the tail.
+  The new rule generalizes that to untracked one-off commands; the monitoring
+  packet keeps its tracked-job mechanics (native `--tail`/`--timeout`, no
+  wrapping pipelines) and was left unchanged.
+- **Traces** — `rg`/`find` with `2>/dev/null` to suppress permission noise:
+  exempted, rule does not fire. `make -j 2>/dev/null`: fires; the redirect
+  becomes a scratch file and a stderr-only compiler diagnostic survives.
+  `command -v foo >/dev/null 2>&1` inside a conditional: exempted by name.
+  `pytest | grep -c FAIL`: rule pushes to `pytest >f 2>&1; grep -c FAIL f`,
+  which keeps the failing test names the count alone loses.
+- **Accepted residual** — a deliberate `>/dev/null` to keep I/O out of a
+  timing measurement is a real exception the wording does not carve out.
+  Judged too rare to spend boot tokens on; a perf run that needs it should
+  say so at the call site. Revisit if it recurs.
+- **Status** — user-directed and trace-simulated. No measurement that agents
+  actually stop discarding output, and none that retained logs get read.
+
+Contributing-model: opus-5

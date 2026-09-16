@@ -930,6 +930,15 @@ For multi-line or iterative ad-hoc code, write a scratch file and rerun it
 rather than embedding fragile shell quoting. Remove it when done; use durable
 scratch storage if it must survive a gap.
 
+## Command output: save, never discard
+
+A command that does work — build, codegen, install, test run, data job — sends
+output to a named scratch file (`cmd >/tmp/build.log 2>&1`), never to
+`/dev/null`, even when you read only the tail; a later surprise is diagnosed
+from that file. Quiet a program through its own option (`grep -q`), not a
+redirect. Routine probes and searches (`find`, `ls`, `command -v`) may still
+drop stderr.
+
 ## Schema-announced workflows
 
 When creating or updating a skill, agent-managed procedure (including an
