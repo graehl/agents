@@ -1,0 +1,441 @@
+#!/usr/bin/env python3
+"""Read and update Confluence Cloud pages from an agent session.
+
+The credential is never passed on a command line. It comes from the
+environment when already exported, otherwise from sourcing the user's
+`~/keys.sh` in a throwaway shell and reading JIRA_API_TOKEN back over a
+pipe. The file is never printed, and no verb echoes the token.
+
+`put` is the only mutating verb. It refuses to write unless the caller
+states the version it edited, and it saves the replaced storage body under
+~/.cache/confluence-backups first, so a bad write is always recoverable
+locally as well as through Confluence's own version history.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from base64 import b64encode
+from datetime import datetime, timezone
+from pathlib import Path
+
+AGENTS_ROOT = Path(os.environ.get("AGENTS_DIR", Path.home() / "agents"))
+if str(AGENTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENTS_ROOT))
+
+import acli  # noqa: E402
+
+DEFAULT_SITE = "https://rws-dev.atlassian.net/wiki"
+DEFAULT_EMAIL = "graehl@rws.com"
+KEYS_FILE = Path(os.environ.get("CONFLUENCE_KEYS_FILE", Path.home() / "keys.sh"))
+TOKEN_VARS = ("CONFLUENCE_API_TOKEN", "JIRA_API_TOKEN", "YEP_JIRA_API_TOKEN")
+BACKUP_ROOT = Path(
+    os.environ.get("CONFLUENCE_BACKUP_DIR", Path.home() / ".cache/confluence-backups")
+)
+CAPABILITIES = ("complete", "+toon")
+EXIT_CODES = {
+    0: "success",
+    2: "usage error",
+    3: "unusable response or body",
+    4: "page or credential source not found",
+    5: "version conflict; the page moved under the edit",
+    69: "Confluence unreachable or rejected the credential",
+}
+
+
+# --- credential -----------------------------------------------------------
+
+
+def _token() -> str:
+    """The API token, from the environment or a sourced keys file.
+
+    Sourcing happens in a child shell whose only output is the value, so the
+    keys file's other contents never reach this process or any log.
+    """
+    for name in TOKEN_VARS:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    if not KEYS_FILE.is_file():
+        acli.die(
+            f"no API token in {'/'.join(TOKEN_VARS)} and no keys file at {KEYS_FILE}",
+            acli.ExitCode.NOT_FOUND,
+        )
+    script = (
+        f". {KEYS_FILE!s} >/dev/null 2>&1 || exit 1\n"
+        "for v in " + " ".join(TOKEN_VARS) + "; do\n"
+        '  eval "val=\\${$v:-}"\n'
+        '  [ -n "$val" ] && { printf %s "$val"; exit 0; }\n'
+        "done\nexit 1\n"
+    )
+    done = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,  # a keys file without the variable is handled below
+    )
+    value = done.stdout.strip()
+    if done.returncode != 0 or not value:
+        acli.die(
+            f"{KEYS_FILE} defined none of {', '.join(TOKEN_VARS)}",
+            acli.ExitCode.NOT_FOUND,
+        )
+    return value
+
+
+# --- transport ------------------------------------------------------------
+
+
+def _request(args, method: str, path: str, payload: dict | None = None) -> dict:
+    site = args.site.rstrip("/")
+    url = path if path.startswith("http") else f"{site}{path}"
+    basic = b64encode(f"{args.email}:{_token()}".encode()).decode()
+    body = None if payload is None else json.dumps(payload).encode()
+    request = urllib.request.Request(url, data=body, method=method)
+    request.add_header("Authorization", f"Basic {basic}")
+    request.add_header("Accept", "application/json")
+    if body is not None:
+        request.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(request, timeout=args.timeout) as response:
+            raw = response.read().decode("utf-8")
+    except urllib.error.HTTPError as err:
+        detail = err.read().decode("utf-8", "replace")[:600]
+        code = {
+            401: acli.ExitCode.UNAVAILABLE,
+            403: acli.ExitCode.UNAVAILABLE,
+            404: acli.ExitCode.NOT_FOUND,
+            409: acli.ExitCode.CONFLICT,
+        }.get(err.code, acli.ExitCode.UNAVAILABLE)
+        hint = ""
+        if err.code in (401, 403):
+            hint = " (token rejected; regenerate it at id.atlassian.com)"
+        acli.die(
+            f"{method} {url} returned {err.code}{hint}",
+            code,
+            detail={"status": err.code, "body": detail},
+        )
+    except urllib.error.URLError as err:
+        acli.die(f"{method} {url} failed: {err.reason}", acli.ExitCode.UNAVAILABLE)
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        acli.die(f"{method} {url} returned non-JSON", acli.ExitCode.DATA)
+
+
+def _paged(args, path: str, limit: int) -> list[dict]:
+    """Follow Confluence v2 cursor links until `limit` rows or exhaustion."""
+    rows: list[dict] = []
+    next_path = path
+    while next_path and len(rows) < limit:
+        page = _request(args, "GET", next_path)
+        rows.extend(page.get("results", []))
+        link = (page.get("_links") or {}).get("next")
+        next_path = link or ""
+    return rows[:limit]
+
+
+def _page(args, page_id: str, body_format: str = "storage") -> dict:
+    query = f"?body-format={body_format}" if body_format != "none" else ""
+    return _request(args, "GET", f"/api/v2/pages/{page_id}{query}")
+
+
+def _storage(page: dict) -> str:
+    return ((page.get("body") or {}).get("storage") or {}).get("value", "")
+
+
+def _backup(page_id: str, page: dict, label: str) -> Path:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    version = (page.get("version") or {}).get("number", "?")
+    directory = BACKUP_ROOT / str(page_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / f"{stamp}.v{version}.{label}.html"
+    target.write_text(_storage(page), encoding="utf-8")
+    meta = {
+        "page_id": page_id,
+        "title": page.get("title"),
+        "version": version,
+        "captured": stamp,
+        "label": label,
+    }
+    target.with_suffix(".json").write_text(
+        json.dumps(meta, indent=2) + "\n", encoding="utf-8"
+    )
+    return target
+
+
+# --- verbs ----------------------------------------------------------------
+
+
+def cmd_whoami(args) -> dict:
+    who = _request(args, "GET", "/rest/api/user/current")
+    return {
+        "site": args.site,
+        "email": who.get("email"),
+        "display_name": who.get("displayName"),
+        "account_id": who.get("accountId"),
+        "token_source": "environment"
+        if any(os.environ.get(v, "").strip() for v in TOKEN_VARS)
+        else str(KEYS_FILE),
+    }
+
+
+def cmd_get(args) -> dict:
+    page = _page(args, args.page_id, args.body)
+    body = _storage(page)
+    row = {
+        "id": page.get("id"),
+        "title": page.get("title"),
+        "version": (page.get("version") or {}).get("number"),
+        "space_id": page.get("spaceId"),
+        "parent_id": page.get("parentId"),
+        "body_chars": len(body),
+        "tables": body.count("<table"),
+    }
+    if args.save_body:
+        Path(args.save_body).write_text(body, encoding="utf-8")
+        row["saved_body"] = str(Path(args.save_body).resolve())
+    elif args.body != "none":
+        row["body"] = body
+    if args.backup and args.body == "storage":
+        row["backup"] = str(_backup(args.page_id, page, "fetch"))
+    return row
+
+
+def cmd_children(args) -> dict:
+    rows = _paged(args, f"/api/v2/pages/{args.page_id}/children?limit=250", args.limit)
+    return {
+        "name": "children",
+        "columns": ["id", "title", "status"],
+        "rows": [
+            {
+                "id": str(r.get("id")),
+                "title": r.get("title") or "",
+                "status": r.get("status") or "",
+            }
+            for r in rows
+        ],
+    }
+
+
+def cmd_versions(args) -> dict:
+    rows = _paged(args, f"/api/v2/pages/{args.page_id}/versions?limit=250", args.limit)
+    return {
+        "name": "versions",
+        "columns": ["number", "created", "author", "message"],
+        "rows": [
+            {
+                "number": r.get("number"),
+                "created": r.get("createdAt") or "",
+                "author": (r.get("authorId") or ""),
+                "message": (r.get("message") or "").replace("\n", " "),
+            }
+            for r in rows
+        ],
+    }
+
+
+def cmd_search(args) -> dict:
+    cql = urllib.parse.quote(args.cql, safe="")
+    found = _request(args, "GET", f"/rest/api/search?cql={cql}&limit={args.limit}")
+    return {
+        "name": "results",
+        "columns": ["id", "title", "type"],
+        "rows": [
+            {
+                "id": str((r.get("content") or {}).get("id", "")),
+                "title": r.get("title") or "",
+                "type": (r.get("content") or {}).get("type", ""),
+            }
+            for r in found.get("results", [])
+        ],
+    }
+
+
+def cmd_put(args) -> dict:
+    new_body = (
+        sys.stdin.read()
+        if args.body_file == "-"
+        else Path(args.body_file).read_text(encoding="utf-8")
+    )
+    if not new_body.strip():
+        acli.die("refusing to write an empty body", acli.ExitCode.DATA)
+
+    page = _page(args, args.page_id, "storage")
+    live = (page.get("version") or {}).get("number")
+    if live != args.expect_version:
+        acli.die(
+            f"page {args.page_id} is at version {live}, not the expected "
+            f"{args.expect_version}; re-fetch and redo the edit",
+            acli.ExitCode.CONFLICT,
+            detail={"live_version": live, "expected": args.expect_version},
+        )
+    old_body = _storage(page)
+    backup = _backup(args.page_id, page, "prewrite")
+    result = {
+        "id": args.page_id,
+        "title": page.get("title"),
+        "from_version": live,
+        "old_chars": len(old_body),
+        "new_chars": len(new_body),
+        "old_tables": old_body.count("<table"),
+        "new_tables": new_body.count("<table"),
+        "backup": str(backup),
+    }
+    if args.dry_run:
+        result["dry_run"] = True
+        result["to_version"] = None
+        return result
+
+    payload = {
+        "id": str(args.page_id),
+        "status": "current",
+        "title": args.title or page.get("title"),
+        "body": {"representation": "storage", "value": new_body},
+        "version": {"number": live + 1, "message": args.message},
+    }
+    updated = _request(args, "PUT", f"/api/v2/pages/{args.page_id}", payload)
+    result["to_version"] = (updated.get("version") or {}).get("number")
+    result["url"] = f"{args.site.rstrip('/')}/spaces/_/pages/{args.page_id}"
+    return result
+
+
+def cmd_restore(args) -> dict:
+    """Write a saved backup file back as a new version."""
+    args.body_file = args.backup_file
+    args.title = None
+    args.message = args.message or f"restore from {Path(args.backup_file).name}"
+    return cmd_put(args)
+
+
+# --- wiring ---------------------------------------------------------------
+
+TABLE_VERBS = {"children", "versions", "search"}
+
+
+def build_parser():
+    parser = acli.argument_parser(
+        prog="confluence",
+        description=__doc__.split("\n\n")[0],
+        capabilities=CAPABILITIES,
+        exit_codes=EXIT_CODES,
+    )
+    parser.add_argument(
+        "--site",
+        default=os.environ.get("CONFLUENCE_SITE", DEFAULT_SITE),
+        help=f"Confluence base URL including /wiki (default: {DEFAULT_SITE}).",
+    )
+    parser.add_argument(
+        "--email",
+        default=os.environ.get("CONFLUENCE_EMAIL", DEFAULT_EMAIL),
+        help=f"Atlassian account email for basic auth (default: {DEFAULT_EMAIL}).",
+    )
+    parser.add_argument(
+        "--timeout", type=float, default=60.0, help="Per-request timeout in seconds."
+    )
+    subs = parser.add_subparsers(dest="verb", required=True)
+
+    subs.add_parser("whoami", help="Verify the credential and report the account.")
+
+    get = subs.add_parser("get", help="Fetch a page and its storage-format body.")
+    get.add_argument("page_id")
+    get.add_argument(
+        "--body",
+        choices=["storage", "view", "none"],
+        default="storage",
+        help="Body representation to request.",
+    )
+    get.add_argument(
+        "--save-body", metavar="FILE", help="Write the body here instead of to stdout."
+    )
+    get.add_argument(
+        "--backup",
+        action="store_true",
+        help=f"Also snapshot the body under {BACKUP_ROOT}.",
+    )
+
+    for verb, help_text in (
+        ("children", "List child pages."),
+        ("versions", "List version history, newest first."),
+    ):
+        sub = subs.add_parser(verb, help=help_text)
+        sub.add_argument("page_id")
+        sub.add_argument("--limit", type=int, default=100)
+
+    search = subs.add_parser("search", help="Run a CQL search.")
+    search.add_argument("cql", help="CQL, e.g. 'title ~ \"PII LP\"'")
+    search.add_argument("--limit", type=int, default=25)
+
+    put = subs.add_parser(
+        "put",
+        help="Replace a page body. Backs up the replaced body and requires the "
+        "version you edited.",
+    )
+    put.add_argument("page_id")
+    put.add_argument(
+        "--body-file",
+        required=True,
+        metavar="FILE",
+        help="Storage-format HTML to write; - reads standard input.",
+    )
+    put.add_argument(
+        "--expect-version",
+        type=int,
+        required=True,
+        help="Version number the edit was based on. A mismatch aborts.",
+    )
+    put.add_argument("--message", default="", help="Version comment.")
+    put.add_argument("--title", help="Rename the page while writing.")
+    put.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Check the version, take the backup, report sizes, write nothing.",
+    )
+
+    restore = subs.add_parser(
+        "restore", help="Write a saved backup back as a new version."
+    )
+    restore.add_argument("page_id")
+    restore.add_argument("backup_file")
+    restore.add_argument("--expect-version", type=int, required=True)
+    restore.add_argument("--message", default="")
+    restore.add_argument("--dry-run", action="store_true")
+
+    for sub in (
+        get,
+        put,
+        restore,
+        search,
+        *[subs.choices[v] for v in ("children", "versions", "whoami")],
+    ):
+        acli.add_standard_args(sub, allow_toon=True)
+    acli.add_standard_args(parser, allow_toon=True)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    acli.maybe_complete(parser)
+    args = parser.parse_args(argv)
+    args.acli_toon_allowed = args.verb in TABLE_VERBS
+    try:
+        fmt = acli.resolve_format(args)
+    except ValueError as err:
+        acli.die(str(err), acli.ExitCode.USAGE)
+    handler = globals()[f"cmd_{args.verb}"]
+    result = handler(args)
+    acli.emit(result, fmt, commentary=not getattr(args, "no_commentary", False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
