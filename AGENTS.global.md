@@ -933,11 +933,12 @@ scratch storage if it must survive a gap.
 ## Command output: save, never discard
 
 A command that does work — build, codegen, install, test run, data job — sends
-output to a named scratch file (`cmd >/tmp/build.log 2>&1`), never to
-`/dev/null`, even when you read only the tail; a later surprise is diagnosed
-from that file. Quiet a program through its own option (`grep -q`), not a
-redirect. Routine probes and searches (`find`, `ls`, `command -v`) may still
-drop stderr.
+output to named scratch files (`cmd >/tmp/build.out 2>/tmp/build.err`), never
+to `/dev/null`, even when you read only the tail; a later surprise is diagnosed
+from those files. Separate files keep each stream's line order; merge with
+`2>&1` for a deliberate single interleaved view (`… 2>&1 | tee log`), not by
+habit. Quiet a program through its own option (`grep -q`), not a redirect.
+Routine probes and searches (`find`, `ls`, `command -v`) may still drop stderr.
 
 ## Schema-announced workflows
 
