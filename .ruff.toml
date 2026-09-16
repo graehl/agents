@@ -10,6 +10,11 @@ target-version = "py310"
   # Malformed declaration JSON is a bad value, not a caller type error.
   "TRY004",
 ]
+"scripts/reviews" = [
+  # tomllib is stdlib from 3.11, so the py310 target above sorts it as
+  # third-party; the import block is correct for the 3.11 the script needs.
+  "I001",
+]
 "tests/test_*.py" = [
   # The suite runner catches every test failure to report the complete set.
   "BLE001",

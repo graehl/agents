@@ -33,7 +33,6 @@ Backend config lives in `reviews/config.toml`:
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -48,7 +47,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-import acli  # noqa: E402
+import acli
 
 STATE_OPEN = "<!-- state:"
 STATE_CLOSE = "<!-- /state -->"
@@ -72,7 +71,7 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc).replace(microsecond=0)
 
 
-def iso(ts: datetime | int | float | None) -> str | None:
+def iso(ts: datetime | float | None) -> str | None:
     if ts is None:
         return None
     if isinstance(ts, (int, float)):
@@ -112,7 +111,7 @@ def project_root(explicit: str | None) -> Path:
     if explicit:
         return Path(explicit).resolve()
     probe = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True
+        ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=False
     )
     if probe.returncode != 0:
         raise Refused("not inside a git project; pass --root", acli.ExitCode.USAGE)
@@ -260,7 +259,7 @@ class Review:
 
 def run(cmd: list[str], *, cwd: Path | None = None) -> str:
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, timeout=120)
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, timeout=120, check=False)
     except FileNotFoundError as exc:
         raise Refused(f"{cmd[0]} not found on PATH", acli.ExitCode.UNAVAILABLE) from exc
     except subprocess.TimeoutExpired as exc:
@@ -339,7 +338,7 @@ def gerrit_reviews(cfg: Config, ids: list[str]) -> list[Review]:
         # by the same reviewer dates them, else the patchset's own upload time.
         published: dict[tuple[str, int], str] = {}
         for m in d.get("comments", []):
-            pm = re.match(r"^Patch Set (\d+):.*\(\d+ comments?\)", m.get("message", ""), re.S)
+            pm = re.match(r"^Patch Set (\d+):.*\(\d+ comments?\)", m.get("message", ""), re.DOTALL)
             if pm:
                 published[(m.get("reviewer", {}).get("username"), int(pm.group(1)))] = iso(m["timestamp"])
         for p in d.get("patchSets", []):
@@ -410,11 +409,12 @@ def gerrit_merge_check(cfg: Config, rv: Review) -> dict[str, Any]:
         return {"mergeable": None, "reason": "no revision ref"}
     run(["git", "fetch", "-q", "origin", ref], cwd=cfg.root)
     base = f"origin/{branch}"
-    age = subprocess.run(["git", "log", "-1", "--format=%cI", base], capture_output=True, text=True, cwd=cfg.root)
+    age = subprocess.run(["git", "log", "-1", "--format=%cI", base], capture_output=True, text=True, cwd=cfg.root,
+                         check=False)
     if age.returncode != 0:
         return {"mergeable": None, "reason": f"no local {base}"}
     mt = subprocess.run(["git", "merge-tree", "--write-tree", "--name-only", base, "FETCH_HEAD"],
-                        capture_output=True, text=True, cwd=cfg.root)
+                        capture_output=True, text=True, cwd=cfg.root, check=False)
     conflicts = [ln for ln in mt.stdout.splitlines()[1:] if ln.strip()] if mt.returncode == 1 else []
     return {"mergeable": mt.returncode == 0, "base": base, "base_committed": age.stdout.strip(),
             "conflicts": conflicts[:20]}
