@@ -59,7 +59,9 @@ def platform_facts() -> dict[str, Any]:
             facts["gpu"] = torch.cuda.get_device_name(0)
             major, minor = torch.cuda.get_device_capability(0)
             facts["gpu_capability"] = f"{major}.{minor}"
-            facts["gpu_total_gib"] = round(torch.cuda.get_device_properties(0).total_memory / 2**30, 2)
+            facts["gpu_total_gib"] = round(
+                torch.cuda.get_device_properties(0).total_memory / 2**30, 2
+            )
             try:
                 facts["cudnn"] = torch.backends.cudnn.version()
             except Exception:
@@ -86,8 +88,12 @@ def peak_memory() -> dict[str, Any]:
         if not torch.cuda.is_available():
             return {}
         return {
-            "peak_vram_allocated_gib": round(torch.cuda.max_memory_allocated() / 2**30, 3),
-            "peak_vram_reserved_gib": round(torch.cuda.max_memory_reserved() / 2**30, 3),
+            "peak_vram_allocated_gib": round(
+                torch.cuda.max_memory_allocated() / 2**30, 3
+            ),
+            "peak_vram_reserved_gib": round(
+                torch.cuda.max_memory_reserved() / 2**30, 3
+            ),
         }
     except Exception:
         return {}
@@ -113,7 +119,9 @@ def publish(metrics: dict[str, Any], *, prefix: str = "") -> Path | None:
     directory = run_dir()
     if directory is None:
         return None
-    payload = {f"{prefix}{key}": value for key, value in metrics.items() if value is not None}
+    payload = {
+        f"{prefix}{key}": value for key, value in metrics.items() if value is not None
+    }
     if not payload:
         return None
     path = directory / PROPAGATE_FILENAME
@@ -128,7 +136,9 @@ def publish(metrics: dict[str, Any], *, prefix: str = "") -> Path | None:
     existing.update(payload)
     try:
         directory.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(existing, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        path.write_text(
+            json.dumps(existing, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
     except OSError:
         return None
     return path
@@ -169,4 +179,10 @@ class RunMetrics:
 
 
 if __name__ == "__main__":
-    print(json.dumps({"platform": platform_facts(), "peak": peak_memory()}, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            {"platform": platform_facts(), "peak": peak_memory()},
+            indent=2,
+            sort_keys=True,
+        )
+    )

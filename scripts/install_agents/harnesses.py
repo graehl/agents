@@ -14,12 +14,8 @@ class Harness:
 
 HARNESSES = {
     "codex": Harness("codex", (".codex", "AGENTS.md"), (".agents", "skills")),
-    "claude": Harness(
-        "claude", (".claude", "CLAUDE.md"), (".claude", "skills")
-    ),
-    "pi": Harness(
-        "pi", (".pi", "agent", "AGENTS.md"), (".pi", "agent", "skills")
-    ),
+    "claude": Harness("claude", (".claude", "CLAUDE.md"), (".claude", "skills")),
+    "pi": Harness("pi", (".pi", "agent", "AGENTS.md"), (".pi", "agent", "skills")),
     "opencode": Harness(
         "opencode",
         (".config", "opencode", "AGENTS.md"),

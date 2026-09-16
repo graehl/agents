@@ -55,6 +55,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+import pymupdf  # noqa: E402
+
 from acli import (  # noqa: E402
     ExitCode,
     Format,
@@ -66,8 +68,6 @@ from acli import (  # noqa: E402
     resolve_format,
     write_jsonl,
 )
-
-import pymupdf  # noqa: E402
 
 CAPABILITIES = ("complete",)
 EXIT_CODES = {
@@ -124,7 +124,11 @@ def markdown_figures(text: str) -> list[Figure]:
             continue
         seen.add(name)
         figures.append(
-            Figure(file=name, page=int(match.group("page")), block=int(match.group("block")))
+            Figure(
+                file=name,
+                page=int(match.group("page")),
+                block=int(match.group("block")),
+            )
         )
     return figures
 
@@ -154,7 +158,9 @@ def load_geometry(path: Path) -> dict[int, tuple[list[float], dict[int, list[flo
     return geometry
 
 
-def to_page_rect(page: pymupdf.Page, frame: list[float], bbox: list[float]) -> pymupdf.Rect:
+def to_page_rect(
+    page: pymupdf.Page, frame: list[float], bbox: list[float]
+) -> pymupdf.Rect:
     """Map a bbox stated in marker's page frame onto the PDF page's own rect."""
     full = page.rect
     frame_w = frame[2] - frame[0]
@@ -234,7 +240,9 @@ class Recutter:
     raster on purpose" from "the pass did nothing here".
     """
 
-    def __init__(self, pdf: Path, blocks: Path, directory: Path, *, dry_run: bool, max_bytes: int):
+    def __init__(
+        self, pdf: Path, blocks: Path, directory: Path, *, dry_run: bool, max_bytes: int
+    ):
         self.document = pymupdf.open(pdf)
         self.geometry = load_geometry(blocks)
         self.directory = directory
@@ -298,7 +306,11 @@ def convert(args) -> int:
     pdf_path = Path(args.pdf)
     blocks_path = Path(args.blocks)
     markdown_path = Path(args.markdown)
-    for label, path in (("pdf", pdf_path), ("blocks", blocks_path), ("markdown", markdown_path)):
+    for label, path in (
+        ("pdf", pdf_path),
+        ("blocks", blocks_path),
+        ("markdown", markdown_path),
+    ):
         if not path.exists():
             die_missing(label, path)
 
@@ -325,7 +337,9 @@ def convert(args) -> int:
     if fmt is Format.TOON:
         # TOON is a flat table: pad every row to the same columns, since a row
         # carries `native` or `svg_bytes` only when its outcome had one.
-        table = [{column: row.get(column, "") for column in TOON_COLUMNS} for row in rows]
+        table = [
+            {column: row.get(column, "") for column in TOON_COLUMNS} for row in rows
+        ]
         emit({"rows": table, "columns": list(TOON_COLUMNS), "name": "figures"}, fmt)
     elif not rows and fmt in {Format.COMPACT, Format.TEXT}:
         write_jsonl({"count": 0, "of": "figures"})
@@ -347,7 +361,7 @@ def build_parser():
         "--blocks",
         required=True,
         help="marker's blocks.json, from a run whose --config_json file set "
-        'debug_json true and debug_data_folder to its directory.',
+        "debug_json true and debug_data_folder to its directory.",
     )
     parser.add_argument(
         "--markdown",
