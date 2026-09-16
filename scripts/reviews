@@ -55,6 +55,8 @@ STATE_CLOSE = "<!-- /state -->"
 CHANGE_RE = re.compile(r"^Change:\s*(\w+)\s+(.+?)\s*$")
 SEEN_RE = re.compile(r"^Seen:\s*(\S+)")
 GERRIT_ID_RE = re.compile(r"^I[0-9a-f]{8,40}$")
+URL_RE = re.compile(r"https?://[^\s<>]+")
+MESSAGE_CHARS = 1200  # of a change message or comment body kept in an event line
 CLOSED = {"MERGED", "ABANDONED", "CLOSED"}
 
 
@@ -273,8 +275,22 @@ def run(cmd: list[str], *, cwd: Path | None = None) -> str:
 
 
 def _short(text: str, n: int = 160) -> str:
+    """Collapse whitespace and truncate, keeping every whole URL.
+
+    A CI bot names one build URL per job it ran, and those links are the only
+    route to a failing step's output — so a plain cut, which lands mid-URL as
+    soon as a message covers more than one job, drops what the line is for.
+    Whole URLs the cut dropped are re-appended after the ellipsis.
+    """
     text = " ".join(text.split())
-    return text if len(text) <= n else text[: n - 1] + "…"
+    if len(text) <= n:
+        return text
+    head = text[: n - 1]
+    cut = head.rfind(" ")
+    if not text[n - 1].isspace() and cut > 0:
+        head = head[:cut]  # never end inside a token
+    dropped = [u for u in (m.rstrip(".,;") for m in URL_RE.findall(text)) if u not in head]
+    return " ".join([head.rstrip() + "…", *dict.fromkeys(dropped)])
 
 
 # gerrit ----------------------------------------------------------------------
@@ -350,7 +366,7 @@ def gerrit_reviews(cfg: Config, ids: list[str]) -> list[Review]:
             else:
                 kind = "vote" if vote_re.match(text) else "message"
             events.append({"at": iso(m["timestamp"]), "review": num, "kind": kind,
-                           "by": by, "text": _short(text, 240)})
+                           "by": by, "text": _short(text, MESSAGE_CHARS)})
 
         def vote(a: dict[str, Any]) -> dict[str, Any]:
             val = str(a["value"])
@@ -431,7 +447,7 @@ def github_reviews(cfg: Config, ids: list[str]) -> list[Review]:
                            "text": f"commit {c['oid'][:9]} {_short(c.get('messageHeadline', ''), 80)}"})
         for c in d.get("comments", []):
             events.append({"at": c.get("createdAt"), "review": num, "kind": "message",
-                           "by": c.get("author", {}).get("login"), "text": _short(c.get("body", ""), 240)})
+                           "by": c.get("author", {}).get("login"), "text": _short(c.get("body", ""), MESSAGE_CHARS)})
         for rv in d.get("reviews", []):
             events.append({"at": rv.get("submittedAt"), "review": num, "kind": "vote",
                            "by": rv.get("author", {}).get("login"),
