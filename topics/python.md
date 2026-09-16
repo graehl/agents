@@ -9,8 +9,17 @@ also what the editor runs on save (import sort, `--fix`, then `format`),
 so running it on an authored file — `AGENTS.global.md` § Auto-format
 authored code — leaves nothing for the next save to change. Line length
 comes from the repo's `ruff.toml`/`pyproject.toml`, else ruff's default
-88; set it there rather than in editor arguments, or the two disagree. Add
-type hints to signatures. Prefer `uv` or `pixi` for environments. Avoid
+88; set it there rather than in editor arguments, or the two disagree.
+Ruff walks `*.py` only, so name executables without that suffix explicitly
+or the sweep silently skips them.
+
+A narrowed `--select` makes `RUF100` lie: with the suppressed rule
+deselected, the directive that suppresses it has nothing to suppress and
+reports as unused. Before deleting a `# noqa`, re-run the check with the
+named rule selected — and after deleting one, confirm the default check
+still passes.
+
+Add type hints to signatures. Prefer `uv` or `pixi` for environments. Avoid
 `shell=True` with user-influenced content. Make device placement explicit
 in ML code.
 
