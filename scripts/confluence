@@ -34,7 +34,12 @@ import acli  # noqa: E402
 DEFAULT_SITE = "https://rws-dev.atlassian.net/wiki"
 DEFAULT_EMAIL = "graehl@rws.com"
 KEYS_FILE = Path(os.environ.get("CONFLUENCE_KEYS_FILE", Path.home() / "keys.sh"))
-TOKEN_VARS = ("CONFLUENCE_API_TOKEN", "JIRA_API_TOKEN", "YEP_JIRA_API_TOKEN")
+TOKEN_VARS = (
+    "CONFLUENCE_API_TOKEN",
+    "JIRA_API_TOKEN",
+    "AGENT_JIRA_API_TOKEN",
+    "YEP_JIRA_API_TOKEN",
+)
 BACKUP_ROOT = Path(
     os.environ.get("CONFLUENCE_BACKUP_DIR", Path.home() / ".cache/confluence-backups")
 )
