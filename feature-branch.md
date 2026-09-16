@@ -42,7 +42,5 @@ already, and become relevant only under a branch workflow:
   to the branch name.
 - `skills/start-task` — scaffolds the task file and creates/switches to
   the feature branch.
-- `skills/review` — diffs the current branch against its resolved base
-  (`skills/ship/base-branch.sh`) before merge.
 - `skills/ship` — squash-merges the current feature branch into one commit
   for upstream.
