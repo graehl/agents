@@ -1555,8 +1555,9 @@ def others_cmd(args) -> int:
         # Informational, never a failure: a dropped-out expected peer means
         # more solitude, not less. `# ` marks the line as meta (acli banner
         # convention); the structured error envelope stays the last stderr line.
-        print(f"# expected peer {eid}: {_absent_expected_note(eid, now)}",
-              file=sys.stderr)
+        print(
+            f"# expected peer {eid}: {_absent_expected_note(eid, now)}", file=sys.stderr
+        )
 
     peer_rows = []
     for mtime, rel, line1, scope, tending, _ in peers:
@@ -2137,7 +2138,10 @@ def ensure_commit_note_hook() -> dict[str, str]:
     # the rewrite mode (only when the project has none) so a same-session
     # amend collapses to one line instead of concatenating a duplicate.
     wanted: list[list[str]] = []
-    if COMMIT_NOTE_REF not in git_value(["config", "--get-all", "notes.rewriteRef"]).split():
+    if (
+        COMMIT_NOTE_REF
+        not in git_value(["config", "--get-all", "notes.rewriteRef"]).split()
+    ):
         wanted.append(["--add", "notes.rewriteRef", COMMIT_NOTE_REF])
     if not git_value(["config", "--get", "notes.rewriteMode"]):
         wanted.append(["notes.rewriteMode", "cat_sort_uniq"])
@@ -2201,7 +2205,9 @@ def commit_note_cmd(args) -> int:
     if not git_value(["rev-parse", "--git-dir"]):
         if hook_mode:
             return 0
-        acli.die(f"agentctl commit-note: {ROOT} is not a git repository", acli.ExitCode.USAGE)
+        acli.die(
+            f"agentctl commit-note: {ROOT} is not a git repository", acli.ExitCode.USAGE
+        )
     sha = git_value(["rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"])
     if not sha:
         if hook_mode:
@@ -2279,7 +2285,10 @@ def commit_note_cmd(args) -> int:
             if hook_mode:
                 print(f"warning: commit-note: {detail.strip()}", file=sys.stderr)
                 return 0
-            acli.die(f"agentctl commit-note: git notes {verb} failed: {detail.strip()}", acli.ExitCode.SOFTWARE)
+            acli.die(
+                f"agentctl commit-note: git notes {verb} failed: {detail.strip()}",
+                acli.ExitCode.SOFTWARE,
+            )
         action = "appended" if verb == "append" else "added"
     if hook_mode:
         if action != "unchanged":

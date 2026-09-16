@@ -57,7 +57,10 @@ def _human(result: dict) -> str:
         if result.get("drift"):
             lines.append("drift: " + ", ".join(result["drift"]))
         return "\n".join(lines)
-    lines = [f"status: {result['status']}", f"changed paths: {result.get('changed', 0)}"]
+    lines = [
+        f"status: {result['status']}",
+        f"changed paths: {result.get('changed', 0)}",
+    ]
     if result.get("manifest"):
         lines.append(f"manifest: {result['manifest']}")
     if result.get("backup"):

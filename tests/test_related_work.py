@@ -434,7 +434,9 @@ def test_stage_force_adds_only_the_audited_subset():
         _assert(run(root, "audit").returncode == 0)
 
         # A plain directory add must still leave the cache alone.
-        subprocess.run(["git", "-C", str(workspace), "add", "--", str(directory)], check=True)
+        subprocess.run(
+            ["git", "-C", str(workspace), "add", "--", str(directory)], check=True
+        )
         listed = subprocess.run(
             ["git", "-C", str(workspace), "ls-files", "--", str(directory)],
             capture_output=True,

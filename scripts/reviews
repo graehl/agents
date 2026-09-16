@@ -76,7 +76,12 @@ def iso(ts: datetime | float | None) -> str | None:
         return None
     if isinstance(ts, (int, float)):
         ts = datetime.fromtimestamp(ts, tz=timezone.utc)
-    return ts.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        ts.astimezone(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def parse_iso(raw: str) -> datetime:
@@ -111,7 +116,10 @@ def project_root(explicit: str | None) -> Path:
     if explicit:
         return Path(explicit).resolve()
     probe = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=False
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if probe.returncode != 0:
         raise Refused("not inside a git project; pass --root", acli.ExitCode.USAGE)
@@ -121,7 +129,10 @@ def project_root(explicit: str | None) -> Path:
 def load_config(root: Path) -> Config:
     path = root / "reviews" / "config.toml"
     if not path.is_file():
-        raise Refused(f"missing {path}; see ~/agents/REVIEWS.md § Activation", acli.ExitCode.NOT_FOUND)
+        raise Refused(
+            f"missing {path}; see ~/agents/REVIEWS.md § Activation",
+            acli.ExitCode.NOT_FOUND,
+        )
     data = tomllib.loads(path.read_text())
     backend = data.get("backend") or {}
     kind = str(backend.get("kind", ""))
@@ -146,11 +157,17 @@ class ChangeFile:
     ids: list[str]
     seen: str | None
     lines: list[str] = field(default_factory=list)
-    error: str | None = None  # set when the file could not be parsed; such files are reported, never acted on
+    error: str | None = (
+        None  # set when the file could not be parsed; such files are reported, never acted on
+    )
 
     @property
     def bucket(self) -> str:
-        return self.path.parent.name if self.path.parent.name in {"merged", "abandoned"} else "open"
+        return (
+            self.path.parent.name
+            if self.path.parent.name in {"merged", "abandoned"}
+            else "open"
+        )
 
     def rel(self, root: Path) -> str:
         return str(self.path.relative_to(root))
@@ -173,11 +190,15 @@ def parse_change_file(path: Path) -> ChangeFile:
         try:
             parse_iso(seen)
         except ValueError as exc:
-            raise Refused(f"{path}: Seen: {seen!r} is not an ISO-8601 timestamp") from exc
+            raise Refused(
+                f"{path}: Seen: {seen!r} is not an ISO-8601 timestamp"
+            ) from exc
     return ChangeFile(path, backend, ids, seen, lines)
 
 
-def tracked_files(cfg: Config, buckets: tuple[str, ...] = ("open",)) -> list[ChangeFile]:
+def tracked_files(
+    cfg: Config, buckets: tuple[str, ...] = ("open",)
+) -> list[ChangeFile]:
     out: list[ChangeFile] = []
     for bucket in buckets:
         d = cfg.reviews_dir if bucket == "open" else cfg.reviews_dir / bucket
@@ -206,8 +227,10 @@ def locate(cfg: Config, token: str, buckets: tuple[str, ...]) -> ChangeFile:
     needle = token.lstrip("#")
     for cf in candidates:
         for cid in cf.ids:
-            if cid == needle or cid.split("#")[-1] == needle or (
-                GERRIT_ID_RE.match(needle) and cid.startswith(needle)
+            if (
+                cid == needle
+                or cid.split("#")[-1] == needle
+                or (GERRIT_ID_RE.match(needle) and cid.startswith(needle))
             ):
                 return cf
         if needle in cf.path.stem.split("-"):
@@ -259,11 +282,15 @@ class Review:
 
 def run(cmd: list[str], *, cwd: Path | None = None) -> str:
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, timeout=120, check=False)
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, cwd=cwd, timeout=120, check=False
+        )
     except FileNotFoundError as exc:
         raise Refused(f"{cmd[0]} not found on PATH", acli.ExitCode.UNAVAILABLE) from exc
     except subprocess.TimeoutExpired as exc:
-        raise Refused(f"timed out: {' '.join(cmd[:4])}", acli.ExitCode.TEMPORARY) from exc
+        raise Refused(
+            f"timed out: {' '.join(cmd[:4])}", acli.ExitCode.TEMPORARY
+        ) from exc
     if proc.returncode != 0:
         tail = (proc.stderr or proc.stdout).strip().splitlines()[-3:]
         raise Refused(
@@ -288,7 +315,9 @@ def _short(text: str, n: int = 160) -> str:
     cut = head.rfind(" ")
     if not text[n - 1].isspace() and cut > 0:
         head = head[:cut]  # never end inside a token
-    dropped = [u for u in (m.rstrip(".,;") for m in URL_RE.findall(text)) if u not in head]
+    dropped = [
+        u for u in (m.rstrip(".,;") for m in URL_RE.findall(text)) if u not in head
+    ]
     return " ".join([head.rstrip() + "…", *dict.fromkeys(dropped)])
 
 
@@ -297,9 +326,21 @@ def _short(text: str, n: int = 160) -> str:
 
 def gerrit_query(cfg: Config, terms: list[str]) -> list[dict[str, Any]]:
     b = cfg.backend
-    cmd = ["ssh", "-p", str(b.get("port", 29418)), str(b["host"]), "gerrit", "query",
-           "--format=JSON", "--current-patch-set", "--patch-sets", "--comments",
-           "--all-approvals", "--all-reviewers", "--submit-records"]
+    cmd = [
+        "ssh",
+        "-p",
+        str(b.get("port", 29418)),
+        str(b["host"]),
+        "gerrit",
+        "query",
+        "--format=JSON",
+        "--current-patch-set",
+        "--patch-sets",
+        "--comments",
+        "--all-approvals",
+        "--all-reviewers",
+        "--submit-records",
+    ]
     if b.get("project"):
         cmd.append(f"project:{b['project']}")
     cmd.extend(terms)
@@ -338,19 +379,42 @@ def gerrit_reviews(cfg: Config, ids: list[str]) -> list[Review]:
         # by the same reviewer dates them, else the patchset's own upload time.
         published: dict[tuple[str, int], str] = {}
         for m in d.get("comments", []):
-            pm = re.match(r"^Patch Set (\d+):.*\(\d+ comments?\)", m.get("message", ""), re.DOTALL)
+            pm = re.match(
+                r"^Patch Set (\d+):.*\(\d+ comments?\)", m.get("message", ""), re.DOTALL
+            )
             if pm:
-                published[(m.get("reviewer", {}).get("username"), int(pm.group(1)))] = iso(m["timestamp"])
+                published[(m.get("reviewer", {}).get("username"), int(pm.group(1)))] = (
+                    iso(m["timestamp"])
+                )
         for p in d.get("patchSets", []):
-            events.append({"at": iso(p["createdOn"]), "review": num, "kind": "revision",
-                           "by": p.get("uploader", {}).get("username"),
-                           "text": f"patchset {p['number']} {p['revision'][:9]} {p.get('kind', '')}".strip()})
+            events.append(
+                {
+                    "at": iso(p["createdOn"]),
+                    "review": num,
+                    "kind": "revision",
+                    "by": p.get("uploader", {}).get("username"),
+                    "text": f"patchset {p['number']} {p['revision'][:9]} {p.get('kind', '')}".strip(),
+                }
+            )
             for c in p.get("comments", []):
                 by = c.get("reviewer", {}).get("username")
-                at = iso(c.get("timestamp")) or published.get((by, int(p["number"]))) or iso(p["createdOn"])
-                events.append({"at": at, "review": num, "kind": "inline", "by": by,
-                               "file": c.get("file"), "line": c.get("line"),
-                               "revision": p["number"], "text": _short(c.get("message", ""))})
+                at = (
+                    iso(c.get("timestamp"))
+                    or published.get((by, int(p["number"])))
+                    or iso(p["createdOn"])
+                )
+                events.append(
+                    {
+                        "at": at,
+                        "review": num,
+                        "kind": "inline",
+                        "by": by,
+                        "file": c.get("file"),
+                        "line": c.get("line"),
+                        "revision": p["number"],
+                        "text": _short(c.get("message", "")),
+                    }
+                )
         # Votes are not separate events: Gerrit posts a change message for every
         # vote ("Patch Set 3: Code-Review+1"), so messages already carry them.
         for m in d.get("comments", []):
@@ -364,29 +428,70 @@ def gerrit_reviews(cfg: Config, ids: list[str]) -> list[Review]:
                 kind = "ci"
             else:
                 kind = "vote" if vote_re.match(text) else "message"
-            events.append({"at": iso(m["timestamp"]), "review": num, "kind": kind,
-                           "by": by, "text": _short(text, MESSAGE_CHARS)})
+            events.append(
+                {
+                    "at": iso(m["timestamp"]),
+                    "review": num,
+                    "kind": kind,
+                    "by": by,
+                    "text": _short(text, MESSAGE_CHARS),
+                }
+            )
 
         def vote(a: dict[str, Any]) -> dict[str, Any]:
             val = str(a["value"])
-            return {"label": a["type"], "value": val if val.startswith("-") else "+" + val,
-                    "by": a["by"].get("username"), "at": iso(a["grantedOn"])}
+            return {
+                "label": a["type"],
+                "value": val if val.startswith("-") else "+" + val,
+                "by": a["by"].get("username"),
+                "at": iso(a["grantedOn"]),
+            }
 
-        ci = [vote(a) for a in ps.get("approvals", []) if a["by"].get("username") in bots]
-        human = [vote(a) for a in ps.get("approvals", [])
-                 if a["by"].get("username") not in bots and a["type"] != "SUBM"]  # SUBM is Gerrit's submit marker
+        ci = [
+            vote(a) for a in ps.get("approvals", []) if a["by"].get("username") in bots
+        ]
+        human = [
+            vote(a)
+            for a in ps.get("approvals", [])
+            if a["by"].get("username") not in bots and a["type"] != "SUBM"
+        ]  # SUBM is Gerrit's submit marker
         recs = d.get("submitRecords") or []
-        submittable = {"status": recs[0]["status"] if recs else None,
-                       "needs": [lab["label"] for lab in (recs[0].get("labels") if recs else []) if lab.get("status") == "NEED"]}
-        out.append(Review(
-            number=num, branch=d["branch"], status=d["status"], url=d["url"], subject=d["subject"],
-            created=iso(d["createdOn"]), updated=iso(d["lastUpdated"]),
-            revision={"number": ps.get("number"), "sha": ps.get("revision"), "ref": ps.get("ref"),
-                      "kind": ps.get("kind"), "created": iso(ps.get("createdOn")), "parent": (ps.get("parents") or [None])[0]},
-            ci=ci, human=human, submittable=submittable,
-            reviewers=[r.get("username") for r in d.get("allReviewers", []) if r.get("username") not in bots],
-            events=sorted(events, key=lambda e: e["at"] or ""),
-        ))
+        submittable = {
+            "status": recs[0]["status"] if recs else None,
+            "needs": [
+                lab["label"]
+                for lab in (recs[0].get("labels") if recs else [])
+                if lab.get("status") == "NEED"
+            ],
+        }
+        out.append(
+            Review(
+                number=num,
+                branch=d["branch"],
+                status=d["status"],
+                url=d["url"],
+                subject=d["subject"],
+                created=iso(d["createdOn"]),
+                updated=iso(d["lastUpdated"]),
+                revision={
+                    "number": ps.get("number"),
+                    "sha": ps.get("revision"),
+                    "ref": ps.get("ref"),
+                    "kind": ps.get("kind"),
+                    "created": iso(ps.get("createdOn")),
+                    "parent": (ps.get("parents") or [None])[0],
+                },
+                ci=ci,
+                human=human,
+                submittable=submittable,
+                reviewers=[
+                    r.get("username")
+                    for r in d.get("allReviewers", [])
+                    if r.get("username") not in bots
+                ],
+                events=sorted(events, key=lambda e: e["at"] or ""),
+            )
+        )
     return out
 
 
@@ -397,7 +502,10 @@ def gerrit_change_id(cfg: Config, token: str) -> tuple[str, str]:
         raise Refused(f"gerrit has no change {token!r}", acli.ExitCode.NOT_FOUND)
     ids = {r["id"] for r in rows}
     if len(ids) > 1:
-        raise Refused(f"{token!r} is ambiguous across Change-Ids {sorted(ids)}", acli.ExitCode.CONFLICT)
+        raise Refused(
+            f"{token!r} is ambiguous across Change-Ids {sorted(ids)}",
+            acli.ExitCode.CONFLICT,
+        )
     return rows[0]["id"], rows[0]["subject"]
 
 
@@ -409,22 +517,42 @@ def gerrit_merge_check(cfg: Config, rv: Review) -> dict[str, Any]:
         return {"mergeable": None, "reason": "no revision ref"}
     run(["git", "fetch", "-q", "origin", ref], cwd=cfg.root)
     base = f"origin/{branch}"
-    age = subprocess.run(["git", "log", "-1", "--format=%cI", base], capture_output=True, text=True, cwd=cfg.root,
-                         check=False)
+    age = subprocess.run(
+        ["git", "log", "-1", "--format=%cI", base],
+        capture_output=True,
+        text=True,
+        cwd=cfg.root,
+        check=False,
+    )
     if age.returncode != 0:
         return {"mergeable": None, "reason": f"no local {base}"}
-    mt = subprocess.run(["git", "merge-tree", "--write-tree", "--name-only", base, "FETCH_HEAD"],
-                        capture_output=True, text=True, cwd=cfg.root, check=False)
-    conflicts = [ln for ln in mt.stdout.splitlines()[1:] if ln.strip()] if mt.returncode == 1 else []
-    return {"mergeable": mt.returncode == 0, "base": base, "base_committed": age.stdout.strip(),
-            "conflicts": conflicts[:20]}
+    mt = subprocess.run(
+        ["git", "merge-tree", "--write-tree", "--name-only", base, "FETCH_HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=cfg.root,
+        check=False,
+    )
+    conflicts = (
+        [ln for ln in mt.stdout.splitlines()[1:] if ln.strip()]
+        if mt.returncode == 1
+        else []
+    )
+    return {
+        "mergeable": mt.returncode == 0,
+        "base": base,
+        "base_committed": age.stdout.strip(),
+        "conflicts": conflicts[:20],
+    }
 
 
 # github ----------------------------------------------------------------------
 
-PR_FIELDS = ("number,title,state,isDraft,baseRefName,headRefName,headRefOid,url,createdAt,updatedAt,"
-             "mergedAt,closedAt,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,"
-             "commits,comments,reviews,reviewRequests,author")
+PR_FIELDS = (
+    "number,title,state,isDraft,baseRefName,headRefName,headRefOid,url,createdAt,updatedAt,"
+    "mergedAt,closedAt,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,"
+    "commits,comments,reviews,reviewRequests,author"
+)
 
 
 def gh_json(args: list[str]) -> Any:
@@ -442,51 +570,129 @@ def github_reviews(cfg: Config, ids: list[str]) -> list[Review]:
         inline = gh_json(["api", f"repos/{r}/pulls/{num}/comments", "--paginate"])
         events: list[dict[str, Any]] = []
         for c in d.get("commits", []):
-            events.append({"at": c.get("committedDate"), "review": num, "kind": "revision",
-                           "by": (c.get("authors") or [{}])[0].get("login"),
-                           "text": f"commit {c['oid'][:9]} {_short(c.get('messageHeadline', ''), 80)}"})
+            events.append(
+                {
+                    "at": c.get("committedDate"),
+                    "review": num,
+                    "kind": "revision",
+                    "by": (c.get("authors") or [{}])[0].get("login"),
+                    "text": f"commit {c['oid'][:9]} {_short(c.get('messageHeadline', ''), 80)}",
+                }
+            )
         for c in d.get("comments", []):
-            events.append({"at": c.get("createdAt"), "review": num, "kind": "message",
-                           "by": c.get("author", {}).get("login"), "text": _short(c.get("body", ""), MESSAGE_CHARS)})
+            events.append(
+                {
+                    "at": c.get("createdAt"),
+                    "review": num,
+                    "kind": "message",
+                    "by": c.get("author", {}).get("login"),
+                    "text": _short(c.get("body", ""), MESSAGE_CHARS),
+                }
+            )
         for rv in d.get("reviews", []):
-            events.append({"at": rv.get("submittedAt"), "review": num, "kind": "vote",
-                           "by": rv.get("author", {}).get("login"),
-                           "text": rv.get("state", "") + (": " + _short(rv["body"], 200) if rv.get("body") else "")})
+            events.append(
+                {
+                    "at": rv.get("submittedAt"),
+                    "review": num,
+                    "kind": "vote",
+                    "by": rv.get("author", {}).get("login"),
+                    "text": rv.get("state", "")
+                    + (": " + _short(rv["body"], 200) if rv.get("body") else ""),
+                }
+            )
         for c in inline:
-            events.append({"at": c.get("created_at"), "review": num, "kind": "inline",
-                           "by": c.get("user", {}).get("login"), "file": c.get("path"),
-                           "line": c.get("line") or c.get("original_line"),
-                           "revision": (c.get("commit_id") or "")[:9], "text": _short(c.get("body", ""))})
+            events.append(
+                {
+                    "at": c.get("created_at"),
+                    "review": num,
+                    "kind": "inline",
+                    "by": c.get("user", {}).get("login"),
+                    "file": c.get("path"),
+                    "line": c.get("line") or c.get("original_line"),
+                    "revision": (c.get("commit_id") or "")[:9],
+                    "text": _short(c.get("body", "")),
+                }
+            )
         ci = []
         for chk in d.get("statusCheckRollup") or []:
             name = chk.get("name") or chk.get("context") or chk.get("workflowName")
             verdict = chk.get("conclusion") or chk.get("state") or chk.get("status")
             at = chk.get("completedAt") or chk.get("startedAt")
-            ci.append({"label": name, "value": verdict, "by": chk.get("workflowName"), "at": at})
+            ci.append(
+                {
+                    "label": name,
+                    "value": verdict,
+                    "by": chk.get("workflowName"),
+                    "at": at,
+                }
+            )
             if at:
-                events.append({"at": at, "review": num, "kind": "ci", "by": name, "text": str(verdict)})
+                events.append(
+                    {
+                        "at": at,
+                        "review": num,
+                        "kind": "ci",
+                        "by": name,
+                        "text": str(verdict),
+                    }
+                )
         latest: dict[str, dict[str, Any]] = {}
         for rv in d.get("reviews", []):
             login = rv.get("author", {}).get("login")
-            if login and rv.get("state") in {"APPROVED", "CHANGES_REQUESTED", "DISMISSED"}:
+            if login and rv.get("state") in {
+                "APPROVED",
+                "CHANGES_REQUESTED",
+                "DISMISSED",
+            }:
                 latest[login] = rv
-        human = [{"label": "review", "value": rv["state"], "by": login, "at": rv.get("submittedAt")}
-                 for login, rv in latest.items()]
+        human = [
+            {
+                "label": "review",
+                "value": rv["state"],
+                "by": login,
+                "at": rv.get("submittedAt"),
+            }
+            for login, rv in latest.items()
+        ]
         state = d.get("state", "")
-        status = {"MERGED": "MERGED", "CLOSED": "ABANDONED", "OPEN": "NEW"}.get(state, state)
-        pending = [rq.get("login") or rq.get("name") for rq in d.get("reviewRequests", [])]
-        submittable = {"status": d.get("mergeStateStatus"), "mergeable": d.get("mergeable"),
-                       "decision": d.get("reviewDecision"), "draft": d.get("isDraft"), "needs": pending}
+        status = {"MERGED": "MERGED", "CLOSED": "ABANDONED", "OPEN": "NEW"}.get(
+            state, state
+        )
+        pending = [
+            rq.get("login") or rq.get("name") for rq in d.get("reviewRequests", [])
+        ]
+        submittable = {
+            "status": d.get("mergeStateStatus"),
+            "mergeable": d.get("mergeable"),
+            "decision": d.get("reviewDecision"),
+            "draft": d.get("isDraft"),
+            "needs": pending,
+        }
         commits = d.get("commits", [])
-        out.append(Review(
-            number=num, branch=d.get("baseRefName", ""), status=status, url=d.get("url", ""), subject=d.get("title", ""),
-            created=d.get("createdAt"), updated=d.get("updatedAt"),
-            revision={"number": len(commits), "sha": d.get("headRefOid"), "ref": d.get("headRefName"),
-                      "kind": None, "created": commits[-1].get("committedDate") if commits else None, "parent": None},
-            ci=ci, human=human, submittable=submittable,
-            reviewers=sorted({*latest.keys(), *pending}),
-            events=sorted(events, key=lambda e: e["at"] or ""),
-        ))
+        out.append(
+            Review(
+                number=num,
+                branch=d.get("baseRefName", ""),
+                status=status,
+                url=d.get("url", ""),
+                subject=d.get("title", ""),
+                created=d.get("createdAt"),
+                updated=d.get("updatedAt"),
+                revision={
+                    "number": len(commits),
+                    "sha": d.get("headRefOid"),
+                    "ref": d.get("headRefName"),
+                    "kind": None,
+                    "created": commits[-1].get("committedDate") if commits else None,
+                    "parent": None,
+                },
+                ci=ci,
+                human=human,
+                submittable=submittable,
+                reviewers=sorted({*latest.keys(), *pending}),
+                events=sorted(events, key=lambda e: e["at"] or ""),
+            )
+        )
     return out
 
 
@@ -495,13 +701,21 @@ def github_reviews(cfg: Config, ids: list[str]) -> list[Review]:
 
 def fetch(cfg: Config, cf: ChangeFile) -> list[Review]:
     if cf.backend != cfg.kind:
-        raise Refused(f"{cf.path.name}: Change: backend {cf.backend!r} but config is {cfg.kind!r}")
-    return gerrit_reviews(cfg, cf.ids) if cfg.kind == "gerrit" else github_reviews(cfg, cf.ids)
+        raise Refused(
+            f"{cf.path.name}: Change: backend {cf.backend!r} but config is {cfg.kind!r}"
+        )
+    return (
+        gerrit_reviews(cfg, cf.ids)
+        if cfg.kind == "gerrit"
+        else github_reviews(cfg, cf.ids)
+    )
 
 
 def new_events(reviews: list[Review], seen: str | None) -> list[dict[str, Any]]:
     floor = epoch(seen)
-    evs = [e for r in reviews for e in r.events if e.get("at") and epoch(e["at"]) > floor]
+    evs = [
+        e for r in reviews for e in r.events if e.get("at") and epoch(e["at"]) > floor
+    ]
     return sorted(evs, key=lambda e: e["at"])
 
 
@@ -515,15 +729,27 @@ def ticket_of(cfg: Config, cf: ChangeFile, reviews: list[Review]) -> str | None:
     return None
 
 
-def state_table(cfg: Config, reviews: list[Review], merge: dict[str, dict[str, Any]], at: datetime) -> list[str]:
-    rows = [f"{STATE_OPEN} written by `reviews sync` {iso(at)}; observation, not authority -->",
-            "| review | branch | status | revision | CI | human | submittable |",
-            "|---|---|---|---|---|---|---|"]
+def state_table(
+    cfg: Config, reviews: list[Review], merge: dict[str, dict[str, Any]], at: datetime
+) -> list[str]:
+    rows = [
+        f"{STATE_OPEN} written by `reviews sync` {iso(at)}; observation, not authority -->",
+        "| review | branch | status | revision | CI | human | submittable |",
+        "|---|---|---|---|---|---|---|",
+    ]
     for r in reviews:
         rev = f"{'ps' if cfg.kind == 'gerrit' else 'c'}{r.revision.get('number')} {(r.revision.get('sha') or '')[:9]}"
-        ci = ", ".join(f"{c['label']}{c['value']}" + (f" {c['by']}" if c.get("by") else "") for c in r.ci) or "—"
+        ci = (
+            ", ".join(
+                f"{c['label']}{c['value']}" + (f" {c['by']}" if c.get("by") else "")
+                for c in r.ci
+            )
+            or "—"
+        )
         if cfg.kind == "gerrit":
-            human = ", ".join(f"{h['label']}{h['value']} {h['by']}" for h in r.human) or "—"
+            human = (
+                ", ".join(f"{h['label']}{h['value']} {h['by']}" for h in r.human) or "—"
+            )
         else:
             human = ", ".join(f"{h['by']} {h['value']}" for h in r.human) or "—"
         sub = r.submittable.get("status") or "—"
@@ -533,8 +759,14 @@ def state_table(cfg: Config, reviews: list[Review], merge: dict[str, dict[str, A
             sub += f", {r.submittable['mergeable']}"
         mc = merge.get(r.number)
         if mc and mc.get("mergeable") is not None:
-            sub += ", " + ("merge clean" if mc["mergeable"] else f"CONFLICTS {len(mc.get('conflicts', []))}")
-        rows.append(f"| [{r.number}]({r.url}) | {r.branch} | {r.status} | {rev} | {ci} | {human} | {sub} |")
+            sub += ", " + (
+                "merge clean"
+                if mc["mergeable"]
+                else f"CONFLICTS {len(mc.get('conflicts', []))}"
+            )
+        rows.append(
+            f"| [{r.number}]({r.url}) | {r.branch} | {r.status} | {rev} | {ci} | {human} | {sub} |"
+        )
     rows.append(STATE_CLOSE)
     return rows
 
@@ -547,23 +779,32 @@ def observation_log(events: list[dict[str, Any]], at: datetime) -> list[str]:
         out.append("- no new activity")
     for e in events:
         where = f" {e['file']}:{e['line']}" if e.get("file") else ""
-        rev = f" (rev {e['revision']})" if e.get("revision") and e["kind"] != "revision" else ""
-        out.append(f"- {e['at']} {e['review']} {e['kind']} {e.get('by') or '-'}{where}{rev}: {e['text']}")
+        rev = (
+            f" (rev {e['revision']})"
+            if e.get("revision") and e["kind"] != "revision"
+            else ""
+        )
+        out.append(
+            f"- {e['at']} {e['review']} {e['kind']} {e.get('by') or '-'}{where}{rev}: {e['text']}"
+        )
     return out
 
 
-def write_state(cf: ChangeFile, table: list[str], seen: str | None,
-                log: list[str] | None = None) -> None:
+def write_state(
+    cf: ChangeFile, table: list[str], seen: str | None, log: list[str] | None = None
+) -> None:
     lines = list(cf.lines)
     start = next((i for i, ln in enumerate(lines) if ln.startswith(STATE_OPEN)), None)
     end = next((i for i, ln in enumerate(lines) if ln.strip() == STATE_CLOSE), None)
     if start is not None and end is not None and end >= start:
-        lines[start:end + 1] = table
+        lines[start : end + 1] = table
     else:
         header_end = next((i for i, ln in enumerate(lines) if SEEN_RE.match(ln)), None)
         if header_end is None:
-            header_end = next((i for i, ln in enumerate(lines) if CHANGE_RE.match(ln)), 0)
-        lines[header_end + 1:header_end + 1] = ["", *table]
+            header_end = next(
+                (i for i, ln in enumerate(lines) if CHANGE_RE.match(ln)), 0
+            )
+        lines[header_end + 1 : header_end + 1] = ["", *table]
     if seen is not None:
         idx = next((i for i, ln in enumerate(lines) if SEEN_RE.match(ln)), None)
         if idx is None:
@@ -612,16 +853,32 @@ def change_key(cfg: Config, ids: list[str]) -> str:
     return "pr" + "-".join(i.split("#")[-1] for i in ids)
 
 
-def skeleton(cfg: Config, ids: list[str], subject: str, ticket: str | None) -> tuple[str, str]:
+def skeleton(
+    cfg: Config, ids: list[str], subject: str, ticket: str | None
+) -> tuple[str, str]:
     key = change_key(cfg, ids)
-    name = "-".join(p for p in (ticket, slugify(subject, cfg, ticket), key) if p) + ".md"
+    name = (
+        "-".join(p for p in (ticket, slugify(subject, cfg, ticket), key) if p) + ".md"
+    )
     lines = [f"# {subject}", "", f"Change: {cfg.kind} {' '.join(ids)}"]
     if ticket:
         link = cfg.ticket_url.format(ticket=ticket) if cfg.ticket_url else ticket
         lines.append(f"Ticket: {ticket}" + (f" <{link}>" if link != ticket else ""))
-    lines += ["", "## What and why", "", "<!-- what the change does, why, and where it came from (branch/commit) -->", "",
-              "## Likely reviewer questions", "", "- ", "",
-              "## Review thread", "", "<!-- dated: reviewer comments and how we answered; what a follow-up revision still owes -->", ""]
+    lines += [
+        "",
+        "## What and why",
+        "",
+        "<!-- what the change does, why, and where it came from (branch/commit) -->",
+        "",
+        "## Likely reviewer questions",
+        "",
+        "- ",
+        "",
+        "## Review thread",
+        "",
+        "<!-- dated: reviewer comments and how we answered; what a follow-up revision still owes -->",
+        "",
+    ]
     return name, "\n".join(lines)
 
 
@@ -631,28 +888,52 @@ def skeleton(cfg: Config, ids: list[str], subject: str, ticket: str | None) -> t
 def render_sync(results: list[dict[str, Any]]) -> str:
     out: list[str] = []
     for res in results:
-        out.append(f"{res['file']}  seen {res['seen'] or '(never)'}" + (f"  → {res['moved_to']}" if res.get("moved_to") else ""))
+        out.append(
+            f"{res['file']}  seen {res['seen'] or '(never)'}"
+            + (f"  → {res['moved_to']}" if res.get("moved_to") else "")
+        )
         if res.get("skipped"):
             out.append(f"  skipped: {res['skipped']}")
             continue
         for r in res["reviews"]:
-            ci = ", ".join(f"{c['label']}{c['value']}" + (f" {c['by']}" if c.get('by') else "") for c in r["ci"]) or "—"
-            human = ", ".join(f"{h['label']}{h['value']} {h['by']}" if h["label"] != "review" else f"{h['by']} {h['value']}"
-                              for h in r["human"]) or "—"
+            ci = (
+                ", ".join(
+                    f"{c['label']}{c['value']}" + (f" {c['by']}" if c.get("by") else "")
+                    for c in r["ci"]
+                )
+                or "—"
+            )
+            human = (
+                ", ".join(
+                    f"{h['label']}{h['value']} {h['by']}"
+                    if h["label"] != "review"
+                    else f"{h['by']} {h['value']}"
+                    for h in r["human"]
+                )
+                or "—"
+            )
             sub = r["submittable"].get("status") or "—"
             needs = r["submittable"].get("needs")
             if needs:
                 sub += " needs " + ",".join(str(n) for n in needs)
             mc = res.get("merge_check", {}).get(r["number"])
             if mc and mc.get("mergeable") is not None:
-                sub += ", " + ("merge clean" if mc["mergeable"] else "CONFLICTS " + ",".join(mc.get("conflicts", [])[:5]))
-            out.append(f"  {r['number']} {r['branch']} {r['status']} rev {r['revision'].get('number')} "
-                       f"{(r['revision'].get('sha') or '')[:9]}  CI {ci}  human {human}  submit {sub}")
+                sub += ", " + (
+                    "merge clean"
+                    if mc["mergeable"]
+                    else "CONFLICTS " + ",".join(mc.get("conflicts", [])[:5])
+                )
+            out.append(
+                f"  {r['number']} {r['branch']} {r['status']} rev {r['revision'].get('number')} "
+                f"{(r['revision'].get('sha') or '')[:9]}  CI {ci}  human {human}  submit {sub}"
+            )
         evs = res["new_events"]
         out.append(f"  new since seen: {len(evs)}")
         for e in evs:
             where = f" {e['file']}:{e['line']}" if e.get("file") else ""
-            out.append(f"    {e['at']} {e['review']} {e['kind']:<8} {e.get('by') or '-'}{where}  {e['text']}")
+            out.append(
+                f"    {e['at']} {e['review']} {e['kind']:<8} {e.get('by') or '-'}{where}  {e['text']}"
+            )
     return "\n".join(out)
 
 
@@ -663,15 +944,30 @@ def commentary_for(res: dict[str, Any]) -> str:
     parts = []
     for r in res["reviews"]:
         ci = ", ".join(f"{c['label']}{c['value']}" for c in r["ci"]) or "no CI verdict"
-        human = ", ".join(f"{h['label']}{h['value']} {h['by']}" if h["label"] != "review" else f"{h['by']} {h['value']}"
-                          for h in r["human"]) or "no human votes"
+        human = (
+            ", ".join(
+                f"{h['label']}{h['value']} {h['by']}"
+                if h["label"] != "review"
+                else f"{h['by']} {h['value']}"
+                for h in r["human"]
+            )
+            or "no human votes"
+        )
         sub = r["submittable"].get("status") or "?"
         if r["submittable"].get("needs"):
-            sub += " (needs " + ", ".join(str(n) for n in r["submittable"]["needs"]) + ")"
+            sub += (
+                " (needs " + ", ".join(str(n) for n in r["submittable"]["needs"]) + ")"
+            )
         mc = res.get("merge_check", {}).get(r["number"])
         if mc and mc.get("mergeable") is not None:
-            sub += "; merges clean" if mc["mergeable"] else f"; **conflicts** in {', '.join(mc.get('conflicts', [])[:3])}"
-        parts.append(f"[{r['number']}]({r['url']}) {r['branch']} **{r['status']}** rev {r['revision'].get('number')}: {ci}; {human}; {sub}")
+            sub += (
+                "; merges clean"
+                if mc["mergeable"]
+                else f"; **conflicts** in {', '.join(mc.get('conflicts', [])[:3])}"
+            )
+        parts.append(
+            f"[{r['number']}]({r['url']}) {r['branch']} **{r['status']}** rev {r['revision'].get('number')}: {ci}; {human}; {sub}"
+        )
     evs = res["new_events"]
     head = f"**{res['file']}** — " + " · ".join(parts)
     if not evs:
@@ -679,19 +975,34 @@ def commentary_for(res: dict[str, Any]) -> str:
     noticed = []
     for e in evs[:12]:
         where = f" `{e['file']}:{e['line']}`" if e.get("file") else ""
-        noticed.append(f"{e['review']} {e['kind']} by {e.get('by') or '-'}{where}: {e['text']}")
+        noticed.append(
+            f"{e['review']} {e['kind']} by {e.get('by') or '-'}{where}: {e['text']}"
+        )
     more = f" (+{len(evs) - 12} more)" if len(evs) > 12 else ""
     tail = " Moved to `" + res["moved_to"] + "`." if res.get("moved_to") else ""
-    return head + f". New since {res['seen'] or 'tracking began'} ({len(evs)}){more}: " + " — ".join(noticed) + "." + tail
+    return (
+        head
+        + f". New since {res['seen'] or 'tracking began'} ({len(evs)}){more}: "
+        + " — ".join(noticed)
+        + "."
+        + tail
+    )
 
 
 def render_status(rows: list[dict[str, Any]]) -> str:
     out = []
     for r in rows:
-        revs = "; ".join(f"{x['number']} {x['branch']} {x['status']}" for x in r["reviews"]) or "(not synced)"
+        revs = (
+            "; ".join(
+                f"{x['number']} {x['branch']} {x['status']}" for x in r["reviews"]
+            )
+            or "(not synced)"
+        )
         if r.get("error"):
             revs = "ERROR " + r["error"]
-        out.append(f"{r['bucket']:<9} {r['file']:<60} seen {r['seen'] or '(never)':<20} {revs}")
+        out.append(
+            f"{r['bucket']:<9} {r['file']:<60} seen {r['seen'] or '(never)':<20} {revs}"
+        )
     return "\n".join(out)
 
 
@@ -707,12 +1018,21 @@ def parse_state_rows(cf: ChangeFile) -> list[dict[str, str]]:
             continue
         if ln.strip() == STATE_CLOSE:
             break
-        if inside and ln.startswith("| [") :
+        if inside and ln.startswith("| ["):
             cells = [c.strip() for c in ln.strip().strip("|").split("|")]
             m = re.match(r"\[(\S+)\]\((\S+)\)", cells[0])
-            rows.append({"number": m.group(1) if m else cells[0], "url": m.group(2) if m else "",
-                         "branch": cells[1], "status": cells[2], "revision": cells[3],
-                         "ci": cells[4], "human": cells[5], "submittable": cells[6]})
+            rows.append(
+                {
+                    "number": m.group(1) if m else cells[0],
+                    "url": m.group(2) if m else "",
+                    "branch": cells[1],
+                    "status": cells[2],
+                    "revision": cells[3],
+                    "ci": cells[4],
+                    "human": cells[5],
+                    "submittable": cells[6],
+                }
+            )
     return rows
 
 
@@ -722,46 +1042,93 @@ def cmd_status(cfg: Config, args) -> tuple[Any, str]:
     for cf in tracked_files(cfg, buckets):
         reviews: list[dict[str, Any]]
         if cf.error:
-            rows.append({"file": cf.rel(cfg.root), "bucket": cf.bucket, "ids": [], "seen": None,
-                         "reviews": [], "error": cf.error})
+            rows.append(
+                {
+                    "file": cf.rel(cfg.root),
+                    "bucket": cf.bucket,
+                    "ids": [],
+                    "seen": None,
+                    "reviews": [],
+                    "error": cf.error,
+                }
+            )
             continue
         if args.live:
             reviews = [r.as_dict() for r in fetch(cfg, cf)]
         else:
             reviews = parse_state_rows(cf)
-        rows.append({"file": cf.rel(cfg.root), "bucket": cf.bucket, "ids": cf.ids, "seen": cf.seen, "reviews": reviews})
+        rows.append(
+            {
+                "file": cf.rel(cfg.root),
+                "bucket": cf.bucket,
+                "ids": cf.ids,
+                "seen": cf.seen,
+                "reviews": reviews,
+            }
+        )
     return rows, render_status(rows)
 
 
 def cmd_sync(cfg: Config, args) -> tuple[Any, str]:
     buckets = ("open", "merged", "abandoned") if args.all else ("open",)
-    files = [locate(cfg, t, ("open", "merged", "abandoned")) for t in args.change] or tracked_files(cfg, buckets)
+    files = [
+        locate(cfg, t, ("open", "merged", "abandoned")) for t in args.change
+    ] or tracked_files(cfg, buckets)
     if not files:
-        raise Refused(f"nothing tracked under {cfg.reviews_dir}", acli.ExitCode.NOT_FOUND)
+        raise Refused(
+            f"nothing tracked under {cfg.reviews_dir}", acli.ExitCode.NOT_FOUND
+        )
     now = utc_now()
     results = []
     for cf in files:
         if cf.error or cf.backend != cfg.kind:
-            why = cf.error or f"backend {cf.backend!r}; this project's config is {cfg.kind!r}"
-            results.append(acli.commentary(f"`{cf.rel(cfg.root)}` skipped: {why}.",
-                                           value={"file": cf.rel(cfg.root), "ids": cf.ids, "seen": cf.seen,
-                                                  "skipped": why, "reviews": [], "new_events": []}))
+            why = (
+                cf.error
+                or f"backend {cf.backend!r}; this project's config is {cfg.kind!r}"
+            )
+            results.append(
+                acli.commentary(
+                    f"`{cf.rel(cfg.root)}` skipped: {why}.",
+                    value={
+                        "file": cf.rel(cfg.root),
+                        "ids": cf.ids,
+                        "seen": cf.seen,
+                        "skipped": why,
+                        "reviews": [],
+                        "new_events": [],
+                    },
+                )
+            )
             continue
         reviews = fetch(cfg, cf)
         merge: dict[str, dict[str, Any]] = {}
         if args.merge_check and cfg.kind == "gerrit":
-            merge = {r.number: gerrit_merge_check(cfg, r) for r in reviews if r.status not in CLOSED}
+            merge = {
+                r.number: gerrit_merge_check(cfg, r)
+                for r in reviews
+                if r.status not in CLOSED
+            }
         evs = new_events(reviews, cf.seen)
-        res: dict[str, Any] = {"file": cf.rel(cfg.root), "ids": cf.ids, "seen": cf.seen,
-                               "ticket": ticket_of(cfg, cf, reviews),
-                               "reviews": [r.as_dict() for r in reviews], "new_events": evs,
-                               "merge_check": merge, "terminal": terminal_bucket(cfg, reviews)}
+        res: dict[str, Any] = {
+            "file": cf.rel(cfg.root),
+            "ids": cf.ids,
+            "seen": cf.seen,
+            "ticket": ticket_of(cfg, cf, reviews),
+            "reviews": [r.as_dict() for r in reviews],
+            "new_events": evs,
+            "merge_check": merge,
+            "terminal": terminal_bucket(cfg, reviews),
+        }
         for r in res["reviews"]:
             r.pop("events")
         if not args.dry_run:
             mark = iso(now) if args.mark else None
-            write_state(cf, state_table(cfg, reviews, merge, now), mark,
-                        observation_log(evs, now) if args.mark else None)
+            write_state(
+                cf,
+                state_table(cfg, reviews, merge, now),
+                mark,
+                observation_log(evs, now) if args.mark else None,
+            )
             if args.mark and res["terminal"] and cf.bucket != res["terminal"]:
                 move_to(cf, cfg, res["terminal"])
                 res["moved_to"] = cf.rel(cfg.root)
@@ -782,11 +1149,21 @@ def cmd_show(cfg: Config, args) -> tuple[Any, str]:
         ids = [args.change]
         if cfg.kind == "gerrit":
             ids = [gerrit_change_id(cfg, args.change)[0]]
-    reviews = gerrit_reviews(cfg, ids) if cfg.kind == "gerrit" else github_reviews(cfg, ids)
+    reviews = (
+        gerrit_reviews(cfg, ids) if cfg.kind == "gerrit" else github_reviews(cfg, ids)
+    )
     data = [r.as_dict() for r in reviews]
-    res = {"file": " ".join(ids), "seen": None, "reviews": data,
-           "new_events": sorted((e for r in reviews for e in r.events), key=lambda e: e["at"] or "")}
-    return acli.commentary(commentary_for(res), value={"reviews": data}), render_sync([res])
+    res = {
+        "file": " ".join(ids),
+        "seen": None,
+        "reviews": data,
+        "new_events": sorted(
+            (e for r in reviews for e in r.events), key=lambda e: e["at"] or ""
+        ),
+    }
+    return acli.commentary(commentary_for(res), value={"reviews": data}), render_sync(
+        [res]
+    )
 
 
 def cmd_new(cfg: Config, args) -> tuple[Any, str]:
@@ -804,23 +1181,37 @@ def cmd_new(cfg: Config, args) -> tuple[Any, str]:
         ticket = m.group(0) if m else None
     name, body = skeleton(cfg, ids, subject, ticket)
     if args.slug:
-        name = "-".join(p for p in (ticket, args.slug, change_key(cfg, ids)) if p) + ".md"
+        name = (
+            "-".join(p for p in (ticket, args.slug, change_key(cfg, ids)) if p) + ".md"
+        )
     path = cfg.reviews_dir / name
     for existing in tracked_files(cfg, ("open", "merged", "abandoned")):
         if not existing.error and set(existing.ids) & set(ids):
-            raise Refused(f"already tracked: {existing.rel(cfg.root)}", acli.ExitCode.CONFLICT)
+            raise Refused(
+                f"already tracked: {existing.rel(cfg.root)}", acli.ExitCode.CONFLICT
+            )
     if args.write:
         cfg.reviews_dir.mkdir(exist_ok=True)
         if path.exists():
             raise Refused(f"{path} exists", acli.ExitCode.CONFLICT)
         path.write_text(body + "\n")
-    return {"file": str(path.relative_to(cfg.root)), "ids": ids, "ticket": ticket, "subject": subject,
-            "written": bool(args.write)}, (str(path.relative_to(cfg.root)) if args.write else body)
+    return {
+        "file": str(path.relative_to(cfg.root)),
+        "ids": ids,
+        "ticket": ticket,
+        "subject": subject,
+        "written": bool(args.write),
+    }, (str(path.relative_to(cfg.root)) if args.write else body)
 
 
 def cmd_find(cfg: Config, args) -> tuple[Any, str]:
     cf = locate(cfg, args.change, ("open", "merged", "abandoned"))
-    return {"file": cf.rel(cfg.root), "bucket": cf.bucket, "ids": cf.ids, "seen": cf.seen}, cf.rel(cfg.root)
+    return {
+        "file": cf.rel(cfg.root),
+        "bucket": cf.bucket,
+        "ids": cf.ids,
+        "seen": cf.seen,
+    }, cf.rel(cfg.root)
 
 
 def build_parser() -> acli.ArgumentParser:
@@ -832,35 +1223,81 @@ def build_parser() -> acli.ArgumentParser:
             "Policy and file contract: ~/agents/REVIEWS.md."
         ),
         capabilities=("complete", "+commentary"),
-        exit_codes={0: "ok", 2: "usage", 3: "malformed file or config", 4: "not found",
-                    5: "conflict (already tracked, destination exists, ambiguous id)",
-                    69: "backend unavailable (ssh/gh failed)", 75: "backend timed out"},
+        exit_codes={
+            0: "ok",
+            2: "usage",
+            3: "malformed file or config",
+            4: "not found",
+            5: "conflict (already tracked, destination exists, ambiguous id)",
+            69: "backend unavailable (ssh/gh failed)",
+            75: "backend timed out",
+        },
     )
     parser.add_argument("--root", help="project root (default: git toplevel of cwd)")
     acli.add_standard_args(parser)
     sub = parser.add_subparsers(dest="verb", required=True)
 
-    p = sub.add_parser("status", help="list tracked changes from their saved observation tables (no network unless --live)")
-    p.add_argument("--live", action="store_true", help="query the backend instead of the saved table")
+    p = sub.add_parser(
+        "status",
+        help="list tracked changes from their saved observation tables (no network unless --live)",
+    )
+    p.add_argument(
+        "--live",
+        action="store_true",
+        help="query the backend instead of the saved table",
+    )
     p.add_argument("--all", action="store_true", help="include merged/ and abandoned/")
 
-    p = sub.add_parser("sync", help="fetch live state; print events newer than each file's Seen: watermark; rewrite the observation table")
-    p.add_argument("change", nargs="*", help="file, review/PR number, or (abbreviated) Change-Id; default: every open file")
-    p.add_argument("--mark", action="store_true", help="advance Seen: to now and move the file when every review is closed")
-    p.add_argument("--merge-check", action="store_true", help="gerrit: fetch each open revision and merge-tree it onto local origin/<branch>")
-    p.add_argument("--all", action="store_true", help="also sync merged/ and abandoned/")
+    p = sub.add_parser(
+        "sync",
+        help="fetch live state; print events newer than each file's Seen: watermark; rewrite the observation table",
+    )
+    p.add_argument(
+        "change",
+        nargs="*",
+        help="file, review/PR number, or (abbreviated) Change-Id; default: every open file",
+    )
+    p.add_argument(
+        "--mark",
+        action="store_true",
+        help="advance Seen: to now and move the file when every review is closed",
+    )
+    p.add_argument(
+        "--merge-check",
+        action="store_true",
+        help="gerrit: fetch each open revision and merge-tree it onto local origin/<branch>",
+    )
+    p.add_argument(
+        "--all", action="store_true", help="also sync merged/ and abandoned/"
+    )
     p.add_argument("--dry-run", action="store_true", help="do not write the file")
 
-    p = sub.add_parser("show", help="live full state for a change, tracked or not (all reviews, all events)")
+    p = sub.add_parser(
+        "show",
+        help="live full state for a change, tracked or not (all reviews, all events)",
+    )
     p.add_argument("change", help="file, review/PR number, or Change-Id")
 
-    p = sub.add_parser("new", help="print (or --write) a tracking-file skeleton for a change not yet tracked")
-    p.add_argument("change", help="gerrit review number or Change-Id; github PR number or owner/repo#N")
-    p.add_argument("--ticket", help="ticket id for the filename (default: matched from the subject)")
+    p = sub.add_parser(
+        "new",
+        help="print (or --write) a tracking-file skeleton for a change not yet tracked",
+    )
+    p.add_argument(
+        "change",
+        help="gerrit review number or Change-Id; github PR number or owner/repo#N",
+    )
+    p.add_argument(
+        "--ticket",
+        help="ticket id for the filename (default: matched from the subject)",
+    )
     p.add_argument("--slug", help="filename slug (default: from the subject)")
-    p.add_argument("--write", action="store_true", help="create reviews/<TICKET>-<slug>-<key>.md")
+    p.add_argument(
+        "--write", action="store_true", help="create reviews/<TICKET>-<slug>-<key>.md"
+    )
 
-    p = sub.add_parser("find", help="print the tracking file for a review/PR number or Change-Id")
+    p = sub.add_parser(
+        "find", help="print the tracking file for a review/PR number or Change-Id"
+    )
     p.add_argument("change")
     return parser
 
@@ -875,11 +1312,20 @@ def main() -> None:
         acli.die(str(exc), acli.ExitCode.USAGE)
     try:
         cfg = load_config(project_root(args.root))
-        handler = {"status": cmd_status, "sync": cmd_sync, "show": cmd_show, "new": cmd_new, "find": cmd_find}[args.verb]
+        handler = {
+            "status": cmd_status,
+            "sync": cmd_sync,
+            "show": cmd_show,
+            "new": cmd_new,
+            "find": cmd_find,
+        }[args.verb]
         value, text = handler(cfg, args)
     except Refused as exc:
         acli.die(str(exc), exc.code)
-    with_commentary = not args.no_commentary and fmt not in (acli.Format.TEXT, acli.Format.TOON)
+    with_commentary = not args.no_commentary and fmt not in (
+        acli.Format.TEXT,
+        acli.Format.TOON,
+    )
     acli.emit(value, fmt, text=text, commentary=with_commentary)
 
 
