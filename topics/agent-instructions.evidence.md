@@ -4717,3 +4717,29 @@ Contributing-model: 6-Astra
   actually stop discarding output, and none that retained logs get read.
 
 Contributing-model: opus-5
+
+### 2026-09-16 correction — separate stream files, `tee` merge stays legal
+
+Two user corrections the same day, against the entry above.
+
+- **"do not recommend the line-scrambling `2>&1` pattern"** — the first
+  wording's example was `cmd >/tmp/build.log 2>&1`. Merged into one file the
+  two streams interleave by buffer flush, not by time: stdout is
+  block-buffered when not a tty while stderr is unbuffered, so a compiler's
+  diagnostics land nowhere near the output they describe and neither stream's
+  order survives. The example is now
+  `cmd >/tmp/build.out 2>/tmp/build.err`.
+- **"tee to log can use `2>&1` - often useful"** — the correction is against
+  merging *by habit*, not against merging. `… 2>&1 | tee log` buys a single
+  live interleaved view while still retaining the file, which is what a human
+  watching a build wants. Both files now say separate-by-default and name the
+  `tee` merge as the deliberate exception rather than banning it.
+- `_RUNS/monitoring.md` carried the older `make 2>&1 | tee /tmp/build.log`
+  recommendation and was updated in the same pass; it keeps the `tee` form as
+  the live-view case.
+- **Standing lesson for this corpus** — a rule and its worked example are one
+  unit. The first pass got the rule right (retain the output) and shipped an
+  example that quietly taught a second, unexamined habit. Check the example
+  against the failure the rule names.
+
+Contributing-model: opus-5

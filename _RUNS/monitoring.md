@@ -152,9 +152,12 @@ If a command times out:
 - Show the exact command that was run
 - Ask me if I want to increase the timeout or change flags
 
-When running builds or tests, always redirect full output to a log file
-(e.g., `make 2>&1 | tee /tmp/build.log`) and show only the tail.
-Never discard output with bare `| tail`.
+When running builds or tests, always redirect full output to log files
+(e.g., `make >/tmp/build.out 2>/tmp/build.err`) and show only the tail.
+Never discard output with bare `| tail`. Separate files keep each stream's
+line order, since `2>&1` interleaves by buffer flush rather than by time;
+`make 2>&1 | tee /tmp/build.log` remains right when you want one live
+interleaved view.
 
 For foreground `agentctl` monitoring, use `wait`/`watch`'s native `--timeout`
 and `--tail` options. Never wrap them in shell `timeout` or pipe them through
