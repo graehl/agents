@@ -4743,3 +4743,52 @@ Two user corrections the same day, against the entry above.
   against the failure the rule names.
 
 Contributing-model: opus-5
+
+### 2026-09-16 — auto-format authored code, default from the editor's save flow
+
+User-directed: "add default (project can override obv) instruction -
+consistently auto-format authored scripts", with the suggestion to derive the
+default from what his editor already does on save, plus two follow-up
+constraints — other-owned projects format only changed-in-commit regions, and
+a severe format diff becomes its own format-only commit (repo-wide where he is
+a primary maintainer absent contrary project advice).
+
+- **Where the default comes from** — `~/.config/nvim/lua/plugins/conform.lua`
+  formats on every `BufWritePre`: python → `ruff_organize_imports`,
+  `ruff_fix`, `ruff_format`; sh/bash → `shfmt`; lua → `stylua`; c/cpp →
+  `clang_format --style=file`. So the failure the rule prevents is concrete:
+  an agent leaves a file unformatted, graehl opens and saves it, and the
+  reformat lands as his diff — also invalidating the agent's edit anchors.
+- **Measured before writing it** — `shfmt` on `~/agents/scripts`:
+  `pre-push-no-attrib` clean, `agent-guard-git` 150 changed lines,
+  `web-digest` 81, `codex` 77. The scripts are two- and four-space indented
+  while flagless `shfmt` uses tabs and expands `{ cmd; cmd; }` one-liners, so
+  format-on-touch here is exactly the reflow case the split-commit clause
+  covers. Python is the opposite: `acli/*.py` and
+  `agentctl_coordination.py` are already clean at ruff's default 88,
+  `agentctl.py` is 21 diff lines off. `scripts/reviews` (788 lines off) is
+  the one unformatted Python file.
+- **Line length** — graehl asked whether 110 would suit line-operating agents
+  better. `ruff format --line-length 110` rewrites 582 lines of `agentctl.py`
+  alone, against a corpus already consistent at 88, and edit anchors are
+  matched by content rather than by line width. Recorded as measured cost,
+  not as a decision; if adopted it belongs in a repo `ruff.toml`, because the
+  conform config passes no `--line-length` and the CLI would otherwise
+  disagree with the editor.
+- **`.editorconfig` parity, verified today** — `shfmt` reads `.editorconfig`
+  whenever `-i`/`-ln` are absent, so a repo can move both the editor and the
+  CLI to spaces with one file; `[*.sh]` misses the extensionless scripts in
+  `scripts/`, `[*]` covers them.
+- **Routing** — the policy paragraph went to `AGENTS.global.md` § Language
+  tooling (it fires at the same moment as the existing per-language read),
+  formatter identity to `topics/shell.md` (new) and `topics/python.md`.
+  `topics/cpp.md` already said "reformat only modified lines, never whole
+  files" and was left alone: it is the stricter language default the global
+  rule defers to.
+- **Trace** — the exemption is phrased "a repo the user does not maintain"
+  rather than "not in `AGENTS.user.md` § Active projects", so a new repo of
+  his does not read as foreign before that list is updated; the severe-diff
+  clause is what keeps the default from producing a 150-line unrelated diff
+  in this very repo the first time it fires.
+
+Contributing-model: opus-5

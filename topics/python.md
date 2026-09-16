@@ -4,7 +4,12 @@ Loaded before editing Python files or when first working in a Python
 project (trigger: `AGENTS.global.md` § Language tooling).
 
 Use `ruff check --fix` and `ruff format` (not black/isort/flake8),
-trying `uvx ruff` first and plain `ruff` when uvx is absent. Add
+trying `uvx ruff` first and plain `ruff` when uvx is absent. That pair is
+also what the editor runs on save (import sort, `--fix`, then `format`),
+so running it on an authored file — `AGENTS.global.md` § Auto-format
+authored code — leaves nothing for the next save to change. Line length
+comes from the repo's `ruff.toml`/`pyproject.toml`, else ruff's default
+88; set it there rather than in editor arguments, or the two disagree. Add
 type hints to signatures. Prefer `uv` or `pixi` for environments. Avoid
 `shell=True` with user-influenced content. Make device placement explicit
 in ML code.

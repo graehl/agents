@@ -719,7 +719,23 @@ global:
 
 - C/C++ — `cpp.md`
 - Python — `python.md`
+- Shell — `shell.md`
 - TypeScript/JavaScript — `typescript.md`
+
+## Auto-format authored code
+
+Run the language's formatter over every file you author or edit, before the
+commit that lands it, so agent writes and the user's format-on-save writes
+converge instead of alternating. The language topic names the formatter; an
+in-repo formatter config, then project instructions, override that default.
+
+Exempt: a repo the user does not maintain. There format only the regions this
+commit changes (`clang-format-diff`-style), never whole files.
+
+When the formatter reflows code this change did not touch, keep that out of the
+change commit: land the change with its own regions formatted, then sweep in a
+separate format-only commit — repo-wide where the user is a primary maintainer
+(`AGENTS.user.md` § Active projects) and no project instruction says otherwise.
 
 # Interaction style
 
