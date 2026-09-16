@@ -4792,3 +4792,34 @@ a primary maintainer absent contrary project advice).
   in this very repo the first time it fires.
 
 Contributing-model: opus-5
+
+### 2026-09-16 — editor/CLI format parity, measured end to end
+
+Follow-up to the entry above. graehl: "i do not care re: tabs or not, i just
+want my vim save behavior to match yours", and separately that ruff's default
+88 stays.
+
+- **Verification method** — copy a file to a scratch dir, save it through
+  `nvim --headless -c 'e f' -c 'sleep 300m' -c w -c q` (the sleeps let lazy
+  load conform and let the synchronous `BufWritePre` format finish), run the
+  CLI sequence on a second copy, `diff`. Shell: `shfmt -w`. Python:
+  `ruff check --fix --select=I001`, `ruff check --fix`, `ruff format`, which
+  is what conform's `ruff_organize_imports`/`ruff_fix`/`ruff_format` run.
+- **Result: byte-identical** on `scripts/agent-guarded` (both as `a.sh` and
+  extensionless, so shebang filetype detection does not change it) and on
+  `agentctl.py` — where both paths changed the same 19 lines. No vim-config
+  change was needed; the recommendation to change nothing is measured, not
+  assumed.
+- **The one conditional** — `conform.nvim`'s shfmt wrapper appends
+  `-i <shiftwidth>` when the buffer has `expandtab` and no `.editorconfig` is
+  found upward. graehl's `set.lua` sets `tabstop`/`shiftwidth` 4 but never
+  `expandtab`, so the branch is dormant and both sides take shfmt's tab
+  default. `topics/shell.md` first claimed the hook passes no indent flags,
+  full stop; corrected to state the condition, because the claim silently
+  becomes false the day a project sets `expandtab`.
+- **Lesson for reading a formatter integration** — the plugin's per-formatter
+  wrapper, not the user's config, is where the arguments come from; the config
+  showed an empty `prepend_args` and that was mistaken for "no flags". Read
+  `lazy/conform.nvim/lua/conform/formatters/<name>.lua` before claiming parity.
+
+Contributing-model: opus-5
