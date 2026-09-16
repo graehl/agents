@@ -8,47 +8,59 @@ project_dir="$(cd "$project_dir" && pwd)"
 is_py310() { "$1" -c 'import sys;sys.exit(0 if sys.version_info>=(3,10) else 1)' 2>/dev/null; }
 
 find_python() {
-    # 1. explicit override
-    if [[ -n "${AGENTCTL_PYTHON:-}" && -x "$AGENTCTL_PYTHON" ]] && is_py310 "$AGENTCTL_PYTHON"; then
-        echo "$AGENTCTL_PYTHON"; return
-    fi
-    # 1b. project pointer file: one line naming the interpreter to use.
-    #     Path may be absolute, ~-prefixed, or relative to the project root.
-    local pf="$project_dir/.agentctl/python"
-    if [[ -r "$pf" ]]; then
-        local pp
-        pp="$(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' "$pf" | head -n1)"
-        pp="${pp/#\~/$HOME}"
-        [[ -n "$pp" && "$pp" != /* ]] && pp="$project_dir/$pp"
-        if [[ -n "$pp" && -x "$pp" ]] && is_py310 "$pp"; then
-            echo "$pp"; return
-        elif [[ -n "$pp" ]]; then
-            echo "agentctl: $pf names '$pp' but it is not an executable Python >= 3.10; ignoring" >&2
-        fi
-    fi
-    # 2. project-local envs
-    local p
-    for p in "$project_dir/.venv/bin/python" \
-             "$project_dir/.pixi/envs/default/bin/python"; do
-        [[ -x "$p" ]] && is_py310 "$p" && { echo "$p"; return; }
-    done
-    # 3. active conda
-    if [[ -n "${CONDA_PREFIX:-}" && -x "$CONDA_PREFIX/bin/python" ]] && is_py310 "$CONDA_PREFIX/bin/python"; then
-        echo "$CONDA_PREFIX/bin/python"; return
-    fi
-    # 4. versioned binaries on PATH (newest first)
-    local v
-    for v in 3.13 3.12 3.11 3.10; do
-        p=$(command -v "python$v" 2>/dev/null) && { echo "$p"; return; }
-    done
-    # 5. bare python3 if recent enough
-    p=$(command -v python3 2>/dev/null) && is_py310 "$p" && { echo "$p"; return; }
-    return 1
+	# 1. explicit override
+	if [[ -n "${AGENTCTL_PYTHON:-}" && -x "$AGENTCTL_PYTHON" ]] && is_py310 "$AGENTCTL_PYTHON"; then
+		echo "$AGENTCTL_PYTHON"
+		return
+	fi
+	# 1b. project pointer file: one line naming the interpreter to use.
+	#     Path may be absolute, ~-prefixed, or relative to the project root.
+	local pf="$project_dir/.agentctl/python"
+	if [[ -r "$pf" ]]; then
+		local pp
+		pp="$(sed -e 's/[[:space:]]*#.*$//' -e '/^[[:space:]]*$/d' "$pf" | head -n1)"
+		pp="${pp/#\~/$HOME}"
+		[[ -n "$pp" && "$pp" != /* ]] && pp="$project_dir/$pp"
+		if [[ -n "$pp" && -x "$pp" ]] && is_py310 "$pp"; then
+			echo "$pp"
+			return
+		elif [[ -n "$pp" ]]; then
+			echo "agentctl: $pf names '$pp' but it is not an executable Python >= 3.10; ignoring" >&2
+		fi
+	fi
+	# 2. project-local envs
+	local p
+	for p in "$project_dir/.venv/bin/python" \
+		"$project_dir/.pixi/envs/default/bin/python"; do
+		[[ -x "$p" ]] && is_py310 "$p" && {
+			echo "$p"
+			return
+		}
+	done
+	# 3. active conda
+	if [[ -n "${CONDA_PREFIX:-}" && -x "$CONDA_PREFIX/bin/python" ]] && is_py310 "$CONDA_PREFIX/bin/python"; then
+		echo "$CONDA_PREFIX/bin/python"
+		return
+	fi
+	# 4. versioned binaries on PATH (newest first)
+	local v
+	for v in 3.13 3.12 3.11 3.10; do
+		p=$(command -v "python$v" 2>/dev/null) && {
+			echo "$p"
+			return
+		}
+	done
+	# 5. bare python3 if recent enough
+	p=$(command -v python3 2>/dev/null) && is_py310 "$p" && {
+		echo "$p"
+		return
+	}
+	return 1
 }
 
 py=$(find_python) || {
-    echo "agentctl: need Python >= 3.10 (set AGENTCTL_PYTHON=/path/to/python or activate a conda/venv env)" >&2
-    exit 1
+	echo "agentctl: need Python >= 3.10 (set AGENTCTL_PYTHON=/path/to/python or activate a conda/venv env)" >&2
+	exit 1
 }
 export AGENTCTL_ROOT="$project_dir"
 # Make the lightweight `from agentctl import declare_input, declare_output`
@@ -56,7 +68,7 @@ export AGENTCTL_ROOT="$project_dir"
 # globally from another project. Append rather than prepend so project-local
 # imports keep their normal priority.
 if [[ ":${PYTHONPATH:-}:" != *":$code_dir:"* ]]; then
-    export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$code_dir"
+	export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}$code_dir"
 fi
 
 # matplotlib is pulled in transitively by aim (used here for run seeding, and by
@@ -67,8 +79,8 @@ fi
 # caller's explicit choice still wins. Inherited by agentctl.py and its children.
 # Completion probes skip cache setup because the protocol is side-effect-free.
 if [[ "${1:-}" != "--acli-complete" && -z "${MPLCONFIGDIR:-}" ]]; then
-    _mpldir="$project_dir/.agentctl/mplconfig"
-    mkdir -p "$_mpldir" 2>/dev/null && export MPLCONFIGDIR="$_mpldir"
+	_mpldir="$project_dir/.agentctl/mplconfig"
+	mkdir -p "$_mpldir" 2>/dev/null && export MPLCONFIGDIR="$_mpldir"
 fi
 
 exec "$py" "$code_dir/agentctl.py" "$@"

@@ -9,13 +9,13 @@ set -euo pipefail
 root="${1:-.}"
 cd "$root"
 if [ ! -x ./agentctl ]; then
-    echo "no ./agentctl at $PWD; nothing to watch" >&2
-    exit 0
+	echo "no ./agentctl at $PWD; nothing to watch" >&2
+	exit 0
 fi
 job=$(./agentctl list 2>/dev/null | awk '/ running /{print $1; exit}')
 if [ -z "$job" ]; then
-    echo "no running agentctl job; resource treated as free"
-    exit 0
+	echo "no running agentctl job; resource treated as free"
+	exit 0
 fi
 echo "watching job=$job until it ends and GPU drains to idle"
 exec ./agentctl watch "$job" --notify-gpu-idle

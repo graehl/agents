@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-    cat <<'EOF'
+	cat <<'EOF'
 Usage: agent-tmux-nudge TARGET [INTERVAL_SECONDS] [options] [-- KEY ...]
 
 Periodically inject a benign key sequence into a tmux pane so a local CLI
@@ -35,62 +35,62 @@ quiet=0
 keys=("C-l")
 
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -h|--help)
-            usage
-            exit 0
-            ;;
-        --count)
-            count="${2:-}"
-            shift 2
-            ;;
-        --expect-command)
-            expect_command="${2:-}"
-            shift 2
-            ;;
-        --quiet)
-            quiet=1
-            shift
-            ;;
-        --)
-            shift
-            if [[ $# -gt 0 ]]; then
-                keys=("$@")
-            fi
-            break
-            ;;
-        *)
-            if [[ -z "$target" ]]; then
-                target="$1"
-            elif (( interval_set == 0 )); then
-                interval="$1"
-                interval_set=1
-            else
-                keys+=("$1")
-            fi
-            shift
-            ;;
-    esac
+	case "$1" in
+	-h | --help)
+		usage
+		exit 0
+		;;
+	--count)
+		count="${2:-}"
+		shift 2
+		;;
+	--expect-command)
+		expect_command="${2:-}"
+		shift 2
+		;;
+	--quiet)
+		quiet=1
+		shift
+		;;
+	--)
+		shift
+		if [[ $# -gt 0 ]]; then
+			keys=("$@")
+		fi
+		break
+		;;
+	*)
+		if [[ -z "$target" ]]; then
+			target="$1"
+		elif ((interval_set == 0)); then
+			interval="$1"
+			interval_set=1
+		else
+			keys+=("$1")
+		fi
+		shift
+		;;
+	esac
 done
 
 if [[ -z "$target" ]]; then
-    usage >&2
-    exit 2
+	usage >&2
+	exit 2
 fi
 
-if ! [[ "$interval" =~ ^[0-9]+$ ]] || (( interval <= 0 )); then
-    echo "interval must be a positive integer number of seconds" >&2
-    exit 2
+if ! [[ "$interval" =~ ^[0-9]+$ ]] || ((interval <= 0)); then
+	echo "interval must be a positive integer number of seconds" >&2
+	exit 2
 fi
 
 if ! [[ "$count" =~ ^[0-9]+$ ]]; then
-    echo "count must be a non-negative integer" >&2
-    exit 2
+	echo "count must be a non-negative integer" >&2
+	exit 2
 fi
 
 if ! tmux display-message -p -t "$target" "#{pane_id}" >/dev/null 2>&1; then
-    echo "tmux target not found: $target" >&2
-    exit 3
+	echo "tmux target not found: $target" >&2
+	exit 3
 fi
 
 pane_id="$(tmux display-message -p -t "$target" "#{pane_id}")"
@@ -98,25 +98,25 @@ pane_desc="$(tmux display-message -p -t "$target" "#{session_name}:#{window_inde
 pane_cmd="$(tmux display-message -p -t "$target" "#{pane_current_command}")"
 
 if [[ -n "$expect_command" && "$pane_cmd" != "$expect_command" ]]; then
-    echo "target $target command mismatch: expected '$expect_command', got '$pane_cmd'" >&2
-    exit 4
+	echo "target $target command mismatch: expected '$expect_command', got '$pane_cmd'" >&2
+	exit 4
 fi
 
-if (( quiet == 0 )); then
-    printf 'agent-tmux-nudge target=%s pane=%s pane_id=%s cmd=%s interval=%ss keys=%s\n' \
-        "$target" "$pane_desc" "$pane_id" "$pane_cmd" "$interval" "${keys[*]}"
+if ((quiet == 0)); then
+	printf 'agent-tmux-nudge target=%s pane=%s pane_id=%s cmd=%s interval=%ss keys=%s\n' \
+		"$target" "$pane_desc" "$pane_id" "$pane_cmd" "$interval" "${keys[*]}"
 fi
 
 sent=0
 while :; do
-    tmux send-keys -t "$target" "${keys[@]}"
-    sent=$((sent + 1))
-    if (( quiet == 0 )); then
-        printf '[nudge] ts=%s target=%s pane=%s sent=%s keys=%s\n' \
-            "$(date -Is)" "$target" "$pane_desc" "$sent" "${keys[*]}"
-    fi
-    if (( count > 0 && sent >= count )); then
-        break
-    fi
-    sleep "$interval"
+	tmux send-keys -t "$target" "${keys[@]}"
+	sent=$((sent + 1))
+	if ((quiet == 0)); then
+		printf '[nudge] ts=%s target=%s pane=%s sent=%s keys=%s\n' \
+			"$(date -Is)" "$target" "$pane_desc" "$sent" "${keys[*]}"
+	fi
+	if ((count > 0 && sent >= count)); then
+		break
+	fi
+	sleep "$interval"
 done
