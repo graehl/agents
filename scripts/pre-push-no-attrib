@@ -12,11 +12,18 @@
 # git calls this with args <remote-name> <remote-url> and stdin lines
 #   <local-ref> <local-sha> <remote-ref> <remote-sha>
 #
-# Trailer detection uses `git interpret-trailers --parse`, which only
-# reads the message's trailing trailer block — prose that merely
-# mentions "Co-Authored-By" does not match. Banner detection is
-# line-anchored on the robot emoji or the "Generated with [" link
-# form for the same reason.
+# Detection is line-anchored, so prose that merely mentions a trailer —
+# this script's own history, for one — is not itself a violation. It is
+# deliberately not restricted to the trailing trailer block:
+# `git interpret-trailers --parse` reads only that block, and so missed
+# a trailer followed by more prose, or by a bullet that breaks the block
+# (verified 2026-09-17). A destination that scans plainly rejects those,
+# so this has to as well, or the push that fails is the second one and
+# the commit is already in shared history.
+#
+# Author and committer identity are checked too. A message can be clean
+# while the commit is still authored from a no-reply bot address, which
+# a message-only scan never sees.
 set -u
 zero=0000000000000000000000000000000000000000
 remote_name=${1:-}
@@ -37,13 +44,15 @@ while read -r _lref lsha _rref rsha; do
 	fi
 	for c in $(git rev-list "${rev_args[@]}"); do
 		msg=$(git log -1 --format=%B "$c")
-		trailer=$(printf '%s\n' "$msg" | git interpret-trailers --parse |
-			grep -iE '^co-authored-by:')
-		banner=$(printf '%s\n' "$msg" | grep -iE '^(🤖|generated with \[)')
-		if [ -n "$trailer$banner" ]; then
+		trailer=$(printf '%s\n' "$msg" | grep -iE '^[[:space:]]*co-authored-by:')
+		banner=$(printf '%s\n' "$msg" | grep -iE '^[[:space:]]*(🤖|generated with)')
+		identity=$(git log -1 --format='%an <%ae>%n%cn <%ce>' "$c" |
+			sort -u | grep -iE 'noreply@|\[bot\]')
+		if [ -n "$trailer$banner$identity" ]; then
 			bad=1
 			echo "no-attrib: $(git log -1 --format='%h %s' "$c")" >&2
-			printf '%s\n' "$trailer" "$banner" | sed '/^$/d; s/^/  /' >&2
+			printf '%s\n' "$trailer" "$banner" "$identity" |
+				sed '/^$/d; s/^/  /' >&2
 		fi
 	done
 done
