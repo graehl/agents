@@ -2,7 +2,7 @@
 name: reviews
 disable-model-invocation: true
 description: Catch up on the project's pushed code reviews (Gerrit or GitHub) — what changed since we last looked (comments, CI verdicts, votes, revisions, merges), recorded into reviews/ and evaluated. Use when the user invokes /reviews, optionally naming a review number, PR, or Change-Id.
-argument-hint: [change ...] [--merge-check]
+argument-hint: '[change ...] [--merge-check]'
 ---
 
 # /reviews — what did our reviews do since we last looked
