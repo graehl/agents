@@ -190,6 +190,7 @@ when present:
 - Claude: `AGENTS.claude.md`
 - Copilot CLI or YA Copilot backend: `AGENTS.copilot.md`
 - Grok/xAI: `AGENTS.grok.md`
+- DeepSeek: `AGENTS.deepseek.md`
 
 Harness supplements own session ids/logs, skill paths, launcher quirks, and
 backend safeguards, and may route model supplements. Cross-provider policy
