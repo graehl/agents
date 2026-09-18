@@ -9,7 +9,9 @@ The [user guide](acli.md) explains how agents call tools; the
 [v1 specification](acli-spec.md) owns the protocol. Those two files can be
 vendored together without this guide. This document describes implementation
 choices and does not add requirements to a partial capability declaration.
-Future proposals belong in [acli sketches](acli.sketches.md).
+Future proposals belong in [acli sketches](acli.sketches.md); the recorded
+design decisions, prior art, and rationale are in the
+[evidence ledger](acli.evidence.md).
 
 ## Choose the smallest truthful declaration
 
