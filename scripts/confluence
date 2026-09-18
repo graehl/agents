@@ -31,8 +31,6 @@ if str(AGENTS_ROOT) not in sys.path:
 
 import acli  # noqa: E402
 
-DEFAULT_SITE = "https://rws-dev.atlassian.net/wiki"
-DEFAULT_EMAIL = "graehl@rws.com"
 KEYS_FILE = Path(os.environ.get("CONFLUENCE_KEYS_FILE", Path.home() / "keys.sh"))
 TOKEN_VARS = (
     "CONFLUENCE_API_TOKEN",
@@ -40,6 +38,10 @@ TOKEN_VARS = (
     "AGENT_JIRA_API_TOKEN",
     "YEP_JIRA_API_TOKEN",
 )
+# Site and account are machine-local facts, so they come from the environment
+# or the same keys file as the token, never from a default baked in here.
+SITE_VARS = ("CONFLUENCE_SITE",)
+EMAIL_VARS = ("CONFLUENCE_EMAIL",)
 BACKUP_ROOT = Path(
     os.environ.get("CONFLUENCE_BACKUP_DIR", Path.home() / ".cache/confluence-backups")
 )
@@ -57,42 +59,63 @@ EXIT_CODES = {
 # --- credential -----------------------------------------------------------
 
 
-def _token() -> str:
-    """The API token, from the environment or a sourced keys file.
+_keys_file_values: dict[str, str] | None = None
 
-    Sourcing happens in a child shell whose only output is the value, so the
-    keys file's other contents never reach this process or any log.
+
+def _keys_file() -> dict[str, str]:
+    """The settings this tool reads from the sourced keys file, sourced once.
+
+    Sourcing happens in a child shell whose only output is `name=value` lines
+    for the variables named here, so the keys file's other contents never
+    reach this process or any log. One process sources once: `put` makes
+    three requests and must not pay (or log) three shell launches.
     """
-    for name in TOKEN_VARS:
-        value = os.environ.get(name, "").strip()
-        if value:
-            return value
+    global _keys_file_values
+    if _keys_file_values is not None:
+        return _keys_file_values
+    _keys_file_values = {}
     if not KEYS_FILE.is_file():
-        acli.die(
-            f"no API token in {'/'.join(TOKEN_VARS)} and no keys file at {KEYS_FILE}",
-            acli.ExitCode.NOT_FOUND,
-        )
+        return _keys_file_values
+    wanted = (*TOKEN_VARS, *SITE_VARS, *EMAIL_VARS)
     script = (
         f". {KEYS_FILE!s} >/dev/null 2>&1 || exit 1\n"
-        "for v in " + " ".join(TOKEN_VARS) + "; do\n"
+        "for v in " + " ".join(wanted) + "; do\n"
         '  eval "val=\\${$v:-}"\n'
-        '  [ -n "$val" ] && { printf %s "$val"; exit 0; }\n'
-        "done\nexit 1\n"
+        '  [ -n "$val" ] && printf "%s=%s\\n" "$v" "$val"\n'
+        "done\nexit 0\n"
     )
     done = subprocess.run(
         ["bash", "-c", script],
         capture_output=True,
         text=True,
         timeout=30,
-        check=False,  # a keys file without the variable is handled below
+        check=False,  # an unsourceable keys file reads as empty; callers die
     )
-    value = done.stdout.strip()
-    if done.returncode != 0 or not value:
-        acli.die(
-            f"{KEYS_FILE} defined none of {', '.join(TOKEN_VARS)}",
-            acli.ExitCode.NOT_FOUND,
-        )
-    return value
+    for line in done.stdout.splitlines():
+        name, sep, value = line.partition("=")
+        if sep and value.strip():
+            _keys_file_values[name] = value.strip()
+    return _keys_file_values
+
+
+def _setting(names: tuple[str, ...], what: str) -> str:
+    """A setting from the environment, else the keys file, else a clear refusal."""
+    for name in names:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    values = _keys_file()
+    for name in names:
+        if values.get(name):
+            return values[name]
+    acli.die(
+        f"no {what}: set {' or '.join(names)} in the environment or in {KEYS_FILE}",
+        acli.ExitCode.NOT_FOUND,
+    )
+
+
+def _token() -> str:
+    return _setting(TOKEN_VARS, "API token")
 
 
 # --- transport ------------------------------------------------------------
@@ -336,13 +359,15 @@ def build_parser():
     )
     parser.add_argument(
         "--site",
-        default=os.environ.get("CONFLUENCE_SITE", DEFAULT_SITE),
-        help=f"Confluence base URL including /wiki (default: {DEFAULT_SITE}).",
+        default=None,
+        help="Confluence base URL including /wiki (default: CONFLUENCE_SITE from "
+        f"the environment or {KEYS_FILE}).",
     )
     parser.add_argument(
         "--email",
-        default=os.environ.get("CONFLUENCE_EMAIL", DEFAULT_EMAIL),
-        help=f"Atlassian account email for basic auth (default: {DEFAULT_EMAIL}).",
+        default=None,
+        help="Atlassian account email for basic auth (default: CONFLUENCE_EMAIL "
+        f"from the environment or {KEYS_FILE}).",
     )
     parser.add_argument(
         "--timeout", type=float, default=60.0, help="Per-request timeout in seconds."
@@ -436,6 +461,8 @@ def main(argv: list[str] | None = None) -> int:
         fmt = acli.resolve_format(args)
     except ValueError as err:
         acli.die(str(err), acli.ExitCode.USAGE)
+    args.site = args.site or _setting(SITE_VARS, "Confluence site URL")
+    args.email = args.email or _setting(EMAIL_VARS, "Atlassian account email")
     handler = globals()[f"cmd_{args.verb}"]
     result = handler(args)
     acli.emit(result, fmt, commentary=not getattr(args, "no_commentary", False))
