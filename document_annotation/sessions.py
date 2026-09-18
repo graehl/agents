@@ -144,6 +144,14 @@ class CodexSession:
 
 
 def _compacted(event: Mapping[str, Any]) -> bool:
+    """Whether a raw app-server event reports context compaction.
+
+    Matches the substring `compact` in a notification's `method` or in a
+    `params.item.type`, which is how the observed Codex app-server events
+    spell it (the exact method/item names have not been pinned from the
+    protocol, so a rename that drops the substring would read as no
+    compaction rather than fail loudly; pin them here when observed).
+    """
     if "compact" in str(event.get("method", "")).lower():
         return True
     params = event.get("params")

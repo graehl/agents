@@ -323,8 +323,12 @@ metadata must be JSON serializable.
 The journal records request intent before sending, the raw response before
 validation, the rejection reason, and the final segment result. Subscription
 raw receipts include provider events, thread/turn IDs, token usage and the
-loaded transport source hash. The CLI manifest binds all implementation files
-for either backend. Final usage includes accepted and rejected attempts for that
+loaded transport source hash. The CLI manifest binds the declared campaign
+schema version (`SCHEMA` in `document_annotation/cli.py`) plus the transport
+settings or version for either backend; a change that alters what a campaign's
+journal, receipts, or results mean bumps that version, while formatting or
+refactoring the package leaves open campaigns resumable.
+Final usage includes accepted and rejected attempts for that
 segment. Optional counters absent in the app-server protocol normalize to zero
 in the compatibility response; inspect raw events before interpreting an absent
 counter as a measured cache-write or reasoning-token zero. The API adapter
@@ -336,7 +340,7 @@ inspect raw usage coverage before treating a partial counter as a full total.
 The response body retains the returned model revision and service tier.
 
 CLI resume verifies the entire input, exact prefix and fixed messages, settings,
-validator module, implementation hashes and transport settings/version
+validator module, schema version and transport settings/version
 (plus managed Codex configuration for subscription mode). Completed
 segments must form a prefix within each document. Before reusing an unfinished
 document's Codex thread, its last completed turn must match the saved receipt.
