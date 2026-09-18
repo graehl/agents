@@ -150,6 +150,41 @@ def write_toon_table(
         out.write(f"  {delimiter.join(values)}\n")
 
 
+def emit_table(
+    rows: list[dict[str, Any]],
+    columns: Iterable[str],
+    fmt: Format | str,
+    out: TextIO = sys.stdout,
+    *,
+    name: str,
+) -> None:
+    """Emit result rows that share a declared column set.
+
+    Rows may carry only the keys their own outcome produced (a failure has
+    `reason`, not `method`); TOON is a uniform table by contract, so each
+    row is projected onto `columns` there. In the line formats zero rows is
+    ambiguous with no output, so an empty table becomes the definitive
+    empty record `{"count": 0, "of": <name>}` (topics/acli.md).
+    """
+    ordered_columns = [str(col) for col in columns]
+    resolved = _resolve(fmt)
+    if resolved is Format.TOON:
+        table = [{col: row.get(col, "") for col in ordered_columns} for row in rows]
+        emit({"rows": table, "columns": ordered_columns, "name": name}, resolved, out)
+    elif not rows and resolved in {Format.COMPACT, Format.TEXT}:
+        write_jsonl({"count": 0, "of": name}, out)
+    else:
+        emit(rows, resolved, out)
+
+
+def _resolve(fmt: Format | str) -> Format:
+    if isinstance(fmt, Format):
+        return fmt
+    if str(fmt).strip().lower() == "jsonl":
+        return Format.COMPACT
+    return Format(fmt)
+
+
 def emit(
     value: Any,
     fmt: Format | str,
@@ -158,15 +193,12 @@ def emit(
     text: str | None = None,
     commentary: bool = True,
 ) -> None:
-    if isinstance(fmt, Format):
-        resolved = fmt
-    elif str(fmt).strip().lower() == "jsonl":
-        resolved = Format.COMPACT
-    else:
-        resolved = Format(fmt)
-    if resolved in {Format.COMPACT, Format.TEXT} and (
-        resolved is Format.COMPACT or text is None
-    ):
+    resolved = _resolve(fmt)
+    if resolved is Format.COMPACT:
+        write_jsonl(value, out, commentary=commentary)
+        return
+    if resolved is Format.TEXT and text is None:
+        # The text preference without a renderer falls back to JSONL.
         write_jsonl(value, out, commentary=commentary)
         return
     if resolved is Format.PRETTY:

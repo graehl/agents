@@ -399,6 +399,30 @@ def test_commentary_flushes_before_the_tool_finishes():
             reader.join(timeout=1)
 
 
+def test_emit_table_projects_toon_and_marks_empty_line_formats() -> None:
+    rows = [
+        {"key": "a", "status": "ok"},
+        {"key": "b", "status": "failed", "reason": "x"},
+    ]
+    columns = ["key", "status", "reason"]
+    out = io.StringIO()
+    _acli.emit_table(rows, columns, Format.TOON, out, name="results")
+    _assert(
+        out.getvalue() == 'results[2]{key,status,reason}:\n  a,ok,""\n  b,failed,x\n',
+        out.getvalue(),
+    )
+    for fmt in (Format.COMPACT, Format.TEXT):
+        out = io.StringIO()
+        _acli.emit_table([], columns, fmt, out, name="results")
+        _assert(json.loads(out.getvalue()) == {"count": 0, "of": "results"})
+    out = io.StringIO()
+    _acli.emit_table([], columns, Format.PRETTY, out, name="results")
+    _assert(json.loads(out.getvalue()) == [])
+    out = io.StringIO()
+    _acli.emit_table(rows, columns, "jsonl", out, name="results")
+    _assert([json.loads(line) for line in out.getvalue().splitlines()] == rows)
+
+
 def test_toon_table_quotes_scalars_and_preserves_inner_spaces():
     rows = [
         {"id": 1, "name": "Alice Smith", "note": "hello, world", "literal": "true"},
