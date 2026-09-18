@@ -4903,7 +4903,8 @@ def test_active_list_done_flag_includes_completed():
 
 
 def test_active_list_marks_self():
-    # The caller's own entry (resolved session id) is tagged (self).
+    # The caller's own entry reads `[yours]` instead of echoing its id; --full
+    # restores the id for a reader that needs the filename.
     ws = Workspace()
     sid = "sess-me"
     try:
@@ -4913,12 +4914,22 @@ def test_active_list_marks_self():
         _assert(res.returncode == 0, f"active list failed: {res.stderr}")
         rows = {row["id"]: row for row in _json_record(res.stdout)["sessions"]}
         _assert(
-            rows[sid].get("self") is True,
-            f"own entry should be marked self: {rows[sid]!r}",
+            rows["[yours]"].get("self") is True,
+            f"own entry should be marked self: {rows!r}",
         )
+        _assert(sid not in rows, f"own id should not be echoed back: {rows!r}")
         _assert(
             "self" not in rows["sess-peer"],
             f"peer should not be marked self: {rows['sess-peer']!r}",
+        )
+        res_full = ws.run("active", "--full", env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res_full.returncode == 0, f"active --full failed: {res_full.stderr}")
+        full_rows = {
+            row["id"]: row for row in _json_record(res_full.stdout)["sessions"]
+        }
+        _assert(
+            full_rows[sid].get("self") is True,
+            f"--full should name the own id: {full_rows!r}",
         )
     finally:
         ws.cleanup()
@@ -5088,8 +5099,8 @@ def test_others_provided_uuid_registers_when_alone():
         )
         payload = _json_record(res.stdout)
         _assert(
-            payload["registered"]["id"] == sid,
-            f"verdict should note the claim: {payload!r}",
+            payload["registered"]["id"] == "[yours]",
+            f"verdict should note the claim without echoing the id: {payload!r}",
         )
         _assert(
             "agentctl active" in payload["next_command"],
@@ -5715,10 +5726,68 @@ def test_resume_id_from_argv_parsing():
         "resume w/o uuid": (["codex", "resume", "--last"], ""),
         "uuid not after resume": (["codex", "exec", uid], ""),
         "non-uuid after resume": (["codex", "resume", "not-a-uuid"], ""),
+        # A forking launch resumes a *source* transcript into a new session, so
+        # the id on the command line is the parent's, never the running one.
+        "claude fork": (["claude", "--resume", uid, "--fork-session"], ""),
+        "fork before resume": (["claude", "--fork-session", "--resume", uid], ""),
+        "fork=true": (["claude", f"--resume={uid}", "--fork-session=true"], ""),
     }
     for label, (argv, want) in cases.items():
         got = agentctl._resume_id_from_argv(argv)
         _assert(got == want, f"{label}: argv={argv!r} got {got!r} want {want!r}")
+
+
+def test_others_env_id_overrides_provided_id():
+    # A session can reach a verb with a stale belief about its own id — a fork
+    # inherits its source's transcript, which quotes the source's id. The
+    # launcher-set variable is the running session's actual identity, so it
+    # wins over the argument: the stale id stays a peer (it belongs to a live
+    # session) and the claim lands on the caller's real entry.
+    ws = Workspace()
+    real = "sess-real"
+    stale = "sess-stale"
+    try:
+        _seed_active(ws, stale, "the source session, still live")
+        res = ws.run("others", stale, env_extra={"AGENTCTL_SESSION_ID": real})
+        _assert(
+            res.returncode == 1,
+            f"the stale id names a peer, not self: {res.stdout!r} {res.stderr}",
+        )
+        payload = _json_record(res.stdout)
+        rows = {row["id"] for row in payload["peers"]}
+        _assert(stale in rows, f"source session should still be a peer: {payload!r}")
+        _assert(
+            payload["self_id_source"] == "AGENTCTL_SESSION_ID"
+            and payload.get("self_id_overrode_argument") is True,
+            f"payload should name the source that won: {payload!r}",
+        )
+        _assert(
+            stale not in res.stderr and real not in res.stderr,
+            f"an override is information, not a warning: {res.stderr!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
+def test_others_env_id_claims_own_entry_not_provided():
+    # The alone-path claim follows the resolved id, so a stale argument can
+    # never author (or revive) another session's entry.
+    ws = Workspace()
+    real = "sess-real"
+    stale = "sess-stale"
+    try:
+        res = ws.run("others", stale, env_extra={"AGENTCTL_SESSION_ID": real})
+        _assert(res.returncode == 0, f"others alone should exit 0: {res.stderr}")
+        _assert(
+            (ws.tmp / ".agentctl/active" / real).exists(),
+            f"claim should land on the real id: {res.stdout!r}",
+        )
+        _assert(
+            not (ws.tmp / ".agentctl/active" / stale).exists(),
+            f"claim must not author the stale id's entry: {res.stdout!r}",
+        )
+    finally:
+        ws.cleanup()
 
 
 def test_active_recovers_session_id_from_resume_ancestor():
