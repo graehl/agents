@@ -4823,3 +4823,34 @@ want my vim save behavior to match yours", and separately that ruff's default
   `lazy/conform.nvim/lua/conform/formatters/<name>.lua` before claiming parity.
 
 Contributing-model: opus-5
+
+## 2026-09-18 — scratch-tier rationale moved out of the RUNS resources packet
+
+`_RUNS/resources.md` carried two headings named `Scratch holds only
+regenerable bytes`: the binding rule and, under "Retained detail", its
+rationale. Same-name headings collide as anchors, and rationale in a routed
+packet is non-steering text (`AGENTS.global.md` § Load-bearing instructions),
+so the rule stays and the rationale lives here.
+
+The failure the rule prevents is a citation that outlives its bytes. Scratch
+is usually instance-store or a similarly disposable local volume, so it is
+lost whenever the host is replaced or rebuilt, and it is the first place an
+operator deletes from under space pressure. An artifact whose only recorded
+location is a scratch path is therefore gone twice over: the bytes disappear,
+and the run record that named them stops resolving, so a later reader cannot
+even tell what was lost or how to recompute it.
+
+Two cases need no relocation. Bytes that a cheap command regenerates from
+surviving inputs may simply be deleted; the record's command and declared
+inputs already carry everything a reader needs. And a replica whose durable
+original exists elsewhere is already safe, provided the record cites the
+original.
+
+Everything else — a teacher pass, a judge decision set, a trained checkpoint,
+a hand-audited dataset — earns its durable home before the run that produced
+it is treated as finished. Relocating it months later is the expensive
+version of the same move, because by then the durable path has to be
+reconciled with records, sidecars, and prose that all still name the scratch
+one.
+
+Contributing-model: fable-5.1
