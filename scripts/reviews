@@ -585,7 +585,8 @@ def github_reviews(cfg: Config, ids: list[str]) -> list[Review]:
                     "at": c.get("createdAt"),
                     "review": num,
                     "kind": "message",
-                    "by": c.get("author", {}).get("login"),
+                    # GitHub returns `"author": null` for a deleted (ghost) user.
+                    "by": (c.get("author") or {}).get("login"),
                     "text": _short(c.get("body", ""), MESSAGE_CHARS),
                 }
             )
@@ -595,7 +596,7 @@ def github_reviews(cfg: Config, ids: list[str]) -> list[Review]:
                     "at": rv.get("submittedAt"),
                     "review": num,
                     "kind": "vote",
-                    "by": rv.get("author", {}).get("login"),
+                    "by": (rv.get("author") or {}).get("login"),
                     "text": rv.get("state", "")
                     + (": " + _short(rv["body"], 200) if rv.get("body") else ""),
                 }
@@ -606,7 +607,7 @@ def github_reviews(cfg: Config, ids: list[str]) -> list[Review]:
                     "at": c.get("created_at"),
                     "review": num,
                     "kind": "inline",
-                    "by": c.get("user", {}).get("login"),
+                    "by": (c.get("user") or {}).get("login"),
                     "file": c.get("path"),
                     "line": c.get("line") or c.get("original_line"),
                     "revision": (c.get("commit_id") or "")[:9],
@@ -638,7 +639,7 @@ def github_reviews(cfg: Config, ids: list[str]) -> list[Review]:
                 )
         latest: dict[str, dict[str, Any]] = {}
         for rv in d.get("reviews", []):
-            login = rv.get("author", {}).get("login")
+            login = (rv.get("author") or {}).get("login")
             if login and rv.get("state") in {
                 "APPROVED",
                 "CHANGES_REQUESTED",
@@ -729,6 +730,46 @@ def ticket_of(cfg: Config, cf: ChangeFile, reviews: list[Review]) -> str | None:
     return None
 
 
+def review_summary(
+    review: dict[str, Any], merge_check: dict[str, Any] | None
+) -> dict[str, str | None]:
+    """The CI, human-vote, and submittability strings every view of a review shows.
+
+    One spelling feeds the state table, the sync text, and the commentary;
+    each view supplies its own placeholder where a value is None. Gerrit
+    votes carry a label (`Code-Review+2 alice`); GitHub reviews are labeled
+    `review` and read as `alice APPROVED`.
+    """
+    ci = ", ".join(
+        f"{c['label']}{c['value']}" + (f" {c['by']}" if c.get("by") else "")
+        for c in review["ci"]
+    )
+    human = ", ".join(
+        f"{h['label']}{h['value']} {h['by']}"
+        if h["label"] != "review"
+        else f"{h['by']} {h['value']}"
+        for h in review["human"]
+    )
+    submittable = review["submittable"]
+    parts = [submittable["status"]] if submittable.get("status") else []
+    if submittable.get("needs"):
+        parts.append("needs " + ", ".join(str(n) for n in submittable["needs"]))
+    if submittable.get("mergeable"):
+        parts.append(str(submittable["mergeable"]))
+    if merge_check and merge_check.get("mergeable") is not None:
+        conflicts = merge_check.get("conflicts", [])
+        parts.append(
+            "merge clean"
+            if merge_check["mergeable"]
+            else f"CONFLICTS {len(conflicts)}: " + ", ".join(conflicts[:3])
+        )
+    return {
+        "ci": ci or None,
+        "human": human or None,
+        "submittable": ", ".join(parts) or None,
+    }
+
+
 def state_table(
     cfg: Config, reviews: list[Review], merge: dict[str, dict[str, Any]], at: datetime
 ) -> list[str]:
@@ -739,33 +780,10 @@ def state_table(
     ]
     for r in reviews:
         rev = f"{'ps' if cfg.kind == 'gerrit' else 'c'}{r.revision.get('number')} {(r.revision.get('sha') or '')[:9]}"
-        ci = (
-            ", ".join(
-                f"{c['label']}{c['value']}" + (f" {c['by']}" if c.get("by") else "")
-                for c in r.ci
-            )
-            or "—"
-        )
-        if cfg.kind == "gerrit":
-            human = (
-                ", ".join(f"{h['label']}{h['value']} {h['by']}" for h in r.human) or "—"
-            )
-        else:
-            human = ", ".join(f"{h['by']} {h['value']}" for h in r.human) or "—"
-        sub = r.submittable.get("status") or "—"
-        if r.submittable.get("needs"):
-            sub += ": needs " + ", ".join(str(n) for n in r.submittable["needs"])
-        if cfg.kind == "github" and r.submittable.get("mergeable"):
-            sub += f", {r.submittable['mergeable']}"
-        mc = merge.get(r.number)
-        if mc and mc.get("mergeable") is not None:
-            sub += ", " + (
-                "merge clean"
-                if mc["mergeable"]
-                else f"CONFLICTS {len(mc.get('conflicts', []))}"
-            )
+        s = review_summary(r.as_dict(), merge.get(r.number))
         rows.append(
-            f"| [{r.number}]({r.url}) | {r.branch} | {r.status} | {rev} | {ci} | {human} | {sub} |"
+            f"| [{r.number}]({r.url}) | {r.branch} | {r.status} | {rev} "
+            f"| {s['ci'] or '—'} | {s['human'] or '—'} | {s['submittable'] or '—'} |"
         )
     rows.append(STATE_CLOSE)
     return rows
@@ -896,36 +914,11 @@ def render_sync(results: list[dict[str, Any]]) -> str:
             out.append(f"  skipped: {res['skipped']}")
             continue
         for r in res["reviews"]:
-            ci = (
-                ", ".join(
-                    f"{c['label']}{c['value']}" + (f" {c['by']}" if c.get("by") else "")
-                    for c in r["ci"]
-                )
-                or "—"
-            )
-            human = (
-                ", ".join(
-                    f"{h['label']}{h['value']} {h['by']}"
-                    if h["label"] != "review"
-                    else f"{h['by']} {h['value']}"
-                    for h in r["human"]
-                )
-                or "—"
-            )
-            sub = r["submittable"].get("status") or "—"
-            needs = r["submittable"].get("needs")
-            if needs:
-                sub += " needs " + ",".join(str(n) for n in needs)
-            mc = res.get("merge_check", {}).get(r["number"])
-            if mc and mc.get("mergeable") is not None:
-                sub += ", " + (
-                    "merge clean"
-                    if mc["mergeable"]
-                    else "CONFLICTS " + ",".join(mc.get("conflicts", [])[:5])
-                )
+            s = review_summary(r, res.get("merge_check", {}).get(r["number"]))
             out.append(
                 f"  {r['number']} {r['branch']} {r['status']} rev {r['revision'].get('number')} "
-                f"{(r['revision'].get('sha') or '')[:9]}  CI {ci}  human {human}  submit {sub}"
+                f"{(r['revision'].get('sha') or '')[:9]}  CI {s['ci'] or '—'}  "
+                f"human {s['human'] or '—'}  submit {s['submittable'] or '—'}"
             )
         evs = res["new_events"]
         out.append(f"  new since seen: {len(evs)}")
@@ -943,30 +936,11 @@ def commentary_for(res: dict[str, Any]) -> str:
         return f"`{res['file']}` skipped: {res['skipped']}."
     parts = []
     for r in res["reviews"]:
-        ci = ", ".join(f"{c['label']}{c['value']}" for c in r["ci"]) or "no CI verdict"
-        human = (
-            ", ".join(
-                f"{h['label']}{h['value']} {h['by']}"
-                if h["label"] != "review"
-                else f"{h['by']} {h['value']}"
-                for h in r["human"]
-            )
-            or "no human votes"
-        )
-        sub = r["submittable"].get("status") or "?"
-        if r["submittable"].get("needs"):
-            sub += (
-                " (needs " + ", ".join(str(n) for n in r["submittable"]["needs"]) + ")"
-            )
-        mc = res.get("merge_check", {}).get(r["number"])
-        if mc and mc.get("mergeable") is not None:
-            sub += (
-                "; merges clean"
-                if mc["mergeable"]
-                else f"; **conflicts** in {', '.join(mc.get('conflicts', [])[:3])}"
-            )
+        s = review_summary(r, res.get("merge_check", {}).get(r["number"]))
         parts.append(
-            f"[{r['number']}]({r['url']}) {r['branch']} **{r['status']}** rev {r['revision'].get('number')}: {ci}; {human}; {sub}"
+            f"[{r['number']}]({r['url']}) {r['branch']} **{r['status']}** "
+            f"rev {r['revision'].get('number')}: {s['ci'] or 'no CI verdict'}; "
+            f"{s['human'] or 'no human votes'}; {s['submittable'] or 'submittability unknown'}"
         )
     evs = res["new_events"]
     head = f"**{res['file']}** — " + " · ".join(parts)
