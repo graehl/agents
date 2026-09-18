@@ -49,4 +49,15 @@ if [ -z "${AGENTCTL_SESSION_ID:-}" ]; then
 	done
 fi
 
-exec /local/graehl/.npm/global/bin/codex "$@"
+# Hand off to the real codex: the next one on PATH after this wrapper's own
+# directory (and its physical location, for a symlinked install), so the
+# wrapper never re-executes itself and carries no machine-local path.
+self_dir=$(cd "$(dirname "$0")" && pwd -P)
+real_dir=$(cd "$(dirname "$(readlink -f "$0")")" && pwd -P)
+search=$(printf '%s\n' "$PATH" | tr ':' '\n' |
+	grep -vxF -e "$self_dir" -e "$real_dir" | paste -sd: -)
+real_codex=$(PATH=$search command -v codex) || {
+	echo "codex wrapper: no codex on PATH outside $self_dir" >&2
+	exit 127
+}
+exec "$real_codex" "$@"
