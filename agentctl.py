@@ -5976,7 +5976,14 @@ def restart(args: argparse.Namespace) -> int:
         launch_wait=float(
             state.get("launch_wait_seconds", DEFAULT_LAUNCH_WAIT_SECONDS)
         ),
-        user_service=state.get("launch_backend") == "systemd-user-service",
+        # A state file written before `launch_backend` existed says nothing
+        # about the backend; leave the choice to `use_user_service`'s
+        # launcher check rather than reading absence as `--no-user-service`.
+        user_service=(
+            None
+            if state.get("launch_backend") is None
+            else state["launch_backend"] == "systemd-user-service"
+        ),
         watch=False,
         watch_tail=20,
         watch_poll=5.0,
