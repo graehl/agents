@@ -92,6 +92,30 @@ def test_generated_banner_is_anchored_to_the_start_of_a_line() -> None:
     _assert(_hook(marked_root, "public", marked).returncode == 1)
 
 
+def test_generated_banner_needs_the_harness_link_or_a_named_assistant() -> None:
+    root = _repo()
+    provenance = _commit(root, "extract\n\nGenerated with marker-pdf 1.2 on gra.\n")
+    _assert(_hook(root, "public", provenance).returncode == 0)
+    named = _commit(root, "marked\n\nGenerated with Claude Code\n")
+    _assert(_hook(root, "public", named).returncode == 1)
+    emoji = _commit(root, "marked\n\n🤖 Generated with [X](https://x.invalid)\n")
+    _assert(_hook(root, "public", emoji).returncode == 1)
+
+
+def test_identity_passes_github_privacy_address_but_not_bots() -> None:
+    root = _repo()
+    _git(root, "config", "user.email", "12345+person@users.noreply.github.com")
+    person = _commit(root, "by a person\n")
+    _assert(_hook(root, "public", person).returncode == 0)
+    _git(root, "config", "user.email", "noreply@anthropic.com")
+    vendor = _commit(root, "by a vendor address\n")
+    _assert(_hook(root, "public", vendor).returncode == 1)
+    _git(root, "config", "user.email", "1+dependabot[bot]@users.noreply.github.com")
+    _git(root, "config", "user.name", "dependabot[bot]")
+    bot = _commit(root, "by a bot\n")
+    _assert(_hook(root, "public", bot).returncode == 1)
+
+
 def test_detected_space_free_trailer_strips_and_verifies_clean() -> None:
     root = _repo()
     marked = _commit(

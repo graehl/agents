@@ -16,14 +16,22 @@
 # this script's own history, for one — is not itself a violation. It is
 # deliberately not restricted to the trailing trailer block:
 # `git interpret-trailers --parse` reads only that block, and so missed
-# a trailer followed by more prose, or by a bullet that breaks the block
-# (verified 2026-09-17). A destination that scans plainly rejects those,
-# so this has to as well, or the push that fails is the second one and
-# the commit is already in shared history.
+# a trailer followed by more prose, or by a bullet that breaks the block.
+# A destination that scans plainly rejects those, so this has to as well,
+# or the push that fails is the second one and the commit is already in
+# shared history.
+#
+# The banner match is the harness form — a robot emoji, or "generated
+# with" followed by a Markdown link or a named assistant — not any line
+# starting "Generated with": a body line such as "Generated with
+# marker-pdf" is ordinary provenance, which the global scan inspects
+# rather than rejects.
 #
 # Author and committer identity are checked too. A message can be clean
 # while the commit is still authored from a no-reply bot address, which
-# a message-only scan never sees.
+# a message-only scan never sees. GitHub's per-user privacy address
+# (`<id>+<login>@users.noreply.github.com`) is a person, not a bot, and
+# passes; `[bot]` accounts and vendor no-reply addresses do not.
 set -u
 zero=0000000000000000000000000000000000000000
 remote_name=${1:-}
@@ -45,9 +53,14 @@ while read -r _lref lsha _rref rsha; do
 	for c in $(git rev-list "${rev_args[@]}"); do
 		msg=$(git log -1 --format=%B "$c")
 		trailer=$(printf '%s\n' "$msg" | grep -iE '^[[:space:]]*co-authored-by:')
-		banner=$(printf '%s\n' "$msg" | grep -iE '^[[:space:]]*(🤖|generated with)')
-		identity=$(git log -1 --format='%an <%ae>%n%cn <%ce>' "$c" |
-			sort -u | grep -iE 'noreply@|\[bot\]')
+		banner=$(printf '%s\n' "$msg" | grep -iE \
+			'^[[:space:]]*(🤖|generated with[[:space:]]+(\[|(claude|codex|copilot|gemini|chatgpt|openai|cursor|aider)\b))')
+		ids=$(git log -1 --format='%an <%ae>%n%cn <%ce>' "$c" | sort -u)
+		identity=$({
+			printf '%s\n' "$ids" | grep -iE '\[bot\]'
+			printf '%s\n' "$ids" | grep -iE 'noreply@' |
+				grep -viE '@users\.noreply\.github\.com>'
+		} | sort -u)
 		if [ -n "$trailer$banner$identity" ]; then
 			bad=1
 			echo "no-attrib: $(git log -1 --format='%h %s' "$c")" >&2
