@@ -243,6 +243,15 @@ def _json_records(output: str) -> list[dict]:
     return [json.loads(line) for line in output.splitlines() if line.strip()]
 
 
+class Skip(Exception):
+    """Raised by a test whose precondition this host lacks; reported as SKIP."""
+
+
+def _require_user_systemd() -> None:
+    if not _user_systemd_available():
+        raise Skip("no working `systemctl --user`")
+
+
 def _user_systemd_available() -> bool:
     try:
         result = subprocess.run(
@@ -363,8 +372,7 @@ def _sequence_nvidia_smi(ws: Workspace, rows: list[str]) -> dict[str, str]:
 
 
 def test_yepanywhere_launch_uses_user_service_and_preserves_payload_argv():
-    if not _user_systemd_available():
-        return
+    _require_user_systemd()
     ws = Workspace()
     try:
         output = ws.scratch / "user-service-output.txt"
@@ -426,8 +434,7 @@ def test_yepanywhere_launch_uses_user_service_and_preserves_payload_argv():
 
 
 def test_user_service_survives_launch_observer_termination():
-    if not _user_systemd_available():
-        return
+    _require_user_systemd()
     ws = Workspace()
     observer = None
     try:
@@ -551,8 +558,7 @@ def test_user_service_unavailable_fails_without_launching_payload():
 
 
 def test_restart_preserves_user_service_and_stop_controls_unit():
-    if not _user_systemd_available():
-        return
+    _require_user_systemd()
     ws = Workspace()
     try:
         first = ws.run(
@@ -5942,7 +5948,7 @@ def main(argv):
     if matches:
         tests = [(n, f) for n, f in tests if any(m in n for m in matches)]
 
-    passed = failed = 0
+    passed = failed = skipped = 0
     failures = []
     start_total = time.time()
     for name, fn in tests:
@@ -5955,6 +5961,12 @@ def main(argv):
                 print(f"PASS  {name}  ({elapsed:.2f}s)")
             else:
                 print(".", end="", flush=True)
+        except Skip as why:
+            skipped += 1
+            if verbose:
+                print(f"SKIP  {name}  ({why})")
+            else:
+                print("s", end="", flush=True)
         except Exception:
             elapsed = time.time() - t0
             failed += 1
@@ -5977,7 +5989,8 @@ def main(argv):
             print(f"\n--- {name} ---")
             print(tb)
 
-    print(f"\n{passed} passed, {failed} failed in {total_elapsed:.2f}s")
+    skipped_note = f", {skipped} skipped" if skipped else ""
+    print(f"\n{passed} passed, {failed} failed{skipped_note} in {total_elapsed:.2f}s")
     return 0 if failed == 0 else 1
 
 

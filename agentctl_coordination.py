@@ -9,7 +9,7 @@ import tempfile
 import time
 import uuid
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 
 import acli
@@ -164,8 +164,10 @@ def follow(
                 "deaf": args.deaf,
             }
             atomic_json(path / "wait.json", record)
-        observer = file_lock(store.path(wait_id) / ".observer.lock", blocking=False)
-        observer.__enter__()
+        held = ExitStack()
+        held.enter_context(
+            file_lock(store.path(wait_id) / ".observer.lock", blocking=False)
+        )
 
     def interrupted(signum: int, frame: object) -> None:
         raise KeyboardInterrupt
@@ -228,7 +230,7 @@ def follow(
         return 130
     finally:
         signal.signal(signal.SIGTERM, previous)
-        observer.__exit__(None, None, None)
+        held.close()
 
 
 def command(
