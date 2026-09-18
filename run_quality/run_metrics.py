@@ -136,9 +136,14 @@ def publish(metrics: dict[str, Any], *, prefix: str = "") -> Path | None:
     existing.update(payload)
     try:
         directory.mkdir(parents=True, exist_ok=True)
-        path.write_text(
+        # Write-then-rename: agentctl merges this file at completion, and a
+        # crash mid-write must leave the previous complete version, not a
+        # truncated one.
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(
             json.dumps(existing, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
+        tmp.replace(path)
     except OSError:
         return None
     return path
