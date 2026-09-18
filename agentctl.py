@@ -240,8 +240,23 @@ def format_duration(seconds: float | None) -> str:
     return f"{secs}s"
 
 
+def payload_started_at(state: dict) -> str:
+    """When the payload started, else when it was queued; empty for neither.
+
+    A job refused before its payload launched (a dependency or source-gate
+    failure) never gets `started_at`, so its queue time stands in wherever a
+    start time is rendered. Every renderer reads this one accessor.
+    """
+    return str(state.get("started_at") or state.get("queued_at") or "")
+
+
+def payload_pid(state: dict) -> str:
+    """The wrapper pid as text; empty for a job refused before launch."""
+    return str(state.get("pid") or "")
+
+
 def elapsed_seconds(state: dict) -> int | None:
-    started = state.get("started_at") or state.get("queued_at")
+    started = payload_started_at(state)
     if not started:
         return None
     try:
@@ -3843,10 +3858,8 @@ def write_meta(state: dict) -> dict:
             "source_status",
             str((state.get("source_snapshot") or {}).get("status", "")),
         ),
-        # A job refused before its payload launched (dependency or source-gate
-        # failure) has no started_at/pid; render what it does have.
-        ("started_at", state.get("started_at") or state.get("queued_at") or ""),
-        ("pid", str(state.get("pid") or "")),
+        ("started_at", payload_started_at(state)),
+        ("pid", payload_pid(state)),
     ]
     machine_snapshot_record = state.get("machine_snapshot") or {}
     for key in ("hostname", "architecture", "kernel", "python_version"):

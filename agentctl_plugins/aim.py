@@ -94,9 +94,8 @@ def _build_record(state: dict, meta_text: str) -> dict:
     machine = {
         "git_branch": state.get("git_branch", ""),
         "git_commit": state.get("git_commit", ""),
-        # Absent when the job was refused before its payload launched.
-        "pid": str(state.get("pid") or ""),
-        "started_at": state.get("started_at") or state.get("queued_at") or "",
+        "pid": agentctl.payload_pid(state),
+        "started_at": agentctl.payload_started_at(state),
     }
     machine.update(dict(state.get("machine_snapshot") or {}))
     record = {
