@@ -24,6 +24,10 @@ from .journal import Journal
 from .messages import FixedMessage
 from .runner import AnnotationConfig, DocumentAnnotator, Segment, Validator
 
+# Campaign manifest schema; bump on a change to what a campaign's journal,
+# receipts, or results mean (see topics/document-annotation.md § Receipts).
+SCHEMA = "document-annotation/v1"
+
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -212,10 +216,12 @@ def run(args: Any) -> dict[str, Any]:
             raise ValueError(
                 "--backend openai-chat-completions requires nonempty OPENAI_API_KEY in the environment"
             )
-        from .chat import settings
+        from .chat import chat_settings
 
         transport_manifest = {
-            "chat": settings(args.max_output_tokens, args.chat_cache_mode or "explicit")
+            "chat": chat_settings(
+                args.max_output_tokens, args.chat_cache_mode or "explicit"
+            )
         }
         api_env = {"OPENAI_API_KEY": key}
     else:
@@ -260,11 +266,11 @@ def run(args: Any) -> dict[str, Any]:
         validator_id,
         fixed_messages=read_fixed_messages(messages_bytes),
     )
-    implementation = {
-        p.name: sha256(p.read_bytes()) for p in Path(__file__).parent.glob("*.py")
-    }
     manifest = {
-        "schema": "document-annotation/v1",
+        # Bump SCHEMA when a change alters what a campaign's journal, receipts,
+        # or results mean; formatting or refactoring the package does not end
+        # open campaigns, a semantic change does.
+        "schema": SCHEMA,
         "backend": args.backend,
         "config": config.record(),
         "fixed_messages_sha256": sha256(messages_bytes)
@@ -272,18 +278,60 @@ def run(args: Any) -> dict[str, Any]:
         else None,
         "input_sha256": sha256(input_bytes),
         "prefix_sha256": sha256(prefix.encode()),
-        "implementation": implementation,
         **transport_manifest,
     }
     if args.resume:
         if json.loads((output / "manifest.json").read_text()) != manifest:
             raise ValueError(
-                "campaign input, prefix, backend, settings, validator, implementation or transport version changed"
+                "campaign input, prefix, backend, settings, validator, schema or transport version changed"
             )
     else:
         output.mkdir(mode=0o700, parents=True, exist_ok=False)
+    try:
+        return _run_locked(
+            args,
+            output,
+            manifest,
+            api_env,
+            config,
+            segments,
+            validate,
+            prefix,
+            input_bytes,
+            messages_bytes,
+        )
+    except BaseException:
+        # A fresh campaign that failed before its manifest was written (bad
+        # auth home, profile setup) left a directory that neither a fresh run
+        # nor --resume accepts; nothing durable is in it yet, so remove it.
+        if not args.resume and not (output / "manifest.json").exists():
+            shutil.rmtree(output, ignore_errors=True)
+        raise
+
+
+class CampaignLocked(Exception):
+    """Another run holds this campaign's lock."""
+
+
+def _run_locked(
+    args: Any,
+    output: Path,
+    manifest: dict[str, Any],
+    api_env: dict[str, str],
+    config: AnnotationConfig,
+    segments: Any,
+    validate: Any,
+    prefix: str,
+    input_bytes: bytes,
+    messages_bytes: bytes | None,
+) -> dict[str, Any]:
     with (output / ".lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise CampaignLocked(
+                f"{output} is locked by another document-annotation run"
+            ) from error
         journal = Journal(output / "events.jsonl")
         completed = journal.completed() if args.resume else []
         env = (
@@ -344,6 +392,7 @@ def main() -> int:
         AttributeError,
         subprocess.SubprocessError,
         ExceptionGroup,
+        CampaignLocked,
     ) as error:
         message = (
             "; ".join(f"{type(child).__name__}: {child}" for child in error.exceptions)
@@ -352,7 +401,18 @@ def main() -> int:
         )
         acli.die(
             message,
-            acli.ExitCode.SOFTWARE,
+            _exit_code(error),
             detail={"exception": type(error).__name__},
         )
     return 1
+
+
+def _exit_code(error: BaseException) -> acli.ExitCode:
+    """The acli-spec exit code for a failure: 2/4/5 for the caller's to fix, 70 otherwise."""
+    if isinstance(error, (ValueError, TypeError)):
+        return acli.ExitCode.USAGE
+    if isinstance(error, FileNotFoundError):
+        return acli.ExitCode.NOT_FOUND
+    if isinstance(error, CampaignLocked):
+        return acli.ExitCode.CONFLICT
+    return acli.ExitCode.SOFTWARE

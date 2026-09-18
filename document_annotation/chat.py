@@ -18,11 +18,11 @@ if TYPE_CHECKING:
 ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
 
-def message(role: str, text: str) -> dict[str, Any]:
+def chat_message(role: str, text: str) -> dict[str, Any]:
     return {"role": role, "content": [{"type": "text", "text": text}]}
 
 
-def settings(max_output_tokens: int, cache_mode: str) -> dict[str, Any]:
+def chat_settings(max_output_tokens: int, cache_mode: str) -> dict[str, Any]:
     if type(max_output_tokens) is not int or max_output_tokens < 1:
         raise ValueError(
             "--max-output-tokens must be positive for --backend openai-chat-completions"
@@ -51,7 +51,7 @@ class ChatCompletions:
             raise ValueError(
                 "OPENAI_API_KEY must be nonempty for --backend openai-chat-completions"
             )
-        self.identity = settings(max_output_tokens, cache_mode)
+        self.identity = chat_settings(max_output_tokens, cache_mode)
         self.client = httpx.AsyncClient(
             headers={"Authorization": "Bearer " + api_key},
             follow_redirects=False,
@@ -98,8 +98,8 @@ class ChatCompletions:
         for row in history:
             session.messages.extend(
                 [
-                    message("user", row["input"]["prompt"]),
-                    message("assistant", row["text"]),
+                    chat_message("user", row["input"]["prompt"]),
+                    chat_message("assistant", row["text"]),
                 ]
             )
         return session
@@ -110,8 +110,8 @@ class ChatSession:
         self, backend: ChatCompletions, config: AnnotationConfig, session_id: str
     ) -> None:
         self.backend, self.config, self.id = backend, config, session_id
-        self.messages = [message("developer", config.prefix)] + [
-            message(m.role, m.content) for m in config.fixed_messages
+        self.messages = [chat_message("developer", config.prefix)] + [
+            chat_message(m.role, m.content) for m in config.fixed_messages
         ]
         if backend.identity["cache_mode"] == "explicit":
             self.messages[-1]["content"][-1]["prompt_cache_breakpoint"] = {
@@ -125,7 +125,7 @@ class ChatSession:
         request = {
             "model": cfg.model,
             "reasoning_effort": cfg.effort,
-            "messages": self.messages + [message("user", prompt)],
+            "messages": self.messages + [chat_message("user", prompt)],
             "max_completion_tokens": identity["max_completion_tokens"],
             "service_tier": identity["service_tier"],
             "store": False,
@@ -158,7 +158,7 @@ class ChatSession:
         turn = parse_response(json.loads(response.text), self.id)
         if turn.rejection is None:
             self.messages.extend(
-                [message("user", prompt), message("assistant", turn.text)]
+                [chat_message("user", prompt), chat_message("assistant", turn.text)]
             )
         return turn
 
@@ -180,8 +180,8 @@ def parse_response(body: Any, session_id: str) -> Turn:
     if not isinstance(usage, dict):
         raise TypeError("Chat Completions response has no usage object")
     counts = {
-        "input_tokens": count(usage, "prompt_tokens"),
-        "output_tokens": count(usage, "completion_tokens"),
+        "input_tokens": usage_count(usage, "prompt_tokens"),
+        "output_tokens": usage_count(usage, "completion_tokens"),
     }
     for details_key, fields in (
         (
@@ -199,7 +199,7 @@ def parse_response(body: Any, session_id: str) -> Turn:
                 raise ValueError(f"Chat Completions {details_key} must be an object")
             for source, target in fields.items():
                 if source in details and details[source] is not None:
-                    counts[target] = count(details, source)
+                    counts[target] = usage_count(details, source)
     choice = choices[0]
     answer = choice.get("message")
     if not isinstance(answer, dict) or answer.get("role") != "assistant":
@@ -228,7 +228,7 @@ def parse_response(body: Any, session_id: str) -> Turn:
     return Turn(text, counts, session_id, body["id"], rejection)
 
 
-def count(values: Mapping[str, Any], key: str) -> int:
+def usage_count(values: Mapping[str, Any], key: str) -> int:
     value = values.get(key)
     if type(value) is not int or value < 0:
         raise ValueError(f"Chat Completions usage {key} must be a nonnegative integer")
