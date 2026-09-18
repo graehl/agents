@@ -215,9 +215,6 @@ def parse_utc(ts: str) -> dt.datetime:
 
 
 def parse_duration_seconds(text: str) -> int:
-    raw = text.strip().lower()
-    if raw.isdigit():
-        return int(raw)
     try:
         return round(nonnegative_duration_seconds(text))
     except argparse.ArgumentTypeError as exc:
@@ -737,7 +734,7 @@ def ensure_active_registered(
     if not sid:
         return "noop"
     scope_paths = scope_paths or []
-    ensure_commit_note_hook()
+    ensure_commit_note_hook_once()
     placeholder = normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
     path = ACTIVE / sid
     try:
@@ -1005,16 +1002,9 @@ def clear_cmd(args) -> int:
             coordination.emit(result, _resolve_acli_format(args))
             return code
 
+        # Path, session-id, and launch-depth validation belong to `clear_once`,
+        # which `follow` runs first; only the wait options are checked here.
         args.paths = [active_scope_path(path) for path in args.paths]
-        if not all(args.paths) or any("*" in path for path in args.paths):
-            raise ValueError("clear requires literal nonempty paths")
-        if (
-            not agent_session_id()
-            or int(os.environ.get(LAUNCH_DEPTH_ENV, "0") or "0") > 0
-        ):
-            raise ValueError(
-                "clear requires an agent session id, outside launched jobs"
-            )
         if not 0 < args.poll < ACTIVE_STALE_MINUTES * 60:
             raise ValueError(
                 "--poll must be positive and shorter than the 70-minute stale window"
@@ -1088,9 +1078,9 @@ def clear_once(args) -> tuple[int, dict]:
     note = normalize_headline_text(getattr(args, "note", None) or "")
     if drop and (carve or note):
         raise ValueError("agentctl clear: --drop takes no --carve/--note")
-    paths = [p for p in (active_scope_path(raw) for raw in args.paths) if p]
-    if not paths:
-        raise ValueError("agentctl clear: no paths")
+    paths = [active_scope_path(raw) for raw in args.paths]
+    if not paths or not all(paths):
+        raise ValueError("agentctl clear: literal nonempty paths required")
     bad = [p for p in paths if "*" in p]
     if bad:
         raise ValueError(
@@ -2105,6 +2095,22 @@ def _git_hooks_dir() -> Path | None:
     return path if path.is_absolute() else (ROOT / path)
 
 
+_commit_note_hook_setup: dict[str, str] | None = None
+
+
+def ensure_commit_note_hook_once() -> dict[str, str]:
+    """`ensure_commit_note_hook`, run at most once per process.
+
+    Registration paths (`others`/`alone`/`tending`/`clear`) may re-register
+    on every poll of a wait loop; the hook check costs three git
+    subprocesses, and its answer does not change within one process.
+    """
+    global _commit_note_hook_setup
+    if _commit_note_hook_setup is None:
+        _commit_note_hook_setup = ensure_commit_note_hook()
+    return _commit_note_hook_setup
+
+
 def ensure_commit_note_hook() -> dict[str, str]:
     """Self-install the post-commit hook and `notes.rewriteRef`, creating only what is absent.
 
@@ -2871,34 +2877,23 @@ def terminate_state(state: dict, *, grace: float, reason: str | None = None) -> 
     if not process_group_alive(pgid) and process_visibility_limited():
         return False
     service_unit = str(state.get("service_unit") or "")
-    if service_unit:
-        signaled = stop_user_service(service_unit, "SIGTERM")
-        if not signaled:
-            try:
-                os.killpg(pgid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-    else:
+
+    def signal_wrapper(sig: signal.Signals) -> None:
+        # The service unit owns the wrapper cgroup when there is one; fall
+        # back to the process group only when systemd could not deliver.
+        if service_unit and stop_user_service(service_unit, sig.name):
+            return
         try:
-            os.killpg(pgid, signal.SIGTERM)
+            os.killpg(pgid, sig)
         except ProcessLookupError:
             pass
+
+    signal_wrapper(signal.SIGTERM)
     deadline = time.time() + grace
     while time.time() < deadline and process_group_alive(pgid):
         time.sleep(0.25)
     if process_group_alive(pgid):
-        if service_unit:
-            signaled = stop_user_service(service_unit, "SIGKILL")
-            if not signaled:
-                try:
-                    os.killpg(pgid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-        else:
-            try:
-                os.killpg(pgid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+        signal_wrapper(signal.SIGKILL)
     state["status"] = "stopped"
     state["finished_at"] = utc_now()
     if reason:
