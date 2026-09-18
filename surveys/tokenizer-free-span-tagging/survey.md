@@ -73,8 +73,8 @@ The regenerable manifest is
 | E | [distilled small tagger](concepts/distilled-small-tagger.md) `[G]` | Hinton et al.; XtremeDistil; Wang et al.; Farina et al.; Nityasya et al. | foundational soft-target recipe; 35×/51× compression at 95% of teacher F1; at 100 gold sentences a 1M-parameter student beats its 220M teacher |
 | F | [token-classifier objectives](concepts/token-classifier-objectives.md) `[G]` | Pereyra et al.; Kiryo et al.; Peng et al.; Ács et al.; Lester et al.; Verma et al.; Tenney et al.; Hewitt and Liang; Voita and Titov | before fine-tuning, sweep frozen layer × pooling with linear, control/selectivity, and MDL probes; constrained CE trains ~2× faster than a CRF with mostly tied F1; PU applies only to incomplete labels |
 | G | [multilingual representation probes](concepts/multilingual-representation-probes.md) `[G]` | Sentence-BERT; Conneau et al.; SimAlign; Awesome-Align | pooled retrieval and token alignment test different invariances; the best layer depends on granularity/model; frozen alignment, post-hoc alignability, and alignment-tuned representations support different claims |
-| F | [label-conditioned span classification](concepts/label-conditioned-span-classification.md) `[G]` | GLiNER | contextual type-marker and endpoint FFNs learn dot-product compatibility; a 12-word cap and first-subword endpoint compression need auditing for long privacy spans |
 | H | [train-then-mask](concepts/train-then-mask.md) `[G]` `[R]` | Wang et al. 2021 (ACE); EarlyBERT; super tickets; pruning and one-shot-NAS lineage at recall | choosing which of 11 frozen embedding channels feed one shared BiLSTM-CRF beats concatenating all by 0.9 averaged over 23 test sets; the subset that kept training through the search beats the same subset retrained from scratch by up to 2.0; a soft per-channel gate with no sparsity pressure stays at `All` |
+| I | [label-conditioned span classification](concepts/label-conditioned-span-classification.md) `[G]` | GLiNER | contextual type-marker and endpoint FFNs learn dot-product compatibility; a 12-word cap and first-subword endpoint compression need auditing for long privacy spans |
 
 ## Map: what each family establishes
 
@@ -390,6 +390,19 @@ under one shared tagger before the expensive run, and keeping the tagger that
 trained with the discarded channels present rather than a fresh one on the
 survivors. Both are `single-source`, from frozen-encoder CoNLL-scale regimes
 with three-seed averages and no reported interval.
+
+### I. Label-conditioned span heads are a comparator, not a character-model claim `[G]`
+
+GLiNER `[G]` is a subword-encoder comparator for the sole-tagger question and
+for the token-classifier objective discussion in family F; it is not a
+tokenizer-free model. A bidirectional encoder contextualizes a candidate type
+list and the text in one pass, and span endpoints score against type markers
+by dot-product compatibility, trading a fixed BIOES token head for an open
+label inventory. Its 12-word span cap and first-subword endpoint compression
+need auditing before it stands in for long privacy spans, and no result in
+the paper establishes superiority over a matched BIOES tagger. Details and
+the separate ablations it exposes are in the
+[concept digest](concepts/label-conditioned-span-classification.md).
 
 ## What a chars-only tagger must beat, and cite
 
