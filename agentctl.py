@@ -55,6 +55,13 @@ AWAITING = STATE / "awaiting"
 # first value set, so plain `./agentctl` maintains the entry with no per-call
 # setup. Add other harnesses' session-id vars here as they are learned.
 SESSION_ID_ENVS = ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID")
+# How a result names the caller's own session instead of echoing its id. A
+# session that has just been forked carries its source's id in its copied
+# context, so an id echoed back at it invites a comparison against a belief
+# that is no longer true — and the session then "corrects" a record that is
+# already right, or adopts a peer's. Nothing downstream needs the caller's own
+# id: it either set it in the environment or can read it from `active --full`.
+SELF_ID_LABEL = "[yours]"
 # Set in every launched child's env and incremented per hop. A launched job is
 # not an agent, so agentctl ignores the session id at depth > 0: this is the
 # count-down-once flag that stops a job (or any agentctl it shells) from
@@ -486,13 +493,32 @@ def _proc_argv(pid: int) -> list[str]:
     return [tok.decode("utf-8", "replace") for tok in raw.split(b"\x00") if tok]
 
 
+FORK_ARGV_FLAGS = ("--fork-session", "--fork")
+
+
+def _argv_forks(argv: list[str]) -> bool:
+    """True when this launch forks the session it resumes.
+
+    `claude --resume <id> --fork-session` copies <id>'s transcript into a
+    *new* session with a new id, so the resume argument names the source, not
+    the running session. Treating it as the running session's id makes a fork
+    adopt its parent's `.agentctl/active/<id>` entry — refreshing a record the
+    parent still owns while the fork's own id never registers.
+    """
+    return any(tok.split("=", 1)[0] in FORK_ARGV_FLAGS for tok in argv)
+
+
 def _resume_id_from_argv(argv: list[str]) -> str:
     """A resume session id from a `resume <uuid>` / `--resume[=]<uuid>` argv.
 
     Matches both the Codex form (positional `resume <uuid>` subcommand) and
     the Claude form (`--resume <uuid>` / `--resume=<uuid>`). Returns the first
-    UUID-shaped value so found, else "".
+    UUID-shaped value so found, else "" — including when the same argv forks
+    (`--fork-session`), because then the resumed id belongs to the source
+    session and the running session's own id is not on the command line at all.
     """
+    if _argv_forks(argv):
+        return ""
     for i, tok in enumerate(argv):
         if tok in ("resume", "--resume"):
             if i + 1 < len(argv) and _UUID_RE.match(argv[i + 1]):
@@ -528,7 +554,13 @@ def session_id_from_proc_tree(max_hops: int = 8) -> str:
         return ""
     hops = 0
     while pid and pid > 1 and hops < max_hops:
-        sid = _resume_id_from_argv(_proc_argv(pid))
+        argv = _proc_argv(pid)
+        # A forking launch ends the walk rather than deferring to an outer
+        # one: the nearest harness invocation is the authority on this
+        # session's identity, and every id further out is at least as wrong.
+        if _argv_forks(argv):
+            return ""
+        sid = _resume_id_from_argv(argv)
         if sid:
             return sid
         nxt = _proc_ppid(pid)
@@ -558,13 +590,68 @@ def agent_session_id() -> str:
         depth = 0
     if depth > 0:
         return ""
-    for var in SESSION_ID_ENVS:
-        sid = os.environ.get(var, "").strip()
-        if sid:
-            return sid
+    sid, _ = env_session_id()
+    if sid:
+        return sid
     if os.environ.get(NO_PROC_SESSION_ID_ENV, "").strip():
         return ""
     return session_id_from_proc_tree()
+
+
+def env_session_id() -> tuple[str, str]:
+    """`(id, variable name)` from the launcher-set environment, else `("", "")`.
+
+    The launcher writes these per running session, so they are the one source
+    that cannot be stale: a forked session gets its own values, and no copied
+    transcript, remembered id, or command-line argument can outvote them.
+    Subject to the same launch-depth guard as `agent_session_id()` — a
+    launched job is not an agent and owns no entry.
+    """
+    try:
+        depth = int(os.environ.get(LAUNCH_DEPTH_ENV, "0") or "0")
+    except ValueError:
+        depth = 0
+    if depth > 0:
+        return "", ""
+    for var in SESSION_ID_ENVS:
+        sid = os.environ.get(var, "").strip()
+        if sid:
+            return sid, var
+    return "", ""
+
+
+def resolve_self_id(provided: str | None, *, verbose: bool = False) -> tuple[str, dict]:
+    """This session's own id for a verb that also accepts one positionally.
+
+    The environment wins over `provided`. An agent can reach a verb with a
+    *stale* id — most often after a fork, whose transcript is copied from its
+    source and so quotes the source's id as if it were its own — and acting on
+    that id refreshes, claims, or marks DONE a record another live session
+    owns. The launcher-set variable is the running session's actual identity,
+    so it overrides the argument rather than deferring to it.
+
+    Returns `(id, payload_fields)`; the fields name the source that won. An
+    override is *information*, not a warning: it is quiet by default and neither
+    id is echoed back. A mismatched id is usually a belief the agent holds about
+    itself, and answering it with two UUIDs to reconcile is what sends a session
+    chasing its own identity. `verbose` adds one acli `# ` meta line.
+    """
+    provided = (provided or "").strip()
+    env_id, env_var = env_session_id()
+    if env_id and provided and provided != env_id:
+        if verbose:
+            print(
+                f"# used {env_var} for this session's own id; the id given on "
+                "the command line names a different session",
+                file=sys.stderr,
+            )
+        return env_id, {"self_id_source": env_var, "self_id_overrode_argument": True}
+    if env_id:
+        return env_id, {"self_id_source": env_var}
+    if provided:
+        return provided, {"self_id_source": "argument"}
+    sid = agent_session_id()
+    return sid, {"self_id_source": "process-tree"} if sid else {}
 
 
 def refresh_active_register(summary: str, note: str) -> None:
@@ -904,8 +991,7 @@ def active_register(args) -> int:
     payload = {
         "kind": "active_register",
         "ok": True,
-        "path": str(shown),
-        "id": sid,
+        "id": SELF_ID_LABEL,
         "banner": banner,
     }
     if note_setup["hook"] in ("installed", "foreign", "error"):
@@ -917,6 +1003,8 @@ def active_register(args) -> int:
     if tending_value:
         payload["tending"] = tending_value
     if bool(getattr(args, "full", False)):
+        payload["self_id"] = sid
+        payload["path"] = str(shown)
         payload["scope_line"] = scope_line
         payload["tending_line"] = tending_line
     acli.emit(payload, fmt)
@@ -1341,7 +1429,10 @@ def _active_row_payload(
     full: bool = False,
 ) -> dict:
     row = {
-        "id": Path(rel).name,
+        # Your own row reads `[yours]`: naming it is what the reader needs, and
+        # an echoed id invites a session to re-litigate its own identity
+        # against a stale belief (SELF_ID_LABEL). `--full` restores the id.
+        "id": SELF_ID_LABEL if (is_self and not full) else Path(rel).name,
         "status": line1 or "",
         "age_seconds": int(max(0, now - mtime)),
     }
@@ -1505,10 +1596,15 @@ def others_cmd(args) -> int:
     Why carry your own id: `active` lists everyone and leaves you to subtract
     yourself, so a session re-confirming a "peers present" belief still has to
     parse rows. `others <id>` drops your entry and emits a structured verdict
-    with `other_count` and `has_peers`. Passing the id is also the nudge for a
-    session to know it; with no
-    id given it falls back to agent_session_id(), and excludes nothing if that
-    is empty too (so it degrades to `active`-style output rather than failing).
+    with `other_count` and `has_peers`. With no id given it falls back to
+    `agent_session_id()`, and excludes nothing if that is empty too (so it
+    degrades to `active`-style output rather than failing).
+
+    The id is an argument, not the authority: when the launcher set one in the
+    environment, that value wins (resolve_self_id) — a session that has been
+    forked carries its source's id in its copied context and would otherwise
+    exclude, claim, or complete a live peer's entry. The result names the
+    winning source in `self_id_source` and never echoes either id.
 
     The exit code is the peer signal: 0 when you are alone (no other peers in
     the window), nonzero when peers are present, so `agentctl others <id> &&
@@ -1546,9 +1642,10 @@ def others_cmd(args) -> int:
     )
     allowed_unexpected = max(0, int(getattr(args, "expect_count", 0) or 0))
     fmt = _resolve_acli_format(args)
-    now, rows = _scan_active(minutes, include_done, provided or agent_session_id())
-    window = _window_label(minutes)
     full = bool(getattr(args, "full", False))
+    self_id, id_fields = resolve_self_id(provided, verbose=full)
+    now, rows = _scan_active(minutes, include_done, self_id)
+    window = _window_label(minutes)
 
     peers = [r for r in rows if not r[5]] if rows else []
     unexpected = [r for r in peers if Path(r[1]).name not in expected_ids]
@@ -1577,6 +1674,7 @@ def others_cmd(args) -> int:
         "has_peers": bool(peers),
         "peers": peer_rows,
         "missing_active_dir": rows is None,
+        **id_fields,
     }
     if expected_ids or allowed_unexpected:
         payload["expected_ids"] = expected_ids
@@ -1585,9 +1683,9 @@ def others_cmd(args) -> int:
         payload["has_surprises"] = not ok
         if absent_expected:
             payload["expected_absent"] = absent_expected
-    if ok and provided:
-        status = ensure_active_registered(provided)
-        payload["registered"] = {"id": provided, "status": status}
+    if ok and provided and self_id:
+        status = ensure_active_registered(self_id)
+        payload["registered"] = {"id": SELF_ID_LABEL, "status": status}
         if status == "created":
             payload["next_command"] = 'agentctl active "<status>" [<scope>...]'
     if not peers:
@@ -1634,9 +1732,10 @@ def tending_cmd(args) -> int:
     include_done = bool(getattr(args, "done", False))
     provided = getattr(args, "uuid", None)
     fmt = _resolve_acli_format(args)
-    now, rows = _scan_active(minutes, include_done, provided or agent_session_id())
-    window = _window_label(minutes)
     full = bool(getattr(args, "full", False))
+    self_id, id_fields = resolve_self_id(provided, verbose=full)
+    now, rows = _scan_active(minutes, include_done, self_id)
+    window = _window_label(minutes)
 
     tenders = [r for r in (rows or []) if r[4] and not r[5]]
     if not tenders:
@@ -1647,8 +1746,9 @@ def tending_cmd(args) -> int:
             "has_tending_peer": False,
             "tenders": [],
             "missing_active_dir": rows is None,
+            **id_fields,
         }
-        if provided:
+        if provided and self_id:
             until = getattr(args, "until", None)
             own_tending = next((r[4] for r in (rows or []) if r[5] and r[4]), "")
             if own_tending and not until:
@@ -1659,9 +1759,9 @@ def tending_cmd(args) -> int:
             else:
                 value = "on-deck" + (f" until {until}" if until else "")
                 claim_action = "registered"
-            status = ensure_active_registered(provided, tending=value)
+            status = ensure_active_registered(self_id, tending=value)
             payload["registered"] = {
-                "id": provided,
+                "id": SELF_ID_LABEL,
                 "status": status,
                 "tending": value,
                 "action": claim_action,
@@ -1684,6 +1784,7 @@ def tending_cmd(args) -> int:
                 for mtime, rel, line1, scope, tending, _ in tenders
             ],
             "missing_active_dir": rows is None,
+            **id_fields,
         },
         fmt,
     )
@@ -1724,7 +1825,9 @@ def alone_cmd(args) -> int:
     minutes = max(0, int(getattr(args, "minutes", ACTIVE_STALE_MINUTES)))
     include_done = bool(getattr(args, "done", False))
     provided = getattr(args, "uuid", None)
-    self_id = provided or agent_session_id()
+    self_id, id_fields = resolve_self_id(
+        provided, verbose=bool(getattr(args, "full", False))
+    )
     banner = normalize_headline_text(getattr(args, "banner", None) or "") or None
     scope_paths = [
         s
@@ -1762,10 +1865,11 @@ def alone_cmd(args) -> int:
                     "other_count": 0,
                     "peers": [],
                     "missing_active_dir": rows is None,
+                    **id_fields,
                 }
-                if provided:
-                    status = ensure_active_registered(provided, banner, scope_paths)
-                    payload["registered"] = {"id": provided, "status": status}
+                if provided and self_id:
+                    status = ensure_active_registered(self_id, banner, scope_paths)
+                    payload["registered"] = {"id": SELF_ID_LABEL, "status": status}
                     if banner:
                         payload["registered"]["banner"] = banner
                     if scope_paths:

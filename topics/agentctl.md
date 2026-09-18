@@ -79,6 +79,55 @@ tooling, the cooperative declaration helper, and project migration docs.
   unchanged-output churn without adding scheduling state. Explicit
   `--heartbeat` values retain the short diagnostic path.
 
+## Own id: the environment wins
+
+Every verb that touches "my own entry" resolves the caller's id through
+`resolve_self_id()`, and the launcher-set environment
+(`AGENTCTL_SESSION_ID`, then `CLAUDE_CODE_SESSION_ID`) outranks an id
+passed on the command line. The argument stays useful — it is how a
+session with no launcher marker names itself, and passing it is still
+what turns `others`/`alone`/`tending` into a claim — but when the two
+disagree, the environment is the running process and the argument is a
+belief.
+
+The belief goes wrong in a specific, recurring way. A **fork** starts a
+new session from a copy of another session's transcript: the copy quotes
+the source's id — in earlier `agentctl` output, in a registration
+command, in prose the agent wrote about itself — and reads as the new
+session's own history. Nothing in that context is marked stale, so the
+fork refreshes, re-scopes, claims through, or `DONE`-marks the record of
+a session that is still live, while its own id never registers. The
+source then sees an entry it did not write, and peers see a live session
+that is not where the record says it is.
+
+Three things keep the truth in front of the agent rather than asking it
+to reconcile two ids:
+
+- **The environment overrides the argument.** No verb acts on a
+  passed-in id that contradicts the launcher's. The payload records
+  which source won (`self_id_source`, plus `self_id_overrode_argument`),
+  and the override is *information*: quiet by default, one `# ` meta
+  line under `--full`. A warning here would be read as a problem to
+  investigate, which is how a session ends up chasing its own identity.
+- **Results never echo the caller's own id.** Self rows and
+  self-registration acks read `[yours]` (`SELF_ID_LABEL`); `--full`
+  restores the real id and path for a human or a debugging read. There
+  is nothing to compare against a stale belief, so no comparison
+  happens.
+- **Process-tree recovery refuses forked launches.** The fallback that
+  reads `resume <uuid>` off an ancestor's argv (for a terminal
+  `codex resume` / `claude --resume`, which export no id) returns ""
+  when the same argv carries `--fork-session`: there the resumed id
+  names the source transcript, and the running session's id is not on
+  the command line at all. A forking ancestor also ends the walk — the
+  nearest harness invocation is the authority, and anything further out
+  is at least as wrong.
+
+A launcher that hosts sessions is responsible for the other half: the
+id it publishes must track the session the process is actually running,
+republished whenever the provider reports a new one (for Yep Anywhere,
+`topics/subprocess-environment.md` in that repo).
+
 ## Active-sessions file schema
 
 `.agentctl/active/<session-id>` files are agent-authored coordination
@@ -536,10 +585,10 @@ notices.
   that is DONE, aged out, or unregistered never fails the gate — that is
   more solitude, not less; each dropout gets one `# `-prefixed stderr info
   line naming why. The explicit
-  `<session-id>` argument is the exclusion key *and* a
-  deliberate nudge for a session to know its own id; omit it to fall back to
+  `<session-id>` argument is the exclusion key; omit it to fall back to
   `agent_session_id()`, and with no id resolvable nothing is excluded (it
-  degrades to `active`-style output). All peers count: there is deliberately
+  degrades to `active`-style output). The argument is not the authority —
+  see *Own id: the environment wins*. All peers count: there is deliberately
   **no narrowing to `scope:` overlap** — `others`/`alone` are the intentionally
   project-serial verbs, distinct from the per-path re-Read+scope coordination.
   A **provided** id is also a claim: on any exit-0 path (truly alone, or
@@ -551,8 +600,7 @@ notices.
   creates no dir. A freshly created claim is a placeholder line 1, and the
   payload carries `next_command: agentctl active "<status>"`. It is the
   agentctl-backed counterpart to the dependency-free
-  `/others` skill's peer bucket — pass your *real* session id, since a wrong id
-  would count your own entry as a peer and re-manufacture the stale belief.
+  `/others` skill's peer bucket.
 - `clear <paths...>` is the per-path counterpart to `others`: one atomic-ish
   check+claim with waiting by default, run once before an intended sequence of
   edits — `agentctl clear <paths> && <edits>` — not per edit. It scans fresh peers' `scope:`
