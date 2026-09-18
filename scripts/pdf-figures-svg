@@ -59,14 +59,12 @@ import pymupdf  # noqa: E402
 
 from acli import (  # noqa: E402
     ExitCode,
-    Format,
     add_standard_args,
     argument_parser,
     die,
-    emit,
+    emit_table,
     maybe_complete,
     resolve_format,
-    write_jsonl,
 )
 
 CAPABILITIES = ("complete",)
@@ -333,18 +331,7 @@ def convert(args) -> int:
             text = text.replace(f"]({old})", f"]({new})")
         markdown_path.write_text(text)
 
-    fmt = resolve_format(args)
-    if fmt is Format.TOON:
-        # TOON is a flat table: pad every row to the same columns, since a row
-        # carries `native` or `svg_bytes` only when its outcome had one.
-        table = [
-            {column: row.get(column, "") for column in TOON_COLUMNS} for row in rows
-        ]
-        emit({"rows": table, "columns": list(TOON_COLUMNS), "name": "figures"}, fmt)
-    elif not rows and fmt in {Format.COMPACT, Format.TEXT}:
-        write_jsonl({"count": 0, "of": "figures"})
-    else:
-        emit(rows, fmt)
+    emit_table(rows, TOON_COLUMNS, resolve_format(args), name="figures")
     return int(ExitCode.TEMPORARY) if recutter.failed else 0
 
 

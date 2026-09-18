@@ -681,7 +681,7 @@ def test_revalidate_backfills_a_completed_html_extract_before_network_fetch():
         )
         rw.have = lambda tool: tool == "uvx" or originals[2](tool)
         rw.subprocess.run = _passthrough_html2text
-        rw.emit_table = lambda _args, result, _columns, _name: rows.extend(result)
+        rw.emit_table = lambda result, _columns, _fmt, *, name: rows.extend(result)
         args = rw.build_parser().parse_args(
             ["--dir", str(root), "fetch", "alpha2020-one", "--revalidate", "--compact"]
         )
@@ -718,7 +718,7 @@ def test_derive_only_discovers_and_normalizes_a_legacy_html_only_extract():
 
         rw.have = lambda tool: tool == "uvx" or originals[0](tool)
         rw.subprocess.run = _passthrough_html2text
-        rw.emit_table = lambda _args, result, _columns, _name: rows.extend(result)
+        rw.emit_table = lambda result, _columns, _fmt, *, name: rows.extend(result)
         args = rw.build_parser().parse_args(
             ["--dir", str(root), "fetch", "alpha2020-one", "--derive-only"]
         )

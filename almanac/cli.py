@@ -33,7 +33,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from acli import ExitCode, Format, die, emit, resolve_format, write_jsonl
+from acli import ExitCode, Format, die, emit, emit_table, resolve_format, write_jsonl
 from acli.args import (
     add_standard_args,
     argument_parser,
@@ -216,17 +216,6 @@ def project(records: list[dict], columns: list[str]) -> list[dict]:
     return [{col: cell(record.get(col)) for col in columns} for record in records]
 
 
-def emit_table(args, rows: list[dict], columns: list[str], name: str) -> None:
-    fmt = resolve_format(args)
-    if fmt is Format.TOON:
-        emit({"rows": rows, "columns": columns, "name": name}, fmt)
-    elif not rows and fmt in {Format.COMPACT, Format.TEXT}:
-        # Definitive empty state (topics/acli.md): zero lines is ambiguous.
-        write_jsonl({"count": 0, "of": name})
-    else:
-        emit(rows, fmt)
-
-
 def default_columns(manifest: dict, records: list[dict]) -> list[str]:
     columns = manifest.get("schema", {}).get("columns")
     if not columns:
@@ -401,7 +390,12 @@ def dataset_summary(name: str, *, quiet: bool = False) -> dict | None:
 
 def cmd_list(args) -> int:
     rows = [dataset_summary(name) for name in dataset_names()]
-    emit_table(args, rows, ["name", "url", "refresh", "fetched", "records"], "datasets")
+    emit_table(
+        rows,
+        ["name", "url", "refresh", "fetched", "records"],
+        resolve_format(args),
+        name="datasets",
+    )
     return 0
 
 
@@ -475,7 +469,12 @@ def cmd_query(args) -> int:
         numbered_row(record, i, columns, ordinal_cols)
         for i, record in enumerate(records, 1)
     ]
-    emit_table(args, rows, ["n", *columns, *ordinal_cols, "seq"], "records")
+    emit_table(
+        rows,
+        ["n", *columns, *ordinal_cols, "seq"],
+        resolve_format(args),
+        name="records",
+    )
     return 0
 
 
@@ -596,7 +595,12 @@ def cmd_search(args) -> int:
             row["matched"] = f"{field}: {snippet(str(value), needle)}"
             rows.append(row)
             break
-    emit_table(args, rows, ["n", *columns, *ordinal_cols, "matched", "seq"], "matches")
+    emit_table(
+        rows,
+        ["n", *columns, *ordinal_cols, "matched", "seq"],
+        resolve_format(args),
+        name="matches",
+    )
     return 0
 
 

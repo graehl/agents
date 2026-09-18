@@ -18,7 +18,7 @@ from .args import (
     set_completer,
 )
 from .commentary import commentary
-from .emit import emit, write_jsonl, write_pretty, write_toon_table
+from .emit import emit, emit_table, write_jsonl, write_pretty, write_toon_table
 from .errors import ExitCode, die, error_envelope
 from .session import Format, is_agent_session, resolve_format
 
@@ -33,6 +33,7 @@ __all__ = [
     "complete",
     "die",
     "emit",
+    "emit_table",
     "error_envelope",
     "hint",
     "is_agent_session",

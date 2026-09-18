@@ -47,7 +47,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from acli import ExitCode, Format, die, emit, resolve_format, write_jsonl
+from acli import ExitCode, die, emit, emit_table, resolve_format
 from acli.args import (
     add_standard_args,
     argument_parser,
@@ -1617,21 +1617,6 @@ def resolve(args) -> Survey:
     return load_survey(Path(args.dir).resolve())
 
 
-def emit_table(args, rows: list[dict], columns: list[str], name: str) -> None:
-    fmt = resolve_format(args)
-    if fmt is Format.TOON:
-        # A TOON table is uniform by contract, while these rows carry only the
-        # keys their own outcome produced (a failure has `reason`, not
-        # `method`). Project each onto the declared columns.
-        table = [{column: row.get(column, "") for column in columns} for row in rows]
-        emit({"rows": table, "columns": columns, "name": name}, fmt)
-    elif not rows and fmt in {Format.COMPACT, Format.TEXT}:
-        # Definitive empty state (topics/acli.md): zero lines is ambiguous.
-        write_jsonl({"count": 0, "of": name})
-    else:
-        emit(rows, fmt)
-
-
 def verb_list(args) -> int:
     survey = resolve(args)
     rows = [
@@ -1646,10 +1631,10 @@ def verb_list(args) -> int:
         for p in survey.papers
     ]
     emit_table(
-        args,
         rows,
         ["key", "short", "kind", "grounded", "verified", "extract"],
-        "papers",
+        resolve_format(args),
+        name="papers",
     )
     return 0
 
@@ -1665,7 +1650,9 @@ def verb_audit(args) -> int:
     if not findings:
         emit({"ok": True, "drift": 0, **survey_status(survey)}, resolve_format(args))
         return 0
-    emit_table(args, findings, ["key", "rule", "detail"], "findings")
+    emit_table(
+        findings, ["key", "rule", "detail"], resolve_format(args), name="findings"
+    )
     return int(ExitCode.DATA)
 
 
@@ -1821,7 +1808,6 @@ def verb_fetch(args) -> int:
                     row["staged"] = f"{staged['status']}: {staged['reason']}"
                     failed = failed or staged["status"] == "failed"
     emit_table(
-        args,
         results,
         [
             "key",
@@ -1834,7 +1820,8 @@ def verb_fetch(args) -> int:
             "figures",
             "staged",
         ],
-        "results",
+        resolve_format(args),
+        name="results",
     )
     return int(ExitCode.TEMPORARY) if failed else 0
 
@@ -1852,7 +1839,12 @@ def verb_stage(args) -> int:
     else:
         wanted = [p for p in survey.papers if survey.sentinel_path(p.key).exists()]
     results = [stage_extract(survey, paper) for paper in wanted]
-    emit_table(args, results, ["key", "status", "files", "reason"], "results")
+    emit_table(
+        results,
+        ["key", "status", "files", "reason"],
+        resolve_format(args),
+        name="results",
+    )
     return (
         int(ExitCode.TEMPORARY)
         if any(row["status"] == "failed" for row in results)
