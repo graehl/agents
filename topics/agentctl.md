@@ -312,7 +312,9 @@ notices.
   same host-user-manager ownership explicitly; absence of a working user
   manager is a launch failure, never a silent fallback. `--no-user-service`
   forces the original `start_new_session=True` process backend. `restart`
-  preserves the original run's resolved backend. User-service payloads omit
+  preserves the original run's recorded backend; a run recorded before the
+  backend key existed relaunches as a fresh `start` would, by the launcher
+  check. User-service payloads omit
   YA's four development-instance ownership markers so a subsequent full YA
   replacement cannot mistake the detached job for an obsolete YA process;
   process-session payloads retain the caller's environment unchanged.
