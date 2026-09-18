@@ -52,6 +52,17 @@ def _add_commentary_arg(parser: argparse.ArgumentParser) -> None:
         )
 
 
+def _add_text_arg(parser: argparse.ArgumentParser) -> None:
+    if "--text" not in parser._option_string_actions:
+        parser.add_argument(
+            "--text",
+            action="store_true",
+            dest="acli_text",
+            default=argparse.SUPPRESS,
+            help=TEXT_HELP,
+        )
+
+
 def capability_line(capabilities: Iterable[str]) -> str:
     """The `acli: <version> <token>...` discovery line.
 
@@ -106,13 +117,7 @@ class ArgumentParser(argparse.ArgumentParser):
         self.acli_exit_codes = dict(exit_codes or {})
         super().__init__(*args, **kwargs)
         _add_commentary_arg(self)
-        self.add_argument(
-            "--text",
-            action="store_true",
-            dest="acli_text",
-            default=argparse.SUPPRESS,
-            help=TEXT_HELP,
-        )
+        _add_text_arg(self)
         self.add_argument(
             QUIET_FLAG,
             action="store_true",
@@ -185,14 +190,7 @@ def add_standard_args(
     if getattr(parser, "_acli_standard_args", False):
         return
     _add_commentary_arg(parser)
-    if "--text" not in parser._option_string_actions:
-        parser.add_argument(
-            "--text",
-            action="store_true",
-            dest="acli_text",
-            default=argparse.SUPPRESS,
-            help=TEXT_HELP,
-        )
+    _add_text_arg(parser)
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--format",

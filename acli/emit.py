@@ -28,12 +28,9 @@ def write_jsonl(
         prepared, found = prepare_commentary(row, include=commentary)
         if not commentary and isinstance(row, dict) and set(row) == {"_acli"}:
             continue
-        out.write(
-            json.dumps(
-                prepared, separators=(",", ":"), sort_keys=not found, allow_nan=False
-            )
-            + "\n"
-        )
+        # Member order is the tool's to choose (commentary keeps it by
+        # contract), so no record is re-sorted, with or without commentary.
+        out.write(json.dumps(prepared, separators=(",", ":"), allow_nan=False) + "\n")
         if found:
             out.flush()
 
@@ -43,7 +40,7 @@ def write_pretty(
 ) -> None:
     """Write human fallback JSON."""
     prepared, found = prepare_commentary(value, include=commentary)
-    encoded = json.dumps(prepared, indent=2, sort_keys=not found, allow_nan=False)
+    encoded = json.dumps(prepared, indent=2, allow_nan=False)
     out.write(encoded + "\n")
     if found:
         out.flush()
