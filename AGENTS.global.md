@@ -83,9 +83,12 @@ narrow that wait. Steward sessions add `tending:` and claim through
 `agentctl tending <id>` before clearing/servicing a queue.
 
 Results never echo your own id: your row in `active`/`others`/`clear` and your
-registration ack read `[yours]`, and `--full` restores the id. That is a
-display label for the caller, not stored state — the file on disk is still
-named by your session id, and a peer row always shows a real id.
+registration ack read `[yours]`. Accept it as confirmation that the entry is
+yours — the file on disk is named by your real id, and peer rows still show
+theirs. Do not re-derive your id to check: after a fork your context quotes the
+source's id as your own, and having two to reconcile is what makes a session
+"correct" a record another live session owns. When you actually need your id,
+`$AGENTCTL_SESSION_ID` (or your harness supplement's equivalent) is the answer.
 
 Read `topics/agentctl.md` before changing or diagnosing active-session/run
 semantics, `agentctl`, staleness/sweep behavior, launch-depth guards, or plugin
