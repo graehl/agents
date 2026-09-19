@@ -82,6 +82,11 @@ waits for project-wide solitude, then registers the caller; scope does not
 narrow that wait. Steward sessions add `tending:` and claim through
 `agentctl tending <id>` before clearing/servicing a queue.
 
+Results never echo your own id: your row in `active`/`others`/`clear` and your
+registration ack read `[yours]`, and `--full` restores the id. That is a
+display label for the caller, not stored state — the file on disk is still
+named by your session id, and a peer row always shows a real id.
+
 Read `topics/agentctl.md` before changing or diagnosing active-session/run
 semantics, `agentctl`, staleness/sweep behavior, launch-depth guards, or plugin
 contracts. Detailed file schema and examples remain there and under “Active
