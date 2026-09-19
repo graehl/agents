@@ -4935,6 +4935,42 @@ def test_active_list_marks_self():
         ws.cleanup()
 
 
+def test_whoami_answers_unmasked_from_the_environment():
+    # The one verb exempt from `[yours]`: it exists so asking for your own id
+    # never means adding --full to a coordination verb. The environment still
+    # outranks a stale positional, and asking registers nothing.
+    ws = Workspace()
+    sid = "sess-me"
+    stale = "sess-source"
+    try:
+        res = ws.run("whoami", env_extra={"AGENTCTL_SESSION_ID": sid})
+        _assert(res.returncode == 0, f"whoami should exit 0: {res.stderr}")
+        payload = _json_record(res.stdout)
+        _assert(
+            payload["id"] == sid and payload["self_id_source"] == "AGENTCTL_SESSION_ID",
+            f"whoami should name the real id and its source: {payload!r}",
+        )
+        _assert(
+            payload["registered"] is False
+            and not (ws.tmp / ".agentctl/active").exists(),
+            f"whoami must stay read-only: {payload!r}",
+        )
+        res_stale = ws.run("whoami", stale, env_extra={"AGENTCTL_SESSION_ID": sid})
+        stale_payload = _json_record(res_stale.stdout)
+        _assert(
+            stale_payload["id"] == sid
+            and stale_payload["self_id_overrode_argument"] is True,
+            f"a forked session's quoted id must lose to the env: {stale_payload!r}",
+        )
+        res_none = ws.run("whoami")
+        _assert(
+            res_none.returncode == 1 and _json_record(res_none.stdout)["ok"] is False,
+            f"unresolvable id should fail loudly: {res_none.stdout!r}",
+        )
+    finally:
+        ws.cleanup()
+
+
 def test_active_list_empty_is_clean_exit():
     # No active/ dir at all -> friendly message, exit 0 (read-only, never errors).
     ws = Workspace()

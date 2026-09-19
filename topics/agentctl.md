@@ -123,6 +123,25 @@ to reconcile two ids:
   nearest harness invocation is the authority, and anything further out
   is at least as wrong.
 
+The mask is meant to be *accepted*, not worked around: an agent that
+answers `[yours]` by reaching for `--full` is back to holding two ids.
+So the one legitimate need — actually learning the id, to hand to a
+peer or a launcher, or because no launcher variable is set and only
+process-tree recovery knows it — gets its own exempt verb, `whoami`,
+rather than a flag on a coordination verb. It resolves through
+`resolve_self_id` and prints the id and `self_id_source` unmasked, and
+it is read-only: asking who you are registers nothing. Because its
+answer comes from the running process, it outranks any id in context —
+which is the whole point after a fork, where the context's id names the
+source session. `active --full` still restores the id for a human or a
+debugging read; `whoami` is what an agent uses.
+
+A file never carries the label. `agentctl active` writes through
+`write_active_entry(sid, …)` before the payload is built, notices carry
+the real `from`/`to`, and the entry's filename is the session id — the
+mask is confined to the caller's own stdout, since any other reader
+needs the id to be true.
+
 A launcher that hosts sessions is responsible for the other half: the
 id it publishes must track the session the process is actually running,
 republished whenever the provider reports a new one (for Yep Anywhere,

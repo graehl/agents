@@ -87,8 +87,10 @@ registration ack read `[yours]`. Accept it as confirmation that the entry is
 yours — the file on disk is named by your real id, and peer rows still show
 theirs. Do not re-derive your id to check: after a fork your context quotes the
 source's id as your own, and having two to reconcile is what makes a session
-"correct" a record another live session owns. When you actually need your id,
-`$AGENTCTL_SESSION_ID` (or your harness supplement's equivalent) is the answer.
+"correct" a record another live session owns. When you actually need the id —
+to hand a peer or a launcher — `agentctl whoami` prints it unmasked, resolved
+from this process. Trust that answer over any id your context carries: after a
+fork the context's id names the source session.
 
 Read `topics/agentctl.md` before changing or diagnosing active-session/run
 semantics, `agentctl`, staleness/sweep behavior, launch-depth guards, or plugin

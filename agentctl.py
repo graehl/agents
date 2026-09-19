@@ -1590,6 +1590,42 @@ def _absent_expected_note(eid: str, now: float) -> str:
     return "no entry in active/, done/, or stale/ (never registered here?)"
 
 
+def whoami_cmd(args) -> int:
+    """`whoami`: this session's own id — the one result that does not mask it.
+
+    Every coordination verb renders the caller as `[yours]` (SELF_ID_LABEL) so
+    a forked session has no id to reconcile against the source id its copied
+    context quotes. One need survives that: actually learning the id — to hand
+    to a peer or a launcher, or when no launcher variable is set and only the
+    process-tree recovery knows it. Naming that need as its own verb is what
+    keeps `--full` on a coordination verb from becoming the way to ask.
+
+    The answer is resolved now, from this process (resolve_self_id), so it
+    supersedes any id carried in context; `self_id_source` names what settled
+    it. Read-only: it registers nothing and claims nothing, so asking who you
+    are never makes you a peer.
+    """
+    fmt = _resolve_acli_format(args)
+    self_id, id_fields = resolve_self_id(getattr(args, "uuid", None), verbose=False)
+    payload = {"kind": "self_id", "id": self_id, **id_fields}
+    if not self_id:
+        payload["ok"] = False
+        payload["hint"] = (
+            "no session id in the environment, on the command line, or on the "
+            "process tree; set AGENTCTL_SESSION_ID"
+        )
+        acli.emit(payload, fmt, text=payload["hint"])
+        return 1
+    entry = ACTIVE / self_id
+    payload["registered"] = entry.exists()
+    try:
+        payload["path"] = str(entry.relative_to(ROOT))
+    except ValueError:
+        payload["path"] = str(entry)
+    acli.emit(payload, fmt, text=self_id)
+    return 0
+
+
 def others_cmd(args) -> int:
     """`others [session-id]`: the peer-check with self excluded and a verdict.
 
@@ -6888,6 +6924,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     acli_args.add_standard_args(s)
     s.set_defaults(func=active_cmd)
+
+    s = sub.add_parser(
+        "whoami",
+        help="Print this session's own id — the one verb that does not render "
+        "the caller as `[yours]`. Ask here rather than adding --full to a "
+        "coordination verb. Exit 1 when no id resolves.",
+        description="Resolves the id from this process (environment first, "
+        "then an argument, then the process tree) and names the winning source "
+        "in self_id_source. Read-only: registers and claims nothing. The "
+        "answer is current, so it supersedes an id carried in context — after "
+        "a fork, the context's id names the source session.",
+    )
+    s.add_argument(
+        "uuid",
+        nargs="?",
+        help="Fallback id, used only when nothing resolves from the "
+        "environment or the process tree.",
+    )
+    acli_args.add_standard_args(s)
+    s.set_defaults(func=whoami_cmd)
 
     s = sub.add_parser(
         "others",
