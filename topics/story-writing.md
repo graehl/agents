@@ -439,6 +439,34 @@ decoration, not a choice. Track state (what the reader has done, knows,
 holds) explicitly; every branch must be reachable and every ending must close
 the story question. Give the "bad" endings dignity; they are still endings.
 
+## Habits of machine-written prose to avoid
+
+These are the tells a reader uses to spot generated fiction. They are
+defaults an assistant drifts into unprompted, so check for them on every
+pass, not only when asked.
+
+- Opening on weather, dawn light, or a character waking; opening with a
+  catalog of sensory detail before anything happens.
+- The three-item list as a reflex ("cold, dark, and silent"), and the
+  reversal cadence ("it wasn't the fall that scared her, it was the
+  silence").
+- Em-dash pileups and rhetorical fragments used for weight. Short sentences.
+  Like this. Everywhere.
+- Every character speaking in the same articulate register; children and
+  villains who talk like essayists.
+- Emotion named instead of shown ("she felt a wave of grief"), and a
+  paragraph explaining what the scene already showed.
+- Scenes that resolve neatly, characters who agree, obstacles that yield on
+  the first try; no "no, and."
+- Endings that state the theme, tie every thread, or close on a wise
+  sentence about what was learned.
+- Stock phrases: "a testament to," "a reminder that," "in that moment," "little
+  did they know," "couldn't help but," eyes that "sparkle with mischief."
+- Inflated vocabulary where a plain word fits ("tapestry," "whisper" for
+  anything quiet, "dance" for anything moving).
+- Names from the same shortlist (Elara, Kael, Lyra, Aria). Pick names the
+  writer suggests or ones with a reason.
+
 ## Revision
 
 - **Finish the draft first.** A complete bad draft is worth more than a
@@ -456,7 +484,7 @@ the story question. Give the "bad" endings dignity; they are still endings.
 - **Scene pass:** what changes in each scene? Cut the scene that changes
   nothing; combine two that change the same thing.
 - **Line pass:** apply [`writing`](writing.md). Cut ten percent. Kill
-  adverbs. Read aloud.
+  adverbs. Read aloud. Sweep the machine-prose tells above.
 - **Continuity pass:** walk the ledger against the draft.
 - **A reader.** One who will say where they got bored or confused, not what
   to do about it. Take the diagnosis; ignore the prescriptions (the Neil
