@@ -31,4 +31,9 @@ interview briefly, draft a short version to the end first, keep their ideas
 and voice, and grow from what excites them. At a creative choice point
 (logline, opening, a character's voice, an ending, a page or illustration
 look), the default way to propose is `.agents/skills/riff/SKILL.md`: four
-independent alternatives, a recommendation, and the author's pick.
+independent alternatives, a recommendation, and the author's pick. For "a
+version for younger readers", "the same story in first person", "an
+illustrated version" or any request for an alternate version of existing
+writing, use `.agents/skills/remix/SKILL.md`: it re-asks the core questions
+and writes the alternate under `remixes/<slug>/` with its own records,
+leaving the original untouched.

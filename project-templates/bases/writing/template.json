@@ -39,6 +39,11 @@
       "to": "instructions/writing-starters/continuity.md",
       "from": "starters/continuity.md"
     },
+    { "to": ".agents/skills/remix/SKILL.md", "from": "remix/SKILL.md" },
+    {
+      "to": ".agents/skills/remix/agents/openai.yaml",
+      "from": "remix/agents/openai.yaml"
+    },
     { "to": ".agents/skills/riff/SKILL.md", "from": "riff/SKILL.md" },
     {
       "to": ".agents/skills/riff/agents/openai.yaml",

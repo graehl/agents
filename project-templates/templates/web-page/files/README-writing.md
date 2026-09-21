@@ -10,6 +10,11 @@ the agent's questions, keep the reader, the voice and the look consistent:
 sound) and `illustration-style.md` (whether you want pictures, and what
 kind). Change them and the agent follows.
 
+Want the same story for a younger reader, in first person, or with pictures?
+Ask for a **remix** (Codex: `$remix`). The agent asks the core questions
+again and writes the new version under `remixes/`, leaving the original as
+it is. Its instructions are in `.agents/skills/remix/SKILL.md`.
+
 When you face a creative choice (a title, an opening, a character, a page
 look), ask for a **riff**: four independent alternatives, a recommendation,
 and your pick. In a harness with skill invocation, select riff from its skill

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Remix"
+  short_description: "Alternate version in a subdir: re-ask audience, sound, point of view, pictures"
+  default_prompt: "Use $remix to make an alternate version of this work under new answers to the core questions."
+policy:
+  allow_implicit_invocation: false
