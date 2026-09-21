@@ -32,11 +32,11 @@ only at the margins.
   the end that they could not at the start? Every section must serve that.
 - **Collect, then choose.** Gather more material than fits, then cut to what
   the promise needs. Choosing is most of the work.
-- **Read the project's records when they exist.** An `audience.md` names the
-  reader; a `prose-style.md` fixes voice, register and conventions; an
-  `illustration-style.md` fixes whether images are wanted and how they look.
-  Set them with the author on the first task rather than inferring them, and
-  follow them afterward (layout and headings: `story-project-layout`).
+- **Read the project's records when they exist.** See *Project records*
+  below: an `audience.md` names the reader; a `prose-style.md` fixes voice,
+  register and conventions; an `illustration-style.md` fixes whether images
+  are wanted and how they look. Set them with the author on the first task
+  rather than inferring them, and follow them afterward.
 
 ## Structure
 
@@ -111,6 +111,54 @@ sooner than say anything outright barbarous.
   either a new opening or a new body.
 - **Let it cool.** An hour, a day, a week if the piece matters. Fresh eyes
   find what tired ones excused.
+
+## Project records
+
+A writing project of any kind, from one page to a novel, keeps three small
+records at its root, set with the author and asked for once, audience
+first. Each is a fill-in sheet; vendored projects carry starters under
+`instructions/writing-starters/`. When present they govern every later
+draft and image; when absent, ask before inferring. A project with several
+unrelated works may keep per-work copies beside each work's README, and the
+nearest one wins.
+
+**audience.md:** the reader as one described person; age or reading level;
+what they already know; what they come for (a laugh, a scare, to learn, to
+find out what happens, to look something up); how they read (phone, print,
+read aloud); what would lose them. Then the consequences the agent draws and
+keeps current: sentence and paragraph length, vocabulary help, content bar,
+and the role of illustrations. The other two records must agree with it.
+
+**prose-style.md:** voice in three words; register (plain, playful, formal,
+lyrical) and reading level; for narrative, point of view and tense, how many
+point-of-view characters (usually one) and when the story switches, the
+narrator's voice and whether the narrator is reliable; spelling and
+punctuation conventions (dialogue quotes, numbers, capitalization of
+invented terms); a names list with pronunciation; words and habits the
+narrator uses or avoids; the content bar (all ages by default).
+
+**illustration-style.md:** whether illustrations are wanted and how many
+(none, a cover, one per chapter, as needed); medium; palette; line and
+shape; mood in three words; the author's reference points, used as
+inspiration and not as a living artist's signature style to copy; file
+format and where images go; how images are made; a table of recurring
+subjects with the details that must stay consistent; what is not wanted.
+Every placed image gets alt text. When the file is absent, the project has
+no illustrations and the agent asks before adding any.
+
+How images are made is recorded so every image is produced the same way.
+Prefer, in order, whatever is actually available in the session: a
+purpose-built illustration model that accepts text context, fed the scene,
+the relevant reference sheets and the style record; the harness's native
+image generation with the same context in its prompt; and last, SVG drawn
+by the agent, which suits flat and line styles and stays editable. Do not
+claim a generator is available without checking; record the tool and the
+prompt template in the style file once it is chosen.
+
+**remixes/<slug>/** holds an alternate version of a work under its own copies
+of the three records, mirroring the source file names, with a README saying
+what it is a remix of and what changed. The nearest-record-wins rule keeps
+later edits there consistent. The original is never edited by a remix.
 
 ## Expository forms in brief
 

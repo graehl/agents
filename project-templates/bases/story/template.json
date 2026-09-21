@@ -1,0 +1,31 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "story",
+  "title": "Story",
+  "description": "Story, screenplay and world-building craft with the classic plot catalogs, a story project layout, and fill-in sheets; extends writing.",
+  "extends": ["writing"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "instructions/story-writing.md", "from": "story-writing.md" },
+    {
+      "to": "instructions/story-project-layout.md",
+      "from": "story-project-layout.md"
+    },
+    { "to": "instructions/story-starters/README.md", "from": "starters/README.md" },
+    { "to": "instructions/story-starters/persona.md", "from": "starters/persona.md" },
+    { "to": "instructions/story-starters/setting.md", "from": "starters/setting.md" },
+    {
+      "to": "instructions/story-starters/setting-index.md",
+      "from": "starters/setting-index.md"
+    },
+    { "to": "instructions/story-starters/outline.md", "from": "starters/outline.md" },
+    { "to": "instructions/story-starters/beats.md", "from": "starters/beats.md" },
+    {
+      "to": "instructions/story-starters/continuity.md",
+      "from": "starters/continuity.md"
+    }
+  ],
+  "overrides": []
+}
