@@ -8,7 +8,7 @@ alongside it, not optional.
 - `~/ya` — `yepanywhere` (graehl's client, `github.com/graehl/yepanywhere`;
   shorthand `YA`): web/session UI.
 - `~/draft` — ML/LLM research + training (LoRA, token-embedding); own
-  `AGENTS.md`/`topics/`/`tasks/`, some prompt-hillclimbing.
+  `AGENTS.md`/`topics/`, some prompt-hillclimbing.
 - `~/x` — `xmt`: C++20 MT/NLP library (`sdl/`, AwesomeAlign, regtests).
 - `~/agents` — this repo: global instructions, `topics/`, `skills/`,
   `GLOSSARY.md`; origin `github.com/graehl/agents`.
@@ -150,8 +150,8 @@ drift from its established sense. State the precise distinction and verify the
 correction first; deliberate drift is fine. Surface others' drift when quoting
 their text to him, not as a running tally.
 
-## PDF → Markdown: marker-pdf (gra host)
+## PDF → Markdown: marker-pdf
 
-Before extracting a substantive PDF on gra, read `~/agents/topics/pdf.md` for
+Before extracting a PDF, read `~/agents/topics/pdf.md` for
 the isolated marker-pdf recipe and host cache placement. The global PDF rule
 still applies; ordinary non-PDF work need not load this recipe.

@@ -1,37 +1,25 @@
 ---
 name: start-task
 disable-model-invocation: true
-description: Scaffold a new root task — create the task file and point tasks/ROOT at it. Use when the user explicitly asks to start, create, or scaffold a root task, or invokes /start-task.
+description: Start a named work scope using a gap and, when useful, a program-scoped handoff. Use when explicitly asked to scaffold work or on /start-task.
 argument-hint: "<short-description, e.g. auth-refactor>"
 ---
 
-# Existing tasks
-!`ls tasks/*.md 2>/dev/null | sort -t/ -k2 -n | tail -5`
-
-# Customization point
-!`git check-ignore -q tasks && echo "tasks/ is git-ignored → private working state (default: no commit, no branch)" || echo "tasks/ is tracked → feature-branch workflow (commit task file; branch per task)"`
-
 # Instructions
-1. Treat `$ARGUMENTS` as the desired task slug; normalize to lowercase
-   kebab-case.
-2. Ensure `tasks/` exists. Next task number = highest `tasks/NNN-*.md` + 1,
-   zero-padded to three digits (start at `001` if none).
-3. Create `tasks/NNN-<slug>.md` from scratch (do not rely on any sample).
-4. Ask me for any missing background, constraints, and acceptance criteria;
-   if I already gave enough, proceed without re-asking.
-5. Fill the task file with at least: a title, `## Status`, `## Background`,
-   `## Acceptance Criteria`, `## Current State`, `## Plan`, `## Risks`, and
-   `## Subtasks` (the required table and three summary lines).
-6. Point the active-root-task pointer at the new file:
-   `printf '%s\n' NNN-<slug>.md > tasks/ROOT` (see `AGENTS.global.md` § Session
-   management). If `tasks/ROOT` already names a different, unfinished task,
-   say so and confirm before redirecting it.
 
-Whether `tasks/` is git-ignored is the customization point:
-- **Ignored (default for these projects):** task files and `tasks/ROOT` are
-  private working state — do **not** commit them, and do **not** create or
-  switch branches unless I explicitly ask.
-- **Tracked:** the feature-branch workflow applies — add `## Branch` with
-  `<slug>` to the task file, create and switch to branch `<slug>` (if it
-  already exists, stop and ask whether to reuse it), and commit the new task
-  file as the branch's first commit.
+1. Resolve the requested scope and its most specific owning program. Search
+   existing gaps, handoffs, and maintainer records before creating a duplicate.
+2. Read the governing `gaps/README.md` and `topics/handoffs.md` (project-local,
+   else global). Extend or create a gap for unresolved work; use the last named
+   handoff, or create a program-scoped handoff when continuity needs one.
+3. Record the aim, acceptance condition, current mismatch, chosen approach,
+   and next action at useful granularity. Ask only for missing information
+   that changes the work. A fixed section template is not required.
+4. A requested latest-handoff pointer is `ROOT` at the selected program scope,
+   with a target relative to that directory. Preserve another session's live
+   entry point and report a conflicting unfinished scope before redirecting it.
+
+Scaffolding records intent; it does not start implementation or create/switch
+branches. Keep private handoffs excluded and follow the project's gap visibility
+rules. The skill name is retained for explicit invocations; it no longer creates
+the retired numbered-task directory convention.

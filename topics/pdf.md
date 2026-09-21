@@ -1,11 +1,11 @@
 # PDF extraction
 
-> Extract substantive papers to Markdown with marker-pdf in an isolated tool
+> Extract PDFs to Markdown with marker-pdf in an isolated tool
 > environment, keeping its large model stack out of project dependencies.
 
 Topic: `pdf`
 
-Use `marker-pdf`, not `pdftotext`, for substantive paper/PDF reading. Install
+Use `marker-pdf`, not `pdftotext`, for PDF reading. Install
 the OCR/ML stack in a dedicated environment, never the project's runtime
 environment. This topic holds the gra host recipe routed by `AGENTS.user.md`.
 

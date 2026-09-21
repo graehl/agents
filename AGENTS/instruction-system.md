@@ -59,17 +59,14 @@ follow a rule or when proposing an improvement (welcome from work
 in any project, not only inside `~/agents`). Evidence-ledger
 conventions are in `~/agents/topics/evidence-ledger.md`.
 
-### Point to authored instruction text
+### File citations
 
-When authoring or editing instruction text — `AGENTS.global.md`, `AGENTS.md`,
-supplements, topic docs, glossary rows, skills — identify each important
-edit in the reply by project-relative path and the line where the rewritten
-range begins (`path:line`). Prefer a browseable read-range tool result for each
-rewritten range when the harness supports one; the user is reviewing what was
-written, not necessarily a before/after diff. Keep the summary brief and do not
-repeat the exact text inline when the range is available. If the current text
-cannot be made browseable, paste it verbatim. Mechanically regenerated output
-is exempt; text you composed is not.
+The global file-citation rule applies to citations generally, including authored
+instruction text. Use `project/relative/path:line` or
+`project/relative/path:first-last`, substituting actual line numbers. A
+browseable link or range lets the user inspect the cited text without a long
+restatement. Durable docs prefer stable sections/symbols or revision-pinned
+line references.
 
 ### Instruction routing
 
@@ -79,7 +76,7 @@ When the user labels a rule, persist it (do not leave it only in chat):
 
 ### Load-bearing instructions
 
-When editing agent instructions, propose cutting entries that don't steer
+When authoring user-requested agent guidance, propose cutting entries that don't steer
 behavior beyond what a capable agent does by default. Preferences,
 project-specific context, and deliberate counters to defaults are
 load-bearing; restatements of standard tool mechanics or defaults are not.
@@ -99,7 +96,8 @@ supplements or failure routes.
 
 Before using tools in a repo for the first time in a session — at
 launch or when work pivots into another project mid-session — read its
-root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, any `README.md` they
+project-root `AGENTS.md` (or equivalent `CLAUDE.md`, reading aliases once),
+project-root `AGENTS.local.md`, and any `README.md` they
 name as an instruction source. Then discover project-owned `PROGRAM.md` paths
 and read the governing chain for the named scope, or the root program when no
 scope is named. The duty
@@ -141,13 +139,6 @@ precedence rather than resolving them silently. A committed repo `AGENTS.md`
 should stand alone; `AGENTS.local.md` may be a brief delta against global
 policy.
 
-#### Local instruction file backups
-
-Before editing or deleting an agent instruction file whose contents are
-not safely recoverable from git (especially untracked files like
-`AGENTS.local.md`, or tracked files with uncommitted changes), first
-snapshot it under `.backups/<YYYYmmdd-HHMMSS>/<relative-path>`.
-
 ### Optional supplements
 
 Companion docs hold split-out, opt-in policy:
@@ -188,7 +179,7 @@ shared invariants, integration boundaries, and system-level concerns, not
 module notes or changelogs. A topic doc holds the repo's evolved truth —
 contracts, invariants, knowledge state — and may also carry live plans or
 ephemera, so long as they are cleared when addressed rather than accreted;
-permanence is not what separates a topic from `tasks/` (§ Session management),
+permanence is not what separates a topic from a private handoff,
 collaborator value is.
 
 Each `GLOSSARY.md` defines a topic scope. Before a root glossary exists, the
@@ -268,15 +259,11 @@ epistemic labels.
 
 ### Alternate directory layouts
 
-A repo may keep these conventions under `docs/`: `docs/topics/` in
-place of the project-wide root `topics/`, and `docs/tactical/` in place of
-`tasks/` and/or `gaps/`. When the root form is absent and the `docs/` form
-exists, use the `docs/` form wherever these instructions name the root one —
-same duties, read-triggers, and root topic-name namespace — rather than
-creating a parallel root directory. Scoped glossaries still own their sibling
-`topics/` collections. Content routed to `docs/tactical/` is committed (the
-tracked variant of `tasks/`) and follows the local files' format where it
-differs from the formats given here.
+Respect the repository's established document owners. The first-run local
+discovery table adds read locations such as `docs/topics/` and `docs/plans/`;
+it does not authorize writing, migration, or normalization into another
+maintainer's layout. An established local authoring rule still decides where
+new documents belong. Avoid parallel collections for the same concern.
 
 ### Project glossary
 
@@ -302,10 +289,7 @@ general agent-workflow vocabulary or explicit user direction.
 
 When a user phrase is ambiguous and the resolution would change
 action, emit an interruptible checkpoint with the inferred meaning
-plus 1–2 alternatives. On resolution, propose a glossary row
-flagged `<!-- unconfirmed: YYYY-mm-dd -->`. When the user
-explicitly introduces a distinction ("by X I mean Y, not Z"), add
-the row immediately. When a row is clearly general-domain —
+plus 1–2 alternatives. When a row is clearly general-domain —
 recognizable outside this project — surface it once as a
 candidate for `~/agents/topic-definitions.md` or
 `~/agents/TOPICS.md`; do not edit those global files autonomously.
@@ -324,5 +308,4 @@ project that uses it, read the matching doc if present — repo-local
 `topics/<lang>.md` first, else `~/agents/topics/<lang>.md`:
 
 - C / C++ — `cpp.md`
-- Python — `python.md`
 - TypeScript / JavaScript — `typescript.md`

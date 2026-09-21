@@ -102,14 +102,14 @@ Status markers per node:
 | `[~]` | paused/blocked |
 | `[x]` | done |
 | `★` | high-value (optional adornment) |
-| `‖` | plan boundary — a momentum checkpoint (see `AGENTS.global.md § Plan-boundary checkpoints`) |
+| `‖` | an explicitly designated plan boundary; does not itself require a permission pause |
 
 The active backtrace is the chain of `[*]` from root to deepest
 active leaf — a single highlighted spine through the tree.
 
 Bearings are orientation, not complete state: synthesize them
 against recent live evidence — dirty files, recent topic edits,
-task files, run records, git history, live `.agentctl` state.
+handoffs, gaps, run records, git history, live `.agentctl` state.
 
 ## Epistemic labeling
 

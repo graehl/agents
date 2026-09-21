@@ -9,47 +9,20 @@ active session, resuming work, or processing a scheduled prompt.
 ## Session management
 
 Session continuity is primarily resume-by-session-id plus live state
-(active sessions, `tasks/*.md`, run metadata). `/hi` is an optional explicit
+(active sessions, handoffs, gaps, run metadata). `/hi` is an optional explicit
 recovery operation, mainly worth reaching for after a disconnect or corrupted
 resume; compaction alone does not invoke it. Recover prior context only on a
 greeting or explicit resume signal — a fresh, specific request is independent.
 
-`tasks/*.md` files track per-task direction, coordination, acceptance
-notes, and unfinished session state. Whether `tasks/` is git-ignored is
-the customization point: ignored (the default here) means task files are
-private working state — never commit them and stay branch-agnostic;
-tracked means the feature-branch workflow (committed task files, branch
-per task). The default scope-less boot handoff is named by `tasks/ROOT` (a
-one-line pointer holding its filename); it does not choose what current work
-maintains. Update it only when explicitly establishing a new bare-boot target.
-Prefer a committed `topics/` doc for durable conclusions, contracts,
-and project-facing knowledge, and reach for a git-ignored `tasks/` file
-**last** — one test decides: would committing this plausibly help a repo
-collaborator? If yes, commit it durably. `tasks/` is the parking spot
-for what fails that test — *our* session management of no collaborator
-interest: private direction-setting, coordination, an active-work
-scratchpad, and save/resume of plans or progress that only we will pick
-back up — plus anything that must stay private (auth, secrets,
-confidential context) and so cannot be committed at all. **But** when you
-commit an *incomplete* shared artifact, its resumable status (what is
-done, what is pending, the coverage/grounding cutoff) passes the test —
-an uncommitted status would let the partial result mislead — so commit
-that status *with the artifact* (a status banner, cutoff line, or
-"what's left" section), never only in `tasks/`. (In the tracked-`tasks/`
-variant those files are themselves the committed collaborator artifact,
-so the last-resort test does not apply.) Read the
-selected task when resuming. On believed completion, append a dated
-status note with the relevant commit(s) and one line of evidence; if the
-task file has inline subtasks, make it a section listing each subtask's
-status. Judge each task file in isolation — no recursing into linked
-subtask files.
+Gaps hold unresolved work; handoffs preserve compiled continuity. Follow
+`topics/handoffs.md` for most-specific-program placement, the last specified
+handoff's live maintenance, and temporary `ROOT` pointers. A private handoff
+cannot replace a truthful status/cutoff on an incomplete committed artifact.
+Search the relevant gaps and handoffs before defining new work, and follow
+their canonical topic links. Preserve existing maintainer document conventions
+as read-discovery surfaces without silently adopting their write rules.
 
-For implementation or bugfix work, search `tasks/*.md` when that directory
-exists, and cite the relevant file(s) in planning and conclusion. Task
-files should cross-reference the relevant canonical topic docs, including
-glossary-scoped collections.
-
-Dated progress entries — a `tasks/*.md` or `docs/tactical/` status or
+Dated progress entries — a handoff or gap status or
 plan note, a journal append — name the contributing model, in the same
 short form as the `Contributing-model:` commit trailer (§ Commits), so
 effort can be fairly attributed when several models or sessions touch
@@ -60,7 +33,7 @@ are unreliable across compaction and multi-session commits.
 
 ### Handoff audience
 
-A handoff or persistent plan — a `tasks/*.md` file, a `.bearings.md`, or any
+A handoff or persistent plan — a program handoff, a `.bearings.md`, or any
 ad-hoc "write me a handoff/plan" doc — has exactly
 two readers: the user, and a fresh agent of similar capability. Never
 write down to a lesser reader. "Similar capability" means peer skill with
@@ -173,37 +146,16 @@ id, browse that session to catch up — scan for commit/topic boundaries and rea
 the last two sections closely.
 
 After a disconnect, crash, restart, or compaction, retain any already-known
-work scope. For a named resume use the named artifact. Only a bare `/hi` or
-scope-less boot reads `tasks/ROOT` first, as a possibly stale discovery hint.
+work scope. For a named resume use the named artifact. A scope-less resume may
+read the relevant program's `ROOT`, else project `ROOT`, as a staleable hint.
 Then reconcile against live state: worktree and recent commits,
 `.agentctl/active/`, run and `on-deck/` state, artifacts, then provider logs
-needed to fill a specific gap. A recent relevant task, auto-handoff, or
+needed to fill a specific gap. A recent relevant handoff or
 `*.bearings.md` can orient when the first hint is missing or unrelated.
 
-### Scheduled session prompts
+### Future-run entries
 
-Ordinary session startup does not probe `at/` (removed 2026-08-22 to cut the
-per-session cost). A due `at/` job launches through an external scheduler —
-planned opt-in YA support scanning all projects' `at/` directories — or an
-explicit user request to service a queue. An `at/` entry still belongs to the
-project containing it and runs with that project root as its working
-directory; an at-launched runner never probes, preventing recursive launch
-chains.
-
-Claiming goes through the project-local `scripts/at-queue` when executable,
-else `~/agents/scripts/at-queue`: pass the project root, canonical resumable
-session id, harness, and the PID of a process outliving the claim, then use the
-exact source path it returns. The helper is mandatory, not a convenience — if
-neither exists, skip the probe rather than hand-rolling an unlocked claim.
-
-A prompt under `at/` is inert source; what schedules it is the clone-local
-activation store the helper owns, which is never tracked, so pulling a
-repository cannot start agent work. Never hand-edit that store. Before invoking
-a job, load and follow `topics/at-scheduling.md` from the project root when
-present, else `~/agents/topics/at-scheduling.md`; its activation split, claim
-protocol, and runner acknowledgement (`at-queue done`) govern whether a job may
-run.
-
-Any multi-project helper or YA scheduler provides wakeups over the same store,
-invoking `at-queue` rather than reimplementing it, and must derive each job's
-working directory from its owning `at/`, never from the helper's caller.
+Services schedule and trigger future runs. Ordinary agent sessions do not
+service an `at/` queue. Creating or changing an entry routes to
+`topics/at-scheduling.md` for its format and submission mechanism; scheduler
+implementation details stay with that service contract.

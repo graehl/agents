@@ -4854,3 +4854,56 @@ reconciled with records, sidecars, and prose that all still name the scratch
 one.
 
 Contributing-model: fable-5.1
+
+## 2026-09-21 — retire tasks and scope guidance at the action
+
+- **User decision:** retire the entire `tasks/` directory convention. Gaps
+  hold unresolved work; handoffs preserve live continuity at the most specific
+  owning program, in any domain. A latest-handoff pointer may live at `ROOT`
+  or `<program-path>/ROOT`. The last explicitly specified handoff remains the
+  live continuity owner for its scope, including before foreseeable token
+  exhaustion. Most gaps close in one session; a longer gap may span any number
+  of sessions and handoffs.
+- **Retired convention, recoverable by SHA:** revision
+  `947fc673a8974b19e949f77e6e0fb8963073a8b5` preserves the former definition in
+  `AGENTS.global.md` (Session management), `AGENTS/session.md`,
+  `_RESEARCH/workflow.md`, and `skills/start-task/SKILL.md`. Read those bytes
+  with `git show <sha>:<path>` if retrospective use is desired. Historical
+  evidence entries remain unchanged. Existing private files and external
+  maintainer records are not deleted or automatically moved.
+- **Gap/topic decision:** extend the existing document-convergence gap during
+  this pass rather than create a duplicate. A temporary gap can be useful for
+  active one-session work but is not mandatory paperwork for a direct fix.
+  Settled intended-final-state contracts belong in their existing topics
+  before closure; distinguish intention from implementation while a mismatch
+  remains. Kyle's YA and aitutor layouts stay read-only discovery through the
+  first-run `AGENTS.local.md` table, not a newly adopted write convention.
+- **User-directed reductions:** make direct policy/skill symlinks the visible
+  install model; remove global resume-skill mentions, startup scheduling
+  obligations, local instruction backups, automatic plan-boundary pauses,
+  ordering-rationale prompts, and automatic glossary-row proposals. Project
+  boot reads AGENTS or equivalent CLAUDE once, plus root AGENTS.local. Guidance
+  authoring is the explicit scope of the load-bearing-rules paragraph.
+  PDF setup details route to the existing topic; PDF reading has no
+  "substantive" qualifier. The language-row clarification was unanswered;
+  the applied interpretation removes the Python row only.
+- **User-directed precision:** file citations apply generally; 65 characters
+  is a commit-subject aim. Contributing-model replaces forbidden Co-Authored-By.
+  Push-hook bypasses are forbidden. Async questions prefer a first-class harness
+  form and use a session-unique `Q<suffix>:`. Ad-hoc code exceeding one statement
+  or containing at least two conditionals goes in a file before execution;
+  the user reports frequent noncompliance with the former vague phrasing.
+  Retained helpers default to the owning project's `scripts/`.
+- **Trace checks:** a named handoff wins over a stale ROOT; a nested software
+  program gets the same placement rule as a research program; a tiny completed
+  fix needs no gap/handoff pair; a multi-session gap retains continuity without
+  an invented numbered-task schema; an incomplete topic labels its intended
+  state and links the gap. A scope-less resume can follow ROOT without treating
+  it as current truth. Compaction continues known work. Future-run authoring
+  reaches the scheduling format without imposing queue service at startup.
+  An ordinary plan review no longer becomes a permission checkpoint or a grill.
+  Existing maintainer plans remain discoverable without automatic migration.
+- **Limit:** these are user-directed conventions and static scenario checks,
+  not measured evidence of improved model compliance.
+
+Contributing-model: 6-Astra

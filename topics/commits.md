@@ -108,7 +108,7 @@ shortest summary of what changed.
 
 Action-by-action detail belongs in an implementation journal when it has
 lasting reviewer or maintainer value. Such material starts privately under
-`tasks/journals/`; condense and redact a journal selected for publication into
+the owning handoff's directory; condense and redact a journal selected for publication into
 `topics/journals/<task-or-topic>.md` (or the plan's adjacent `journals/`
 directory) under `AGENTS.global.md` § Delegation. Drop it when it has no durable
 value. Do not use `changelog/` for this default: changelogs communicate
@@ -173,6 +173,7 @@ gets one as #1.
 Every commit an agent authors names the model(s) that did the work
 in `Contributing-model:` trailers — deliberate provenance the user
 wants for fair attribution of effort across models and sessions.
+Use this instead of `Co-Authored-By`, which is forbidden.
 
 Value grammar: the model family plus its version, lowercase and
 hyphenated as the harness-recorded id spells them, with the vendor

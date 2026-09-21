@@ -6,6 +6,14 @@ supplied it. A harness-global `AGENTS.md` or `CLAUDE.md` must target
 `AGENTS.global.md`, not this project file; keeping those roles distinct prevents
 the global policy from being injected again as project context in this repo.
 
+## Install
+
+Installation is simply symlinking `AGENTS.global.md` as your harness-global
+`CLAUDE.md`, `AGENTS.md`, or equivalent, and symlinking `skills/` into the
+harness's skill location. Keep existing unrelated skills when linking into an
+occupied skills directory. [README.md](README.md#install) lists the destinations
+and an optional installer that preserves existing targets and manages the links.
+
 ## Design objective
 
 Use judgment across this repository to recover and serve the user's generalized

@@ -294,13 +294,13 @@ internal term when the reader needs it, just do not assume it.
 
 ## Commits
 
-Subject <=65 chars and scannable for `git log --oneline`. Wrap body prose
+Aim for a subject <=65 chars, scannable in `git log --oneline`. Wrap body prose
 manually at 71 columns — a visual rule, not greedy fill: preserve bullets,
 hanging indents, aligned continuations, short tables, and ASCII diagrams
 even when that leaves a short line. Exceed 71 only for unavoidable long
 tokens. Use body bullets when items are numerous or complex, prose when
 short. No `Co-Authored-By`; no links to git-ignored content (e.g.
-`tasks/`).
+private handoffs).
 
 ### Commit proactively
 
@@ -535,7 +535,7 @@ fix is cheap *and* in scope — the seam is already open — and then as its
 own commit, not folded into unrelated work. The capture has a read
 side: when the repo has `gaps/`, glance at it when starting work in
 an area — a filed gap is known context there, and its fix may now be
-in scope. Format, lifecycle, and the distinctions from `tasks/`,
+in scope. Format, lifecycle, and the distinctions from handoffs,
 `topics/`, and `on-deck/` live in `gaps/README.md`.
 
 ### Ideal coding

@@ -195,5 +195,4 @@ When a user phrase is ambiguous against the glossary, see
 `AGENTS.global.md § Project glossary` for the checkpoint protocol: state
 the inferred meaning plus 1–2 alternatives, continue at normal pace
 when the fork is minor or cheaply reversible, hold for the reply
-when proceeding wrong would waste significant work. On resolution,
-propose adding a row flagged `<!-- unconfirmed: YYYY-mm-dd -->`.
+when proceeding wrong would waste significant work.

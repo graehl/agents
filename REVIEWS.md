@@ -9,8 +9,8 @@ votes, merge state), and before answering anything about a review's current
 state.
 
 `reviews/` answers "what did we send, and what is it waiting on" — a
-question neither a local branch nor `tasks/*.md` answers: a branch can sit on
-a superseded revision, and a task file is organized by work, not by review.
+question neither a local branch nor a handoff answers: a branch can sit on
+a superseded revision, and a handoff is organized by work, not by review.
 
 ## Activation
 
@@ -41,7 +41,7 @@ repo = "owner/name"
 default_branch = "main"
 ```
 
-`reviews/` is private by default, like `tasks/`: add `/reviews/` to
+`reviews/` is private by default, like handoffs: add `/reviews/` to
 `.git/info/exclude` in the operation that creates the directory. A project
 that tracks it instead says so in its instructions. Nothing is imported
 retroactively; a change gets a file when it is next pushed or touched.
@@ -161,9 +161,9 @@ file skeleton in the naming scheme; `reviews find <id>` locates one;
 acts only on files whose `Change:` backend matches the project config and
 reports the rest as skipped.
 
-## Relationship to `tasks/`, `topics/`, `gaps/`
+## Relationship to handoffs, topics, and gaps
 
-`tasks/` owns work chronology and private direction; a task entry that
+Handoffs preserve live continuity and private direction; a handoff that
 records a push names the review file instead of restating revision or vote
 state. Contract knowledge a reviewer needs goes to `topics/`; a defect the
 review leaves open goes to `gaps/`. The review file cites both.

@@ -15,8 +15,8 @@ The user reports that Kyle, a frequent collaborator, recently created a project
 with `docs/plans/T-nnn-descr.md`, corresponding `T-nnn/` directories, and
 `docs/topics/`. The topics serve the same purpose as ours; that project has not
 been inspected here. `TOPICS.md` already permits established `docs/topics/`,
-and `AGENTS.global.md` accepts `docs/tactical/` while normally keeping `tasks/`
-private. Neither establishes the meaning of Kyle's committed plan bundles.
+and the earlier global policy accepted `docs/tactical/` while normally keeping
+`tasks/` private. Neither established the meaning of Kyle's committed plan bundles.
 
 **Fix sketch:** inspect representative repositories together with Kyle's actual
 conventions and make a compact semantic mapping for topics, evidence companions
@@ -38,14 +38,10 @@ against Kyle's organization instead of assuming his `docs/...` spelling should
 become the shared default. This records a preference to reconcile with current
 gap/sketch/task policy, not a silent global policy or directory migration.
 
-Formal action plans are a distinct, task-like category from gaps/sketches.
-For new projects they may belong in the committed record, potentially using
-Kyle's `T-nnn` numbering rather than the user's current `tasks/nnn-` spelling.
-Do not erase the legitimate private case: some shared repositories have no
-appetite for committed plans, so the user's untracked `tasks/` remains useful.
-Classify the artifact's audience/lifecycle and the repository's appetite before
-choosing visibility or naming. This distinction is for review, not an approved
-relocation of existing tasks.
+Formal action plans in Kyle's repositories remain a distinct discovery
+category. Do not adopt his `T-nnn` numbering or relocate his files. The user's
+own convention now uses gaps for unresolved work and handoffs for continuity;
+visibility follows the artifact's audience and the repository's policy.
 
 **Interim interoperability:** Kyle's conventions are an "also look here"
 read-only discovery target. Read existing `docs/plans/` and `docs/topics/`
@@ -89,4 +85,44 @@ agent able to locate purpose/decisions/open work in either layout without chat
 history, and template defaults that do not duplicate an established hierarchy.
 Do not close merely by renaming directories or adding compatibility wording.
 
-Contributing-model: 6-Astra.
+## Resolutions — 2026-09-21
+
+Contributing-model: 6-Astra
+
+- Extend this existing gap for the active convergence pass; no duplicate gap
+  is needed. A temporary gap is useful even for a one-session change when it
+  records the mismatch and chosen resolution. Small direct fixes need no
+  obligatory gap. Most gaps close in one session; others may span arbitrarily
+  many sessions and handoffs.
+- Write settled intended-final-state contracts in their existing topic owners
+  before closure, marking intended versus implemented where migration remains.
+  [Handoffs](../topics/handoffs.md), [TOPICS.md](../TOPICS.md), and
+  [gap lifecycle](README.md) own these decisions; no duplicate final-state topic.
+- Retire `tasks/` as an authored convention. Gaps hold unresolved work;
+  handoffs hold compiled continuity. Existing files are retained as readable
+  evidence, not deleted or moved by this policy change. The retirement ledger
+  cites the pre-change revision for retrospective recovery.
+- A program is a coherent subproject in any domain. Default handoffs to the
+  most specific owning program, with project root as fallback. The last
+  explicitly specified handoff stays live for its scope, including before
+  foreseeable token exhaustion. `ROOT` and `<program-path>/ROOT` may be
+  temporary latest-handoff pointers; neither overrides a named scope.
+- Keep Kyle's `~/ya` and `kzahel/aitutor` conventions as read-only comprehension
+  through the existing first-run `AGENTS.local.md` discovery-table mechanism.
+  That mechanism remains; this pass does not adopt or migrate his layout.
+- Global boot carries the immediate steer and route. Conditional handoff,
+  scheduling, and authoring details belong at the action that needs them.
+  Installation is direct global-policy and skill symlinks; the installer is
+  optional convenience, not a prerequisite.
+
+**Current pass:** these resolutions and the user's global-text edits are
+applied across the active instruction consumers. Static scenario review and
+retired-rule searches cover the named-scope/ROOT, nested-program, partial-topic,
+and read-only maintainer cases. Existing historical files remain in place.
+
+**Remaining:** the user requested a full crawl of the global boot and scoped
+activation hierarchy, including RESEARCH, RUNS, and TOPICS, for pruning,
+scoping, and relocation. The comparative semantic mapping and template defaults
+above also remain. `scripts/commit-msg-lint` still rejects subjects over 65
+characters; the newly stated length aim is not yet reflected in that helper.
+This gap stays open until its closure evidence is met.

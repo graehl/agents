@@ -86,7 +86,12 @@ without relying on those files.
 
 Clone the checkout at `~/agents` when possible. The global corpus defines
 `~/agents` as its canonical root, and routed supplements and topic docs use
-that spelling. Then inspect or install every supported harness:
+that spelling. Installation is simply two sets of symlinks: `AGENTS.global.md`
+as your harness-global `CLAUDE.md`, `AGENTS.md`, or equivalent, and `skills/`
+at its skill location. The destination table below identifies the paths.
+Preserve existing files and unrelated skills when setting up those links.
+
+The optional installer manages those same links and their restoration for you:
 
 ```bash
 cd ~/agents
@@ -164,8 +169,8 @@ Symlinks follow the named `AGENTS.global.md` across Git updates.
 ## What the Rules Preserve
 
 **Continuity.** Sessions are recoverable from a named working handoff and live
-state: worktree, active sessions, task files, run metadata, artifacts, and only
-then old chat logs. Bare `/hi` can use `tasks/ROOT` as a discovery hint; routine
+state: worktree, active sessions, handoffs, gaps, run metadata, artifacts, and only
+then old chat logs. Bare `/hi` can use the relevant `ROOT` as a discovery hint; routine
 compaction does not invoke a manual save/restore ritual.
 
 **Shared-workdir safety.** Agents must not reach for broad discard commands to
@@ -173,8 +178,8 @@ repair their own history or line up an amend. The default posture is to inspect
 status, notice active peers, reread files before delayed edits, preserve
 unrelated work, and use path-limited edits.
 
-**Durable knowledge.** Private `tasks/*.md` files can hold active direction and
-handoff notes. Committed glossary-owned topic docs hold project-facing
+**Durable knowledge.** Program-scoped handoffs preserve private continuity;
+gaps track unresolved work. Committed glossary-owned topic docs hold project-facing
 contracts, rationale, invariants, and evidence that should survive a branch or
 session.
 

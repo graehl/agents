@@ -25,7 +25,8 @@ Where a durable note lands — which doc, which section:
   trigger is nameable, reconsider landing it at all.
 - Match the file's loading regime: decision surface in rule files
   (boot or topic), rationale and mental models in `.evidence.md`, dormant
-  candidate designs in `.sketches.md`, and private working state in `tasks/`.
+  candidate designs in `.sketches.md`, unresolved work in gaps, and live
+  continuity in program-scoped handoffs.
 - One home plus pointers, never two homes for the same claim.
 - Prefer the broadest active glossary scope where the note remains natural and
   unqualified. Default to the current project, retain subtree/program scope
@@ -67,6 +68,14 @@ project-wide unique, and an existing root topic name or historical trailer is
 not migrated merely because scoped topics become available.
 
 ## Program scope charters
+
+A program is a coherent subproject: related work with durable aspirations and
+boundaries that give its topics a shared purpose. Software, research, writing,
+and other projects all use this concept. A project may itself be one program
+and may contain more specific programs; a directory alone does not establish
+one. `PROGRAM.md` declares the scope. New handoffs belong to the most specific
+program owning the work, with project root as the fallback; see
+[handoffs](topics/handoffs.md).
 
 A glossary scope may have a sibling `PROGRAM.md`. It is a concise durable
 statement of the aspirations, themes, and boundaries spanning that scope—the
