@@ -112,6 +112,73 @@ sooner than say anything outright barbarous.
 - **Let it cool.** An hour, a day, a week if the piece matters. Fresh eyes
   find what tired ones excused.
 
+## Paragraph review
+
+Use **paragraph review** when the author asks for a close inclusion/editing
+pass, or suggest it when a draft has accumulated detail whose purpose is
+unclear. This is a selectable workflow; ordinary proofreading does not require
+an annotation for every paragraph. Set the selected sections or whole-document
+scope from the request, and use the established reader and purpose.
+
+Read enough surrounding material to judge dependencies before reviewing the
+selected passages in source order. Present an annotated artifact when useful
+and supported, or quote each paragraph with its comment directly below it.
+Keep the original text distinguishable from proposed wording. Give passages
+locators tied to the reviewed source revision: section, paragraph number, and
+a short opening quote work without a UI. Include captions, list items, and
+named datasets or techniques when they carry substantive material.
+
+### The comment on each passage
+
+Answer honestly, rather than defending whatever is already written:
+
+- **Purpose:** What specific point does this demonstrate? What needed
+  definition, groundwork, or context does it establish, and which later
+  statement becomes easier to understand because of it? Name that later
+  claim or passage. For narrative, the payoff may be character, tension,
+  voice, or emotional development. “Useful background” alone is insufficient.
+- **Placement and form:** Does the reader need this here, at this depth?
+  Would a visualization plus caption convey the point better, especially
+  a contextual relationship, hierarchy, comparison, or process? Describe
+  what the display would show and what prose it would replace; retain prose
+  when it works better. A proposed visual is not yet supporting evidence.
+- **Disposition:** Recommend keep, tighten, move, visualize, or trim, with
+  the proposed wording or destination when applicable. If no reader benefit
+  can be identified, say so. Preserve qualifications needed to keep the
+  surviving claim true; verbosity and necessity are separate judgments.
+
+Keep comments proportional to the decision. A short paragraph with a clear
+job needs a short rationale. An inventory does not earn inclusion merely
+because its items exist or were expensive to produce.
+
+### Review modes and rulings
+
+| Mode | Behavior |
+|---|---|
+| Guided | Present one paragraph and its comment, discuss the ruling, then continue on request. End with a short state line such as `Next: Methods ¶4; ¶3 trim proposed, ruling pending.` Bare `next` advances; it does not approve the pending edit. |
+| Batch | Annotate a selected section or the whole document in source order, then let the author rule on any passage in any order. Use anchored UI comments when available, otherwise passage IDs or block quotes. |
+| Autonomous | When selected, make the inclusion judgments and apply revisions throughout the authorized scope without paragraph-by-paragraph approval. Deliver the revised artifact with a concise, addressable decision record and any unresolved judgments. |
+
+Respect an already stated mode and editing authorization. A request to review
+alone produces recommendations; a request to revise authorizes the specified
+edits. If no mode is stated, annotate the selected scope in batch. The author
+can switch modes or jump to a passage without restarting the pass. Track
+reviewed, awaiting ruling, decided, and applied separately, together with the
+next unread passage; skipped decisions remain pending. When edits change
+paragraph numbering, preserve the original locators and relate them to the
+revised text. Recheck dependent passages after a ruling changes their setup.
+
+### Preserve ejected detail
+
+When applying cuts, follow the project's trimming convention. If none exists,
+use a sibling `<source-stem>.trims.md` companion. Preserve removed text verbatim
+with its source revision or snapshot, passage locator, and reason; append
+without overwriting earlier trims. For a move, record the destination. Keep
+trims and review comments outside the reader-facing render unless explicitly
+requested. In recommendation-only mode, name the proposed destination and
+leave the source intact. Regenerate an existing rendered artifact after
+applying edits and inspect the affected prose, captions, and references.
+
 ## Project records
 
 A writing project of any kind, from one page to a novel, keeps three small

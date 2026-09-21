@@ -49,6 +49,23 @@ report change over time, but it must curate that chronology for the reader.
 Merely prepending an executive summary to an accumulated raw log does not
 complete the pass.
 
+## Review inclusion paragraph by paragraph
+
+For a close reader-value pass, use
+[`writing` § Paragraph review](writing.md#paragraph-review): annotated
+passages with explicit inclusion rationales, guided/batch/autonomous modes,
+addressable rulings, and preserved trims. Apply the test to named datasets,
+models, techniques, and implementation details as well as whole paragraphs.
+Each should support a useful claim or result, explain a display, establish
+needed context for an identified later statement, or supply an essential
+qualification or reproduction condition. Do not retrofit a performance claim
+to justify an inventory. Mark a missing connection or missing evidence.
+
+For contextual material, consider whether a diagram plus caption would make
+the relationship clearer with less prose. Follow the display contract below
+when producing it. Keep necessary definitions and uncertainty visible after
+trimming, and recheck the whole argument after local rulings.
+
 ## Reconstruct lost context
 
 - Link the applicable glossary near the opening when one exists, but still
