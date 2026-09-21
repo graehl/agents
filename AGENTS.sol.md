@@ -1,5 +1,3 @@
-# Sol supplement to AGENTS.global.md
-
 ## Direct work under Claude Code
 
 When `AGENT_LAUNCH_ROUTE=claude-gateway` marks a Sol model running through

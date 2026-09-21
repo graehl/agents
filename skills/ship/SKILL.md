@@ -29,7 +29,15 @@ argument-hint: <governing-gap-or-handoff-path>
    - Subject: one-line summary of what the task accomplished; include (possibly revised for creep) the task description but not any `NNN-` prefix; if there are JIRA tickets referenced in the description (e.g. `AIP-2345`) then the commit message should start with that.
    - Body: key architectural decisions, relevant background
    - Omit implementation checklists and step-by-step progress but call out in one line any major code changes that are not directly in service of the task e.g. 'Also, refactor XXX.hpp.'
-4. Verifying that our local branch `branchname` state is clean (*STOP* if not), create `branchname-review` where we will craft a single commit for upstream; forcibly rename `branchname-review` to `branchname-review.bak` if it exists and create (and switch to) `branchname-review`, i.e. overwrite it with a single backup. Then `git reset --soft` to the merge-base so we can make the commit.
-5. Run `git commit` with the generated message; exclude private handoffs and harness-local artifacts from the shipped branch. Preserve the project's tracked gaps and other shared records.
+4. Verify the source branch is clean and capture its reviewed commit. Create a
+   separate durable worktree on a new `branchname-review` branch at the resolved
+   upstream base; if the name exists, choose a fresh suffix. Preserve existing
+   branches and the shared checkout's HEAD. In the isolated worktree, use
+   `git merge --squash <reviewed-commit>` to prepare the single review commit.
+   Resolve conflicts there; ask only when a resolution changes intended behavior.
+5. Inspect the complete staged diff, then commit with the generated message.
+   Exclude private handoffs and harness-local artifacts; preserve the project's
+   tracked gaps and other shared records. Do not commit unrelated source changes.
 6. Show me the generated message and follow on with any code review comments/questions for me (do not include these in the commit message)
-7. At this point we are in `branchname-review` with a single commit added to the upstream base branch. Do NOT push — I will `git push` to Gerrit myself
+7. Report the review branch and worktree path containing the single commit above
+   the upstream base. Do not push; the user pushes to Gerrit.

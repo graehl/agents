@@ -1,16 +1,3 @@
-# Grok Supplement
-
-Read this after `~/agents/AGENTS.global.md` and `~/agents/AGENTS.user.md` when
-running in Grok / xAI. This file contains harness mechanics; broad
-shared policy stays in `AGENTS.global.md`. The one carve-out is the
-confirm-before-acting rule below, which the Claude harness injects
-automatically but Grok does not.
-
-This is a stub: Grok is not yet a harness used in earnest here, so the
-specifics below are deliberately thin. Fill them in from observed runtime
-behavior rather than assumed vendor defaults; flag anything still unknown
-rather than guessing a path or flag.
-
 ## Session Identity
 
 Primary mechanism: the launcher-injected `$AGENTCTL_SESSION_ID`. It is
@@ -32,9 +19,10 @@ substitute. If `$AGENTCTL_SESSION_ID` is still unset after a Bash check
 in an already-running session, report a YA host publication defect.
 
 If no launcher is present (hand-launched Grok) and the var is unset,
-recover the id from the newest matching
-`~/.grok/sessions/<urlencoded-cwd>/` directory for this cwd. Do not
-invent a personal tag when that directory exists.
+recover the id only from provider/process evidence tied to this live session.
+The newest directory under `~/.grok/sessions/<urlencoded-cwd>/` is a discovery
+candidate, not proof of identity. Report unresolved identity rather than
+inventing a tag or registering another session's id.
 
 ## Session Logs
 

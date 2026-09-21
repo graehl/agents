@@ -8,6 +8,12 @@ selecting research work, or creating or updating a research handoff.
 
 ## Binding rules
 
+Read Program-scoped handoffs and recovery plus Research document paths and
+resume for research resume/handoff work; On-deck research runs for queueing;
+Subtasks and commit checkpoints for milestones; and Research direction root
+before autonomous work selection. Compaction alone uses the next action's
+routes rather than repeating full resume orientation.
+
 ### Workflow and continuity
 
 #### Program-scoped handoffs and recovery
@@ -65,9 +71,9 @@ not a resume; ordinary project-entry and scoped action reads still apply.
 #### On-deck research runs
 
 `on-deck/` is the executable projection of research triage into guarded
-single-step runs, not the paper/log/task. Every entry points to its governing
+single-step runs. Every entry points to its governing
 artifact; steward records raw run facts while interpretation lands in the
-paper, log, task, or topic. See `topics/on-deck.md`.
+paper, log, gap, or topic. See `topics/on-deck.md`.
 
 #### Subtasks and commit checkpoints
 
@@ -112,71 +118,3 @@ On explicit `/hi` or resume of research work:
 6. read the newest research-log entries.
 
 Do not run this checklist for a fresh specific request without a resume signal.
-
-## Retained detail and examples
-
-### Subtasks and commit checkpoints
-
-Substeps share the governing gap and research record unless a separate scope
-earns its own artifact. Keep findings in the paper/log and unresolved work in
-the gap; a handoff preserves the context needed to continue.
-
-**Rule**: never merge back to main repeatedly for subtasks. Complete or park all
-subtask work in the branch, then merge once when the main task is done.
-
-**Commit checkpoints**: commit to the research branch whenever a meaningful checkpoint
-is reached — a subtask (inline or explicit) is satisfactorily resolved, an interesting
-subtask is newly identified, or a significant finding is recorded. These commits do not
-require explicit permission; use judgment and proceed if confident. It is polite to note
-"committing now" or ask first when the scope is ambiguous.
-
-### On-deck research runs
-
-For GPU-heavy research programs, `on-deck/` is the executable projection of
-research triage into guarded single-step runs, not a replacement for the
-research log or task file. Each entry should point back to the governing task,
-research log, progress-report triage row, or topic next-step; the steward runs
-checks and records raw facts, while research interpretation still lands in the
-paper/log/task as appropriate. See `topics/on-deck.md`.
-
-**What to commit**:
-- `research/<branchname>.md` and `research/<branchname>.log.md` — always commit when
-  updated; these are the persistent record of the work.
-- Source code changes — commit at checkpoints as above.
-- Private working-handoff files — do NOT commit. These are live
-  working state shared among agents via the filesystem directly. Exception:
-  only if the user explicitly asks to include them.
-
-### Research direction root (`research/ROOT.md`)
-
-`research/ROOT.md` (when present) records the **current user direction** on
-which project(s) are fruitful — the standing triage that governs autonomous
-research and tending work (the "autoresearch" / "tend" context). It is a
-recommended resume-context read: skim it before starting or continuing that
-work so effort lands on a project the user still considers worth pursuing.
-
-Do not use it as a program charter. A program's `PROGRAM.md` records the
-durable aspiration/themes/boundaries that survive changes in current priority;
-`research/ROOT.md` decides which such programs autonomous effort should favor
-now.
-
-Create or edit it as the record evolves, but it encodes an **established**
-direction: routine updates (adding detail, recording progress against the
-existing priorities) need no permission, while reversing or replacing which
-projects count as fruitful requires explicit user consent — not a unilateral
-agent edit.
-
-### Research document paths (derive from git branch name)
-
-The git branch name IS the key. Given branch `logit-vs-merge-lora`:
-- Research paper: `research/logit-vs-merge-lora.md`
-- Research log:   `research/logit-vs-merge-lora.log.md`
-
-When a fresh agent is asked to "update the research log" or "update the research paper",
-it should run `git branch --show-current` to get the branch name, then write to
-`research/<branchname>.log.md` or `research/<branchname>.md` respectively.
-
-For resume, follow the single binding procedure under
-[Research document paths and resume](#research-document-paths-and-resume).
-These branch-name examples are fallbacks for work without declared program
-paths; they do not redirect a named handoff or program paper to the root branch.

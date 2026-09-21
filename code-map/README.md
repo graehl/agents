@@ -1,5 +1,11 @@
 # Code Map
 
+Historical snapshot: this map predates the retirement of `tasks/` and the
+centralization of supplement routing. Current global instructions own those
+contracts: program-scoped handoffs preserve continuity; gaps and
+`gaps/sketches/` track defects and intended future implementation respectively.
+The old paths below describe the snapshot, not current authoring guidance.
+
 ## Orientation
 
 `~/agents` is a **policy-and-tooling repository for filesystem-first coding

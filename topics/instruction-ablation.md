@@ -237,7 +237,8 @@ multi-step planning that SWE-bench barely exercises. Span ≥2 task
 distributions before generalizing: **SWE-bench Verified** plus one of
 **Aider polyglot** (multi-language edit accuracy), **Terminal-Bench**
 (shell/ops tasks closer to this repo's `agentctl`/runs work), or a replay
-of this repo's own `tasks/*.md` as held-out scenarios. A rule that helps
+of this repo's historical work records as held-out scenarios (including
+retired task files, without reviving their convention). A rule that helps
 on SWE-bench and hurts on terminal/ops tasks is a scoped rule, not a
 global one — and the ablation is how you would find that out.
 

@@ -1,5 +1,3 @@
-# Opus supplement to AGENTS.global.md
-
 ## Path-trace code claims
 
 Never state as settled fact a specific, checkable claim about the
@@ -8,7 +6,7 @@ current project's code that you have not read or searched this session
 look first — one Read or `rg`, then cite what you saw (`file:line`, or
 the command and its result) — or keep the claim and mark it
 ("unverified — inferred from the module name"). Cite or label; no third
-register. This turns `AGENTS.global.md` § *Verify before voicing* from a
+register. This turns global § Verification and retrieval from a
 judgment call into a mechanical one.
 
 Boundaries that keep this cheap and non-recursive:

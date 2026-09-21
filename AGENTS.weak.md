@@ -1,11 +1,3 @@
-# Weak-model supplement to AGENTS.global.md
-
-Restates behavior that frontier agents perform by default. Read in
-addition to `AGENTS.global.md` (everything there still applies); this file
-only adds redundancy for behaviors smaller models are more likely to
-miss. Not loaded by `AGENTS.global.md`; a provider-specific launcher surfaces
-this file alongside `AGENTS.global.md` when a smaller model is in use.
-
 ## Direct instructions and readiness questions
 
 When the user has given a clear, direct instruction, treat it as
@@ -70,7 +62,7 @@ session — not all at session start.
 
 | Trigger | File(s) to load |
 |---------|----------------|
-| First tool use in a repo | root `AGENTS.md`, `AGENTS.local.md`, `CLAUDE.md`, any named README, `GLOSSARY.md` |
+| First tool use in a repo | project-root `AGENTS.md` or equivalent `CLAUDE.md` once, project-root `AGENTS.local.md`, any named README; discover programs and read the governing chain |
 | Before diagnosing a bug | `topics/debugging.md` |
 | Before designing or extending tests | `topics/testing.md` |
 | Before building a prototype | `topics/prototyping.md` |

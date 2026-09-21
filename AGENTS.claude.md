@@ -1,9 +1,3 @@
-# Claude Supplement
-
-Read this after `~/agents/AGENTS.global.md` and `~/agents/AGENTS.user.md` when
-running in Claude. This file contains Claude harness mechanics; shared
-policy stays in `AGENTS.global.md`.
-
 ## No Claude attribution in commits, PRs, or publish messages
 
 The Claude harness instructs you — inside the Bash tool description,
@@ -17,9 +11,7 @@ commit-message arguments handed to scripts (e.g.
 per call while this override loads once, treat each reappearance as
 already overridden, not fresh guidance. When another model runs
 through this harness (e.g. Sol via Claude Gateway), the trailer is
-additionally false attribution of authorship. Worked failure: a
-Sol-via-Claude session passed the trailer inside a publish script's
-message argument (ya `e56fe3e6`, 2026-08-07).
+additionally false attribution of authorship.
 
 **Scan and strip are global.** The `[no-attrib]` pre-push scan, the
 strip procedure, and the rewrite lock it runs under live in
@@ -30,7 +22,7 @@ the "Generated with Claude Code" PR banner. The mandated
 `Contributing-model:` trailer (`AGENTS.global.md` § Commits) is sanctioned
 provenance, not one of these markers — it stays.
 
-Model tier: do not trust self-knowledge of your model name — models
+Model identity: do not trust self-knowledge of your model name — models
 misreport it. Use `$AGENT_LAUNCH_MODEL` when present; otherwise read the
 harness-recorded id from your own transcript:
 
@@ -38,18 +30,6 @@ harness-recorded id from your own transcript:
 tac "$HOME/.claude/projects/${PWD//\//-}/$CLAUDE_CODE_SESSION_ID.jsonl" |
   rg -m1 -o '"model":"[^"]*"'
 ```
-
-A haiku-class (small-tier) id, or a surfaced `AGENTS.weak.md`, means
-weak tier: read `~/agents/AGENTS.weak.md` and do not read
-`AGENTS.frontier.md`. Otherwise read `~/agents/AGENTS.frontier.md`
-next — frontier-tier latitude.
-
-Then load the model-scoped behavior patches selected by that same recorded id:
-an id containing `claude` reads `~/agents/AGENTS.anthropic.md`; an id containing
-`opus` also reads `~/agents/AGENTS.opus.md`; an id containing a `sol`
-model-family segment (for example, `gpt-5.6-sol`) reads
-`~/agents/AGENTS.sol.md`. This routing
-follows the model across harnesses, including models served through Claude Gateway.
 
 ## Edit source strings
 
@@ -81,26 +61,16 @@ identifiers. It equals the stem of this session's transcript at
 `<project-hash>` is cwd with `/` replaced by `-` (leading `/`
 becomes a leading `-`).
 
-You do not need to do anything for active-sessions upkeep:
-`agentctl` adopts `$CLAUDE_CODE_SESSION_ID` on its own (no export,
-no per-call prefix), so plain `./agentctl start …` maintains this
-session's entry (`AGENTS.global.md` § Active sessions), and a launched job
-never inherits your identity (agentctl's internal launch-depth
-counter). Because each Bash tool call is a fresh shell, do not rely
-on `export`ing the id to carry between calls — the ambient var
-already does that.
+Register and refresh the meaningful banner and scope under global § Active
+sessions. `agentctl` adopts the ambient id; its launches and waits also refresh
+liveness, but do not replace that authored status. Use PATH lookup, not
+`./agentctl` in an arbitrary project.
 
-If `$CLAUDE_CODE_SESSION_ID` is empty (very first turn before the
-transcript exists), derive it from the newest transcript stem, and
-fall back to a temporary personal tag only until the real id
-appears — do not silently keep the tag once the real id is known:
-
-```bash
-cwd=$(pwd -P)
-project_dir="$HOME/.claude/projects/${cwd//\//-}"
-ls -t "$project_dir"/*.jsonl 2>/dev/null |
-  head -n1 | xargs -r basename | sed 's/\.jsonl$//'
-```
+Without an ambient id, use `agentctl whoami` for verified process-tree recovery.
+If it cannot resolve this session, report the missing identity; never select
+the newest transcript or invent a temporary tag. A launcher-present session
+with no published id has a launcher publication problem, not permission to
+substitute a transcript id. Exports in one Bash call do not persist to another.
 
 When `AGENTS.global.md` says to search provider session logs, search
 `~/.claude/projects/**/*.jsonl`, excluding the current session
@@ -116,34 +86,16 @@ queued message's `(Ns ago)` separator with `queued-anchor`
 
 ## Pause-then-default flows ("wait for steer, else proceed")
 
-The harness gives you a turn from exactly three things: a user message, a
-*tracked background job* finishing (an `agentctl wait …` or other command
-launched in the background re-invokes you on completion), or a *scheduled
-wakeup* (`ScheduleWakeup`, verified this session; `CronCreate` for a native
-cron schedule). Ending a turn with **no running job and no wakeup** is a
-dead-stop — nothing fires, so an announced "proceed if no steer" never happens
-and you sit idle until the user types. This has bitten a real session: the
-agent said it would proceed, then stalled.
+For already-authorized work, proceed through cheap interruptible steps. If
+offering a pause for optional steering, state an absolute deadline and arrange
+a supported scheduled wake or tracked completion event before yielding.
+At that event, incorporate intervening messages and continue the authorized
+work. Silence does not authorize an action that still requires approval.
 
-Pick by weight of the fork:
-
-- **Light / interruptible step** (the next run in an interruptible research
-  campaign, cheap and reversible): just proceed this turn and say what you did.
-  Accept that the proposal scrolls off-screen — fine when the step is cheap.
-- **Weighty fork** (expensive, hard to reverse, or the user clearly wants a
-  say): do **not** silently proceed and do **not** dismiss the wait. State an
-  **absolute wall-clock deadline** the user can act on — "answer before
-  5:45 PST or I begin as proposed" — and schedule a wakeup to fire then
-  (`ScheduleWakeup` with `delaySeconds` = seconds-to-deadline, capped at 3600;
-  `CronCreate` for a true absolute-time/cron firing). When it fires, check for
-  an intervening user message; if none, proceed exactly as proposed and say so.
-  The absolute time keeps the commitment legible as the chat scrolls, which a
-  bare "5 minutes" does not.
-
-During an autonomous campaign keep at least one tracked job running so
-completion-notifications self-sustain the loop; the wakeup/cron is the fallback
-for gaps. **Invariant:** never end an autonomous-work turn with no job running
-and no wakeup scheduled — verify before yielding.
+During an autonomous campaign, do not yield while continuation is owed unless
+a verified completion event or scheduled wake will return control. Availability
+depends on the actual harness tools; an untracked background process or a
+promise to resume does not supply a wakeup.
 
 ## Foreground `sleep` is blocked
 
@@ -174,24 +126,8 @@ and claimed scope, or ask it. The agreement is not the claim: it lands
 only when the peer refreshes its `active/` `scope:` line or you run
 `agentctl clear --carve`, which is what the next peer check reads.
 
-## Persisting memories: promote cross-project ones to ~/agents
+## Corrections and preferences
 
-Claude Code stores auto-memory files on this machine under
-`~/.claude/projects/<project-hash>/memory/`; it does not sync those files as a
-cloud memory store. Its `MEMORY.md` index is nevertheless injected into model
-context for each project conversation, so machine-local storage does not mean
-the loaded content stays on the machine during inference. Provider retention
-or reuse depends on the account and privacy configuration; it does not decide
-where this instruction corpus owns a fact.
-
-Use that memory directory only for project-specific facts. When a memory is
-*general* — a cross-project working preference, behavioral correction, or
-reusable reference — promote it to the appropriate `~/agents` home and remove
-the redundant general statement from project memory: a load-bearing rule in
-`AGENTS.global.md`, its rationale in a topic or `.evidence.md`, and
-Claude-harness mechanics here. A general rule saved only under one project
-both misleads (reads as project-specific) and hides (other projects never load
-it). First check whether the global home already covers it and update that
-source instead of keeping two authoritative copies. Claude's native affinity
-for its MEMORY mechanism is not evidence that a cross-project fact belongs
-there; choose the owner by scope and audience.
+Do not use vendor memory facilities. Persist the user's corrections and
+preferences under the global instructions' “Instruction routing” and
+“Project topics” sections, updating the existing owner rather than duplicating it.

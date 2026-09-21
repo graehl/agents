@@ -10,6 +10,12 @@ conflict.
 
 ## Binding rules
 
+For launch or waiting, read Long-running commands and its applicable
+subsections through Proven foreground-wait cap. Natural pause run status
+applies to status/handoff pauses; Failure postmortems applies to policy-failure
+reconstruction. Harness wait-limit diagnosis is only for diagnosing or
+validating provider timeout behavior.
+
 ### Long-running commands
 
 For a generic command timeout, state the elapsed limit, show the exact command
@@ -90,13 +96,25 @@ When completion requires agent reaction, wait in the foreground. Prefer
 when awaiting a new launchable item. A background wait, passive PTY, or tmux
 dashboard does not create a reliable continuation in harnesses without wake-up
 support.
-External watchdog/nudge alternatives and their exact use appear below under the
-second “Wait watchdog discipline” heading.
+Use `agentctl wait JOB --heartbeat-gpu --gpu 0 --timeout 5m` when the
+heartbeat should include GPU state. For capacity readiness independently of a
+job, use `agentctl wait-gpu --gpu 0 --max-memory-used <MiB> --timeout 5m`;
+choose the threshold from the successor's VRAM requirement and headroom.
+For fleet readiness, use `agentctl fleet-watch` under `topics/agentctl.md`
+§ Fleet capacity watch. These foreground waits follow the same announcement
+and live-handle protocol. Job completion and GPU readiness are different
+conditions: do not substitute GPU-idle for a sidecar's terminal status.
 
 Keep healthy-run waiting low-token: heartbeat rather than repeated log pulls.
 Keep completion polling separate from status output: `--poll` may stay short so
 completion returns promptly. For an unchanged healthy run, use the default
 `wait`/`watch` heartbeat: one status line on entry, then one every 540 seconds.
+A line of foreground `agentctl` wait output must reach the harness at least
+every 570 seconds (9.5 minutes); retain the 540-second default for margin.
+Do not buffer or swallow those lines in a wrapper. Yield and consume live
+tool output often enough to meet that bound, continuing the same live handle.
+Harness/model rules may additionally require model continuation; printed
+output alone does not prove cache reuse.
 A shorter explicit heartbeat is only for bounded startup or diagnosis; never
 leave minute-spaced unchanged-status output active through a long steady wait.
 On a user activity turn, check live run/GPU state, engage briefly, then re-enter
@@ -122,8 +140,8 @@ A timeout segments one logical wait. If the job remains healthy, inspect state,
 announce again, and re-wait using at most the next earned rung. Only terminal
 state ends the loop. The `agentctl` call carries its native timeout and the tool
 allowance sits slightly above it; do not prefix shell `timeout`. Provider
-ceiling details and validation probes appear below under the second “Proven
-foreground-wait cap (5 → 55 min)” heading.
+ceiling details and validation probes are under “Harness wait-limit diagnosis”;
+read that section only when diagnosing or validating a harness timeout limit.
 
 When nothing is waiting and GPU-fill/steward work is active, idle capacity is
 the failure: launch an eligible useful or speculative job at low recorded
@@ -143,257 +161,11 @@ When reconstructing a failure to follow run policy, cite the governing
 _RUNS or AGENTS section and distinguish direct evidence from post-hoc inference.
 Prefer section names and short exact phrases over vague summaries.
 
-## Retained detail and examples
+### Harness wait-limit diagnosis
 
-### Long-running commands
-If a command times out:
-- Clearly say "Command timed out after X minutes"
-- Show the last 100 lines of output
-- Show the exact command that was run
-- Ask me if I want to increase the timeout or change flags
-
-When running builds or tests, always redirect full output to log files
-(e.g., `make >/tmp/build.out 2>/tmp/build.err`) and show only the tail.
-Never discard output with bare `| tail`. Separate files keep each stream's
-line order, since `2>&1` interleaves by buffer flush rather than by time;
-`make 2>&1 | tee /tmp/build.log` remains right when you want one live
-interleaved view.
-
-For foreground `agentctl` monitoring, use `wait`/`watch`'s native `--timeout`
-and `--tail` options. Never wrap them in shell `timeout` or pipe them through
-`tail`: a pipeline reports its final `tail` process's status instead of the
-watched job's, and merging with `2>&1` also mixes agentctl control messages
-with payload output. Use the one-command form:
-
-```bash
-agentctl watch JOB --tail 2 --heartbeat 1500 --timeout 3300
-```
-
-Completion returns the watched job's exit code. A watch-window timeout leaves
-the job running, returns 124, and emits `[agentctl-watch-timeout-v1]` on
-agentctl's stderr; the marker plus exit code distinguishes it from a watched
-payload that itself exits 124.
-
-#### Launch observation and completion observers
-
-The ordinary one-command launch is:
-
-```bash
-agentctl start JOB -- PAYLOAD ...
-```
-
-Do not put that command in a shell background or a harness background task.
-`start` creates the detached wrapper, remains as a disposable foreground
-observer through dependency/resource gates and pre-payload checks. A payload
-process-creation failure returns immediately; otherwise the default five-second
-clock starts only after creation is recorded. If the payload fails in that
-interval, `start` returns its nonzero status and prints the log tail. This catches
-missing executables before the clock, then script-owned launch guards, model-load
-out-of-memory errors, and similar startup failures during the window without
-turning `start` into the completion monitor for a healthy long run.
-
-Use `--launch-wait 0` only to skip this observation deliberately, such as when
-submitting several deep queued successors. It returns after queue admission,
-not after the payload starts, so immediately attach an explicit wait/watch (one
-per continuing run) unless `start` reports `completion_wake=armed`. The explicit
-observer follows `waiting` through pre-launch failure and payload completion.
-
-A foreground observer follows the atomic announcement protocol below. When the
-agent has other work to do, a harness-owned background `agentctl wait/watch`
-qualifies only if that harness returns a fresh completion event on either
-success or failure. Use the harness's tracked-background mechanism, not shell
-`&`, SSH detachment, tmux, or an unconsumed terminal. The same rule applies to a
-remote launch: keep remote `start` foreground through its launch observation,
-then arm a local tracked wait/watch if no session wake is available.
-
-**The announcement.** Immediately before entering a foreground `agentctl`
-wait/watch, tell the user exactly: `going into foreground agentctl wait now.`
-Then invoke the blocking `agentctl` call as the next action in the same turn
-and keep the turn open until it returns. The call must be synchronous with
-this assistant turn: a meaningful output line, watched condition, job end, or
-timeout must return control to the agent. A tool call yielding only a
-terminal/session id does not satisfy the announcement; immediately continue
-consuming that session without sending a response. Use `agentctl fleet-watch`
-with the local host included when fleet/resource availability is the wake
-condition; otherwise use the specific job's normal `wait`/`watch`.
-
-The announcement creates an execution obligation. Do not make it unless the
-effective foreground call is the next action, and do not replace it with a
-post-launch `in agentctl wait` response: yielding that response can tear down
-the monitor and forfeit completion wake-up.
-
-**Hard gate — no latitude or inferred equivalent.** The announcement and its
-effective synchronous `agentctl` call are one atomic protocol. After the
-announcement, the agent may emit no final/status/planning prose and run no
-status query or unrelated tool before starting the call. While a yielded
-terminal/session remains live, the only permitted action is continuing to
-consume it until a wake condition or timeout returns control. Background
-monitoring, a detached job, a session id, `agentctl status` polling, or an
-intention to reattach later is not equivalent. If the call fails to start,
-report that failure immediately and never claim the wait occurred. Any
-violation resets this session's proven wait cap to five minutes and must be
-disclosed explicitly.
-
-**New user steering interrupts the atomic interval.** When the user interrupts
-with other work, the agent may stop the foreground monitor and use background
-status checks while doing that work, until the user asks it to foreground-wait
-again. This is neither a failed wait nor a protocol violation, and it neither
-resets nor advances the proven timeout rung. A later foreground wait still
-requires a fresh state check, announcement, and immediately following
-synchronous call.
-
-A resolved wait is not a resting state. Once the watched job finishes or the
-relevant idle condition is met, immediately consume that completion and launch
-or attach the next already-approved successor in the same turn before giving a
-status update.
-
-#### Detach long runs from the session (teardown immunity)
-
-Any run that may exceed ~15 min must **launch detached and be monitored
-separately** — it must not stay a child of the agent process. When the agent
-session is torn down or restarted (UI stop, crash, Monitor timeout, process
-exit), the harness SIGKILLs its **whole descendant process tree**; a job still in
-that tree dies mid-run, a job that has left it survives.
-
-With `agentctl`: `agentctl start … -- <cmd>` **without** `--watch` automatically
-uses a transient systemd user service when `AGENT_LAUNCHER=yepanywhere`.
-The wrapper's `name=systemd` cgroup then ends in the recorded `service_unit`,
-under `user@<uid>.service`, instead of the launching app server's
-`session-*.scope`; that ownership boundary survives full provider-host or app-
-server replacement. `--user-service` requests it explicitly on another launch,
-and `--no-user-service` deliberately selects the portable `setsid`
-process-session backend. The latter reparents to init after `start` exits but is
-not immune to a harness that cleans up every process in its session cgroup.
-
-Ordinary `start` remains the foreground launch observer through the default
-post-payload window in either mode. `start --watch` is still inappropriate for
-long runs because it makes the launch observation unbounded; a separately
-started `wait`/`watch` remains disposable without owning the job.
-
-For a run expected to exceed 15 minutes, therefore keep detached `agentctl start`
-foreground through its launch observation, then use the armed session wake or a
-separately announced foreground `agentctl wait/watch`. Never use `start --watch`
-or background `start` for that run class. For a deep queue where the start call
-must return immediately, use `--launch-wait 0`, then attach a harness-tracked
-background wait/watch if other work must continue.
-
-The separate `agentctl watch`/`wait` observer is disposable: its death does not
-touch the reparented job, so reattach freely. Short jobs (≲15 min, smokes,
-janitorial) can stay attached under `--watch`; the detach rule is for runs whose
-loss hurts.
-
-#### Wait watchdog discipline
-
-A live PTY or tmux pane does **not** by itself create a new assistant turn when
-fresh output appears. It is useful for the human operator but is not a completion
-observer unless the harness explicitly tracks that process and emits a terminal
-event back to the session.
-
-When work is gated on a long-running job, run the wait **in the foreground** and
-stay blocked in it until it terminates. A single foreground `agentctl
-wait`/`watch` Bash call (bounded per *Blanket wait cap* below) is the intended
-liveness/progress reaction: the harness hands control back at the exact moment
-the wait condition is met, so the returning block *is* the re-invocation, and one
-bounded block stays a cache hit. When other work must continue, a
-harness-tracked background `agentctl wait/watch` is the explicit alternative
-only if completion re-invokes the agent on both success and failure. A detached
-`&`, fire-and-forget watchdog, or background facility without that contract
-forfeits continuation and degrades into ad hoc polling. The default wait
-primitive is:
-- the built-in `agentctl wait/watch` path first, run foreground;
-  its short `--poll` cadence detects completion promptly while the default
-  heartbeat prints once on entry and then every 540 seconds. Prefer this over
-  ad hoc shell sleep loops when all you need is bounded-latency liveness output.
-  When the thing awaited is new work rather than a known
-  job — a fresh launch to watch, or a new `on-deck/` entry to tend —
-  `agentctl wait-work` is the same foreground-block primitive
-  (`topics/agentctl.md`)
-- a foreground watchdog process that emits one timestamped poll on entry, then
-  every 540 seconds while state is unchanged, and includes `agentctl
-  status`/`list` plus `nvidia-smi`
-- explicit PTY polling by the agent on entry, then every 540 seconds while the
-  wait state is unchanged
-- when Codex itself is running inside tmux, a second helper from another shell
-  or pane that periodically injects a benign key into the Codex pane so the
-  local CLI receives a real tty input event; default to `C-l` unless there is
-  a concrete reason to use a different key sequence
-
-When a healthy run is the only active foreground obligation, prefer the
-low-token `agentctl` heartbeat path over repeated log pulling or speculative
-planning. Use the heartbeat interval to keep the session recoverable, then
-defer deeper planning and analysis until the run finishes, fails, stalls, or
-needs a successor decision.
-
-User heartbeat or activity turns are wake-up points, not a request to stay in
-high-token log-following mode forever. At minimum, check current run and GPU
-state, give a concise status, and briefly engage with steering, planning, or
-pre-finish interpretation when useful, then re-enter the foreground wait in the
-same turn. That blocking call *is* the low-token posture and the way you stay
-available — the user interrupts it to interject again. Do not idle for ~N minutes
-of possible input first: this harness has no such timed stay-open state, since
-yielding the turn forfeits any auto-resume of the wait while blocking is itself
-interruptible rest. Resume the block immediately.
-
-Use the helper `~/agents/agent-wait-watchdog` (mirrored as
-`~/bin/agent-wait-watchdog`) when you need an external poll block that combines
-`agentctl` state with `nvidia-smi`, not as the first-line substitute for the
-built-in `agentctl` heartbeat. When Codex is running inside tmux and prolonged
-quiescence would be harmful, pair the normal `agentctl` wait/watch path with
-`~/agents/agent-tmux-nudge` (mirrored as `~/bin/agent-tmux-nudge`) targeting
-the Codex pane. This helper is for synthetic tty input, not for on-screen
-dashboards.
-
-Never claim to be waiting on a job after the watchdog or watch PTY has already
-resolved. Re-check live state first.
-
-Early failure is a terminal result, not a wait state. After any manual sleep,
-timeout, interrupted tool call, or "no output yet" poll for an `agentctl` run,
-immediately run `agentctl status <job>` (or `agentctl list --failed`) before
-telling the user the run is still pending. If status is `finished` with a
-nonzero or `unknown` return code, inspect the run log and report the failure
-instead of continuing to wait. Prefer `agentctl wait <job> --target
-not-running --heartbeat ...` over ad hoc `sleep; cat summary` loops because it
-returns nonzero for failed runs and prints the final return code and log path.
-
-Do not use GPU-idle thresholds for a short sidecar watch if another intended
-GPU job is still running. For sidecars, watch the job to completion only; keep
-GPU-idle watches for the gating job whose successor truly needs the GPU clear.
-
-If a watched job is no longer running, or the GPU is idle unexpectedly, or an
-already-approved successor can now be launched, the wait state is over and must
-be consumed immediately in the same turn.
-
-See `~/agents/yepanywhere.md` for heartbeat turn handling and the `PULSE:`
-observability convention.
-
-#### Proven foreground-wait cap (5 → 55 min)
-
-Every resumable session starts with a maximum foreground-wait timeout of
-**5 minutes**. Longer calls are earned only when this session's transcript
-shows the previous rung actually remained live until its awaited condition or
-timeout. Use the ladder **5 → 10 → 20 → 40 → 55 minutes**; a failed start,
-lost terminal/session, announcement alone, or assistant response while the
-monitor is pending does not advance it. A new resumable session starts again
-at five minutes. This observable gate is excluded from any frontier-agent
-latitude to substitute an inferred equivalent for the required steps.
-
-The cap segments one logical wait, so **re-wait is mandatory** when the job
-remains healthy: inspect status after a timeout, announce again immediately
-before the next synchronous call, and use at most the next earned rung. Only
-a terminal status ends the loop (a finished `unknown`/nonzero returncode is
-failure — the still-running case that *Early failure is a terminal result*
-leaves open). Best-effort in practice: an agent mid-analysis may instead pause
-to confirm with the user, which is fine.
-
-The dual when nothing is waiting: in GPU-fill / steward mode idling is the
-failure — the default, even absent user feedback, is to launch a useful or
-speculative job at **low recorded priority** (an explicit interrupt/abandon
-candidate), not to wait. Slot it via *On-deck GPU fillers* and the
-on-deck/steward instructions.
-
-The earned 55-minute maximum sits under both the 59-minute harness ceiling and
-the 1h extended-cache TTL. The shorter initial rungs are a liveness proof, not
-a preferred steady-state polling cadence.
+The earned maximum remains subject to the actual harness ceiling and any
+stricter model policy. The shorter initial rungs establish liveness; they do
+not set the steady-state heartbeat or model-continuation cadence.
 
 The `agentctl wait`/`watch` invocation must carry its explicit native timeout.
 Set the harness's tool-call timeout slightly above that bound so agentctl
@@ -411,31 +183,3 @@ wanted for silent hangs, but not the foreground-wait deadline.
 - **Codex:** no such env var or `config.toml` key; `agentctl --timeout`
   carries the cap by itself (Codex has no default shell timeout). Confirm the
   internal `bash -lc` wrapper timeout does not cut a 55-min foreground short.
-
-#### Natural pause run status
-
-When reaching a natural pause in any project that has run operations,
-background jobs, `.agentctl/`, `*.running.md`, or GPU scheduling state, end the
-status or final response with a brief live run/GPU footer even if no wait is
-currently active. This footer should use the freshest cheap checks available
-(`agentctl list` / `agentctl status` and `nvidia-smi` when present), name active
-jobs if any, and say explicitly when there are no active jobs and the GPU is
-idle. If the known queue is exhausted, say that too rather than leaving the user
-to infer it from silence.
-
-If planned or pending runs are known, end with a clearly marked `Pending GPU
-Jobs` line naming them. If none are known, write `Pending GPU Jobs: none known`
-or the closest truthful equivalent. This is a presentation rule for observability
-at handoff/pause points; it does not weaken the stronger keep-busy rule that
-agents should zoom back out, choose, and launch the next valuable planned run
-when the project instructions call for that.
-
-#### Failure postmortems
-
-When troubleshooting your own failure to comply with instructions, explicitly
-cite the _RUNS or AGENTS sections that were likely governing or distorting the mistaken
-behavior. This may require post-hoc reconstruction rather than direct access to
-the exact activations that produced an earlier turn; say so plainly when
-uncertain. Prefer section headers and short quoted phrases over vague
-summaries, for example `Long-running commands`, `Wait watchdog discipline`, or
-repo-local wait-state rules.

@@ -19,34 +19,10 @@ on `~/agents` `master`.
 `~/agents` in these instructions means this checkout's root; substitute
 the actual path if loaded from elsewhere.
 
-`~/agents/AGENTS.user.md` is a personal supplement — read it alongside
-this file every session.
-
-After reading this file and `~/agents/AGENTS.user.md`, read the
-provider-specific supplement for your harness when present:
-- Codex / OpenAI Codex: `~/agents/AGENTS.codex.md`
-- Claude: `~/agents/AGENTS.claude.md`
-- GitHub Copilot CLI (`COPILOT_CLI=1`) or a Claude Gateway child marked
-  `AGENT_LAUNCH_BACKEND=copilot-api`; only when that canonical marker is absent,
-  current YA's `YEP_COPILOT_API=1` is the fallback: `~/agents/AGENTS.copilot.md`
-- Grok / xAI: `~/agents/AGENTS.grok.md`
-
-Harness/backend supplements carry scoped mechanics and behavior patches —
-session-log locations, resume identifiers, provider skill paths, launcher
-quirks, and backend-specific safeguards — and may route capability and
-recorded-model supplements such as `AGENTS.frontier.md`, `AGENTS.opus.md`, and
-`AGENTS.sol.md`. Cross-provider policy stays here. If the relevant supplement
-is missing or unreadable, report once and continue.
-
-A launcher supplement is the same idea one layer out, keyed on
-`AGENT_LAUNCHER` rather than on the harness: `yepanywhere` →
-`~/agents/AGENTS.ya.md`. It owns the markers and capabilities that launcher
-publishes into the session, and behavior that holds because that launcher is
-supervising — not harness mechanics, which stay in the harness supplement. A
-YA-launched Claude session reads both.
-
-Symlinks and hardlinks to the same target are the same loaded
-source for provider-supplement routing.
+Global § Authority and instruction files owns all supplement activation.
+Harness files hold provider mechanics; launcher files hold launcher-supplied
+facts and capabilities; model files hold behavior specific to that model.
+Do not repeat their loading conditions in the supplements or this clarification.
 
 `~/agents/topics/agent-instructions.md` and its `.evidence.md`
 ledger carry the reasoning behind these instructions and the
@@ -103,10 +79,7 @@ and read the governing chain for the named scope, or the root program when no
 scope is named. The duty
 binds to the repo being acted on, not the launch cwd; the harness
 injects nothing for a foreign repo, so these reads are the only way
-its rules load. Copy this list rather than recalling it — a
-mid-session entry has been observed probing `ls AGENTS.md CLAUDE.md
-GLOSSARY.md`, dropping `AGENTS.local.md`, then calling a request verb
-"ambiguous" that the unread file defined. An existence probe or a
+its rules load. An existence probe or a
 sliced excerpt does not satisfy the read; files already read this
 session are not re-read on later returns. Task files do not
 substitute for this. If a file is unreadable or a symlink is broken,

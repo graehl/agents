@@ -12,6 +12,13 @@ state.
 question neither a local branch nor a handoff answers: a branch can sit on
 a superseded revision, and a handoff is organized by work, not by review.
 
+In an activated project, this is the tracking surface for reviewed work,
+often associated with a ticket: review state, feedback, and what the next
+revision owes. `/reviews` refreshes and evaluates it; the remote review is
+authoritative. Gaps and handoffs need only link the review record rather than
+duplicate it. Gerrit is the established path. GitHub PR support is intended,
+but its live open-PR workflow remains untested; see Known limits below.
+
 ## Activation
 
 A project turns this on by naming `~/agents/REVIEWS.md` in its `AGENTS.md` or

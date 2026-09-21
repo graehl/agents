@@ -41,9 +41,7 @@ alone does not establish that a wake is armed for this job.
 
 Answer an interactive question, then re-enter the wait in the same turn.
 After compaction, re-verify job state and continue; compaction does not clear
-the obligation. A completed job still needs its result consumed. The motivating
-incident ended a turn with a queued training chain; after it finished, a GPU
-remained idle until the user returned ten hours later.
+the obligation. A completed job still needs its result consumed.
 
 For Codex running GPT-5.6 or later, the configured foreground ladder is
 `5 → 10 → 20 → 28 minutes`, replacing RUNS' 40- and 55-minute rungs. This is
@@ -61,6 +59,12 @@ older allowance for a passive 28-minute tool call. A printed command heartbeat
 alone does not establish model continuation. If the harness cannot yield back
 to the model while the observer lives, shorten the observer timeout accordingly,
 within the earned rung and any stricter tool limits.
+
+Foreground `agentctl` status output must also reach the harness at least every
+570 seconds, using its 540-second heartbeat for margin. Empty-output calls are
+not an established cache keepalive. Cache-policy evidence and uncertainty live
+in `agent-instructions.evidence.md`; neither heartbeat output nor an empty tool
+result establishes that a provider request reused the cached prefix.
 
 A tool's `yield_time_ms` controls one call's blocking interval; it does not set
 `agentctl wait --timeout`. Continue the same live terminal `session_id` with

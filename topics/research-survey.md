@@ -81,7 +81,7 @@
   preference: when an HTML view exists
   (`arxiv.org/html/<id>`, a blog page), derive the `.md` from it — cleaner and
   cheaper than PDF reconstruction; fall back to **marker-pdf**
-  (`AGENTS.global.md § PDF reading` + the `AGENTS.user.md` host recipe) only
+  (global § PDF reading; setup in `topics/pdf.md`) only
   for PDF-only papers. The committed understanding page remains the primary
   artifact reasoned and routinely traversed on; the committed full text is the
   source-faithful reference when its summary omits a needed detail. A completed

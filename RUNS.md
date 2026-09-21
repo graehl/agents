@@ -4,8 +4,9 @@ Load this routing index before using local accelerator resources, launching
 work with a nontrivial storage footprint, launching tracked work that produces
 important saved output, receiving or resuming a yielded live terminal/session
 handle from run work, or launching, monitoring, waiting for, or summarizing a
-long-running job. Read every packet whose observable condition matches the next
-action. A yielded live handle is an active foreground wait: unless new user
+long-running job. Follow every route matching the next action. Within a packet,
+its section index selects complete sections; do not load unrelated manual
+schemas or recovery procedures. A yielded live handle is an active foreground wait: unless new user
 steering interrupts it, consume only that handle until it returns a wake
 condition or timeout.
 
@@ -15,7 +16,7 @@ harness verifiably reconstructs this exact current packet in model context or
 a boot-loaded scoped supplement sets an evidence-backed cadence.
 
 This index owns routing and wins if a packet conflicts with it. The packets
-hold the binding rules, rationale, schemas, protocols, and examples for their
+hold the binding rules, schemas, protocols, and examples for their
 named scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 
 ## Packet routes

@@ -4,6 +4,10 @@ This is the always-loaded, binding global policy. Do not routinely load the
 slow-path packets under `AGENTS/`: they retain rationale, examples, and rare
 mechanics for matching named sections. This file wins on conflict.
 
+Global policy is injected through the canonical harness-boot symlink. Refer to
+its named sections when needed; never request a separate read or reread of
+`AGENTS.global.md`. Its source path remains the authoring and installation target.
+
 A routed file read before compaction is not thereby protected. After compaction
 or resume, obey this file's current read trigger at the next governed action
 boundary even if summarized history says the file was read earlier. Unless a
@@ -189,14 +193,28 @@ when present:
 
 - Codex: `AGENTS.codex.md`
 - Claude: `AGENTS.claude.md`
-- Copilot CLI or YA Copilot backend: `AGENTS.copilot.md`
+- Native Copilot CLI (`COPILOT_CLI=1`), or an explicitly identified
+  `AGENT_LAUNCH_BACKEND=copilot-api`: `AGENTS.copilot.md`. Only when the
+  canonical backend marker is absent, accept `YEP_COPILOT_API=1` as the
+  transitional trigger. A gateway session also loads its actual harness
+  supplement and applicable model supplements.
 - Grok/xAI: `AGENTS.grok.md`
-- DeepSeek: `AGENTS.deepseek.md`
+- DeepSeek model: `AGENTS.deepseek.md` and `AGENTS.weak.md`.
 
 Harness supplements own session ids/logs, skill paths, launcher quirks, and
-backend safeguards, and may route model supplements. Cross-provider policy
+backend safeguards. Cross-provider policy
 stays here. Report a missing/unreadable applicable supplement once and
 continue. Symlink and hardlink aliases to the same source route identically.
+
+Use the recorded model identity recovered by the harness supplement, never
+self-report, for these model routes. A surfaced `AGENTS.weak.md`, a DeepSeek
+model, a haiku-class model in Claude, or a pre-GPT-5.5 model in Codex selects
+`AGENTS.weak.md` and excludes `AGENTS.frontier.md`. Otherwise Claude sessions
+and Codex sessions on GPT-5.5 or above load `AGENTS.frontier.md`. An id
+containing `claude` also loads `AGENTS.anthropic.md`; `opus` also loads
+`AGENTS.opus.md`; a `sol` model-family segment loads `AGENTS.sol.md`, across
+harnesses. These supplements contain their applicable guidance, not duplicate
+activation rules.
 
 Also read the launcher supplement named by `AGENT_LAUNCHER` when one exists —
 currently `yepanywhere` → `AGENTS.ya.md`. A launcher supplement owns the
@@ -296,7 +314,7 @@ layout; existing authoring rules still decide where new work belongs.
 ## Optional supplements
 
 Resolve triggered companions at repo root first, then `~/agents/`. Report a
-missing one once and continue. Re-read the binding main at the governed action
+missing one once and continue. Re-read the triggered companion at the governed action
 boundary after compaction/resume unless the harness verifiably reconstructs
 that exact current packet or a boot-loaded scoped supplement explicitly sets an
 evidence-backed cadence; summarized recollection is insufficient.
@@ -650,6 +668,13 @@ belongs in a handoff, not a gap. Fix an adjacent issue immediately only when
 cheap, in scope, and as its own commit. When entering an area, inspect
 relevant entries in its enclosing scopes' existing `gaps/` directories.
 Format, granularity, and lifecycle: root `gaps/README.md`.
+
+Use the owning scope's `gaps/sketches/<slug>.md` for intended future
+implementation that is not a bug or a violation of a reasonable reading of
+existing topic contracts. When the user says “open a gap,” use judgment to
+choose a gap or sketch from that intent; do not invent a defect to justify
+the wording. Topic-specific design alternatives may remain in the owning
+`.sketches.md` companion; link instead of duplicating them.
 
 ## Ideal coding
 
