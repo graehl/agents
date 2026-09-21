@@ -15,5 +15,7 @@
     { "to": "tests/notes.test.ts", "from": "files/notes.test.ts" },
     { "to": "tests/browser/page.spec.ts", "from": "files/page.spec.ts" }
   ],
-  "overrides": []
+  "overrides": [
+    { "op": "append", "to": "README.md", "from": "files/README-writing.md" }
+  ]
 }

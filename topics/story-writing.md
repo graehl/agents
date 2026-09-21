@@ -499,7 +499,13 @@ vocabulary is for the agent's diagnosis, not for the writer's homework.
    way? Where does it happen? How should it feel at the end (happy, sad,
    scary, funny)? Five questions, then stop asking.
 2. **Reflect a logline or spine** in their words and ask if it is right.
-   Offer two alternatives if they hesitate.
+   If they hesitate, riff: four independent alternatives from the same
+   brief, each seeded differently, labeled A to D with a one-line
+   description, plus a recommendation. They pick or name what to combine.
+   Where a `riff` skill is available, use it; otherwise do it by hand and
+   say the four share one context. This is the default way to propose at
+   every creative choice point below: the opening, a character's voice, the
+   ending, a title.
 3. **Write a short version first.** A page or a spine-length telling. Read it
    back. Ask what is the best part and what is boring. Their answers set the
    plan.

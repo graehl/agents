@@ -8,4 +8,7 @@ portfolio needs none of the story material. Content is all-ages by default:
 no sexual content, romance at general-audience-film level, violence only as
 the genre needs; the author sets a different bar explicitly, never the agent.
 With a new or young writer, interview briefly, draft a short version to the
-end first, keep their ideas and voice, and grow from what excites them.
+end first, keep their ideas and voice, and grow from what excites them. At a
+creative choice point (logline, opening, a character's voice, an ending, a
+page design), the default way to propose is `.agents/skills/riff/SKILL.md`:
+four independent alternatives, a recommendation, and the author's pick.
