@@ -52,6 +52,13 @@ read-only discovery target. Read existing `docs/plans/` and `docs/topics/`
 where relevant, but do not start writing, migrating or creating artifacts in
 that convention based on this gap. Its actual adoption needs a later decision.
 
+The interim discovery mechanism now lives in `AGENTS.global.md` under
+First-run maintainer document discovery: a foreign repository lacking
+`AGENTS.local.md` gets a private, Git-excluded table of its actual conventions
+and an additive read-search instruction. YA's existing local instructions
+received that table by explicit request. This addresses discovery, not the
+remaining choice of shared authoring conventions or template directory defaults.
+
 Before choosing default template locations or shipping empty topic/plan
 directories, record the agreed mapping and identify any policy/helper changes.
 The user prefers instructions naming default paths, with directories created
