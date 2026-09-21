@@ -39,6 +39,47 @@ not a substitute when the claim is a curve shape, crossing, distribution, or
 dominance relation; a graph is not a substitute when readers need exact
 point values.
 
+## Layout, labels, and explanatory notes
+
+Prefer established diagram formats and layout libraries for engineering
+diagrams and hierarchies before writing a custom visualizer, as with standard
+plots. Reuse the project's competent SVG-capable stack; a library still needs
+output inspection and does not guarantee good label placement.
+
+Compute text bounds and spacing where possible, then allow optical adjustments
+to reach a balanced result. Grow a label's container, including its cluster
+parent, before forcing severe curvature or shrinking text into illegibility.
+Check complete text rectangles against shapes and other text. Use gentle curved
+labels only where they improve fit. In nested packing, aim for comparable
+sibling and parent clearances; an invisible caption region may occupy spare
+space without suggesting an extra category.
+
+Keep spatially specific labels attached to the marks they explain. General
+explanation is out of band: place it in the document caption or a separate,
+visually distinct note box that the document/container can style. Reserve its
+space during layout; do not scatter explanatory prose through the geometry
+or make its container resemble a semantic node. Keep manuscript captions
+document-owned; a standalone figure may carry a boxed explanatory legend.
+
+Prefer direct spatial labels over prose that makes readers look back and
+forth to identify marks. A strong visualization should need little general
+explanation. In an embedded figure, place that explanation in the document
+frame, where the document styles its caption or note region.
+
+Coordinate font family, weight, color, and scale between figure labels and
+document captions through a shared style definition where the renderer allows
+it. External SVG images do not inherit page CSS: pass the same typography to
+their generator, or use appropriately scoped inline SVG styles. Preserve font
+availability or embed the font for portable output, and recheck text bounds
+after font changes. Outlined glyphs preserve appearance but cannot be restyled
+as text by CSS.
+
+Crop standalone figures to their content with comfortable margins. Do not
+inherit a page aspect ratio without a layout requirement. Judge legibility at
+the actual on-screen display width, including the embedded document view;
+vector output, high print DPI, or the ability to zoom does not establish that
+the initial display is readable. Verify print separately when required.
+
 ## Quarto-native vocabulary
 
 The syntax below follows Quarto's current documentation for
