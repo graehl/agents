@@ -1,8 +1,9 @@
 # Random-string creativity — research proposal
 
 Proposal, 2026-09-21; user-directed preservation of an experiment to perform.
-**Unrun and unscheduled.** This records the idea, not an effectiveness claim,
-an installed `/riff` skill, or authorization to launch experiments.
+**Experiments unrun and unscheduled.** This records the research questions, not
+an effectiveness claim or authorization to launch experiments. The related
+`/riff` skill is a usable workflow, separate from experimental validation.
 Contributing-model: 6-Astra.
 
 ## The interesting question
@@ -85,6 +86,24 @@ task-conditioned versus task-blind string generation, and an extra-planning
 control without a string, before attributing gains to randomness itself.
 
 ## How does context shape model-generated random text?
+
+An additional research question is whether model-generated strings already
+exhibit appreciable conditional entropy under a fixed prompt, and whether
+explicitly referring to their patterns amplifies their downstream influence.
+Keep the prompt and accessible generation settings fixed across repeats; record
+unknown deployment settings rather than assuming deterministic decoding or
+claiming an estimate of the entire string distribution from a few samples.
+
+Compare no string, a supplied string without an instruction to interpret it,
+and the same supplied string with explicit pattern interpretation. Reuse strings
+across conditions and include repeated interpretation of one fixed string.
+Measure string variation separately from useful semantic diversity in artifacts.
+This distinguishes variation already present in the generated stimulus from
+the effect of attending to it, against ordinary interpreter sampling variation.
+Here "amplify" means making stimulus differences more consequential or useful;
+a deterministic mapping cannot create additional Shannon entropy, and an
+interpreter may introduce its own sampling entropy. A creative improvement need
+not increase raw output entropy.
 
 The user also wants to examine the strings themselves: how does nominally
 "random" text, generated without tools, depend on the preceding context?
@@ -260,11 +279,14 @@ different interventions. This sketch makes no new replication claim.
 
 ## Possible user-facing tool
 
-A future portable `/riff [request]` could apply the same template four times,
-then present alternatives and refine the user's favorite. With no argument it
-would recover the most recent creative request and its constraints; an explicit
-argument supplies a new request. The string-source default remains undecided
-pending the contrast above. A usable fun tool need not imply validated gains.
+The portable [`/riff [request]` skill](../../skills/riff/SKILL.md) applies the
+same template four times, presents alternatives, and refines the user's
+favorite after selection. With no argument it recovers the most recent creative
+request and its constraints; an explicit argument supplies a new request.
+Its initial default is shell-generated strings, preserving the originally
+agreed recipe; an explicit request can select tool-free model generation.
+This operational choice does not settle the source comparison or imply
+validated gains. The research experiments remain unrun and unscheduled.
 
 A YA-specific wrapper could capture a selected original prompt, rewind before
 that request, and send `/riff <original request>` so the coordinator also avoids
