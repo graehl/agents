@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { notes, filterNotes } from "../src/notes.ts";
+import { notes, filterNotes } from "../notes.ts";
 
 test("search combines words and category, preserves content and handles empty results", () => {
   assert.equal(filterNotes(notes, "", "all").length, 3);

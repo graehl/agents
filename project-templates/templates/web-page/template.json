@@ -9,11 +9,11 @@
   "files": [
     { "to": "AGENTS.md", "from": "instructions.md" },
     { "to": "index.html", "from": "files/index.html" },
-    { "to": "src/main.ts", "from": "files/main.ts" },
-    { "to": "src/notes.ts", "from": "files/notes.ts" },
-    { "to": "src/style.css", "from": "files/style.css" },
-    { "to": "test/notes.test.ts", "from": "files/notes.test.ts" },
-    { "to": "test/browser/page.spec.ts", "from": "files/page.spec.ts" }
+    { "to": "main.ts", "from": "files/main.ts" },
+    { "to": "notes.ts", "from": "files/notes.ts" },
+    { "to": "style.css", "from": "files/style.css" },
+    { "to": "tests/notes.test.ts", "from": "files/notes.test.ts" },
+    { "to": "tests/browser/page.spec.ts", "from": "files/page.spec.ts" }
   ],
   "overrides": []
 }

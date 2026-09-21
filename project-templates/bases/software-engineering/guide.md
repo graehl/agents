@@ -6,6 +6,13 @@ Use domain names consistently, keep one-use helpers local, and split at a real
 behavior boundary. Prefer conventional code and the existing toolchain over a
 new abstraction or dependency without a demonstrated need.
 
+Follow an existing project layout. For a new small project, prefer application
+files at the root rather than a compulsory `src/` wrapper; use meaningful
+domain directories when they earn their place. Put tests in `tests/` and
+maintained helper scripts in `scripts/` when those artifacts exist. Create
+directories with their first useful file, not empty placeholders for possible
+future work. Keep generated output separate from maintained source.
+
 Validate external inputs at the boundary and fail clearly when required state
 is absent. Do not swallow exceptions or silently substitute defaults to make a
 broken path appear successful. Preserve public formats and callers, or identify

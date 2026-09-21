@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canvasPoint } from "../src/drawing.ts";
+import { canvasPoint } from "../drawing.ts";
 
 test("a stroke retains its relative position when the canvas resizes", () => {
   assert.deepEqual(canvasPoint(50, 25, 200, 100), canvasPoint(100, 50, 400, 200));

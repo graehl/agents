@@ -9,10 +9,10 @@
   "files": [
     { "to": "AGENTS.md", "from": "instructions.md" },
     { "to": "instructions/canvas.md", "from": "guide.md" },
-    { "to": "src/main.ts", "from": "files/main.ts" },
-    { "to": "src/drawing.ts", "from": "files/drawing.ts" },
-    { "to": "src/style.css", "from": "files/style.css" },
-    { "to": "test/drawing.test.ts", "from": "files/drawing.test.ts" },
+    { "to": "main.ts", "from": "files/main.ts" },
+    { "to": "drawing.ts", "from": "files/drawing.ts" },
+    { "to": "style.css", "from": "files/style.css" },
+    { "to": "tests/drawing.test.ts", "from": "files/drawing.test.ts" },
     { "to": "index.html", "from": "files/index.html" },
     { "to": "public/icon.svg", "from": "files/icon.svg" },
     {

@@ -9,6 +9,6 @@ semantic HTML and CSS for content and layout; preserve native links, labels,
 keyboard access and responsive flow as the page changes. Add a canvas only
 when the requested interaction needs one.
 
-`src/notes.ts` owns the initial content/filtering; `src/main.ts` connects it to
+`notes.ts` owns the initial content/filtering; `main.ts` connects it to
 the page. Replace this sample structure to suit the project intent rather than
 treating its cards or categories as required product features.

@@ -6,9 +6,12 @@ credentials, publishing, or destroying unrelated work. Preserve existing user
 changes and report a concrete conflict before overwriting them.
 
 Keep project documentation aligned with implemented behavior in the same change.
-Update command examples when commands change. Revise the README's first prose
-paragraph when the purpose or user-visible scope changes: it is also the project
-description shown by YA. Distinguish working features from plans. Customize
+Before revising a project name or description, read `.project-identity.json`
+when present and preserve its human text exactly; only the description's agent
+coda may change. Use `.agents/skills/redoc/SKILL.md` when purpose, user-visible
+scope or commands change: it maintains the README, descriptive manifest fields
+and the project's SVG thumbnail. Initial creation intent is not human-edit
+protection. Distinguish working features from plans. Customize
 these instructions when the project gains a durable convention; remove stale
 directions rather than accumulating contradictory exceptions.
 

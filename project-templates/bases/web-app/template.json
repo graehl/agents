@@ -15,7 +15,7 @@
     { "to": ".prettierignore", "from": "files/prettierignore" },
     { "to": "vite.config.ts", "from": "files/vite.config.ts" },
     { "to": "playwright.config.ts", "from": "files/playwright.config.ts" },
-    { "to": "test/server.test.mjs", "from": "files/server.test.mjs" },
+    { "to": "tests/server.test.mjs", "from": "files/server.test.mjs" },
     { "to": "README.md", "from": "files/README.md" },
     { "to": "instructions/run-deploy.md", "from": "files/run-deploy.md" },
     { "to": ".project-template/PREPARE.md", "from": "files/PREPARE.md" },
