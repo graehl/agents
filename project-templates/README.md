@@ -1,11 +1,12 @@
 # Project templates
 
 A composable inventory for standing up projects and supplying portable agent
-instructions, beginning with a TypeScript App canvas and an optional server.
+instructions, with TypeScript App canvas and content-led Web page starters,
+each carrying an optional server.
 
 **Status: runnable authoring version; YA integration remains unimplemented.**
-The library has a local validator/materializer, seven capability bases, a
-scripted App canvas, and a vendored server add-on. Manifests remain `draft`
+The library has a local validator/materializer, shared capability bases, two
+scripted starters, and a vendored server add-on. Manifests remain `draft`
 pending the instruction review tracked in the
 [first program gap](gaps/portable-capability-bases.md); the authoring CLI's
 explicit `--allow-draft` permits testing them. The wholesale boot reference is
@@ -25,6 +26,7 @@ project-templates/
     testing/                       behavioral verification
     typescript/                    language guidance and compiler settings
     web-ui/                        responsive UI and browser verification
+    web-app/                       shared Vite setup, preview and preparation
     canvas/                        drawing app and Canvas2D conventions
     server/                        inactive, vendored backend add-on
     legacy-boot/
@@ -32,7 +34,8 @@ project-templates/
   templates/
     app-canvas/
       template.json                selected bases and app-specific files
-      files/                       pinned tooling, scripts, and preparation
+      files/                       canvas-specific browser checks
+    web-page/                      content-led DOM starter and behavior checks
   composition.py                   local source validation and file union
   project-template.py              acli authoring entry point
   gaps/
@@ -84,6 +87,19 @@ project to a particular game. Static hosting is the default; the server base
 vendors an optional capability without running it. No publication target is
 preconfigured. See the vendored `instructions/run-deploy.md` for deployment.
 
+**Web page** (`web-page`) is a content-led DOM page for documents, stories and
+collections. Its starter has searchable/filterable cards and responsive layout;
+it does not inherit canvas instructions. Interactivity and multimedia remain
+available when they serve the reader. Both templates inherit `web-app` for
+their tooling and setup, and can activate the same vendored server later.
+Use `--template web-page` in the authoring commands to create one.
+
+Optional writing/worldbuilding guidance and concise GitHub Pages/account/domain
+onboarding are tracked in the
+[content-authoring capability gap](gaps/content-authoring-capabilities.md).
+Static publishing should default to a host-provided URL; a custom domain is
+optional. That publishing capability is shared by both kinds of project.
+
 ## Approved delivery sequence
 
 1. Commit the representation, charter, first gap, and runnable template content
@@ -93,8 +109,9 @@ preconfigured. See the vendored `instructions/run-deploy.md` for deployment.
    YA integration, resolving the instruction gap
    before a template is offered for project creation.
 
-The next boundary is mockup work. The initial app is static Vite + TypeScript
-with Canvas2D, with an optional server add-on vendored for later application.
+YA mockups are under review; its topics and gaps now track the product contract.
+Both starters are static Vite + TypeScript, with an optional server add-on
+vendored for later application.
 Creation should expose the deterministic starter as soon as feasible, then
 automatically send a verify/prepare turn containing the UI-entered intent.
 Preparation customizes `AGENTS.md`, writes a useful README lede, verifies

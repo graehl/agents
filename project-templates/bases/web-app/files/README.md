@@ -1,7 +1,6 @@
-# App canvas
+# Web app
 
-A small drawing canvas ready to become your app. Choose an ink color, draw with
-a pointer or touch, and use Undo or Clear; sketches last until the page reloads.
+A working static web app starter, ready for your project description and ideas.
 
 ## Develop and verify
 

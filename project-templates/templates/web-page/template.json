@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1,
+  "kind": "template",
+  "status": "draft",
+  "id": "web-page",
+  "title": "Web page",
+  "description": "A responsive page for an idea, story or collection, with a server to add later.",
+  "extends": ["web-app"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "index.html", "from": "files/index.html" },
+    { "to": "src/main.ts", "from": "files/main.ts" },
+    { "to": "src/notes.ts", "from": "files/notes.ts" },
+    { "to": "src/style.css", "from": "files/style.css" },
+    { "to": "test/notes.test.ts", "from": "files/notes.test.ts" },
+    { "to": "test/browser/page.spec.ts", "from": "files/page.spec.ts" }
+  ],
+  "overrides": []
+}

@@ -7,8 +7,9 @@
     "testing",
     "typescript",
     "web-ui",
+    "web-app",
     "canvas",
     "server"
   ],
-  "templates": ["app-canvas"]
+  "templates": ["app-canvas", "web-page"]
 }
