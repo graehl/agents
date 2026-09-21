@@ -31,9 +31,10 @@ creation-time selection. An instantiated project vendors the relevant files,
 including supported later additions, and works independently of this source
 checkout, its symlinks, and YA's continued availability.
 
-The content starts in this repository's `project-templates/` directory and is
-designed to move into a standalone Git repository. YA can consume a pinned
-default through a submodule and opt into GitHub or local sources with a
-configured relative content root and supplementary libraries. This program
+This repository's `project-templates/` directory is the YA-default library.
+YA retrieves a configured GitHub revision into private application data and
+can layer additional sources that reuse these bases. Source repository,
+content root and revision are overridable; a future vendored YA copy is an
+option, not a requirement for a separate repository or submodule. This program
 owns the reusable content and composition contract; YA owns project creation
 UI, authorization, source admission, App-pane delivery, and session dispatch.
