@@ -47,6 +47,13 @@ tree and symlink contents, not the consumer's host filesystem. Validate again
 when reading a mutable local source for creation. Draft files are validated
 too; draft status is not permission for dangling source references.
 
+YA reads local directories directly, without copying or rewriting their files.
+If a local directory belongs to a Git worktree, that worktree is its source
+boundary and its HEAD is informational provenance. Otherwise the selected
+directory is the boundary and there is no commit SHA. Every manual update
+revalidates local files; an unchanged HEAD does not imply unchanged working
+content. GitHub and local directories may both be supplementary overlays.
+
 YA combines an ordered list of sources: later base or template definitions
 replace earlier definitions with the same ID, without changing their kind.
 Base IDs in `extends` resolve in that combined inventory, so community

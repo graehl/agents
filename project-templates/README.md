@@ -16,28 +16,38 @@ using its `project-templates` directory. It contains **App canvas**, **Web
 page** and **Storybook**. It is the default library for this system; a separate
 repository or future vendored copy is not required to use its bases.
 
-**Current delivery:** Source retrieval and the settings described below are
-being integrated into YA. Creating and preparing projects through YA is also
-still being integrated. Draft
+**Current delivery:** YA's source settings retrieve and validate libraries.
+Creating and preparing projects through YA is still being integrated. Draft
 templates can be inspected but are not approved for project creation. The
 default templates remain draft until their content review is complete.
 
 ## Add a source in YA
 
 Open **Settings → Project templates**, enable templates, and choose
-**Fetch / update**. The default repository and directory are already filled
-in. Each source has a repository URL, an optional subdirectory and a revision:
+**Fetch / update**. The **GitHub or local dir** field starts with
+`https://github.com/graehl/agents/project-templates`. Put a GitHub directory
+path directly after the repository URL; there is no separate subdirectory field.
+GitHub sources also have a revision:
 
-- Leave the subdirectory empty when `library.json` is at the repository root.
+- Use just the repository URL when `library.json` is at its root.
 - Use `HEAD` to fetch the repository's default branch tip when you update.
 - Use a branch, tag or full commit SHA to select a particular version. A full
   commit SHA makes a shared example reproducible.
 
-YA displays the commit SHA it actually fetched. Updating checks the selected
-revision and reports **Already up to date** if it has not changed. **Update
-from default branch** selects `HEAD` for that source. There is no automatic
-background update or automatic check when opening the template chooser.
+For GitHub sources, YA displays the commit SHA it actually fetched. Updating
+checks the selected revision and reports **Already up to date** if it has not
+changed. **Update from default branch** selects `HEAD` for that source.
+There is no automatic background update or automatic check when opening the
+template chooser.
 While templates are disabled, Save records your settings without downloading.
+
+For local work, enter an absolute directory or a path such as
+`~/community/project-templates`. YA uses its files directly, without copying
+or rewriting them. If it belongs to a Git repository, YA shows that repository's
+HEAD and permits file references within that repository. Otherwise the chosen
+directory is the source boundary. Git HEAD is provenance, not a fingerprint of
+uncommitted files: Update always revalidates local sources. A local directory
+can be a primary source or a supplementary overlay, just like a GitHub directory.
 
 Use **Add source** for your own or a community library. Keep the YA-default
 source in the list if your templates use its bases. Later sources replace
@@ -135,8 +145,9 @@ and inconsistent base ordering are validation errors.
 
 ## Keep content portable and suitable
 
-Prefer relative source references. YA also relocates explicit `~/repository`
-references, such as `~/agents/topics/...`, into its private retrieved content.
+Prefer relative source references. In retrieved GitHub content, YA also
+relocates explicit `~/repository` references, such as `~/agents/topics/...`,
+to the configured source directories. Local content is not rewritten.
 Those aliases refer to the configured repositories, not a user's home folder.
 Give repositories distinct names when using these aliases; with repeated
 names, the later configured source supplies the alias.
@@ -186,12 +197,13 @@ logs for inspection. In the generated project, `npm run preview` serves the
 starter, and `npm run server:add` installs the included optional backend.
 
 The tools document their other commands with `project-template.py --help`;
-they validate one self-contained library. Use YA's combined-source validation for a community library that
-depends on bases from another source. The detailed manifest reference is
-[FORMAT.md](https://github.com/graehl/agents/blob/master/project-templates/FORMAT.md).
+they validate one self-contained library. Use YA's combined-source validation
+for a community library that depends on bases from another source. See
+[FORMAT.md](https://github.com/graehl/agents/blob/master/project-templates/FORMAT.md)
+for the detailed manifest reference.
 
-Share your repository URL, subdirectory, tested revision and required source
-order. Include the tested YA-default commit when your template relies on its
+Share your GitHub directory URL, tested revision and required source order.
+Include the tested YA-default commit when your template relies on its
 bases. This lets another person reproduce your starter instead of guessing
 which changing branch version you used.
 
