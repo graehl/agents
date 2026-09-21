@@ -16,6 +16,11 @@
     { "to": "tests/browser/page.spec.ts", "from": "files/page.spec.ts" }
   ],
   "overrides": [
-    { "op": "append", "to": "README.md", "from": "files/README-writing.md" }
+    { "op": "append", "to": "README.md", "from": "files/README-writing.md" },
+    {
+      "op": "append",
+      "to": ".project-template/PREPARE.md",
+      "from": "files/PREPARE-writing.md"
+    }
   ]
 }

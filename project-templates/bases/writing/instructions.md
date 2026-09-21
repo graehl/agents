@@ -2,13 +2,25 @@ Before drafting or revising prose for a reader (essay, explainer, page copy,
 report, story prose), read `instructions/writing.md`. Before planning,
 drafting, or revising a story, screenplay, interactive fiction, character, or
 world, also read `instructions/story-writing.md`; before creating or moving a
-story's files, read `instructions/story-project-layout.md` and copy its
-fill-in sheets from `instructions/story-starters/`. A factual page or a
-portfolio needs none of the story material. Content is all-ages by default:
-no sexual content, romance at general-audience-film level, violence only as
-the genre needs; the author sets a different bar explicitly, never the agent.
-With a new or young writer, interview briefly, draft a short version to the
-end first, keep their ideas and voice, and grow from what excites them. At a
-creative choice point (logline, opening, a character's voice, an ending, a
-page design), the default way to propose is `.agents/skills/riff/SKILL.md`:
-four independent alternatives, a recommendation, and the author's pick.
+story's files, read `instructions/story-project-layout.md`. Fill-in sheets
+are under `instructions/writing-starters/`. A factual page or a portfolio
+needs none of the story material.
+
+Two project-root records, used whenever present and never invented without
+the author: `prose-style.md` (voice, register, conventions) and
+`illustration-style.md` (whether images are wanted, medium, palette, mood,
+recurring subjects). On the first writing or page task, if either is absent,
+ask: what should the prose sound like, and are illustrations wanted, and in
+what style? Offer a riff of concrete alternatives rather than an open
+question, record the answers by copying and filling the matching starter,
+then read the record before every later draft or image. No
+`illustration-style.md` means no images are added unasked.
+
+Content is all-ages by default: no sexual content, romance at
+general-audience-film level, violence only as the genre needs; the author
+sets a different bar explicitly, never the agent. With a new or young writer,
+interview briefly, draft a short version to the end first, keep their ideas
+and voice, and grow from what excites them. At a creative choice point
+(logline, opening, a character's voice, an ending, a page or illustration
+look), the default way to propose is `.agents/skills/riff/SKILL.md`: four
+independent alternatives, a recommendation, and the author's pick.

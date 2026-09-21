@@ -40,7 +40,9 @@ relative to that root.
 
 ```text
 README.md            premise, logline, genre, audience, target length, status
-STYLE.md             style sheet: point of view, tense, spelling, names, rules
+prose-style.md       voice, register, point of view, tense, spelling, names
+illustration-style.md  whether images are wanted, medium, palette, mood,
+                       recurring subjects; absent means no images unasked
 setting/
   README.md          index of places and systems; the world's few hard rules
   <place-or-system>.md   one sheet per location, faction, institution, magic
@@ -65,14 +67,20 @@ lists the edges (`from → choice → to`) and the state each choice reads or
 sets.
 
 A collection of short stories uses `stories/<slug>.md`, each with a short
-premise header, and shares `STYLE.md` and, when characters or a world recur,
+premise header, and shares `prose-style.md` and, when characters or a world recur,
 the same `personae/` and `setting/`.
 
 ## Sheets
 
 Vendored projects carry fill-in starters for each sheet under
-`instructions/story-starters/`; copy one to its home and fill it in. The
-headings, and what each is for:
+`instructions/writing-starters/`; copy one to its home and fill it in. The
+two style records live at the project root even when the story sits under
+`story/`, because a page and its story share one voice and one look; a
+project with several unrelated works may keep per-work copies beside each
+work's README, and the nearest one wins. Both are set with the author, not
+inferred: ask what the prose should sound like and whether illustrations are
+wanted and in what style, offering concrete alternatives, and record the
+answers. The headings, and what each is for:
 
 **README.md (premise):** title; logline (one sentence: when, who, must, or
 else, but); premise (Egri's causal sentence); genre and audience; target
@@ -80,11 +88,29 @@ length and form; point of view in one line; the ending in one line (written
 down early, changeable later); status table: acts or chapters with
 planned/drafted/revised.
 
-**STYLE.md:** point of view and tense; spelling and punctuation conventions
-(dialogue quotes, numbers, capitalization of invented terms); a names list
-with pronunciation for invented names; words and habits the narrator uses or
-avoids; tone in three adjectives; content bar for this project (the default
-is all ages; see `story-writing`).
+**prose-style.md:** voice in three words; register and reading level; point
+of view and tense; spelling and punctuation conventions (dialogue quotes,
+numbers, capitalization of invented terms); a names list with pronunciation
+for invented names; words and habits the narrator uses or avoids; content bar
+for this project (the default is all ages; see `story-writing`).
+
+**illustration-style.md:** whether illustrations are wanted and how many
+(none, a cover, one per chapter, as needed); medium; palette; line and shape;
+mood in three words; the author's reference points, used as inspiration and
+not as a living artist's signature style to copy; file format and where
+images go; how images are made; a table of recurring subjects with the
+details that must stay consistent; what is not wanted. Every placed image
+gets alt text. When the file is absent, the project has no illustrations and
+the agent asks before adding any.
+
+How images are made is recorded so every image is produced the same way.
+Prefer, in order, whatever is actually available in the session: a
+purpose-built illustration model that accepts text context, fed the scene,
+the relevant character and setting sheets, and the style record; the
+harness's native image generation with the same context in its prompt; and
+last, SVG drawn by the agent, which suits flat and line styles and stays
+editable. Do not claim a generator is available without checking; record the
+tool and the prompt template in the style file once it is chosen.
 
 **personae/<character>.md:** name and any aliases; role (protagonist,
 antagonist, ally, foil); one-line summary; want; need; the lie they believe;

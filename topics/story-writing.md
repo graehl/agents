@@ -385,7 +385,7 @@ Choose once and hold it.
 - **Past tense** is the default and invisible; **present tense** feels
   immediate and is common in screenplays and some young-adult fiction.
 
-Record the choice in the style sheet. A point-of-view slip (a scene in Ana's
+Record the choice in `prose-style.md`. A point-of-view slip (a scene in Ana's
 head that reports what Ben is thinking) is the most common continuity error
 in drafts.
 

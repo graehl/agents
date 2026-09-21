@@ -4,7 +4,10 @@
 This project carries writing guidance under `instructions/`: prose craft,
 story and world-building craft, and a story project layout with fill-in
 sheets. Your agent reads them when the task is writing; a factual page needs
-none of it.
+none of it. Two small files at the project root, once you have answered the
+agent's questions, keep the voice and the look consistent: `prose-style.md`
+(how the writing should sound) and `illustration-style.md` (whether you want
+pictures, and what kind). Change them and the agent follows.
 
 When you face a creative choice (a title, an opening, a character, a page
 look), ask for a **riff**: four independent alternatives, a recommendation,
