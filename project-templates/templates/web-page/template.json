@@ -5,7 +5,7 @@
   "id": "web-page",
   "title": "Web page",
   "description": "A responsive page for an idea, story or collection, with a server to add later.",
-  "extends": ["web-app"],
+  "extends": ["web-app", "writing"],
   "files": [
     { "to": "AGENTS.md", "from": "instructions.md" },
     { "to": "index.html", "from": "files/index.html" },

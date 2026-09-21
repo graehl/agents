@@ -78,5 +78,16 @@ repository/domain, including a subpath-hosted Canvas app. The done condition
 is a reachable intended site plus usable repeat-publication instructions,
 not just a successful build or a guessed vendor UI path.
 
-No writing-base implementation is claimed here. Opened during YA template
-mockup review at the user's request. Contributing-model: 6-Astra.
+Opened during YA template mockup review at the user's request.
+Contributing-model: 6-Astra.
+
+**2026-09-21 status:** the `writing` base now exists and Web page extends it.
+It vendors `topics/writing.md`, `topics/story-writing.md` (structure models,
+character, scene, dialogue, world-building, and the Booker/Tobias/Polti/
+Vonnegut plot catalogs), `topics/story-project-layout.md`, and fill-in sheets
+under `instructions/story-starters/`, with a conditional root route and an
+all-ages content default. Composition validates and the web-page inspection
+lists the vendored paths. Still open: skill-form authoring workflows and
+their discovery verification, the closure review across a plain page, a
+multipage reference and an interactive story, and the static-publication
+onboarding below. Contributing-model: fable-5.1.

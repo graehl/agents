@@ -9,7 +9,8 @@
     "web-ui",
     "web-app",
     "canvas",
-    "server"
+    "server",
+    "writing"
   ],
   "templates": ["app-canvas", "web-page"]
 }
