@@ -51,6 +51,8 @@ Read the range's commit messages before reviewing (`git --no-pager log --no-ext-
 
 Coverage is the deliverable (`design-thinking.md` § An audit is scoped by its target): review the whole resolved range, never a self-chosen high-risk subset declared done. When the range is too large to reason about comfortably in one context, a serial fold is *mandatory* (§ Review records and serial fold) — chunk it in commit order and carry findings forward, do not trim; a range that fits comfortably needs no fold ceremony. Either way deliver the whole range, or stop explicitly with a named coverage gap the next review resumes.
 
+IT IS FORBIDDEN TO REVIEW VERSION RANGE CHUNKS BY INDEPENDENT FAN-OUT - a SERIAL FOLD (left) - a binary operation repeated for the N chunks means the previous chunk's review verdict chunk is a MANDATORY INPUT of the work on the next chunk (clearly labeled as already completed) for context. Of course, fresh context other than this *is* encouraged for ranges worth splitting (subagents run one at a time - serially).
+
 Output invariant: never propose a fix already present at the review's end state (HEAD, for the usual review that ends there). A bug introduced in one in-range commit and resolved by a later one needs no remediation — proposing one duplicates a landed fix, leaving two green fixes for one invariant that the next reader can't untangle. Judge resolution once, at delivery, over the collected findings — not per commit as you go, since the fix may sit in a commit you haven't reached and guessing HEAD-state mid-review is unreliable. If the review's end `B` is behind HEAD (a historical range, or HEAD moved during a long review), scan `git diff B..HEAD` over the still-open findings to drop any already landed — reading those commits only to suppress landed fixes, not reviewing them. Reason about in-between states freely and use them: a fix that is incomplete or right only by accident is still worth flagging, as harden/make-deliberate — a different deliverable than re-fixing, so the invariant holds.
 
 ## Review marker
@@ -61,7 +63,7 @@ On delivering a review, advance the marker to the end actually covered whenever 
 
 ## Review records and serial fold
 
-Every non-empty review persists the same left-fold. A range too large to reason about comfortably in one context must be chunked in commit order; the discomfort is the trigger, not a line count. A smaller range may complete in one pass, but still writes its working record instead of leaving the review only in session context.
+Every non-empty review persists the same left-fold. A range too large to reason about comfortably in one context must be chunked in commit order; the discomfort is the trigger, not a line count. A smaller range may complete in one pass, but still writes its working record instead of leaving the review only in session context. Large binary, image, or other non-code/non-instruction/non-doc resources e.g. reference inputs/outputs should be examined on a small-sample basis; code changes or additions, design/user doc text, commit message are to be read in full. When already left-fold, favor many small pieces (grouped by apparent relatedness/topic of consecutive commit subjects) for efficiency *and* accuracy - if a chunk is too large, it will complete slower and will suffer compaction.
 
 ### Advisory range claim
 
