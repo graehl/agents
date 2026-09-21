@@ -1,79 +1,174 @@
-# Project templates
+# Create and share project templates for YA
 
-A composable inventory for standing up projects and supplying portable agent
-instructions, with TypeScript App canvas and content-led Web page starters,
-each carrying an optional server.
+> A guide to making reusable project starters, extending YA-default bases,
+> and sharing a template source with other YA users.
 
-**Status: runnable authoring version; YA integration remains unimplemented.**
-The library has a local validator/materializer, shared capability bases, two
-scripted starters, and a vendored server add-on. Manifests remain `draft`
-pending the instruction review tracked in the
-[first program gap](gaps/portable-capability-bases.md); the authoring CLI's
-explicit `--allow-draft` permits testing them. The wholesale boot reference is
-retained separately as `legacy-boot` and is not inherited by App canvas.
+Topic: project-template-authoring
 
-## Layout
+A template gives a new project its starting files, instructions and tools.
+A **base** is a reusable part of that starter, such as web tooling, testing
+guidance or a canvas app. Your template can combine several bases and add its
+own files, so you do not need to copy the YA-default library to make a new
+starter.
+
+The YA-default source is [graehl/agents](https://github.com/graehl/agents),
+using its `project-templates` directory. It contains **App canvas**, **Web
+page** and **Storybook**. It is the default library for this system; a separate
+repository or future vendored copy is not required to use its bases.
+
+**Current delivery:** Source retrieval and the settings described below are
+being integrated into YA. Creating and preparing projects through YA is also
+still being integrated. Draft
+templates can be inspected but are not approved for project creation. The
+default templates remain draft until their content review is complete.
+
+## Add a source in YA
+
+Open **Settings → Project templates**, enable templates, and choose
+**Fetch / update**. The default repository and directory are already filled
+in. Each source has a repository URL, an optional subdirectory and a revision:
+
+- Leave the subdirectory empty when `library.json` is at the repository root.
+- Use `HEAD` to fetch the repository's default branch tip when you update.
+- Use a branch, tag or full commit SHA to select a particular version. A full
+  commit SHA makes a shared example reproducible.
+
+YA displays the commit SHA it actually fetched. Updating checks the selected
+revision and reports **Already up to date** if it has not changed. **Update
+from default branch** selects `HEAD` for that source. There is no automatic
+background update or automatic check when opening the template chooser.
+While templates are disabled, Save records your settings without downloading.
+
+Use **Add source** for your own or a community library. Keep the YA-default
+source in the list if your templates use its bases. Later sources replace
+earlier entries with the same base or template ID. **Move up** changes that
+order. Give new templates distinctive IDs unless you deliberately want to
+replace an existing entry. The inventory identifies the source supplying
+each effective template.
+
+## Make a small community library
+
+Start a GitHub repository with this layout. You may instead place the whole
+layout in a subdirectory and tell YA its path.
 
 ```text
-project-templates/
-  PROGRAM.md                       durable purpose and boundaries
-  GLOSSARY.md                      local vocabulary
-  FORMAT.md                        composition and vendoring contract
-  library.json                     explicit inventory
-  bases/
-    base/                          universal project/documentation guidance
-    software-engineering/          code structure and change boundaries
-    testing/                       behavioral verification
-    typescript/                    language guidance and compiler settings
-    web-ui/                        responsive UI and browser verification
-    web-app/                       shared Vite setup, preview and preparation
-    page/                          content-led DOM starter and behavior checks
-    canvas/                        drawing app and Canvas2D conventions
-    server/                        inactive, vendored backend add-on
-    writing/                       general prose craft, author-set records, skills
-      writing.md -> ../../../topics/writing.md
-      riff/ -> ../../../../skills/riff/   four-alternative proposal skill
-      remix/                       template-only skill: alternate version in a subdir
-    story/                         story/world craft, plot catalogs, story layout
-      *.md -> ../../../topics/     story-writing, story-project-layout
-    legacy-boot/
-      boot.md -> ../../../AGENTS.global.md
-  templates/
-    app-canvas/
-      template.json                selected bases and app-specific files
-      files/                       canvas-specific browser checks
-    web-page/                      page + story, README/preparation appends
-    storybook/                     page + story, prefilled records, ideas-led
-  composition.py                   local source validation and file union
-  project-template.py              acli authoring entry point
-  gaps/
-    portable-capability-bases.md   first program gap
+library.json
+templates/
+  my-canvas/
+    template.json
+    instructions.md
 ```
 
-Additional bases belong beside `base`, each with a `template.json` and its
-referenced files. Their editorial refinement is part of the gap.
-Scripts live with the capability they stand up. Source symlinks are optional
-navigation aids; configuration specifies what enters the project.
+List the entries your source contributes in `library.json`:
 
-The universal base includes the project-visible **redoc** skill for autonomous
-documentation maintenance and a starter SVG brand. Redoc reorganizes docs for
-human/agent readability and truth against current contents. It respects exact
-YA-UI identity text in a root `.project-identity.json`, if a deliberate later
-human edit created one; initial creation intent does not create that marker.
-YA's write path for the marker is still pending in its identity integration gap.
+```json
+{
+  "formatVersion": 1,
+  "bases": [],
+  "templates": ["my-canvas"]
+}
+```
 
-Starter application modules live at project root, tests in `tests/`, and
-helpers in `scripts/`. No empty directories are scaffolded. Before fixing
-default topic/plan/issue locations, resolve the broader
-[document-convention convergence gap](../gaps/project-document-convention-convergence.md).
+Then create `templates/my-canvas/template.json`:
 
-Read [PROGRAM.md](PROGRAM.md) for scope and [FORMAT.md](FORMAT.md) before
-authoring a manifest or implementing a consumer. `library.json` is a content
-inventory, not YA's server-settings schema.
+```json
+{
+  "formatVersion": 1,
+  "kind": "template",
+  "status": "draft",
+  "id": "my-canvas",
+  "title": "My canvas",
+  "description": "A canvas starter for exploring my idea.",
+  "extends": ["web-app", "canvas"],
+  "files": [
+    { "from": "instructions.md", "to": "AGENTS.md" }
+  ],
+  "overrides": []
+}
+```
 
-## Authoring commands
+The `web-app` and `canvas` bases come from the YA-default source. Add your
+repository after that source in YA, then fetch both. `instructions.md` should
+explain what is special about your starter and how an agent should work on it.
+It is combined with the inherited root instructions.
 
-From the source repository root, with Python 3.10+ and Node.js 22.18+:
+Useful YA-default bases include `software-engineering`, `testing`,
+`typescript`, `web-ui`, `web-app`, `canvas`, `page`, `writing`, `story`, and
+`server`. `web-app` supplies shared web tooling; combine it with `canvas`
+for a drawing app or with `page` for a content-led page. `story` builds on
+`writing`. The server base supplies an optional add-on; inheriting it does
+not mean a backend is already running.
+
+To contribute a reusable base, put its manifest under `bases/<id>/`, use
+`"kind": "base"`, and list the ID in `library.json`'s `bases` array. Bases
+can themselves extend other bases. Keep `overrides` empty on a base; explicit
+file overrides belong to the selected template.
+
+## Choose how files combine
+
+`from` names a file relative to its manifest. `to` names where that file goes
+in the new project. Set `"executable": true` for a file that needs that mode.
+Every referenced source file must exist inside its own repository. Relative
+links to sibling directories are supported, including symlinks whose targets
+stay inside the repository. Include complete skill resources and any files a
+later add-on will need; a created project must stand on its own.
+
+Source order selects the winning **base or template definition**. It does not
+silently overwrite conflicting **project files** from different bases:
+
+- Identical file bytes and executable modes coalesce.
+- Different contents at the same destination require an explicit override.
+- Root `AGENTS.md` combines distinct complete instruction fragments, in base
+  order, without repeating an identical fragment.
+
+For example, to replace an inherited README, put your replacement beside the
+manifest and add this entry to the template's `overrides` array:
+
+```json
+{ "op": "replace", "from": "README.md", "to": "README.md" }
+```
+
+Use `omit` to remove an inherited destination. `append` and `prepend` add
+UTF-8 text to an existing, unambiguous file; they do not resolve two conflicting
+versions. There is no automatic JSON merge. Missing bases, dependency cycles
+and inconsistent base ordering are validation errors.
+
+## Keep content portable and suitable
+
+Prefer relative source references. YA also relocates explicit `~/repository`
+references, such as `~/agents/topics/...`, into its private retrieved content.
+Those aliases refer to the configured repositories, not a user's home folder.
+Give repositories distinct names when using these aliases; with repeated
+names, the later configured source supplies the alias.
+
+For instructions installed into a project, use that project's declared
+destination paths. Do not assume it can access the author's checkout or YA's
+source cache. A file being reachable is not enough: review whether it helps
+the intended task. Route writing advice to writing tasks, UI guidance to UI
+tasks, and leave personal machine settings and unrelated research procedures
+out of ordinary app starters.
+
+An optional `.project-template/preview.svg` can illustrate the template.
+It should be self-contained; YA displays it as an image. Runtime commands
+and preparation instructions are described by `.project-template/app.json`.
+Only use sources whose setup code you trust: fetching and validating a source
+does not execute its setup, install packages or publish an app.
+
+## Test before sharing
+
+1. Add the repositories and revisions your template requires to YA in the
+   documented order, and fetch them. Fix validation errors before proceeding.
+2. Inspect the effective template and its source. Check that any intentional
+   replacement comes from the expected layer.
+3. Materialize a fresh project with the authoring tools, run its setup,
+   build and tests, and exercise its intended browser interactions and add-ons.
+   Review the composed instructions as well as the running application.
+4. Repeat with access to the original source removed. Required instructions,
+   skills, scripts and add-ons must still be available in the project.
+5. Promote the template from `draft` to `ready` only after that review.
+
+For a self-contained library, run the local authoring tools from the
+`graehl/agents` repository root (Python 3.10+; setup needs Node.js 22.18+):
 
 ```sh
 python3 project-templates/project-template.py validate --json
@@ -81,96 +176,25 @@ python3 project-templates/project-template.py inspect --template app-canvas --pr
 python3 project-templates/project-template.py create --template app-canvas \
   --target /path/to/new-project --name "My canvas" \
   --description "An interactive idea to build" --allow-draft --setup --json
-python3 -m unittest discover -s project-templates -p 'test_*.py'
 ```
 
-The target must not exist and its parent must exist. Creation writes ordinary
-files and a `.project-template/project.json` containing intent and source
-hashes; `--setup` executes the configured argv from `.project-template/app.json`.
-Only admit trusted template sources: setup is code execution, not a sandbox.
-Failures retain the partial target and its setup logs. There is no implicit
-retry, cleanup, Git initialization, registration, or agent turn. Those YA
-orchestration steps remain for integration after mockup approval.
+The target must not exist and its parent must exist. `--allow-draft` permits
+local testing before content review. Omit `--setup` to materialize files
+without executing template code. With it, setup installs the pinned packages
+and runs the template's verification. Failed setup retains the target and
+logs for inspection. In the generated project, `npm run preview` serves the
+starter, and `npm run server:add` installs the included optional backend.
 
-Without `--setup`, materialization is offline and executes no template code.
-With it, `npm ci` installs the pinned lockfile, then typechecks, tests, and builds.
-In the created project, `npm run preview` prints its loopback URL; stop that
-owned process when finished. `npm run server:add` enables `npm start`, adds
-server checks, and changes the vendored app metadata from static to server.
-It refuses an existing backend instead of overwriting it. The authoring CLI
-uses this repository's shared `acli` Python library; generated projects need
-neither Python nor that library.
+The tools document their other commands with `project-template.py --help`;
+they validate one self-contained library. Use YA's combined-source validation for a community library that
+depends on bases from another source. The detailed manifest reference is
+[FORMAT.md](https://github.com/graehl/agents/blob/master/project-templates/FORMAT.md).
 
-The app's display name is **App canvas** and its stable template ID is
-**`app-canvas`**: the name describes the workspace rather than committing the
-project to a particular game. Static hosting is the default; the server base
-vendors an optional capability without running it. No publication target is
-preconfigured. See the vendored `instructions/run-deploy.md` for deployment.
+Share your repository URL, subdirectory, tested revision and required source
+order. Include the tested YA-default commit when your template relies on its
+bases. This lets another person reproduce your starter instead of guessing
+which changing branch version you used.
 
-**Web page** (`web-page`) is a content-led DOM page for documents, stories and
-collections. Its starter, the `page` base, has searchable/filterable cards
-and responsive layout; it does not inherit canvas instructions. Interactivity
-and multimedia remain available when they serve the reader. All templates
-inherit `web-app` for their tooling and setup, and can activate the same
-vendored server later. Use `--template web-page` in the authoring commands to
-create one.
-
-**Storybook** (`storybook`) is Web page customized for a story-first project:
-the same `page` and `writing` bases, but `audience.md`, `prose-style.md` and
-`illustration-style.md` arrive prefilled with all-ages storybook defaults, the
-story starts under `story/`, and the root instructions run ideas-led: five
-story questions, a short version to the end, growth from the best part, and
-no talk of page look or pictures until the author agrees the story is done.
-At that point the agent puts the story on the page, proposes the format
-decisions as riffs, and suggests a remix.
-
-Web page and Storybook inherit the `story` base, which extends `writing`.
-The two mirror the topics: `writing` carries general prose craft, the three
-author-set records and the riff/remix skills; `story` adds story and
-world-building craft with the classic plot catalogs, the story project
-layout and its fill-in sheets, all vendored under `instructions/`. Each
-root fragment routes to its material only for the matching task and sets
-an all-ages content default. The base also vendors the **riff** skill (four
-independently seeded alternatives, a recommendation, the author's pick) as the
-default way to propose at a creative choice point; Web page's README
-introduces it. Three author-set root records, `audience.md`,
-`prose-style.md` and `illustration-style.md`, are used whenever present; the
-preparation turn ends by asking for them with concrete alternatives, and no
-illustration record means no images are added unasked. The template-only
-**remix** skill re-asks those questions and writes an alternate version under
-`remixes/<slug>/` with its own records, leaving the original untouched; it is
-authored here in the base rather than in this repository's `skills/`. Skill-form authoring workflows and concise
-GitHub Pages/account/domain onboarding are still tracked in the
-[content-authoring capability gap](gaps/content-authoring-capabilities.md).
-Static publishing should default to a host-provided URL; a custom domain is
-optional. That publishing capability is shared by both kinds of project.
-
-## Approved delivery sequence
-
-1. Commit the representation, charter, first gap, and runnable template content
-   under `~/agents` (content implementation was explicitly brought forward).
-2. Produce YA mockups and discuss them for approval.
-3. Update YA's owning topic with the approved design, then implement the
-   YA integration, resolving the instruction gap
-   before a template is offered for project creation.
-
-YA mockups are under review; its topics and gaps now track the product contract.
-Both starters are static Vite + TypeScript, with an optional server add-on
-vendored for later application.
-Creation should expose the deterministic starter as soon as feasible, then
-automatically send a verify/prepare turn containing the UI-entered intent.
-Preparation customizes `AGENTS.md`, writes a useful README lede, verifies
-run/test/build, and stops ready to implement the requested app. An early
-visible starter is not proof that preparation succeeded; YA must show failures.
-
-YA's New Project flow will offer From template alongside existing-directory
-registration. Settings → Users will enforce None / Selected templates / Any
-configured template on the server. New limited users default to App canvas;
-exactly one allowed template applies automatically. None prevents creation;
-Any includes templates configured later. An unavailable or draft default must
-not silently select a different template. Parent-directory restrictions and
-the existing limited-user execution boundary still apply.
-
-YA's product contracts remain in its `topics/project-templates.md` and
-`topics/limited-users.md`. The sequence above preserves this request's agreed
-scope until those documents are updated after mockup approval.
+This guide is maintained in YA at `topics/project-template-authoring.md`.
+`graehl/agents/project-templates/README.md` is a synchronized copy; its
+`VENDORED.md` records the source revision and how to refresh it.
