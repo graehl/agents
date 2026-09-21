@@ -8,9 +8,9 @@ their own provenance records.
 
 - Repository: https://github.com/graehl/yepanywhere
 - Source: `topics/project-template-authoring.md`
-- Commit: `4a25ba61608be42f326626e3e6e78067b6476e0b`
+- Commit: `799bcd2b3a40175a77f9635e768f42b7319d0ce1`
 - Commit date: 2026-09-21
-- Subject: Document authoring and sharing YA project templates
+- Subject: Document GitHub directory URLs and local template overlays
 
 ## Vendored
 
@@ -26,7 +26,7 @@ pinned commit. Its complete notice is preserved in `README.LICENSE`.
 
 | Destination | Upstream path | SHA-256 |
 | --- | --- | --- |
-| `README.md` | `topics/project-template-authoring.md` | `a4202e56421468659d94e24cc41802b92791c13f1861354309977bbbfaf4fbc4` |
+| `README.md` | `topics/project-template-authoring.md` | `44f68700d290f2ca4749918931b86f996d093a0b2c955c8a8d0ec280c4e58d3d` |
 | `README.LICENSE` | `LICENSE` | `63d4dea8ee5061785faa9738ca7452dd1f05dfdc94d35ef64188e19dd2ad5a15` |
 
 ## Local changes
@@ -39,7 +39,7 @@ Edit the canonical YA guide, then synchronize this copy.
 From the agents repository root, check drift against the recorded pin:
 
 ```sh
-guide_rev=4a25ba61608be42f326626e3e6e78067b6476e0b
+guide_rev=799bcd2b3a40175a77f9635e768f42b7319d0ce1
 git -C "$HOME/ya" show "$guide_rev:topics/project-template-authoring.md" |
   cmp - project-templates/README.md
 git -C "$HOME/ya" show "$guide_rev:LICENSE" |
