@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 90" role="img" aria-labelledby="title">
+  <title id="title">App canvas: drawing and interactive ideas</title>
+  <rect width="280" height="90" rx="6" fill="#f5f3eb" />
+  <path d="M20 65 Q65 -10 115 50 T255 35" fill="none" stroke="#b999ff" stroke-width="10" stroke-linecap="round" />
+  <circle cx="220" cy="65" r="9" fill="#64c8a5" />
+</svg>

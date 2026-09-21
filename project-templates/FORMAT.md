@@ -86,6 +86,21 @@ paths: no absolute paths, empty/`.`/`..` segments, backslashes, or `.git`
 segments. Reject file/directory prefix collisions and case-folded name
 collisions for portability, rather than overwriting by platform accident.
 
+## Template preview
+
+A template may contribute `.project-template/preview.svg` through its ordinary
+file map. This optional illustration evokes the template's purpose; it is not
+a screenshot or promise of the finished app. The chooser reads the composed
+asset without executing setup, and instantiation vendors it like other files.
+Normal collision and override rules apply. With no preview, show the template's
+title and description without inventing an asset dependency.
+
+Keep the SVG self-contained: no scripts, external resources or embedded HTML.
+Consumers display it as an image, not inline markup or an embedded document.
+Its `viewBox` allows responsive scaling; the chooser supplies accessible text
+from the template title. Authoring sources conventionally keep `preview.svg`
+beside `template.json`; the explicit file map remains authoritative.
+
 ## Project-visible skills
 
 Bases and templates may contribute skills through ordinary file mappings into
