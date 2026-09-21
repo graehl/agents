@@ -27,6 +27,7 @@ project-templates/
     typescript/                    language guidance and compiler settings
     web-ui/                        responsive UI and browser verification
     web-app/                       shared Vite setup, preview and preparation
+    page/                          content-led DOM starter and behavior checks
     canvas/                        drawing app and Canvas2D conventions
     server/                        inactive, vendored backend add-on
     writing/                       prose/story/world craft, story layout, sheets
@@ -39,7 +40,8 @@ project-templates/
     app-canvas/
       template.json                selected bases and app-specific files
       files/                       canvas-specific browser checks
-    web-page/                      content-led DOM starter and behavior checks
+    web-page/                      page + writing, README/preparation appends
+    storybook/                     page + writing, prefilled records, ideas-led
   composition.py                   local source validation and file union
   project-template.py              acli authoring entry point
   gaps/
@@ -104,13 +106,23 @@ vendors an optional capability without running it. No publication target is
 preconfigured. See the vendored `instructions/run-deploy.md` for deployment.
 
 **Web page** (`web-page`) is a content-led DOM page for documents, stories and
-collections. Its starter has searchable/filterable cards and responsive layout;
-it does not inherit canvas instructions. Interactivity and multimedia remain
-available when they serve the reader. Both templates inherit `web-app` for
-their tooling and setup, and can activate the same vendored server later.
-Use `--template web-page` in the authoring commands to create one.
+collections. Its starter, the `page` base, has searchable/filterable cards
+and responsive layout; it does not inherit canvas instructions. Interactivity
+and multimedia remain available when they serve the reader. All templates
+inherit `web-app` for their tooling and setup, and can activate the same
+vendored server later. Use `--template web-page` in the authoring commands to
+create one.
 
-Web page also inherits the `writing` base: general prose craft, story and
+**Storybook** (`storybook`) is Web page customized for a story-first project:
+the same `page` and `writing` bases, but `audience.md`, `prose-style.md` and
+`illustration-style.md` arrive prefilled with all-ages storybook defaults, the
+story starts under `story/`, and the root instructions run ideas-led: five
+story questions, a short version to the end, growth from the best part, and
+no talk of page look or pictures until the author agrees the story is done.
+At that point the agent puts the story on the page, proposes the format
+decisions as riffs, and suggests a remix.
+
+Web page and Storybook inherit the `writing` base: general prose craft, story and
 world-building craft with the classic plot catalogs, a declarative story
 project layout, and fill-in sheets, vendored under `instructions/`. Its root
 instruction fragment routes to that material only for writing tasks and sets

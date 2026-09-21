@@ -8,9 +8,14 @@
     "typescript",
     "web-ui",
     "web-app",
+    "page",
     "canvas",
     "server",
     "writing"
   ],
-  "templates": ["app-canvas", "web-page"]
+  "templates": [
+    "app-canvas",
+    "web-page",
+    "storybook"
+  ]
 }
