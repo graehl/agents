@@ -11,8 +11,9 @@ the user has explicitly configured and authorized. Assets use relative paths
 for subdirectory hosting. Preserve old hashed assets while older HTML may be
 cached. Verify the selected path; no personal Pages repository is inherited.
 The initial template intentionally has no `publish` script until a destination
-and authorization policy are known. A PWA manifest is provided, but offline
-caching and device installation are not claimed tested capabilities.
+and authorization policy are known. A template may include a PWA manifest;
+offline caching and device installation require separate implementation and
+verification.
 
 With the server add-on, `npm start` runs the TypeScript backend and serves the
 same bundle. Static hosting cannot serve its API. Keep it on loopback behind

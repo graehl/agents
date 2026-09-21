@@ -88,7 +88,15 @@ retained scoped code-quality, verification, documentation, and deployment
 guidance while removing personal host policy and research/agentctl machinery.
 
 Remaining: a systematic expert review of the complete composed instruction
-set against its source guidance, a different capability combination, and the
+set against its source guidance and the
 scenario/reading-cost assessment above. No comparative agent experiment has
 been run. Keep manifests draft until that review supports promotion; runtime
 tests and a smaller root alone do not close this instruction-quality gap.
+
+2026-09-21 — Contributing-model: 6-Astra. Added the content-led Web page
+combination without canvas instructions and extracted shared web tooling into
+`web-app`. Both materialized templates pass setup/build and desktop/phone browser
+checks; both activate and test the optional server. This supplies a second
+capability combination for editorial review, not evidence that the instruction
+quality gap is closed. Optional writing and publishing guidance has its own
+[gap](content-authoring-capabilities.md).

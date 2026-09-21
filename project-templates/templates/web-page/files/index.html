@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A small collection of ideas, ready to make your own."
+    />
+    <link rel="icon" href="data:," />
+    <title>Field notes</title>
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="brand" href="#home"><span aria-hidden="true">✳</span> Field notes</a>
+      <nav aria-label="Main navigation">
+        <a href="#collection"
+          >Explore the collection <span aria-hidden="true">↗</span></a
+        >
+      </nav>
+    </header>
+    <main id="home">
+      <section class="intro" aria-labelledby="title">
+        <div>
+          <p class="eyebrow">A SMALL BEGINNING</p>
+          <h1 id="title">A place for<br />your next idea.</h1>
+          <p class="lede">
+            Collect a thought. Tell a story. Make something useful.<br
+              class="desktop-break"
+            />
+            This little corner of the web is yours to shape.
+          </p>
+          <a class="action" href="#collection"
+            >Take a look <span aria-hidden="true">↓</span></a
+          >
+        </div>
+        <div class="art" aria-hidden="true">
+          <div class="sun"></div>
+          <div class="stem"></div>
+          <div class="leaf leaf-left"></div>
+          <div class="leaf leaf-right"></div>
+          <span>room to grow</span>
+        </div>
+      </section>
+      <section id="collection" aria-labelledby="collection-title">
+        <div class="collection-heading">
+          <div>
+            <p class="eyebrow">THE COLLECTION</p>
+            <h2 id="collection-title">Start somewhere.</h2>
+          </div>
+          <label class="search"
+            >Find an idea<input
+              id="search"
+              type="search"
+              placeholder="Try “small” or “share”…"
+          /></label>
+        </div>
+        <div class="filters" role="group" aria-label="Filter ideas">
+          <button type="button" data-category="all" aria-pressed="true">All ideas</button
+          ><button type="button" data-category="make" aria-pressed="false">Make</button
+          ><button type="button" data-category="explore" aria-pressed="false">
+            Explore</button
+          ><span id="count" role="status"></span>
+        </div>
+        <div id="notes" class="notes"></div>
+        <p id="empty" hidden>No ideas match yet. Try another word or category.</p>
+      </section>
+    </main>
+    <footer>
+      A starting point, not a finished story.<span>Built to become yours.</span>
+    </footer>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

@@ -86,6 +86,23 @@ paths: no absolute paths, empty/`.`/`..` segments, backslashes, or `.git`
 segments. Reject file/directory prefix collisions and case-folded name
 collisions for portability, rather than overwriting by platform accident.
 
+## Project-visible skills
+
+Bases and templates may contribute skills through ordinary file mappings into
+the supported harness's conventional project discovery directory, for example
+`.agents/skills/<name>/SKILL.md`. List each skill's supporting instructions,
+scripts and resources explicitly. These files follow the same source-boundary,
+vendoring and collision rules as other content; installation must not depend
+on the template author's global skill directory or an external symlink.
+
+Use the normal harness discovery and invocation conventions, not a YA-only
+skill registry. Declare any additional harness-specific discovery paths
+explicitly and verify discovery in the supported harnesses. Root `AGENTS.md`
+may point to the available skills without inlining their complete bodies.
+The project README should briefly introduce bundled skills, when they help,
+and how to invoke them. Beginner onboarding should teach that skills exist,
+including for limited users, without requiring knowledge of their file layout.
+
 ## Multiple bases
 
 Both bases and templates may extend an ordered list of bases. The transitive
