@@ -11,4 +11,6 @@ when the requested interaction needs one.
 
 `notes.ts` owns the initial content/filtering; `main.ts` connects it to
 the page. Replace this sample structure to suit the project intent rather than
-treating its cards or categories as required product features.
+treating its cards or categories as required product features. When the
+content is prose or a story, the writing routes in this file govern how it
+is written; this base governs only how the page presents it.

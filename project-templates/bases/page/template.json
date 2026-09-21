@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "page",
+  "title": "Content page starter",
+  "description": "A content-led DOM page: semantic HTML, a small searchable collection, and browser checks.",
+  "extends": ["web-app"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "index.html", "from": "files/index.html" },
+    { "to": "main.ts", "from": "files/main.ts" },
+    { "to": "notes.ts", "from": "files/notes.ts" },
+    { "to": "style.css", "from": "files/style.css" },
+    { "to": "tests/notes.test.ts", "from": "files/notes.test.ts" },
+    { "to": "tests/browser/page.spec.ts", "from": "files/page.spec.ts" }
+  ],
+  "overrides": []
+}

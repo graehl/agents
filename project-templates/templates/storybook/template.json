@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "kind": "template",
+  "status": "draft",
+  "id": "storybook",
+  "title": "Storybook",
+  "description": "Write a story first, then give it a page: an ideas-led all-ages storybook with reader, voice and picture defaults already set.",
+  "extends": ["page", "writing"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "audience.md", "from": "files/audience.md" },
+    { "to": "prose-style.md", "from": "files/prose-style.md" },
+    { "to": "illustration-style.md", "from": "files/illustration-style.md" },
+    { "to": "story/README.md", "from": "files/story-README.md" }
+  ],
+  "overrides": [
+    { "op": "append", "to": "README.md", "from": "files/README-storybook.md" },
+    {
+      "op": "append",
+      "to": ".project-template/PREPARE.md",
+      "from": "files/PREPARE-storybook.md"
+    }
+  ]
+}
