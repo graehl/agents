@@ -4,7 +4,7 @@
   "status": "draft",
   "id": "writing",
   "title": "Writing",
-  "description": "Prose, story and world-building craft with a story project layout and fill-in sheets; all-ages by default.",
+  "description": "Prose, story and world-building craft with a story project layout, prose and illustration style records, fill-in sheets and the riff skill; all-ages by default.",
   "extends": ["base"],
   "files": [
     { "to": "AGENTS.md", "from": "instructions.md" },
@@ -14,18 +14,25 @@
       "to": "instructions/story-project-layout.md",
       "from": "story-project-layout.md"
     },
-    { "to": "instructions/story-starters/README.md", "from": "starters/README.md" },
-    { "to": "instructions/story-starters/STYLE.md", "from": "starters/STYLE.md" },
-    { "to": "instructions/story-starters/persona.md", "from": "starters/persona.md" },
-    { "to": "instructions/story-starters/setting.md", "from": "starters/setting.md" },
     {
-      "to": "instructions/story-starters/setting-index.md",
+      "to": "instructions/writing-starters/prose-style.md",
+      "from": "starters/prose-style.md"
+    },
+    {
+      "to": "instructions/writing-starters/illustration-style.md",
+      "from": "starters/illustration-style.md"
+    },
+    { "to": "instructions/writing-starters/README.md", "from": "starters/README.md" },
+    { "to": "instructions/writing-starters/persona.md", "from": "starters/persona.md" },
+    { "to": "instructions/writing-starters/setting.md", "from": "starters/setting.md" },
+    {
+      "to": "instructions/writing-starters/setting-index.md",
       "from": "starters/setting-index.md"
     },
-    { "to": "instructions/story-starters/outline.md", "from": "starters/outline.md" },
-    { "to": "instructions/story-starters/beats.md", "from": "starters/beats.md" },
+    { "to": "instructions/writing-starters/outline.md", "from": "starters/outline.md" },
+    { "to": "instructions/writing-starters/beats.md", "from": "starters/beats.md" },
     {
-      "to": "instructions/story-starters/continuity.md",
+      "to": "instructions/writing-starters/continuity.md",
       "from": "starters/continuity.md"
     },
     { "to": ".agents/skills/riff/SKILL.md", "from": "riff/SKILL.md" },
