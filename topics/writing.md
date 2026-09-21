@@ -32,11 +32,11 @@ only at the margins.
   the end that they could not at the start? Every section must serve that.
 - **Collect, then choose.** Gather more material than fits, then cut to what
   the promise needs. Choosing is most of the work.
-- **Read the project's style records when they exist.** A `prose-style.md`
-  fixes voice, register and conventions; an `illustration-style.md` fixes
-  whether images are wanted and how they look. Set them with the author on
-  the first task rather than inferring them, and follow them afterward
-  (layout and headings: `story-project-layout`).
+- **Read the project's records when they exist.** An `audience.md` names the
+  reader; a `prose-style.md` fixes voice, register and conventions; an
+  `illustration-style.md` fixes whether images are wanted and how they look.
+  Set them with the author on the first task rather than inferring them, and
+  follow them afterward (layout and headings: `story-project-layout`).
 
 ## Structure
 

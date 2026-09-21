@@ -116,10 +116,10 @@ instruction fragment routes to that material only for writing tasks and sets
 an all-ages content default. The base also vendors the **riff** skill (four
 independently seeded alternatives, a recommendation, the author's pick) as the
 default way to propose at a creative choice point; Web page's README
-introduces it. Two author-set root records, `prose-style.md` and
-`illustration-style.md`, are used whenever present; the preparation turn ends
-by asking for them with concrete alternatives, and no illustration record
-means no images are added unasked. Skill-form authoring workflows and concise
+introduces it. Three author-set root records, `audience.md`,
+`prose-style.md` and `illustration-style.md`, are used whenever present; the
+preparation turn ends by asking for them with concrete alternatives, and no
+illustration record means no images are added unasked. Skill-form authoring workflows and concise
 GitHub Pages/account/domain onboarding are still tracked in the
 [content-authoring capability gap](gaps/content-authoring-capabilities.md).
 Static publishing should default to a host-provided URL; a custom domain is

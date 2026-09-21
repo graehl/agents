@@ -6,7 +6,7 @@
 **Premise:** <one causal sentence, e.g. "loyalty tested by fear becomes
 courage">
 
-**Genre and audience:** <genre>; for <who>. Content bar: all ages.
+**Genre:** <genre>. Reader: see `audience.md`. Content bar: all ages.
 
 **Form and length:** <short story / novel / screenplay / interactive>;
 about <N> words or pages.

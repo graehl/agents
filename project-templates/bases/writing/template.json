@@ -15,6 +15,10 @@
       "from": "story-project-layout.md"
     },
     {
+      "to": "instructions/writing-starters/audience.md",
+      "from": "starters/audience.md"
+    },
+    {
       "to": "instructions/writing-starters/prose-style.md",
       "from": "starters/prose-style.md"
     },
