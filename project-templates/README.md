@@ -47,6 +47,18 @@ referenced files. Their editorial refinement is part of the gap.
 Scripts live with the capability they stand up. Source symlinks are optional
 navigation aids; configuration specifies what enters the project.
 
+The universal base includes the project-visible **redoc** skill for autonomous
+documentation maintenance and a starter SVG brand. Redoc reorganizes docs for
+human/agent readability and truth against current contents. It respects exact
+YA-UI identity text in a root `.project-identity.json`, if a deliberate later
+human edit created one; initial creation intent does not create that marker.
+YA's write path for the marker is still pending in its identity integration gap.
+
+Starter application modules live at project root, tests in `tests/`, and
+helpers in `scripts/`. No empty directories are scaffolded. Before fixing
+default topic/plan/issue locations, resolve the broader
+[document-convention convergence gap](../gaps/project-document-convention-convergence.md).
+
 Read [PROGRAM.md](PROGRAM.md) for scope and [FORMAT.md](FORMAT.md) before
 authoring a manifest or implementing a consumer. `library.json` is a content
 inventory, not YA's server-settings schema.

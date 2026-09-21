@@ -8,7 +8,7 @@
   "extends": ["web-app", "canvas"],
   "files": [
     { "to": ".project-template/preview.svg", "from": "preview.svg" },
-    { "to": "test/browser/canvas.spec.ts", "from": "files/canvas.spec.ts" }
+    { "to": "tests/browser/canvas.spec.ts", "from": "files/canvas.spec.ts" }
   ],
   "overrides": []
 }

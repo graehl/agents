@@ -10,7 +10,13 @@
     {
       "to": "AGENTS.md",
       "from": "instructions.md"
-    }
+    },
+    { "to": ".agents/skills/redoc/SKILL.md", "from": "redoc/SKILL.md" },
+    {
+      "to": ".agents/skills/redoc/references/project-identity.md",
+      "from": "redoc/references/project-identity.md"
+    },
+    { "to": "docs/brand.svg", "from": "brand.svg" }
   ],
   "overrides": []
 }

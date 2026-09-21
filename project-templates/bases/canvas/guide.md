@@ -11,7 +11,7 @@ app needs animation, use elapsed time and pause nonessential work when hidden.
 Keep the state model separate from DOM/canvas calls so behavior can be tested.
 Handle resize by redrawing state instead of losing it.
 
-`src/main.ts` owns browser wiring; `src/drawing.ts` owns drawing coordinates.
+`main.ts` owns browser wiring; `drawing.ts` owns drawing coordinates.
 The app has no backend or persistence initially. A page reload clears strokes.
 The optional server add-on serves the same bundle and adds an API entry point.
 Do not imply that adding it alone stores user data or makes the app public.

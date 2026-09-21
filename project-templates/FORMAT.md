@@ -118,6 +118,15 @@ The project README should briefly introduce bundled skills, when they help,
 and how to invoke them. Beginner onboarding should teach that skills exist,
 including for limited users, without requiring knowledge of their file layout.
 
+The universal base supplies `redoc` for autonomous documentation maintenance,
+including a project-specific README SVG brand. Its
+[identity reference](bases/base/redoc/references/project-identity.md) defines
+the optional project-root `.project-identity.json` record for later human
+name/description edits. Creation does not write that record or protect initial
+intent. Redoc respects this specific exception without tracking authorship of
+ordinary documentation. The template chooser's preview and the project's
+evolving `docs/brand.svg` are separate assets.
+
 ## Multiple bases
 
 Both bases and templates may extend an ordered list of bases. The transitive

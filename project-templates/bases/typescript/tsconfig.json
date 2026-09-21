@@ -10,5 +10,6 @@
     "skipLibCheck": true,
     "types": ["vite/client"]
   },
-  "include": ["src"]
+  "include": ["*.ts"],
+  "exclude": ["*.config.ts"]
 }

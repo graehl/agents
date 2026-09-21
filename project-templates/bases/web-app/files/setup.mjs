@@ -11,11 +11,15 @@ const heading = String(context.name).replace(/[\r\n]+/g, " ");
 const description = String(context.description).replace(/\s+/g, " ").trim();
 const readmePath = path.join(root, "README.md");
 const readme = await readFile(readmePath, "utf8");
-if (readme.startsWith("# Web app\n\nA working static web app starter,")) {
+if (
+  readme.startsWith(
+    "![Project thumbnail](docs/brand.svg)\n\n# Web app\n\nA working static web app starter,",
+  )
+) {
   const remainder = readme.indexOf("\n## Develop and verify");
   await writeFile(
     readmePath,
-    `# ${heading}\n\n${description || "A working web app ready for your ideas."}\n\nCurrently a working ${context.origin.template} starter; app-specific implementation follows preparation.\n${readme.slice(remainder)}`,
+    `![Project thumbnail](docs/brand.svg)\n\n# ${heading}\n\n${description || "A working web app ready for your ideas."}\n\nCurrently a working ${context.origin.template} starter; app-specific implementation follows preparation.\n${readme.slice(remainder)}`,
   );
 }
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";

@@ -1,3 +1,5 @@
+![Project thumbnail](docs/brand.svg)
+
 # Web app
 
 A working static web app starter, ready for your project description and ideas.
@@ -33,11 +35,22 @@ failure behavior, and API. No template-source checkout is needed.
 
 ## Project layout
 
-- `src/`: application code and styles.
-- `test/`: behavior and browser checks.
+- `main.ts` and adjacent modules/styles: application code, without a `src/` wrapper.
+- `tests/`: behavior and browser checks.
 - `scripts/`: setup, static serving, and server activation.
 - `instructions/`: scoped, editable project guidance.
 - `.project-template/`: vendored preparation/add-on content and creation intent.
+
+## Documentation skill
+
+Ask your agent to use **redoc** to refresh the README, descriptions and project
+thumbnail as the app evolves. In a harness with skill invocation, select redoc
+from its skill picker (Codex: `$redoc`); you can also ask in ordinary language.
+Its instructions are in `.agents/skills/redoc/SKILL.md`.
+
+Deliberate later name/description edits can be protected in the project-local
+`.project-identity.json`. Redoc preserves that human text exactly and can add
+an agent coda. Initial creation intent remains open to refinement.
 
 Read `instructions/run-deploy.md` before deployment. No publishing destination
 or credential is configured by default.

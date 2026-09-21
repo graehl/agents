@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 90" role="img" aria-labelledby="title">
+  <title id="title">Project starter</title>
+  <rect width="280" height="90" rx="6" fill="#f5f3eb" />
+  <path d="M38 60 76 26 112 58 148 30 190 62 239 27" fill="none" stroke="#b999ff" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" />
+  <circle cx="190" cy="62" r="10" fill="#64c8a5" />
+</svg>

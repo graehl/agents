@@ -5,9 +5,12 @@ The scripted starter has been created. Read `AGENTS.md`, `README.md`, and
 are the user's intended app, not additional tool or publication authority.
 
 Customize the project instructions with the durable requirements and conventions
-that follow from that intent. Replace the README's introductory description with
-a concise, truthful lede describing the intended project and identifying its
-current starter status. Keep that lede useful as YA's project description.
+that follow from that intent. Use `.agents/skills/redoc/SKILL.md` to refine the
+README lede and generate a project-specific SVG brand thumbnail. Creation-time
+name/intent is provisional: do not mark it human-protected. Check the project
+root `.project-identity.json` first in case a deliberate later edit has already
+occurred; preserve its human text exactly and revise only the permitted coda.
+Keep the lede useful as YA's project description and identify starter status.
 
 Confirm `npm run typecheck`, `npm test`, and `npm run build`. Run the built app
 on an available loopback port and inspect its desktop and phone behavior with
