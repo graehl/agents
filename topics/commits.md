@@ -6,7 +6,7 @@
 
 Topic: `commits`
 
-`AGENTS.global.md` carries the compact first-load rules: subject ≤65 chars,
+Global § Commits carries the compact rules: aim for subject ≤65 chars,
 manual 71-col body wrap, narrative synthesis, and topic trailers. This
 doc carries the full standard and the procedure that fires on specific
 actions such as amending.

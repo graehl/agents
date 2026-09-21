@@ -6,6 +6,7 @@ agents-instructions repo.
 Reads draft on stdin, or HEAD's commit message when stdin is empty.
 Echoes the checked message to stdout on success (exit 0). On violation,
 lists issues on stderr (exit 1). Missing input and unreadable HEAD exit 2.
+Subjects over 65 characters produce an advisory warning, not a failure.
 Literal backslash-n sequences are rejected anywhere in the message.
 """
 
@@ -15,7 +16,7 @@ import re
 import subprocess
 import sys
 
-SUBJECT_MAX = 65
+SUBJECT_AIM = 65
 BODY_MAX = 71
 
 
@@ -36,9 +37,6 @@ def lint(text: str) -> list[str]:
     lines = text.rstrip("\n").split("\n")
     if not lines or not lines[0].strip():
         return ["empty subject"]
-    subject = lines[0]
-    if len(subject) > SUBJECT_MAX:
-        issues.append(f"subject {len(subject)} > {SUBJECT_MAX} chars")
     for index, line in enumerate(lines, start=1):
         if "\\n" not in line:
             continue
@@ -78,6 +76,13 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 2
+    subject = text.split("\n", 1)[0]
+    if len(subject) > SUBJECT_AIM:
+        print(
+            f"commit-msg-lint: warning: subject {len(subject)} chars; "
+            f"aim for <={SUBJECT_AIM}",
+            file=sys.stderr,
+        )
     issues = lint(text)
     if issues:
         for issue in issues:

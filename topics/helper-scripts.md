@@ -50,10 +50,11 @@ all or do not ship the rebuild. Do not invent a different UI.
 `HEAD` commit message via `git log -1 --format=%B`. On success
 echoes the checked message verbatim to stdout, exits 0. On violation
 lists issues on stderr (one per line, prefixed `commit-msg-lint:`),
-exits 1. Empty input with no readable `HEAD` message exits 2.
+exits 1. Empty input with no readable `HEAD` message exits 2. Subjects over
+65 characters produce an advisory stderr warning without changing success.
 
-**Post-conditions** (derived from `AGENTS.md` Commits section):
-- subject ≤65 chars
+**Post-conditions** (derived from global § Commits):
+- aim for subject ≤65 chars (advisory)
 - no literal `\n` anywhere in the message (shell-quoting symptom)
 - blank line between subject and body if body present
 - body lines ≤71 cols, except where the longest single token on
@@ -70,8 +71,8 @@ section structure.
 1. Single-line subject `feat: do thing` → exit 0, echoed verbatim.
 2. Subject or body containing literal `\n` (e.g. `feat: foo\nbody`) →
    exit 1 and identify the affected subject or line.
-3. 70-char subject + valid body → exit 1,
-   `subject 70 > 65 chars`.
+3. 70-char subject + valid body → exit 0, message echoed unchanged,
+   stderr `warning: subject 70 chars; aim for <=65`.
 4. Clean subject, blank line, body line of 85 cols of prose →
    exit 1, `line 3: 85 > 71 cols`.
 5. Clean subject, blank line, body line containing a single
