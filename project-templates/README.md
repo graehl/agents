@@ -31,6 +31,7 @@ project-templates/
     server/                        inactive, vendored backend add-on
     writing/                       prose/story/world craft, story layout, sheets
       *.md -> ../../../topics/     writing, story-writing, story-project-layout
+      riff/ -> ../../../../skills/riff/   four-alternative proposal skill
     legacy-boot/
       boot.md -> ../../../AGENTS.global.md
   templates/
@@ -112,7 +113,10 @@ Web page also inherits the `writing` base: general prose craft, story and
 world-building craft with the classic plot catalogs, a declarative story
 project layout, and fill-in sheets, vendored under `instructions/`. Its root
 instruction fragment routes to that material only for writing tasks and sets
-an all-ages content default. Skill-form authoring workflows and concise
+an all-ages content default. The base also vendors the **riff** skill (four
+independently seeded alternatives, a recommendation, the author's pick) as the
+default way to propose at a creative choice point; Web page's README
+introduces it. Skill-form authoring workflows and concise
 GitHub Pages/account/domain onboarding are still tracked in the
 [content-authoring capability gap](gaps/content-authoring-capabilities.md).
 Static publishing should default to a host-provided URL; a custom domain is

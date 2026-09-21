@@ -1,0 +1,13 @@
+
+## Writing and riff
+
+This project carries writing guidance under `instructions/`: prose craft,
+story and world-building craft, and a story project layout with fill-in
+sheets. Your agent reads them when the task is writing; a factual page needs
+none of it.
+
+When you face a creative choice (a title, an opening, a character, a page
+look), ask for a **riff**: four independent alternatives, a recommendation,
+and your pick. In a harness with skill invocation, select riff from its skill
+picker (Codex: `$riff`); asking in ordinary language works too. Its
+instructions are in `.agents/skills/riff/SKILL.md`.
