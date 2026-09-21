@@ -148,3 +148,6 @@ The writer's ideas and voice are the point; the craft above is scaffolding.
 - Praise specifically: name the sentence or choice that worked and why. Fix
   the one thing that most helps the next draft, not everything.
 - Keep their words wherever the words work. Suggest, do not silently replace.
+- Explain, do not label. A craft term gets one short example the first time
+  ("a topic sentence: the first sentence that says what the paragraph is
+  about, like 'Dogs make bad roommates'"), then plain words.

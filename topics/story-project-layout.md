@@ -89,7 +89,9 @@ down early, changeable later); status table: acts or chapters with
 planned/drafted/revised.
 
 **prose-style.md:** voice in three words; register and reading level; point
-of view and tense; spelling and punctuation conventions (dialogue quotes,
+of view and tense; how many point-of-view characters (usually one) and when
+the story switches; the narrator's voice and whether the narrator is
+reliable; spelling and punctuation conventions (dialogue quotes,
 numbers, capitalization of invented terms); a names list with pronunciation
 for invented names; words and habits the narrator uses or avoids; content bar
 for this project (the default is all ages; see `story-writing`).

@@ -371,21 +371,46 @@ of.
 
 ## Point of view and tense
 
-Choose once and hold it.
+Choose once and hold it. Point of view is whose eyes the reader looks
+through and how close the camera sits.
 
-- **First person:** intimate, limited, voice-driven; the narrator may be
-  wrong.
-- **Third limited:** the default modern choice; one head per scene, the
-  narrator knows only what that character knows.
-- **Third omniscient:** the narrator knows all and may comment; harder to
-  keep from feeling distant; head-hopping within a scene is the common
-  failure.
-- **Second person:** rare, strong for interactive fiction and short
-  experimental work.
-- **Past tense** is the default and invisible; **present tense** feels
-  immediate and is common in screenplays and some young-adult fiction.
+- **First person:** the character tells it. "I knew the door was locked
+  before I touched it." Intimate and voice-driven; the reader knows only what
+  the narrator knows, and the narrator may be wrong.
+- **Third limited:** "she" or "he," but from inside one character. "Ana
+  knew the door was locked before she touched it." The default modern
+  choice: one head per scene, and the narrator knows only what that
+  character knows. If Ben is in the room, the reader sees Ben's face, not
+  Ben's thoughts.
+- **Third omniscient:** a narrator who knows everything and may comment. "Ana
+  thought the door was locked; Ben, watching her, knew it was not." Feels
+  older and more distant; the usual failure is sliding between heads in one
+  scene without meaning to.
+- **Second person:** "You know the door is locked before you touch it."
+  Rare; strong for interactive fiction and short experimental work.
+- **Past tense** ("she opened") is the default and invisible; **present
+  tense** ("she opens") feels immediate and is common in screenplays and some
+  young-adult fiction.
 
-Record the choice in `prose-style.md`. A point-of-view slip (a scene in Ana's
+Three more choices go with it:
+
+- **How many point-of-view characters.** Typically one. Each additional one
+  costs the reader a reset and costs the writer a distinct voice. A second is
+  justified when the story needs a scene the protagonist cannot witness or a
+  contrast the reader must feel from inside; a novel with four is an
+  ensemble and should be planned as one. Short fiction almost always uses
+  one.
+- **Narrator's voice.** Even in third person the narration has a sound:
+  plain and quick, wry, formal, lyrical. Decide it in one sentence and a
+  sample paragraph, and keep it apart from the characters' speaking voices.
+- **Reliable or unreliable narrator.** A reliable narrator's account can be
+  trusted. An unreliable one is mistaken, lying, or missing something (a
+  child who does not understand what the adults are doing; a boaster; a
+  narrator hiding their own guilt), and the story lets the reader see past
+  them. Unreliability must be a deliberate choice with planted clues; an
+  accidental one reads as an error.
+
+Record all of it in `prose-style.md`. A point-of-view slip (a scene in Ana's
 head that reports what Ben is thinking) is the most common continuity error
 in drafts.
 
@@ -493,7 +518,10 @@ pass, not only when asked.
 ## Working with a new or young writer
 
 The goal is a finished story they are proud of, in their voice. Craft
-vocabulary is for the agent's diagnosis, not for the writer's homework.
+vocabulary is for the agent's diagnosis, not for the writer's homework: say
+a term at most once, with an example, and then use plain words. "Stay inside
+Ana's head, so we see Ben's face but not his thoughts" teaches third limited
+better than the phrase does.
 
 1. **Interview briefly.** Who is it about? What do they want? What is in the
    way? Where does it happen? How should it feel at the end (happy, sad,

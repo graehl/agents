@@ -16,6 +16,12 @@ question, record the answers by copying and filling the matching starter,
 then read the record before every later draft or image. No
 `illustration-style.md` means no images are added unasked.
 
+When talking with the author, explain a craft term the first time with a
+short example instead of using it bare: not "keep third limited," but "stay
+inside Ana's head, so we see Ben's face but not his thoughts." The craft
+vocabulary is for the agent's diagnosis; the author gets plain words and
+examples.
+
 Content is all-ages by default: no sexual content, romance at
 general-audience-film level, violence only as the genre needs; the author
 sets a different bar explicitly, never the agent. With a new or young writer,
