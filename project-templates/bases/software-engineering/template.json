@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "software-engineering",
+  "title": "Software engineering",
+  "description": "Structure, change boundaries, and verified completion.",
+  "extends": ["base"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "instructions/software-engineering.md", "from": "guide.md" }
+  ],
+  "overrides": []
+}

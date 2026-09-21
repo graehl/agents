@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "web-ui",
+  "title": "Web UI",
+  "description": "Responsive, accessible browser UI and real typing checks.",
+  "extends": ["testing"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "instructions/web-ui.md", "from": "guide.md" }
+  ],
+  "overrides": []
+}

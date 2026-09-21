@@ -1,0 +1,28 @@
+{
+  "formatVersion": 1,
+  "kind": "template",
+  "status": "draft",
+  "id": "app-canvas",
+  "title": "App canvas",
+  "description": "A static Vite and TypeScript canvas app, with a server capability to add later.",
+  "extends": ["canvas", "server"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "package.json", "from": "files/package.json" },
+    { "to": "package-lock.json", "from": "files/package-lock.json" },
+    { "to": ".gitignore", "from": "files/gitignore" },
+    { "to": ".prettierrc.json", "from": "files/prettierrc.json" },
+    { "to": ".prettierignore", "from": "files/prettierignore" },
+    { "to": "vite.config.ts", "from": "files/vite.config.ts" },
+    { "to": "playwright.config.ts", "from": "files/playwright.config.ts" },
+    { "to": "test/browser/canvas.spec.ts", "from": "files/canvas.spec.ts" },
+    { "to": "test/server.test.mjs", "from": "files/server.test.mjs" },
+    { "to": "README.md", "from": "files/README.md" },
+    { "to": "instructions/run-deploy.md", "from": "files/run-deploy.md" },
+    { "to": ".project-template/PREPARE.md", "from": "files/PREPARE.md" },
+    { "to": ".project-template/app.json", "from": "files/app.json" },
+    { "to": "scripts/setup.mjs", "from": "files/setup.mjs" },
+    { "to": "scripts/serve.mjs", "from": "files/serve.mjs" }
+  ],
+  "overrides": []
+}

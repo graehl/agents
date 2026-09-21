@@ -1,0 +1,27 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "server",
+  "title": "Optional loopback server",
+  "description": "Vendor the server add-on without activating a backend.",
+  "extends": ["typescript"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "instructions/server.md", "from": "guide.md" },
+    {
+      "to": ".project-template/addons/server/main.ts",
+      "from": "files/main.ts"
+    },
+    {
+      "to": ".project-template/addons/server/main.test.ts",
+      "from": "files/main.test.ts"
+    },
+    {
+      "to": ".project-template/addons/server/tsconfig.json",
+      "from": "files/tsconfig.json"
+    },
+    { "to": "scripts/add-server.mjs", "from": "files/add-server.mjs" }
+  ],
+  "overrides": []
+}

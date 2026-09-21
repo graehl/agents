@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f3ed" />
+    <link rel="icon" href="./icon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <title>App canvas</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="eyebrow">YOUR NEXT IDEA</span><span class="badge">App canvas</span>
+      </header>
+      <section class="intro">
+        <h1>A little room to create.</h1>
+        <p>Try a few strokes. Then make this canvas your own.</p>
+      </section>
+      <section class="workspace" aria-label="Drawing workspace">
+        <div class="toolbar">
+          <div class="colors" role="group" aria-label="Ink color">
+            <button data-color="#7357c8" aria-label="Purple ink" aria-pressed="true">
+              <span style="background: #7357c8"></span>
+            </button>
+            <button data-color="#23756c" aria-label="Green ink" aria-pressed="false">
+              <span style="background: #23756c"></span>
+            </button>
+            <button data-color="#c44f39" aria-label="Orange ink" aria-pressed="false">
+              <span style="background: #c44f39"></span>
+            </button>
+          </div>
+          <div class="actions">
+            <button id="undo">Undo</button><button id="clear">Clear</button>
+          </div>
+        </div>
+        <canvas
+          aria-label="Drawing canvas. Draw with a pointer or touch; Undo and Clear are available by keyboard."
+        ></canvas>
+        <footer>
+          <label for="title">Sketch name</label
+          ><input id="title" value="Untitled idea" maxlength="100" /><output
+            id="status"
+            aria-live="polite"
+            >0 strokes</output
+          >
+        </footer>
+      </section>
+      <p class="footnote">
+        A fresh starting point. Your sketch stays here until you reload.
+      </p>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "App canvas",
+  "short_name": "Canvas",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f5f3ed",
+  "theme_color": "#f5f3ed",
+  "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "app-canvas",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "vite --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts test/*.test.mjs",
+    "test:browser": "playwright test",
+    "build": "npm run typecheck && vite build",
+    "preview": "node scripts/serve.mjs",
+    "server:add": "node scripts/add-server.mjs",
+    "format": "prettier --write src test scripts server index.html vite.config.ts playwright.config.ts --ignore-unknown --no-error-on-unmatched-pattern",
+    "format:check": "prettier --check src test scripts server index.html vite.config.ts playwright.config.ts --ignore-unknown --no-error-on-unmatched-pattern"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@types/node": "22.19.15",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3",
+    "vite": "6.4.1"
+  }
+}

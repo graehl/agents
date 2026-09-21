@@ -1,0 +1,10 @@
+{
+  "kind": "static",
+  "dir": "dist",
+  "setup": ["node", "scripts/setup.mjs"],
+  "build": ["npm", "run", "build"],
+  "test": ["npm", "test"],
+  "preview": ["node", "scripts/serve.mjs"],
+  "prepare": ".project-template/PREPARE.md",
+  "addons": { "server": ["npm", "run", "server:add"] }
+}
