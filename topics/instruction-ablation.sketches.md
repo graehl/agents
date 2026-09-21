@@ -69,6 +69,12 @@ Use the same task and four independent runs per condition:
 | Agent string | Explicit variety plus a model-generated alphanumeric inspiration string |
 | External string | Same string procedure, with the string generated externally through a shell |
 
+The agent-string condition explicitly requests generation by the model itself:
+**no tools, shell scripts, reading `/dev/random` or `/dev/urandom`, external
+random services, or retrieved strings.** Disable tools for the string-generation
+call where supported and record the actual tool policy and any violations.
+The shell-generated condition is the deliberate external contrast.
+
 Fix the interpretation instruction, requested string length/alphabet, task
 constraints, and output scope across the two string arms. Retain actual strings
 and lengths; generator noncompliance is an observation, not permission to
@@ -84,6 +90,38 @@ signal appears, a follow-up can feed archived agent-generated and external
 strings through identical fresh interpreter contexts. Also consider
 task-conditioned versus task-blind string generation, and an extra-planning
 control without a string, before attributing gains to randomness itself.
+
+### How does context shape model-generated random text?
+
+The user also wants to examine the strings themselves: how does nominally
+"random" text, generated without tools, depend on the preceding context?
+This can be studied before building or judging any creative artifact.
+
+Hold the model, generation instruction, requested alphabet/length, and available
+sampling settings fixed while varying context: neutral/minimal; the actual
+creative brief; contrasting topics, styles, or personas; the original default
+attempt; and earlier generated strings. Include matched-length unrelated
+contexts and paraphrases so context length and particular wording are not
+silently equated with semantic content. Repeat within every condition to
+compare context effects with ordinary sampling variation. These are proposed
+contrasts, not a requirement to run a full factorial experiment immediately.
+
+Retain exact contexts and strings. Inspect character/token frequencies,
+repetition, readable fragments, and cross-sample similarity without assuming
+which features carry an effect. Test any context classifier on held-out
+strings and context paraphrases; finding a cue after looking at all samples is
+exploration. Obvious copied words are a different finding from less readable
+distributional shifts. An inability to classify context does not establish
+that no context information is present.
+
+Then pass saved strings from different generation contexts to fresh interpreters
+with the **same** creative brief and no access to the generating context. This
+asks whether context-dependent string differences mediate downstream choices.
+As a complementary contrast, hold the string fixed and vary interpretation
+context. Keep these interventions separate from continuing in the generator's
+conversation, where context can directly influence the artifact without being
+carried by the string. Cross them with the model/lineage comparison below when
+useful; no weights are changed in this context-dependence experiment.
 
 ### What does attending to the string mean across models?
 
