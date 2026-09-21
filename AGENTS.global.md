@@ -280,6 +280,28 @@ final amendment. Global policy governs outside it. Report material precedence
 conflicts rather than silently resolving them. A committed project
 `AGENTS.md` stands alone.
 
+### First-run maintainer document discovery
+
+For a repository not owned by the user, absence of root `AGENTS.local.md` at
+entry is the first-run check. Inspect the existing maintainers' instructions,
+document indexes and representative paths, then create a Git-excluded
+`AGENTS.local.md` with a document-discovery table. A personal fork alone does
+not make upstream conventions the user's. Use repository-local
+`.git/info/exclude`, not a committed ignore change, for the new local file.
+An existing local file skips automatic bootstrap; an explicit mapping request
+may append to it. Recheck before creating; if another writer created it,
+preserve its contents and append the table after the local-file backup.
+
+Table columns: document kind, existing locations, meaning/authority, and
+read/write status. Cover committed topics, formal plans, user/developer docs,
+evidence, proposals, gaps/bugs/tickets, and private task state where present;
+mark absent or unverified categories rather than inventing a convention.
+Include the instruction: **also read from these locations when searching for
+an existing document of that type**. Consult that map before declaring a
+document absent or creating a duplicate. This is additive read discovery,
+not permission to write into, migrate or normalize another maintainer's
+layout; existing authoring rules still decide where new work belongs.
+
 ### Local instruction file backups
 
 Before editing/deleting an instruction file not safely recoverable from Git
