@@ -250,9 +250,15 @@ probabilistic instruction following and open-ended diversity using
 model-generated strings. It motivates the agent-string arm; it does not
 validate this UI recipe or settle agent-generated versus external strings.
 
-[Subliminal learning](https://truthful.ai/papers/subliminal-learning/) reports
-transfer of preferences through apparently unrelated model-generated number
-sequences. [Token-entanglement follow-up work](https://owls.baulab.info/)
+[Cloud, Le et al., "Subliminal Learning: Language Models Transmit Behavioral Traits via Hidden Signals in Data"](https://alignment.anthropic.com/2025/subliminal-learning/)
+(Anthropic Alignment Science Blog, July 22, 2025;
+[paper](https://arxiv.org/abs/2507.14805),
+[Truthful AI cross-post](https://truthful.ai/papers/subliminal-learning/))
+reports transfer of preferences through apparently unrelated model-generated
+number sequences. Its reported dependence on shared or similar base models
+motivates the lineage contrast, without establishing our proposed local
+stability or one-shot interpretation effects.
+[Token-entanglement follow-up work](https://owls.baulab.info/)
 also reports preference effects from prompting with selected number tokens.
 These motivate taking associations in apparently meaningless strings seriously.
 They do not establish that arbitrary strings improve creativity: selected
