@@ -1,8 +1,3 @@
-# User-specific preferences
-
-Supplements `~/agents/AGENTS.global.md` with graehl-specific context; loaded
-alongside it, not optional.
-
 ## Active projects
 
 - `~/ya` — `yepanywhere` (graehl's client, `github.com/graehl/yepanywhere`;

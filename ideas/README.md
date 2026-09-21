@@ -6,8 +6,9 @@ repository. A seed records enough for later rediscovery without declaring a
 project, roadmap item, task, or intention to build.
 
 This separation keeps `topics/` searchable as current project context. Use a
-topic when the material governs this repository; use `tasks/` for private
-active-work state, `gaps/` for a deferred defect, and `on-deck/` only for an
+topic when the material governs this repository; use program-scoped handoffs
+for private active-work state, `gaps/` for a deferred defect,
+`gaps/sketches/` for intended future implementation, and `on-deck/` only for an
 executable queued run. None is a synonym for an idea seed.
 
 ## Entry format

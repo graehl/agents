@@ -4,8 +4,9 @@ Load this routing index before substantive research or experimentation:
 notebooks, train/eval work, significance or comparison claims, paper/report
 proposal or drafting, handout or research-blog writing, field surveys,
 prior-art or direction ranking, research-program resume or handoff, and
-research-advisor decisions. Read every packet whose observable condition
-matches the next action.
+research-advisor decisions. Follow every route matching the next action.
+Within a packet, its section index selects complete sections to read; do not
+load unrelated schemas, artifact forms, or recovery procedures.
 
 After compaction or resume, an earlier read is not proof that this policy
 survived. Re-read this index at the next research action boundary unless the
@@ -13,7 +14,7 @@ harness verifiably reconstructs this exact current packet in model context or
 a boot-loaded scoped supplement sets an evidence-backed cadence.
 
 This index owns routing and wins if a packet conflicts with it. The packets
-hold the binding rules, rationale, templates, and examples for their named
+hold the binding rules, templates, and examples for their named
 scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 
 ## Packet routes

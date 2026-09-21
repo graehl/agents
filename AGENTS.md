@@ -1,8 +1,8 @@
 # Instruction-repository boot
 
 This checkout authors the reusable agent policy whose installable global source
-is `AGENTS.global.md`. Load that file before this one unless the harness already
-supplied it. A harness-global `AGENTS.md` or `CLAUDE.md` must target
+is `AGENTS.global.md`, already supplied through the harness boot symlink.
+A harness-global `AGENTS.md` or `CLAUDE.md` must target
 `AGENTS.global.md`, not this project file; keeping those roles distinct prevents
 the global policy from being injected again as project context in this repo.
 

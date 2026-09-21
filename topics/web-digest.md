@@ -29,7 +29,7 @@ file to drop into one conversation, with riders pre-excluded).
 
 - The manifest's globs match against `git ls-files`, so only tracked
   files can be included — gitignored private state (`AGENTS.local.md`,
-  `tasks/`, `user/`) is excluded by construction, not by listing.
+  private `handoffs/`, `user/`) is excluded by construction, not by listing.
 - `.evidence.md`, `.bearings.md`, and `.sketches.md` riders are excluded:
   rationale ledgers, live orientation state, and dormant candidates are noise
   for a routine web conversation.

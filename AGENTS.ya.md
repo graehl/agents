@@ -1,12 +1,3 @@
-# Yep Anywhere Launcher Supplement
-
-Read this after `~/agents/AGENTS.global.md`, `~/agents/AGENTS.user.md`, and the
-harness supplement whenever `AGENT_LAUNCHER=yepanywhere`. Yep Anywhere (YA) is
-the local supervisor that starts, resumes, and streams provider sessions. This
-file owns what YA publishes into a session it launched and the behavior that
-depends on YA being the launcher. Harness mechanics stay in the harness
-supplement; cross-launcher policy stays in the global file.
-
 ## Launch, route, and backend markers
 
 | Marker | Meaning |
@@ -18,7 +9,7 @@ supplement; cross-launcher policy stays in the global file.
 | `AGENT_LAUNCH_MODEL` | model YA selected explicitly; absent when YA asked for the provider default |
 | `AGENT_LAUNCH_EFFORT` | effort YA selected explicitly; absent when YA asked for the provider default |
 | `YEP_CLAUDE_GATEWAY=1` | current YA fallback for `AGENT_LAUNCH_ROUTE=claude-gateway` when the canonical route marker is absent |
-| `YEP_COPILOT_API=1` | current YA fallback for `AGENT_LAUNCH_BACKEND=copilot-api` when the canonical backend marker is absent; routes `AGENTS.copilot.md` |
+| `YEP_COPILOT_API=1` | current YA fallback for `AGENT_LAUNCH_BACKEND=copilot-api` when the canonical backend marker is absent |
 
 Model and effort are launch history. A live model or effort switch leaves them
 unchanged, so they answer what this session started as, never what it is

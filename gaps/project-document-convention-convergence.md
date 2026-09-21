@@ -35,8 +35,12 @@ material may overlap with or be referenced from topics. User documentation
 starts with README and its links; prefer `doc/` for additional human-audience-only
 material, for example marketing/publication content. Compare these meanings
 against Kyle's organization instead of assuming his `docs/...` spelling should
-become the shared default. This records a preference to reconcile with current
-gap/sketch/task policy, not a silent global policy or directory migration.
+become the shared default. The global guidance now adopts `gaps/sketches/`
+for intended future implementation without a present defect or contract
+violation. “Open a gap” calls for judgment about gap versus sketch, not a
+fabricated defect. Topic design alternatives retain their `.sketches.md`
+owner, with links instead of duplicate content. This does not authorize
+migrating Kyle's directories.
 
 Formal action plans in Kyle's repositories remain a distinct discovery
 category. Do not adopt his `T-nnn` numbering or relocate his files. The user's
@@ -110,6 +114,14 @@ Contributing-model: 6-Astra
 - Keep Kyle's `~/ya` and `kzahel/aitutor` conventions as read-only comprehension
   through the existing first-run `AGENTS.local.md` discovery-table mechanism.
   That mechanism remains; this pass does not adopt or migrate his layout.
+- In projects activating [REVIEWS.md](../REVIEWS.md), `reviews/` is the
+  tracking surface for reviewed work, often associated with a ticket. It holds
+  the change's review state and next revision obligations; a gap captures
+  unresolved project work and a handoff preserves continuity when needed.
+  The remote review remains authoritative and `/reviews` refreshes the local
+  record. Gerrit is established. GitHub PR support is intended but the live
+  open-PR workflow is untested; a minimal merged-PR smoke is recorded in
+  [the existing GitHub backend gap](reviews-github-backend.md).
 - Global boot carries the immediate steer and route. Conditional handoff,
   scheduling, and authoring details belong at the action that needs them.
   Installation is direct global-policy and skill symlinks; the installer is
@@ -120,9 +132,44 @@ applied across the active instruction consumers. Static scenario review and
 retired-rule searches cover the named-scope/ROOT, nested-program, partial-topic,
 and read-only maintainer cases. Existing historical files remain in place.
 
-**Remaining:** the user requested a full crawl of the global boot and scoped
-activation hierarchy, including RESEARCH, RUNS, and TOPICS, for pruning,
-scoping, and relocation. The comparative semantic mapping and template defaults
-above also remain. `scripts/commit-msg-lint` still rejects subjects over 65
-characters; the newly stated length aim is not yet reflected in that helper.
+**Hierarchy pass:** crawled the boot and topic reference graph from global
+policy, all supplements, RESEARCH, RUNS, and TOPICS. The initial graph reached
+299 Markdown files, including linked survey sources; reachability is not a
+mandatory load. Reviewed the binding packet bodies and activation boundaries,
+then checked affected topic/skill consumers and references. Source papers,
+historical ledgers, and dormant sketches remain reference material rather than
+new instruction loads. This was a structural instruction review, not a fresh
+correctness audit of every cited paper or implementation.
+
+- Global policy is already injected through the canonical harness boot
+  symlink. References name its relevant section; they never request another
+  policy read. The source filename remains the authoring/install target.
+- Supplement activation belongs in global policy. Removed supplement titles
+  and self-loading preambles; moved the Copilot and model-tier conditions to
+  that one owner. Removed inline incident evidence and vendor-memory guidance
+  beyond the prohibition and correction/preference ownership rule.
+- Removed duplicate retained-detail bodies from research/run packets, keeping
+  manual schemas and unique tie/closure/option-audit requirements. Section
+  indexes select by action: publication form, program/inventory work, launch,
+  transformed rows, or diagnosis. TOPICS routes vocabulary examples to the
+  existing human reference rather than loading the domain catalog each time.
+- Reconciled blanket research branching with project branch policy and moved
+  `/ship` squash preparation into a separate durable worktree. Removed
+  invented-id recovery and clarified that optional steering deadlines cannot
+  grant missing authorization.
+- Removed obsolete watchdog/tmux helpers and their installed copies. Native
+  `agentctl wait-gpu` handles capacity readiness; `wait --heartbeat-gpu`
+  reports GPU state while waiting for a job. Their conditions remain distinct.
+
+**Remaining:** the comparative semantic mapping and template defaults above
+still need their stated closure evidence. The subject-length mismatch is
+resolved in `35a1de6`:
+`scripts/commit-msg-lint` now warns beyond the 65-character aim while preserving
+hard failures for malformed messages and forbidden attribution.
 This gap stays open until its closure evidence is met.
+
+The requested first-pass edits landed in `79e07a8`; the hierarchy pass preserves
+their deletions rather than moving retired obligations into activated packets.
+Project-active field glossary loading has its own
+[gap](project-active-field-glossaries.md), since retrieval design and validation
+are distinct from document-convention convergence.

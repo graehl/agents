@@ -14,11 +14,17 @@ it as its own commit — no gap file needed. A temporary gap is useful when
 active work needs a reviewable statement of the mismatch and chosen resolution,
 even if it closes in the same session. Extend a matching gap first.
 
-A nice-to-have or dreamed improvement that exposes no current defect or blocker
-belongs in the owning topic's candidate-improvement or `## Sketches` section.
+Intended future implementation that exposes no current defect or violation of
+existing reasonable topic contracts belongs in `gaps/sketches/<slug>.md` in
+the owning scope. “Open a gap” does not require inventing a defect: use judgment
+to choose a gap or sketch from the user's intent. A sketch records the desired
+outcome, proposed approach, and unresolved decisions without asserting that
+current behavior is broken. Remove it when implemented or abandoned, promoting
+durable contracts into the owning topic. Topic-specific design alternatives
+may remain in a `.sketches.md` companion; link rather than duplicate them.
 Private resume state belongs in a program-scoped handoff. The
-single-purpose meaning of this directory is unresolved project incompleteness,
-not every unimplemented plan or missing handoff.
+top-level gap files record unresolved project incompleteness; the `sketches/`
+subdirectory distinguishes intended future implementation from those defects.
 
 ## Why committed, and why its own directory
 

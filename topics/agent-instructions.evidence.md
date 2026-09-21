@@ -4907,3 +4907,142 @@ Contributing-model: fable-5.1
   not measured evidence of improved model compliance.
 
 Contributing-model: 6-Astra
+
+## 2026-09-21 — keep supplement evidence unloaded and prohibit vendor memory
+
+- **User correction:** the Claude supplement carried an inline worked failure:
+  a Sol-via-Claude session passed an attribution trailer through a publish
+  script's message argument (`ya e56fe3e6`, 2026-08-07). This incident record
+  is moved here from `79e07a8:AGENTS.claude.md`; it was not independently
+  revalidated in this pass. The operative prohibition remains in guidance.
+- **User decision:** Claude memory is disabled. Replace the extended memory
+  storage/privacy explanation with a ban on vendor memory facilities and a
+  pointer to global instruction ownership for corrections and preferences.
+  This supersedes the 2026-08-28 entry's permission to store project facts in
+  vendor memory; that entry remains historical evidence.
+- **Trace:** a general behavioral correction updates its existing global
+  owner; a project preference follows project instruction ownership. Neither
+  creates a vendor memory entry. No provider-storage factual claim is needed
+  to apply this user preference.
+
+Contributing-model: 6-Astra
+
+## 2026-09-21 — prune repeated packets and scope their reads by action
+
+- **User direction:** crawl the global boot and reachable topic hierarchy,
+  especially RESEARCH, RUNS, and TOPICS, for premature detail, pruning, and
+  relocation. Global policy is already supplied through its harness-boot
+  symlink: name the section rather than request a read. Supplement triggers
+  belong in global policy; supplement titles and self-loading preambles go.
+- **Crawl boundary:** the initial mechanical graph reached 299 Markdown files
+  and 5,868,525 bytes. That includes linked full-text survey papers, not an
+  instruction load estimate. Binding main/packet bodies received editorial
+  review; topic and skill edges were checked for activation, retired-rule
+  consumers, and moved references. Historical/dormant material and source
+  papers remain references. No claim is made to have revalidated every tool
+  implementation or scientific source reached by a link.
+- **Decision:** remove repeated retained-detail bodies rather than relocate a
+  second authoritative copy. Preserve unique manual metadata schemas, tie
+  diagnostics, research-line closure, option audit, and program lineage gates.
+  Add action-selected section routes so a paper edit does not load program
+  setup, a tracked launch does not load manual schemas, and a storage-only run
+  does not activate GPU setup. TOPICS no longer carries the broad field-term
+  catalog already served by the human vocabulary reference.
+- **Removed text remains recoverable:** `79e07a8` contains every pre-pass
+  packet and supplement. The inline Anthropic gloss incident remains fully
+  recorded in the 2026-08-08 entry above. The removed evidence packet tail
+  contained the user's >=2/3 effective-overselling estimate and a MetricX-QE
+  selection/MetricX-reference scoring example whose apparent 2–8x win vanished
+  under an independent metric. It also described four failed annotation
+  invocations around one valid run, a span-copy repair, and a 3,072-token
+  truncation on a 6,000-character chunk with 101 findings. These are migrated
+  historical claims, not independently reproduced results from this pass.
+  Their steering remains reproduction controls and raw-run/row/log review.
+- **Other displaced examples:** the judgment tail's Faker-versus-character-
+  generator example recorded an aggregate +0.0001 F1 tie on a small predicted
+  slice; its lesson remains prospective slice/power reasoning and bounded tie
+  diagnosis. The Claude pause section claimed a stalled continuation and
+  session-verified wake support without identifying that session. Its useful
+  requirement is now to verify an actual continuation facility; optional
+  steering cannot convert silence into approval. These histories are also
+  recoverable at the revision above.
+- **Identity/branch traces:** an absent launcher id is reported, not replaced
+  by the newest peer transcript or a fabricated tag. Passive launcher refresh
+  does not replace authored active-session status. A research edit follows
+  project branch policy; `/ship` prepares a squash in a new durable worktree
+  without switching shared HEAD or overwriting an existing review branch.
+- **User-directed helper retirement:** delete `agent-tmux-nudge` and
+  `agent-wait-watchdog`, including their `~/bin` installations. Searches found
+  no active callers outside the removed monitoring guidance and helper source.
+  Verified `agentctl wait-gpu --help` and `wait --help`: capacity readiness uses
+  `--max-memory-used` in MiB, and job wait heartbeat can include GPU stats.
+  A sidecar finishing while another intended GPU run continues must still wait
+  on job state, not GPU-idle. No GPU workload was launched for this doc change.
+- **Factual correction:** removed the assertion that `PYTORCH_ALLOC_CONF` is
+  silently ineffective. Current
+  [PyTorch CUDA environment documentation](https://docs.pytorch.org/docs/main/cuda_environment_variables.html) names it
+  as the primary variable and `PYTORCH_CUDA_ALLOC_CONF` as a compatibility
+  alias. The existing preferred invocation remains; no project environment
+  was changed or allocator behavior benchmarked.
+- **Boot traces:** native Copilot and explicitly marked Copilot backends reach
+  the same backend supplement; a present canonical backend suppresses the
+  legacy fallback. A Claude Gateway Sol session gets Claude, Sol, and its
+  appropriate tier. Weak models exclude frontier latitude. Global references
+  name already-loaded sections; action packets still refresh after compaction
+  under their existing persistence rule.
+- **Document traces:** a one-session direct fix need not create paperwork;
+  substantial unresolved work can have a temporary gap. Settled intended
+  contracts update existing topics before gap closure, with implementation
+  status explicit. A full root glossary is not ordinary boot; the weak-model
+  checklist now agrees. Project-active field retrieval remains an open design
+  gap rather than an untested automatic term matcher.
+- **Validation:** changed Markdown links introduce no unresolved targets or
+  anchors; retired-route searches and whitespace checks pass. The checker
+  regression failed against the old hard subject cap and passes after making
+  it advisory, while forbidden attribution still fails (`35a1de6`). These are
+  structural/trace checks, not measured improvements in agent outcomes.
+
+Contributing-model: 6-Astra
+
+## 2026-09-21 — Foreground output cadence is not a proven cache TTL
+
+- **User decision:** foreground `agentctl` output must reach the harness no
+  less often than every 9.5 minutes; keep the existing 540-second heartbeat
+  for margin. Codex's separate at-most-540-second model-continuation policy
+  remains. Producing output, delivering it to the harness, and making a
+  cache-reusing provider request are distinct events.
+- **Source checked:** [OpenAI prompt caching guide](https://developers.openai.com/api/docs/guides/prompt-caching),
+  retrieved 2026-09-21, describes GPT-5.6-and-later `prompt_cache_options.ttl`
+  as `30m`, measured from write or reuse. Earlier in-memory caching typically
+  lasts 5–10 minutes of inactivity, with possible retention up to an hour.
+  This does not establish a fixed ten-minute Codex subscription TTL or prove
+  which serving policy YA's route uses. Removed the monitoring packet's
+  unsupported universal one-hour extended-cache rationale.
+- **Operational belief:** ten minutes remains a precaution, not a guarantee.
+  Frequent YA cache misses on comparable stable-prefix turns 5–10 minutes
+  apart would defeat that assumption and motivate a five-minute-or-shorter
+  precaution. Check prefix changes, compaction, and routing before attributing
+  misses uniquely to TTL. Absence of such misses supports the adequacy of the
+  precaution, not proof of an exact eviction threshold. No timed YA cache
+  experiment was performed in this pass.
+- **Untrusted advice:** the user reports widespread web advice that an
+  empty-output tool call provides an efficient keepalive for Codex subscription
+  use without growing the cached prefix. The user explicitly does not trust
+  this assertion yet. Neither its efficacy nor prefix-growth behavior was
+  established here; it is not an instruction or a substitute for foreground
+  status output and model continuation.
+- **Moved incident:** the previous Codex session topic described a queued
+  training chain followed by ten hours of idle GPU until the user returned.
+  This inherited report motivates owned-job continuation; no fresh transcript
+  verification was performed during this prose relocation.
+- **Placement decision:** `gaps/sketches/` is globally visible for intended
+  future implementation that violates no reasonable existing contract.
+  “Open a gap” calls for judgment, not manufacturing a defect. Topic-specific
+  `.sketches.md` alternatives retain their owner and are linked when relevant.
+- **Size check:** versus `79e07a8`, research packets shrink from 85,109 to
+  46,544 bytes; run packets from 52,493 to 27,020; TOPICS from 15,105 to 8,284;
+  supplements from 44,297 to 38,238. Global grows from 50,949 to 52,522 bytes
+  as routing and collection distinctions move into the always-visible owner.
+  These are byte counts, not measured comprehension or token-cost results.
+
+Contributing-model: 6-Astra

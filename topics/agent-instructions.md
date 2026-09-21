@@ -20,7 +20,10 @@ repository remains usable without the other.
 ## Contracts
 
 - `AGENTS.global.md` is the authoritative global policy file and the source
-  installed into each harness's global instruction location.
+  installed into each harness's global instruction location. It is already
+  injected through that boot symlink: references name its applicable section,
+  never request another policy read. The filename remains appropriate for
+  authoring and installation.
 - `AGENTS/` contains optional clarification packets and is never an install
   target or routine directory read. `AGENTS.global.md` retains every binding
   rule and wins on conflict.
@@ -36,7 +39,9 @@ repository remains usable without the other.
 - Correctness topics are defined through glossary-owned canonical docs. Formal
   topic docs live in the owning glossary's `topics/` collection, and related
   commit series use collision-safe glossary-scoped `Topic:` names.
-- Gaps track unresolved work and handoffs preserve continuity; durable global
+- Gaps track unresolved defects, `gaps/sketches/` holds intended future
+  implementation without a present contract violation, and program-scoped
+  handoffs preserve continuity; durable global
   correctness arguments belong in topics.
 
 ## Invariants
@@ -55,7 +60,7 @@ repository remains usable without the other.
   with an explanation for material deviations). When the observable step
   itself is the contract — a gate record, a stop, a coordination
   write — the rule should say so rather than leave it to inference.
-- Topic and theory names should stay searchable from commits, tasks, and
+- Topic and theory names should stay searchable from commits, gaps, handoffs, and
   instruction text.
 - Theory docs should explain why contracts are believed, not accumulate a
   chronological list of every change.
@@ -323,10 +328,11 @@ controlled instruction ablation for explicitly high-value questions.
 
 `AGENTS.codex.md` and `AGENTS.claude.md` are sibling instruction files for
 harness-specific mechanics: session-log locations, real resume identifiers,
-provider skill paths, and launcher quirks. Each reads the model id from its
-harness transcript and routes matching model-scoped behavior patches.
-`AGENTS.global.md` routes agents to the matching harness supplement when present but
-keeps cross-provider policy in the main file.
+provider skill paths, and launcher quirks. They recover model identity from
+launcher markers or, when absent, the harness record. The global instructions'
+“Authority and instruction files” section owns all harness, backend, launcher,
+and model activation conditions. Supplements contain guidance without a file
+title or repeated conditions for loading themselves.
 
 `AGENTS.ya.md` is launcher-scoped: it applies when `AGENT_LAUNCHER=yepanywhere`
 says Yep Anywhere started the session, whatever harness it started. It owns the
@@ -367,23 +373,17 @@ loading the main file gets it.
 `AGENTS.frontier.md` is the dual of `AGENTS.weak.md`: latitude
 grants — currently end-state-over-checklist step skipping — that a
 weaker model would read as a rationalization license. The Claude and
-Codex supplements route to it; the Grok supplement does not, and both
-the pointer and the file itself disclaim the file when
-`AGENTS.weak.md` was also surfaced (a frontier-provider harness can
-still be running a small model). Both supplements also name an explicit
-model floor (Claude: haiku-class is weak; Codex: below GPT-5.5,
-Spark-class included) that self-serves `AGENTS.weak.md` without
-depending on the launcher. Tier is determined by grepping the
-harness-recorded model id from the session's own transcript, never by
-the model's self-knowledge of its name — models misreport that.
+Codex routes in global policy select it; the Grok route does not. Global
+policy excludes it when `AGENTS.weak.md` is surfaced and owns the explicit
+model floors. Tier follows recorded model identity, never self-report.
 
 Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.
 Anything binding belongs in `AGENTS.global.md`.
 
 `AGENTS.anthropic.md`, `AGENTS.opus.md`, and `AGENTS.sol.md` are model-scoped
-supplements. Both harness supplements route to them from the
-harness-recorded id, so a model keeps its patch when served through another
+supplements. Global policy routes to them from the
+recorded id, so a model keeps its patch when served through another
 harness. The Anthropic-family patch requires technical glosses to state the
 relevant operational distinction, expose uncertainty, or be omitted. Opus
 additionally carries the path-trace rule against overconfident assertions about

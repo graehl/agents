@@ -1,10 +1,4 @@
-# Codex Supplement
-
-Read this after `~/agents/AGENTS.global.md` and `~/agents/AGENTS.user.md` when
-running in Codex / OpenAI Codex. This file contains Codex harness
-mechanics; shared and model-scoped policy stays outside this file.
-
-Model tier: do not trust self-knowledge of your model name — models
+Model identity: do not trust self-knowledge of your model name — models
 misreport it. Use `$AGENT_LAUNCH_MODEL` when present; otherwise read the
 harness-recorded id from your own rollout file:
 
@@ -12,18 +6,6 @@ harness-recorded id from your own rollout file:
 tac "$(find ~/.codex/sessions -name "*$AGENTCTL_SESSION_ID*.jsonl" |
   head -1)" | rg -m1 -o '"model":"[^"]*"'
 ```
-
-Below GPT-5.5 (e.g. Codex 5.3 Spark), or with `AGENTS.weak.md`
-surfaced, you are weak tier: read `~/agents/AGENTS.weak.md` and do
-not read `AGENTS.frontier.md`. At GPT-5.5 or above, read
-`~/agents/AGENTS.frontier.md` next — frontier-tier latitude.
-
-Then load the model-scoped behavior patches selected by that same recorded id:
-an id containing `claude` reads `~/agents/AGENTS.anthropic.md`; an id containing
-`opus` also reads `~/agents/AGENTS.opus.md`; an id containing a `sol`
-model-family segment (for example, `gpt-5.6-sol`) reads
-`~/agents/AGENTS.sol.md`. This routing
-follows the model across harnesses rather than assuming Codex always runs Sol.
 
 ## Session Identity
 

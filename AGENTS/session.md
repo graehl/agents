@@ -82,12 +82,10 @@ On the first planning-to-act step in a shared workdir, write
 `.agentctl/active/<session-id>` with a short present-tense status line.
 Create `.agentctl/active/` if missing. Recover the provider's real
 resumable session id and key the entry by it — the provider supplement
-names the mechanism (env var, else this session's transcript). Do that
-work: a hand-picked personal tag is a last resort only where the
-provider exports no id *and* has no recoverable transcript. A fabricated
-id is not carried in env across calls and diverges from the real id a
-resume or sibling shell uses, so it is never DONE-marked and lingers as
-a false live peer.
+names the mechanism. Trust a launcher-published id; otherwise recover an id
+from evidence tied to this live session. Never invent a personal tag or select
+the newest transcript merely by recency. Report missing identity when it
+cannot be established.
 
 Line 1 is the gist; line 2 may be `scope: <paths>`, with plain
 paths or separator-anchored globs (`/**` subtree, `*.ext`; full schema in

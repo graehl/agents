@@ -8,6 +8,12 @@ dataset. `RUNS.md` is the router and wins on conflict.
 
 ## Binding rules
 
+For a tracked launch or saved-output lookup, read Research artifact metadata
+through Run records and provenance. Row-wise transforms instead activate
+Verified provenance for row-wise text transforms and its normative topic;
+also read launch rules when launching the transform. The manual templates
+below load only for manual marker/metadata authoring or interpretation.
+
 ### Research artifact metadata
 
 Anchor an important saved output with:
@@ -25,8 +31,9 @@ scripts do not own it. Record at least status, PID, start time, cwd/full command
 log, and output. On resume, find markers, use `kill -0` and the log to classify
 live versus interrupted work, and treat an adjacent completed metadata sidecar
 as stale-marker cleanup. `agentctl cleanup-running` is the canonical sweep.
-The exact template and explicit cleanup forms appear below under the second
-“In-flight job tracking (`.running.md`)” heading.
+Use “Manual in-flight marker template” below only when authoring a marker
+without launcher support. `agentctl cleanup-running <out>` or an exact marker
+path handles explicit cleanup; payload scripts do not own marker removal.
 
 `agentctl start --after <job-or-output>` is for a mechanically determined
 successor. Prequeueing eval-after-train is encouraged when exit status is a
@@ -117,8 +124,10 @@ both reach the payload as `--KEY=PATH` and be declared for provenance, use
 Bare `agentctl` assumes PATH lookup; fall back to `~/agents/agentctl`, not
 `./agentctl` from an arbitrary project. Full schemas and algorithms live in
 `topics/provenance-tracking.md` and `topics/agentctl.md`. The legacy
-`*.meta.md` template and one-level input inheritance rules appear below under
-the second “Research artifact metadata” heading.
+`*.meta.md` template and one-level input inheritance rules are under “Manual
+metadata schema”; read it only when authoring or interpreting that format.
+When configuring launch defaults, read `topics/agentctl.md` § Contracts for
+the declarative format, `${AGENTCTL_ROOT}`, and project-env override flags.
 
 #### Verified provenance for row-wise text transforms
 
@@ -136,25 +145,11 @@ save length-ratio outliers. Acceptance uses a policy frozen before the batch;
 same-batch fitting is exploratory only. The normative envelope and check are
 `topics/verified-provenance.md` and
 `run_quality.length_ratio.LengthRatioPolicy`.
+Do not save integer token-ID sequences in the envelope. Log the configured
+length-ratio coverage and save outlier pairs; anomalies are review signals,
+not automatic rejection.
 
-
-## Retained detail and examples
-
-### Research artifact metadata
-
-For important saved research outputs, use the output artifact as the anchor:
-
-- `<out>` — primary artifact
-- `<out>.meta.md` — compact provenance and summary (written by agent-managed
-  launch plumbing such as `agentctl`, not by payload scripts)
-- `<out>.log` — full stderr/runtime log
-- `<out>.running.md` — launch record written by the agent at job start; deleted on clean completion
-
-#### In-flight job tracking (`.running.md`)
-
-**The agent writes `.running.md` immediately when launching a background job.** Scripts
-are not responsible for creating or deleting it. This file survives crashes and lets a
-resumed agent discover in-flight or interrupted work without reading shell history.
+### Manual in-flight marker template
 
 Minimal structure:
 
@@ -175,45 +170,7 @@ cd <cwd>
 \`\`\`
 ```
 
-**On session resume after a crash:**
-1. `ls untracked/*.running.md` (or wherever jobs are launched) to find candidates.
-2. For each: `kill -0 <pid>` — if alive, job is still running; tail the log for progress.
-   If dead and no `.meta.md` exists, the job was killed mid-run — tail the log for
-   partial results and record them informally in the research log.
-3. If `.meta.md` exists alongside `.running.md`, the job completed but cleanup was
-   skipped — delete the `.running.md`.
-
-**Cleanup:** ordinary operation should not require a manual cleanup step: the
-launching agent, or `agentctl` when it owns the launch, removes `.running.md`
-after a clean completion. If a reboot, crash, or interrupted cleanup leaves
-stale markers and you need a "where were we?" pass, run
-`agentctl cleanup-running` with no arguments: it scans the workspace, reports
-`running` / `completed` / `interrupted`, and only removes markers that are
-clearly completed via adjacent `.meta.md` or `.meta.json`. To delete a known
-marker explicitly, run `agentctl cleanup-running <out>` or pass the marker
-path directly, `agentctl cleanup-running <out>.running.md`. Payload scripts
-should not be expected to create `.meta.md` or clean up `.running.md`; they
-produce outputs and may optionally write cooperative run declarations such as
-`$AGENTCTL_RUN_DIR/propagate.json`.
-
-`agentctl start --after <job-or-output>` may depend on either an `agentctl`
-job or an output path following this `.running.md` convention. The queued job
-is visible as `waiting`, but its payload is not launched and output metadata is
-not written until all dependencies complete cleanly. Use this only when the
-follow-on is mechanically determined; if the next step depends on interpreting
-the completed `.meta.md` or output contents, wait and inspect before launching.
-
-Prequeueing the mechanically-determined successor at launch time (eval
-after train, decode after cache) is cheap insurance against an agent
-dead-stop: if nothing consumes the completion promptly, the GPU still
-runs the planned chain and only reporting waits. `--after` gates on
-clean exit, but exit 0 is not semantic success: when the successor
-should not run on a degenerate result (metrics out of range, truncated
-or empty output), put that check in a small standalone guard script
-that the successor payload runs first — exit nonzero fails the
-successor and stops the chain — rather than shell-quoting a compound
-test into the agentctl command line. Results needing real
-interpretation still follow the wait-and-inspect rule above.
+### Manual metadata schema
 
 The naming relationship is strict: `.meta.md` and `.log` are formed directly from the
 exact output filename. When a run has one primary output, redirect stderr to `<out>.log`.
@@ -289,99 +246,3 @@ Section semantics:
 When updating a research log, link directly to the saved output or its `*.meta.md`.
 If a linked artifact is missing later, search first for the corresponding `*.meta.md`,
 then by naming convention or distinctive command/log lines.
-
-### Run records and provenance
-
-When a project tracks runs through `agentctl`, the canonical run record is the
-JSON dump under `runs/aim/<experiment>/runs/<run-id>.json`, using the
-`artifact_meta.find_aim_run_record/text` lookup path. Refer to that record
-rather than reconstructing run history from logs or `.meta.md` content alone: the
-dump carries the structured argv/cwd, declared inputs and outputs, the
-commit-aligned admission snapshot, best-effort machine identity, and any
-producer-tagged propagation facts.
-
-Output files produced under tracked runs get a `<output>.meta.json` sidecar next
-to them, containing `agentctl_run_id` and `run_dump` pointing back at the
-producing record. When you encounter an unfamiliar file, check for this sidecar
-before assuming it's untracked — following `run_dump` gives you the full
-provenance one read away.
-
-Bare `agentctl` invocations throughout this doc assume PATH lookup; when
-`command -v agentctl` fails, invoke it via `~/agents/agentctl` (the canonical
-absolute path — `./agentctl` will not work from arbitrary project CWDs).
-
-Put stable, non-secret launch defaults that must survive local/remote path
-differences in a tracked project-root `agentctl.env`. It is a declarative
-`KEY=VALUE` file rather than a sourced shell script; `${AGENTCTL_ROOT}` expands
-to the invocation-project root. For example:
-
-```text
-PII_EVAL_HOME=${AGENTCTL_ROOT}/untracked/pii-eval
-```
-
-Project values only fill missing ambient variables. `--source-env` and then
-explicit `--env KEY=VALUE` take precedence. Use `--no-project-env` for an
-intentional clean-room launch or `--project-env PATH` to select a different
-declarative file. Do not put credentials or other secrets in a tracked project
-environment file. Run provenance records its path, SHA-256, and key names,
-without recording values; `restart` preserves the original selection.
-
-When `agentctl` is on `PATH`, prefer `agentctl start ... -- <command>` for any
-launch you might later need to reproduce, audit, or trace. Two tiers:
-
-- **Tracked launch** (default): writes the full dump + meta sidecars; the run is
-  reachable via the runs DB and via filesystem-discoverable back-pointers.
-  Declared inputs (`--input KEY=PATH`) get sidecar lookup so the run record
-  shows what produced each input one-deep.
-- **Trivial launch** (`agentctl start --no-aim ...`): records nothing under
-  `runs/aim/`, no sidecars. Useful when the value is just having a tracked
-  launcher and an agent-permission boundary (one trusted binary in PATH instead
-  of raw shell exec) without paying the dump cost. Per project-local
-  run-record policy, trivial janitorial commands do not need Aim records.
-
-Keep multi-stage work as a sequence of those records when stage boundaries
-produce independently useful artifacts or require a validity decision. A
-monolithic shell command hides which stage failed and makes provenance and
-selective restart needlessly coarse. Use `--after` for a successor whose gate
-is mechanical; otherwise inspect the predecessor before submitting the next
-record. Add `--runtime-estimate` when a useful estimate is available.
-
-When one output path must both reach the payload as `--KEY=PATH` and be
-declared for provenance, use `agentctl start ... --output-arg KEY=PATH`. It
-performs both operations from one value. Do not repeat the path once in
-agentctl's options and again after `--`: the copies can diverge, and agentctl's
-plain `--output` is deliberately provenance-only. Keep plain `--output` for
-payloads whose output is positional, internally determined, or named by some
-other argument.
-
-For the full schema and algorithms (input source resolution, output sidecar
-writing, propagation protocol, plugin contract), see
-`topics/provenance-tracking.md`. For the agentctl plugin/hook surface
-specifically, see `topics/agentctl.md`.
-
-### Verified provenance for row-wise text transforms
-
-Any scripted batch translation, paraphrase, or other text rewrite must carry
-stable source identity inside each output row when the format permits it:
-dataset/document identity, an explicit `line_1based` or `row_0based` locator,
-the source text and hash, Unicode-codepoint input/output lengths, and
-`AGENTCTL_RUN_ID`. Prefer this inline envelope over a positional mapping. A
-legacy keyed sidecar is acceptable only with exact membership, order, and hash
-checks; line position alone is not provenance.
-
-When the transform already has a tokenizer loaded, include source and output
-token counts with the tokenizer's immutable revision and special-token
-convention; do not save the integer token-ID sequence. Codepoint and token
-ratios are complementary for cross-script transforms.
-
-Independently resolve a sample (all rows when cheap) against the original
-source and log the checked count. For every such batch, and especially before
-accepting an expensive transform, log the configured length-ratio coverage
-summary and save the actual source/output pairs that fall outside it for
-review. Acceptance uses a policy frozen for the operation/language direction,
-not one fitted on the batch under review; same-batch fitting is exploratory and
-cannot detect a coherent batch-wide misalignment. Length anomalies are review
-signals, not automatic rejection. Use the standard `row-transform/v1`
-envelope and reciprocal-symmetric empirical check
-in `topics/verified-provenance.md`; the shared implementation is
-`run_quality.length_ratio.LengthRatioPolicy`.

@@ -1,7 +1,6 @@
 # Python tooling
 
-Loaded before editing Python files or when first working in a Python
-project (trigger: `AGENTS.global.md` § Language tooling).
+Python-specific authoring and formatting guidance.
 
 Use `ruff check --fix` and `ruff format` (not black/isort/flake8),
 trying `uvx ruff` first and plain `ruff` when uvx is absent. That pair is
