@@ -97,6 +97,9 @@ output labeling to stand on their own. An appendix or final raw-results dump may
 preserve exhaustive support, but it is not the sole home for the display that
 makes a central claim understandable.
 
+For diagram tooling, label fit, screen legibility, and out-of-band explanatory
+notes, follow the [figure layout guidance](document-writing-figures.md#layout-labels-and-explanatory-notes).
+
 Run a scan-only pass: headings, captions, tables, figures, and emphasized text
 should convey the correct current claim and decision without requiring the
 reader to reconstruct the working session. Full prose then supplies evidence,
