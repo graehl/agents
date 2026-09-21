@@ -29,6 +29,8 @@ project-templates/
     web-app/                       shared Vite setup, preview and preparation
     canvas/                        drawing app and Canvas2D conventions
     server/                        inactive, vendored backend add-on
+    writing/                       prose/story/world craft, story layout, sheets
+      *.md -> ../../../topics/     writing, story-writing, story-project-layout
     legacy-boot/
       boot.md -> ../../../AGENTS.global.md
   templates/
@@ -106,8 +108,12 @@ available when they serve the reader. Both templates inherit `web-app` for
 their tooling and setup, and can activate the same vendored server later.
 Use `--template web-page` in the authoring commands to create one.
 
-Optional writing/worldbuilding guidance and concise GitHub Pages/account/domain
-onboarding are tracked in the
+Web page also inherits the `writing` base: general prose craft, story and
+world-building craft with the classic plot catalogs, a declarative story
+project layout, and fill-in sheets, vendored under `instructions/`. Its root
+instruction fragment routes to that material only for writing tasks and sets
+an all-ages content default. Skill-form authoring workflows and concise
+GitHub Pages/account/domain onboarding are still tracked in the
 [content-authoring capability gap](gaps/content-authoring-capabilities.md).
 Static publishing should default to a host-provided URL; a custom domain is
 optional. That publishing capability is shared by both kinds of project.

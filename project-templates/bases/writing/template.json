@@ -1,0 +1,33 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "writing",
+  "title": "Writing",
+  "description": "Prose, story and world-building craft with a story project layout and fill-in sheets; all-ages by default.",
+  "extends": ["base"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "instructions/writing.md", "from": "writing.md" },
+    { "to": "instructions/story-writing.md", "from": "story-writing.md" },
+    {
+      "to": "instructions/story-project-layout.md",
+      "from": "story-project-layout.md"
+    },
+    { "to": "instructions/story-starters/README.md", "from": "starters/README.md" },
+    { "to": "instructions/story-starters/STYLE.md", "from": "starters/STYLE.md" },
+    { "to": "instructions/story-starters/persona.md", "from": "starters/persona.md" },
+    { "to": "instructions/story-starters/setting.md", "from": "starters/setting.md" },
+    {
+      "to": "instructions/story-starters/setting-index.md",
+      "from": "starters/setting-index.md"
+    },
+    { "to": "instructions/story-starters/outline.md", "from": "starters/outline.md" },
+    { "to": "instructions/story-starters/beats.md", "from": "starters/beats.md" },
+    {
+      "to": "instructions/story-starters/continuity.md",
+      "from": "starters/continuity.md"
+    }
+  ],
+  "overrides": []
+}
