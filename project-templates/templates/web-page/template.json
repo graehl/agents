@@ -5,10 +5,17 @@
   "id": "web-page",
   "title": "Web page",
   "description": "A responsive page for an idea, document, story or collection, with writing guidance and a server to add later.",
-  "extends": ["page", "writing"],
+  "extends": [
+    "page",
+    "story"
+  ],
   "files": [],
   "overrides": [
-    { "op": "append", "to": "README.md", "from": "files/README-writing.md" },
+    {
+      "op": "append",
+      "to": "README.md",
+      "from": "files/README-writing.md"
+    },
     {
       "op": "append",
       "to": ".project-template/PREPARE.md",

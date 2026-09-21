@@ -11,7 +11,8 @@
     "page",
     "canvas",
     "server",
-    "writing"
+    "writing",
+    "story"
   ],
   "templates": [
     "app-canvas",

@@ -4,16 +4,11 @@
   "status": "draft",
   "id": "writing",
   "title": "Writing",
-  "description": "Prose, story and world-building craft with a story project layout, prose and illustration style records, fill-in sheets and the riff skill; all-ages by default.",
+  "description": "General prose craft, author-set audience/prose/illustration records, and the riff and remix skills; all-ages by default. Story craft is the story base.",
   "extends": ["base"],
   "files": [
     { "to": "AGENTS.md", "from": "instructions.md" },
     { "to": "instructions/writing.md", "from": "writing.md" },
-    { "to": "instructions/story-writing.md", "from": "story-writing.md" },
-    {
-      "to": "instructions/story-project-layout.md",
-      "from": "story-project-layout.md"
-    },
     {
       "to": "instructions/writing-starters/audience.md",
       "from": "starters/audience.md"
@@ -25,19 +20,6 @@
     {
       "to": "instructions/writing-starters/illustration-style.md",
       "from": "starters/illustration-style.md"
-    },
-    { "to": "instructions/writing-starters/README.md", "from": "starters/README.md" },
-    { "to": "instructions/writing-starters/persona.md", "from": "starters/persona.md" },
-    { "to": "instructions/writing-starters/setting.md", "from": "starters/setting.md" },
-    {
-      "to": "instructions/writing-starters/setting-index.md",
-      "from": "starters/setting-index.md"
-    },
-    { "to": "instructions/writing-starters/outline.md", "from": "starters/outline.md" },
-    { "to": "instructions/writing-starters/beats.md", "from": "starters/beats.md" },
-    {
-      "to": "instructions/writing-starters/continuity.md",
-      "from": "starters/continuity.md"
     },
     { "to": ".agents/skills/remix/SKILL.md", "from": "remix/SKILL.md" },
     {

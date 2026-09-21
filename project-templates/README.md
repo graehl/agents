@@ -30,18 +30,20 @@ project-templates/
     page/                          content-led DOM starter and behavior checks
     canvas/                        drawing app and Canvas2D conventions
     server/                        inactive, vendored backend add-on
-    writing/                       prose/story/world craft, story layout, sheets
-      *.md -> ../../../topics/     writing, story-writing, story-project-layout
+    writing/                       general prose craft, author-set records, skills
+      writing.md -> ../../../topics/writing.md
       riff/ -> ../../../../skills/riff/   four-alternative proposal skill
       remix/                       template-only skill: alternate version in a subdir
+    story/                         story/world craft, plot catalogs, story layout
+      *.md -> ../../../topics/     story-writing, story-project-layout
     legacy-boot/
       boot.md -> ../../../AGENTS.global.md
   templates/
     app-canvas/
       template.json                selected bases and app-specific files
       files/                       canvas-specific browser checks
-    web-page/                      page + writing, README/preparation appends
-    storybook/                     page + writing, prefilled records, ideas-led
+    web-page/                      page + story, README/preparation appends
+    storybook/                     page + story, prefilled records, ideas-led
   composition.py                   local source validation and file union
   project-template.py              acli authoring entry point
   gaps/
@@ -122,10 +124,12 @@ no talk of page look or pictures until the author agrees the story is done.
 At that point the agent puts the story on the page, proposes the format
 decisions as riffs, and suggests a remix.
 
-Web page and Storybook inherit the `writing` base: general prose craft, story and
-world-building craft with the classic plot catalogs, a declarative story
-project layout, and fill-in sheets, vendored under `instructions/`. Its root
-instruction fragment routes to that material only for writing tasks and sets
+Web page and Storybook inherit the `story` base, which extends `writing`.
+The two mirror the topics: `writing` carries general prose craft, the three
+author-set records and the riff/remix skills; `story` adds story and
+world-building craft with the classic plot catalogs, the story project
+layout and its fill-in sheets, all vendored under `instructions/`. Each
+root fragment routes to its material only for the matching task and sets
 an all-ages content default. The base also vendors the **riff** skill (four
 independently seeded alternatives, a recommendation, the author's pick) as the
 default way to propose at a creative choice point; Web page's README

@@ -40,10 +40,9 @@ relative to that root.
 
 ```text
 README.md            premise, logline, genre, target length, status
-audience.md          who reads this, age, what they know and come for
-prose-style.md       voice, register, point of view, tense, spelling, names
-illustration-style.md  whether images are wanted, medium, palette, mood,
-                       recurring subjects; absent means no images unasked
+audience.md          }  the three general writing records, defined in
+prose-style.md       }  `writing` § Project records; at project root
+illustration-style.md}  even when the story sits under story/
 setting/
   README.md          index of places and systems; the world's few hard rules
   <place-or-system>.md   one sheet per location, faction, institution, magic
@@ -58,9 +57,9 @@ chapters/            the draft, one file per chapter: 01-<slug>.md
   (or scenes/ for a screenplay, or script.fountain as a single file)
 continuity.md        ledger of facts asserted in the draft, with locations
 research/            notes and sources the story draws on (optional)
-remixes/<slug>/      an alternate version under its own audience, prose and
-                     illustration records, mirroring the source file names;
-                     shares setting/ and personae/ with the original
+remixes/<slug>/      an alternate version under its own records (see
+                     `writing` § Project records), mirroring the source
+                     file names; shares setting/ and personae/ with it
 ```
 
 For a screenplay, `treatment.md` (a prose synopsis) sits beside
@@ -76,56 +75,20 @@ the same `personae/` and `setting/`.
 
 ## Sheets
 
-Vendored projects carry fill-in starters for each sheet under
-`instructions/writing-starters/`; copy one to its home and fill it in. The
-audience and two style records live at the project root even when the story
-sits under `story/`, because a page and its story share one reader, one
-voice and one look; a project with several unrelated works may keep per-work
-copies beside each work's README, and the nearest one wins; a remix under
-`remixes/<slug>/` relies on exactly that rule. All three are
-set with the author, not inferred, and asked once, audience first: who is
-this for, what should the prose sound like, and are illustrations wanted and
-in what style, offering concrete alternatives, and record the answers. The
-headings, and what each is for:
-
-**audience.md:** the reader as one described person; age or reading level;
-what they already know; what they come for (a laugh, a scare, to learn, to
-find out what happens); how they read (phone, print, read aloud); what would
-lose them. Then the consequences the agent draws and keeps current:
-sentence and paragraph length, vocabulary help, content bar, and the role
-of illustrations. The prose and illustration records must agree with it.
+Vendored projects carry fill-in starters for the story sheets under
+`instructions/story-starters/`; copy one to its home and fill it in. The
+audience, prose-style and illustration-style records are general writing
+records, defined in [`writing`](writing.md) § Project records, and live at
+the project root even when the story sits under `story/`, because a page
+and its story share one reader, one voice and one look; a remix under
+`remixes/<slug>/` relies on the nearest-record-wins rule stated there. The
+story sheets, and what each heading is for:
 
 **README.md (premise):** title; logline (one sentence: when, who, must, or
 else, but); premise (Egri's causal sentence); genre; target
 length and form; point of view in one line; the ending in one line (written
 down early, changeable later); status table: acts or chapters with
 planned/drafted/revised.
-
-**prose-style.md:** voice in three words; register and reading level; point
-of view and tense; how many point-of-view characters (usually one) and when
-the story switches; the narrator's voice and whether the narrator is
-reliable; spelling and punctuation conventions (dialogue quotes,
-numbers, capitalization of invented terms); a names list with pronunciation
-for invented names; words and habits the narrator uses or avoids; content bar
-for this project (the default is all ages; see `story-writing`).
-
-**illustration-style.md:** whether illustrations are wanted and how many
-(none, a cover, one per chapter, as needed); medium; palette; line and shape;
-mood in three words; the author's reference points, used as inspiration and
-not as a living artist's signature style to copy; file format and where
-images go; how images are made; a table of recurring subjects with the
-details that must stay consistent; what is not wanted. Every placed image
-gets alt text. When the file is absent, the project has no illustrations and
-the agent asks before adding any.
-
-How images are made is recorded so every image is produced the same way.
-Prefer, in order, whatever is actually available in the session: a
-purpose-built illustration model that accepts text context, fed the scene,
-the relevant character and setting sheets, and the style record; the
-harness's native image generation with the same context in its prompt; and
-last, SVG drawn by the agent, which suits flat and line styles and stays
-editable. Do not claim a generator is available without checking; record the
-tool and the prompt template in the style file once it is chosen.
 
 **personae/<character>.md:** name and any aliases; role (protagonist,
 antagonist, ally, foil); one-line summary; want; need; the lie they believe;
