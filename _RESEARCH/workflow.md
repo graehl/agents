@@ -12,20 +12,14 @@ selecting research work, or creating or updating a research handoff.
 
 #### Program-scoped handoffs and recovery
 
-Place new research handoffs inside the program they resume, normally
-`research/<program>/handoffs/<scope>.md`, beneath the appropriate `PROGRAM.md`.
-Use a deeper child program when it owns the work; use the common parent for a
-cross-child handoff and link the affected children. Prefer an existing
-in-program handoff directory. Do not put a new program handoff in root
-`tasks/`; task tracking may stay there and link to it. Placement does not make
-private state publishable: preserve the project's tracked/private convention
-and exclude a newly created private directory through `.git/info/exclude`.
-Follow [handoffs.md](../topics/handoffs.md) for contents and maintenance.
+Follow the general most-specific-program placement, visibility, contents, and
+maintenance rules in [handoffs.md](../topics/handoffs.md). A research example is
+`research/<program>/handoffs/<scope>.md`, beneath its owning `PROGRAM.md`.
 
 When an older handoff lives outside its program, record its owning program
 path explicitly and follow that program's chain on resume. Relocation must
 preserve the old entry point and update known references; do not silently move
-a peer's live handoff or change `tasks/ROOT`.
+a peer's live handoff or its `ROOT` pointer.
 
 On session resume or takeover of research work, including a supplied handoff:
 
@@ -78,15 +72,14 @@ paper, log, task, or topic. See `topics/on-deck.md`.
 #### Subtasks and commit checkpoints
 
 Commit paper/log updates and source checkpoints when meaningful findings or
-subtask states land. Private task and working-handoff files remain private
+subtask states land. Private working-handoff files remain private
 unless the user explicitly asks otherwise. Stage only known work; do not infer
 ownership from timestamps or sweep unrelated files. Global shared-worktree and
 commit rules govern any ambiguity.
 
-Each main task file maintains a `## Subtasks` list covering file-backed and
-inline work, with status, last worked, likely next, and user-confirmed
-completion. The detailed table template and branch search command appear below
-under “Main task file: subtask tracking section.”
+Track unresolved work in the owning gaps and maintain the current handoff when
+continuity needs it. Keep small substeps inline; no numbered-file or subtask
+table convention is required.
 
 #### Research direction root (`research/ROOT.md`)
 
@@ -101,23 +94,21 @@ aspiration and thematic boundary of one program.
 
 #### Research document paths and resume
 
-Derive paper/log names from the Git branch. A branch paper requires a
-corresponding main task file; report a missing one. “Update the research
-paper/log” means the branch-derived file unless the governing task names
-another.
+Use the program's canonical paper/log paths. Git-branch-derived names remain
+a fallback when no owner has declared paths; a paper does not require a
+separate tracking file merely to satisfy a directory convention.
 
 On explicit `/hi` or resume of research work:
 
 1. perform [program-scoped recovery](#program-scoped-handoffs-and-recovery)
-   when a program governs the work; otherwise resolve the named handoff/task,
+   when a program governs the work; otherwise resolve the named handoff,
    or for bare `/hi` the default discovery hint, under the global resume-source
    priority and reconcile it with live state;
 2. follow the program's canonical document paths when declared, using branch
    naming only as the fallback;
 3. skim `research/ROOT.md` when present;
 4. skim the branch paper/current framing;
-5. read the governing task's Subtasks section and listed in-progress subtask
-   files; and
+5. read the relevant gaps and handoff's unfinished work; and
 6. read the newest research-log entries.
 
 Do not run this checklist for a fresh specific request without a resume signal.
@@ -126,14 +117,9 @@ Do not run this checklist for a fresh specific request without a resume signal.
 
 ### Subtasks and commit checkpoints
 
-**Subtasks** (NNN-name.md files with `## Branch: <branchname>` header) live in the
-same branch as their parent task. They do NOT get their own research/ documents —
-all findings go in their task file sections. The parent task's research/ documents
-should reference subtask conclusions once resolved.
-
-Not every subtask gets its own file. Minor items may be tracked inline in the main
-task file's subtask list and worked on without a dedicated NNN-name.md. The user
-will explicitly ask to create a subtask file when one is warranted.
+Substeps share the governing gap and research record unless a separate scope
+earns its own artifact. Keep findings in the paper/log and unresolved work in
+the gap; a handoff preserves the context needed to continue.
 
 **Rule**: never merge back to main repeatedly for subtasks. Complete or park all
 subtask work in the branch, then merge once when the main task is done.
@@ -157,37 +143,9 @@ paper/log/task as appropriate. See `topics/on-deck.md`.
 - `research/<branchname>.md` and `research/<branchname>.log.md` — always commit when
   updated; these are the persistent record of the work.
 - Source code changes — commit at checkpoints as above.
-- Private `tasks/` and working-handoff files — do NOT commit. These are live
+- Private working-handoff files — do NOT commit. These are live
   working state shared among agents via the filesystem directly. Exception:
   only if the user explicitly asks to include them.
-
-### Main task file: subtask tracking section
-
-Every main task file (`tasks/NNN-<branchname>.md`) must contain a **Subtasks**
-section that serves as the authoritative list of all work under this branch:
-
-```markdown
-## Subtasks
-
-| NNN | Name | File | Status |
-|-----|------|------|--------|
-| 003 | first-subtask | tasks/003-first-subtask.md | In Progress |
-| 004 | second-subtask | tasks/004-second-subtask.md | Not Started |
-| —   | small inline check | (inline) | Not Started |
-
-**Last subtask completed** (user confirmed): _(none yet)_
-**Last subtask worked on**: 003-first-subtask
-**Likely next**: small inline check, then 004-second-subtask
-```
-
-Rules for maintaining this section:
-- List every subtask, whether it has its own file or is tracked inline.
-- Update `Last subtask completed` only when the user explicitly confirms satisfaction.
-- Update `Last subtask worked on` and `Likely next` at a significant continuity
-  milestone when either field becomes materially false; do not interleave this
-  bookkeeping with routine edit/run/check cycles.
-- To find all subtask files for a branch:
-  `rg -t md -l "Branch: <branchname>" tasks/`
 
 ### Research direction root (`research/ROOT.md`)
 
@@ -213,10 +171,6 @@ agent edit.
 The git branch name IS the key. Given branch `logit-vs-merge-lora`:
 - Research paper: `research/logit-vs-merge-lora.md`
 - Research log:   `research/logit-vs-merge-lora.log.md`
-- Main task file: `tasks/NNN-logit-vs-merge-lora.md` (where NNN is the task number)
-
-If on a branch where `research/<branchname>.md` exists, there MUST be a corresponding
-`tasks/NNN-<branchname>.md` main task file. If it is missing, alert the user.
 
 When a fresh agent is asked to "update the research log" or "update the research paper",
 it should run `git branch --show-current` to get the branch name, then write to

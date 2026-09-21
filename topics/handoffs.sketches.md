@@ -69,8 +69,7 @@ The generic transport remains independently useful for non-advisor sessions.
 ## Multiple open-work discovery
 
 If bare `/hi` repeatedly fails to discover important simultaneous work, consider
-a plain `tasks/OPEN` manifest naming `tasks/ROOT` plus other open tasks. Do not
-introduce `tasks/open/` merely for categorization: nested files would escape
-existing `tasks/*.md` discovery, while a symlink set would add cleanup and stale
-membership failure modes. Adopt either form only with observed misses and a
+a program-local manifest naming `ROOT` plus other open handoffs. Avoid extra
+directories merely for categorization; a symlink set adds cleanup and stale
+membership failure modes. Adopt a form only with observed misses and a
 defined writer, freshness signal, and retirement lifecycle.

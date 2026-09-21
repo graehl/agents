@@ -2,9 +2,8 @@
 
 This file is loaded only when a project opts in — its `AGENTS.md` names
 this supplement, or the repo plainly uses a branch-per-feature (or
-branch-per-task) workflow. Tracked `tasks/` (not git-ignored) is the
-signal this applies; git-ignored `tasks/` is the default, where task
-files stay private and uncommitted and work is branch-agnostic. Without
+branch-per-task) workflow. Document-directory names do not select a branching
+workflow. Without
 this supplement the global instructions stay branch-agnostic and default
 agent git behavior applies; the user does not use feature branches by
 default.
@@ -17,11 +16,11 @@ points at the touchpoints that already assume a branch.
 The global `## Instruction routing` maps `global rule` and
 `project-level rule` only. When this supplement is active, add a third:
 
-- `branch rule` -> the branch's main task file `tasks/NNN-<branch>.md`
+- `branch rule` -> the branch's governing gap or explicitly named handoff
 
 A *branch rule* is direction that holds only for the current feature
-branch — narrower than project-level, so it lives with that branch's task
-file and retires when the branch merges.
+branch — narrower than project-level, so it lives with that branch's governing
+work artifact and retires when the branch merges.
 
 ## Worktree transfers across branches
 
@@ -37,10 +36,7 @@ branch-match check for multi-branch work.
 These need no change when this supplement is active — they are branch-aware
 already, and become relevant only under a branch workflow:
 
-- `RESEARCH.md` `## Task and branch structure` — each main task owns a
-  git branch and `research/<branchname>.md` + `.log.md` companions keyed
-  to the branch name.
-- `skills/start-task` — scaffolds the task file and creates/switches to
-  the feature branch.
+- `_RESEARCH/workflow.md` — branch-derived paper/log names are fallbacks
+  when the program has not declared canonical paths.
 - `skills/ship` — squash-merges the current feature branch into one commit
   for upstream.

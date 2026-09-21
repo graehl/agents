@@ -101,7 +101,7 @@ size_class: "small"
 cheap_reversible: true
 guard: "test -f data/X && test -f runs/Y/returncode && test $(cat runs/Y/returncode) = 0"
 skip_if: "test -f out/Z.md && grep -q 'metric:' out/Z.md"
-provenance: "tasks/123.md; research/foo.log.md"
+provenance: "gaps/pilot-a.md; research/foo.log.md"
 created_at: "2026-06-11T00:00:00Z"
 ---
 

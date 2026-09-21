@@ -12,28 +12,25 @@ skip that refresh only when the harness is verified to reconstruct the exact
 current routed packet in model context.
 
 Session continuity is primarily resume-by-session-id plus live state:
-worktree, active sessions, `tasks/*.md`, run metadata, and artifacts. `/hi` is
-an optional explicit resume tool; do not invoke it merely because context
-compacted or instructions were reinjected. Recover prior context only on a
-greeting or explicit resume signal; a fresh specific request is independent.
+worktree, active sessions, handoffs, gaps, run metadata, and artifacts.
+Compaction or reinjected instructions do not start a new recovery ritual.
+Recover prior context only on a greeting or explicit resume signal; a fresh
+specific request is independent.
 
-`tasks/*.md` records private direction, coordination, acceptance notes, and
-unfinished state. `tasks/ROOT` names the default handoff used only for a bare
-`/hi` or boot with no specified scope; it does not select which artifact active
-work maintains. Change it only when explicitly establishing a new default
-bare-boot target. Prefer committed `topics/` for knowledge that would help a
-collaborator. Use `tasks/` only when that test fails or material must stay
-private. When committing an incomplete shared artifact, commit an honest
-status/cutoff with it so the artifact cannot mislead; private task state alone
-is insufficient. A project that tracks `tasks/` instead follows its tracked-task
-convention.
+Gaps record unresolved work; handoffs preserve live continuity. Before planning
+or implementing, search the relevant gaps and handoffs and follow their topic
+links. Keep the last explicitly specified handoff current for its work scope,
+including before a foreseeable interruption or token exhaustion. New handoffs
+default to the most specific owning program's `handoffs/`, or project-root
+`handoffs/` when no narrower program owns the work. `ROOT` or
+`<program-path>/ROOT` may temporarily point to the most recently worked-on
+handoff; it is a discovery hint, never authority over an already named scope.
 
-For implementation/bugfix work, search existing `tasks/*.md` and cite relevant
-files in planning and conclusion. Task files should point to related topics.
-On believed completion, append a dated status with commit(s), one line of
-evidence, and inline-subtask statuses. Judge each task file independently.
+Prefer committed topics for durable collaborator-facing knowledge. When
+committing an incomplete shared artifact, commit an honest status/cutoff with
+it; a private handoff cannot make misleading repository state truthful.
 
-Dated task/tactical/journal progress entries name the contributing model using
+Dated handoff/gap/journal progress entries name the contributing model using
 the `Contributing-model:` short form. Topic docs do not. Prefer a real session
 id to hand-counted effort statistics.
 
@@ -51,10 +48,8 @@ user turn immediately preceding the remaining handoff, which is the following
 request.
 
 Before creating or updating a handoff, read `topics/handoffs.md` (repo-local,
-else global). Keep the governing artifact current at significant milestones,
-not between routine edits/tests. That topic owns fallback placement, advisor
-metadata and verified resume ids, stable consultation intake ids, and review
-mechanics. Record an unrecoverable advisor id as such; never invent one.
+else global). It owns placement, visibility, contents, and any advisor-specific
+protocol. Update at significant milestones, not between routine edits/tests.
 
 ## Active sessions
 
@@ -100,28 +95,23 @@ sessions” in [AGENTS/session.md](AGENTS/session.md).
 ## Resume source priority
 
 After disconnect, restart, compaction, or crash, keep any already-known work
-scope; compaction alone does not trigger `/hi`. For a named resume, use the
-named handoff/task. Only a bare `/hi` or boot with no scope reads `tasks/ROOT`
-first as a discovery hint. Then reconcile against live state: worktree and
-recent commits; `.agentctl/active/`; run/on-deck state; artifacts; then provider
-logs needed to fill a specific gap. A recent relevant task/auto-handoff or
+scope. For a named resume, use the named handoff. A resume with no named scope
+may read the relevant program's `ROOT`, else project `ROOT`, as a discovery
+hint. Then reconcile against live state: worktree and recent commits;
+`.agentctl/active/`; run/on-deck state; artifacts; then provider
+logs needed to fill a specific gap. A recent relevant handoff or
 `*.bearings.md` can orient when the first hint is missing, broken, or unrelated.
 
 If a first-turn handoff/context-compression message gives a session link/id,
 inspect that session, scanning boundaries and reading the last two sections
 closely.
 
-## Scheduled session prompts
+## Future-run entries
 
-Ordinary sessions do not probe `at/`; scheduled prompts launch through an
-external scheduler (planned opt-in YA support) or an explicit user request.
-On any `at/` interaction, first read project `topics/at-scheduling.md`, else
-`~/agents/topics/at-scheduling.md`, and touch activation state only through
-executable project `scripts/at-queue`, else `~/agents/scripts/at-queue`;
-without the helper, stop rather than hand-roll a claim. The source file is
-inert; the helper-owned, clone-local activation store is what schedules it.
-Never hand-edit that store. Any YA/multi-project scheduler must call the
-helper and derive cwd from the owning `at/` directory.
+When asked to create or change an `/at` future-run entry, read project
+`topics/at-scheduling.md`, else `~/agents/topics/at-scheduling.md`, for the
+valid entry format and submission mechanism. Scheduling and triggering belong
+to the service (for example YA), not ordinary agent-session startup.
 
 # Verification and retrieval
 
@@ -147,7 +137,7 @@ Useful shapes are independent fan-out, a sequential fold over bulky homogeneous
 items, and a standing advisor/oracle. Re-engaging the same leaf is allowed.
 Do not fold away reasoning the parent must own.
 
-A task journal starts untracked in `tasks/journals/`. Most journals feed a
+A work journal starts untracked beside its owning handoff. Most journals feed a
 commit message then are discarded. Publish none automatically. A durable one
 is condensed/redacted and reviewed into `topics/journals/` or a `journals/`
 directory beside its plan. Journals also record dated requirement/spec changes,
@@ -174,8 +164,9 @@ during active implementation; passing tests do not replace the preflight.
 # Authority and instruction files
 
 `~/agents/AGENTS.global.md` is the authoritative global source; global policy
-changes land here first. Harness-global `AGENTS.md`/`CLAUDE.md` paths may
-symlink to it. This checkout's root `AGENTS.md` is only its project boot.
+changes land here first. Install by symlinking it as the harness-global
+`CLAUDE.md`, `AGENTS.md`, or equivalent, and linking `skills/` into the harness's
+skill location. This checkout's root `AGENTS.md` is only its project boot.
 `~/agents` means this checkout root. Keep shared helpers under `~/agents/` and
 `~/bin/` synchronized and make a brief local commit on `master` when changing
 global instructions/helpers.
@@ -219,12 +210,13 @@ entries for the affected rules/failure classes. The whole ledger is not a
 routine read. Follow `topics/evidence-ledger.md` when changing a ledger.
 Optional clarification is grouped by activation concern under `AGENTS/`.
 
-## Point to authored instruction text
+## File citations
 
-When reporting authored instruction text, identify each important range by
-project-relative `path:line` where it begins. Prefer a browseable read range;
-otherwise paste the composed text verbatim. Keep the summary brief. Mechanically
-generated output is exempt.
+When citing files, use `project/relative/path:line` or
+`project/relative/path:first-last`, with actual line numbers and enough project
+context to locate the file. Prefer a browseable link or range. Cite the important
+ranges when reporting authored text; keep the summary brief. In durable docs,
+prefer stable section/symbol references or pin line citations to a revision.
 
 ## Instruction routing
 
@@ -235,8 +227,8 @@ Persist labeled rules:
 
 ## Load-bearing instructions
 
-Choose and revise procedures by the user's actual intent and required outcomes.
-Author shared guidance for the frontier models used for real editing,
+When authoring user-requested agent guidance, choose procedures by the user's
+intent and required outcomes. Write for the frontier models used for editing,
 reasoning, and implementation. Keep user preferences, project facts, deliberate
 counters to defaults, and observed-failure protections. Retain redundancy only
 when it resolves a concrete ambiguity for that population; keep weaker-only
@@ -250,10 +242,9 @@ clarification.
 Before first tool use in any repo this session—also after pivoting to a foreign
 repo—fully read, when present:
 
-1. root `AGENTS.md`;
-2. `AGENTS.local.md`;
-3. `CLAUDE.md`;
-4. any README named by those as an instruction source.
+1. project-root `AGENTS.md` (or equivalent `CLAUDE.md`; read aliases once);
+2. project-root `AGENTS.local.md`;
+3. any README named by those as an instruction source.
 
 Then discover project-owned `PROGRAM.md` paths. Before interpreting or acting
 in a named subtree, fully read its governing program chain, including its own
@@ -264,7 +255,7 @@ after compiling required inherited context under `TOPICS.md` § Self-rooted
 programs; global/project agent instructions still apply. Read all programs for
 project-wide orientation, scope selection across programs, audits, or changes. A root
 charter's optional child list is not the discovery index. Exclude vendored and
-external repositories. Probes/slices and task files do not substitute for the
+external repositories. Probes/slices and handoffs do not substitute for the
 required bodies. Do not repeat project-entry reads on later returns in the
 same session; report an unreadable/broken file once.
 
@@ -290,23 +281,17 @@ not make upstream conventions the user's. Use repository-local
 `.git/info/exclude`, not a committed ignore change, for the new local file.
 An existing local file skips automatic bootstrap; an explicit mapping request
 may append to it. Recheck before creating; if another writer created it,
-preserve its contents and append the table after the local-file backup.
+preserve its contents and append the table.
 
 Table columns: document kind, existing locations, meaning/authority, and
 read/write status. Cover committed topics, formal plans, user/developer docs,
-evidence, proposals, gaps/bugs/tickets, and private task state where present;
+evidence, proposals, gaps/bugs/tickets, and private continuity state where present;
 mark absent or unverified categories rather than inventing a convention.
 Include the instruction: **also read from these locations when searching for
 an existing document of that type**. Consult that map before declaring a
 document absent or creating a duplicate. This is additive read discovery,
 not permission to write into, migrate or normalize another maintainer's
 layout; existing authoring rules still decide where new work belongs.
-
-### Local instruction file backups
-
-Before editing/deleting an instruction file not safely recoverable from Git
-(especially untracked or dirty `AGENTS.local.md`), snapshot it under
-`.backups/<timestamp>/<relative-path>`.
 
 ## Optional supplements
 
@@ -406,6 +391,9 @@ With no upstream, scan the actual outgoing range.
 
 When review and publish are one request: review, fix, then publish.
 
+Never bypass push hooks or checks with `git push --no-verify`, disabled hooks,
+environment overrides, or an equivalent alternate push path.
+
 # Shared-workdir discard ban
 
 Never use repo-wide work-discard or head-moving commands in a shared workdir:
@@ -500,9 +488,7 @@ before using it.
 
 Source escapes such as `\0`, `\n`, `\t`, and `\\` remain two source characters;
 never insert literal control bytes. After a second failure on one file, stop
-guessing: reread the exact range and copy it. Full worked failures are under
-“Edit anchors: copy, don't compose” in
-[AGENTS/change-delivery.md](AGENTS/change-delivery.md).
+guessing: reread the exact range and copy it.
 
 # Reader-facing summaries
 
@@ -513,8 +499,9 @@ welcome; unexplained implementation nomenclature is not.
 
 # Commits
 
-Subject at most 65 characters. Manually wrap body prose to 71 columns while
-preserving bullets, indentation, tables, diagrams, and unavoidable long tokens.
+Aim for a subject of at most 65 characters. Manually wrap body prose to 71
+columns while preserving bullets, indentation, tables, diagrams, and
+unavoidable long tokens.
 Use prose when short, bullets when complex. No `Co-Authored-By` or links to
 git-ignored content.
 
@@ -557,6 +544,7 @@ not merely a touched file; multiple topics get separate trailers.
 
 Every agent-authored commit carries one unique
 `Contributing-model: <short-name>` per contributing model, additive on amend.
+This is instead of `Co-Authored-By`, which is forbidden.
 Derive the real model id through the harness supplement; do not trust
 self-report. Use short model names only—no vendor/harness/email/link. This is
 user-required provenance, never an attribution marker to strip.
@@ -658,7 +646,7 @@ unfinished state leaves repository truth incomplete, becomes or extends
 tracking convention and is removed when the gap closes. Like `topics/`, a
 glossary/program scope may own a sibling `gaps/`; choose a gap's owning scope
 as for a topic doc. Private continuity state that implies no project defect
-belongs in `tasks/`, not `gaps/`. Fix an adjacent issue immediately only when
+belongs in a handoff, not a gap. Fix an adjacent issue immediately only when
 cheap, in scope, and as its own commit. When entering an area, inspect
 relevant entries in its enclosing scopes' existing `gaps/` directories.
 Format, granularity, and lifecycle: root `gaps/README.md`.
@@ -694,8 +682,10 @@ naturally; use `~/agents` only for reusable agent workflow or explicit user
 direction. Create collections on first need. Candidate designs belong in the
 owning `.sketches.md`, outside routine topic reads.
 
-`PROGRAM.md` declares a scope's durable aspirations and boundaries. Its exact
-`Program instructions` heading binds the subtree through the next equal/higher
+A program is a coherent subproject with durable aspirations and boundaries,
+in software, research, writing, or any other domain. `PROGRAM.md` declares its
+scope; the project root is the fallback owner when no narrower program applies.
+Its exact `Program instructions` heading binds the subtree through the next equal/higher
 heading; nested subsections belong to it. Ancestor rules apply inward, nearer
 program rules win conflicts within the governing chain, and global/project
 agent instructions take precedence. Apart from an explicit `Program root: self`
@@ -719,9 +709,9 @@ normalizing topic docs, companion suffixes, bearings, or epistemic labels.
 
 ## Alternate directory layouts
 
-When root `topics/`/`tasks/`/`gaps/` is absent but `docs/topics/` or
-`docs/tactical/` exists, use that layout instead of creating a parallel root.
-`docs/tactical/` is committed and follows local format.
+Respect established project document owners instead of creating parallel
+hierarchies. A foreign maintainer's layout is additional read discovery, not
+permission to adopt its write conventions; consult the local discovery table.
 
 ## Project glossary
 
@@ -737,10 +727,8 @@ inherently topic-like; when asked for “the topic” for it, follow its existin
 on first use in new-reader docs.
 
 If user phrasing is ambiguous and resolution changes action, state the inferred
-meaning plus one or two alternatives at an interruptible checkpoint. After
-resolution propose an `<!-- unconfirmed: YYYY-MM-DD -->` row; if the user
-explicitly defines a distinction, add it immediately. Surface a general-domain
-row once as a candidate for global topic definitions, but do not edit those
+meaning plus one or two alternatives at an interruptible checkpoint. Surface a
+general-domain row once as a candidate for global topic definitions, but do not edit those
 autonomously. Read `topics/glossary.md` before adding/sorting/promoting rows,
 scoped glossaries, or deciding term versus topic. Create a glossary when jargon
 recurs or the project has multiple topics.
@@ -751,7 +739,6 @@ Before first editing a language in a repo, read repo `topics/<lang>.md` else
 global:
 
 - C/C++ — `cpp.md`
-- Python — `python.md`
 - Shell — `shell.md`
 - TypeScript/JavaScript — `typescript.md`
 
@@ -797,14 +784,6 @@ Ask only when the answer changes action; do not create attention debt with
 social confirmation. When a turn asks a question and implies edits, answer the
 question first. A plan/task/handoff edit is not authorization to execute its
 items.
-
-## Plan-boundary checkpoints
-
-An agreed plan's top two tiers are momentum boundaries by default; `‖` marks
-promoted/demoted boundaries. At one, report what is done and the next boundary,
-then await go-ahead. One `proceed` clears one boundary. Below it, continue
-without permission. This does not replace risk gates or interruptible
-checkpoints, and a mid-run agent outline cannot invent boundaries retroactively.
 
 ## Confirmation threshold
 
@@ -865,11 +844,6 @@ are under “Queued-send time separators” in
 
 Check whether X is already explicit in governing instructions. Reply with its
 location/closest phrase, or say it is not and may merit adding.
-
-## Planning rationale
-
-When the user gives ordering, briefly surface a likely implicit reason only when
-it sharpens the plan or exposes a tradeoff; continue unless blocking.
 
 ## Agent-chosen implementation paths
 
@@ -940,8 +914,9 @@ searchable path/symbol. Never reopen a settled decision.
 
 ## Asynchronous questions
 
-Helpful nonblocking questions are allowed; tag them with a short unique code
-(`Q:`), keep working, and expect many to go unanswered.
+Prefer a first-class harness asynchronous-question form when available.
+Give each nonblocking question a session-unique tag `Q<suffix>:` (for example
+`Qlang:`), keep working on independent work, and expect many to go unanswered.
 
 ## Interruptible checkpoints
 
@@ -951,7 +926,7 @@ wrong, then continue normally. A later answer remains a live correction.
 
 ## Plan grilling
 
-On “grill/interview/stress-test this plan,” read
+On “grill,” read
 `topics/plan-grilling.md`; take one branch at a time, recommend an answer, and
 pause for confirmation.
 
@@ -959,8 +934,7 @@ pause for confirmation.
 
 For vendor setup/operator docs, include only verified supported paths for the
 recommended plan. Omit uncertain options. Do not assert remembered UI
-navigation; live guidance asks what the user sees, committed docs state intent.
-When a label changes, update it without historical-parenthetical clutter.
+navigation. When a label changes, update it without historical-parenthetical clutter.
 
 ## Explanation style: "remind me" / "refresher"
 
@@ -975,9 +949,10 @@ Use `rg` for text and `rg --files` for discovery; narrow with type filters.
 
 ## Ad-hoc scripts
 
-For multi-line or iterative ad-hoc code, write a scratch file and rerun it
-rather than embedding fragile shell quoting. Remove it when done; use durable
-scratch storage if it must survive a gap.
+Ad-hoc code with more than one statement or two or more conditionals must
+be written to a scratch file, then executed from that file. Do not embed it in
+a shell argument or inline interpreter command. Use a file for iterative code
+too. Remove it when done; use durable scratch storage if it must survive a gap.
 
 ## Command output: save, never discard
 
@@ -1001,7 +976,8 @@ the instructions or tool output, using the requested inline or file form.
 
 A new helper CLI meant to outlive its task — committed, named in
 instructions, or reused across sessions, whether user-requested or
-agent-initiated — is built acli-compliant on the shared `acli` library:
+agent-initiated — belongs by default in the owning project's `scripts/` and
+is built acli-compliant on the shared `acli` library:
 before writing one, read repo `topics/acli.md`, else
 `~/agents/topics/acli.md`. Throwaway, exploration, and diagnostic
 commands may stay bare shell scripts or long commands; the boundary is
@@ -1032,9 +1008,9 @@ help.
 
 ## PDF reading
 
-For substantive papers/PDFs use `marker-pdf`, not `pdftotext`. Install its
-large OCR/ML stack in a dedicated environment with project-local cache/temp
-when needed, never the project's runtime environment.
+For PDF reading use `marker-pdf`, not `pdftotext`. Before installing or
+configuring it, read [topics/pdf.md](topics/pdf.md) for the isolated environment
+and cache instructions.
 
 ## Git patch output
 

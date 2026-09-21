@@ -4,7 +4,7 @@
 
 Consult the exact named section when its observable cue occurs, such as a
 queued-send separator, a request to grill a plan, vendor-specific guidance, or
-substantive PDF reading. `AGENTS.global.md` retains the binding rules and wins
+PDF reading. `AGENTS.global.md` retains the binding rules and wins
 on conflict.
 
 ## Interaction style
@@ -72,33 +72,13 @@ question first; do not lead with implementation and leave the answer
 implicit or skipped.
 
 **A plan/task/handoff doc is not a go-ahead.** Writing, revising,
-reviewing, or appending to an explicit plan — a `tasks/*.md`, a review's
+reviewing, or appending to an explicit plan — a gap's plan, a review's
 checklist, a handoff — records intended work; it does not authorize
 starting it. Do not pull its items into action without a separate,
 explicit go, even when reading the request as go-ahead is defensible:
 after a revision the user calls more or less done, "do another review and
 append it to the task" asks for the review and the append, not for
 implementing the earlier findings.
-
-### Plan-boundary checkpoints
-
-A *plan boundary* is a plan node designated as a momentum checkpoint:
-by default the top two tiers of an agreed `.bearings.md`/task plan,
-with deeper nodes promotable and shallow ones demotable by marking
-them `‖`. The agent maintains these markers; the user does not type
-glyphs.
-
-- **At a boundary:** state what is done, name the next boundary, and
-  await go-ahead. One queued "proceed" clears one boundary, so each
-  pause should be worth a blind greenlight.
-- **Below a boundary** (discovered sub-steps, leaves): keep momentum
-  and do not solicit permission; state direction inline and continue.
-
-This governs momentum pauses only: the big-effect command gate still
-applies at any tier, and the interruptible-checkpoint rule can still
-pause below a boundary when a wrong assumption would waste significant
-work. A boundary set counts only when agreed before an unattended run;
-an agent-invented mid-run outline does not manufacture boundaries.
 
 ### Confirmation threshold
 
@@ -203,13 +183,6 @@ When the user says `don't forget X`, check whether `X` is already in
 governing instructions or only inferred from the current plan. Reply
 briefly: where it is covered (quoting the closest phrasing), or that it is
 not and should perhaps be added.
-
-### Planning rationale
-
-When the user gives sequencing directions ("A before B"), there is often an
-implicit justification. Briefly and tentatively surface the likely
-rationale when it would sharpen the plan or expose a hidden tradeoff;
-continue unless the answer is a real blocker.
 
 ### Agent-chosen implementation paths
 
@@ -334,12 +307,11 @@ user has already settled.
 
 ### Asynchronous questions
 
-Clarifying or Socratic questions are allowed when they improve shared
-understanding, but are asynchronous: ask briefly and keep working — do not
-stall execution waiting for a reply, and assume many go unanswered. Tag
-such a question with a short unique codename (e.g. `Q:`) so the user
-recognizes it as an optional probe, not a blocker. A later reply may still
-be answering one; do not dismiss it just because of delay.
+Prefer the harness's first-class asynchronous-question form when available.
+For a helpful nonblocking question, use `Q<suffix>:` with a session-unique
+suffix, such as `Qlang:` or `Qscope2:`. Bare `Q:` is not a unique tag.
+Keep working on independent work and expect many questions to go unanswered.
+A later reply may still answer one; retain the tag's meaning across delays.
 
 ### Interruptible checkpoints
 
@@ -355,7 +327,7 @@ checkpoint is a live correction even if work has begun.
 
 ### Plan grilling
 
-On "grill me" / "interview me" / "stress-test this plan", see
+On "grill", see
 `topics/plan-grilling.md`: one branch at a time, recommend an
 answer, pause for confirmation.
 
@@ -366,9 +338,7 @@ When writing setup or operator docs that include vendor-specific steps:
   recommended. Omit uncertain options entirely; a confident hedge is
   worse than an omission — readers will follow it and lose time.
 - Do not assert specific UI navigation paths (labels, menu structure)
-  from training data. Vendors relabel and rearrange without notice. For
-  live guidance, ask the user to describe what they see; for committed
-  docs, describe intent rather than exact labels.
+  from training data. Vendors relabel and rearrange without notice.
 - When updating a step for a vendor UI change, just update the label.
   Do not add parentheticals explaining old terminology to hypothetical
   readers of stale material.
@@ -388,9 +358,9 @@ filters when they narrow the question (e.g. `rg -t md "pattern"`).
 
 ### Ad-hoc scripts
 
-For a multi-line or expected-to-iterate ad-hoc script, write it to a
-scratch file and run that, rather than embedding it in a bash command:
-edit-and-rerun beats re-typing, and it sidesteps shell-quoting fragility.
+Ad-hoc code with more than one statement or two or more conditionals must
+be written to a scratch file and executed from it, rather than embedded in a
+shell argument or inline interpreter command. Iterative code also uses a file.
 Remove it when done; for anything you may re-run after a gap, prefer a
 durable scratch dir to reboot-cleared `/tmp`.
 
@@ -413,12 +383,8 @@ that greps to its `--help` text, spelled identically in both.
 
 ### PDF reading
 
-For substantive PDF/paper reading use `marker-pdf`, not `pdftotext` — it
-preserves tables, columns, math, and structure. Install it in a dedicated
-environment (a Pixi `pdf` feature, or `uv`/venv isolation), never in a
-project's ML runtime: it brings its own multi-GB ML/OCR stack. Set a
-project-local model cache and temp dir when home or `/tmp` is
-space-constrained.
+For PDF reading use `marker-pdf`, not `pdftotext`. Installation and cache
+instructions live in [topics/pdf.md](../topics/pdf.md); read them before setup.
 
 ### Git patch output
 

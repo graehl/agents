@@ -1,8 +1,8 @@
 # gaps/ — unresolved project incompleteness
 
 `gaps/` holds one file per unresolved project incompleteness: a
-noticed-but-not-fixed-now code-quality defect, or a partially landed single unit
-whose current repository state is incomplete or misleading. The point is that
+noticed defect, approved work needed to meet project goals, or a partially
+landed unit whose current repository state is incomplete or misleading. The point is that
 such state must not evaporate into chat. In this repository gaps are committed
 and greppable; another project may choose different tracking while preserving
 the same semantic boundary.
@@ -10,19 +10,20 @@ the same semantic boundary.
 This is the durable-capture half of *"capture adjacent gaps; don't chase
 or drop them"* (`AGENTS.global.md`). The other half is the fix-in-place exception:
 when the fix is cheap *and* in scope (the seam is already open), just fix
-it as its own commit — no gap file needed.
+it as its own commit — no gap file needed. A temporary gap is useful when
+active work needs a reviewable statement of the mismatch and chosen resolution,
+even if it closes in the same session. Extend a matching gap first.
 
 A nice-to-have or dreamed improvement that exposes no current defect or blocker
 belongs in the owning topic's candidate-improvement or `## Sketches` section.
-Private resume state that implies no project defect belongs in `tasks/`. The
+Private resume state belongs in a program-scoped handoff. The
 single-purpose meaning of this directory is unresolved project incompleteness,
 not every unimplemented plan or missing handoff.
 
 ## Why committed, and why its own directory
 
-- **Committed, unlike `tasks/`.** `tasks/` is private, git-ignored working
-  state; a gap is durable backlog that should survive a fresh clone and be
-  visible to peers. So `gaps/` is tracked.
+- **Committed.** A gap is unresolved work that should survive a fresh clone
+  and be visible to peers. Private handoffs preserve session continuity.
 - **Not `topics/`.** A topic doc is a lasting cross-cutting contract; a gap
   is transient — it exists only until fixed, then it is removed.
 - **Not `on-deck/`.** On-deck entries are executable, guarded run-queue
@@ -61,9 +62,10 @@ this read side is write-only memory.
   topics. A gap file is either a **triage pool** (one running file at a
   topical scope holding less-investigated, vague noticed items until a pass
   triages them into a working plan or promotes one to its own file) or a
-  **session unit** (a small specific proposal sized for one working session,
-  carrying the claim that program — or project — goals stay impaired until it
-  clears). Promotion out of a pool is the normal way old material becomes a
+  **work unit** (a specific proposal carrying the claim that program — or
+  project — goals stay impaired until it clears). Most close in one session;
+  others span as many sessions and handoffs as needed. Promotion out of a pool
+  is the normal way old material becomes a
   new file. A capability-gated `.sketches.md` companion beside the owning
   formal topic and its gap link both ways; do not create an alternate
   `*.gaps.md` discovery namespace or require routine scans of every topic
@@ -76,6 +78,15 @@ this read side is write-only memory.
   naming the reason. Without this exit the empty-`gaps/` target becomes
   unreachable and the directory rots like the scattered TODOs it
   replaces.
+
+## Topics before closure
+
+Write settled intended-final-state contracts in the owning topic before closing
+the gap when they guide the work. Explicitly distinguish intended behavior
+from implemented/current behavior and link the gap for the remaining mismatch.
+Do not create a second topic merely for the plan, or present an unimplemented
+intention as achieved. At closure, reconcile the topic with the result and
+remove the gap and its live links together.
 
 ## Entry format
 

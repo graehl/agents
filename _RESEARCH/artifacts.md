@@ -20,8 +20,7 @@ task-named branch and owns:
   hypotheses, setup, results, findings, and open questions;
 - `research/<branch>.log.md` — newest-first factual running log with commands,
   intermediate results, dead ends, and decisions; and
-- a main task file that tracks acceptance criteria, implementation, subtasks,
-  and current state rather than merely indexing files.
+- a governing gap for unresolved work and, when continuity needs it, a handoff.
 
 Subtasks remain on the parent branch. Minor work stays inline; create a separate
 subtask file only when the user asks or project convention requires it. Finish
@@ -236,8 +235,8 @@ ordinary evidence, prior-art, attribution, and provenance standard.
 The paper records claims and findings, not debugging or routine plumbing.
 Correctness evidence appears only when it is itself a reproducible,
 publication-facing finding. The log carries factual experiment history.
-Private `tasks/` files carry investigation control, planned/parked work, and
-acceptance state; durable conclusions move to the paper or a topic.
+Gaps track unresolved investigation work; private program-scoped handoffs carry
+continuity and acceptance state. Durable conclusions move to the paper or a topic.
 
 A draft may contain brief marked navigation scaffolding, removed before
 submission. Never publish local/private data paths as intake recipes. Include
@@ -259,8 +258,8 @@ task also owns two companion documents in `research/`:
 - `research/<branchname>.log.md` — the **running log**: timestamped notes,
   intermediate results, dead ends, decisions. Less polished, more complete.
 
-The main task file itself should explicitly track the branch's acceptance criteria,
-implementation steps, and current state, not merely act as a subtask index.
+The governing gap records acceptance criteria and unresolved work; a handoff
+preserves current state and the compiled context needed to continue.
 
 ### Program vocabulary and declaration rationale
 
@@ -507,36 +506,34 @@ Results tables in `research/<branchname>.md` **must** include:
   comment (`<!-- ref: R17 -->`) so a future reader can align the paper table entry with the
   corresponding research-log run record and saved artifacts.
 
-**What belongs in the paper vs. log vs. task files**:
+**What belongs in the paper vs. log vs. handoffs**:
 - Debugging steps, failed commands, environment troubleshooting, and routine
-  "plumbing works" sanity checks belong exclusively in `tasks/` files and the
+  "plumbing works" sanity checks belong in private handoffs and the
   research log until they produce a legitimate publication-facing insight.
 - The paper is a record of findings, not process — strip debugging/testing narrative
   from claim-bearing sections. Exception: a correctness demonstration that is
   itself a finding (replicable, meaningful to an unfamiliar reader) may appear in
   the paper.
-- **`tasks/` files are the private control plane for research investigations** —
-  in-progress, parked, or planned work items live in `tasks/NNN-*.md`. They are
-  not committed to the branch and are not public. Durable conclusions belong in
-  the paper or an appropriate committed `topics/` doc once they are more than
-  private direction-setting.
+- **Gaps and handoffs have different audiences** — gaps record unresolved
+  project work; private program-scoped handoffs preserve the context needed to
+  continue. Durable conclusions belong in the paper or an appropriate topic.
 - Working research-paper drafts may temporarily include a brief plan note or
   related-task pointer when it improves navigation for active collaborators. Mark
   such text as draft/navigation scaffolding and keep it short; do not let it carry
-  the actual investigation detail, which belongs in `tasks/` and the research log.
+  the actual investigation detail, which belongs in handoffs and the research log.
   The final/submission-prep phase must remove these task references so the paper
   stands alone. The precise pre-submittal cleanup gate can be defined later for
   each project.
-- When a task governs a research paper, keep the task file as a summary and
+- When a handoff governs a research paper, keep it as a summary and
   control plane: point to the paper, summarize the current framing or acceptance
   state, and note what session learnings should be synced into the paper when
-  applicable. Do not duplicate whole paper sections into the task file; that
+  applicable. Do not duplicate whole paper sections into the handoff; that
   creates two divergent sources of truth.
 - **Published intake/split recipes must NOT reference private paths** such as `/private-mount`
   or other local-only mounts. Paper-facing recipes must point at public sources,
   checked-in scripts, or explicitly named non-public prerequisites instead.
 - **Include a `## Future Work` section** for high-level directions meaningful to
-  an unfamiliar reader. Routine follow-ups stay in `tasks/` only.
+  an unfamiliar reader. Routine follow-ups belong in the gap or handoff.
 
 
 When editing a branch research paper (`research/<branchname>.md`), show the full diff

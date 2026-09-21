@@ -63,7 +63,7 @@ Shapes worth considering:
   asked "is the original request actually finished?" before claiming
   completion.
 
-A journal for a task starts untracked in `tasks/journals/`, and no
+A journal for work starts untracked beside its owning handoff, and no
 journal is ever committed automatically — not every journal has
 lasting value. Most feed the eventual commit message rather than the
 repo: condense there and discard. For one worth keeping as a file,

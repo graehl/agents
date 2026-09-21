@@ -7,44 +7,48 @@ Topic: `handoffs`
 
 ## Selecting the handoff
 
-Use the artifact already governing the work: a user-named handoff, task, plan,
-gap, tactical, or other project convention. The working session should know
-that path from the request or plan; `tasks/ROOT` does not decide which artifact
-current work maintains.
+The last explicitly specified handoff governs live continuity for its named
+work scope. Keep using it across turns, compaction, and model changes; a later
+unrelated request does not silently change its scope. An existing named plan,
+gap, or maintainer artifact may serve that role without a duplicate document.
 
-`tasks/ROOT` is only a discovery hint for a bare `/hi` or boot with no named
-scope. Its target may describe the most recently requested handoff while newer
-dirty files or commits belong to unrelated work. Change the pointer only when
-explicitly establishing a new default bare-boot target.
+For a new handoff, default to `<program-path>/handoffs/<scope>.md` under the
+most specific program owning the work. Use the common parent for work spanning
+child programs, and project-root `handoffs/<scope>.md` when no narrower program
+applies. Programs are general subprojects, not research-only containers; their
+definition and charter rules live in [TOPICS.md](../TOPICS.md#program-scope-charters).
+Prefer an established in-program handoff location over a parallel collection.
 
-When material unfinished work reaches a continuity milestone with no known
-handoff, choose the narrowest truthful fallback:
+`ROOT` or `<program-path>/ROOT` may temporarily point to the most recently
+worked-on handoff. Store a path relative to the pointer's directory. A
+scope-less resume may use it as a hint; it does not select the artifact active
+work maintains or prove that its target explains the newest dirty files.
+Update a pointer only for its own scope, preserving another session's live
+entry point.
 
-- use `gaps/<slug>.md` (or the project's tactical equivalent) when a partially
-  landed unit or other unresolved project state leaves repository truth
-  incomplete; follow the nearest `gaps/README.md` tracking convention;
-- put a nice-to-have or dreamed improvement that exposes no current defect or
-  blocker in the owning topic's `.sketches.md` companion; a requested plan is
-  not a gap merely because it is unimplemented;
-- for a research program, use its governed subtree under
-  [program-scoped handoffs and recovery](../_RESEARCH/workflow.md#program-scoped-handoffs-and-recovery),
-  so the handoff path leads to its full governing `PROGRAM.md` chain;
-- use `tasks/auto-handoff-<slug>.md` for private continuity state that is not a
-  project gap and has no owning research program; or
-- use an established project-specific task/handoff location instead of
-  creating a parallel convention.
+Handoffs are private by default; exclude a newly created private directory via
+`.git/info/exclude`. A repository may explicitly choose shared handoffs.
+Placement does not itself make private state publishable. Preserve existing
+handoffs and references when changing conventions; an older location remains
+readable and can name its owning program without immediate relocation.
 
-The `auto-handoff-` basename tells the user that the agent selected the path.
-Do not create a handoff for a candidate topic plan with no active work, or for
-small completed work that its commit and live state already explain.
+Gaps hold unresolved work and link the governing topic; handoffs carry the
+compiled context needed to continue it. A gap can close in one session or
+span as many sessions and handoffs as needed. A private handoff does not replace
+an honest committed account of incomplete repository state. Dormant candidates
+remain in sketches. Do not create a handoff for small completed work already
+explained by its commit and live state.
 
 ## Maintaining a working handoff
 
 Update the known handoff when a significant milestone makes its current-state
 or next-step claims materially false: a plan boundary lands, a material
 decision changes direction, a blocking job finishes, the named unit completes,
-or work deliberately pauses. Do not interleave handoff writes with routine
-edit/build/test cycles.
+or work deliberately pauses. Before foreseeable token exhaustion or another
+interruption, bring that same handoff up to date while there is still capacity
+to preserve the crux, unfinished work, and next action. This is continuity
+maintenance, not permission to abandon authorized work. Do not interleave
+handoff writes with routine edit/build/test cycles.
 
 Replace obsolete current state instead of appending an activity log. Preserve
 only chronology that changes how a successor should reason. A completed private
@@ -54,7 +58,7 @@ incompleteness.
 
 Updating a handoff records state; it does not authorize executing its next
 steps. A session doing the work owns keeping its known handoff truthful rather
-than leaving predictable cleanup for the next `/hi`.
+than leaving predictable cleanup for the next session.
 
 When the work is served by a durable advisor, the coherent intended v1 of a
 live handoff, a completed change to its covered scope/path, or its retirement
@@ -107,7 +111,7 @@ Include only what that reader needs to resume accurately:
 - compiled understanding that is expensive to reconstruct: the crux,
   load-bearing constraints, and ruled-out paths with reasons;
 - the single best next action, followed by other live next steps;
-- concrete paths, symbols, commits, artifacts, and task/topic links;
+- concrete paths, symbols, commits, artifacts, and gap/topic links;
 - active jobs with job/run identity, log and output paths, plus the action to
   take when each finishes;
 - other environment metadata only when it materially helps deeper recovery;

@@ -36,8 +36,8 @@ repository remains usable without the other.
 - Correctness topics are defined through glossary-owned canonical docs. Formal
   topic docs live in the owning glossary's `topics/` collection, and related
   commit series use collision-safe glossary-scoped `Topic:` names.
-- Task files may track work, but they are not the durable source of global
-  correctness arguments.
+- Gaps track unresolved work and handoffs preserve continuity; durable global
+  correctness arguments belong in topics.
 
 ## Invariants
 
