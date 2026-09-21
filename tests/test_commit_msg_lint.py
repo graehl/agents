@@ -64,6 +64,21 @@ def test_stdin_message_is_linted():
         ws.cleanup()
 
 
+def test_long_subject_warns_without_relaxing_attribution_ban():
+    ws = Workspace()
+    try:
+        message = "A" * 70 + "\n"
+        res = ws.run(message)
+        _assert(res.returncode == 0, res.stderr)
+        _assert(res.stdout == message, "advisory changed the message")
+        _assert("aim for <=65" in res.stderr, res.stderr)
+        res = ws.run(message + "\nCo-Authored-By: Example\n")
+        _assert(res.returncode == 1, "attribution must still fail")
+        _assert("Co-Authored-By disallowed" in res.stderr, res.stderr)
+    finally:
+        ws.cleanup()
+
+
 def test_literal_newline_in_body_is_rejected():
     ws = Workspace()
     try:
