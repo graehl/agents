@@ -4,13 +4,16 @@ This is the agreed content/composition contract for the initial library.
 The checked-in manifests remain draft while their instruction review is open.
 `composition.py` implements local source validation and composition, and
 `project-template.py` exposes validation, inspection, and creation for authors.
-Remote source admission and YA settings/API integration remain unimplemented.
+YA implements remote source settings and combined-source validation;
+project creation and preparation through YA remain under integration.
 
 ## Library and source boundary
 
 A configured source identifies a local repository or a GitHub repository/ref,
-plus its **relative content root**. Initially those are `~/agents` and
-`project-templates`. The directory contains `library.json`:
+plus its **relative content root**. YA defaults to GitHub repository
+`https://github.com/graehl/agents` and `project-templates`; the local authoring
+tools use this checkout. An empty content root means the repository root.
+The directory contains `library.json`:
 
 ```json
 {
@@ -44,13 +47,19 @@ tree and symlink contents, not the consumer's host filesystem. Validate again
 when reading a mutable local source for creation. Draft files are validated
 too; draft status is not permission for dangling source references.
 
-Supplementary libraries remain separate sources. A saved selection must
-identify its source as well as its template ID; adding another source must
-not silently change a limited user's allowed template. Base IDs in `extends`
-resolve within their owning library. Cross-library inheritance is not part of
-this initial contract; a library can reference shared content elsewhere within
-its own source repository. A future standalone repository or submodule must
-carry that dependency closure inside its own source boundary.
+YA combines an ordered list of sources: later base or template definitions
+replace earlier definitions with the same ID, without changing their kind.
+Base IDs in `extends` resolve in that combined inventory, so community
+templates can reuse YA-default bases. Source-file references still resolve
+within the repository that owns the winning definition. Definition replacement
+does not relax the project-file collision rules below.
+
+A saved creation selection must identify its effective source as well as its
+template ID; adding another source must not silently redirect a limited user's
+allowed template. The local Python authoring tools still validate a single,
+self-contained library. Combined-source validation is provided by YA, not by
+those tools. Every source must include its own file dependencies within its
+repository boundary.
 
 ## Manifest shape
 
