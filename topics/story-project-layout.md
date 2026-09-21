@@ -58,6 +58,9 @@ chapters/            the draft, one file per chapter: 01-<slug>.md
   (or scenes/ for a screenplay, or script.fountain as a single file)
 continuity.md        ledger of facts asserted in the draft, with locations
 research/            notes and sources the story draws on (optional)
+remixes/<slug>/      an alternate version under its own audience, prose and
+                     illustration records, mirroring the source file names;
+                     shares setting/ and personae/ with the original
 ```
 
 For a screenplay, `treatment.md` (a prose synopsis) sits beside
@@ -78,7 +81,8 @@ Vendored projects carry fill-in starters for each sheet under
 audience and two style records live at the project root even when the story
 sits under `story/`, because a page and its story share one reader, one
 voice and one look; a project with several unrelated works may keep per-work
-copies beside each work's README, and the nearest one wins. All three are
+copies beside each work's README, and the nearest one wins; a remix under
+`remixes/<slug>/` relies on exactly that rule. All three are
 set with the author, not inferred, and asked once, audience first: who is
 this for, what should the prose sound like, and are illustrations wanted and
 in what style, offering concrete alternatives, and record the answers. The

@@ -32,6 +32,7 @@ project-templates/
     writing/                       prose/story/world craft, story layout, sheets
       *.md -> ../../../topics/     writing, story-writing, story-project-layout
       riff/ -> ../../../../skills/riff/   four-alternative proposal skill
+      remix/                       template-only skill: alternate version in a subdir
     legacy-boot/
       boot.md -> ../../../AGENTS.global.md
   templates/
@@ -119,7 +120,10 @@ default way to propose at a creative choice point; Web page's README
 introduces it. Three author-set root records, `audience.md`,
 `prose-style.md` and `illustration-style.md`, are used whenever present; the
 preparation turn ends by asking for them with concrete alternatives, and no
-illustration record means no images are added unasked. Skill-form authoring workflows and concise
+illustration record means no images are added unasked. The template-only
+**remix** skill re-asks those questions and writes an alternate version under
+`remixes/<slug>/` with its own records, leaving the original untouched; it is
+authored here in the base rather than in this repository's `skills/`. Skill-form authoring workflows and concise
 GitHub Pages/account/domain onboarding are still tracked in the
 [content-authoring capability gap](gaps/content-authoring-capabilities.md).
 Static publishing should default to a host-provided URL; a custom domain is
