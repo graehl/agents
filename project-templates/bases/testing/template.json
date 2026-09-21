@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "testing",
+  "title": "Testing",
+  "description": "Behavioral checks, real-path verification, and process ownership.",
+  "extends": ["base"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "instructions/testing.md", "from": "guide.md" }
+  ],
+  "overrides": []
+}

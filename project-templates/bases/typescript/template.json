@@ -1,0 +1,15 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "typescript",
+  "title": "TypeScript",
+  "description": "Strict browser TypeScript with pinned build and test tooling.",
+  "extends": ["software-engineering", "testing"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "instructions/typescript.md", "from": "guide.md" },
+    { "to": "tsconfig.json", "from": "tsconfig.json" }
+  ],
+  "overrides": []
+}

@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "canvas",
+  "title": "Canvas2D",
+  "description": "A responsive drawing canvas with a static deployment path.",
+  "extends": ["typescript", "web-ui"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "instructions/canvas.md", "from": "guide.md" },
+    { "to": "src/main.ts", "from": "files/main.ts" },
+    { "to": "src/drawing.ts", "from": "files/drawing.ts" },
+    { "to": "src/style.css", "from": "files/style.css" },
+    { "to": "test/drawing.test.ts", "from": "files/drawing.test.ts" },
+    { "to": "index.html", "from": "files/index.html" },
+    { "to": "public/icon.svg", "from": "files/icon.svg" },
+    {
+      "to": "public/manifest.webmanifest",
+      "from": "files/manifest.webmanifest"
+    }
+  ],
+  "overrides": []
+}

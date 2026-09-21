@@ -1,0 +1,159 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #30302e;
+  background: #f5f3ed;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 28px 32px 20px;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  color: #626257;
+}
+.badge {
+  padding: 7px 12px;
+  border: 1px solid #d7d4cb;
+  border-radius: 20px;
+  font-size: 12px;
+}
+.intro {
+  margin: 26px 0 22px;
+}
+h1 {
+  margin: 0 0 8px;
+  font-size: clamp(27px, 4vw, 38px);
+  letter-spacing: -0.045em;
+  font-weight: 650;
+}
+p {
+  margin: 0;
+  color: #65635c;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.workspace {
+  overflow: hidden;
+  border: 1px solid #d8d5cc;
+  background: #fffefa;
+  border-radius: 16px;
+  box-shadow: 0 9px 30px #27251e08;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e8e5dc;
+}
+.colors,
+.actions {
+  display: flex;
+  gap: 4px;
+}
+button {
+  min-height: 44px;
+  min-width: 44px;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  padding: 8px 13px;
+}
+button:hover {
+  background: #eeece4;
+}
+.colors button {
+  display: grid;
+  place-items: center;
+  padding: 8px;
+}
+.colors span {
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+}
+.colors [aria-pressed="true"] {
+  border-color: #b2aa95;
+  background: #f3f0e8;
+}
+:focus-visible {
+  outline: 2px solid #7357c8;
+  outline-offset: 2px;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 260px;
+  touch-action: none;
+  cursor: crosshair;
+  background-image: radial-gradient(#d8d4c8 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid #e8e5dc;
+  font-size: 12px;
+  color: #65635c;
+}
+input {
+  min-width: 0;
+  flex: 1;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  color: #30302e;
+  font: inherit;
+  font-size: 14px;
+  border-radius: 4px;
+}
+output {
+  flex-shrink: 0;
+}
+.footnote {
+  margin-top: 14px;
+  font-size: 12px;
+}
+@media (max-width: 520px) {
+  main {
+    padding: 22px 18px;
+  }
+  .intro {
+    margin: 32px 0 24px;
+  }
+  canvas {
+    height: 360px;
+  }
+  footer {
+    flex-wrap: wrap;
+    gap: 2px 8px;
+  }
+  footer label {
+    flex-basis: 100%;
+  }
+  .toolbar {
+    padding: 8px;
+  }
+}

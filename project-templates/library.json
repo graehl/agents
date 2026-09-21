@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "bases": [
+    "base",
+    "legacy-boot",
+    "software-engineering",
+    "testing",
+    "typescript",
+    "web-ui",
+    "canvas",
+    "server"
+  ],
+  "templates": ["app-canvas"]
+}

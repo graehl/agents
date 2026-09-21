@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "draft",
+  "id": "base",
+  "title": "Universal project base",
+  "description": "Universal project context and documentation maintenance.",
+  "extends": [],
+  "files": [
+    {
+      "to": "AGENTS.md",
+      "from": "instructions.md"
+    }
+  ],
+  "overrides": []
+}
