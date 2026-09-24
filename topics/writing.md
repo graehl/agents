@@ -113,6 +113,12 @@ sooner than say anything outright barbarous.
   either a new opening or a new body.
 - **Let it cool.** An hour, a day, a week if the piece matters. Fresh eyes
   find what tired ones excused.
+- **Following a rule is silent.** Authored prose never remarks on its own
+  craft: no "in short", "put simply", "to be concise", "without belaboring",
+  no closing note that the piece led with the result or kept things tight.
+  Such anchors are sometimes requested in conversation or in workflow
+  reporting, where a stage or stance must be named; in a piece of writing
+  they are meta-commentary and are deleted.
 
 ## Paragraph review
 
