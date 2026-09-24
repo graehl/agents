@@ -8,4 +8,11 @@ __pycache__/
 .backups/
 .snapshots/
 .codex
+# Third-party plannotator skills and the `npx skills` lock that installed them.
+skills/plannotator/
+skills/plannotator-*/
+.skill-lock.json
+# Claude Code syncs claude.ai account skills here, through the
+# ~/.claude/skills -> ~/skills -> ~/agents/skills link.
+skills/synced/
 digest/claude-web.md
