@@ -301,9 +301,10 @@ Research result tables must include:
   visible before all runs are complete.
 - Stale methods/conditions no longer part of the decision story should be removed from the
   paper and archived to the research log with a note.
-- Important paper numbers should carry a human-invisible correlation marker such as an HTML
-  comment (`<!-- ref: R17 -->`) so a future reader can align the paper table entry with the
-  corresponding research-log run record and saved artifacts.
+- Cite the evidence behind a table, figure, or claim in an invisible `<!-- ref: ... -->`
+  comment naming the artifact or run, with reproduction detail in the section's `.repro.md`
+  rider. Before writing or verifying these citations, read `topics/claim-provenance.md`;
+  `claim-refs check` resolves them.
 
 When editing a branch research paper (`research/<branchname>.md`), show the full diff
 afterward, eliding only long unchanged stretches if needed to keep the displayed output

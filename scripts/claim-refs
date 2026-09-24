@@ -1,0 +1,786 @@
+#!/usr/bin/env python3
+# acli: 1 complete
+"""claim-refs — resolve a manuscript's claim provenance and carry its run records.
+
+A manuscript cites the evidence behind its claims in invisible source comments,
+`<!-- ref: <locator>[; <locator>|prose ...] -->`, and each section may keep a
+`<section-stem>.repro.md` rider naming the runs that produced its evidence.
+`check` resolves every citation and reports how far its provenance reaches.
+`pack` bundles the cited run records, by default with their input ancestry,
+into a tar.xz; `unpack` merges such a bundle into another checkout; `paths`
+lists the same record files one per line for `git add`.
+
+A locator is either a run reference `<experiment>/<run-id>` or a path. A path
+resolves against the citing file's directory, then each ancestor up to the
+project (Git) root, and at each of those levels also its `evidence/`
+directory. `#anchor` suffixes are kept but ignored for resolution; globs match
+when at least one file does.
+
+Provenance levels, strongest first:
+
+  run-record      a run record is present in this checkout
+  record-missing  a run is named but its record is not here (pull it back)
+  meta-md         only a legacy `.meta.md` sidecar records the command
+  no-producer     the file exists but nothing records what produced it
+
+A run record binds its source through the Git commit it records (tracked runs
+admit only committed source), so reproducing it means checking out that
+commit; the bundle carries records, not source or data.
+
+Contract: topics/claim-provenance.md. Run-record layout:
+topics/provenance-tracking.md.
+"""
+
+from __future__ import annotations
+
+import argparse
+import io
+import json
+import os
+import re
+import subprocess
+import sys
+import tarfile
+import tempfile
+from collections import deque
+from dataclasses import dataclass, field
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import (  # noqa: E402
+    ExitCode,
+    Format,
+    add_standard_args,
+    argument_parser,
+    die,
+    emit,
+    emit_table,
+    maybe_complete,
+    resolve_format,
+)
+from artifact_meta import aim_read_roots  # noqa: E402
+
+CAPABILITIES = ("complete",)
+EXIT_CODES = {
+    3: "check: a citation did not resolve; pack/paths: a named run record is absent here",
+    4: "an input path or archive does not exist",
+    5: "unpack: an archive file differs from the checkout's copy; pack: output exists",
+}
+
+CITATION_COMMENT = re.compile(r"<!--\s*(?:ref|refs|run|runs)\s*:(.*?)-->", re.DOTALL)
+RUN_REF = re.compile(r"(?<![\w./-])([a-z0-9][a-z0-9._-]*)/(\d{8}T\d{6}Z)(?![\w])")
+RUN_REF_EXACT = re.compile(r"[a-z0-9][a-z0-9._-]*/\d{8}T\d{6}Z")
+FILE_EXTENSION = re.compile(r"\.[A-Za-z0-9]{1,6}$")
+GLOB_CHARS = re.compile(r"[*?\[]")
+BRACE_GROUP = re.compile(r"\{([^{},]*(?:,[^{},]*)+)\}")
+# Companions of a section, never sections themselves.
+COMPANION_SUFFIXES = (
+    ".repro.md",
+    ".trims.md",
+    ".intent.md",
+    ".log.md",
+    ".evidence.md",
+    ".sketches.md",
+    ".bearings.md",
+    ".meta.md",
+    ".running.md",
+)
+RIDER_SUFFIX = ".repro.md"
+MANIFEST_MEMBER = "claim-refs-manifest.jsonl"
+LEVEL_ORDER = ("run-record", "record-missing", "meta-md", "no-producer")
+CHECK_COLUMNS = (
+    "section",
+    "line",
+    "source",
+    "locator",
+    "status",
+    "level",
+    "path",
+    "run",
+)
+PACK_COLUMNS = ("run", "status", "depth", "via", "record")
+
+
+def project_root_of(path: Path) -> Path:
+    directory = path if path.is_dir() else path.parent
+    proc = subprocess.run(
+        ["git", "-C", str(directory), "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        die(
+            f"claim-refs needs a Git checkout to root paths: {path}",
+            ExitCode.USAGE,
+            detail={"git": proc.stderr.strip()},
+        )
+    return Path(proc.stdout.strip()).resolve()
+
+
+def is_section_file(path: Path) -> bool:
+    name = path.name
+    return name.endswith((".qmd", ".md")) and not name.endswith(COMPANION_SUFFIXES)
+
+
+def section_files(targets: list[Path]) -> list[Path]:
+    """Sections named directly or found under a directory, skipping `.`/`_` dirs
+    (Quarto's `_freeze`, `_site`, `_extensions`)."""
+    found: dict[Path, None] = {}
+    for target in targets:
+        if not target.exists():
+            die(
+                f"input path not found: {target}",
+                ExitCode.NOT_FOUND,
+                detail={"path": str(target)},
+            )
+        if target.is_file():
+            if target.name.endswith(RIDER_SUFFIX):
+                target = target.with_name(target.name[: -len(RIDER_SUFFIX)] + ".qmd")
+            found[target.resolve()] = None
+            continue
+        for dirpath, dirnames, filenames in os.walk(target):
+            dirnames[:] = sorted(d for d in dirnames if not d.startswith((".", "_")))
+            for name in sorted(filenames):
+                path = Path(dirpath) / name
+                if is_section_file(path):
+                    found[path.resolve()] = None
+    return list(found)
+
+
+def rider_of(section: Path) -> Path:
+    return section.with_name(section.stem + RIDER_SUFFIX)
+
+
+def clean_token(token: str) -> str:
+    return token.strip("`'\"").lstrip("(").rstrip(".,:;)")
+
+
+def looks_like_locator(token: str) -> bool:
+    bare = token.split("#", 1)[0]
+    return bool(
+        RUN_REF_EXACT.fullmatch(bare) or "/" in bare or FILE_EXTENSION.search(bare)
+    )
+
+
+def expand_braces(token: str) -> list[str]:
+    """`a{1,2}b` -> [`a1b`, `a2b`]; one group, as manuscripts write it."""
+    match = BRACE_GROUP.search(token)
+    if not match:
+        return [token]
+    head, tail = token[: match.start()], token[match.end() :]
+    return [head + option + tail for option in match.group(1).split(",")]
+
+
+@dataclass
+class Citation:
+    section: Path
+    line: int
+    source: str  # "comment" | "rider"
+    locator: str
+    text: str = ""
+
+
+def comment_citations(section: Path, text: str) -> list[Citation]:
+    citations: list[Citation] = []
+    for match in CITATION_COMMENT.finditer(text):
+        line = text.count("\n", 0, match.start()) + 1
+        body = " ".join(match.group(1).split())
+        seen: set[str] = set()
+        for index, item in enumerate(body.split(";")):
+            words = item.split()
+            token = clean_token(words[0]) if words else ""
+            if index == 0 and not looks_like_locator(token):
+                citations.append(Citation(section, line, "comment", "", body[:160]))
+                seen.add("")
+                continue
+            if token and looks_like_locator(token):
+                for locator in expand_braces(token):
+                    if locator not in seen:
+                        seen.add(locator)
+                        citations.append(Citation(section, line, "comment", locator))
+        for run in RUN_REF.finditer(body):
+            ref = f"{run.group(1)}/{run.group(2)}"
+            if ref not in seen:
+                seen.add(ref)
+                citations.append(Citation(section, line, "comment", ref))
+    return citations
+
+
+def rider_citations(section: Path) -> list[Citation]:
+    rider = rider_of(section)
+    if not rider.exists():
+        return []
+    text = rider.read_text(encoding="utf-8")
+    citations: list[Citation] = []
+    seen: set[str] = set()
+    for match in RUN_REF.finditer(text):
+        ref = f"{match.group(1)}/{match.group(2)}"
+        if ref in seen:
+            continue
+        seen.add(ref)
+        line = text.count("\n", 0, match.start()) + 1
+        citations.append(Citation(section, line, "rider", ref))
+    return citations
+
+
+class RunRecords:
+    """Run records under the configured read roots, keyed by `<experiment>/<run-id>`."""
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.read_roots = aim_read_roots(repo_root=root)
+
+    def record(self, ref: str) -> tuple[Path, Path] | None:
+        """(read root, record path) for a present record, else None."""
+        experiment, run_id = ref.split("/", 1)
+        for read_root in self.read_roots:
+            candidate = read_root / experiment / "runs" / f"{run_id}.json"
+            if candidate.is_file():
+                return read_root, candidate
+        return None
+
+    def ref_from_dump_path(self, dump: str) -> str | None:
+        path = Path(dump)
+        if len(path.parts) >= 3 and path.parts[-2] == "runs" and path.suffix == ".json":
+            return f"{path.parts[-3]}/{path.stem}"
+        return None
+
+
+def run_level(records: RunRecords, ref: str) -> str:
+    return "run-record" if records.record(ref) else "record-missing"
+
+
+def sidecar_run(path: Path) -> str | None:
+    sidecar = path.with_name(path.name + ".meta.json")
+    if not sidecar.is_file():
+        return None
+    try:
+        data = json.loads(sidecar.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        die(
+            f"malformed output sidecar: {sidecar}",
+            ExitCode.DATA,
+            detail={"error": str(exc)},
+        )
+    experiment = data.get("experiment")
+    run_id = data.get("agentctl_run_id")
+    if experiment and run_id:
+        return f"{experiment}/{run_id}"
+    dump = data.get("run_dump")
+    if dump:
+        path = Path(dump)
+        return f"{path.parts[-3]}/{path.stem}" if len(path.parts) >= 3 else None
+    return None
+
+
+def ancestors_to_root(directory: Path, root: Path) -> list[Path]:
+    chain = [directory]
+    while directory != root and root in directory.parents:
+        directory = directory.parent
+        chain.append(directory)
+    return chain
+
+
+def matches_under(bases: list[Path], bare: str) -> list[Path]:
+    matches: dict[Path, None] = {}
+    for base in bases:
+        if GLOB_CHARS.search(bare):
+            if base.is_dir() and any(base.glob(bare)):
+                matches[base / bare] = None
+        elif (base / bare).exists():
+            matches[(base / bare).resolve()] = None
+    return list(matches)
+
+
+def path_candidates(
+    citation: Citation, root: Path, sibling_dir: Path | None
+) -> list[Path]:
+    """Existing files a path locator names.
+
+    A later locator in one comment is usually relative to the one before it, so
+    `sibling_dir` (the previous resolved locator's directory) and its ancestors
+    are tried first and the nearest hit wins. Otherwise the citing file's
+    directory, its ancestors, and each level's `evidence/` are searched, and
+    more than one hit is reported as ambiguous rather than guessed."""
+    bare = citation.locator.split("#", 1)[0]
+    if Path(bare).is_absolute():
+        return matches_under([Path("/")], bare.lstrip("/"))
+    if sibling_dir:
+        for base in ancestors_to_root(sibling_dir, root):
+            nearest = matches_under([base], bare)
+            if nearest:
+                return nearest
+    bases: list[Path] = []
+    for directory in ancestors_to_root(citation.section.parent, root):
+        bases += [directory, directory / "evidence"]
+    return matches_under(bases, bare)
+
+
+def classify_path(path: Path, records: RunRecords) -> tuple[str, str]:
+    """(level, run ref or "") for one resolved artifact; a glob takes its first match."""
+    if GLOB_CHARS.search(str(path)):
+        hits = sorted(Path("/").glob(str(path).lstrip("/")))
+        path = hits[0]
+    run = sidecar_run(path)
+    if run:
+        return run_level(records, run), run
+    if (
+        path.with_name(path.name + ".meta.md").exists()
+        or path.with_suffix(".meta.md").exists()
+    ):
+        return "meta-md", ""
+    return "no-producer", ""
+
+
+def display_path(path: Path, root: Path) -> str:
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
+
+
+def resolve_citation(
+    citation: Citation, root: Path, records: RunRecords, sibling_dir: Path | None = None
+) -> dict:
+    row: dict = {
+        "section": display_path(citation.section, root),
+        "line": citation.line,
+        "source": citation.source,
+        "locator": citation.locator,
+    }
+    if not citation.locator:
+        return {**row, "status": "no-locator", "text": citation.text}
+    if RUN_REF_EXACT.fullmatch(citation.locator):
+        return {
+            **row,
+            "status": "resolved",
+            "level": run_level(records, citation.locator),
+            "run": citation.locator,
+        }
+    candidates = path_candidates(citation, root, sibling_dir)
+    if not candidates:
+        return {**row, "status": "unresolved"}
+    if len(candidates) > 1:
+        return {
+            **row,
+            "status": "ambiguous",
+            "candidates": [display_path(p, root) for p in candidates],
+        }
+    level, run = classify_path(candidates[0], records)
+    row = {
+        **row,
+        "status": "resolved",
+        "level": level,
+        "path": display_path(candidates[0], root),
+    }
+    return {**row, "run": run} if run else row
+
+
+def check_rows(targets: list[Path]) -> tuple[Path, list[dict]]:
+    sections = section_files(targets)
+    if not sections:
+        die(
+            "no manuscript sections found",
+            ExitCode.NOT_FOUND,
+            detail={"paths": [str(t) for t in targets]},
+        )
+    root = project_root_of(sections[0])
+    records = RunRecords(root)
+    rows: list[dict] = []
+    for section in sections:
+        text = section.read_text(encoding="utf-8")
+        previous: tuple[int, Path] | None = None
+        for citation in comment_citations(section, text) + rider_citations(section):
+            sibling_dir = (
+                previous[1] if previous and previous[0] == citation.line else None
+            )
+            row = resolve_citation(citation, root, records, sibling_dir)
+            if citation.source == "comment" and row.get("path"):
+                resolved = root / row["path"]
+                previous = (
+                    citation.line,
+                    resolved if resolved.is_dir() else resolved.parent,
+                )
+            rows.append(row)
+    return root, rows
+
+
+def check_text(rows: list[dict]) -> str:
+    by_section: dict[str, list[dict]] = {}
+    for row in rows:
+        by_section.setdefault(row["section"], []).append(row)
+    lines: list[str] = []
+    for section, section_rows in by_section.items():
+        counts = {level: 0 for level in LEVEL_ORDER}
+        failures = 0
+        for row in section_rows:
+            if row["status"] == "resolved":
+                counts[row["level"]] += 1
+            else:
+                failures += 1
+        tally = ", ".join(f"{n} {level}" for level, n in counts.items() if n)
+        lines.append(
+            f"{section}: {tally or 'no resolved citations'}"
+            + (f"; {failures} not resolved" if failures else "")
+        )
+        for row in section_rows:
+            if row["status"] == "resolved" and row["level"] == "run-record":
+                continue
+            what = (
+                row.get("run")
+                or row.get("path")
+                or row["locator"]
+                or row.get("text", "")
+            )
+            state = row["level"] if row["status"] == "resolved" else row["status"]
+            lines.append(f"  {row['line']:>4} {row['source']:<7} {state:<14} {what}")
+    return "\n".join(lines)
+
+
+def verb_check(args) -> int:
+    _, rows = check_rows([Path(p) for p in args.paths])
+    fmt = resolve_format(args)
+    if fmt is Format.TEXT:
+        emit(rows, fmt, text=check_text(rows))
+    else:
+        emit_table(rows, CHECK_COLUMNS, fmt, name="citations")
+    return int(ExitCode.DATA) if any(r["status"] != "resolved" for r in rows) else 0
+
+
+@dataclass
+class RecordSet:
+    """Cited run records and, unless shallow, their input ancestry."""
+
+    root: Path
+    records: RunRecords
+    rows: list[dict] = field(default_factory=list)
+    present: dict[str, tuple[Path, Path]] = field(default_factory=dict)
+
+    def collect(self, seeds: list[tuple[str, str]], *, shallow: bool) -> None:
+        queue = deque((ref, via, 0) for ref, via in seeds)
+        seen: set[str] = set()
+        while queue:
+            ref, via, depth = queue.popleft()
+            if ref in seen:
+                continue
+            seen.add(ref)
+            found = self.records.record(ref)
+            if not found:
+                self.rows.append(
+                    {"run": ref, "status": "missing", "depth": depth, "via": via}
+                )
+                continue
+            self.present[ref] = found
+            self.rows.append(
+                {
+                    "run": ref,
+                    "status": "present",
+                    "depth": depth,
+                    "via": via,
+                    "record": display_path(found[1], self.root),
+                }
+            )
+            if not shallow:
+                for parent in self.input_runs(found[1]):
+                    queue.append((parent, ref, depth + 1))
+
+    def input_runs(self, record_path: Path) -> list[str]:
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+        inputs = (record.get("params") or {}).get("inputs") or {}
+        parents: list[str] = []
+        for spec in inputs.values():
+            if not isinstance(spec, dict):
+                continue
+            ref = None
+            if spec.get("source_dump"):
+                ref = self.records.ref_from_dump_path(str(spec["source_dump"]))
+            if not ref and spec.get("source_experiment") and spec.get("source_run_id"):
+                ref = f"{spec['source_experiment']}/{spec['source_run_id']}"
+            if ref:
+                parents.append(ref)
+        return parents
+
+    def members(self, ref: str) -> list[tuple[Path, str]]:
+        """(file, archive name) for one record: its JSON and its texts, at the
+        canonical `runs/aim/` location whatever read root held them."""
+        read_root, record_path = self.present[ref]
+        experiment, run_id = ref.split("/", 1)
+        canonical = Path("runs/aim") / experiment
+        members = [(record_path, str(canonical / "runs" / f"{run_id}.json"))]
+        texts = read_root / experiment / "texts" / run_id
+        if texts.is_dir():
+            for path in sorted(p for p in texts.rglob("*") if p.is_file()):
+                members.append(
+                    (path, str(canonical / "texts" / run_id / path.relative_to(texts)))
+                )
+        return members
+
+    def manifest_row(self, ref: str) -> dict | None:
+        read_root, _ = self.present[ref]
+        experiment, run_id = ref.split("/", 1)
+        manifest = read_root / experiment / "manifest.jsonl"
+        if not manifest.is_file():
+            return None
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                if row.get("ref") == run_id or row.get("agentctl_run_id") == run_id:
+                    return row
+        return None
+
+
+def record_set(args) -> RecordSet:
+    targets = [Path(p) for p in args.paths]
+    seeds: list[tuple[str, str]] = []
+    if targets:
+        root, rows = check_rows(targets)
+        for row in rows:
+            if row.get("run"):
+                seeds.append((row["run"], f"{row['section']}:{row['line']}"))
+    else:
+        root = project_root_of(Path.cwd())
+    for ref in args.run or []:
+        if not RUN_REF_EXACT.fullmatch(ref):
+            die(f"--run expects <experiment>/<run-id>: {ref}", ExitCode.USAGE)
+        seeds.append((ref, "--run"))
+    if not seeds:
+        die("no run references to collect", ExitCode.NOT_FOUND)
+    records = RecordSet(root, RunRecords(root))
+    records.collect(seeds, shallow=args.shallow)
+    return records
+
+
+def missing_exit(records: RecordSet) -> int:
+    return (
+        int(ExitCode.DATA) if any(r["status"] == "missing" for r in records.rows) else 0
+    )
+
+
+def verb_pack(args) -> int:
+    output = Path(args.output)
+    if output.exists():
+        die(f"output exists: {output}", ExitCode.CONFLICT, detail={"path": str(output)})
+    records = record_set(args)
+    manifest_lines: list[str] = []
+    for row in records.rows:
+        if row["status"] != "present":
+            continue
+        manifest = records.manifest_row(row["run"])
+        if manifest is None:
+            row["note"] = "no manifest row; unpack cannot register it for Aim import"
+        else:
+            experiment = row["run"].split("/", 1)[0]
+            manifest_lines.append(
+                json.dumps({"experiment": experiment, "row": manifest}, sort_keys=True)
+            )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp_name = tempfile.mkstemp(
+        prefix=output.name + ".", suffix=".partial", dir=output.parent
+    )
+    os.close(fd)
+    with tarfile.open(temp_name, "w:xz") as tar:
+        for ref in records.present:
+            for path, name in records.members(ref):
+                tar.add(path, arcname=name, recursive=False)
+        data = ("\n".join(manifest_lines) + "\n").encode() if manifest_lines else b""
+        info = tarfile.TarInfo(MANIFEST_MEMBER)
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+    umask = os.umask(0)
+    os.umask(umask)
+    os.chmod(temp_name, 0o666 & ~umask)
+    os.replace(temp_name, output)
+    emit_table(records.rows, PACK_COLUMNS, resolve_format(args), name="runs")
+    return missing_exit(records)
+
+
+def verb_paths(args) -> int:
+    records = record_set(args)
+    cwd = Path.cwd()
+    rows: list[dict] = []
+    for ref in records.present:
+        for path, _ in records.members(ref):
+            rows.append({"run": ref, "path": os.path.relpath(path, cwd)})
+    for row in records.rows:
+        if row["status"] == "missing":
+            rows.append({"run": row["run"], "status": "missing", "via": row["via"]})
+    fmt = resolve_format(args)
+    if fmt is Format.TEXT:
+        # stdout stays pure paths for `xargs git add`; the gaps go to stderr.
+        for row in rows:
+            if row.get("status") == "missing":
+                print(
+                    f"# claim-refs: missing run record {row['run']} (via {row['via']})",
+                    file=sys.stderr,
+                )
+    emit(rows, fmt, text="\n".join(r["path"] for r in rows if "path" in r))
+    return missing_exit(records)
+
+
+def safe_member_name(name: str) -> bool:
+    path = Path(name)
+    return (
+        not path.is_absolute()
+        and ".." not in path.parts
+        and (name == MANIFEST_MEMBER or path.parts[:2] == ("runs", "aim"))
+    )
+
+
+def verb_unpack(args) -> int:
+    archive = Path(args.archive)
+    if not archive.is_file():
+        die(
+            f"archive not found: {archive}",
+            ExitCode.NOT_FOUND,
+            detail={"path": str(archive)},
+        )
+    root = Path(args.root).resolve() if args.root else project_root_of(Path.cwd())
+    with tarfile.open(archive, "r:xz") as tar:
+        contents: dict[str, bytes] = {}
+        for member in tar.getmembers():
+            if not member.isfile():
+                continue
+            if not safe_member_name(member.name):
+                die(f"archive member outside runs/aim: {member.name}", ExitCode.DATA)
+            extracted = tar.extractfile(member)
+            assert extracted is not None
+            contents[member.name] = extracted.read()
+    manifest_data = contents.pop(MANIFEST_MEMBER, b"")
+    rows: list[dict] = []
+    conflicts: list[str] = []
+    for name, data in contents.items():
+        dest = root / name
+        if dest.exists():
+            same = dest.read_bytes() == data
+            rows.append({"path": name, "status": "same" if same else "conflict"})
+            if not same:
+                conflicts.append(name)
+        else:
+            rows.append({"path": name, "status": "added"})
+    if conflicts:
+        die(
+            "archive files differ from this checkout; nothing written",
+            ExitCode.CONFLICT,
+            detail={"conflicts": conflicts},
+        )
+    for name, data in contents.items():
+        dest = root / name
+        if not dest.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(data)
+    for line in manifest_data.decode().splitlines():
+        if not line.strip():
+            continue
+        entry = json.loads(line)
+        experiment, row = entry["experiment"], entry["row"]
+        manifest = root / "runs/aim" / experiment / "manifest.jsonl"
+        existing = {
+            json.loads(existing_line).get("ref")
+            for existing_line in (
+                manifest.read_text(encoding="utf-8").splitlines()
+                if manifest.exists()
+                else []
+            )
+            if existing_line.strip()
+        }
+        status = "present" if row.get("ref") in existing else "appended"
+        if status == "appended":
+            manifest.parent.mkdir(parents=True, exist_ok=True)
+            with manifest.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(row, sort_keys=True) + "\n")
+        rows.append(
+            {
+                "path": str(Path("runs/aim") / experiment / "manifest.jsonl"),
+                "ref": row.get("ref"),
+                "status": status,
+            }
+        )
+    emit(rows, resolve_format(args))
+    return 0
+
+
+def add_collect_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        help="Manuscript sections or directories whose citations seed the set.",
+    )
+    parser.add_argument(
+        "--run",
+        action="append",
+        metavar="EXPERIMENT/RUN-ID",
+        help="Also include this run (repeatable); usable without paths.",
+    )
+    parser.add_argument(
+        "--shallow",
+        action="store_true",
+        help="Only the cited runs; default also follows each record's input ancestry.",
+    )
+
+
+def build_parser():
+    parser = argument_parser(
+        prog="claim-refs",
+        description="Resolve a manuscript's claim provenance and carry its run records. "
+        "Contract: topics/claim-provenance.md.",
+        capabilities=CAPABILITIES,
+        exit_codes=EXIT_CODES,
+    )
+    sub = parser.add_subparsers(dest="verb", required=True)
+
+    p = sub.add_parser(
+        "check",
+        help="One row per citation: resolution status and provenance level. --text groups by section.",
+    )
+    p.add_argument("paths", nargs="+", help="Manuscript sections or directories.")
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=verb_check)
+
+    p = sub.add_parser(
+        "pack",
+        help="Bundle cited run records (and, by default, their input ancestry) into a tar.xz.",
+    )
+    add_collect_args(p)
+    p.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="Archive to create (.tar.xz); must not exist.",
+    )
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=verb_pack)
+
+    p = sub.add_parser(
+        "paths",
+        help="The files pack would bundle; --text prints one path per line (relative to cwd) for git add.",
+    )
+    add_collect_args(p)
+    add_standard_args(p)
+    p.set_defaults(func=verb_paths)
+
+    p = sub.add_parser(
+        "unpack",
+        help="Merge a pack archive into runs/aim/ and its manifests; refuses any differing file.",
+    )
+    p.add_argument("archive", help="Archive written by pack.")
+    p.add_argument(
+        "--root", help="Project root to merge into (default: Git root of cwd)."
+    )
+    add_standard_args(p)
+    p.set_defaults(func=verb_unpack)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    maybe_complete(parser, [sys.argv[0], *(argv if argv is not None else sys.argv[1:])])
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
