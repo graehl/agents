@@ -18,7 +18,10 @@ White's *The Elements of Style*, Orwell's "Politics and the English Language",
 Zinsser's *On Writing Well*, Williams's *Style: Toward Clarity and Grace*,
 McPhee's *Draft No. 4*, Lamott's *Bird by Bird*, King's *On Writing*, and Le
 Guin's *Steering the Craft*. Nothing here is original; the sources disagree
-only at the margins.
+only at the margins. These are defaults, not a checklist to satisfy in
+addition to genre rules: a genre topic such as
+[`technical-writing`](technical-writing.md) or
+[`story-writing`](story-writing.md) narrows them and wins on conflict.
 
 ## Before the first sentence
 
@@ -41,17 +44,23 @@ only at the margins.
 ## Structure
 
 - **Put the point where it will be found.** For expository prose the main
-  claim goes first, then support, then qualification. A reader who stops
-  early should leave with the right idea. Stories earn suspense; explanations
-  do not.
-- **One idea per paragraph, announced by its first sentence.** A reader
-  scanning first sentences should be able to reconstruct the argument.
+  claim goes first, then support, then qualification; qualification that
+  does not change the point may live in a note or appendix. A reader who
+  stops early should leave with the right idea. Stories earn suspense;
+  explanations do not.
+- **One idea per paragraph, and each idea findable.** Where headings carry
+  the claims, the heading locates the idea and the paragraph owes no
+  announcing first sentence. Where they do not (an essay, a letter), the
+  first sentence does that job, and a reader scanning first sentences
+  should be able to reconstruct the argument.
 - **Order by the reader's need, not by the order you discovered things.**
   Chronology of your own research is rarely the best order. McPhee's method
   works: list the parts on cards, then find the arrangement in which each part
   sets up the next.
-- **Signpost transitions.** A new section says how it relates to the last:
-  consequence, contrast, example, exception, next step.
+- **Signpost transitions.** A new unit's relation to the last (consequence,
+  contrast, example, exception, next step) is carried by its heading or by
+  the previous unit's last sentence. A transition sentence is the fallback
+  for prose that has neither, not a sentence about the document.
 - **Use the reader's words for the reader's things.** Define a term once at
   first use and then keep using it. Do not vary vocabulary for elegance when
   the reader is trying to track a concept.
@@ -75,8 +84,10 @@ only at the margins.
   the word that matters there. The strong technical-prose form, with the
   revision check and the paragraph/section analog, is
   [`technical-writing` § End each unit on what drives the next](technical-writing.md#end-each-unit-on-what-drives-the-next).
-- **Vary length for rhythm, but on purpose.** A run of long sentences numbs; a
-  run of short ones jabs. A short sentence after a long one lands.
+- **Length follows content.** Never split, add, or shorten a sentence for
+  effect; the punchy short sentence after a long one is a mannerism, not a
+  tool. A monotone run of same-length sentences is a prompt to check whether
+  they say different things, not to vary them.
 - **Prefer active voice** unless the actor is unknown, unimportant, or you
   want the receiver in the subject position for emphasis.
 - **Read it aloud.** The ear catches what the eye forgives: repeated words,

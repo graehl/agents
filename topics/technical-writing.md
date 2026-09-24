@@ -70,12 +70,9 @@ second ever adds material:
 6. **Rhythm and voice.** Sentence variety and active voice are tie-breakers
    for reordering only.
 
-Inherited `writing` rules carry these limits in technical prose: rhythm is a
-reason to reorder, never to add, split, or restate; a signpost is a heading
-or the previous paragraph's handoff, not a sentence about the document; an
+One inherited `writing` rule carries a limit in technical prose: an
 example earns its place only when it is the shortest way to make the claim
-checkable; "one idea per paragraph, announced by its first sentence" reduces
-to one idea per paragraph.
+checkable.
 
 Always a defect in technical prose, whatever rule seems to call for it: a
 sentence that restates the previous one in abstract or figurative form; a
