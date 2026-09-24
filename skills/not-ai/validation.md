@@ -55,11 +55,11 @@ choices were made.
 | Held-out set | AUC |
 |---|---|
 | Russell et al. test half (150 articles; expert-labeled, human vs. GPT-4o, Claude 3.5 Sonnet, o1-pro, and their paraphrased/"humanized" versions) | **0.928** |
-| — Claude 3.5 Sonnet articles only | 0.945 |
-| — o1-pro / paraphrased GPT-4o / humanized o1-pro | 0.987 / 0.983 / 0.796 |
-| HAP-E-2 test half, expository genres, all four models | **0.834** |
-| — gpt-4o / claude-haiku-4.5 / llama-3-70b / gpt-5-mini | 0.962 / 0.852 / 0.791 / 0.732 |
-| HAP-E-2 test half by genre: academic / spoken / news / blog / fiction / TV scripts | 0.971 / 0.869 / 0.836 / 0.803 / 0.770 / 0.763 |
+| — Claude 3.5 Sonnet articles only | 0.944 |
+| — o1-pro / paraphrased GPT-4o / humanized o1-pro | 0.987 / 0.984 / 0.796 |
+| HAP-E-2 test half, expository genres, all four models | **0.832** |
+| — gpt-4o / claude-haiku-4.5 / llama-3-70b / gpt-5-mini | 0.961 / 0.849 / 0.789 / 0.730 |
+| HAP-E-2 test half by genre: academic / spoken / news / blog / fiction / TV scripts | 0.970 / 0.869 / 0.836 / 0.803 / 0.770 / 0.763 |
 
 On the Russell test half, the score's rank correlation with the five
 experts' signed AI-confidence is 0.67 (Spearman). The experts were
@@ -91,10 +91,10 @@ Most of the signal is vocabulary. Single-rule AUCs on the Russell test half:
 | WQ art-or-artifice (144 pairs) | three experts ranking a New Yorker story against GPT-3.5, GPT-4, and Claude 1.3 versions (75% of pairs AI vs. AI) | **83%** (p < 1e-4) |
 | WQ synthetic-mirror (1,120 pairs) | New Yorker excerpt vs. an AI "mirror" built from its plot and style; human preferred by construction | **89%** (p < 1e-4) |
 | WQ style-mimic (300 pairs) | award-winning author's paragraph vs. an MFA student's imitation (human vs. human); original preferred by construction | 67% (p < 1e-4) |
-| WQ lamp-test (1,206 pairs) | professional writers ranking AI paragraphs and expert-edited versions | 52% (p = 0.16, not significant) |
+| WQ lamp-test (1,206 pairs) | professional writers ranking AI paragraphs and expert-edited versions | 52% (p = 0.13, not significant) |
 | WQ lmarena (1,959 pairs) | crowd votes between two AI responses to creative-writing prompts | 52% (p = 0.04) |
 | Arena human-preference 55k (39,716 decided pairs) | chatbot-arena votes | **48%** (p < 1e-4, opposite direction) |
-| — same, response lengths within 10% (5,097 pairs) | | 51% (p = 0.12) |
+| — same, response lengths within 10% (5,099 pairs) | | 51% (p = 0.15) |
 
 The score predicts preference where the comparison is between human and AI
 writing, and it also separated a master's prose from a skilled imitation
@@ -105,6 +105,39 @@ prefer the higher-scoring response, consistent with LMSYS's "style control"
 finding that voters reward length, lists, headers, and bold. Arena
 preference is therefore the wrong target for this tool, and the
 nonnegative-weight model deliberately does not chase it.
+
+## Score bands
+
+The report's band is set against held-out human writing, not an arbitrary
+cutoff. Of 2,128 held-out human texts (HAP-E-2 expository test half plus the
+Russell test half's human articles), 75% score below 60 and 95% below 79:
+
+| band | score | human texts at or above | AI texts at or above |
+|---|---|---|---|
+| moderate | ≥ 60 | 25% | 75% |
+| high | ≥ 79 | 5% | 57% |
+
+So a "high" document is unusual for human writing but not proof of AI
+authorship, and a quarter of human texts land at least "moderate". For
+example, a 2018 human-written ACL paper extracted from PDF scored 60.
+
+## What counts as prose
+
+Text reaches the rules through the shared `prose_text` module. It blanks
+code, math, URLs, emails, paths and file names, snake_case identifiers,
+`--flags`, Quarto markup, citations (pandoc, numeric, author-year, LaTeX),
+and References sections. Blanked spans become spaces, so locators still
+point into the source. The validation corpora pass through the same
+extraction. Adopting it moved no reported number by more than 0.004,
+because those corpora hold little markup.
+
+PDF input goes through `pdftotext`, a lightweight extractor chosen over
+marker-pdf because surface statistics tolerate layout loss. Repeated
+running headers and footers and page numbers are dropped, everything after
+a References heading is skipped (including any appendix), and the
+paragraph-shape rule is off. Every PDF report carries these caveats in its
+notes and uses `p<page>:<line>` locators into the extracted text. PDF
+extraction was not part of the validation.
 
 ## Where flags land
 

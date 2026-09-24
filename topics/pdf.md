@@ -10,6 +10,12 @@ Use `marker-pdf`, not `pdftotext`, for PDF reading. Install
 the OCR/ML stack in a dedicated environment, never the project's runtime
 environment. This topic holds the gra host recipe routed by `AGENTS.user.md`.
 
+One scoped exception: tools that compute statistics over prose, such as
+`not-ai-lint` through `prose_text`, read PDFs with `pdftotext`. Word and
+phrase rates tolerate layout loss that would mislead a reader, and those
+tools print that caveat with their results. Reading a paper for its content
+still goes through marker-pdf.
+
 ## gra host recipe
 
 Install or upgrade only when needed, under the normal dependency-change gate:

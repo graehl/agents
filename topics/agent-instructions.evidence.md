@@ -5191,3 +5191,23 @@ Contributing-model: opus-5.5
   global wins, so it was left as is rather than grown further.
 
 Contributing-model: opus-5.5
+
+## 2026-09-24 — pdftotext allowed for prose statistics
+
+- **User direction** — asked whether `not-ai-lint` should extract PDF text,
+  graehl answered "agree we do not require marker-pdf for this lint. fix the
+  report w/ disclaimer". The global PDF rule ("use marker-pdf, not
+  pdftotext") was written for reading papers, where layout loss changes
+  what an agent believes the paper says.
+- **Change** — `topics/pdf.md` gains one scoped exception. Tools that
+  compute statistics over prose may use `pdftotext` if they print the
+  caveat; `prose_text` does, and `not-ai-lint` shows it as report notes.
+  `AGENTS.global.md` § PDF reading is unchanged; it routes to the topic,
+  which owns the exception.
+- **Traces** — "lint this PDF for AI style" → `pdftotext`, with the
+  disclaimer in the report. "Summarize this PDF" → marker-pdf as before.
+  A new readability script → may reuse `prose_text` and inherit the
+  disclaimer; a script that quotes passages back to the user is reading,
+  not statistics, and stays on marker-pdf.
+
+Contributing-model: opus-5.5

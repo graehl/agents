@@ -2,8 +2,10 @@
 # acli: 1 complete +commentary
 """not-ai-lint — advisory flags for prose patterns readers associate with AI.
 
-Reads Markdown or plain text (files, or stdin when none are given), skips
-code, URLs, and HTML comments, and reports:
+Reads Markdown, Quarto, plain text, or PDF (files, or stdin when none are
+given). The prose_text module supplies only the prose: code, math, URLs,
+paths, citations, and References sections are skipped, and PDF text comes
+from pdftotext with its caveats in the report's notes. It reports:
 
   findings  each matched pattern with line, column, and excerpt;
   score     0-100: the fitted probability that a text with these pattern
@@ -42,6 +44,17 @@ from acli import (
     maybe_complete,
     resolve_format,
 )
+from prose_text import (
+    WORD,
+    Block,
+    ExtractionError,
+    Line,
+    Prose,
+    blocks,
+    from_markdown,
+    load,
+    sentences,
+)
 
 DATA_DIR = _REPO_ROOT / "skills" / "not-ai" / "data"
 LEXICON_PATH = DATA_DIR / "lexicon.tsv"
@@ -50,6 +63,7 @@ CAPABILITIES = ("complete", "+commentary")
 EXIT_CODES = {
     3: "the derived lexicon or weights are missing or malformed (run skills/not-ai/validate.py)",
     4: "an input file does not exist or is not readable text",
+    69: "a .pdf input needs pdftotext (poppler-utils), which is not installed or failed",
 }
 DEFAULT_LIMIT = 40
 # Below this many prose words a density score mostly measures one sentence.
@@ -460,132 +474,16 @@ def load_weights(path: Path = WEIGHTS_PATH) -> dict:
         data = json.loads(path.read_text(encoding="utf-8"))
         bias = float(data["bias"])
         weights = {str(k): float(v) for k, v in data["weights"].items()}
+        bands = {
+            "moderate": int(data["bands"]["moderate"]),
+            "high": int(data["bands"]["high"]),
+        }
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise DataError(f"{path}: {exc}") from None
     unknown = set(weights) - set(RULE_BY_ID)
     if unknown:
         raise DataError(f"{path}: weights for unknown rules {sorted(unknown)}")
-    return {"bias": bias, "weights": weights}
-
-
-# --- Markdown-aware prose extraction ----------------------------------------
-
-FENCE = re.compile(r"^\s{0,3}(```+|~~~+)")
-HEADING = re.compile(r"^\s{0,3}#{1,6}\s")
-BULLET = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
-TABLE = re.compile(r"^\s*\|")
-QUOTE = re.compile(r"^\s{0,3}>\s?")
-INLINE_CODE = re.compile(r"(`+)(?:(?!\1).)+?\1")
-URL = re.compile(r"(?:https?://|www\.)\S+")
-LINK_TARGET = re.compile(r"\]\([^)]*\)")
-HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
-WORD = re.compile(r"[A-Za-z][A-Za-z'’-]*")
-
-
-def _blank(match: re.Match[str]) -> str:
-    return " " * len(match.group(0))
-
-
-@dataclass
-class Line:
-    number: int
-    kind: str  # heading | bullet | table | quote | text | blank
-    text: str  # source line with code and URLs blanked to spaces
-
-
-def prose_lines(source: str) -> list[Line]:
-    source = HTML_COMMENT.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), source)
-    raw = source.split("\n")
-    start = 0
-    if raw and raw[0].strip() == "---":
-        for i in range(1, len(raw)):
-            if raw[i].strip() in {"---", "..."}:
-                start = i + 1
-                break
-    lines: list[Line] = []
-    fence: str | None = None
-    for index, text in enumerate(raw[start:], start=start):
-        opened = FENCE.match(text)
-        if fence is not None:
-            if (
-                opened
-                and opened.group(1)[0] == fence[0]
-                and len(opened.group(1)) >= len(fence)
-            ):
-                fence = None
-            continue
-        if opened:
-            fence = opened.group(1)
-            continue
-        cleaned = INLINE_CODE.sub(_blank, text)
-        cleaned = LINK_TARGET.sub(lambda m: "]" + " " * (len(m.group(0)) - 1), cleaned)
-        cleaned = URL.sub(_blank, cleaned)
-        if not cleaned.strip():
-            kind = "blank"
-        elif HEADING.match(cleaned):
-            kind = "heading"
-        elif TABLE.match(cleaned):
-            kind = "table"
-        elif BULLET.match(cleaned):
-            kind = "bullet"
-        elif QUOTE.match(cleaned):
-            kind = "quote"
-        else:
-            kind = "text"
-        lines.append(Line(index + 1, kind, cleaned))
-    return lines
-
-
-@dataclass
-class Block:
-    kind: str  # paragraph | bullet | heading | table | quote
-    lines: list[Line]
-
-    @property
-    def text(self) -> str:
-        return " ".join(line.text.strip() for line in self.lines)
-
-
-def blocks(lines: list[Line]) -> list[Block]:
-    out: list[Block] = []
-    current: Block | None = None
-    for line in lines:
-        if line.kind == "blank":
-            current = None
-        elif line.kind in {"heading", "table"}:
-            out.append(Block(line.kind, [line]))
-            current = None
-        elif line.kind == "bullet":
-            current = Block("bullet", [line])
-            out.append(current)
-        else:
-            kind = "quote" if line.kind == "quote" else "paragraph"
-            if current is not None and current.kind in {kind, "bullet"}:
-                current.lines.append(line)
-            else:
-                current = Block(kind, [line])
-                out.append(current)
-    return out
-
-
-SENTENCE_END = re.compile(
-    r"(?<!\b[A-Z])(?<!\be\.g)(?<!\bi\.e)(?<!\betc)(?<!\bvs)[.!?]+[\"')\]’”]*"
-    r"(?=\s+[\"'(\[“‘]?[A-Z0-9]|\s*$)"
-)
-
-
-def sentences(text: str) -> list[str]:
-    parts: list[str] = []
-    last = 0
-    for match in SENTENCE_END.finditer(text):
-        piece = text[last : match.end()].strip()
-        if piece:
-            parts.append(piece)
-        last = match.end()
-    tail = text[last:].strip()
-    if tail:
-        parts.append(tail)
-    return parts
+    return {"bias": bias, "weights": weights, "bands": bands}
 
 
 # --- Detection -----------------------------------------------------------------
@@ -634,9 +532,9 @@ def _locate(unit: Block, fragment: str) -> tuple[int, int]:
     return unit.lines[0].number, 1
 
 
-def analyze(source: str, lexicon: re.Pattern[str]) -> tuple[int, list[Finding]]:
+def analyze(prose: Prose, lexicon: re.Pattern[str]) -> tuple[int, list[Finding]]:
     """Prose word count and all findings, independent of score weights."""
-    lines = prose_lines(source)
+    lines = prose.lines
     found: list[Finding] = []
     for line in lines:
         if line.kind in {"blank", "table"}:
@@ -670,7 +568,7 @@ def analyze(source: str, lexicon: re.Pattern[str]) -> tuple[int, list[Finding]]:
                 Finding("bold-lead-bullet", line.number, 1, lead.group(0).strip()[:60])
             )
         for match in BOLD.finditer(line.text):
-            if lead and match.start() < lead.end():
+            if (lead and match.start() < lead.end()) or not WORD.search(match.group(0)):
                 continue
             found.append(
                 Finding(
@@ -696,6 +594,7 @@ def analyze(source: str, lexicon: re.Pattern[str]) -> tuple[int, list[Finding]]:
                 found.append(Finding("triad", line_no, col, match.group(0)[:60]))
         if (
             unit.kind == "paragraph"
+            and prose.format != "pdf"
             and paragraphs >= 3
             and len(parts) == 1
             and not body.rstrip().rstrip("*_").endswith(":")
@@ -704,13 +603,11 @@ def analyze(source: str, lexicon: re.Pattern[str]) -> tuple[int, list[Finding]]:
             found.append(
                 Finding("punch-fragment", unit.lines[0].number, 1, parts[0][:60])
             )
+    for finding in found:
+        # Blanked non-prose spans read as runs of spaces; show them as an ellipsis.
+        finding.match = re.sub(r" {2,}", " … ", finding.match).strip()
     found.sort(key=lambda f: (f.line, f.col, f.rule))
-    words = sum(
-        len(WORD.findall(line.text))
-        for line in lines
-        if line.kind not in {"blank", "table"}
-    )
-    return words, found
+    return prose.words(), found
 
 
 def rates(words: int, findings: list[Finding]) -> dict[str, float]:
@@ -750,8 +647,15 @@ def summarize(words: int, findings: list[Finding], model: dict) -> dict:
             "top": [f"{text} ×{n}" if n > 1 else text for text, n in top],
             "note": RULE_BY_ID[rule].note,
         }
+    value = round(100 * probability(per_k, model))
+    bands = model["bands"]
     return {
-        "score": round(100 * probability(per_k, model)),
+        "score": value,
+        "band": "high"
+        if value >= bands["high"]
+        else "moderate"
+        if value >= bands["moderate"]
+        else "low",
         "words": words,
         "reliable": words >= MIN_WORDS_FOR_SCORE,
         "by_rule": by_rule,
@@ -761,20 +665,18 @@ def summarize(words: int, findings: list[Finding], model: dict) -> dict:
 # --- CLI --------------------------------------------------------------------------
 
 
-def _read(path: str) -> str:
+def _read(path: str) -> Prose:
     if path == "-":
-        return sys.stdin.read()
+        return from_markdown(sys.stdin.read())
     try:
-        return Path(path).read_text(encoding="utf-8")
+        return load(path)
+    except ExtractionError as exc:
+        die(str(exc), ExitCode.UNAVAILABLE)
     except (OSError, UnicodeDecodeError) as exc:
         die(f"{path}: {exc}", ExitCode.NOT_FOUND)
 
 
-def _band(value: int) -> str:
-    return "low" if value < 25 else "moderate" if value < 60 else "high"
-
-
-def _text_report(reports: list[dict]) -> str:
+def _text_report(reports: list[dict], bands: dict[str, int]) -> str:
     out: list[str] = []
     for report in reports:
         summary = report["summary"]
@@ -785,8 +687,9 @@ def _text_report(reports: list[dict]) -> str:
         )
         out.append(
             f"{report['path']}: AI-style score {summary['score']}/100 "
-            f"[{_band(summary['score'])}], {summary['words']} prose words{caveat}"
+            f"[{summary['band']}], {summary['words']} prose words{caveat}"
         )
+        out.extend(f"  note: {note}" for note in report["notes"])
         for rule, stats in summary["by_rule"].items():
             mark = " " if stats["scored"] else "~"
             out.append(
@@ -795,11 +698,15 @@ def _text_report(reports: list[dict]) -> str:
             )
         for item in report["findings"]:
             out.append(
-                f"{report['path']}:{item['line']}:{item['col']}: [{item['rule']}] {item['match']}"
+                f"{report['path']}:{item['loc']}:{item['col']}: [{item['rule']}] {item['match']}"
             )
         hidden = report["findings_total"] - len(report["findings"])
         if hidden > 0:
             out.append(f"  ... {hidden} more findings (--limit 0 shows all)")
+    out.append(
+        f"Bands: moderate >= {bands['moderate']} and high >= {bands['high']} score above 75% "
+        "and 95% of held-out human-written texts; human writing can still land high."
+    )
     out.append(
         "Advisory: flags mark places to look, not required edits; keep any span that is the "
         "plainest correct wording. '~' rules are listed but not scored."
@@ -812,8 +719,10 @@ def build_parser():
         prog="not-ai-lint",
         description=(
             "Advisory lint for prose patterns readers associate with AI writing, with a 0-100\n"
-            "score (higher = more AI-like). Reads Markdown or text; skips code and URLs.\n"
-            "Instant; one JSON record per input on stdout. Findings focus review; they do not\n"
+            "score (higher = more AI-like). Reads Markdown, Quarto, text, or PDF (via pdftotext)\n"
+            "and checks only prose: code, math, URLs, paths, citations, and References sections\n"
+            "are skipped (prose_text module). Instant for text; one JSON record per input on\n"
+            "stdout, with extraction caveats in `notes`. Findings focus review; they do not\n"
             "authorize edits. Skill: skills/not-ai/SKILL.md; evidence: skills/not-ai/validation.md."
         ),
         capabilities=CAPABILITIES,
@@ -869,27 +778,44 @@ def main(argv: list[str] | None = None) -> int:
     limit = None if args.full or args.limit == 0 else args.limit
     reports: list[dict] = []
     for path in args.paths or ["-"]:
-        words, findings = analyze(_read(path), lexicon)
+        prose = _read(path)
+        words, findings = analyze(prose, lexicon)
         records = [
-            {"line": f.line, "col": f.col, "rule": f.rule, "match": f.match}
+            {
+                "line": f.line,
+                "loc": prose.locator(f.line),
+                "col": f.col,
+                "rule": f.rule,
+                "match": f.match,
+            }
             for f in findings
         ]
         reports.append(
             {
                 "path": path,
+                "format": prose.format,
+                "notes": prose.notes
+                + (
+                    [
+                        "Paragraph-shape rules (punch-fragment) are off: PDF text loses paragraph structure."
+                    ]
+                    if prose.format == "pdf"
+                    else []
+                ),
                 "summary": summarize(words, findings, model),
                 "findings": records if limit is None else records[:limit],
                 "findings_total": len(records),
             }
         )
     if fmt is Format.TEXT:
-        emit(reports, fmt, text=_text_report(reports))
+        emit(reports, fmt, text=_text_report(reports, model["bands"]))
         return 0
     emit(
         [
             commentary(
                 f"AI-style score {r['summary']['score']}/100 over {r['summary']['words']}"
                 " prose words; flags mark places to look, not required edits.",
+                *r["notes"],
                 value=r,
             )
             for r in reports

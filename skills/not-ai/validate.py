@@ -202,7 +202,7 @@ def _init_worker() -> None:
 
 
 def features(text: str) -> tuple[int, dict[str, float], dict[str, list[str]]]:
-    words, findings = lint.analyze(text, _LEXICON)
+    words, findings = lint.analyze(lint.from_markdown(text), _LEXICON)
     matched: dict[str, list[str]] = {}
     for finding in findings:
         matched.setdefault(finding.rule, []).append(finding.match.lower())
@@ -452,7 +452,7 @@ def eval_lamp(bias, w) -> dict:
         covered_chars += int(covered.sum())
         all_chars += len(text)
         line_starts = [0] + [m.end() for m in re.finditer("\n", text)]
-        _, findings = lint.analyze(text, lexicon)
+        _, findings = lint.analyze(lint.from_markdown(text), lexicon)
         for finding in findings:
             offset = line_starts[finding.line - 1] + finding.col - 1
             if offset < len(text):
@@ -563,11 +563,46 @@ def main() -> int:
         ),
     )
     weights = {rule: round(float(v), 5) for rule, v in zip(RULE_IDS, w) if v > 0}
+    # Report bands are percentiles of held-out human text, so "high" means
+    # "above 95% of human documents", not an arbitrary probability cutoff.
+    scores = score_of(x, bias, w) * 100
+    test_expo = np.array(
+        [not row["train"] and row["genre"] in EXPOSITORY for row in corpus]
+    )
+    russell_test = russell_rows(dev=False)
+    russell_ai = np.array(
+        [row["ground_truth"] == "AI-generated" for row in russell_test]
+    )
+    russell_scores = (
+        score_of(matrix(featurize([row["article"] for row in russell_test])), bias, w)
+        * 100
+    )
+    human_scores = np.concatenate(
+        [scores[test_expo & (y == 0)], russell_scores[~russell_ai]]
+    )
+    ai_scores = np.concatenate(
+        [scores[test_expo & (y == 1)], russell_scores[russell_ai]]
+    )
+    bands = {
+        "moderate": round(float(np.percentile(human_scores, 75))),
+        "high": round(float(np.percentile(human_scores, 95))),
+    }
+    results["bands"] = {
+        **bands,
+        "human_texts": len(human_scores),
+        "ai_share_at_or_above_moderate": round(
+            float((ai_scores >= bands["moderate"]).mean()), 3
+        ),
+        "ai_share_at_or_above_high": round(
+            float((ai_scores >= bands["high"]).mean()), 3
+        ),
+    }
     (DATA / "weights.json").write_text(
         json.dumps(
             {
                 "bias": round(bias, 5),
                 "weights": weights,
+                "bands": bands,
                 "provenance": {
                     "generator": "skills/not-ai/validate.py",
                     "date": results["date"],

@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -12,6 +14,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "not-ai-lint"
+sys.path.insert(0, str(REPO_ROOT))
+
+from tests.test_prose_text import _minimal_pdf
 
 
 def run(*args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
@@ -131,6 +136,31 @@ class Cli(unittest.TestCase):
             proc = run("--json", "--no-commentary", str(a), str(b))
         records = [json.loads(line) for line in proc.stdout.splitlines()]
         self.assertEqual([r["path"] for r in records], [str(a), str(b)])
+
+    @unittest.skipUnless(shutil.which("pdftotext"), "pdftotext not installed")
+    def test_pdf_report_carries_disclaimer_and_page_locators(self) -> None:
+        pages = [["The design underscores an intricate tradeoff."], ["Plain words."]]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp, "paper.pdf")
+            path.write_bytes(_minimal_pdf(pages))
+            proc = run("--text", str(path))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("note: PDF text extracted with pdftotext", proc.stdout)
+        self.assertIn(f"{path}:p1:1:", proc.stdout)
+
+    def test_pdf_without_pdftotext_exits_69(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp, "paper.pdf")
+            path.write_bytes(_minimal_pdf([["Words."]]))
+            proc = subprocess.run(
+                [sys.executable, str(SCRIPT), "--acli-quiet", str(path)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                env={**os.environ, "PATH": tmp},
+            )
+        self.assertEqual(proc.returncode, 69)
+        self.assertIn("pdftotext", proc.stderr)
 
     def test_rules_listing(self) -> None:
         proc = run("--rules", "--json")
