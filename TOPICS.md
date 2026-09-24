@@ -32,9 +32,10 @@ Where a durable note lands — which doc, which section:
 
 ## Glossary-owned topic scopes
 
-Every named term in an active `GLOSSARY.md` is topic-like. Its `topic / refs`
-cell may point to any canonical doc; an existing proposal, draft, handoff, or
-other doc wins over layout normalization. “The topic for X” therefore means:
+Every named term in an active `GLOSSARY.md` or `GLOSSARY.agents.md` is
+topic-like. Its `topic / refs` (or `read`) cell may point to any canonical
+doc; an existing proposal, draft, handoff, or other doc wins over layout
+normalization. “The topic for X” therefore means:
 resolve X through the nearest applicable glossary row, then follow its
 canonical reference. Search outward through enclosing glossary scopes only
 when the nearer scope does not define X.

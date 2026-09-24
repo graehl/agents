@@ -2859,6 +2859,20 @@ the sweep single-target.
   closes the race in which a governance file changes between its initial hash
   and full read.
 
+## 2026-09-24 — agent glossary as an activity-routing layer
+
+Contributing-model: fable-5.1.
+
+`AGENTS.global.md` § Project glossary now routes to `GLOSSARY.agents.md`
+when present: read in full at entry, `Governs:` rows read before the named
+activity. Boot text grew by one short paragraph and one entry-read item.
+Rationale and user decisions: `topics/glossary.evidence.md` (2026-09-24).
+Trace checks: a repo without the file behaves as before; a governs row
+fires on the activity, so mentioning "writing" in chat reads nothing;
+compaction re-triggers the entry read under the existing routed-packet
+rule. Risk accepted: a stale `Governs:` line misroutes until the next
+regeneration, which the row's link makes cheap to notice.
+
 ## 2026-08-13 — glossary-owned topic scopes and names
 
 - **User-defined model** — every named term in an active glossary is

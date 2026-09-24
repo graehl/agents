@@ -1,10 +1,40 @@
 # Glossary system
 
-> Project-specific terminology lives in a hierarchy of `GLOSSARY.md` files:
-> every named term is topic-like, references may name any canonical doc, and
-> each glossary owns a local formal-topic collection regenerated from ledes.
+> Project-specific terminology lives in a hierarchy of `GLOSSARY.md` files
+> for people and `GLOSSARY.agents.md` for agents: every named term is
+> topic-like, references may name any canonical doc, and each glossary owns
+> a local formal-topic collection regenerated from ledes and `Governs:`
+> lines.
 
 Topic: `glossary`
+Glossary: term glossary
+Governs: adding, sorting, promoting, or regenerating glossary rows, or creating a scoped glossary
+
+## Agent glossary
+
+A scope that has a `GLOSSARY.md` may also carry `GLOSSARY.agents.md`. When
+present, agents read it *instead of* that scope's `GLOSSARY.md`, in full, at
+project entry and on entering the scope; when absent, the scope's
+`GLOSSARY.md` is consulted as before. The two files serve different readers
+and are maintained separately; a term needed by both is introduced in both,
+an accepted duplication.
+
+- `GLOSSARY.md` is human-facing: an inventory of topics carrying scoped agent
+  guidance, definitions the user wants help recalling, and YA tooltip
+  material. It may explain standard terms and carry anything inert for
+  agents.
+- `GLOSSARY.agents.md` is compressed: one sorted table
+  `| term | sense or governs | read |`. A **Governs:** row names an activity
+  and the topic that governs it; the agent reads that topic before starting
+  the activity. The trigger is the activity ("drafting or revising prose for
+  a reader"), never an occurrence of the word. A sense row gives a meaning
+  that differs from standard usage. Standard vocabulary is omitted.
+- Governs rows regenerate from each owned topic doc's `Governs: <activity>`
+  metadata line (after `Topic:`); a doc without one has no row and stays
+  reachable by cross-link and boot routes. Sense rows are curated and
+  survive regeneration verbatim.
+- A row is a routing entry, so a governs activity is phrased as the
+  situation an agent recognizes itself to be in, short enough to scan.
 
 ## Contracts
 
@@ -18,12 +48,13 @@ Topic: `glossary`
   root `docs/topics/` alternate) for the project glossary, and sibling
   `topics/` for a scoped glossary. Owned topic rows correspond 1:1 to
   non-companion docs there, and their definitions come from the docs' `> `
-  blockquote ledes, except a doc carrying a `Glossary: omit` metadata line
-  after its `Topic:` line, which has no row. Use that when the basename is
-  a common word that YA glossary hints would annotate throughout ordinary
-  prose (`writing`) and the doc is already dispatched from other topics or
-  instruction routes; the line names those routes. The glossary is a
-  lookup surface, not the read trigger, so omission costs nothing there.
+  blockquote ledes. A `Glossary: <label>` metadata line after `Topic:`
+  replaces the row's term cell with that label, and `Glossary: omit`
+  suppresses the row. Use a label when the basename is a common word that YA
+  glossary hints would otherwise annotate throughout ordinary prose
+  (`writing` → `document writing`, `glossary` → `term glossary`). The label
+  affects only the human file; the topic name and its agent-glossary row are
+  unchanged.
 - Other rows are curated. They survive regeneration verbatim, including
   arbitrary references and any `<!-- unconfirmed: YYYY-mm-dd -->` markers.
 - A scope may carry an optional sibling `PROGRAM.md` containing its descriptive
@@ -90,7 +121,8 @@ optional first-line H1 supplies an alternative formal name.
 
 H1 stating the topic, blank line, `> ` blockquote lede (one or more
 `> ` lines, nothing else between H1 and lede), blank line, optional
-`Topic: <topic-name>` line, then body. See `topics/topic-doc-format.md`
+`Topic: <topic-name>` line, optional `Glossary: <label>|omit` and
+`Governs: <activity>` lines, then body. See `topics/topic-doc-format.md`
 for the auto-fix license that lets the agent normalize existing
 docs into this format.
 
@@ -130,8 +162,9 @@ root `topics/` is absent.
 
 For each owned topic doc, read the `> ` blockquote lede immediately after the
 H1 — multi-line `> ` lines are space-joined into one sentence — and use it as
-the definition of the basename row. Skip a doc with a `Glossary: omit` line
-and remove its row if one exists. Refresh the owned-doc link while
+the definition of the basename row, or of the `Glossary: <label>` row when
+that line is present. Skip a doc with `Glossary: omit` and remove its row if
+one exists. Refresh the owned-doc link while
 preserving additional references in that cell. The usual relative link form is
 `[<name>](topics/<name>.md)`; the root alternate uses
 `[<name>](docs/topics/<name>.md)`. A collision with a curated row naming a
@@ -141,7 +174,13 @@ and apply the fix as part of regeneration (per the topic-doc auto-fix license
 in `topics/topic-doc-format.md`).
 
 Rows without an owned-topic link are preserved verbatim on regeneration,
-including arbitrary refs and `<!-- unconfirmed -->` markers. Do not pull rows
+including arbitrary refs and `<!-- unconfirmed -->` markers.
+
+Regenerating `GLOSSARY.agents.md` scans the same docs for `Governs:` lines,
+emits one `| \`<name>\` | Governs: <activity> | [<name>](topics/<name>.md) |`
+row per line, preserves every non-governs row verbatim, and sorts the table
+by term ignoring backticks and case. A doc without a `Governs:` line
+contributes nothing; removing the line removes the row. Do not pull rows
 from `~/agents/topic-definitions.md` — that file is a multi-field reference,
 deliberately not loaded per conversation.
 

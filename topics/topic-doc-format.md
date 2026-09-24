@@ -7,6 +7,7 @@
 > Includes the glyph set for `.bearings.md` plan outlines.
 
 Topic: `topic-doc-format`
+Governs: creating or normalizing topic docs, companions, bearings, or epistemic labels
 
 Read this topic before creating or normalizing topic docs, using companion
 suffixes (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`,
@@ -40,8 +41,11 @@ H1 stating the topic, then a `> ` blockquote lede (one or more `> `
 lines, no other content between H1 and lede; multi-line `> ` lines
 are space-joined when consumed by glossary regeneration). The lede
 is the canonical one-sentence definition consumed by `GLOSSARY.md`.
-Then optional metadata such as a `Topic: <topic-name>` line, then
-body sections.
+Then optional metadata lines: `Topic: <topic-name>`; `Glossary: <label>`
+or `Glossary: omit` to relabel or suppress the human-glossary row;
+`Governs: <activity>`, the situation in which this topic must be read
+before acting, consumed by `GLOSSARY.agents.md` (see
+`topics/glossary.md` § Agent glossary). Then body sections.
 
 The agent may auto-edit existing topic docs to bring them into
 this format without separate confirmation — synthesizing a missing

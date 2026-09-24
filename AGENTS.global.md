@@ -262,7 +262,8 @@ repo—fully read, when present:
 
 1. project-root `AGENTS.md` (or equivalent `CLAUDE.md`; read aliases once);
 2. project-root `AGENTS.local.md`;
-3. any README named by those as an instruction source.
+3. project-root `GLOSSARY.agents.md` when present (§ Project glossary);
+4. any README named by those as an instruction source.
 
 Then discover project-owned `PROGRAM.md` paths. Before interpreting or acting
 in a named subtree, fully read its governing program chain, including its own
@@ -740,16 +741,24 @@ permission to adopt its write conventions; consult the local discovery table.
 
 ## Project glossary
 
-`GLOSSARY.md` is prescriptive vocabulary for talk, planning, symbols, docs, UI,
-and commits. Before interpreting or changing a file in a newly entered
-subtree, identify its nearest-enclosing glossary and the active parent glossary
-chain. Targeted row lookup/search is sufficient; fully read a glossary only
-when broader vocabulary is relevant. When reading a glossary, ensure its
-sibling `PROGRAM.md`, when present, has been read this session. Consult the
-chain for unfamiliar terms and before naming or paraphrasing. A named term is
-inherently topic-like; when asked for “the topic” for it, follow its existing
-`topic / refs` link before considering creation. Define project-specific terms
-on first use in new-reader docs.
+`GLOSSARY.agents.md`, where present at a scope, is the agent glossary: read
+it in full at project entry and on entering that scope, instead of the
+scope's `GLOSSARY.md`. Its `Governs:` rows name activities; before starting
+an activity a row names, read the topic it links. The trigger is the
+activity, not an occurrence of the word. Its other rows give the sense a term
+carries here when that differs from standard usage.
+
+Where no agent glossary exists, `GLOSSARY.md` is prescriptive vocabulary for
+talk, planning, symbols, docs, UI, and commits. Before interpreting or
+changing a file in a newly entered subtree, identify its nearest-enclosing
+glossary and the active parent glossary chain. Targeted row lookup/search is
+sufficient; fully read a `GLOSSARY.md` only when broader vocabulary is
+relevant. When reading a glossary, ensure its sibling `PROGRAM.md`, when
+present, has been read this session. Consult the chain for unfamiliar terms
+and before naming or paraphrasing. A named term is inherently topic-like;
+when asked for “the topic” for it, follow its existing link before
+considering creation. Define project-specific terms on first use in
+new-reader docs.
 
 If user phrasing is ambiguous and resolution changes action, state the inferred
 meaning plus one or two alternatives at an interruptible checkpoint. Surface a
