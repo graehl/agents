@@ -138,6 +138,13 @@ project-aware new-session links, with the relative path in the prompt prefill;
 verify support before claiming YA recognizes home aliases or resolved symlink
 paths.
 
+When a commit's non-incidental effect includes a new document or a
+substantial edit to one, the commit report states one project-relative path
+per such document:
+the generated view of the edited source (rendered HTML, PDF) when one exists,
+else the document itself when it is plain Markdown, text, or HTML. The path
+alone suffices; with a generated view, give only that path, not the source.
+
 ## Flag misused concepts and unintentional drift
 
 When a named concept supports graehl's claim, flag hollow support or unintended

@@ -5149,3 +5149,24 @@ Contributing-model: opus-5.5
   reproduced in this session); the fix is covered by YA unit tests.
 
 Contributing-model: opus-5.5
+
+## 2026-09-24 — doc commits name the generated view
+
+- **User direction** — verbatim intent: "on a commit whose non-incidental
+  effect includes a new doc or a substantial edit of one, state the
+  project-relative path to the generated view of the edited doc source so i
+  can view it, or just the doc if it's simple md / txt / html. statement of
+  the path suffices; if there is a generated view, state just that path."
+- **Placement** — `AGENTS.user.md` § Copyable file references, which already
+  owns echoing a path at a completion point; the new paragraph narrows *which*
+  path for document commits. It is graehl's viewing preference, not
+  cross-user policy, so it stays out of `AGENTS.global.md` § Commits.
+- **Why it steers** — the existing paragraph lets an agent cite the edited
+  source (`paper.qmd`) when the reviewable artifact is its render
+  (`paper.html`); for Markdown the source is the view.
+- **Traces** — a `.qmd` edit with a committed or regenerated HTML render →
+  cite only the HTML path. A `topics/*.md` edit → cite the `.md`. A typo fix in
+  a doc alongside a code change → incidental, no path required. A doc whose
+  render is not built → cite the source; the rule does not demand a render.
+
+Contributing-model: opus-5.5
