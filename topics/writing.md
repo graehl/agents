@@ -70,6 +70,23 @@ checklist to satisfy in addition to genre rules: a genre topic such as
   contrast, example, exception, next step) is carried by its heading or by
   the previous unit's last sentence. A transition sentence is the fallback
   for prose that has neither, not a sentence about the document.
+- **Name a section by what it holds, not by when it arose.** "Earlier
+  approach", "Previous design", and "Historical notes" say only that the
+  content is older than something unstated; reaching for one is a prompt
+  to look for a better name, not a banned word. Work out the specific
+  relation first: what replaced it and why ("Per-token scoring, replaced
+  by span scoring"), the baseline it serves as, or the named release,
+  decision, or experiment it records. A temporal label is the right
+  choice when time order is the actual content or nothing more specific
+  holds up, and reads best with a definite anchor ("the previous report"
+  in a dated series, "Before the v2 schema"). Aim for at most one
+  "earlier" sense in a whole document, with prose saying what makes it
+  earlier. The usual way there is to gather the material that is not
+  current into one scope, a section or appendix whose opening states the
+  time relation once, so the progression is evident without scattered
+  "earlier" labels. When the word would mean only "not from the latest round of
+  work", decide whether that matters to the reader; if it does, state
+  the actual difference, and if not, drop the distinction.
 - **Use the reader's words for the reader's things.** Define a term once at
   first use and then keep using it. Do not vary vocabulary for elegance when
   the reader is trying to track a concept.

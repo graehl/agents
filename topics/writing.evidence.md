@@ -243,3 +243,33 @@ Verbatim as they stood, with why each is contested. Not guidance.
 - **Cut ten percent.** King's formula for the second draft is the first
   draft minus ten percent. — The number is a rejection-slip anecdote;
   the cuts it names are kept without the quota.
+
+## 2026-09-24 — sections named by age instead of content
+
+Contributing-model: opus-5.5.
+
+User-directed: graehl observed that section names such as "earlier X" arise
+organically in agent writing and read as vague and poorly named, and asked
+that a more specific signification be researched before settling on
+"prior", "earlier", or "historical". Session:
+`48283649-2d49-41b7-9d22-aceb9a574e1d`.
+
+Placed in `writing` § Structure rather than `technical-writing`, because the
+pattern appears in topics, handoffs, and docs as well as research artifacts;
+the genre topics inherit it. The observation that agents drift toward these
+labels is the motivation, kept here rather than in the rule. graehl
+attributes the habit to human cop-out naming in papers that agents learned,
+and directed that the rule be a try-harder trigger traded against other
+costs, not a ban; the first draft's "stays only when anchored" wording was
+softened to match. He then set the goal of at most one "earlier" sense
+per paper, explained in prose, and asked that a bare "not from the latest
+round" distinction be made in less clichéd terms only when relevant, and
+named grouping all non-current material into a single scope as the usual
+means.
+
+Trace checks: `progress-report`'s "Generate by reconciling the previous
+report" passes, since the previous report in a dated series is a definite
+anchor; `research-writing`'s "prior-art map" passes as a term of art; a
+handoff section "Earlier approach" fails and becomes the named approach plus
+what superseded it. A sweep of `~/agents` headings found no current
+violation, so the rule steers new writing only.
