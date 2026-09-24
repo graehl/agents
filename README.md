@@ -1,7 +1,10 @@
 # Agent Instructions
 
-Reusable operating instructions, topic docs, skills, and small helper tools for
-coding agents that work inside real project directories.
+An operating layer for agents that code, run experiments, do research, and
+write inside real project directories: a compact always-loaded boot contract,
+trigger-routed guidance for each kind of work, run and session tooling, and
+optional skills. It installs into Codex, Claude Code, Pi, OpenCode, Grok Build,
+and GitHub Copilot CLI.
 
 This repo is not an app framework and not a prompt pack of slogans. It
 is a working policy layer for agents that inspect local files, share dirty
@@ -29,10 +32,50 @@ in one place — with the conventions buying the safety back. Skills are
 optional automation on top; the framework still stands with zero skills
 installed.
 
+## What It Covers
+
+- **Token-efficient boot.** `AGENTS.global.md` is the only file a harness
+  always loads. It carries load-bearing rules plus short triggers; detailed
+  guidance lives in routers (`RESEARCH.md`, `RUNS.md`), concern packets
+  (`_RESEARCH/`, `_RUNS/`, `AGENTS/`), and `topics/` docs that an agent reads
+  immediately before the action they govern. Harness, model-family, and
+  capability-tier supplements hold only the patches their population needs.
+  Rules stay only while evidence says they steer behavior
+  (`topics/agent-instructions.md`, `topics/instruction-ablation.md`).
+- **Coding.** Shared-worktree safety, edit discipline, commit and push gates,
+  feature validation, debugging, testing, performance measurement, software
+  design and aesthetics, UI design with rendered verification, and language
+  notes for C++, Python, shell, and TypeScript. Review skills cover strict
+  structural audits, security review, code maps, and pushed-review catch-up.
+- **Runs.** `agentctl` tracks active sessions and long-running jobs with run
+  state, artifacts, and GPU-capacity watching. `RUNS.md` routes resource,
+  provenance, and monitoring rules; `on-deck` and `steward` queue guarded jobs
+  and fill idle accelerators.
+- **Research.** `RESEARCH.md` routes evidence, significance, direction-ranking,
+  and judgment packets. A long-lived skeptical research advisor (`advisor/`),
+  field surveys, literature search, and claim provenance keep conclusions
+  traceable to runs and sources.
+- **Writing.** Technical writing, papers, handouts, research blogs, progress
+  reports, and fiction; figure and Pareto-plot templates; simulated paper
+  review; and reproducible Quarto manuscript builds for venue PDF and HTML.
+- **Continuity.** Handoffs, gaps, program charters, glossaries, and topic docs
+  keep durable knowledge in the repository, so a fresh session resumes from
+  files and live state rather than chat memory.
+- **Agent-facing CLIs.** `acli` is a convention and a shared Python library
+  for command-line tools that serve both humans and agents: discoverable help
+  and capability lines, structured JSONL output chosen automatically when
+  stdout is not a terminal, no blocking confirmation prompts in noninteractive
+  calls, and optional commentary. `topics/acli.md` is the consumer guide and
+  `topics/acli-spec.md` the full contract.
+- **Skills and tools.** Optional skills for unattended goal pursuit, doubt
+  re-solving, doc consolidation, looping, and creative alternatives; helper
+  CLIs for web-data snapshots (`almanac`), batch document annotation, commit
+  message linting, and guarded git launching.
+
 ## Who This Is For
 
-Use this repo as a reference if you run coding agents in filesystem-first
-projects and care about:
+Use this repo as a reference if you run coding, research, or writing agents in
+filesystem-first projects and care about:
 
 - preserving unrelated user or peer work in dirty checkouts;
 - running independent agents or subagents in one worktree without assuming a
@@ -69,7 +112,7 @@ branches, commits, shared workdirs, or private notes.
 | `PROGRAM.md` | A scope's descriptive charter plus optional binding program instructions for its directory subtree. |
 | `GLOSSARY.md` | Project vocabulary that agents should reuse in docs, code, UI copy, and commits. |
 | `TOPICS.md`, `topic-definitions.md` | Topic vocabulary and curated general-domain definitions used when naming project concerns. |
-| `topics/` | Committed cross-cutting contracts and rationale: debugging, testing, agent instructions, run provenance, UI verification, and more. |
+| `topics/` | Committed cross-cutting contracts and rationale: debugging, testing, agent instructions, run provenance, UI verification, paper and story writing, and more. |
 | `topics/handoffs.md` | Selection, contents, milestone maintenance, and live-state validation for working handoffs. |
 | `ideas/` | Durable seeds for possible projects unrelated to this repository; preservation without implementation commitment. |
 | `skills/` | Optional workflows layered on the core policy; highlights below. |
@@ -207,6 +250,10 @@ debt is treated as a maintenance cost.
   `topics/provenance-tracking.md`, `topics/on-deck.md`, and `agentctl` so
   experiments, queued GPU fillers, claims, and artifacts have a recoverable
   record.
+- **Writing project:** start from `topics/technical-writing.md` or the
+  form-specific topic (`paper-writing.md`, `handout-writing.md`,
+  `research-blog-writing.md`, `story-writing.md`), and add
+  `scripts/qmd-venue-pdf` or `scripts/qmd-html` for repeatable builds.
 - **Instruction-design work:** read `topics/agent-instructions.md` and
   `topics/instruction-ablation.md`. This repo treats instruction quality as a
   hypothesis to test, not as a belief proven by sounding careful.
