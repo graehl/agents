@@ -1,0 +1,23 @@
+{
+  "bias": -1.33686,
+  "weights": {
+    "excess-vocab": 0.93792,
+    "stock-phrase": 0.59737,
+    "wrap-up": 0.88539,
+    "meta-comment": 0.77918,
+    "cadence-contrast": 0.33163,
+    "participial-tail": 0.22666,
+    "chat-residue": 2.05222,
+    "model-idiom": 1.70102,
+    "bold-inline": 1.11185,
+    "rhetorical-question": 0.08945,
+    "triad": 0.09762
+  },
+  "provenance": {
+    "generator": "skills/not-ai/validate.py",
+    "date": "2026-09-24",
+    "train": "HAP-E-2 expository (acad, news, blog), even doc numbers, human chunk 2 vs 4 models; plus Russell et al. even ids; each corpus half the total sample weight",
+    "train_texts": 10335,
+    "model": "logistic regression on standardized log1p(per-1000-word rate), weights >= 0, L2 0.01"
+  }
+}

@@ -5170,3 +5170,24 @@ Contributing-model: opus-5.5
   render is not built → cite the source; the rule does not demand a render.
 
 Contributing-model: opus-5.5
+
+## 2026-09-24 — route "avoid AI style" to the not-ai skill
+
+- **User direction** — "place the not-ai skill (manual invocation)" and
+  invoke the script "on request 'avoid ai style' or on prose-improvement
+  passes". The skill sets `disable-model-invocation: true`, so its
+  description is not in context. One `AGENTS.global.md` § Skill triggers line
+  makes the natural-language request reach it, as for tool-surprises.
+- **Cost** — one boot-loaded line; the procedure stays in the skill, and
+  the prose-pass trigger lives in `topics/writing.md` § Revising
+  (`writing.evidence.md`, same date).
+- **Traces** — "make this sound less like AI" → skill. "Review this draft"
+  without style wording → `writing` § Revising runs the lint as an attention
+  map, not the full skill. "Is this AI-written?" asks for detection, not
+  revision; the skill's lint output can answer it, but the trigger is not
+  meant for it.
+- **Adjacent drift noticed** — `AGENTS/interaction-tools.md` § Skill triggers
+  already lacked the tool-surprises route. It is optional clarification and
+  global wins, so it was left as is rather than grown further.
+
+Contributing-model: opus-5.5

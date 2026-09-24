@@ -1,0 +1,828 @@
+{
+  "date": "2026-09-24",
+  "lexicon": {
+    "candidates": 481,
+    "kept": 216,
+    "train_tokens": {
+      "ai": 3921226,
+      "human": 948381
+    },
+    "top": [
+      "intricate 1334.8x",
+      "tapestry 1095.0x",
+      "necessitates 942.0x",
+      "underscores 750.8x",
+      "intricacies 391.2x",
+      "grappling 312.1x",
+      "burgeoning 286.6x",
+      "foundational 258.6x",
+      "illuminating 179.5x",
+      "exacerbating 164.2x",
+      "delved 156.6x",
+      "leverages 110.7x",
+      "multifaceted 104.1x",
+      "groundbreaking 103.0x",
+      "intricately 103.0x",
+      "illuminates 100.5x",
+      "uncharted 100.5x",
+      "orchestrating 97.9x",
+      "comprehending 80.1x",
+      "roadmap 77.5x",
+      "revolutionizing 72.4x",
+      "combating 64.8x",
+      "interconnectedness 64.8x",
+      "imbalances 62.2x",
+      "propelling 62.2x"
+    ]
+  },
+  "phrase_members": [
+    [
+      "chat-residue",
+      "feel free to",
+      1.3,
+      2.1,
+      0.68
+    ],
+    [
+      "chat-residue",
+      "great question",
+      1.5,
+      0.0,
+      4.06
+    ],
+    [
+      "chat-residue",
+      "happy to help",
+      0.3,
+      0.0,
+      1.51
+    ],
+    [
+      "chat-residue",
+      "i'd be happy to",
+      0.5,
+      0.0,
+      2.02
+    ],
+    [
+      "chat-residue",
+      "let me know if",
+      2.8,
+      0.0,
+      6.61
+    ],
+    [
+      "importance-marker",
+      "highlights the importance",
+      12.2,
+      0.0,
+      25.48
+    ],
+    [
+      "importance-marker",
+      "importantly",
+      44.9,
+      32.7,
+      1.37
+    ],
+    [
+      "importance-marker",
+      "it is important to note",
+      0.8,
+      7.4,
+      0.16
+    ],
+    [
+      "importance-marker",
+      "it is worth noting",
+      0.5,
+      2.1,
+      0.39
+    ],
+    [
+      "importance-marker",
+      "it's important to note",
+      0.0,
+      1.1,
+      0.32
+    ],
+    [
+      "importance-marker",
+      "it's worth noting",
+      1.8,
+      0.0,
+      4.57
+    ],
+    [
+      "importance-marker",
+      "needless to say",
+      0.8,
+      12.7,
+      0.1
+    ],
+    [
+      "importance-marker",
+      "plays a key role",
+      1.0,
+      2.1,
+      0.58
+    ],
+    [
+      "importance-marker",
+      "plays a vital role",
+      0.8,
+      1.1,
+      0.81
+    ],
+    [
+      "importance-marker",
+      "underscores the importance",
+      11.7,
+      0.0,
+      24.46
+    ],
+    [
+      "importance-marker",
+      "when it comes to",
+      15.0,
+      27.4,
+      0.56
+    ],
+    [
+      "meta-comment",
+      "all in all",
+      1.8,
+      4.2,
+      0.48
+    ],
+    [
+      "meta-comment",
+      "at the end of the day",
+      1.0,
+      2.1,
+      0.58
+    ],
+    [
+      "meta-comment",
+      "in short",
+      3.3,
+      8.4,
+      0.43
+    ],
+    [
+      "meta-comment",
+      "in this article",
+      0.0,
+      5.3,
+      0.09
+    ],
+    [
+      "meta-comment",
+      "long story short",
+      0.3,
+      0.0,
+      1.51
+    ],
+    [
+      "meta-comment",
+      "overall,",
+      19.4,
+      14.8,
+      1.3
+    ],
+    [
+      "meta-comment",
+      "put simply",
+      0.0,
+      1.1,
+      0.32
+    ],
+    [
+      "meta-comment",
+      "simply put",
+      0.0,
+      1.1,
+      0.32
+    ],
+    [
+      "meta-comment",
+      "to sum up",
+      0.0,
+      2.1,
+      0.19
+    ],
+    [
+      "model-idiom",
+      "doing the heavy lifting",
+      0.5,
+      0.0,
+      2.02
+    ],
+    [
+      "model-idiom",
+      "genuinely",
+      58.4,
+      8.4,
+      6.59
+    ],
+    [
+      "model-idiom",
+      "load-bearing",
+      1.5,
+      1.1,
+      1.31
+    ],
+    [
+      "model-idiom",
+      "quietly",
+      76.0,
+      13.7,
+      5.38
+    ],
+    [
+      "model-idiom",
+      "the crux",
+      2.6,
+      0.0,
+      6.1
+    ],
+    [
+      "model-idiom",
+      "the honest answer",
+      0.3,
+      0.0,
+      1.51
+    ],
+    [
+      "model-idiom",
+      "the real question",
+      2.0,
+      0.0,
+      5.08
+    ],
+    [
+      "stock-phrase",
+      "a journey of",
+      5.9,
+      0.0,
+      12.73
+    ],
+    [
+      "stock-phrase",
+      "a tapestry of",
+      21.9,
+      0.0,
+      44.86
+    ],
+    [
+      "stock-phrase",
+      "a testament to",
+      145.9,
+      2.1,
+      56.11
+    ],
+    [
+      "stock-phrase",
+      "at the heart of",
+      17.3,
+      3.2,
+      4.87
+    ],
+    [
+      "stock-phrase",
+      "cautionary tale",
+      10.7,
+      1.1,
+      7.21
+    ],
+    [
+      "stock-phrase",
+      "crucially",
+      12.8,
+      4.2,
+      2.81
+    ],
+    [
+      "stock-phrase",
+      "double-edged sword",
+      4.1,
+      0.0,
+      9.16
+    ],
+    [
+      "stock-phrase",
+      "embark on",
+      7.7,
+      1.1,
+      5.24
+    ],
+    [
+      "stock-phrase",
+      "embarked on",
+      7.7,
+      0.0,
+      16.3
+    ],
+    [
+      "stock-phrase",
+      "ever-changing landscape",
+      0.8,
+      0.0,
+      2.53
+    ],
+    [
+      "stock-phrase",
+      "ever-evolving",
+      7.4,
+      0.0,
+      15.79
+    ],
+    [
+      "stock-phrase",
+      "fast-paced world",
+      1.0,
+      0.0,
+      3.04
+    ],
+    [
+      "stock-phrase",
+      "game-changer",
+      5.6,
+      0.0,
+      12.22
+    ],
+    [
+      "stock-phrase",
+      "grand scheme",
+      2.8,
+      1.1,
+      2.13
+    ],
+    [
+      "stock-phrase",
+      "in a world of",
+      2.0,
+      0.0,
+      5.08
+    ],
+    [
+      "stock-phrase",
+      "in a world where",
+      5.9,
+      1.1,
+      4.1
+    ],
+    [
+      "stock-phrase",
+      "in the realm of",
+      9.9,
+      1.1,
+      6.72
+    ],
+    [
+      "stock-phrase",
+      "in today's fast-paced",
+      0.5,
+      0.0,
+      2.02
+    ],
+    [
+      "stock-phrase",
+      "it is crucial to",
+      8.4,
+      2.1,
+      3.42
+    ],
+    [
+      "stock-phrase",
+      "it's crucial to",
+      6.1,
+      0.0,
+      13.24
+    ],
+    [
+      "stock-phrase",
+      "navigate the complexities",
+      10.5,
+      0.0,
+      21.91
+    ],
+    [
+      "stock-phrase",
+      "navigating the complexities",
+      3.8,
+      0.0,
+      8.65
+    ],
+    [
+      "stock-phrase",
+      "notably",
+      37.5,
+      16.9,
+      2.19
+    ],
+    [
+      "stock-phrase",
+      "paradigm shift",
+      17.6,
+      0.0,
+      36.19
+    ],
+    [
+      "stock-phrase",
+      "pave the way",
+      19.6,
+      0.0,
+      40.27
+    ],
+    [
+      "stock-phrase",
+      "paves the way",
+      4.6,
+      1.1,
+      3.27
+    ],
+    [
+      "stock-phrase",
+      "paving the way",
+      16.8,
+      1.1,
+      11.15
+    ],
+    [
+      "stock-phrase",
+      "personal growth",
+      4.1,
+      2.1,
+      1.76
+    ],
+    [
+      "stock-phrase",
+      "plays a crucial role",
+      13.5,
+      0.0,
+      28.03
+    ],
+    [
+      "stock-phrase",
+      "plays a pivotal role",
+      8.2,
+      1.1,
+      5.57
+    ],
+    [
+      "stock-phrase",
+      "quality of life",
+      17.9,
+      5.3,
+      3.18
+    ],
+    [
+      "stock-phrase",
+      "rapidly evolving",
+      6.1,
+      0.0,
+      13.24
+    ],
+    [
+      "stock-phrase",
+      "remember that",
+      24.0,
+      13.7,
+      1.72
+    ],
+    [
+      "stock-phrase",
+      "rich tapestry",
+      10.7,
+      0.0,
+      22.42
+    ],
+    [
+      "stock-phrase",
+      "serves as a testament",
+      1.3,
+      0.0,
+      3.55
+    ],
+    [
+      "stock-phrase",
+      "shed light on",
+      15.0,
+      4.2,
+      3.3
+    ],
+    [
+      "stock-phrase",
+      "shedding light on",
+      5.6,
+      0.0,
+      12.22
+    ],
+    [
+      "stock-phrase",
+      "sheds light on",
+      2.6,
+      1.1,
+      1.96
+    ],
+    [
+      "stock-phrase",
+      "simple yet",
+      3.1,
+      0.0,
+      7.12
+    ],
+    [
+      "stock-phrase",
+      "stands as a testament",
+      6.9,
+      0.0,
+      14.77
+    ],
+    [
+      "stock-phrase",
+      "the ever-evolving",
+      3.8,
+      0.0,
+      8.65
+    ],
+    [
+      "stock-phrase",
+      "the landscape of",
+      13.3,
+      1.1,
+      8.85
+    ],
+    [
+      "stock-phrase",
+      "the rise of",
+      13.5,
+      5.3,
+      2.43
+    ],
+    [
+      "stock-phrase",
+      "to mitigate the risk",
+      1.0,
+      0.0,
+      3.04
+    ],
+    [
+      "stock-phrase",
+      "treasure trove",
+      5.9,
+      0.0,
+      12.73
+    ],
+    [
+      "stock-phrase",
+      "unlock the potential",
+      1.0,
+      0.0,
+      3.04
+    ],
+    [
+      "stock-phrase",
+      "unlocking the potential",
+      1.0,
+      0.0,
+      3.04
+    ],
+    [
+      "wrap-up",
+      "in conclusion",
+      195.9,
+      1.1,
+      126.32
+    ],
+    [
+      "wrap-up",
+      "in essence",
+      6.1,
+      1.1,
+      4.26
+    ],
+    [
+      "wrap-up",
+      "in summary",
+      22.4,
+      2.1,
+      8.79
+    ],
+    [
+      "wrap-up",
+      "in the end,",
+      19.6,
+      7.4,
+      2.56
+    ],
+    [
+      "wrap-up",
+      "let's dive",
+      0.5,
+      0.0,
+      2.02
+    ],
+    [
+      "wrap-up",
+      "let's explore",
+      0.3,
+      0.0,
+      1.51
+    ],
+    [
+      "wrap-up",
+      "to summarize",
+      0.5,
+      0.0,
+      2.02
+    ],
+    [
+      "wrap-up",
+      "to wrap up",
+      0.3,
+      0.0,
+      1.51
+    ],
+    [
+      "wrap-up",
+      "ultimately,",
+      116.5,
+      8.4,
+      13.1
+    ]
+  ],
+  "weights": {
+    "bias": -1.3369,
+    "excess-vocab": 0.93792,
+    "stock-phrase": 0.59737,
+    "wrap-up": 0.88539,
+    "meta-comment": 0.77918,
+    "cadence-contrast": 0.33163,
+    "participial-tail": 0.22666,
+    "chat-residue": 2.05222,
+    "model-idiom": 1.70102,
+    "bold-inline": 1.11185,
+    "rhetorical-question": 0.08945,
+    "triad": 0.09762
+  },
+  "unscored_rules": [
+    "importance-marker",
+    "em-dash",
+    "bold-lead-bullet",
+    "title-case-heading",
+    "generic-heading",
+    "punch-fragment"
+  ],
+  "hape2_test": {
+    "per_model_expository": {
+      "Meta-Llama-3-70B-Instruct": 0.791,
+      "claude-haiku-4-5-20251001": 0.852,
+      "gpt-4o-2024-08-06": 0.962,
+      "gpt-5-mini-2025-08-07": 0.732
+    },
+    "per_genre": {
+      "acad": 0.971,
+      "blog": 0.803,
+      "fic": 0.77,
+      "news": 0.836,
+      "spok": 0.869,
+      "tvm": 0.763
+    },
+    "per_rule_auc_expository": {
+      "excess-vocab": 0.804,
+      "stock-phrase": 0.576,
+      "importance-marker": 0.494,
+      "wrap-up": 0.576,
+      "meta-comment": 0.5,
+      "cadence-contrast": 0.591,
+      "participial-tail": 0.635,
+      "chat-residue": 0.5,
+      "model-idiom": 0.523,
+      "em-dash": 0.565,
+      "bold-inline": 0.497,
+      "rhetorical-question": 0.472,
+      "triad": 0.583
+    },
+    "all_models_expository": 0.834
+  },
+  "russell_test": {
+    "articles": 150,
+    "auc_vs_ground_truth": 0.928,
+    "auc_by_generator": {
+      "claude": 0.945,
+      "humanized_o1-pro": 0.796,
+      "o1-pro": 0.987,
+      "paraphrased_gpt-4o": 0.983
+    },
+    "spearman_vs_expert_ai_confidence": 0.665,
+    "per_rule_auc": {
+      "excess-vocab": 0.899,
+      "stock-phrase": 0.638,
+      "importance-marker": 0.539,
+      "wrap-up": 0.494,
+      "meta-comment": 0.48,
+      "cadence-contrast": 0.555,
+      "participial-tail": 0.665,
+      "model-idiom": 0.555,
+      "em-dash": 0.448,
+      "bold-inline": 0.633,
+      "bold-lead-bullet": 0.508,
+      "rhetorical-question": 0.49,
+      "punch-fragment": 0.393,
+      "triad": 0.502
+    }
+  },
+  "russell_dev_used_in_fit": {
+    "articles": 150,
+    "auc_vs_ground_truth": 0.945,
+    "auc_by_generator": {
+      "claude": 0.913,
+      "gpt-4o": 0.986,
+      "humanized_o1-pro": 0.816,
+      "o1-pro": 0.979,
+      "paraphrased_gpt-4o": 0.989
+    },
+    "spearman_vs_expert_ai_confidence": 0.751,
+    "per_rule_auc": {
+      "excess-vocab": 0.919,
+      "stock-phrase": 0.705,
+      "importance-marker": 0.522,
+      "wrap-up": 0.551,
+      "meta-comment": 0.506,
+      "cadence-contrast": 0.572,
+      "participial-tail": 0.689,
+      "model-idiom": 0.542,
+      "em-dash": 0.366,
+      "bold-inline": 0.539,
+      "rhetorical-question": 0.41,
+      "punch-fragment": 0.395,
+      "triad": 0.525
+    }
+  },
+  "lamp": {
+    "pairs": 1282,
+    "score_dropped_after_edit": 728,
+    "score_rose_after_edit": 392,
+    "unchanged": 162,
+    "p_value": 0.0,
+    "mean_score_pre": 65.2,
+    "mean_score_post": 57.1,
+    "flags": 3993,
+    "flags_inside_expert_edits": 0.384,
+    "text_fraction_inside_edits": 0.352
+  },
+  "wq": {
+    "wq_benchmark:art-or-artifice": {
+      "pairs": 144,
+      "ties": 0,
+      "lower_score_preferred": 0.833,
+      "p_value": 0.0
+    },
+    "wq_benchmark:lamp-test": {
+      "pairs": 1206,
+      "ties": 160,
+      "lower_score_preferred": 0.522,
+      "p_value": 0.1641
+    },
+    "wq_benchmark:lmarena": {
+      "pairs": 1959,
+      "ties": 42,
+      "lower_score_preferred": 0.523,
+      "p_value": 0.0444
+    },
+    "wq_benchmark:style-mimic": {
+      "pairs": 300,
+      "ties": 28,
+      "lower_score_preferred": 0.669,
+      "p_value": 0.0
+    },
+    "wq_benchmark:synthetic-mirror": {
+      "pairs": 1120,
+      "ties": 48,
+      "lower_score_preferred": 0.89,
+      "p_value": 0.0
+    },
+    "wq_art-or-artifice:art-or-artifice": {
+      "pairs": 144,
+      "ties": 0,
+      "lower_score_preferred": 0.833,
+      "p_value": 0.0
+    }
+  },
+  "arena": {
+    "all_decided_pairs": {
+      "pairs": 39716,
+      "ties": 8261,
+      "lower_score_preferred": 0.479,
+      "p_value": 0.0
+    },
+    "length_matched_within_10pct": {
+      "pairs": 5097,
+      "ties": 1111,
+      "lower_score_preferred": 0.513,
+      "p_value": 0.1169
+    }
+  }
+}

@@ -919,6 +919,7 @@ Slash invocation loads any named skill. Natural-language auto-routing:
 - doubt wording → doubt skill above
 - recurring tool/command failure patterns, "tool surprises" →
   `skills/tool-surprises/SKILL.md`
+- avoid AI style / make prose not sound AI-written → `skills/not-ai/SKILL.md`
 
 Other disabled skills are slash-only unless a skill explicitly chains by
 reading their `SKILL.md`.
