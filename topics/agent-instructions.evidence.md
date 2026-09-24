@@ -5082,3 +5082,28 @@ Contributing-model: 6-Astra
   all lose the confirm. The user named the boot file.
 
 Contributing-model: grok-4.7
+
+## 2026-09-24 — bound command-output reads by bytes, not lines
+
+- **Incident** — two Codex turns in one session were torn down after
+  commands emitted ~1 MiB+ of output: `git add` printing SVG
+  trailing-whitespace warnings, and `head -40` on a compact JSON file whose
+  single ~9.7 MB line printed in full. The model saw only ~10k tokens
+  (harness truncation), but the full stream flowed through the launcher
+  and overflowed its replay buffer (fixed separately in YA).
+- **User direction** — endorsed: bound by bytes when line length is
+  unverified, project JSON with `jq`, redirect unpredictable-size output to a
+  file and read a bounded tail; place beside "save, never discard".
+- **Why it steers** — `head -n` reads as a safe bound, and agents chain it
+  after status commands; the misfire is invisible until output is huge. The
+  existing rule scoped redirects to commands "that do work", which `git add`
+  and ad hoc `head` do not seem to be.
+- **Trace: `head -n 50 build.log`** — still fine for known-short lines; the
+  rule applies only when line length is unverified. **Trace: `jq . f.json`**
+  — pretty-printing a large file is not a projection; the wording says
+  "project", which excludes it. **Trace: small known-size output** (`git
+  status`) — not "unpredictable size", no redirect needed.
+- **Placement** — inline in `AGENTS.global.md` § Command output, four
+  lines; it fires on ordinary shell use with no routable trigger.
+
+Contributing-model: opus-5.5
