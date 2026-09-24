@@ -18,7 +18,12 @@ Topic: `glossary`
   root `docs/topics/` alternate) for the project glossary, and sibling
   `topics/` for a scoped glossary. Owned topic rows correspond 1:1 to
   non-companion docs there, and their definitions come from the docs' `> `
-  blockquote ledes.
+  blockquote ledes, except a doc carrying a `Glossary: omit` metadata line
+  after its `Topic:` line, which has no row. Use that when the basename is
+  a common word that YA glossary hints would annotate throughout ordinary
+  prose (`writing`) and the doc is already dispatched from other topics or
+  instruction routes; the line names those routes. The glossary is a
+  lookup surface, not the read trigger, so omission costs nothing there.
 - Other rows are curated. They survive regeneration verbatim, including
   arbitrary references and any `<!-- unconfirmed: YYYY-mm-dd -->` markers.
 - A scope may carry an optional sibling `PROGRAM.md` containing its descriptive
@@ -125,7 +130,8 @@ root `topics/` is absent.
 
 For each owned topic doc, read the `> ` blockquote lede immediately after the
 H1 — multi-line `> ` lines are space-joined into one sentence — and use it as
-the definition of the basename row. Refresh the owned-doc link while
+the definition of the basename row. Skip a doc with a `Glossary: omit` line
+and remove its row if one exists. Refresh the owned-doc link while
 preserving additional references in that cell. The usual relative link form is
 `[<name>](topics/<name>.md)`; the root alternate uses
 `[<name>](docs/topics/<name>.md)`. A collision with a curated row naming a
