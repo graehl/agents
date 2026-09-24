@@ -7,6 +7,8 @@
 > `story-writing`.
 
 Topic: `writing`
+Glossary: omit (common word; dispatched from `technical-writing`,
+`story-writing`, and `story-project-layout`)
 
 Read this before drafting or revising prose for a reader: an essay, article,
 explainer, report, review, letter, web page copy, or the narrative prose of a
