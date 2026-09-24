@@ -6,7 +6,7 @@
 | `AGENT_LAUNCH_HARNESS` | harness family YA launched: `claude`, `codex`, `gemini`, `grok`, `opencode`, or `pi` |
 | `AGENT_LAUNCH_ROUTE` | canonical route inside the harness; `claude-gateway` when present |
 | `AGENT_LAUNCH_BACKEND` | canonical explicitly identified backend; `copilot-api` when present |
-| `AGENT_LAUNCH_MODEL` | model YA selected explicitly; absent when YA asked for the provider default |
+| `AGENT_LAUNCH_MODEL` | model YA selected explicitly, as the concrete id its alias resolved to when YA's catalog knew it (`opus` → `claude-opus-5-5`), else the selection as given; absent when YA asked for the provider default |
 | `AGENT_LAUNCH_EFFORT` | effort YA selected explicitly; absent when YA asked for the provider default |
 | `YEP_CLAUDE_GATEWAY=1` | current YA fallback for `AGENT_LAUNCH_ROUTE=claude-gateway` when the canonical route marker is absent |
 | `YEP_COPILOT_API=1` | current YA fallback for `AGENT_LAUNCH_BACKEND=copilot-api` when the canonical backend marker is absent |
