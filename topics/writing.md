@@ -72,7 +72,9 @@ only at the margins.
   adjective was weak. Fix the verb instead.
 - **Old before new.** Start a sentence with what the reader already holds and
   end with the new information. The sentence end is the stress position; put
-  the word that matters there.
+  the word that matters there. The strong technical-prose form, with the
+  revision check and the paragraph/section analog, is
+  [`technical-writing` § End each unit on what drives the next](technical-writing.md#end-each-unit-on-what-drives-the-next).
 - **Vary length for rhythm, but on purpose.** A run of long sentences numbs; a
   run of short ones jabs. A short sentence after a long one lands.
 - **Prefer active voice** unless the actor is unknown, unimportant, or you
