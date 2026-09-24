@@ -23,13 +23,18 @@ the "Generated with Claude Code" PR banner. The mandated
 provenance, not one of these markers — it stays.
 
 Model identity: do not trust self-knowledge of your model name — models
-misreport it. Use `$AGENT_LAUNCH_MODEL` when present; otherwise read the
-harness-recorded id from your own transcript:
+misreport it. Use `$AGENT_LAUNCH_MODEL` when it names a versioned id
+(`claude-opus-5-5`). A bare alias (`opus`, `sonnet`, `default`) names a family,
+not a version, and an older launcher may publish one; then, or when the marker
+is absent, read the harness-recorded id from your own transcript:
 
 ```bash
-tac "$HOME/.claude/projects/${PWD//\//-}/$CLAUDE_CODE_SESSION_ID.jsonl" |
+tac ~/.claude/projects/*/"$CLAUDE_CODE_SESSION_ID".jsonl |
   rg -m1 -o '"model":"[^"]*"'
 ```
+
+The glob matters: the project directory is the launch cwd's real path, so
+deriving it from `$PWD` misses under a symlinked or changed cwd.
 
 ## Edit source strings
 

@@ -41,7 +41,7 @@ value in run state. Project-env metadata records key names, never values.
 |---|---|---:|---|---|---|
 | `AGENT_LAUNCHER` | Launcher identity; `yepanywhere` routes `AGENTS.ya.md`. | no | inherit | remove | canonical |
 | `AGENT_LAUNCH_HARNESS` | Harness family selected at launch. | no | inherit | replace with target harness | canonical |
-| `AGENT_LAUNCH_MODEL` | Explicit model selected at initial launch; not current-model state after a switch. | no | inherit | remove | canonical |
+| `AGENT_LAUNCH_MODEL` | Explicit model selected at initial launch, resolved to a concrete versioned id when the launcher can (YA: `opus` → `claude-opus-5-5`); a bare alias carries no version. Not current-model state after a switch. | no | inherit | remove | canonical |
 | `AGENT_LAUNCH_EFFORT` | Explicit effort selected at initial launch; not current-effort state after a switch. | no | inherit | remove | canonical |
 | `AGENT_LAUNCH_ROUTE` | Route inside the harness, currently `claude-gateway`; distinguishes transport from harness and backend. | no | inherit | remove | canonical reader contract; YA publisher migration pending |
 | `AGENT_LAUNCH_BACKEND` | Explicit backend implementation, currently `copilot-api`; routes backend-specific instructions without inferring from URL, port, vendor, or model. | no | inherit | remove | canonical reader contract; YA publisher migration pending |

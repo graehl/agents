@@ -5107,3 +5107,31 @@ Contributing-model: grok-4.7
   lines; it fires on ordinary shell use with no routable trigger.
 
 Contributing-model: opus-5.5
+
+## 2026-09-24 — a launch-model alias is not a model identity
+
+- **Incident** — the user saw a YA-launched Claude Opus 5.5 session report
+  `AGENT_LAUNCH_MODEL=opus`. YA copied the UI selection alias verbatim, and
+  `AGENTS.claude.md` told the agent to take identity from that marker whenever
+  it was present, so the session never looked at the recorded
+  `claude-opus-5-5`. The model routes still matched on `opus`, but anything
+  version-sensitive (tier floors, `Contributing-model:` trailers) got a
+  family name.
+- **Fix, two layers** — YA now resolves an alias through the SDK catalog's
+  `resolvedModel` before launch and publishes the concrete id. The Claude
+  supplement accepts the marker only when it carries a version, and otherwise
+  falls back to the transcript, because older YA builds and catalog-cold
+  launches still publish the alias.
+- **Recipe defect found on the way** — the transcript path was built from
+  `${PWD//\//-}`. Under `~/ya` (a symlink to `/local/graehl/yepanywhere`) that
+  named a missing directory; the transcript lives under the real launch path.
+  The recipe now globs `~/.claude/projects/*/<session-id>.jsonl`, which
+  matches exactly one file because session ids are UUIDs.
+- **Trace** — `AGENT_LAUNCH_MODEL=claude-opus-5-5` is used directly.
+  `AGENT_LAUNCH_MODEL=opus` is a bare alias, so the transcript supplies
+  `claude-opus-5-5`. With the marker absent, the transcript is used.
+  `claude-fable-5-1` is versioned, so it is used directly.
+- **Status** — `observed` for the incident and the recipe failure (both
+  reproduced in this session); the fix is covered by YA unit tests.
+
+Contributing-model: opus-5.5
