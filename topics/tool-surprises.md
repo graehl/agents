@@ -7,6 +7,7 @@
 > (tool option, helper, instruction, or environment).
 
 Topic: `tool-surprises`
+Governs: /tool-surprises, or recurring tool or command failure patterns
 
 ## The signal
 

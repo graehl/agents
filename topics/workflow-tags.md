@@ -5,6 +5,7 @@
 > of an identified workflow.
 
 Topic: `workflow-tags`
+Governs: adopting or emitting schema-announced workflow tags
 
 Status: Initial producer convention, 2026-09-07. The single `tagged-stages/1`
 prototype is updated in place, including closed matching and collecting

@@ -4,6 +4,7 @@
 > library's supported surface, integration responsibilities, and limitations.
 
 Topic: `acli-implementer`
+Governs: implementing an acli tool or library in any language
 
 The [user guide](acli.md) explains how agents call tools; the
 [v1 specification](acli-spec.md) owns the protocol. Those two files can be

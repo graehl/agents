@@ -1,5 +1,11 @@
 # TypeScript tooling
 
+> TypeScript/JavaScript typing, dependency, and lint conventions applied
+> before the first TS/JS edit in a repo.
+
+Topic: `typescript`
+Governs: first editing TypeScript or JavaScript in a repo
+
 Loaded before editing TypeScript/JavaScript files or when first working
 in a TS/JS project (trigger: `AGENTS.global.md` § Language tooling).
 

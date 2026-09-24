@@ -5,6 +5,7 @@
 > calibrated to the claims rather than to a venue quota.
 
 Topic: `blog-post-writing`
+Governs: writing a technical or research blog post for a static site
 
 ## Default publishing shape
 

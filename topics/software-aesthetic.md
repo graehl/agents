@@ -3,6 +3,7 @@
 > Shared criteria for how code should look and be structured — applied both when writing it and when reviewing it.
 
 Topic: software-aesthetic
+Governs: writing or reviewing code structure, naming, and boundaries
 
 Every rule here is universal: it applies to a single unit of code regardless of project. Rules that only pay off when a whole project observes them live in [software-aesthetic.coordinated.md](software-aesthetic.coordinated.md).
 

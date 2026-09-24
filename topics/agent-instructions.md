@@ -5,6 +5,7 @@
 > without relying on stale chat state.
 
 Topic: `agent-instructions`
+Governs: writing or editing agent instructions, supplements, skills, or instruction topics
 
 This repo's main correctness claim is that committed global instructions give
 future agents enough stable, searchable policy to behave consistently across

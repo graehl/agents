@@ -6,6 +6,7 @@
 > first consequential divergence.
 
 Topic: `doubt-skill`
+Governs: /doubt, or explicit distrust of a just-applied conclusion
 
 The desired `/doubt` flow is:
 

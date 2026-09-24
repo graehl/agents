@@ -6,6 +6,7 @@
 > recognizes broken output without guesswork.
 
 Topic: `helper-scripts`
+Governs: adding a helper to ~/bin or scripts/, or using queued-anchor or session-turn
 
 ## When to add a helper
 

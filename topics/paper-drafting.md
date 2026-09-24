@@ -5,6 +5,7 @@
 > confusing narrative promise with evidentiary support.
 
 Topic: `paper-drafting`
+Governs: turning program evidence into paper proposals or promoting one to a draft
 
 ## Start from the program record
 

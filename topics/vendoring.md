@@ -5,6 +5,7 @@
 > from, what (if anything) we changed, and how to re-sync.
 
 Topic: `vendoring`
+Governs: copying third-party code or a skill to keep
 
 Scope: third-party *source we import and keep*, primarily `skills/<name>/`
 but any vendored subtree. Not the same as `provenance-tracking.md` (that

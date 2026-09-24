@@ -5,6 +5,7 @@
 > emits the actual anomalous text pairs rather than trusting positional order.
 
 Topic: `verified-provenance`
+Governs: row-wise translating, paraphrasing, or rewriting a dataset
 
 ## Canonical JSONL envelope
 

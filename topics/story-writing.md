@@ -8,6 +8,7 @@
 > Vonnegut's shapes) for finding the story's engine.
 
 Topic: `story-writing`
+Governs: planning, drafting, or revising a story, screenplay, or character or world document
 
 Read this before planning, drafting, or revising a story, screenplay,
 interactive fiction, or a character or world document. Sentence-level craft

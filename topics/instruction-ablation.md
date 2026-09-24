@@ -8,6 +8,7 @@
 > few-point effect is trustworthy.
 
 Topic: `instruction-ablation`
+Governs: measuring whether an instruction change helps
 
 This is the concrete realization of the validation plan that
 [`agent-instructions.md`](agent-instructions.md) defers ("Limits of

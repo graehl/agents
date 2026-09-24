@@ -4,6 +4,7 @@
 > environment, keeping its large model stack out of project dependencies.
 
 Topic: `pdf`
+Governs: reading or extracting a PDF
 
 Use `marker-pdf`, not `pdftotext`, for PDF reading. Install
 the OCR/ML stack in a dedicated environment, never the project's runtime

@@ -1,5 +1,11 @@
 # Python tooling
 
+> Python authoring and formatting conventions (ruff check and format, line
+> length from the repo config) applied before the first Python edit in a repo.
+
+Topic: `python`
+Governs: first editing Python in a repo
+
 Python-specific authoring and formatting guidance.
 
 Use `ruff check --fix` and `ruff format` (not black/isort/flake8),

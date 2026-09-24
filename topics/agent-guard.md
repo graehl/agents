@@ -6,6 +6,7 @@
 > the careless command, not a sandbox.
 
 Topic: `agent-guard`
+Governs: launching agents in a shared worktree or diagnosing a guard block
 
 Motivation: an agent ran `git reset --hard origin/master` "so I can land
 my amend against the right commit" in a shared workdir and wiped another

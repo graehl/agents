@@ -5,6 +5,7 @@
 > indexes them and explains which still inform `<topic>.md`.
 
 Topic: `runs-ledger`
+Governs: curating run records under a topic's .runs/
 
 ## What it holds
 

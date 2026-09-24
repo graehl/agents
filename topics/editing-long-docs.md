@@ -5,6 +5,7 @@
 > form behind a short table-of-contents router.
 
 Topic: `editing-long-docs`
+Governs: editing a long document where section-wise reads, regrouping, or moving matter
 
 Agents sometimes propose or choose this representation without being told; it
 is a normal editing tactic, not a ceremony every long document must follow.

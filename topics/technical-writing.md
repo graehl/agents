@@ -5,6 +5,7 @@
 > self-contained, worth reading in order, and legible when scanned.
 
 Topic: `technical-writing`
+Governs: revising a handout, progress report, blog post, or paper for outside readers
 
 ## Common contract
 

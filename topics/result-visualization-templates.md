@@ -5,6 +5,7 @@
 > scale semantics.
 
 Topic: `result-visualization-templates`
+Governs: choosing a results layout before picking a plotting package
 
 Use this registry after deciding what a reader should be able to see and before
 choosing a plotting package. The names are communication handles for paper,

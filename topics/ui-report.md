@@ -15,6 +15,7 @@
 > direction thesis (preserve / improve), not a detailed mockup.
 
 Topic: ui-report
+Governs: producing a screenshot-backed UI report
 
 Subtopic of [`ui-quality`](ui-quality.md). This doc is a checklist for
 *producing* a report; the *criteria* the report cites live in the four

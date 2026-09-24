@@ -5,6 +5,7 @@
 > already authored.
 
 Topic: `commits`
+Governs: writing a non-trivial commit message, amending, rewriting history, or choosing trailers
 
 Global § Commits carries the compact rules: aim for subject ≤65 chars,
 manual 71-col body wrap, narrative synthesis, and topic trailers. This

@@ -6,6 +6,7 @@
 > and changes behavior only after demonstrating a current failure.
 
 Topic: `handling-bug-reports`
+Governs: a new or unrelated defect report arrives
 
 ## Trigger and boundary
 

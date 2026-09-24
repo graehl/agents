@@ -6,6 +6,7 @@
 > what counts as passing.
 
 Topic: `testing-rider`
+Governs: creating or using a topic's .testing.md
 
 A topic doc names the contracts and invariants a concern must uphold. The
 `.testing` rider says **how you verify a change does not break them** —

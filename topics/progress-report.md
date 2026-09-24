@@ -6,6 +6,7 @@
 > research thread promised by the prior report.
 
 Topic: progress-report
+Governs: writing a dated research progress report
 
 ## Reader model
 

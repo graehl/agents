@@ -9,6 +9,7 @@
 > injection, slow faults).
 
 Topic: `degradation-injection`
+Governs: stress-testing worker queues or async boundaries with injected slowdowns or faults
 
 User-directed trial (2026-08-28), promoted so perf-improvement
 sessions actually apply it; evaluate and retire or keep after use.

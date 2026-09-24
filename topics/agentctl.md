@@ -6,6 +6,7 @@
 > `agentctl_plugins/`.
 
 Topic: `agentctl`
+Governs: changing or diagnosing active-session or run semantics, staleness, launch-depth guards, or plugins
 
 `agentctl` is a small, dependency-free local job manager. The base layer owns
 process-group lifecycle, GPU/CPU resource gating, and on-disk run state under

@@ -4,6 +4,8 @@
 > frontier; governs `literature-search.md`, `field-map.md`,
 > `frontier-map.md`, and the `surveys/` artifact tree.
 
+Governs: surveying a research field, mapping its frontier, or fetching related work
+
 ## Contracts
 
 - A **field survey is standalone reference material**, not a branch-scoped

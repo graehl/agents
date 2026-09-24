@@ -5,6 +5,7 @@
 > from tables.
 
 Topic: `pareto-figures`
+Governs: making a quality-versus-cost Pareto figure
 
 This specialized contract inherits the generation, matched SVG/PDF, Quarto
 inclusion, and release checks in

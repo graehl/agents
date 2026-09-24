@@ -6,6 +6,7 @@
 > collaborators.
 
 Topic: `testing`
+Governs: writing or changing tests, or validating a behavior change
 
 ## Contracts
 

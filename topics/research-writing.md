@@ -5,6 +5,7 @@
 > papers, research blogs, handouts, and progress reports.
 
 Topic: `research-writing`
+Governs: writing anything that makes research claims: prior art, attribution, citations
 
 ## Research-specific layer
 

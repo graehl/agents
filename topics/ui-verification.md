@@ -6,6 +6,7 @@
 > markup and the tree are blind to most visual and interaction defects.
 
 Topic: ui-verification
+Governs: approving or verifying a UI change
 
 Subtopic of [`ui-quality`](ui-quality.md). It defines *how to check* that a
 UI is correct; [`functional-layout`](functional-layout.md) defines *what

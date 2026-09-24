@@ -5,6 +5,7 @@
 > process boundaries.
 
 Topic: `AGENT_ENV_VARS`
+Governs: reading or setting launcher, harness, session, or guard environment variables
 
 ## Scope and notation
 

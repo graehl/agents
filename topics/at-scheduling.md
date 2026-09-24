@@ -5,6 +5,7 @@
 > mutation goes through `scripts/at-queue`.
 
 Topic: `at-scheduling`
+Governs: creating or changing an /at future-run entry
 
 This is a filesystem protocol for low-volume, agent-operated scheduling. It
 does not pretend that instructions alone provide a wall-clock daemon. Ordinary

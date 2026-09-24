@@ -6,6 +6,7 @@
 > cosmetic theming layers on top without altering layout or behavior.
 
 Topic: ui-quality
+Governs: starting UI work in a project
 
 This is the tutorial entry point for UI work in the project, written for a
 reader who is comfortable with code but a relative novice at layout, type,

@@ -4,6 +4,7 @@
 > structured-output baseline or separately declared capabilities.
 
 Topic: `acli`
+Governs: calling a tool that identifies itself as acli or declares acli capabilities
 
 Read this guide when a tool identifies itself as acli, or when its agent
 instructions declare acli capabilities. Use the tool's exact invocation and

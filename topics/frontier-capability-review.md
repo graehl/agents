@@ -5,6 +5,7 @@
 > on a 60-day backstop without making heavyweight evaluation routine.
 
 Topic: `frontier-capability-review`
+Governs: reevaluating a capability-sensitive instruction as models improve
 
 This is the durable landing page for model-capability-sensitive guidance, not
 a gap that remains open until every entry disappears. The owning instruction or

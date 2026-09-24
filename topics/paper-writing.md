@@ -5,6 +5,7 @@
 > replaying the research program's chronology.
 
 Topic: `paper-writing`
+Governs: writing a selected research paper
 
 ## Enter from a selected publication case
 
