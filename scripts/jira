@@ -1,0 +1,359 @@
+#!/usr/bin/env python3
+"""Read Jira Cloud issues from an agent session.
+
+The credential is never passed on a command line. It comes from the
+environment when already exported, otherwise from sourcing the user's
+`~/keys.sh` in a throwaway shell and reading JIRA_API_TOKEN back over a
+pipe. The file is never printed, and no verb echoes the token.
+
+This is the issue reader (and light query) counterpart to `confluence`;
+both share the same Atlassian credential. Verbs are read-only.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from base64 import b64encode
+from pathlib import Path
+
+AGENTS_ROOT = Path(os.environ.get("AGENTS_DIR", Path.home() / "agents"))
+if str(AGENTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(AGENTS_ROOT))
+
+import acli
+
+KEYS_FILE = Path(os.environ.get("JIRA_KEYS_FILE", Path.home() / "keys.sh"))
+TOKEN_VARS = (
+    "JIRA_API_TOKEN",
+    "AGENT_JIRA_API_TOKEN",
+    "YEP_JIRA_API_TOKEN",
+    "CONFLUENCE_API_TOKEN",
+)
+# Site and account are machine-local facts, so they come from the environment
+# or the same keys file as the token, never from a default baked in here.
+SITE_VARS = ("JIRA_SITE",)
+EMAIL_VARS = ("JIRA_EMAIL",)
+CAPABILITIES = ("complete", "+toon")
+EXIT_CODES = {
+    0: "success",
+    2: "usage error",
+    3: "unusable response or body",
+    4: "issue or credential source not found",
+    69: "Jira unreachable or rejected the credential",
+}
+
+
+# --- credential -----------------------------------------------------------
+
+
+_keys_file_values: dict[str, str] | None = None
+
+
+def _keys_file() -> dict[str, str]:
+    """The settings this tool reads from the sourced keys file, sourced once.
+
+    Sourcing happens in a child shell whose only output is `name=value` lines
+    for the variables named here, so the keys file's other contents never
+    reach this process or any log.
+    """
+    global _keys_file_values
+    if _keys_file_values is not None:
+        return _keys_file_values
+    _keys_file_values = {}
+    if not KEYS_FILE.is_file():
+        return _keys_file_values
+    wanted = (*TOKEN_VARS, *SITE_VARS, *EMAIL_VARS)
+    script = (
+        f". {KEYS_FILE!s} >/dev/null 2>&1 || exit 1\n"
+        "for v in " + " ".join(wanted) + "; do\n"
+        '  eval "val=\\${$v:-}"\n'
+        '  [ -n "$val" ] && printf "%s=%s\\n" "$v" "$val"\n'
+        "done\nexit 0\n"
+    )
+    done = subprocess.run(
+        ["bash", "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,  # an unsourceable keys file reads as empty; callers die
+    )
+    for line in done.stdout.splitlines():
+        name, sep, value = line.partition("=")
+        if sep and value.strip():
+            _keys_file_values[name] = value.strip()
+    return _keys_file_values
+
+
+def _setting(names: tuple[str, ...], what: str) -> str:
+    """A setting from the environment, else the keys file, else a clear refusal."""
+    for name in names:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    values = _keys_file()
+    for name in names:
+        if values.get(name):
+            return values[name]
+    acli.die(
+        f"no {what}: set {' or '.join(names)} in the environment or in {KEYS_FILE}",
+        acli.ExitCode.NOT_FOUND,
+    )
+
+
+def _token() -> str:
+    return _setting(TOKEN_VARS, "API token")
+
+
+# --- transport ------------------------------------------------------------
+
+
+def _request(args, method: str, path: str) -> dict:
+    site = args.site.rstrip("/")
+    url = path if path.startswith("http") else f"{site}{path}"
+    basic = b64encode(f"{args.email}:{_token()}".encode()).decode()
+    request = urllib.request.Request(url, method=method)
+    request.add_header("Authorization", f"Basic {basic}")
+    request.add_header("Accept", "application/json")
+    try:
+        with urllib.request.urlopen(request, timeout=args.timeout) as response:
+            raw = response.read().decode("utf-8")
+    except urllib.error.HTTPError as err:
+        detail = err.read().decode("utf-8", "replace")[:600]
+        code = {
+            401: acli.ExitCode.UNAVAILABLE,
+            403: acli.ExitCode.UNAVAILABLE,
+            404: acli.ExitCode.NOT_FOUND,
+        }.get(err.code, acli.ExitCode.UNAVAILABLE)
+        hint = ""
+        if err.code in (401, 403):
+            hint = " (token rejected; regenerate it at id.atlassian.com)"
+        acli.die(
+            f"{method} {url} returned {err.code}{hint}",
+            code,
+            detail={"status": err.code, "body": detail},
+        )
+    except urllib.error.URLError as err:
+        acli.die(f"{method} {url} failed: {err.reason}", acli.ExitCode.UNAVAILABLE)
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        acli.die(f"{method} {url} returned non-JSON", acli.ExitCode.DATA)
+
+
+def _field_name(value) -> str:
+    if not value:
+        return ""
+    return value.get("name") or value.get("value") or str(value)
+
+
+def _fields(issue: dict, site: str) -> dict:
+    """Flatten the nested `fields` object of an issue into compact rows."""
+    key = issue.get("key", "")
+    fields = issue.get("fields") or {}
+    assignee = fields.get("assignee") or {}
+    reporter = fields.get("reporter") or {}
+    return {
+        "key": key,
+        "summary": fields.get("summary"),
+        "status": _field_name(fields.get("status")),
+        "assignee": assignee.get("displayName"),
+        "reporter": reporter.get("displayName"),
+        "created": fields.get("created"),
+        "updated": fields.get("updated"),
+        "url": f"{site}/browse/{key}",
+    }
+
+
+def _adf_text(node, out: list[str] | None = None) -> str:
+    """Flatten a Jira Atlassian Document Format tree into plain text.
+
+    Fields like `description` and comment `body` arrive as ADF JSON in the
+    Cloud REST API. Accepts a string (returned unchanged) or a node tree.
+    """
+    if node is None:
+        return ""
+    if isinstance(node, str):
+        return node
+    if not isinstance(node, dict):
+        return str(node)
+    out_local = False
+    if out is None:
+        out = []
+        out_local = True
+    node_type = node.get("type")
+    if node_type == "text":  # includes `text`/`marks`
+        out.append(node.get("text", ""))
+    elif node_type in ("paragraph", "heading", "codeBlock", "listItem", "blockquote"):
+        for content in node.get("content", []):
+            _adf_text(content, out)
+        if node_type != "listItem":
+            out.append("\n")
+    elif node_type in ("bulletList", "orderedList") or node_type == "table":
+        for content in node.get("content", []):
+            _adf_text(content, out)
+    elif node_type in ("tableRow", "tableCell", "tableHeader"):
+        for content in node.get("content", []):
+            _adf_text(content, out)
+        if node_type == "tableRow":
+            out.append("\n")
+    elif node_type == "hardBreak":
+        out.append("\n")
+    elif node_type is None and "text" in node:
+        out.append(node.get("text", ""))
+    else:  # unknown container (e.g. panel, rule)
+        for content in node.get("content", []):
+            _adf_text(content, out)
+    return "".join(out) if out_local else ""
+
+
+def _comment_rows(issue: dict) -> list[dict]:
+    comments = (((issue.get("fields") or {}).get("comment")) or {}).get("comments", [])
+    return [
+        {
+            "author": (c.get("author") or {}).get("displayName"),
+            "created": c.get("created"),
+            "body": " ".join(_adf_text(c.get("body")).split()),
+        }
+        for c in comments
+    ]
+
+
+def _paged(args, path: str, limit: int) -> list[dict]:
+    """Follow Jira startAt paging until `limit` issues or exhaustion."""
+    rows: list[dict] = []
+    start_at = len(rows)
+    while len(rows) < limit:
+        sep = "&" if "?" in path else "?"
+        page = _request(
+            args, "GET", f"{path}{sep}startAt={start_at}&maxResults={limit}"
+        )
+        batch = page.get("issues", [])
+        rows.extend(batch)
+        if not batch or start_at + len(batch) >= page.get("total", 0):
+            break
+        start_at += len(batch)
+    return rows[:limit]
+
+
+# --- verbs ----------------------------------------------------------------
+
+
+def cmd_whoami(args) -> dict:
+    who = _request(args, "GET", "/rest/api/3/myself")
+    return {
+        "site": args.site,
+        "display_name": who.get("displayName"),
+        "email": who.get("emailAddress"),
+        "account_id": who.get("accountId"),
+        "token_source": "environment"
+        if any(os.environ.get(v, "").strip() for v in TOKEN_VARS)
+        else str(KEYS_FILE),
+    }
+
+
+def cmd_get(args) -> dict:
+    query = (
+        "?expand=renderedFields"
+        if args.full
+        else "?fields=summary,status,assignee,reporter,created,updated,comment,description"
+    )
+    issue = _request(args, "GET", f"/rest/api/3/issue/{args.issue}{query}")
+    row = _fields(issue, args.site)
+    row["description"] = _adf_text((issue.get("fields") or {}).get("description"))
+    comments = _comment_rows(issue)
+    row["comment_count"] = len(comments)
+    if args.full:
+        row["comments"] = comments
+        custom = {
+            k: v
+            for k, v in (issue.get("fields") or {}).items()
+            if k.startswith("customfield_")
+        }
+        if custom:
+            row["custom_fields"] = custom
+    return row
+
+
+def cmd_search(args) -> dict:
+    jql = urllib.parse.quote(args.jql, safe="")
+    found = _request(
+        args, "GET", f"/rest/api/3/search?jql={jql}&fields=summary,status,assignee"
+    )
+    rows = [_fields(i, args.site) for i in found.get("issues", [])]
+    return {
+        "name": "issues",
+        "columns": ["key", "summary", "status", "assignee"],
+        "rows": rows,
+    }
+
+
+# --- wiring ---------------------------------------------------------------
+
+TABLE_VERBS = {"search"}
+
+
+def build_parser():
+    parser = acli.argument_parser(
+        prog="jira",
+        description=__doc__.split("\n\n")[0],
+        capabilities=CAPABILITIES,
+        exit_codes=EXIT_CODES,
+    )
+    parser.add_argument(
+        "--site",
+        default=None,
+        help=f"Jira base URL (default: JIRA_SITE from the environment or {KEYS_FILE}).",
+    )
+    parser.add_argument(
+        "--email",
+        default=None,
+        help="Atlassian account email for basic auth (default: JIRA_EMAIL "
+        f"from the environment or {KEYS_FILE}).",
+    )
+    parser.add_argument(
+        "--timeout", type=float, default=60.0, help="Per-request timeout in seconds."
+    )
+    subs = parser.add_subparsers(dest="verb", required=True)
+
+    subs.add_parser("whoami", help="Verify the credential and report the account.")
+
+    get = subs.add_parser("get", help="Fetch an issue (key or id) and its comments.")
+    get.add_argument("issue", help="Issue key like AIP-2747.")
+
+    search = subs.add_parser("search", help="Run a JQL search.")
+    search.add_argument("jql", help="JQL, e.g. 'text ~ \"PII LP\"'")
+    search.add_argument("--limit", type=int, default=25)
+
+    for sub in (get, search, subs.choices["whoami"]):
+        acli.add_standard_args(sub, allow_toon=True)
+    acli.add_standard_args(parser, allow_toon=True)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    acli.maybe_complete(parser)
+    args = parser.parse_args(argv)
+    args.acli_toon_allowed = args.verb in TABLE_VERBS
+    try:
+        fmt = acli.resolve_format(args)
+    except ValueError as err:
+        acli.die(str(err), acli.ExitCode.USAGE)
+    args.site = (args.site or _setting(SITE_VARS, "Jira site URL")).rstrip("/")
+    args.email = args.email or _setting(EMAIL_VARS, "Atlassian account email")
+    handler = globals()[f"cmd_{args.verb}"]
+    result = handler(args)
+    acli.emit(result, fmt, commentary=not getattr(args, "no_commentary", False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
