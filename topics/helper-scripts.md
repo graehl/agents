@@ -620,24 +620,31 @@ or `--kill-group` without `--kill`).
 ### not-ai-lint
 
 **CLI**: `not-ai-lint [paths...] [--text|--json|--pretty] [--limit N]
-[--rules]`. Reads Markdown or text from each path, or stdin when none (or
-`-`) is given. For each input it emits one record: `summary` (`score`
-0–100, prose `words`, `reliable` when at least 150 words, and `by_rule`
-counts with rate, `scored`, top matches, and note), `findings` (line, col,
-rule, match; `--limit`, default 40, truncates the list and `--full` or
-`--limit 0` shows all), and `findings_total`. `--text` prints a
-per-rule table, one `path:line:col: [rule] match` line per finding, and a
+[--rules]`. Reads each path, or stdin when none (or `-`) is given, as
+Markdown, Quarto, or text. A `.pdf` path goes through `pdftotext`. Prose
+extraction is the shared `prose_text` module. For each input it emits one
+record: `format`, `notes` (extraction caveats; always present for PDF),
+`summary` (`score` 0–100, `band` low/moderate/high, prose `words`,
+`reliable` when at least 150 words, and `by_rule` counts with rate,
+`scored`, top matches, and note), `findings` (line, `loc`, col, rule,
+match; `--limit`, default 40, truncates the list and `--full` or
+`--limit 0` shows all), and `findings_total`. `loc` is the source line, or
+`p<page>:<line>` for PDF. `--text` prints the notes, a per-rule table, one
+`path:loc:col: [rule] match` line per finding, the band definitions, and a
 final `Advisory:` line. It is acli with `complete` and `+commentary`.
 
 **Post-conditions**:
-- fenced code, inline code, URLs, link targets, HTML comments, and YAML
+- code, math, URLs, emails, paths and file names, identifiers, `--flags`,
+  Quarto markup, citations, References sections, HTML comments, and YAML
   front matter never produce findings;
 - counts in `by_rule` cover every finding regardless of `--limit`;
 - only rules with a positive weight in `skills/not-ai/data/weights.json`
-  are `scored`, and no rule lowers the score;
+  are `scored`, and no rule lowers the score; bands come from the same
+  file;
 - missing or malformed `lexicon.tsv`/`weights.json` exits 3 with an error
-  envelope, and an unreadable input exits 4. It never falls back to a
-  built-in lexicon.
+  envelope, an unreadable input exits 4, and a PDF without a working
+  `pdftotext` exits 69. It never falls back to a built-in lexicon or
+  another extractor.
 
 **Examples** (the test suite is `tests/test_not_ai_lint.py`):
 1. `echo 'In conclusion, this underscores it.' | not-ai-lint --text` →
@@ -645,8 +652,10 @@ final `Advisory:` line. It is acli with `complete` and `+commentary`.
 2. Text whose only prose sits inside a code fence and backticks → an empty
    `by_rule`, exit 0.
 3. `not-ai-lint /nonexistent.md` → stderr error envelope, exit 4.
+4. `not-ai-lint --text paper.pdf` → `note: PDF text extracted with
+   pdftotext …` and findings located as `paper.pdf:p2:14:5:`.
 
-Lexicon and weights are derived, not hand-edited: `skills/not-ai/validate.py`
+Lexicon, weights, and bands are derived, not hand-edited: `skills/not-ai/validate.py`
 regenerates both and the numbers in `skills/not-ai/validation.md`.
 
 **Canonical source**: `scripts/not-ai-lint` (in this repo).

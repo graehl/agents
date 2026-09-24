@@ -19,10 +19,15 @@ scope (`topics/writing.md` § Review modes and rulings).
 ## 1. Attention map
 
 ```bash
-~/agents/scripts/not-ai-lint --text <files>     # or pipe a draft on stdin
+~/agents/scripts/not-ai-lint --text <files>     # .md, .qmd, .txt, .pdf; or pipe a draft
 ```
 
-Record the score and the per-rule counts. The score estimates how likely a
+It reads only prose: code, math, paths, citations, and References sections
+are skipped. For a PDF it uses `pdftotext`, and the report's `note:` lines
+say what extraction may have distorted. Carry those caveats into anything
+you tell the user. Record the score, its band, and the per-rule counts.
+The band compares the score with held-out human writing: about a quarter of
+human texts reach "moderate" and 5% reach "high". The score estimates how likely a
 text with these pattern rates is to be AI-written. On held-out data it
 separates AI from human expository prose well, and expert rewrites of AI
 text usually lower it. Individual flags barely predict which spans an

@@ -653,19 +653,26 @@
       13.1
     ]
   ],
+  "bands": {
+    "moderate": 60,
+    "high": 79,
+    "human_texts": 2128,
+    "ai_share_at_or_above_moderate": 0.754,
+    "ai_share_at_or_above_high": 0.569
+  },
   "weights": {
-    "bias": -1.3369,
-    "excess-vocab": 0.93792,
-    "stock-phrase": 0.59737,
-    "wrap-up": 0.88539,
-    "meta-comment": 0.77918,
-    "cadence-contrast": 0.33163,
-    "participial-tail": 0.22666,
-    "chat-residue": 2.05222,
-    "model-idiom": 1.70102,
-    "bold-inline": 1.11185,
-    "rhetorical-question": 0.08945,
-    "triad": 0.09762
+    "bias": -1.3304,
+    "excess-vocab": 0.93151,
+    "stock-phrase": 0.60032,
+    "wrap-up": 0.87827,
+    "meta-comment": 0.72361,
+    "cadence-contrast": 0.33235,
+    "participial-tail": 0.22618,
+    "chat-residue": 2.048,
+    "model-idiom": 1.7004,
+    "bold-inline": 1.11216,
+    "rhetorical-question": 0.0896,
+    "triad": 0.09907
   },
   "unscored_rules": [
     "importance-marker",
@@ -677,13 +684,13 @@
   ],
   "hape2_test": {
     "per_model_expository": {
-      "Meta-Llama-3-70B-Instruct": 0.791,
-      "claude-haiku-4-5-20251001": 0.852,
-      "gpt-4o-2024-08-06": 0.962,
-      "gpt-5-mini-2025-08-07": 0.732
+      "Meta-Llama-3-70B-Instruct": 0.789,
+      "claude-haiku-4-5-20251001": 0.849,
+      "gpt-4o-2024-08-06": 0.961,
+      "gpt-5-mini-2025-08-07": 0.73
     },
     "per_genre": {
-      "acad": 0.971,
+      "acad": 0.97,
       "blog": 0.803,
       "fic": 0.77,
       "news": 0.836,
@@ -691,7 +698,7 @@
       "tvm": 0.763
     },
     "per_rule_auc_expository": {
-      "excess-vocab": 0.804,
+      "excess-vocab": 0.802,
       "stock-phrase": 0.576,
       "importance-marker": 0.494,
       "wrap-up": 0.576,
@@ -703,20 +710,20 @@
       "em-dash": 0.565,
       "bold-inline": 0.497,
       "rhetorical-question": 0.472,
-      "triad": 0.583
+      "triad": 0.584
     },
-    "all_models_expository": 0.834
+    "all_models_expository": 0.832
   },
   "russell_test": {
     "articles": 150,
     "auc_vs_ground_truth": 0.928,
     "auc_by_generator": {
-      "claude": 0.945,
+      "claude": 0.944,
       "humanized_o1-pro": 0.796,
       "o1-pro": 0.987,
-      "paraphrased_gpt-4o": 0.983
+      "paraphrased_gpt-4o": 0.984
     },
-    "spearman_vs_expert_ai_confidence": 0.665,
+    "spearman_vs_expert_ai_confidence": 0.666,
     "per_rule_auc": {
       "excess-vocab": 0.899,
       "stock-phrase": 0.638,
@@ -744,7 +751,7 @@
       "o1-pro": 0.979,
       "paraphrased_gpt-4o": 0.989
     },
-    "spearman_vs_expert_ai_confidence": 0.751,
+    "spearman_vs_expert_ai_confidence": 0.75,
     "per_rule_auc": {
       "excess-vocab": 0.919,
       "stock-phrase": 0.705,
@@ -767,7 +774,7 @@
     "score_rose_after_edit": 392,
     "unchanged": 162,
     "p_value": 0.0,
-    "mean_score_pre": 65.2,
+    "mean_score_pre": 65.1,
     "mean_score_post": 57.1,
     "flags": 3993,
     "flags_inside_expert_edits": 0.384,
@@ -783,14 +790,14 @@
     "wq_benchmark:lamp-test": {
       "pairs": 1206,
       "ties": 160,
-      "lower_score_preferred": 0.522,
-      "p_value": 0.1641
+      "lower_score_preferred": 0.524,
+      "p_value": 0.1298
     },
     "wq_benchmark:lmarena": {
       "pairs": 1959,
-      "ties": 42,
-      "lower_score_preferred": 0.523,
-      "p_value": 0.0444
+      "ties": 47,
+      "lower_score_preferred": 0.524,
+      "p_value": 0.0418
     },
     "wq_benchmark:style-mimic": {
       "pairs": 300,
@@ -814,15 +821,15 @@
   "arena": {
     "all_decided_pairs": {
       "pairs": 39716,
-      "ties": 8261,
+      "ties": 8266,
       "lower_score_preferred": 0.479,
       "p_value": 0.0
     },
     "length_matched_within_10pct": {
-      "pairs": 5097,
-      "ties": 1111,
-      "lower_score_preferred": 0.513,
-      "p_value": 0.1169
+      "pairs": 5099,
+      "ties": 1098,
+      "lower_score_preferred": 0.512,
+      "p_value": 0.1458
     }
   }
 }
