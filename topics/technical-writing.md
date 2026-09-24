@@ -84,11 +84,11 @@ or fragment for effect; a "not X but Y" or triad built for cadence; a
 rhetorical question; a bolded whole sentence; a sentence about the document
 instead of the subject ("we now turn to"); an opener asserting importance
 rather than showing it; "crucially", "notably", "importantly", "underscores",
-"highlights". The correction is deletion, not replacement. The same holds
-for text that remarks on its own compliance with a writing rule, in the
-artifact ("in short", "put simply", "to be concise", "without belaboring")
-or in the note delivering it ("kept this tight", "led with the result"):
-following a rule is silent.
+"highlights". The correction is deletion, not replacement. Text that
+remarks on its own compliance with a writing rule is a defect in every
+authored piece, not only technical ones; see
+[`writing` § Drafting and revising](writing.md#drafting-and-revising),
+"Following a rule is silent."
 
 Paragraph-local edits break determiners. "The X" presumes X was introduced
 earlier; when a local reorder, cut, or move changes which mention of X comes
