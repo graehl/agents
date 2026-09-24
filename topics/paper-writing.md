@@ -52,7 +52,9 @@ Draft the result-bearing spine before explanatory transitions: abstract claim,
 principal comparison, one canonical figure or table, section-level takeaways,
 and the limitations that bound the claim. Each load-bearing assertion traces to
 the proposal's evidence matrix and then to a primary result, run record, or
-source.
+source. Record that trace in the manuscript source as
+[`claim-provenance`](claim-provenance.md) describes: invisible `ref:` comments
+beside claims and a `.repro.md` rider per section.
 
 The form cannot raise the evidence ceiling. Keep unsupported assertions
 explicitly speculative, and make every `TBD` name the missing measurement and
