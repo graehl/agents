@@ -32,9 +32,3 @@ Grok stores each session at
 `AGENTS.global.md` says to search provider session logs, search there,
 excluding your own `$AGENTCTL_SESSION_ID` directory. A YA-launched
 session still must not use that search to recover its own id.
-
-## Confirm before hard-to-reverse or outward-facing actions
-
-For actions that are hard to reverse or outward-facing, confirm first
-unless durably authorized or explicitly told to proceed without
-asking; approval in one context doesn't extend to the next.
