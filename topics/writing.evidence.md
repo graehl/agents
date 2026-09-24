@@ -273,3 +273,29 @@ anchor; `research-writing`'s "prior-art map" passes as a term of art; a
 handoff section "Earlier approach" fails and becomes the named approach plus
 what superseded it. A sweep of `~/agents` headings found no current
 violation, so the rule steers new writing only.
+
+## 2026-09-24 — AI-style attention map in § Revising
+
+Contributing-model: opus-5.5.
+
+User-directed: graehl asked for a script plus instructions to run it on
+request ("avoid ai style") or on prose-improvement passes. The output is
+advisory, "not authority for changes on its own but a tool to focus
+attention", with an overall score and lint items validated against human
+preferences. The stated aim is to stop "the irritating effect repeated
+'voice' notes build up over time": style patterns belong to the lint's rule
+table, not to accumulating prose rules. Mid-task he asked that the rules
+crib from AI-text detectors with efficacy evidence beyond "wow cool".
+
+Placement: one § Revising bullet carries the trigger and the advisory
+stance. The full pass lives in `skills/not-ai/SKILL.md` (manual invocation,
+also routed from `AGENTS.global.md` § Skill triggers). The evidence lives in
+`skills/not-ai/validation.md`. The bullet names no patterns, so this topic
+does not grow a second copy of the lint's list; `technical-writing`'s
+defect list remains the rule a flag must cite.
+
+Traces: a "tighten this section" pass runs the lint and cites a writing rule
+for each edit. A flagged "robust" in a statistics paragraph stays as a term
+of art. A request to "avoid AI style" loads the skill. Commit-message
+drafting is not a prose-improvement pass for a reader and is not routed
+here.

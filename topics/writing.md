@@ -140,6 +140,12 @@ checklist to satisfy in addition to genre rules: a genre topic such as
   either a new opening or a new body.
 - **Cold read.** A reviewer, or a session without the drafting context,
   finds what the drafter excused.
+- **AI-style attention map.** On a prose-improvement pass, run
+  `~/agents/scripts/not-ai-lint --text <file>` (or pipe the draft) and look
+  at what it flags. Its output is advisory: a flag earns an edit only when
+  a rule here or in the genre topic says why, and a span that is the
+  plainest correct wording stays. A request to avoid AI style gets the full
+  pass in `skills/not-ai/SKILL.md`.
 - **Following a rule is silent.** Authored prose never remarks on its own
   craft: no "in short", "put simply", "to be concise", "without belaboring",
   no closing note that the piece led with the result or kept things tight.

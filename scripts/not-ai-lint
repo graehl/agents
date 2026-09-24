@@ -1,0 +1,904 @@
+#!/usr/bin/env python3
+# acli: 1 complete +commentary
+"""not-ai-lint — advisory flags for prose patterns readers associate with AI.
+
+Reads Markdown or plain text (files, or stdin when none are given), skips
+code, URLs, and HTML comments, and reports:
+
+  findings  each matched pattern with line, column, and excerpt;
+  score     0-100: the fitted probability that a text with these pattern
+            rates is AI-written, from a logistic model over per-1000-word
+            rates trained on a balanced human/AI corpus. Only rules with a
+            measured positive association are scored; the rest are listed
+            as unscored flags.
+
+The output focuses a reviewer's attention; it is not grounds for an edit on
+its own. The lexicon and weights are derived by skills/not-ai/validate.py,
+whose results (including where the score misleads) are in
+skills/not-ai/validation.md.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import re
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import (
+    ExitCode,
+    Format,
+    add_standard_args,
+    argument_parser,
+    commentary,
+    die,
+    emit,
+    maybe_complete,
+    resolve_format,
+)
+
+DATA_DIR = _REPO_ROOT / "skills" / "not-ai" / "data"
+LEXICON_PATH = DATA_DIR / "lexicon.tsv"
+WEIGHTS_PATH = DATA_DIR / "weights.json"
+CAPABILITIES = ("complete", "+commentary")
+EXIT_CODES = {
+    3: "the derived lexicon or weights are missing or malformed (run skills/not-ai/validate.py)",
+    4: "an input file does not exist or is not readable text",
+}
+DEFAULT_LIMIT = 40
+# Below this many prose words a density score mostly measures one sentence.
+MIN_WORDS_FOR_SCORE = 150
+
+
+def _alternation(items: list[str]) -> str:
+    return "|".join(
+        re.escape(item) for item in sorted(set(items), key=len, reverse=True)
+    )
+
+
+def _phrase_rule(*phrases: str) -> re.Pattern[str]:
+    return re.compile(r"\b(?:" + _alternation(list(phrases)) + r")\b", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class Rule:
+    id: str
+    evidence: str  # "study" | "guide" | "lore"
+    note: str
+
+
+RULES: tuple[Rule, ...] = (
+    Rule(
+        "excess-vocab",
+        "study",
+        "word several times more frequent in LLM than human text; use the plain word or cut",
+    ),
+    Rule(
+        "stock-phrase",
+        "study",
+        "stock phrase or figure; say the literal thing or cut (writing § Sentences)",
+    ),
+    Rule(
+        "importance-marker",
+        "guide",
+        "asserts importance instead of showing it (technical-writing defect list); delete",
+    ),
+    Rule(
+        "wrap-up",
+        "study",
+        "summarizing wrap-up or announced walkthrough; end on the last real point instead",
+    ),
+    Rule(
+        "meta-comment",
+        "guide",
+        "prose about the prose (writing § Revising, 'Following a rule is silent'); delete",
+    ),
+    Rule(
+        "cadence-contrast",
+        "study",
+        "'not X but Y' reversal built for cadence; state each fact directly",
+    ),
+    Rule(
+        "participial-tail",
+        "study",
+        "trailing ', <verb>ing ...' gloss; end on the payload or split the sentence",
+    ),
+    Rule(
+        "chat-residue",
+        "guide",
+        "chat-assistant framing or tool artifact left in a document; delete",
+    ),
+    Rule(
+        "model-idiom",
+        "lore",
+        "idiom readers report as a recent-model habit; keep only where literal",
+    ),
+    Rule(
+        "em-dash",
+        "study",
+        "em dash; a comma, colon, parentheses, or a new sentence may be plainer",
+    ),
+    Rule(
+        "bold-inline",
+        "guide",
+        "inline bold beyond a defined term or warning; let structure carry emphasis",
+    ),
+    Rule(
+        "bold-lead-bullet",
+        "study",
+        "'**Label:** text' bullet; plain prose or a table may read better",
+    ),
+    Rule(
+        "title-case-heading",
+        "study",
+        "Title-Cased heading; a sentence-case claim heading tells the reader more",
+    ),
+    Rule(
+        "generic-heading",
+        "study",
+        "generic section title (Overview, Conclusion, Key Takeaways); name what the section claims",
+    ),
+    Rule(
+        "rhetorical-question",
+        "guide",
+        "question the text answers itself; state the answer",
+    ),
+    Rule(
+        "punch-fragment",
+        "guide",
+        "short one-sentence paragraph for effect; merge or cut",
+    ),
+    Rule(
+        "triad",
+        "guide",
+        "three short parallel items; check the third is real, not cadence",
+    ),
+)
+RULE_BY_ID = {rule.id: rule for rule in RULES}
+RULE_EVIDENCE = {
+    "study": "named in a detection or frequency study (validation.md cites it)",
+    "guide": "repository writing rule (writing.md, technical-writing.md)",
+    "lore": "reader reports without a measured study",
+}
+
+# Members kept only where the HAP-E-2 training half shows an AI/human rate
+# ratio of at least 1.5 (validate.py prints the per-member table); guide
+# phrases that fail that bar live in IMPORTANCE_MARKER and META_COMMENT.
+STOCK_PHRASE = _phrase_rule(
+    # Russell et al. guide phrases and metaphors, plus common figures.
+    "in a world where",
+    "in a world of",
+    "pave the way",
+    "paves the way",
+    "paving the way",
+    "the rise of",
+    "a testament to",
+    "stands as a testament",
+    "serves as a testament",
+    "cautionary tale",
+    "personal growth",
+    "quality of life",
+    "packs a punch",
+    "simple yet",
+    "grand scheme",
+    "rich tapestry",
+    "a tapestry of",
+    "embark on",
+    "embarked on",
+    "a journey of",
+    "navigate the complexities",
+    "navigating the complexities",
+    "the ever-evolving",
+    "ever-evolving",
+    "ever-changing landscape",
+    "the landscape of",
+    "in the realm of",
+    "at the heart of",
+    "unlock the potential",
+    "unlocking the potential",
+    "game-changer",
+    "double-edged sword",
+    "paradigm shift",
+    "in today's fast-paced",
+    "fast-paced world",
+    "rapidly evolving",
+    "shed light on",
+    "sheds light on",
+    "shedding light on",
+    "treasure trove",
+    "move the needle",
+    "plays a crucial role",
+    "plays a pivotal role",
+    "it's crucial to",
+    "it is crucial to",
+    "to mitigate the risk",
+    "remember that",
+    "crucially",
+    "notably",
+)
+# technical-writing § Priority order names these as defects whatever their
+# measured frequency; human writers use several of them as often as models.
+IMPORTANCE_MARKER = _phrase_rule(
+    "importantly",
+    "it's important to note",
+    "it is important to note",
+    "it's worth noting",
+    "it is worth noting",
+    "needless to say",
+    "it bears mentioning",
+    "when it comes to",
+    "plays a key role",
+    "plays a vital role",
+    "underscores the importance",
+    "highlights the importance",
+)
+WRAP_UP = re.compile(
+    r"(?:^|(?<=[.!?]\s)|(?<=[.!?]\s\s))(?:"
+    + _alternation(
+        [
+            "in conclusion",
+            "in summary",
+            "to summarize",
+            "to wrap it up",
+            "to wrap up",
+            "in the end,",
+            "in essence",
+            "ultimately,",
+            "the bottom line",
+            "let's dive",
+            "let's delve",
+            "let's explore",
+            "let's take a closer look",
+            "let's break it down",
+            "let's unpack",
+        ]
+    )
+    + r")",
+    re.IGNORECASE,
+)
+# writing § Revising, "Following a rule is silent": prose about the prose.
+META_COMMENT = re.compile(
+    r"(?:^|(?<=[.!?]\s)|(?<=[.!?]\s\s))(?:"
+    + _alternation(
+        [
+            "in short",
+            "simply put",
+            "put simply",
+            "to sum up",
+            "overall,",
+            "all in all",
+            "at the end of the day",
+            "we now turn to",
+            "in this article",
+            "in this post",
+            "in this guide",
+            "this article explores",
+            "this post explores",
+            "to be concise",
+            "without belaboring",
+            "long story short",
+        ]
+    )
+    + r")",
+    re.IGNORECASE,
+)
+CADENCE_CONTRAST = re.compile(
+    r"\b(?:it'?s|it is|this is|that'?s|that is|isn'?t|is|was|wasn'?t)\s+not\s+"
+    r"(?:just|only|merely|simply|about)?\s*[^.;:!?\n]{1,60}?"
+    r"(?:[,;]|\s—|—|\s-\s|\.)\s*(?:but|it'?s|it is|this is|that'?s)\b"
+    r"|\bnot\s+(?:just|only|merely)\s+[^.;:!?\n]{1,60}?,?\s+but\s+(?:also\s+)?"
+    r"|\bnot\s+only\b[^.;:!?\n]{1,80}?\bbut\s+also\b",
+    re.IGNORECASE,
+)
+PARTICIPIAL_TAIL = re.compile(
+    r",\s+(?:"
+    + _alternation(
+        [
+            "highlighting",
+            "underscoring",
+            "emphasizing",
+            "showcasing",
+            "reflecting",
+            "demonstrating",
+            "ensuring",
+            "allowing",
+            "enabling",
+            "making it",
+            "making them",
+            "fostering",
+            "contributing",
+            "paving",
+            "offering",
+            "providing",
+            "creating",
+            "leading to",
+            "resulting in",
+            "signaling",
+            "illustrating",
+            "revealing",
+            "suggesting",
+            "reinforcing",
+            "cementing",
+            "solidifying",
+            "marking",
+            "positioning",
+        ]
+    )
+    + r")\b",
+    re.IGNORECASE,
+)
+CHAT_RESIDUE = re.compile(
+    r"\b(?:"
+    + _alternation(
+        [
+            "i hope this helps",
+            "hope this helps",
+            "let me know if",
+            "feel free to",
+            "happy to help",
+            "great question",
+            "as an ai",
+            "as a language model",
+            "i'd be happy to",
+            "i would be happy to",
+            "here's a breakdown",
+            "here is a breakdown",
+            "as of my last knowledge update",
+            "as of my knowledge cutoff",
+        ]
+    )
+    + r")\b|\b(?:oaicite|contentReference|turn\d+search\d+|utm_source=chatgpt)",
+    re.IGNORECASE,
+)
+MODEL_IDIOM = _phrase_rule(
+    "load-bearing",
+    "earns its keep",
+    "earn its keep",
+    "does the heavy lifting",
+    "doing the heavy lifting",
+    "quietly",
+    "genuinely",
+    "the real question",
+    "the honest answer",
+    "worth sitting with",
+    "the crux",
+    "in practice,",
+)
+LEXICAL_RULES: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("stock-phrase", STOCK_PHRASE),
+    ("importance-marker", IMPORTANCE_MARKER),
+    ("wrap-up", WRAP_UP),
+    ("meta-comment", META_COMMENT),
+    ("cadence-contrast", CADENCE_CONTRAST),
+    ("participial-tail", PARTICIPIAL_TAIL),
+    ("chat-residue", CHAT_RESIDUE),
+    ("model-idiom", MODEL_IDIOM),
+)
+
+GENERIC_HEADINGS = {
+    "overview",
+    "introduction",
+    "conclusion",
+    "conclusions",
+    "summary",
+    "key takeaways",
+    "takeaways",
+    "final thoughts",
+    "closing thoughts",
+    "the bottom line",
+    "in conclusion",
+    "in the end",
+    "call to action",
+    "real-world applications",
+    "advantages and challenges",
+    "pros and cons",
+    "why it matters",
+    "why this matters",
+    "next steps",
+    "looking ahead",
+    "the road ahead",
+    "best practices",
+    "key features",
+    "key benefits",
+    "key considerations",
+    "challenges and considerations",
+}
+GENERIC_HEADING_PREFIX = re.compile(
+    r"^(?:understanding|exploring|unlocking|navigating|mastering|demystifying|"
+    r"the power of|the role of|the importance of|the future of|the art of|"
+    r"the science behind|how \w+ works)\b",
+    re.IGNORECASE,
+)
+SMALL_WORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "but",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "vs",
+    "via",
+    "with",
+    "nor",
+    "per",
+}
+
+
+class DataError(Exception):
+    pass
+
+
+def load_lexicon(path: Path = LEXICON_PATH) -> re.Pattern[str]:
+    try:
+        rows = path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise DataError(f"{path}: {exc}") from None
+    words = [row.split("\t")[0] for row in rows if row and not row.startswith("#")][1:]
+    if not words:
+        raise DataError(f"{path}: no words below the header")
+    return re.compile(r"\b(?:" + _alternation(words) + r")\b", re.IGNORECASE)
+
+
+def load_weights(path: Path = WEIGHTS_PATH) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        bias = float(data["bias"])
+        weights = {str(k): float(v) for k, v in data["weights"].items()}
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise DataError(f"{path}: {exc}") from None
+    unknown = set(weights) - set(RULE_BY_ID)
+    if unknown:
+        raise DataError(f"{path}: weights for unknown rules {sorted(unknown)}")
+    return {"bias": bias, "weights": weights}
+
+
+# --- Markdown-aware prose extraction ----------------------------------------
+
+FENCE = re.compile(r"^\s{0,3}(```+|~~~+)")
+HEADING = re.compile(r"^\s{0,3}#{1,6}\s")
+BULLET = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
+TABLE = re.compile(r"^\s*\|")
+QUOTE = re.compile(r"^\s{0,3}>\s?")
+INLINE_CODE = re.compile(r"(`+)(?:(?!\1).)+?\1")
+URL = re.compile(r"(?:https?://|www\.)\S+")
+LINK_TARGET = re.compile(r"\]\([^)]*\)")
+HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+WORD = re.compile(r"[A-Za-z][A-Za-z'’-]*")
+
+
+def _blank(match: re.Match[str]) -> str:
+    return " " * len(match.group(0))
+
+
+@dataclass
+class Line:
+    number: int
+    kind: str  # heading | bullet | table | quote | text | blank
+    text: str  # source line with code and URLs blanked to spaces
+
+
+def prose_lines(source: str) -> list[Line]:
+    source = HTML_COMMENT.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), source)
+    raw = source.split("\n")
+    start = 0
+    if raw and raw[0].strip() == "---":
+        for i in range(1, len(raw)):
+            if raw[i].strip() in {"---", "..."}:
+                start = i + 1
+                break
+    lines: list[Line] = []
+    fence: str | None = None
+    for index, text in enumerate(raw[start:], start=start):
+        opened = FENCE.match(text)
+        if fence is not None:
+            if (
+                opened
+                and opened.group(1)[0] == fence[0]
+                and len(opened.group(1)) >= len(fence)
+            ):
+                fence = None
+            continue
+        if opened:
+            fence = opened.group(1)
+            continue
+        cleaned = INLINE_CODE.sub(_blank, text)
+        cleaned = LINK_TARGET.sub(lambda m: "]" + " " * (len(m.group(0)) - 1), cleaned)
+        cleaned = URL.sub(_blank, cleaned)
+        if not cleaned.strip():
+            kind = "blank"
+        elif HEADING.match(cleaned):
+            kind = "heading"
+        elif TABLE.match(cleaned):
+            kind = "table"
+        elif BULLET.match(cleaned):
+            kind = "bullet"
+        elif QUOTE.match(cleaned):
+            kind = "quote"
+        else:
+            kind = "text"
+        lines.append(Line(index + 1, kind, cleaned))
+    return lines
+
+
+@dataclass
+class Block:
+    kind: str  # paragraph | bullet | heading | table | quote
+    lines: list[Line]
+
+    @property
+    def text(self) -> str:
+        return " ".join(line.text.strip() for line in self.lines)
+
+
+def blocks(lines: list[Line]) -> list[Block]:
+    out: list[Block] = []
+    current: Block | None = None
+    for line in lines:
+        if line.kind == "blank":
+            current = None
+        elif line.kind in {"heading", "table"}:
+            out.append(Block(line.kind, [line]))
+            current = None
+        elif line.kind == "bullet":
+            current = Block("bullet", [line])
+            out.append(current)
+        else:
+            kind = "quote" if line.kind == "quote" else "paragraph"
+            if current is not None and current.kind in {kind, "bullet"}:
+                current.lines.append(line)
+            else:
+                current = Block(kind, [line])
+                out.append(current)
+    return out
+
+
+SENTENCE_END = re.compile(
+    r"(?<!\b[A-Z])(?<!\be\.g)(?<!\bi\.e)(?<!\betc)(?<!\bvs)[.!?]+[\"')\]’”]*"
+    r"(?=\s+[\"'(\[“‘]?[A-Z0-9]|\s*$)"
+)
+
+
+def sentences(text: str) -> list[str]:
+    parts: list[str] = []
+    last = 0
+    for match in SENTENCE_END.finditer(text):
+        piece = text[last : match.end()].strip()
+        if piece:
+            parts.append(piece)
+        last = match.end()
+    tail = text[last:].strip()
+    if tail:
+        parts.append(tail)
+    return parts
+
+
+# --- Detection -----------------------------------------------------------------
+
+
+@dataclass
+class Finding:
+    rule: str
+    line: int
+    col: int
+    match: str
+
+
+EM_DASH = re.compile(r"—|(?<=\w) ?-- ?(?=\w)")
+BOLD = re.compile(r"\*\*[^*\n]+\*\*|__[^_\n]+__")
+BOLD_LEAD = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*|__)[^*_\n]{1,60}?(?:\*\*|__)")
+TRIAD = re.compile(
+    r"\b(\w+(?:\s\w+){0,2}),\s+(\w+(?:\s\w+){0,2}),?\s+(?:and|or)\s+(\w+(?:\s\w+){0,2})$"
+)
+HEADING_TEXT = re.compile(r"^\s{0,3}#{1,6}\s+(.*?)\s*#*\s*$")
+
+
+def _heading_findings(line: Line) -> list[Finding]:
+    match = HEADING_TEXT.match(line.text)
+    if not match:
+        return []
+    title = re.sub(r"[*_`]", "", match.group(1)).strip()
+    found: list[Finding] = []
+    bare = re.sub(r"^[\d.]+\s*", "", title).rstrip(":").strip()
+    if bare.lower() in GENERIC_HEADINGS or GENERIC_HEADING_PREFIX.match(bare):
+        found.append(Finding("generic-heading", line.number, 1, title[:60]))
+    words = [w for w in re.findall(r"[A-Za-z][A-Za-z'’-]*", bare)]
+    content = [w for w in words[1:] if w.lower() not in SMALL_WORDS]
+    title_cased = len(content) >= 2 and all(w[0].isupper() for w in content)
+    if title_cased and not all(w.isupper() for w in content):
+        found.append(Finding("title-case-heading", line.number, 1, title[:60]))
+    return found
+
+
+def _locate(unit: Block, fragment: str) -> tuple[int, int]:
+    probe = fragment.strip()[:20]
+    for line in unit.lines:
+        at = line.text.find(probe)
+        if at >= 0:
+            return line.number, at + 1
+    return unit.lines[0].number, 1
+
+
+def analyze(source: str, lexicon: re.Pattern[str]) -> tuple[int, list[Finding]]:
+    """Prose word count and all findings, independent of score weights."""
+    lines = prose_lines(source)
+    found: list[Finding] = []
+    for line in lines:
+        if line.kind in {"blank", "table"}:
+            continue
+        for match in lexicon.finditer(line.text):
+            found.append(
+                Finding("excess-vocab", line.number, match.start() + 1, match.group(0))
+            )
+        for rule_id, pattern in LEXICAL_RULES:
+            for match in pattern.finditer(line.text):
+                found.append(
+                    Finding(
+                        rule_id,
+                        line.number,
+                        match.start() + 1,
+                        match.group(0).strip()[:60],
+                    )
+                )
+        for match in EM_DASH.finditer(line.text):
+            found.append(
+                Finding(
+                    "em-dash", line.number, match.start() + 1, match.group(0).strip()
+                )
+            )
+        if line.kind == "heading":
+            found.extend(_heading_findings(line))
+            continue
+        lead = BOLD_LEAD.match(line.text) if line.kind == "bullet" else None
+        if lead:
+            found.append(
+                Finding("bold-lead-bullet", line.number, 1, lead.group(0).strip()[:60])
+            )
+        for match in BOLD.finditer(line.text):
+            if lead and match.start() < lead.end():
+                continue
+            found.append(
+                Finding(
+                    "bold-inline", line.number, match.start() + 1, match.group(0)[:60]
+                )
+            )
+    units = blocks(lines)
+    # A lone short paragraph is the whole text, not a fragment set off for effect.
+    paragraphs = sum(unit.kind == "paragraph" for unit in units)
+    for unit in units:
+        if unit.kind not in {"paragraph", "bullet", "quote"}:
+            continue
+        body = unit.text
+        parts = sentences(body)
+        for sentence in parts:
+            if sentence.rstrip("\"')]’”").endswith("?"):
+                line_no, col = _locate(unit, sentence)
+                found.append(
+                    Finding("rhetorical-question", line_no, col, sentence[:60])
+                )
+            for match in TRIAD.finditer(sentence.rstrip(".!?;:\"')]’”")):
+                line_no, col = _locate(unit, match.group(0))
+                found.append(Finding("triad", line_no, col, match.group(0)[:60]))
+        if (
+            unit.kind == "paragraph"
+            and paragraphs >= 3
+            and len(parts) == 1
+            and not body.rstrip().rstrip("*_").endswith(":")
+            and 0 < len(WORD.findall(parts[0])) <= 6
+        ):
+            found.append(
+                Finding("punch-fragment", unit.lines[0].number, 1, parts[0][:60])
+            )
+    found.sort(key=lambda f: (f.line, f.col, f.rule))
+    words = sum(
+        len(WORD.findall(line.text))
+        for line in lines
+        if line.kind not in {"blank", "table"}
+    )
+    return words, found
+
+
+def rates(words: int, findings: list[Finding]) -> dict[str, float]:
+    counts: dict[str, int] = {}
+    for finding in findings:
+        counts[finding.rule] = counts.get(finding.rule, 0) + 1
+    return {rule: 1000.0 * n / max(words, 1) for rule, n in counts.items()}
+
+
+def probability(per_k: dict[str, float], model: dict) -> float:
+    z = model["bias"] + sum(
+        weight * math.log1p(per_k.get(rule, 0.0))
+        for rule, weight in model["weights"].items()
+    )
+    return 1.0 / (1.0 + math.exp(-z))
+
+
+def summarize(words: int, findings: list[Finding], model: dict) -> dict:
+    per_k = rates(words, findings)
+    matches: dict[str, dict[str, int]] = {}
+    for finding in findings:
+        bucket = matches.setdefault(finding.rule, {})
+        key = finding.match.lower()
+        bucket[key] = bucket.get(key, 0) + 1
+    scored = {rule for rule, weight in model["weights"].items() if weight > 0}
+
+    def contribution(rule: str) -> float:
+        return model["weights"].get(rule, 0.0) * math.log1p(per_k[rule])
+
+    by_rule = {}
+    for rule in sorted(per_k, key=lambda r: (-contribution(r), -per_k[r])):
+        top = sorted(matches[rule].items(), key=lambda kv: (-kv[1], kv[0]))[:6]
+        by_rule[rule] = {
+            "count": sum(matches[rule].values()),
+            "per_1k_words": round(per_k[rule], 2),
+            "scored": rule in scored,
+            "top": [f"{text} ×{n}" if n > 1 else text for text, n in top],
+            "note": RULE_BY_ID[rule].note,
+        }
+    return {
+        "score": round(100 * probability(per_k, model)),
+        "words": words,
+        "reliable": words >= MIN_WORDS_FOR_SCORE,
+        "by_rule": by_rule,
+    }
+
+
+# --- CLI --------------------------------------------------------------------------
+
+
+def _read(path: str) -> str:
+    if path == "-":
+        return sys.stdin.read()
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        die(f"{path}: {exc}", ExitCode.NOT_FOUND)
+
+
+def _band(value: int) -> str:
+    return "low" if value < 25 else "moderate" if value < 60 else "high"
+
+
+def _text_report(reports: list[dict]) -> str:
+    out: list[str] = []
+    for report in reports:
+        summary = report["summary"]
+        caveat = (
+            ""
+            if summary["reliable"]
+            else f"; under {MIN_WORDS_FOR_SCORE} words, score is noisy"
+        )
+        out.append(
+            f"{report['path']}: AI-style score {summary['score']}/100 "
+            f"[{_band(summary['score'])}], {summary['words']} prose words{caveat}"
+        )
+        for rule, stats in summary["by_rule"].items():
+            mark = " " if stats["scored"] else "~"
+            out.append(
+                f" {mark}{rule:<19} {stats['count']:>3} ({stats['per_1k_words']}/1k) "
+                f"{', '.join(stats['top'])} — {stats['note']}"
+            )
+        for item in report["findings"]:
+            out.append(
+                f"{report['path']}:{item['line']}:{item['col']}: [{item['rule']}] {item['match']}"
+            )
+        hidden = report["findings_total"] - len(report["findings"])
+        if hidden > 0:
+            out.append(f"  ... {hidden} more findings (--limit 0 shows all)")
+    out.append(
+        "Advisory: flags mark places to look, not required edits; keep any span that is the "
+        "plainest correct wording. '~' rules are listed but not scored."
+    )
+    return "\n".join(out)
+
+
+def build_parser():
+    parser = argument_parser(
+        prog="not-ai-lint",
+        description=(
+            "Advisory lint for prose patterns readers associate with AI writing, with a 0-100\n"
+            "score (higher = more AI-like). Reads Markdown or text; skips code and URLs.\n"
+            "Instant; one JSON record per input on stdout. Findings focus review; they do not\n"
+            "authorize edits. Skill: skills/not-ai/SKILL.md; evidence: skills/not-ai/validation.md."
+        ),
+        capabilities=CAPABILITIES,
+        exit_codes=EXIT_CODES,
+    )
+    parser.add_argument(
+        "paths", nargs="*", help="Files to check; '-' or none reads stdin."
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=DEFAULT_LIMIT,
+        help=f"Findings listed per input (default {DEFAULT_LIMIT}; 0 = all). Counts cover all.",
+    )
+    parser.add_argument(
+        "--rules",
+        action="store_true",
+        help="List rules with evidence class and fitted weight instead of checking text.",
+    )
+    add_standard_args(parser)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    maybe_complete(parser, [sys.argv[0], *(argv if argv is not None else sys.argv[1:])])
+    args = parser.parse_args(argv)
+    try:
+        fmt = resolve_format(args)
+    except ValueError as exc:
+        die(str(exc), ExitCode.USAGE)
+    try:
+        lexicon = load_lexicon()
+        model = load_weights()
+    except DataError as exc:
+        die(str(exc), ExitCode.DATA)
+    if args.rules:
+        rows = [
+            {
+                "rule": r.id,
+                "weight": round(model["weights"].get(r.id, 0.0), 4),
+                "evidence": r.evidence,
+                "note": r.note,
+            }
+            for r in RULES
+        ]
+        text = "\n".join(
+            f"{r['rule']:<19} w={r['weight']:<7} {r['evidence']:<6} {r['note']}"
+            for r in rows
+        )
+        emit(rows, fmt, text=text)
+        return 0
+    limit = None if args.full or args.limit == 0 else args.limit
+    reports: list[dict] = []
+    for path in args.paths or ["-"]:
+        words, findings = analyze(_read(path), lexicon)
+        records = [
+            {"line": f.line, "col": f.col, "rule": f.rule, "match": f.match}
+            for f in findings
+        ]
+        reports.append(
+            {
+                "path": path,
+                "summary": summarize(words, findings, model),
+                "findings": records if limit is None else records[:limit],
+                "findings_total": len(records),
+            }
+        )
+    if fmt is Format.TEXT:
+        emit(reports, fmt, text=_text_report(reports))
+        return 0
+    emit(
+        [
+            commentary(
+                f"AI-style score {r['summary']['score']}/100 over {r['summary']['words']}"
+                " prose words; flags mark places to look, not required edits.",
+                value=r,
+            )
+            for r in reports
+        ],
+        fmt,
+        commentary=not args.no_commentary,
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
