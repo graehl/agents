@@ -4,6 +4,7 @@
 > paper's form, focus, and claims fit the research program's actual evidence.
 
 Topic: `paper-reviewer`
+Governs: reviewing a proposed or drafted paper against program evidence
 
 ## Artifact-conditioned advisor guidance
 

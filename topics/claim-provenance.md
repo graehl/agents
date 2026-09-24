@@ -5,6 +5,7 @@
 > then resolve, reconstruct, and transport that evidence with `claim-refs`.
 
 Topic: `claim-provenance`
+Governs: citing evidence in a manuscript, verifying its claims, or moving its run records
 
 Read this before adding or revising evidence citations in a paper or other
 rendered research manuscript, before a verification pass over its claims, and

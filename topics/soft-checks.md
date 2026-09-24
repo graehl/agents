@@ -7,6 +7,7 @@
 > a generator under test.
 
 Topic: `soft-checks`
+Governs: verifying generated output that has no exact expected value
 
 A **soft check** is a check whose pass/fail comes from evaluating a
 stated invariant over an output, rather than comparing the output to an

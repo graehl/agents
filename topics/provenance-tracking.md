@@ -4,6 +4,7 @@
 > to regenerate it, and what's changed since the last good run.
 
 Topic: `provenance-tracking`
+Governs: recording what run produced an output and how to regenerate it
 
 A run-launcher / job-tracking system needs to answer:
 

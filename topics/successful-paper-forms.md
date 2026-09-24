@@ -5,6 +5,7 @@
 > underlying discovery is.
 
 Topic: `successful-paper-forms`
+Governs: choosing a paper's governing expository form
 
 ## What this taxonomy describes
 

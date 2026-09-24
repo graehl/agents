@@ -6,6 +6,7 @@
 > against the request before completion is claimed.
 
 Topic: `ui-testing`
+Governs: testing a web UI with rendered captures across viewports
 
 The generally applicable core of per-project UI-testing protocols.
 Projects duplicate and extend this as their own `topics/ui-testing.md`

@@ -5,6 +5,7 @@
 > creating two independently edited manuscripts.
 
 Topic: `document-writing`
+Governs: choosing the source of truth and renderer for a research document
 
 ## Default source and renderer
 

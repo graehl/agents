@@ -5,6 +5,7 @@
 > can recover the work's flavor and one evidence-grounded insight by scanning.
 
 Topic: `handout-writing`
+Governs: writing or revising a research handout
 
 ## Rewrite for first contact
 

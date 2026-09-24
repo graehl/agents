@@ -5,6 +5,7 @@
 > document without depending on browser interaction.
 
 Topic: `document-writing-printable`
+Governs: producing a PDF or LaTeX submission package from a research document
 
 ## Printable equivalent
 

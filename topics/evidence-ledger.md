@@ -5,6 +5,7 @@
 > accurate knowledge and good behavior on the topic.
 
 Topic: `evidence-ledger`
+Governs: appending to or creating a topic's .evidence.md
 
 ## License — what to append
 

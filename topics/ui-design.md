@@ -5,6 +5,7 @@
 > display facilities when available.
 
 Topic: ui-design
+Governs: asked what a feature's UI should look like
 
 ## Trigger and scope
 

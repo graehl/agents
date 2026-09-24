@@ -5,6 +5,7 @@
 > and propose a recommended answer per branch before moving on.
 
 Topic: `plan-grilling`
+Governs: the user says "grill" about a plan or design
 
 Trigger: user says "grill" about a plan or design.
 

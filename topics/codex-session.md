@@ -4,6 +4,7 @@
 > without loading rare recovery and run mechanics into every task.
 
 Topic: `codex-session`
+Governs: recovering Codex session identity or waiting on owned jobs under Codex
 
 `AGENTS.codex.md` routes the matching section at identity-recovery and owned-job
 boundaries. Shared registration semantics belong in `agentctl.md`; run policy

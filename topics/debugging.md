@@ -6,6 +6,7 @@
 > regression test at the correct seam — or records its absence.
 
 Topic: `debugging`
+Governs: diagnosing a defect or slow or stalled behavior
 
 ## Contracts
 

@@ -7,6 +7,7 @@
 > recorded mode (auto / headless / manual / frozen).
 
 Topic: `almanac`
+Governs: building, repairing, or querying an almanac dataset from a web page
 
 The skill's product is a dataset, not a program. A build session
 (`skills/almanac/SKILL.md`) spends agent judgment once — finding the

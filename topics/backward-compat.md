@@ -4,6 +4,7 @@
 > changes can check whether a surface has already made a contract decision.
 
 Topic: `backward-compat`
+Governs: breaking or shimming a public API, CLI flag, wire format, or persisted schema
 
 ## Decisions
 

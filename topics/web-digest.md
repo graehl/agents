@@ -9,6 +9,7 @@
 > `scripts/web-digest` for ad-hoc manual upload.
 
 Topic: `web-digest`
+Governs: updating the claude.ai preferences paste or web digest
 
 ## Purpose and audience split
 

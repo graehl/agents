@@ -4,6 +4,7 @@
 > at significant milestones and reconciled with live project evidence before use.
 
 Topic: `handoffs`
+Governs: creating or updating a handoff
 
 ## Selecting the handoff
 

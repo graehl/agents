@@ -4,6 +4,7 @@
 > adopted capabilities, covering discovery, invocation, output, and consumers.
 
 Topic: `acli-spec`
+Governs: specifying or verifying an acli tool's exact protocol
 
 ## Scope and conformance
 

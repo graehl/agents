@@ -5,6 +5,7 @@
 > resources, reproducibility, human-interest examples, and stakes framing.
 
 Topic: `paper-attractiveness`
+Governs: deciding what makes a paper attractive beyond its form
 
 ## Keep attraction separate from form and discovery
 

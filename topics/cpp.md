@@ -1,5 +1,11 @@
 # C++ tooling
 
+> C/C++ formatting, checking, and API-change conventions applied before the
+> first C/C++ edit in a repo.
+
+Topic: `cpp`
+Governs: first editing C or C++ in a repo
+
 Loaded before editing C/C++ files or when first working in a C/C++
 project (trigger: `AGENTS.global.md` § Language tooling).
 

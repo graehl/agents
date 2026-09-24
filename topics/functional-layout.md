@@ -6,6 +6,7 @@
 > jitter when content loads or the window is resized.
 
 Topic: functional-layout
+Governs: deciding how a screen should look: layout, alignment, spacing, focal point
 
 Subtopic of [`ui-quality`](ui-quality.md). This doc defines *what correct
 means* for a layout — the design contract; [`ui-verification`](ui-verification.md)

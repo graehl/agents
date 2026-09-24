@@ -4,6 +4,7 @@
 > exactly what the editor applies on save, and checked with `shellcheck`.
 
 Topic: `shell`
+Governs: first editing shell scripts in a repo
 
 Loaded before editing shell scripts or when first working in a shell-heavy
 project (trigger: `AGENTS.global.md` § Language tooling).

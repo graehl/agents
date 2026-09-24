@@ -8,6 +8,7 @@
 > empty.
 
 Topic: `story-project-layout`
+Governs: creating or reorganizing a story project's files
 
 Read this before creating or reorganizing the files of a story, screenplay,
 or world-building project, or when asked where a character, place, or plot

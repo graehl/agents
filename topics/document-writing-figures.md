@@ -5,6 +5,7 @@
 > provenance-tracked data into matched web and print assets.
 
 Topic: `document-writing-figures`
+Governs: a paper, handout, report, or blog asks for a graph, diagram, or rich table
 
 Use this topic when a paper, handout, progress report, or research blog asks
 for a graph, diagram, visual summary, or unusually rich table. It translates

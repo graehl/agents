@@ -7,6 +7,7 @@
 > layout.
 
 Topic: theming
+Governs: adding or changing themes, dark mode, skins, or design tokens
 
 Subtopic of [`ui-quality`](ui-quality.md), and the *last* of its three
 concerns by design: **design it, verify it, then theme it.** Theming layers

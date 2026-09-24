@@ -5,6 +5,7 @@
 > validation, and durable attempt receipts.
 
 Topic: `document-annotation`
+Governs: building or running fixed-prompt segmented-document annotation
 
 Read this topic before building or running fixed-prompt, segmented-document
 annotation through Codex or OpenAI Chat Completions. Use the shared Python

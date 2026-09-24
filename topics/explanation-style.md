@@ -6,6 +6,7 @@
 > background.
 
 Topic: `explanation-style`
+Governs: the user says "remind me" or "refresher" before a named concept
 
 Trigger: user says "remind me X" or "refresher on X" before a
 named technique, concept, or method.

@@ -5,6 +5,7 @@
 > adds exploration, navigation, and detail.
 
 Topic: `document-writing-browser-interactive`
+Governs: rendering a research document as interactive static HTML
 
 ## Static delivery contract
 

@@ -7,6 +7,7 @@
 > client/server perf runs.
 
 Topic: `perf`
+Governs: benchmarking, profiling, or load simulation on a shared host
 
 Binds whenever a session launches processes to measure performance —
 benchmark scripts, ratchet suites, load simulations, profiling — on

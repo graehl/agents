@@ -5,6 +5,7 @@
 > scope, and evidence honest.
 
 Topic: `research-blog-writing`
+Governs: writing a research blog post that showcases one result
 
 Status: **DESCRIPTIVE / UNEXERCISED** — this role is inferred from successful
 research blogs the user has read, not a blog workflow used in this project.

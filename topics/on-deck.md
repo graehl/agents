@@ -5,6 +5,7 @@
 > the next step each cycle rather than executing a precompiled workflow.
 
 Topic: on-deck
+Governs: servicing, authoring, or ratifying on-deck queue entries; tending
 
 RUNS-RESEARCH overlap: run-orchestration policy (RUNS) used to keep a research
 program's GPU productive between higher-capability agent cycles (RESEARCH).

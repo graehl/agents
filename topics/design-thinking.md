@@ -3,6 +3,7 @@
 > How to approach a change before and during implementation — independent of language or domain.
 
 Topic: design-thinking
+Governs: approaching a non-trivial change before and during implementation
 
 For how these show up in the code itself, see [software-aesthetic.md](software-aesthetic.md) and [software-aesthetic.coordinated.md](software-aesthetic.coordinated.md).
 

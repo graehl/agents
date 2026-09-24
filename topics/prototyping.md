@@ -5,6 +5,7 @@
 > deleted or absorbed when done — with the answer captured durably.
 
 Topic: `prototyping`
+Governs: writing throwaway code to answer one question
 
 ## Contracts
 
