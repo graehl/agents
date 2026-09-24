@@ -66,6 +66,69 @@ the relationship clearer with less prose. Follow the display contract below
 when producing it. Keep necessary definitions and uncertainty visible after
 trimming, and recheck the whole argument after local rulings.
 
+## End each unit on what drives the next
+
+Readers stress whatever arrives at a point of syntactic closure: the end of a
+clause, sentence, paragraph, or section. [`writing` § Sentences](writing.md#sentences)
+states the general form as *old before new*. Technical prose, where most
+sentences carry a result, a quantity, or a condition, gets the strong version:
+
+Put in the stress position the element the reader must carry forward: the
+result, the surprising or uncertain part, the quantity the next sentence
+explains, or the condition the next paragraph relaxes. Open with the
+linkage: the term already under discussion, or the clause that connects to
+the previous sentence. A sentence built this way tells the reader what it is
+about before it asks them to hold anything new, and leaves them holding
+exactly the piece the next sentence uses.
+
+When a sentence reads inadequately, check its stress position before
+diagnosing anything else. The usual occupant is not the payload but a
+trailing qualifier: a citation, a condition ("when N is large"), a locator
+("as shown in Table 2"), a method aside ("in our preliminary experiments"),
+or a hedge. Fixes, in order of preference:
+
+1. move the qualifier forward, ahead of the payload;
+2. split, giving the qualifier its own sentence with its own stress position;
+3. choose the grammatical subject so the order comes out right. This is the
+   legitimate use of the passive, and the reason "avoid the passive" is a
+   corrective rather than a rule.
+
+A sentence with nothing worth stressing is a candidate for deletion or for
+merging into its neighbor.
+
+The check is mechanical, so it applies to sentences already judged weak
+without first naming why they are weak. It catches the two common failures
+of long sentences: a payload buried mid-sentence under accumulated
+qualification, and an ending on whatever the writer thought of last. It is
+especially useful for writers whose first language marks topic and focus by
+case, particles, or free word order; English marks them mainly by position,
+so a literal transfer yields grammatical sentences with the emphasis in the
+wrong place.
+
+The same expectation holds at each larger closure. A paragraph's last
+sentence and a section's last paragraph carry the consequence or open
+question that the next unit takes up, so the reader arrives at the next
+heading already wanting it. This does not conflict with the front-loading
+in *Order material for the reader* or with a first sentence that announces
+the paragraph's point: the opening states the point for the scanner and
+links backward; the ending selects, from what the unit established, the piece
+that motivates what follows. A paragraph that ends on a supporting detail, a
+citation list, or a caveat nothing later uses has spent its stress position.
+
+How strongly a unit's ending pulls the reader into the next unit is one axis
+of quality, traded against the others: the front-loaded claim for a reader
+who stops early, actor as subject, sentence length, and honest placement of
+a qualification that must not be missed. Run the check on every sentence;
+violate it when another axis wins, and know which one.
+
+Source: Gopen and Swan, "The Science of Scientific Writing", *American
+Scientist* 78(6), 1990, which names the topic and stress positions and
+warns that none of its reader-expectation principles are rules. Williams's
+*Style* and Pinker's *The Sense of Style* (given before new, light before
+heavy, and the same ordering applied to passages) carry the same principle;
+Michael Ernst's technical-paper advice page quotes it from Norman Ramsey for
+computer-science readers.
+
 ## Reconstruct lost context
 
 - Link the applicable glossary near the opening when one exists, but still

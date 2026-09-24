@@ -62,3 +62,44 @@ to marks. They also requested coordinated typography inside and outside the
 figure. The guidance distinguishes shared styling from external SVG's lack
 of page-CSS inheritance, and calls for font availability and renewed bounds
 checks when fonts change.
+
+## 2026-09-24 — stress position as a strong, scoped technical-writing rule
+
+Contributing-model: fable-5.1.
+
+User-directed: graehl recalled the advice "put the uncertain/most important
+information, the part driving interest toward the next sentence, at the end
+of the sentence," characterized it as a corrective heuristic of the same
+kind as "avoid passive voice" (wrong as a law, good as a hint), and asked
+for the appropriately scoped strong version in `technical-writing`, plus
+the zoomed-out (paragraph/section) equivalent, framed as one axis of quality
+traded off against others. He reports applying it when mechanically
+reshaping sentence sequences he judges inadequate, and expects it to help
+non-native English writers in particular. Session:
+`63b5dd3a-a496-4957-9334-3002cda9a13f`.
+
+Source located: Gopen and Swan, "The Science of Scientific Writing",
+*American Scientist* 78(6):550–558, 1990 (topic position / stress position;
+"none of these reader-expectation principles should be considered rules").
+Its CS-community transmission that I could verify is Michael Ernst's
+technical-paper advice page, which quotes Norman Ramsey: "For material you
+want to carry weight or be remembered, use the end of a sentence." The
+specific ~2008 NLP/ML-community write-up graehl recalls was not found; Jason
+Eisner's advice index has no page on sentence craft. `writing` already
+carried the general *old before new* bullet (Williams); the new section
+owns the strong scoped form and `writing` links to it.
+
+Agent-derived, not from a source: the ordered fix list (move qualifier
+forward, split, choose the subject), the claim that the check pays off
+because it is mechanical, and the non-native rationale (English marks
+topic/focus mainly by position; case/particle/free-order languages transfer
+badly). The last is standard contrastive-linguistics reasoning but was not
+checked against a citation.
+
+Trace checks: a sentence ending in a citation moves the citation forward or
+splits; a paragraph ending on a caveat nothing later uses is flagged; the
+front-loaded document order and first-sentence topic announcement stay in
+force, so the section states the reconciliation explicitly; a deliberate
+violation for a must-not-miss qualification is allowed and named as such.
+Effectiveness is the user's practice plus source authority, not a measured
+comparison.
