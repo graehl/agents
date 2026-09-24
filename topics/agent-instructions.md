@@ -373,9 +373,12 @@ loading the main file gets it.
 `AGENTS.frontier.md` is the dual of `AGENTS.weak.md`: latitude
 grants — currently end-state-over-checklist step skipping — that a
 weaker model would read as a rationalization license. The Claude and
-Codex routes in global policy select it; the Grok route does not. Global
-policy excludes it when `AGENTS.weak.md` is surfaced and owns the explicit
-model floors. Tier follows recorded model identity, never self-report.
+Codex routes in global policy select it; the Grok route does not. Grok
+is not a weak route either: do not load `AGENTS.weak.md` for it, and do
+not restate that file's confirm-first rule in `AGENTS.grok.md`. Global
+policy excludes frontier latitude when `AGENTS.weak.md` is surfaced and
+owns the explicit model floors. Tier follows recorded model identity,
+never self-report.
 
 Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.

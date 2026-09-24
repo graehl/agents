@@ -5046,3 +5046,39 @@ Contributing-model: 6-Astra
   These are byte counts, not measured comprehension or token-cost results.
 
 Contributing-model: 6-Astra
+
+## 2026-09-24 — Grok boot is not a weak route
+
+- **User decision:** Grok 4.7's default competence is to be trusted at
+  roughly Opus-class level. Disable any `AGENTS.grok.md` instruction that
+  respects `AGENTS.weak.md`. Take `AGENTS.global.md` as specified.
+- **What was actually there:** the grok supplement did not name or load
+  `AGENTS.weak.md`. Global policy selects that file for a surfaced copy,
+  DeepSeek, haiku-class Claude, or pre-GPT-5.5 Codex — not Grok. The
+  supplement's only non-mechanical section was the confirm-first
+  restatement also in `AGENTS.weak.md` and `AGENTS.sol.md`. Global does
+  not contain that rule.
+- **Change:** removed the restatement from `AGENTS.grok.md`. The
+  supplement-edit paragraph in `agent-instructions.md` now says Grok is
+  not a weak route and must not have that confirm-first text pasted back.
+  Frontier latitude was not added. The user asked for ordinary global
+  compliance, not checklist-skipping.
+- **Left in place:** session-id and `updates.jsonl` mechanics. Hand-launched
+  Grok does not load `AGENTS.ya.md`, and the 2026-09-09 entry is a Grok
+  transcript-search miss. Those paragraphs are harness facts, not weak
+  scaffolding. A shorter YA-launcher restatement is possible and was not
+  done here.
+- **Trace: authorized local commit** — global proactive-commit applies.
+  The removed section no longer adds a confirm. Better.
+- **Trace: explicit current-turn push** — the push gate still applies.
+  The removed section already treated an explicit instruction as
+  authorization. Same outcome.
+- **Trace: yesterday's approval, different outward send today** — the
+  corpus no longer tells Grok that approval does not carry forward.
+  This harness's own dangerous-action reminder still confirms sends.
+  A hand-launched Grok without that reminder would not. Accepted.
+  Sol and weak routes keep the rule. Status: `assumed`.
+- **Scope:** `AGENTS.grok.md` is not version-split, so 4.5, 4.6, and 4.7
+  all lose the confirm. The user named the boot file.
+
+Contributing-model: grok-4.7
