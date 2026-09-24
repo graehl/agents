@@ -144,3 +144,26 @@ the old wording justified the scaffolding the priority order removes.
 Inherited `writing` bullets (rhythm, signposting, one example per
 abstraction, first-sentence announcement) received technical-prose limits
 here rather than edits to `writing.md`.
+
+## 2026-09-24 — base-layer reconciliation and the vendored-advice caveat
+
+Contributing-model: fable-5.1.
+
+User-directed, same session. graehl asked whether `writing` (the base
+layer under `technical-writing`) carries advice that conflicts with what he
+wants in technical prose. Four bullets did, and each was restated as the
+invariant it approximated rather than overridden per genre: findable ideas
+(heading or first sentence, whichever the prose has), transitions carried by
+heading or previous ending with a transition sentence as fallback, length
+follows content (the short-after-long mannerism removed outright since he
+dislikes it in every genre), and qualification allowed in a note or
+appendix. The base now says genre topics narrow it and win on conflict.
+technical-writing's inherited-limits paragraph shrank to the one genuine
+genre difference (examples only when they are the shortest way to make a
+claim checkable).
+
+graehl's epistemic statement, recorded because it governs how every rule in
+`writing.md` should be read: all expert-level artistic-performance advice in
+this repo is vendored blindly; he has never tried to follow it himself. He
+asked for a broader research/trace/reconsideration of `writing.md`; that is
+`gaps/writing-advice-provenance.md`.
