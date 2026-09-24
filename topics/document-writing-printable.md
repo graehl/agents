@@ -58,6 +58,63 @@ Render early enough to expose float, equation, reference, and page-limit
 problems while the document structure is still easy to change. Never infer
 submission compliance from the HTML rendering.
 
+## Scripted venue build
+
+For a Markdown-canonical Quarto manuscript assembled from ordered fragments
+(root `index.qmd` plus `{{< include >}}` directives, per
+[`document-writing`](document-writing.md)), build the venue PDF and check its
+page limit with `qmd-venue-pdf` (`~/agents/scripts/qmd-venue-pdf`, acli; code
+in `qmd_build/`). Do not write a per-paper assembler script; put what differs
+per venue or paper in a JSON config beside the adapter files:
+
+```text
+<paper>/<venue>/
+  <official .sty/.cls/.bst>   pinned, unmodified; VENDORED.md records revision
+  template.tex                Pandoc template wrapping the official class
+  print.lua                   optional pre-AST print filter
+  qmd-venue-pdf.json          build config
+```
+
+```bash
+qmd-venue-pdf --config <venue>/qmd-venue-pdf.json --text            # full build
+qmd-venue-pdf --config <venue>/qmd-venue-pdf.json --fail-fast --text # estimate first
+```
+
+The build stages one generated `.qmd` from the canonical fragments: an
+`abstract` fragment becomes metadata, then comes the main body. After that,
+separated by `\clearpage`, come the `back-matter` fragments (for example
+Limitations and Ethics), then references, then `appendices`. TeX labels at
+those boundaries report the physical pages of each part, and the final text
+position gives a fractional main-body length. The fractional length is for
+iterating on cuts; `--enforce-limit` (exit 3) checks physical pages.
+`--estimate` and `--fail-fast` predict length from cached fragment ASTs and
+TeX-measured figure heights, without running TeX. Each full build recalibrates
+the estimate. A hash-checked `receipt.json` makes an unchanged rebuild nearly
+instant. It records inputs, fonts, Quarto/engine versions, the TeX package
+database, and page facts. Generated TeX carries `% source-map:v1` comments
+only if a print filter emits them from `QMD_SOURCE_TARGETS`. A missing glyph,
+too-large float, or unresolved reference fails the build.
+
+Config keys (paths relative to the config file): `root`, `output`, `jobname`;
+the adapter — `template`, `filters`, `style-files`, `pdf-engine` (xelatex),
+`format` (merged into Quarto's PDF format, e.g. `fig-env: figure*`),
+`metadata`; structure — `abstract`, `back-matter`, `appendices`,
+`bibliography`, `cite-method` (citeproc, natbib, biblatex),
+`bibliography-style` (only when the class does not set it); measurement —
+`columns`, `max-pages`, `measure` (`inject` loads the tool's `measure.tex`
+hooks; `template` when the template already writes `\jobname.layout` and
+`\jobname.images`), `estimate` (`image-height-in`, `char-advance-pt`,
+`title-columns`, `float-columns`); provenance — `fonts`, `inputs`,
+`resource-path`, `tex-bin`, `log-failures`, `source-targets-env`.
+Unknown keys are errors. With no template, Quarto's default LaTeX template
+plus injected hooks gives a one-column length check.
+
+Reference instance: the multilingual PII paper's ACL adapter,
+`~/draft/research/pii/frontier/papers/multilingual-pii-redaction/acl/qmd-venue-pdf.json`
+(two-column anonymous review, natbib with the ACL `.bst`, 8-page limit). This
+tool is a local adapter (level 4 in `document-writing`). A passing build is a
+length and render check, not a submission-compliance certificate.
+
 ## Markdown-to-LaTeX refinement
 
 Use one of three explicit authority states:

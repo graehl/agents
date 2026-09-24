@@ -140,6 +140,42 @@ shell from explicit metadata, but a generated generic caption does not replace
 the author-written takeaway. Annotation and tooltip text belong in data or
 markup that remains inspectable, not only inside minified script state.
 
+## Scripted HTML build
+
+When the web artifact is one self-contained HTML file for review or
+source-linked editing, build it with `qmd-html` (`~/agents/scripts/qmd-html`,
+acli; code in `qmd_build/`). Do not maintain a per-paper render wrapper:
+
+```bash
+qmd-html --config <paper>/qmd-html.json --text
+qmd-html <paper>/index.qmd --text      # defaults, no config
+```
+
+It renders an isolated sibling copy of the document directory with
+`--embed-resources`, then writes to Quarto's own output path (or `output`):
+
+- the HTML, carrying an embedded `ya-artifact:v1` regenerate command;
+- with included fragments, `ya-source-target:v1` comments bounding each source
+  section, paragraph/block, and embedded figure, plus a hash-bound
+  `<name>.html.map` sidecar giving the original `.qmd` or asset ranges;
+  `--no-source-map` omits both;
+- with `print-pdf`, a headless-Chromium print PDF beside it (`print`: page
+  `format`/`margin`; `playwright-from`: a package directory that resolves
+  `@playwright/test`); and
+- `<name>.receipt.json` (input/output hashes, Quarto version) and
+  `<name>.render.log`.
+
+A fragment edited during the render, an unresolved include, or a missing
+`must-contain` string fails the build. `quarto-version` pins the renderer;
+`inputs` adds hashed assets such as CSS or include-after-body files; `hook`
+names the regenerate registration. The root must sit at its Quarto project
+directory. Serving an inspectable multi-file output directory is still plain
+`quarto render`; this tool deliberately produces only the one-file form.
+
+Reference instance: the multilingual PII paper's canvas,
+`~/draft/research/pii/frontier/papers/multilingual-pii-redaction/qmd-html.json`.
+The [Verification](#verification) checks below still apply.
+
 ## Navigation and page structure
 
 A long single page has a visible table of contents, stable heading anchors,
