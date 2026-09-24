@@ -2,7 +2,7 @@
 
 > Shared cold-reader guidance for research handouts, progress reports, blog
 > posts, and papers: make the current claim, evidence, scope, and decision
-> self-contained and legible when scanned.
+> self-contained, worth reading in order, and legible when scanned.
 
 Topic: `technical-writing`
 
@@ -84,7 +84,7 @@ rather than showing it; "crucially", "notably", "importantly", "underscores",
 "highlights". The correction is deletion, not replacement. Text that
 remarks on its own compliance with a writing rule is a defect in every
 authored piece, not only technical ones; see
-[`writing` § Drafting and revising](writing.md#drafting-and-revising),
+[`writing` § Revising](writing.md#revising),
 "Following a rule is silent."
 
 Paragraph-local edits break determiners. "The X" presumes X was introduced

@@ -1,9 +1,10 @@
 # Writing
 
 > General craft for prose that has to work on a reader who is not in the room:
-> know the reader and the purpose, put the point where it will be found,
-> prefer the concrete word, draft loosely and revise ruthlessly. Shared by
-> expository and story writing; story craft lives in `story-writing`.
+> know the reader and the purpose, leave out what they would skip, put the
+> point where it will be found, prefer the concrete word, revise in passes.
+> Shared by expository and story writing; story craft lives in
+> `story-writing`.
 
 Topic: `writing`
 
@@ -13,13 +14,17 @@ story. For plot, character, setting and scene work, continue to
 [`story-writing`](story-writing.md). For a story project's files, see
 [`story-project-layout`](story-project-layout.md).
 
-The advice below is distilled from widely used craft sources: Strunk and
-White's *The Elements of Style*, Orwell's "Politics and the English Language",
-Zinsser's *On Writing Well*, Williams's *Style: Toward Clarity and Grace*,
-McPhee's *Draft No. 4*, Lamott's *Bird by Bird*, King's *On Writing*, and Le
-Guin's *Steering the Craft*. Nothing here is original; the sources disagree
-only at the margins. These are defaults, not a checklist to satisfy in
-addition to genre rules: a genre topic such as
+The advice below is distilled from craft sources whose authors have a record
+of being read: Williams's *Style: Toward Clarity and Grace* and Gopen and
+Swan's "The Science of Scientific Writing" for the reader-expectation rules,
+Pinker's *The Sense of Style* for the same rules restated from cognition,
+McPhee's *Draft No. 4* for structure, Orwell, Zinsser, and Elmore Leonard
+for cutting. Nothing here is original. Rules from these and other popular
+sources that are contested, or that the user has not found to hold, live in
+the annex `writing.evidence.md` rather than here; advice addressed to a
+human writer's habits lives in [`writing-practice`](writing-practice.md),
+which agents do not apply to their own drafting. These are defaults, not a
+checklist to satisfy in addition to genre rules: a genre topic such as
 [`technical-writing`](technical-writing.md) or
 [`story-writing`](story-writing.md) narrows them and wins on conflict.
 
@@ -30,7 +35,7 @@ addition to genre rules: a genre topic such as
   different piece from one for a teacher who knows it well.
 - **Name the purpose in one sentence.** Explain, persuade, instruct, report,
   entertain, or move. When the sentence will not come, the piece is not ready
-  to draft; keep talking it out or collecting until it does.
+  to draft; ask the author.
 - **Name the promise.** What will the reader know, feel, or be able to do at
   the end that they could not at the start? Every section must serve that.
 - **Collect, then choose.** Gather more material than fits, then cut to what
@@ -43,6 +48,9 @@ addition to genre rules: a genre topic such as
 
 ## Structure
 
+- **Leave out the part readers skip** (Elmore Leonard). Material earns its
+  place on its merits; the rules below order and shape what survives, and
+  none of them adds.
 - **Put the point where it will be found.** For expository prose the main
   claim goes first, then support, then qualification; qualification that
   does not change the point may live in a note or appendix. A reader who
@@ -54,9 +62,8 @@ addition to genre rules: a genre topic such as
   first sentence does that job, and a reader scanning first sentences
   should be able to reconstruct the argument.
 - **Order by the reader's need, not by the order you discovered things.**
-  Chronology of your own research is rarely the best order. McPhee's method
-  works: list the parts on cards, then find the arrangement in which each part
-  sets up the next.
+  Chronology of your own research is rarely the best order; find the
+  arrangement in which each part sets up the next.
 - **Signpost transitions.** A new unit's relation to the last (consequence,
   contrast, example, exception, next step) is carried by its heading or by
   the previous unit's last sentence. A transition sentence is the fallback
@@ -64,21 +71,26 @@ addition to genre rules: a genre topic such as
 - **Use the reader's words for the reader's things.** Define a term once at
   first use and then keep using it. Do not vary vocabulary for elegance when
   the reader is trying to track a concept.
-- **Give one concrete example per abstraction.** An idea without an instance
-  is not yet understood by the reader, and often not by the writer.
+- **An abstraction the reader cannot instantiate is not understood**, and
+  often not by the writer. Supply the instance or cut the abstraction. Do
+  not add an example to an abstraction that already lands.
 
 ## Sentences
 
 - **Prefer the specific, the concrete, the plain.** "The dog bit the mail
-  carrier" beats "an incident occurred involving an animal."
+  carrier" beats "an incident occurred involving an animal." A figure of
+  speech you are used to seeing in print, or a figurative restatement of a
+  sentence already said literally, is cut.
 - **Make the actor the subject and the action the verb.** "The committee
   rejected the plan" rather than "rejection of the plan by the committee
   occurred." Nominalizations hide who did what.
 - **Omit needless words.** Every word that does not add meaning subtracts
   attention. "In order to" is "to"; "at this point in time" is "now"; "very"
   is usually nothing.
-- **Adverbs and intensifiers are usually confessions** that the verb or
-  adjective was weak. Fix the verb instead.
+- **Intensifiers are usually nothing.** "Very", "really", "extremely",
+  "quite" confess a weak verb or adjective; fix the word instead. Adverbs
+  that change what is claimed ("only", "approximately", "not yet", "first")
+  stay.
 - **Old before new.** Start a sentence with what the reader already holds and
   end with the new information. The sentence end is the stress position; put
   the word that matters there. The strong technical-prose form, with the
@@ -88,42 +100,27 @@ addition to genre rules: a genre topic such as
   effect; the punchy short sentence after a long one is a mannerism, not a
   tool. A monotone run of same-length sentences is a prompt to check whether
   they say different things, not to vary them.
-- **Prefer active voice** unless the actor is unknown, unimportant, or you
-  want the receiver in the subject position for emphasis.
-- **Read it aloud.** The ear catches what the eye forgives: repeated words,
-  tangled clauses, a sentence you cannot breathe through.
+- **Voice is not chosen separately.** Old-before-new and actor-as-subject
+  decide it; the passive is right when the receiver is the known thing or
+  the actor does not matter.
+- **Checks the ear would catch.** A word repeated within a few lines, a
+  clause nested more than one level deep, a sentence that cannot be parsed
+  in one pass.
 
-Orwell's six rules remain a serviceable checklist: never use a figure of
-speech you are used to seeing in print; never use a long word where a short
-one will do; if it is possible to cut a word, cut it; never use the passive
-where you can use the active; never use a foreign phrase, scientific word, or
-jargon word if there is an everyday equivalent; break any of these rules
-sooner than say anything outright barbarous.
+## Revising
 
-## Drafting and revising
-
-- **First drafts are allowed to be bad.** Lamott's advice: give yourself
-  permission to write a messy first draft, because nobody sees it and it is
-  the only way to get the second draft. Do not polish sentence one before
-  paragraph ten exists.
-- **Short assignments.** When the whole piece is daunting, write the one
-  paragraph you can see clearly. Then the next.
-- **Draft with the door closed, revise with the door open** (King). The first
-  pass is for the writer; revision is where the reader comes in.
 - **Revise in passes, largest unit first.** Structure (is anything missing,
-  redundant, out of order?), then paragraphs (does each earn its place and
-  announce its point?), then sentences, then words. Polishing a sentence that
-  will be cut wastes the polish.
-- **Cut ten percent.** King's formula for the second draft is the first draft
-  minus ten percent. The cuts are usually explanations of what the text
-  already showed, throat-clearing openings, and endings that keep ending.
-- **Leave out the part readers skip** (Elmore Leonard). If you were bored
-  writing it, they will be bored reading it.
+  redundant, out of order?), then paragraphs (does each earn its place?),
+  then sentences, then words. Polishing a sentence that will be cut wastes
+  the polish.
+- **Cut what the text already showed.** The usual cuts are explanations of
+  what a display or an earlier sentence already established, throat-clearing
+  openings, and endings that keep ending.
 - **Check the promise.** Reread the purpose sentence. Did the piece deliver
   it? A finished draft that answers a different question than it posed needs
   either a new opening or a new body.
-- **Let it cool.** An hour, a day, a week if the piece matters. Fresh eyes
-  find what tired ones excused.
+- **Cold read.** A reviewer, or a session without the drafting context,
+  finds what the drafter excused.
 - **Following a rule is silent.** Authored prose never remarks on its own
   craft: no "in short", "put simply", "to be concise", "without belaboring",
   no closing note that the piece led with the result or kept things tight.
@@ -267,6 +264,9 @@ later edits there consistent. The original is never edited by a remix.
 ## Working with a new or young writer
 
 The writer's ideas and voice are the point; the craft above is scaffolding.
+Advice about the writer's own habits (bad first drafts, short assignments,
+letting a draft cool) is in [`writing-practice`](writing-practice.md); offer
+it to the writer rather than applying it yourself.
 
 - Ask what they want to say and to whom before offering structure. Reflect
   their answer back in one sentence and check it.

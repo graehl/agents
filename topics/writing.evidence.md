@@ -167,3 +167,79 @@ graehl's epistemic statement, recorded because it governs how every rule in
 this repo is vendored blindly; he has never tried to follow it himself. He
 asked for a broader research/trace/reconsideration of `writing.md`; that is
 `gaps/writing-advice-provenance.md`.
+
+## 2026-09-24 — writing.md audit: per-bullet verdicts
+
+Contributing-model: fable-5.1.
+
+User-directed; closes `gaps/writing-advice-provenance.md`. Three questions
+per bullet: does the source have a record of being read rather than only
+of giving advice; what does a capable writer produce following the rule
+literally; does it conflict with `technical-writing` § Priority order or
+`AGENTS.user.md` § Writing and summary style. graehl agreed with the
+verdict table in full and set two dispositions: reasonably contested rules
+move to this annex; advice aimed at human or new writers moves to a new
+topic agents are not routed to (`writing-practice`).
+
+Source credibility, as assessed: McPhee, Le Guin, Leonard, Orwell, and E. B.
+White are proven writers. Williams and Gopen/Swan are the only sources whose
+rules rest on reader-comprehension work; Pinker restates the same rules from
+cognition and was added as a named source. Zinsser, Lamott, and King are
+proven by sales and write mostly about the human writer's psychology.
+Strunk and White's grammar claims were publicly demolished by Pullum
+("50 Years of Stupid Grammar Advice", 2009); "omit needless words" was not
+the target and stays.
+
+| bullet | source | verdict | disposition |
+|---|---|---|---|
+| name the reader / purpose / promise | Williams, Zinsser | keep | "keep collecting until the sentence comes" was human process; now "ask the author" |
+| collect, then choose | McPhee | keep | unchanged |
+| order by the reader's need | McPhee | keep | index-card ritual clause dropped |
+| use the reader's words | Williams, Pinker | keep | unchanged |
+| one concrete example per abstraction | Pinker | rewrite | literal following adds; restated as a test (instantiate or cut), with "do not add an example to an abstraction that already lands" |
+| prefer the specific, concrete, plain | Orwell, Zinsser | keep | Orwell's rule 1 folded in, extended to figurative restatement |
+| actor as subject, action as verb | Williams | keep | best-evidenced rule in the file |
+| omit needless words | Strunk | keep | unchanged |
+| adverbs and intensifiers are confessions | King | rewrite | literal following strips truth-bearing adverbs; restricted to intensifiers |
+| old before new | Williams, Gopen | keep | unchanged |
+| vary length for rhythm | Le Guin, Zinsser | removed earlier this session | annexed below |
+| prefer active voice | Orwell, Strunk | derive | annexed below; replaced by "voice is not chosen separately" |
+| read it aloud | Le Guin, Zinsser | rewrite | agent cannot; the checks it performs are listed; original moved to `writing-practice` |
+| Orwell's six rules | Orwell | reduce | annexed below; rules 2 and 3 already bullets, 4 derived, 5 conflicts with peer register, 6 is the layering note |
+| bad first drafts / short assignments / door closed | Lamott, King | move | `writing-practice` |
+| revise in passes, largest unit first | consensus | keep | "announce its point" removed from the paragraph pass |
+| cut ten percent | King | rewrite | quota annexed; the list of cuts stays as "cut what the text already showed" |
+| leave out the part readers skip | Leonard | promote | now the first Structure bullet, stated as the rule the rest serve |
+| check the promise | consensus | keep | unchanged |
+| let it cool | consensus | rewrite | agent equivalent "cold read"; original moved to `writing-practice` |
+| following a rule is silent | graehl | keep | unchanged |
+| expository forms in brief | mixed | keep | unchanged |
+
+### Annex: contested rules removed from `writing.md`
+
+Verbatim as they stood, with why each is contested. Not guidance.
+
+- **Prefer active voice** unless the actor is unknown, unimportant, or you
+  want the receiver in the subject position for emphasis. — Contested:
+  Pullum's critique shows the popular rule mis-teaches what the passive is,
+  and the exceptions swallow the rule once old-before-new is applied.
+  Derived rule replaces it.
+- **Vary length for rhythm, but on purpose.** A run of long sentences numbs;
+  a run of short ones jabs. A short sentence after a long one lands. —
+  Contested: literal following produces the punchy one-liner graehl dislikes
+  in every genre; fiction keeps its own rhythm guidance in `story-writing`.
+- **Adverbs and intensifiers are usually confessions** that the verb or
+  adjective was weak. Fix the verb instead. — Contested as stated: "only",
+  "approximately", "not yet" carry truth conditions in technical prose.
+- Orwell's six rules paragraph: never use a figure of speech you are used
+  to seeing in print; never use a long word where a short one will do; if
+  it is possible to cut a word, cut it; never use the passive where you can
+  use the active; never use a foreign phrase, scientific word, or jargon
+  word if there is an everyday equivalent; break any of these rules sooner
+  than say anything outright barbarous. — Rule 4 contested as above; rule 5
+  conflicts with writing at peer register, where the technical term is the
+  reader's word; Orwell himself violates several in the essay that states
+  them.
+- **Cut ten percent.** King's formula for the second draft is the first
+  draft minus ten percent. — The number is a rejection-slip anecdote;
+  the cuts it names are kept without the quota.
