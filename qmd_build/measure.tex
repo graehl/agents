@@ -1,0 +1,29 @@
+% qmd-venue-pdf measurement hooks, injected through header-includes.
+% Writes \jobname.layout (text-area geometry, scaled points) and
+% \jobname.images (path|width|height of every placed image box) for the
+% page measurement and the fast estimate. Adapter templates that already
+% write both files set "measure": "template" and omit this include.
+\usepackage{zref-savepos}
+\makeatletter
+\newsavebox\qmdimagebox
+\newwrite\qmdimagefile
+\newwrite\qmdlayoutfile
+\AtBeginDocument{%
+  \immediate\openout\qmdlayoutfile=\jobname.layout
+  \immediate\write\qmdlayoutfile{height=\number\textheight}%
+  \immediate\write\qmdlayoutfile{width=\number\textwidth}%
+  \immediate\write\qmdlayoutfile{column=\number\columnwidth}%
+  \immediate\write\qmdlayoutfile{gap=\number\columnsep}%
+  \immediate\write\qmdlayoutfile{left=\number\dimexpr1in+\hoffset+\oddsidemargin\relax}%
+  \immediate\write\qmdlayoutfile{top=\number\dimexpr\paperheight-1in-\voffset-\topmargin-\headheight-\headsep\relax}%
+  \immediate\write\qmdlayoutfile{baseline=\number\baselineskip}%
+  \immediate\closeout\qmdlayoutfile
+  \immediate\openout\qmdimagefile=\jobname.images
+  \@ifundefined{includegraphics}{}{%
+    \let\qmdincludegraphics\includegraphics
+    \RenewDocumentCommand\includegraphics{s O{} m}{%
+      \sbox\qmdimagebox{\IfBooleanTF{##1}{\qmdincludegraphics*[##2]{##3}}{\qmdincludegraphics[##2]{##3}}}%
+      \immediate\write\qmdimagefile{##3|\number\wd\qmdimagebox|\number\dimexpr\ht\qmdimagebox+\dp\qmdimagebox\relax}%
+      \usebox\qmdimagebox}}}
+\AtEndDocument{\immediate\closeout\qmdimagefile}
+\makeatother

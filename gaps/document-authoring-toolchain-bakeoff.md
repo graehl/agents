@@ -43,3 +43,12 @@ the expected semantic HTML was present and the basic installation check
 passed. This narrows the remaining gap but does not exercise PDF/LaTeX, a real
 venue class, external plotting packages, source freshness, or the comparative
 MyST/Pandoc paths above.
+
+**Partial progress, 2026-09-24:** Quarto 1.9.38 → XeLaTeX with the pinned,
+unmodified official ACL class now builds a 55-page two-column anonymous review
+PDF from the multilingual PII paper's fragments. The adapter is a local
+template and print filter. The reusable `qmd-venue-pdf`
+(`topics/document-writing-printable.md` § Scripted venue build) generalizes
+it and reproduces that paper's measured length exactly. Camera-ready mode, a
+second venue class, and the MyST/Pandoc comparison remain open.
+Contributing-model: opus-5.5.
