@@ -103,3 +103,44 @@ force, so the section states the reconciliation explicitly; a deliberate
 violation for a must-not-miss qualification is allowed and named as such.
 Effectiveness is the user's practice plus source authority, not a measured
 comparison.
+
+## 2026-09-24 — priority order, rule limitations, defect list
+
+Contributing-model: fable-5.1.
+
+User-directed, same session as the entry above. graehl asked for
+limitations on any contradictory or dangerous advice in technical-writing,
+suggested an explicit priority order as the concise encoding, and stated
+the aim: frontier-authored text already shows taste, so the guidance
+should unlock elision rather than pile on checklists that each add
+material. His stated overriding concern for technical prose is making it
+less necessary to skim. He hates over-repeated AI-ese, naming the
+superfluous abstract/metaphor restatement specifically.
+
+Decisions during the exchange, each a user correction of my draft:
+
+- Item 1 is not absolute: qualification can wait for an appendix when
+  carrying it inline costs too much method detail. Rewritten as truth *at
+  the stated precision* of the surviving sentence, with deferral allowed.
+- Item 3 originally required a first sentence announcing each paragraph.
+  Rejected: the heading already carries the reason to read. Then "enterable
+  cold" with section references for every referent was rejected: "the X"
+  is fine when X's home is the previous section or deducible from headings;
+  section references are for hard-to-locate antecedents only. Final form is
+  "worth reading in order," with sub-point openings (slug or claim, never
+  announcement) only when a section holds separable sub-points. He was not
+  sure a flat "no topic sentence" was wanted; I illustrated three cases
+  (restated heading, referent tag, multi-sub-point section) and he accepted
+  the softer form.
+- Added on his report of an observed defect: paragraph-local edits break
+  determiners ("the X" whose introducing mention moved), with a recheck
+  instruction.
+- Added mid-turn: no meta celebration of having followed a writing rule, in
+  the artifact or in the delivery note.
+
+The Common contract paragraph was softened from scanner-first to "headings
+and displays serve the scanner; prose serves the reader who reads," since
+the old wording justified the scaffolding the priority order removes.
+Inherited `writing` bullets (rhythm, signposting, one example per
+abstraction, first-sentence announcement) received technical-prose limits
+here rather than edits to `writing.md`.
