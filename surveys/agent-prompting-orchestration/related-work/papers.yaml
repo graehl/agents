@@ -157,14 +157,15 @@ papers:
     url: "https://arxiv.org/html/2603.28052v1"
     short: meta-harness
     concept_page: concepts/meta-harness.md
-    grounded: false
+    grounded: true
     verified: true
-    source: "full read of saved source HTML, converted locally 2026-09-25"
+    source: "full read of saved source HTML, converted locally 2026-09-25; committed extract via marker-pdf (CPU)"
+    fetched: 2026-09-25
     cluster: J
     note: >
-      Committed extract pending: HTML derivation failed the fidelity gate on
-      one table block and marker-pdf is not installed on this host. RRSI
-      cites it as COLM 2026; v1 states no venue.
+      HTML derivation failed the fidelity gate on one table block, so the
+      committed extract is the marker-pdf conversion. RRSI cites it as COLM
+      2026; v1 states no venue.
   - key: rethinkhe2026
     title: "Rethinking the Evaluation of Harness Evolution for Agents"
     authors: ["Yike Wang", "Huaisheng Zhu", "Zhengyu Hu", "Yige Yuan", "Zhengyu Chen", "Shakti Senthil", "Hannaneh Hajishirzi", "Yulia Tsvetkov", "Pradeep Dasigi", "Teng Xiao"]
