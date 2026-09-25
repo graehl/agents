@@ -21,7 +21,7 @@
 
 meta:
   field_slug: agent-prompting-orchestration
-  coverage_cutoff: 2026-08-15
+  coverage_cutoff: 2026-09-25
   grounding_mode: grounded-in-progress
   model_training_cutoff: 2026-01
 
@@ -132,6 +132,160 @@ papers:
       (language, model) cell compared post hoc (Jaccard). No shared corpus,
       no divergence-as-live-signal. Per-edit predicted-impact contracts =
       published precedent for pre-registered patches.
+
+  # --- J. recursive harness self-improvement and its generalization ---
+  - key: rrsi2026
+    title: "RRSI: Regularized Recursive Self-Improvement of Agent Harnesses"
+    authors: ["Peng Xia", "Rujun Han", "Zifeng Wang", "Yanfei Chen", "Yufan Zhuang", "Yoonho Lee", "Chengsong Huang", "Han Yu", "Zhongying CuiZhu", "Yifei Ming", "Huaxiu Yao", "Burak Gokturk", "Tomas Pfister", "Chen-Yu Lee"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2609.24972"
+    url: "https://arxiv.org/html/2609.24972v2"
+    short: rrsi
+    concept_page: concepts/rrsi.md
+    grounded: true
+    verified: true
+    source: "full read of committed extract 2026-09-25"
+    fetched: 2026-09-25
+    cluster: J
+  - key: metaharness2026
+    title: "Meta-Harness: End-to-End Optimization of Model Harnesses"
+    authors: ["Yoonho Lee", "Roshen Nair", "Qizheng Zhang", "Kangwook Lee", "Omar Khattab", "Chelsea Finn"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2603.28052"
+    url: "https://arxiv.org/html/2603.28052v1"
+    short: meta-harness
+    concept_page: concepts/meta-harness.md
+    grounded: false
+    verified: true
+    source: "full read of saved source HTML, converted locally 2026-09-25"
+    cluster: J
+    note: >
+      Committed extract pending: HTML derivation failed the fidelity gate on
+      one table block and marker-pdf is not installed on this host. RRSI
+      cites it as COLM 2026; v1 states no venue.
+  - key: rethinkhe2026
+    title: "Rethinking the Evaluation of Harness Evolution for Agents"
+    authors: ["Yike Wang", "Huaisheng Zhu", "Zhengyu Hu", "Yige Yuan", "Zhengyu Chen", "Shakti Senthil", "Hannaneh Hajishirzi", "Yulia Tsvetkov", "Pradeep Dasigi", "Teng Xiao"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2607.12227"
+    url: "https://arxiv.org/html/2607.12227"
+    short: rethink-he
+    concept_page: concepts/rethink-he.md
+    grounded: true
+    verified: true
+    source: "full read of committed extract (v2) 2026-09-25"
+    fetched: 2026-09-25
+    cluster: J
+    note: >
+      RRSI cites it as COLM 2026 Workshop on Lifelong Agents; the paper
+      text itself states no venue.
+  - key: updatebenefit2026
+    title: "Harness Updating Is Not Harness Benefit: Disentangling Evolution Capabilities in Self-Evolving LLM Agents"
+    authors: ["Minhua Lin", "Juncheng Wu", "Zijun Wang", "Zhan Shi", "Yisi Sang", "Bing He", "Zewen Liu", "Tianxin Wei", "Zongyu Wu", "Zhiwei Zhang", "Dakuo Wang", "Xiang Zhang", "Benoit Dumoulin", "Cihang Xie", "Yuyin Zhou", "Suhang Wang", "Hanqing Lu"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2605.30621"
+    url: "https://arxiv.org/html/2605.30621v1"
+    short: update-benefit
+    concept_page: concepts/update-benefit.md
+    grounded: true
+    verified: true
+    source: "full read of committed extract 2026-09-25"
+    fetched: 2026-09-25
+    cluster: J
+  - key: harnesscompass2026
+    title: "HarnessCompass: Guiding Automatic Harness Evolution toward Generalizable and Effective Agent Harnesses"
+    short: harnesscompass
+    concept_page: concepts/harnesscompass.md
+    authors: ["Luan Zhang", "Ruochen Zhou", "Dandan Song", "Zhengyu Chen", "Yuhang Tian", "Jun Yang", "Huipeng Ma", "Chenhao Li", "Guangyuan Feng", "Xudong Li", "Yizhou Jin", "Yan Xu"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2608.01918"
+    url: "https://arxiv.org/html/2608.01918"
+    grounded: true
+    verified: true
+    source: "full read of committed extract 2026-09-25"
+    fetched: 2026-09-25
+    cluster: J
+  - key: evobench2026
+    title: "Evo-Bench: Can Language Models Improve Agent Harness?"
+    authors: ["Lisheng Huang", "Chen Yang", "Hao Zhou", "Huatong Song", "Zongchao Chen", "Ran Le", "Yang Song", "Wayne Xin Zhao", "Tao Zhang"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2608.09096"
+    url: "https://arxiv.org/html/2608.09096"
+    short: evo-bench
+    concept_page: concepts/evo-bench.md
+    grounded: true
+    verified: true
+    source: "full read of committed extract (v2) 2026-09-25"
+    fetched: 2026-09-25
+    cluster: J
+  - key: rhsi2026
+    title: "Recursive Harness Self-Improvement"
+    authors: ["Hyunin Lee", "Jinglue Xu", "Jeffrey Seely", "Donghyun Lee", "Matei Zaharia", "Yujin Tang"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2607.15524"
+    url: "https://arxiv.org/html/2607.15524"
+    short: rhsi
+    concept_page: concepts/rhsi.md
+    grounded: false
+    verified: true
+    source: "full read of saved source HTML, converted locally 2026-09-25"
+    cluster: J
+    note: >
+      Committed extract pending: HTML derivation failed the fidelity gate on
+      14 figure-text blocks and marker-pdf is not installed on this host.
+  - key: gsqd2026
+    short: gated-qd
+    concept_page: concepts/gated-qd.md
+    title: "HarnessBank: Semantic Gene-Bank Search with Gated Verification for Agent-Harness Self-Evolution"
+    authors: ["Xiaotian Luo", "Dizhan Xue", "Fengxingyu Wang", "Chuanrui Hu", "Yafeng Deng"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2607.13683"
+    url: "https://arxiv.org/html/2607.13683"
+    grounded: true
+    verified: true
+    source: "full read of committed extract (v2) 2026-09-25"
+    fetched: 2026-09-25
+    cluster: J
+    note: >
+      v1 was titled "Self-Evolving Agent Harnesses via Gated Semantic
+      Quality-Diversity" (as cited by RRSI); v2 renamed HarnessBank.
+  - key: modularrsi2026
+    title: "ModularRSI: Modular and Generalizable Recursive Harness Self-Improvement"
+    authors: ["Siwei Wu", "Jincheng Ren", "Yizhi Li", "Haau-Sing Li", "Chengran Yang", "Yuxuan Zhang", "Weicheng Gu", "Jian Yang", "Riza Batista-Navarro", "Chuanyi Zhang", "Xianglong Liu", "Ming Zhou", "Bryan Dai", "Chenghua Lin"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2609.14857"
+    url: "https://arxiv.org/html/2609.14857"
+    short: modular-rsi
+    concept_page: concepts/modular-rsi.md
+    grounded: true
+    verified: true
+    source: "full read of committed extract 2026-09-25"
+    fetched: 2026-09-25
+    cluster: J
+  - key: deltaattr2026
+    title: "What Evolves When We Talk About Harness Evolution?"
+    authors: ["Wenxuan Ding", "Qin Lu", "Changlong Yu", "Sha Li", "Shuowei Jin", "Xin Liu", "Greg Durrett"]
+    venue: "blog (wenwen-d.github.io)"
+    year: 2026
+    url: "https://wenwen-d.github.io/blog/harness-delta-attribution/"
+    short: delta-attribution
+    concept_page: concepts/delta-attribution.md
+    grounded: false
+    verified: true
+    source: "full read of saved source HTML + blog_data.js payload + linked HDA_SKILL.md v2.0, 2026-09-25"
+    cluster: J
+    note: >
+      Committed extract pending: HTML derivation failed the fidelity gate on
+      2 blocks. Not peer-reviewed; payload carries stale/pending numbers.
 
   # --- B. prompt optimization ---
   - key: gepa2025

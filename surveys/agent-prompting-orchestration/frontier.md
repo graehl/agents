@@ -6,7 +6,8 @@ ten local searchable Markdown extracts (10 manifested / 10 verified / 10
 grounded / 10 extracted; 5 concept digests), citers snowballed via Semantic
 Scholar, and reframing queries run (survey §Disconfirming pass). Entries
 below are read-backed unless marked existence-only; independent replication
-is unchecked for all (grade cap `single-source`).
+is unchecked for all (grade cap `single-source`). A second grounded slice,
+2026-09-25, reads RRSI and nine harness-evolution neighbors (survey §J).
 
 ## Provisional claim inbox
 
@@ -119,6 +120,40 @@ named per entry.
   "modular corpora exhibit composition-seam bugs" applies to this repo's
   routed-packet architecture.
 - Open: both papers' citers (very fresh). Revisit 2026-10.
+
+### RRSI — regularized harness evolution (arXiv 2609.24972), 2026-09-25
+
+- Claim: six search constraints (edit budget, history credit, leakage
+  critic, noise floor, cost rule, pruning) turn evolve-set gains into
+  transfer; workspace OOD +3.9 over H0 vs +0.6 unregularized, at 2.42M vs
+  3.80M tokens/trial (36% fewer by Table 2; the abstract says 30%). Authors control search and eval; one run per
+  arm; no CIs; judge shared between evolve (Harvey) and OOD (APEX).
+- Omitted baselines: matched test-time sampling (Rethinking shows it ties
+  evolution); a held-out *selection* split (RSEA); delta attribution of
+  the final harness.
+- Cheapest discriminating checks: (1) apply delta-attribution
+  neutralization to RRSI's released final harnesses — the trajectories are
+  on the project site — and measure O and T; (2) rescore workspace OOD
+  with a non-Gemini judge; (3) three search seeds per arm.
+- Relevance: the selection-side mechanisms mirror rules this repo states
+  but has not measured (token-burden pricing, culling, A/A noise floor).
+  Revisit 2026-12 for citers and independent reruns (unscheduled).
+
+### Harness-evolution transfer critiques (Rethinking 2607.12227; delta attribution blog; Evo-Bench 2608.09096; Updating≠Benefit 2605.30621)
+
+- Read: held-out gain ≈0 against matched sampling on Terminal-Bench;
+  gains decompose mostly into overfitting (lookup tables, answer-string
+  matches, soft answer preference) and bought compute; real held-out gains
+  appear where the seed lacked tools; the agent model dominates benefit.
+- Protocol consequences for this repo (candidate, not adopted): (a) an
+  instruction patch evaluated on the incidents that motivated it is an
+  evolve-set score — confirmation needs fresh tasks; (b) any instruction
+  ablation reports a compute-matched arm, since guidance that adds checks
+  or retries buys test-time compute; (c) O≈0 does not imply transfer
+  (27B/Coder-30B regress with no detectable shortcut), so clause-level
+  neutralization cannot replace held-out confirmation.
+- Open: peer review of the blog; replication at larger budgets than
+  Rethinking's K=5. Revisit 2026-12 (unscheduled).
 
 ## Void map
 
