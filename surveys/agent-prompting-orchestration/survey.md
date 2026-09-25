@@ -5,15 +5,21 @@ was built from pretrained recall (2026-01 cutoff) plus light search; the
 falsification slice then read ten anchor/neighbor papers via prompted
 arXiv-HTML extraction, snowballed their citers (Semantic Scholar Graph
 API), and ran the reframing queries in *Disconfirming pass*. Read-backed
-nodes cite `related-work/papers.yaml` keys. All ten now have local searchable
-Markdown extracts (10 manifested / 10 verified / 10 grounded / 10 extracted;
-5 concept digests, `related-work status` 2026-08-15). Effectiveness grades
+nodes cite `related-work/papers.yaml` keys. A second grounded slice
+(2026-09-25, §J) read RRSI and nine harness-evolution neighbors in full;
+three of those (Meta-Harness, RHSI, delta attribution) were read from
+saved source HTML because their Markdown failed the fidelity gate
+(20 manifested / 20 verified / 17 grounded / 17 extracted; 15 concept
+digests, `related-work status` 2026-09-25). Effectiveness grades
 remain capped at
 `single-source` (each claim still rests on its own paper); `folklore`
 where honest.
 
 Coverage cutoff: literature as represented in pretraining through
-2026-01, plus web search 2026-08-15 (no venue-scoped sweep).
+2026-01, plus web search 2026-08-15 (no venue-scoped sweep). §J adds a
+grounded slice through 2026-09-25: RRSI (arXiv 2609.24972) as anchor,
+backward snowball over its reference list, nine further full reads; its
+forward citers do not exist yet.
 
 Created for placement of the `research/differential-instruction-diagnosis`
 program (`~/agents`); see *Placement* at the end. Introspection-faithfulness
@@ -230,6 +236,93 @@ Grade: `single-source` each. This strand audits the corpus object directly
 signal and without a repair loop; its regression tests are natural
 post-patch checks for the diagnosis program.
 
+## J. Recursive harness evolution and its generalization gap
+
+Grounded slice 2026-09-25, anchored on RRSI and snowballed from its
+reference list; full reads recorded in `related-work/papers.yaml`. What it
+is: an LLM proposer repeatedly edits an agent harness — prompts, control
+flow, tools, skills, memory — from feedback on an *evolve set*, a selector
+keeps winners, and the result is sold as agent-level recursive
+self-improvement. Problem addressed: hand harness engineering is limited
+by how many trajectories an engineer reads. Nearest confusable: B
+(prompt optimization; J edits executable scaffolds and whole instruction
+bundles) and F (HarnessFix repairs from failures with regression checks;
+J searches from scores).
+
+- **J1 Unregularized evolution.** Meta-Harness ([digest](concepts/meta-harness.md);
+  arXiv 2603.28052): a Claude Code proposer reads all prior candidates'
+  code, scores, and raw traces from a filesystem; raw traces beat scores or
+  summaries in its ablation. TerminalBench-2 is searched and scored on the
+  same 89 tasks, guarded only by inspection and a task-string regex.
+  Recursive Harness Self-Improvement ([digest](concepts/rhsi.md); 2607.15524)
+  evolves and scores each harness on the *same single task*. Grade:
+  `single-source`; neither design can separate mechanism from memorization.
+- **J2 Evaluation critiques — the disconfirming core.**
+  - Rethinking the Evaluation ([digest](concepts/rethink-he.md); 2607.12227):
+    on Terminal-Bench 2.1, AHE-style evolution does not beat matched
+    test-time sampling; held-out gain +0.6 pp (≈1 of 68 rollouts); edits
+    "memorize fixes rather than distilling strategies". Small budget (K=5).
+  - Delta attribution ([digest](concepts/delta-attribution.md); Ding,
+    Durrett et al., blog): decomposes a gain exactly into overfitting O
+    (neutralize shortcuts — lookup tables, item-ID gates, answer-string
+    matches, distilled recipes — then rescore), test-time scaling T
+    (compute-matched baseline), and generalizable G. On Meta-Harness runs:
+    ALFWorld O 98 / G 2; LiveMath O 79; CREATE T 73; SWE-bench mixed, and
+    two settings with O≈0 still *regress* on test (27B: train 77→85, test
+    66→64). Soft behavioral fitting (preferring a benchmark's frequent
+    answer) escaped a code-only check.
+  - Harness Updating Is Not Harness Benefit ([digest](concepts/update-benefit.md);
+    2605.30621): the agent model, not the evolver, dominates benefit (≤5 pp
+    across evolvers vs 36 pp across agents); weak agents fail to load or
+    follow evolved skills. In-stream scoring only.
+  - Evo-Bench ([digest](concepts/evo-bench.md); 2608.09096): disjoint
+    448-task held-out suite; gains +16 pp are real but mostly *added
+    missing tools* to a crippled seed; validation overstates held-out by
+    3.5–7.2 pp; byte-identical revisions spread 2.2 pp; one evolver evaded
+    the answer-leak scanner.
+  Grade: `single-source` each, but four independent groups converge:
+  unregularized evolve-set gains are largely fit, noise, or compute.
+- **J3 Generalization-targeting methods.**
+  - RRSI ([digest](concepts/rrsi.md); 2609.24972): annealed edits-per-round
+    budget, edit-history credit, pre-evaluation LLM leakage critic,
+    noise-band acceptance floor, cost-vs-gain acceptance, pruning.
+    Workspace OOD average 43.6 vs H0 39.7 vs unregularized 40.3, at 2.42M
+    vs 3.80M tokens/trial. Only two grouped ablations; critic unablated;
+    selection reuses the evolve set; Harvey (evolve) and APEX (OOD) share
+    a Gemini judge; one run per arm.
+  - HarnessCompass ([digest](concepts/harnesscompass.md); 2608.01918):
+    content gate in the writer prompt bans task ids/test names; held-out
+    SWE-bench split drawn from the same repositories; first-person agent
+    feedback *raised* evolve score and *lowered* held-out.
+  - HarnessBank, v1 "gated semantic quality-diversity"
+    ([digest](concepts/gated-qd.md); 2607.13683): failure-type-keyed
+    archive, paired z-gate, activation check, sealed test split; no content
+    screen. Ablating the gate left the deployed harness unchanged. Its
+    "matching law" — a patch helps the model whose dominant failure it
+    targets (+11–15) and is ≈0 or harmful elsewhere — is the strongest
+    evidence here for model-scoped instructions.
+  - ModularRSI ([digest](concepts/modular-rsi.md); 2609.14857): evolves on
+    2,000 externally sourced tasks screened against the eval benchmarks;
+    under that split, AHE and Meta-Harness gain ≈+1 pp. Headline
+    configuration chosen by its SWE-bench Verified test score.
+  - RSEA, "Recursive Self-Evolving Agents via Held-Out Selection"
+    (2606.28374; abstract only, `[R]`): accepts only changes that pass a
+    held-out gate — the separate-selection-split remedy RRSI cites
+    (Dwork et al. reusable holdout) but does not implement.
+  Grade: `single-source` each; no method has been evaluated by another
+  group.
+
+What actually prevents memorization, ordered by evidence: (1) **split
+design** — evolve/select/confirm on disjoint, preferably out-of-source
+suites (Evo-Bench, ModularRSI, RSEA) makes memorization unable to inflate
+the reported number, though it does not stop it happening; (2) **compute
+matching and neutralization** (delta attribution) to measure O and T;
+(3) **noise floors** calibrated from identical reruns (RRSI, Evo-Bench,
+HarnessBank); (4) **content screens** on diffs (RRSI critic, HarnessCompass
+gate, ModularRSI self-review, Meta-Harness regex) — unablated everywhere,
+catching only explicit leakage; soft behavioral fitting and judge-style
+fitting pass them by construction.
+
 ## Contested results
 
 - **Debate vs matched-compute sampling:** multiple post-2023 papers report
@@ -241,6 +334,12 @@ post-patch checks for the diagnosis program.
   axis: baseline effort budget. (Recall.)
 - **Judge reliability:** agreement with humans varies sharply by task and
   rubric; axis: task type and rubric granularity. (Recall.)
+- **Does harness evolution transfer?** Method papers (RRSI, HarnessBank,
+  Evo-Bench, ModularRSI) report held-out gains; critiques (Rethinking,
+  delta attribution) find held-out ≈0 or regressions. Axes: seed-harness
+  strength (a crippled seed leaves real mechanism to add), split source
+  (same-benchmark vs external), and compute matching. (Grounded
+  2026-09-25, §J.)
 
 ## Negative / quiet results
 
@@ -259,7 +358,9 @@ baseline-sensitive: the honest comparisons are against a *well-tuned single*
 prompt/model at matched compute, and several headline effects (debate,
 optimizer margins) attenuate there. Any effectiveness claim adopted from this
 map into a decision should be re-checked at the intended compute and
-baseline-effort point.
+baseline-effort point. Harness evolution (§J) is the sharpest case: its
+gains shrink to ≈0 against matched test-time sampling (Rethinking) and
+split into overfitting plus bought compute under delta attribution.
 
 ## Placement: `research/differential-instruction-diagnosis` (~/agents)
 
