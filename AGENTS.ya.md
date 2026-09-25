@@ -56,3 +56,20 @@ maintenance-port reload, killing its process tree — destroys in-flight work,
 including this turn. Treat that as a user action: state `needs restart: <what>`
 and continue. To exercise a server change first, start an isolated instance on
 another port and profile instead.
+
+## Presenting artifacts
+
+When the user asks for an artifact, or you hand them a built HTML page to
+view, run `ya-artifact grant <file.html>[#section]` and cite the URL it
+prints. That URL is a live grant, and because it appears in tool output YA
+also offers it as the session's App and opens it in the right pane. Never
+write an artifact-origin `/a/<token>/` URL yourself or pass one along from
+source code, logs, or search output: only a URL YA returned names a live
+grant, and any other opens an empty 404 pane.
+
+Grants require an HTML entry. For a PDF, image, or other file, and whenever
+the helper fails, give the file's absolute path: YA's file viewer opens it,
+and its Play control runs HTML interactively. Use `--audience public` only
+when the user is on a hosted or relayed client and the local link does not
+load. In a project with its own capture or artifact command, that command's
+instructions govern.

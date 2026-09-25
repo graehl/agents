@@ -5211,3 +5211,42 @@ Contributing-model: opus-5.5
   not statistics, and stays on marker-pdf.
 
 Contributing-model: opus-5.5
+
+## 2026-09-25 — present YA artifacts through a minted grant
+
+- **Incident** — a trtllm session searched YA's source with `rg`, and its
+  output quoted the unit-test fixture
+  `http://artifacts.localhost:3400/a/grant/report.html#results`. YA's
+  tool-output app discovery turned it into a clickable App link, and the
+  user opened an empty pane (the server's `404 Not Found`; `grant` is not
+  a minted token). The YA defect is recorded as
+  `~/ya/gaps/quoted-artifact-urls-become-app-links.md`. The instruction
+  side: no global guidance said how to present a viewable file in a YA
+  session. YA's own `AGENTS.md` names its repository capture command,
+  which other projects do not have.
+- **User direction** — "i need an ~/agents instruction on the correct way
+  to present a YA artifact which is scoped when i ask for an 'artifact'",
+  then "+ small helper" and "there are env vars reaching session processes
+  AGENT_* or similar indicating ya endpoint i'm sure. if not, add them".
+  `AGENT_SERVER_URL` already reaches sessions (verified in this Bash
+  environment). `POST /api/artifacts` with `X-Yep-Anywhere: true` minted a
+  grant on this host with no further credential.
+- **Change** — `scripts/ya-artifact` (acli, spec in `helper-scripts.md`)
+  and `AGENTS.ya.md` § Presenting artifacts. The rule sits in the launcher
+  supplement because it holds only when YA supervises the session and
+  publishes the server URL. The fallback is the file's absolute path,
+  which YA's file viewer opens and can play.
+- **Traces** — "make me an artifact of the results" in a YA-launched
+  session → build, `ya-artifact grant`, cite the printed URL. The same in
+  a plain terminal session → `AGENTS.ya.md` is not loaded, and the
+  ordinary path/report delivery applies. A YA UI capture inside the YA
+  repo → the project's `artifact:capture` rule governs, as the new
+  section defers. A server with authentication enabled → exit 3, absolute
+  path given. A user on ya.graehl.org who reports the local link fails
+  → `--audience public`.
+- **Verified scope** — the public audience minted a grant served with 200
+  from `https://artifacts.graehl.org`. A PDF entry was refused with HTTP
+  400 "Artifact entry must be an HTML file", so the rule names HTML and
+  routes other files to the absolute path.
+
+Contributing-model: opus-5.5

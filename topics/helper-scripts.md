@@ -660,3 +660,43 @@ regenerates both and the numbers in `skills/not-ai/validation.md`.
 
 **Canonical source**: `scripts/not-ai-lint` (in this repo).
 **Install target**: `~/bin/not-ai-lint` (symlink by default).
+
+### ya-artifact
+
+Presents a built file to the user through the Yep Anywhere server
+supervising the session (`AGENTS.ya.md` § Presenting artifacts). It asks
+that server for an artifact grant, so the printed URL is live. Agents
+otherwise tended to compose or pass along `/a/<token>/` URLs, which open
+an empty 404 pane.
+
+**CLI**: `ya-artifact grant <file>[#section] [--audience local|public]`
+and `ya-artifact revoke <grant-id>`. The server is `$AGENT_SERVER_URL`,
+which YA publishes to sessions it launches without any credential. `grant`
+POSTs `{path, audience}` to `/api/artifacts` with `X-Yep-Anywhere: true`
+and prints `url` (fragment appended), `id`, `expiresAt`, `path`,
+`audience`, plus a Markdown link as commentary; `--text` prints only the
+URL. `revoke` DELETEs `/api/artifacts/<id>`; the server's revoke is
+idempotent, so the result states only that no live grant has that id. It
+is acli with `complete` and `+commentary`.
+
+**Post-conditions**:
+- a printed URL came from the server's grant response, never from
+  local construction beyond the caller's fragment;
+- unset `AGENT_SERVER_URL` or an unreachable server exits 69, a missing
+  file exits 4, and an HTTP refusal (serving off, auth required, or a
+  non-HTML entry, which the server rejects with "Artifact entry must be an
+  HTML file") exits 3, each with an error envelope. It never falls back to
+  a guessed URL;
+- the grant does not own the file: expiry or revocation never deletes it.
+
+**Examples**:
+1. `ya-artifact grant --text out/report.html#results` in a YA session →
+   `http://artifacts.localhost:3400/a/<token>/report.html#results`, exit 0.
+2. `AGENT_SERVER_URL= ya-artifact grant out/report.html` → error envelope
+   naming the unset variable, exit 69.
+3. `ya-artifact grant /nonexistent.html` → `not a file` envelope, exit 4.
+4. `ya-artifact grant out/paper.pdf` → HTTP 400 `Artifact entry must be
+   an HTML file` envelope, exit 3.
+
+**Canonical source**: `scripts/ya-artifact` (in this repo).
+**Install target**: `~/bin/ya-artifact` (symlink by default).
