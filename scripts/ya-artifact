@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+# acli: 1 complete +commentary
+"""ya-artifact — present a built file to the user through Yep Anywhere.
+
+`grant` asks the YA server supervising this session for an artifact grant on
+an HTML file (the server refuses other entries) and prints the grant URL. YA
+serves the file's directory on its isolated artifact origin, and because the
+URL arrives in tool output, the session shows it as an App link and opens it
+in the right pane. A `#section` suffix on the path is kept on the URL.
+
+Only a URL this command (or YA's own viewer) returned names a live grant; a
+URL written by hand or quoted from elsewhere is dead. `revoke` ends a grant
+early; otherwise it expires on the server's configured schedule.
+
+The server comes from `AGENT_SERVER_URL`, which YA publishes to sessions it
+launches. It carries no credentials: a server that requires authentication
+refuses the grant, and the caller should then give the file's absolute path,
+which YA's file viewer opens and can play.
+
+When to use it: AGENTS.ya.md § Presenting artifacts. Spec:
+topics/helper-scripts.md § ya-artifact.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import (  # noqa: E402
+    ExitCode,
+    Format,
+    add_standard_args,
+    argument_parser,
+    commentary,
+    die,
+    emit,
+    maybe_complete,
+    resolve_format,
+)
+
+SERVER_ENV = "AGENT_SERVER_URL"
+EXIT_CODES = {
+    3: "the server refused the request (artifact serving off, auth required, non-HTML entry)",
+    4: "the file does not exist",
+    69: f"no YA server: {SERVER_ENV} is unset or unreachable",
+}
+
+
+def server_url() -> str:
+    value = os.environ.get(SERVER_ENV, "").strip()
+    if not value:
+        die(
+            f"{SERVER_ENV} is unset; this session was not launched by YA. "
+            "Give the user the file's absolute path instead.",
+            ExitCode.UNAVAILABLE,
+        )
+    return value if value.endswith("/") else f"{value}/"
+
+
+def request(method: str, path: str, body: dict | None = None) -> dict:
+    url = f"{server_url()}{path}"
+    data = None if body is None else json.dumps(body).encode()
+    req = urllib.request.Request(
+        url,
+        data=data,
+        method=method,
+        headers={"X-Yep-Anywhere": "true", "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            return json.loads(response.read() or b"{}")
+    except urllib.error.HTTPError as error:
+        raw = error.read().decode(errors="replace")
+        try:
+            message = json.loads(raw).get("error") or raw
+        except (json.JSONDecodeError, AttributeError):
+            message = raw
+        code = ExitCode.NOT_FOUND if error.code == 404 else ExitCode.DATA
+        die(
+            f"YA {method} /{path}: HTTP {error.code}: {message.strip()[:300]}",
+            code,
+            detail={"status": error.code},
+        )
+    except (urllib.error.URLError, TimeoutError) as error:
+        die(
+            f"YA server at {server_url()} is unreachable: {error}",
+            ExitCode.UNAVAILABLE,
+        )
+
+
+def verb_grant(args) -> int:
+    target, _, fragment = args.path.partition("#")
+    path = Path(target).expanduser().resolve()
+    if not path.is_file():
+        die(f"not a file: {path}", ExitCode.NOT_FOUND, detail={"path": str(path)})
+    grant = request(
+        "POST",
+        "api/artifacts",
+        {"path": str(path), "audience": args.audience},
+    )
+    url = grant.get("url")
+    if not isinstance(url, str) or "/a/" not in url or not grant.get("id"):
+        die(
+            "YA returned no artifact grant",
+            ExitCode.SOFTWARE,
+            detail={"response": grant},
+        )
+    if fragment:
+        url = f"{url}#{fragment}"
+    result = {
+        "url": url,
+        "id": grant["id"],
+        "expiresAt": grant.get("expiresAt"),
+        "path": str(path),
+        "audience": args.audience,
+    }
+    fmt = resolve_format(args)
+    with_commentary = not args.no_commentary and fmt is not Format.TEXT
+    if with_commentary:
+        result = commentary(f"Opened [{path.name}]({url}) for viewing.", value=result)
+    emit(result, fmt, text=url, commentary=with_commentary)
+    return 0
+
+
+def verb_revoke(args) -> int:
+    # The server's revoke is idempotent and does not say whether the id was
+    # live, so the result states only what now holds.
+    request("DELETE", f"api/artifacts/{args.id}")
+    emit(
+        {"id": args.id, "live": False},
+        resolve_format(args),
+        text=f"no live grant has id {args.id}",
+    )
+    return 0
+
+
+def build_parser():
+    parser = argument_parser(
+        prog="ya-artifact",
+        description="Present a built file to the user through the supervising YA "
+        "server's artifact viewer. Spec: topics/helper-scripts.md § ya-artifact.",
+        capabilities=("complete", "+commentary"),
+        exit_codes=EXIT_CODES,
+    )
+    sub = parser.add_subparsers(dest="verb", required=True)
+
+    p = sub.add_parser(
+        "grant",
+        help="Grant viewing of a file (its directory is served) and print the URL. "
+        "--text prints only the URL.",
+    )
+    p.add_argument("path", help="File to present, optionally with a #section suffix.")
+    p.add_argument(
+        "--audience",
+        choices=["local", "public"],
+        default="local",
+        help="local: the YA host's browser (default). public: the configured "
+        "public artifact origin, for a user on a hosted or relayed client.",
+    )
+    add_standard_args(p)
+    p.set_defaults(func=verb_grant)
+
+    p = sub.add_parser(
+        "revoke",
+        help="End a grant before it expires; succeeds whether or not the id was live.",
+    )
+    p.add_argument("id", help="Grant id printed by grant.")
+    add_standard_args(p)
+    p.set_defaults(func=verb_revoke)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    maybe_complete(parser, [sys.argv[0], *(argv if argv is not None else sys.argv[1:])])
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
