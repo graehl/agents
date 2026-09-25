@@ -21,12 +21,21 @@ still goes through marker-pdf.
 Install or upgrade only when needed, under the normal dependency-change gate:
 
 ```bash
-UV_PYTHON_PREFERENCE=only-managed uv tool install marker-pdf --python 3.12
-uv tool upgrade marker-pdf
+UV_PYTHON_PREFERENCE=only-managed uv tool install 'marker-pdf<2' --python 3.12
 ```
 
-`UV_PYTHON_PREFERENCE=only-managed` selects a uv-managed CPython 3.12 rather
-than the host's old system Python. The isolated environment is
+Keep the `<2` pin (installed: 1.10.2). marker 2.0 moved OCR into an
+inference server: on an NVIDIA host surya spawns a vLLM Docker container,
+which fails here because the account is not in the `docker` group, and its
+alternative needs a separately installed `llama-server`. 1.x runs its torch
+models in-process. Lift the pin only after deciding which server route to
+support. `UV_PYTHON_PREFERENCE=only-managed` selects a uv-managed CPython
+3.12 rather than the host's old system Python.
+
+marker uses the GPU by default and fails with CUDA out-of-memory when
+another job holds it. Check `nvidia-smi` first; under contention, run with
+`TORCH_DEVICE=cpu`, which works but took about 50 minutes for a 26-page
+paper on gra (2026-09-25). The isolated environment is
 `~/.local/share/uv/tools/marker-pdf`, with `marker_single`, `marker`, and
 `marker_server` entry points under `~/.local/bin`.
 
