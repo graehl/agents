@@ -88,7 +88,9 @@ whether to extend the system or to introduce something parallel.
   non-Markdown tracked path; it does not crawl imports by language. We do not
   strace, intercept opens, trace Python imports, or infer arbitrary
   external/native/ignored dependencies. A step that does not declare its data
-  inputs is still a graph leaf.
+  inputs is still a graph leaf. A project may choose `--source-guard record`
+  (see `agentctl.md`), which marks such a run's source `unverified` with its
+  violations listed instead of refusing it.
 - **No deterministic replay.** True bit-for-bit reproducibility is the
   containerization problem (nix/docker). OS/distro, GPU, and cloud image
   identity are recorded best-effort but do not gate launch. We capture enough
