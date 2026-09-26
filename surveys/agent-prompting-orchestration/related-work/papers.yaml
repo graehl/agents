@@ -234,13 +234,14 @@ papers:
     url: "https://arxiv.org/html/2607.15524"
     short: rhsi
     concept_page: concepts/rhsi.md
-    grounded: false
+    grounded: true
     verified: true
-    source: "full read of saved source HTML, converted locally 2026-09-25"
+    source: "full read of saved source HTML, converted locally 2026-09-25; committed extract via marker-pdf (CPU)"
+    fetched: 2026-09-26
     cluster: J
     note: >
-      Committed extract pending: HTML derivation failed the fidelity gate on
-      14 figure-text blocks and marker-pdf is not installed on this host.
+      HTML derivation failed the fidelity gate on 14 figure-text blocks, so
+      the committed extract is the marker-pdf conversion.
   - key: gsqd2026
     short: gated-qd
     concept_page: concepts/gated-qd.md
