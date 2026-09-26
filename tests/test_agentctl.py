@@ -3741,6 +3741,68 @@ def test_queued_run_rejects_committed_source_change_before_payload():
         ws.cleanup()
 
 
+def test_record_source_guard_runs_dirty_checkout_and_records_violations():
+    ws = Workspace()
+    try:
+        with (ws.tmp / "agentctl.py").open("a", encoding="utf-8") as handle:
+            handle.write("\n# dirty test\n")
+        (ws.tmp / "stray.py").write_text("x = 1\n", encoding="utf-8")
+        started = ws.run(
+            "start", "--launch-wait", "0", "--source-guard", "record", "dirty", "--", "true"
+        )
+        _assert(started.returncode == 0, started)
+        _assert("recorded, --source-guard record" in started.stderr, started.stderr)
+        state = ws.wait_finished("dirty")
+        _assert(state["returncode"] == 0, state)
+        snapshot = state["source_snapshot"]
+        _assert(snapshot["status"] == "unverified" and snapshot["guard"] == "record", snapshot)
+        _assert(not snapshot["tracked_clean"] and snapshot["untracked_python_count"] == 1, snapshot)
+        text = "\n".join(snapshot["violations"])
+        _assert("tracked/index changes" in text and "stray.py" in text, text)
+    finally:
+        ws.cleanup()
+
+
+def test_project_env_record_guard_lets_queued_run_survive_source_change():
+    ws = Workspace()
+    try:
+        project_env = ws.tmp / "agentctl.env"
+        project_env.write_text("AGENTCTL_SOURCE_GUARD=record\n", encoding="utf-8")
+        ws.commit(project_env)
+        output = ws.scratch / "ran.txt"
+        _start(ws, "--no-aim", "slowdep", "--", "bash", "-c", "sleep 0.5")
+        _start(
+            ws,
+            "--after",
+            "slowdep",
+            "--after-poll",
+            "0.05",
+            "--after-heartbeat",
+            "0",
+            "queued",
+            "--",
+            "bash",
+            "-c",
+            f"echo ran > {output}",
+        )
+        agentctl_source = ws.tmp / "agentctl.py"
+        with agentctl_source.open("a", encoding="utf-8") as handle:
+            handle.write("\n# changed after submission\n")
+        ws.commit(agentctl_source)
+
+        state = ws.wait_finished("queued")
+        _assert(state["returncode"] == 0, state)
+        _assert(output.exists(), "payload did not run under the record guard")
+        snapshot = state["source_snapshot"]
+        _assert(snapshot["guard"] == "record" and snapshot["status"] == "unverified", snapshot)
+        _assert(
+            any("agentctl.py" in v for v in snapshot["launch_violations"]),
+            snapshot,
+        )
+    finally:
+        ws.cleanup()
+
+
 def test_queued_prelaunch_failure_posts_session_wake():
     ws = Workspace()
     try:

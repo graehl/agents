@@ -425,6 +425,16 @@ notices.
   `source_snapshot.execution_guarantee` is `admission-time-only`, and
   commit-isolated execution requires invoking from a separately materialized,
   protected checkout.
+- `--source-guard enforce|record` chooses what a violation of that guard does.
+  `enforce` (the default) refuses at submission and fails a queued payload
+  with returncode 2. `record` runs anyway: each violation is printed to stderr
+  and kept in `source_snapshot.violations` (submission) or
+  `source_snapshot.launch_violations` (delayed launch), `status` becomes
+  `unverified`, and the snapshot still records commit, cleanliness and file
+  hashes. The default comes from `AGENTCTL_SOURCE_GUARD`, ambient or in the
+  project `agentctl.env`; `restart` keeps the recorded mode. It is an interim
+  for shared, actively edited checkouts until runs declare their dependencies
+  ([run-source-dependencies](../gaps/sketches/run-source-dependencies.md)).
   Every Git cleanliness, listing, and blob-content probe fails closed; a Git
   command error is not treated as an empty clean result. Pixi-specific
   `--manifest-path`/`-m` parsing applies only to a direct `pixi` invocation

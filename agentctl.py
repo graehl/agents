@@ -89,6 +89,8 @@ YEP_DEV_OWNERSHIP_ENVS = frozenset(
     }
 )
 SOURCE_SCOPES = ("non-doc", "all")
+SOURCE_GUARD_MODES = ("enforce", "record")
+SOURCE_GUARD_ENV = "AGENTCTL_SOURCE_GUARD"
 ENVIRONMENT_CONTROL_FILES = (
     "pixi.toml",
     "pixi.lock",
@@ -3087,6 +3089,45 @@ def git_output(args: list[str], *, cwd: Path = ROOT, text: bool = True):
         ) from exc
 
 
+class SourceGuard:
+    """Refuse a reproducibility-guard violation, or record it and continue.
+
+    ``enforce`` raises as the guard always has. ``record`` keeps every
+    violation in the run record and on stderr so a shared, actively edited
+    checkout can still launch and run queued work; the snapshot then says
+    `unverified` instead of `committed`.
+    """
+
+    def __init__(self, mode: str):
+        if mode not in SOURCE_GUARD_MODES:
+            raise SystemExit(
+                f"--source-guard must be one of {', '.join(SOURCE_GUARD_MODES)}, got {mode!r}"
+            )
+        self.mode = mode
+        self.violations: list[str] = []
+
+    def refuse(self, message: str) -> None:
+        if self.mode == "enforce":
+            raise SystemExit(message)
+        self.violations.append(message)
+        print(f"warning: {message} (recorded, --source-guard record)", file=sys.stderr)
+
+    def attempt(self, fn, *args, **kwargs):
+        """Run a probe whose failure is a guard violation; None when recorded."""
+        try:
+            return fn(*args, **kwargs)
+        except SystemExit as exc:
+            if self.mode == "enforce":
+                raise
+            self.refuse(str(exc.code))
+            return None
+
+
+def resolve_source_guard(requested: str | None, env: dict[str, str]) -> str:
+    """Explicit --source-guard, then the ambient or agentctl.env default."""
+    return requested or env.get(SOURCE_GUARD_ENV) or "enforce"
+
+
 def source_pathspecs(source_scope: str) -> list[str]:
     pathspecs = [".", ":(top,glob,exclude)**/runs/aim/**"]
     if source_scope == "non-doc":
@@ -3309,25 +3350,40 @@ def build_source_snapshot(
     project_env: dict | None,
     source_env: list[str],
     source_scope: str,
+    guard: SourceGuard | None = None,
 ) -> dict:
+    guard = guard or SourceGuard("enforce")
+    git_root_text = commit = ""
     try:
         git_root_text = git_output(["rev-parse", "--show-toplevel"]).strip()
         commit = git_output(["rev-parse", "HEAD"]).strip()
     except GitProbeError as exc:
-        raise SystemExit(
+        guard.refuse(
             "reproducibility guard: tracked runs require a Git checkout with a "
             f"committed HEAD; {exc.code}"
-        ) from exc
-    if not git_root_text or not commit:
-        raise SystemExit(
-            "reproducibility guard: tracked runs require a Git checkout with a committed HEAD; "
-            "an rsynced source tree without .git is not an experiment source"
         )
+    if not git_root_text or not commit:
+        if guard.mode == "enforce" or not guard.violations:
+            guard.refuse(
+                "reproducibility guard: tracked runs require a Git checkout with a committed HEAD; "
+                "an rsynced source tree without .git is not an experiment source"
+            )
+        return {
+            "schema": "agentctl-source-v1",
+            "status": "unverified",
+            "guard": guard.mode,
+            "violations": list(guard.violations),
+            "execution_guarantee": "none",
+            "submission_check_at": utc_now(),
+            "launch_check_at": "",
+            "source_scope": source_scope,
+            "files": {},
+        }
     git_root = Path(git_root_text).resolve()
     dirty = tracked_source_status(git_root, source_scope=source_scope)
     if dirty:
         first = dirty.splitlines()[0]
-        raise SystemExit(
+        guard.refuse(
             "reproducibility guard: tracked/index changes must be committed before a tracked "
             f"run; first change: {first}"
         )
@@ -3339,36 +3395,45 @@ def build_source_snapshot(
         suffix = (
             f" (+{len(untracked_python) - 5} more)" if len(untracked_python) > 5 else ""
         )
-        raise SystemExit(
+        guard.refuse(
             "reproducibility guard: all non-ignored Python source must be committed before a "
             f"tracked run: {preview}{suffix}"
         )
 
-    files, foreign_environments = environment_control_paths(
-        argv, project_env, source_env
-    )
+    files, foreign_environments = guard.attempt(
+        environment_control_paths, argv, project_env, source_env
+    ) or ({}, [])
     script_path = Path(script["path"]).resolve() if script.get("path") else None
     if script_path is not None:
         try:
             script_path.relative_to(git_root)
         except ValueError:
             if explicit_script or script_path.suffix in {".py", ".sh", ".bash", ".zsh"}:
-                raise SystemExit(
+                guard.refuse(
                     "reproducibility guard: experiment scripts must be committed in the "
                     f"project checkout: {script_path}"
                 )
         else:
             files["script"] = script_path
 
-    records = {
-        label: committed_file_record(path, git_root=git_root, commit=commit)
-        for label, path in sorted(files.items())
-    }
-    if "script" in records:
+    records = {}
+    for label, path in sorted(files.items()):
+        record = guard.attempt(committed_file_record, path, git_root=git_root, commit=commit)
+        if record is None:
+            p = Path(path).expanduser().resolve()
+            record = {
+                "path": str(p),
+                "sha256": compute_sha256(p) if p.is_file() else "unavailable",
+                "recoverable": False,
+            }
+        records[label] = record
+    if "git_blob" in records.get("script", {}):
         script.update({key: records["script"][key] for key in ("git_path", "git_blob")})
     snapshot = {
         "schema": "agentctl-source-v1",
-        "status": "committed",
+        "status": "unverified" if guard.violations else "committed",
+        "guard": guard.mode,
+        "violations": list(guard.violations),
         "execution_guarantee": "admission-time-only",
         "execution_tree": "mutable-shared-worktree",
         "submission_check_at": utc_now(),
@@ -3377,8 +3442,8 @@ def build_source_snapshot(
         "git_branch": git_output(["branch", "--show-current"], cwd=git_root).strip(),
         "git_commit": commit,
         "source_scope": source_scope,
-        "tracked_clean": True,
-        "untracked_python_count": 0,
+        "tracked_clean": not dirty,
+        "untracked_python_count": len(untracked_python),
         "files": records,
     }
     if foreign_environments:
@@ -3403,7 +3468,12 @@ def revalidate_foreign_environment(record: dict) -> None:
             )
 
 
-def revalidate_source_snapshot(snapshot: dict) -> None:
+def revalidate_source_snapshot(snapshot: dict) -> list[str]:
+    """Repeat admission before a delayed payload launch; return recorded violations."""
+    guard = SourceGuard(snapshot.get("guard", "enforce"))
+    if not snapshot.get("git_commit"):
+        guard.refuse("reproducibility guard: no Git source was recorded at submission")
+        return guard.violations
     git_root = Path(snapshot["git_root"])
     commit = snapshot["git_commit"]
     source_scope = snapshot.get("source_scope", "all")
@@ -3416,13 +3486,13 @@ def revalidate_source_snapshot(snapshot: dict) -> None:
             source_scope=source_scope,
         )
         if changed:
-            raise SystemExit(
+            guard.refuse(
                 "reproducibility guard: committed source changed after submission; "
                 f"refusing payload launch; first change: {changed[0]}"
             )
     dirty = tracked_source_status(git_root, source_scope=source_scope)
     if dirty:
-        raise SystemExit(
+        guard.refuse(
             "reproducibility guard: checkout source became dirty after submission; "
             f"refusing payload launch; first change: {dirty.splitlines()[0]}"
         )
@@ -3430,23 +3500,27 @@ def revalidate_source_snapshot(snapshot: dict) -> None:
         ["ls-files", "--others", "--exclude-standard", "--", "*.py"], cwd=git_root
     ).splitlines()
     if untracked_python:
-        raise SystemExit(
+        guard.refuse(
             "reproducibility guard: untracked Python appeared after submission; refusing payload launch"
         )
     for expected in (snapshot.get("files") or {}).values():
-        current = committed_file_record(
-            expected["path"], git_root=git_root, commit=commit
+        if "git_blob" not in expected:
+            # Already recorded as unrecoverable at submission.
+            continue
+        current = guard.attempt(
+            committed_file_record, expected["path"], git_root=git_root, commit=commit
         )
-        if (
+        if current is not None and (
             current["sha256"] != expected["sha256"]
             or current["git_blob"] != expected["git_blob"]
         ):
-            raise SystemExit(
+            guard.refuse(
                 "reproducibility guard: source/control fingerprint changed after submission: "
                 f"{expected['git_path']}"
             )
     for record in snapshot.get("foreign_environments") or []:
-        revalidate_foreign_environment(record)
+        guard.attempt(revalidate_foreign_environment, record)
+    return guard.violations
 
 
 def machine_snapshot() -> dict:
@@ -4776,6 +4850,7 @@ def start(args: argparse.Namespace) -> int:
             project_env=project_env,
             source_env=list(args.source_env),
             source_scope=args.source_scope,
+            guard=SourceGuard(resolve_source_guard(getattr(args, "source_guard", None), env)),
         )
     for script in args.source_env:
         env = source_env_script(env, script)
@@ -4956,7 +5031,10 @@ def run_child(args: argparse.Namespace) -> int:
         state = read_json(state_path)
         source_snapshot = state.get("source_snapshot")
         if source_snapshot:
-            revalidate_source_snapshot(source_snapshot)
+            launch_violations = revalidate_source_snapshot(source_snapshot)
+            if launch_violations:
+                source_snapshot["status"] = "unverified"
+                source_snapshot["launch_violations"] = launch_violations
             source_snapshot["launch_check_at"] = utc_now()
             state["source_snapshot"] = source_snapshot
             write_json(state_path, state)
@@ -6115,6 +6193,7 @@ def restart(args: argparse.Namespace) -> int:
         no_project_env=not bool(state.get("project_env")),
         source_env=state.get("source_env", []),
         source_scope=(state.get("source_snapshot") or {}).get("source_scope", "all"),
+        source_guard=(state.get("source_snapshot") or {}).get("guard"),
         gpu_patience=600.0,
         wait_gpu=0,
         wait_max_memory_used=None,
@@ -6321,6 +6400,18 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         help=(
             "Tracked paths whose changes block launch: non-doc excludes Markdown; "
             "all checks every tracked path except run bookkeeping (default: %(default)s)."
+        ),
+    )
+    sp.add_argument(
+        "--source-guard",
+        choices=SOURCE_GUARD_MODES,
+        default=None,
+        help=(
+            "What a reproducibility-guard violation does, at submission and again before a "
+            "queued payload launches: enforce refuses the run; record keeps each violation in "
+            "the run's source_snapshot (status unverified) and on stderr, and runs anyway. "
+            f"Default: ${SOURCE_GUARD_ENV} from the environment or project agentctl.env, "
+            "else enforce."
         ),
     )
     sp.add_argument(
