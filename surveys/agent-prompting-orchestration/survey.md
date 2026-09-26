@@ -8,9 +8,10 @@ API), and ran the reframing queries in *Disconfirming pass*. Read-backed
 nodes cite `related-work/papers.yaml` keys. A second grounded slice
 (2026-09-25, §J) read RRSI and nine harness-evolution neighbors in full;
 three of those (Meta-Harness, RHSI, delta attribution) were read from
-saved source HTML because their Markdown failed the fidelity gate
-(20 manifested / 20 verified / 17 grounded / 17 extracted; 15 concept
-digests, `related-work status` 2026-09-25). Effectiveness grades
+saved source HTML because their Markdown failed the fidelity gate; the
+first two now have marker-pdf extracts, and the blog has none
+(20 manifested / 20 verified / 19 grounded / 19 extracted; 15 concept
+digests, `related-work status` 2026-09-26). Effectiveness grades
 remain capped at
 `single-source` (each claim still rests on its own paper); `folklore`
 where honest.
