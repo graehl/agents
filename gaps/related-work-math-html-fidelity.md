@@ -44,3 +44,31 @@ The alternate `misaki2026-string-seed-blog` URL also failed, with “downloaded
 page has no unambiguous HTML entry point”. This may be a separate entry-point
 discovery issue and is untriaged. Neither failure was bypassed. Pending
 manifest entries preserve exact source URLs for retry.
+
+## Domain-adaptive retrieval survey reproductions
+
+2026-09-27 — Contributing-model: 6-Astra.
+
+The retrieval survey reproduced the fidelity failure on `hubotter2025-sift`
+(arXiv 2410.08020v3: 14/583 blocks failed, minimum 0.200),
+`tateno2026-bekko` (2607.25180v1: 6/430, minimum 0), and
+`google2025-embeddinggemma-card` (Hugging Face: 1/61, minimum 0.500).
+The last case includes model-card navigation text, so this failure class is
+not limited to mathematical prose. Exact source URLs remain in
+`surveys/domain-adaptive-retrieval/related-work/papers.yaml`; those entries
+remain verified but unextracted. Primary pages were readable online.
+
+Reproduce with `uv run --with pyyaml scripts/related-work --dir
+surveys/domain-adaptive-retrieval fetch hubotter2025-sift tateno2026-bekko
+google2025-embeddinggemma-card` on one line. No extraction sentinel was created
+and the acceptance threshold was not bypassed.
+
+The accepted `zhang2025-qwen3-embedding` extract exposes a separate asset
+discovery issue: Markdown contains an image with escaped brackets in its alt
+text (`[Uncaptioned image]`). `_local_markdown_assets` does not recognize that
+link, so `modelscope-logo.png` exists in the ignored source cache but is not
+staged, and `audit` still passes. The two scientific figures are staged. This
+is a branding-image omission, not missing result evidence. Reproduce through
+that paper's `stage`/`audit` and inspect the Markdown image links against
+`git ls-files`; fix escaped-alt parsing and add a regression check before
+claiming complete linked-asset coverage. No manual force-add bypass was used.

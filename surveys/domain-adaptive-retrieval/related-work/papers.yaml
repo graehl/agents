@@ -1,0 +1,138 @@
+# Metadata manifest for surveys/domain-adaptive-retrieval.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: domain-adaptive-retrieval
+  coverage_cutoff: 2026-09-27
+  grounding_mode: grounded
+
+papers:
+  - key: wang2024-multilingual-e5
+    title: "Multilingual E5 Text Embeddings: A Technical Report"
+    authors: [Liang Wang, Nan Yang, Xiaolong Huang, Linjun Yang, Rangan Majumder, Furu Wei]
+    venue: arXiv technical report
+    year: 2024
+    url: https://arxiv.org/html/2402.05672v1
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: multilingual-space
+    concept_page: concepts/multilingual-space.md
+  - key: wang2022-gpl
+    title: "GPL: Generative Pseudo Labeling for Unsupervised Domain Adaptation of Dense Retrieval"
+    authors: [Kexin Wang, Nandan Thakur, Nils Reimers, Iryna Gurevych]
+    venue: NAACL
+    year: 2022
+    url: https://ar5iv.labs.arxiv.org/html/2112.07577
+    source: https://aclanthology.org/2022.naacl-main.168/
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: retriever-adaptation
+    concept_page: concepts/retriever-adaptation.md
+  - key: hardt2024-ttt-nn
+    title: Test-Time Training on Nearest Neighbors for Large Language Models
+    authors: [Moritz Hardt, Yu Sun]
+    venue: ICLR
+    year: 2024
+    url: https://arxiv.org/html/2305.18466v3
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: retrieved-test-time-training
+    concept_page: concepts/retrieved-test-time-training.md
+  - key: hubotter2025-sift
+    title: "Efficiently Learning at Test-Time: Active Fine-Tuning of LLMs"
+    authors: [Jonas Hübotter, Sascha Bongni, Ido Hakimi, Andreas Krause]
+    venue: ICLR
+    year: 2025
+    url: https://arxiv.org/html/2410.08020v3
+    source: https://arxiv.org/html/2410.08020v3
+    verified: true
+    grounded: false
+  - key: zhou2025-ttt-reproduction
+    title: "Reproducibility Report: Test-Time Training on Nearest Neighbors for Large Language Models"
+    authors: [Boyang Zhou, Johan Lindqvist, Lindsey Li]
+    venue: arXiv preprint
+    year: 2025
+    url: https://arxiv.org/html/2511.16691v1
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: retrieved-test-time-training
+    concept_page: concepts/retrieved-test-time-training.md
+  - key: ibrahim2024-continual
+    title: Simple and Scalable Strategies to Continually Pre-train Large Language Models
+    authors: [Adam Ibrahim, Benjamin Thérien, Kshitij Gupta, Mats L. Richter, Quentin Anthony, Timothée Lesort, Eugene Belilovsky, Irina Rish]
+    venue: arXiv preprint
+    year: 2024
+    url: https://arxiv.org/html/2403.08763v4
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: forgetting-controls
+    concept_page: concepts/forgetting-controls.md
+  - key: li2018-l2sp
+    title: Explicit Inductive Bias for Transfer Learning with Convolutional Networks
+    authors: [Xuhong Li, Yves Grandvalet, Franck Davoine]
+    venue: ICML
+    year: 2018
+    url: https://arxiv.org/html/1802.01483
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: forgetting-controls
+    concept_page: concepts/forgetting-controls.md
+  - key: tateno2026-bekko
+    title: "Bekko Embedding: Parameter-Efficient Multilingual Retrieval with Ultra-Compact Encoders"
+    authors: [Yuichi Tateno]
+    venue: arXiv preprint
+    year: 2026
+    url: https://arxiv.org/html/2607.25180v1
+    source: https://arxiv.org/html/2607.25180v1
+    verified: true
+    grounded: false
+  - key: google2025-embeddinggemma-card
+    title: EmbeddingGemma model card
+    authors: [Google DeepMind]
+    venue: Hugging Face model card
+    year: 2025
+    url: https://huggingface.co/google/embeddinggemma-300m
+    source: https://huggingface.co/google/embeddinggemma-300m
+    verified: true
+    grounded: false
+  - key: li2016-lwf
+    title: Learning without Forgetting
+    authors: [Zhizhong Li, Derek Hoiem]
+    venue: arXiv preprint
+    year: 2016
+    url: https://arxiv.org/html/1606.09282
+    source: https://arxiv.org/html/1606.09282
+    verified: true
+    grounded: false
+  - key: zhang2025-qwen3-embedding
+    title: "Qwen3 Embedding: Advancing Text Embedding and Reranking Through Foundation Models"
+    authors: [Mingxin Li, Yanzhao Zhang, Dingkun Long, Xin Zhang, Huan Lin, Baosong Yang, Pengjun Xie, An Yang, Dayiheng Liu, Junyang Lin, Fei Huang, Jingren Zhou]
+    venue: arXiv preprint
+    year: 2025
+    url: https://arxiv.org/html/2506.05176v1
+    source: https://huggingface.co/Qwen/Qwen3-Embedding-0.6B
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: gpu-quality-encoders
+    concept_page: concepts/gpu-quality-encoders.md
