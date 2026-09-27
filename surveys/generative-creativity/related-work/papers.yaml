@@ -1,0 +1,98 @@
+# Metadata manifest for surveys/generative-creativity.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: generative-creativity
+  coverage_cutoff: 2026-09-27
+  grounding_mode: grounded
+
+papers:
+  - key: long2025-reasoning-palette
+    title: "Reasoning Palette: Modulating Reasoning via Latent Contextualization for Controllable Exploration for (V)LMs"
+    authors: ["Rujiao Long", "Yang Li", "Xingyao Zhang", "Weixun Wang", "Tianqianjin Lin", "Xi Zhao", "Yuchi Xu", "Wenbo Su", "Junchi Yan", "Bo Zheng"]
+    venue: "arXiv preprint"
+    year: 2025
+    arxiv: "2512.17206v1"
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    source: "Primary metadata and methods/evaluation read; accepted local full-text extract."
+    short: latent-randomness
+    concept_page: concepts/latent-randomness.md
+  - key: misaki2026-string-seed-blog
+    title: "String Seed of Thought: Prompting LLMs for Distribution-Faithful and Diverse Generation"
+    authors: ["Kou Misaki", "Takuya Akiba"]
+    venue: "Sakana AI research blog"
+    year: 2026
+    url: "https://pub.sakana.ai/ssot/"
+    verified: true
+    grounded: false
+    source: "Primary Sakana page read online 2026-09-27; extraction failed HTML entry discovery."
+  - key: misaki2026-string-seed
+    title: "String Seed of Thought: Prompting LLMs for Distribution-Faithful and Diverse Generation"
+    authors: ["Kou Misaki", "Takuya Akiba"]
+    venue: "ICLR"
+    year: 2026
+    arxiv: "2510.21150v3"
+    verified: true
+    grounded: false
+    source: "Primary arXiv v3 metadata verified; full-text methods and Appendix D.6 read online. Local extraction rejected by fidelity gate. Blog has a separate source record."
+  - key: zhang2026-verbalized-sampling
+    title: "Verbalized Sampling: How to Mitigate Mode Collapse and Unlock LLM Diversity"
+    authors: ["Jiayi Zhang", "Simon Yu", "Derek Chong", "Anthony Sicilia", "Michael R. Tomz", "Christopher D. Manning", "Weiyan Shi"]
+    venue: "arXiv preprint, v4"
+    year: 2026
+    arxiv: "2510.01171v4"
+    verified: true
+    grounded: false
+    source: "Primary arXiv v4 metadata verified; methods and limitations read online. Local extraction rejected by fidelity gate; no accepted local full text."
+  - key: cloud2025-subliminal
+    title: "Subliminal Learning: Language models transmit behavioral traits via hidden signals in data"
+    authors: ["Alex Cloud", "Minh Le", "James Chua", "Jan Betley", "Anna Sztyber-Betley", "Jacob Hilton", "Samuel Marks", "Owain Evans"]
+    venue: "arXiv preprint"
+    year: 2025
+    arxiv: "2507.14805v1"
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    source: "Primary arXiv metadata and accepted full-text extract checked 2026-09-27."
+    short: subliminal-transfer
+    concept_page: concepts/subliminal-transfer.md
+  - key: zur2025-owl
+    title: "It's Owl in the Numbers: Token Entanglement in Subliminal Learning"
+    authors: ["Amir Zur", "Alexander R. Loftus", "Hadas Orgad", "Zhuofan Ying", "Kerem Sahin", "David Bau"]
+    venue: "Bau Lab research blog"
+    year: 2025
+    url: "https://owls.baulab.info/"
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    source: "Primary blog bibliography and accepted full-text extract checked 2026-09-27."
+    short: token-entanglement
+    concept_page: concepts/token-entanglement.md
+  - key: hertz2024-style-aligned
+    title: "Style Aligned Image Generation via Shared Attention"
+    authors: ["Amir Hertz", "Andrey Voynov", "Shlomi Fruchter", "Daniel Cohen-Or"]
+    venue: "arXiv preprint, v2"
+    year: 2024
+    arxiv: "2312.02133v2"
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    source: "Primary arXiv metadata and accepted full-text extract checked 2026-09-27."
+    short: shared-attention-style
+    concept_page: concepts/shared-attention-style.md

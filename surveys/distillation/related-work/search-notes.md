@@ -1,5 +1,16 @@
 # Distillation search record
 
+## Generative extension, 2026-09-27
+
+GKD (Agarwal et al., ICLR 2024) and On-Policy Context Distillation (Ye et al.,
+2026 v2) were fetched through the shared engine; both passed HTML fidelity
+checks. Methods, task comparisons, and relevant negative arms were read before
+writing their concept pages. The earlier classifier/tagger material was not
+re-surveyed. [Joint retrieval record](../../generative-creativity/related-work/search-notes.md)
+records citation snowballing and the creativity connections. The new sources
+are single-source evidence; no experiment was reproduced. Selective internal
+trace distillation and broader 2026 generative work remain future coverage.
+
 **Cutoff: 2026-09-08. Grounded first edition; bounded coverage.** The search
 started from the existing tokenizer-free span-tagging survey, then followed
 active selection, structured distillation, and explanations of teacher/student

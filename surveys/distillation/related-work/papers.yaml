@@ -18,9 +18,36 @@
 meta:
   field_slug: distillation
   coverage_cutoff: 2026-09-08
+  generative_extension_cutoff: 2026-09-27
   grounding_mode: grounded
 
 papers:
+  - key: ye2026-context-distillation
+    title: "On-Policy Context Distillation for Language Models"
+    authors: ["Tianzhu Ye", "Li Dong", "Xun Wu", "Shaohan Huang", "Furu Wei"]
+    venue: "arXiv preprint, v2"
+    year: 2026
+    arxiv: "2602.12275v2"
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    source: "Primary arXiv metadata and accepted full-text extract checked 2026-09-27."
+    short: on-policy-context
+    concept_page: concepts/on-policy-context.md
+    cluster: generative-transfer
+  - key: agarwal2024-on-policy
+    title: "On-Policy Distillation of Language Models: Learning from Self-Generated Mistakes"
+    authors: ["Rishabh Agarwal", "Nino Vieillard", "Yongchao Zhou", "Piotr Stanczyk", "Sabela Ramos", "Matthieu Geist", "Olivier Bachem"]
+    venue: "ICLR"
+    year: 2024
+    arxiv: "2306.13649"
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    source: "Primary arXiv metadata and accepted full-text extract checked 2026-09-27; OpenAlex W4382173266, three indexed citers (incomplete record)."
+    short: on-policy-generative
+    concept_page: concepts/on-policy-generative.md
+    cluster: generative-transfer
   - key: chang2020-error-decay
     title: "Using Error Decay Prediction to Overcome Practical Issues of Deep Active Learning for Named Entity Recognition"
     authors: ["Haw-Shiuan Chang", "Shankar Vembu", "Sunil Mohan", "Rheeya Uppaal", "Andrew McCallum"]
