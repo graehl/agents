@@ -5122,6 +5122,24 @@ Contributing-model: grok-4.7
 
 Contributing-model: opus-5.5
 
+## 2026-09-27 — duckdb for large JSON/JSONL
+
+- **User direction** — "advise installing duckdb and using it whenever
+  there is a large json/jsonl file to operate on incl reads. it is much
+  faster than jq." Speed claim is the user's observation; not benchmarked.
+- **Why it steers** — agents default to `jq` for JSON, and the byte-bound
+  rule just above named `jq` as the projection tool. Without this, a
+  multi-MB JSONL read goes through `jq` by habit.
+- **Placement (user-directed follow-up)** — keep the global rule brief and
+  conditional ("when available") in `AGENTS.global.md` § Command output,
+  where the prior `jq` mention lived (now tool-neutral); install advice
+  goes in `RUNS.md`, read before run work. The example uses `-csv`
+  because the default box renderer can emit ANSI color (observed on
+  `describe` under duckdb 1.5.5).
+- **Trace: 3 KB config.json** — not large; `jq` fine.
+
+Contributing-model: opus-5.5
+
 ## 2026-09-24 — a launch-model alias is not a model identity
 
 - **Incident** — the user saw a YA-launched Claude Opus 5.5 session report

@@ -1002,7 +1002,11 @@ Routine probes and searches (`find`, `ls`, `command -v`) may still drop stderr.
 Output of unpredictable size also goes to a scratch file first, then a bounded
 read. Line counts do not bound size: `head -n` on minified JSON or one huge
 line prints everything. Bound by bytes (`head -c 4000`, `cut -c1-300 | head`),
-and project JSON with `jq` instead of printing the raw file.
+and project JSON instead of printing the raw file.
+
+For any operation on a large JSON/JSONL file, reads included, use `duckdb`
+when available (much faster than `jq`), e.g.
+`duckdb -csv -c "select a from 'f.jsonl' limit 20"`.
 
 ## Schema-announced workflows
 
