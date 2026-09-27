@@ -42,5 +42,9 @@ that explicit observer through a harness facility that reports its completion;
 a shell `&`, detached terminal, or status poll is not one. `--launch-wait 0`
 skips the launch observation, not the completion-observer requirement.
 
+Run work that reads or produces large JSON/JSONL needs `duckdb`
+(`AGENTS.global.md` § Command output); if `command -v duckdb` fails,
+install the CLI binary into `~/.local/bin`.
+
 When one action matches multiple conditions, read all matching packets. Do not
 load the directory indiscriminately.
