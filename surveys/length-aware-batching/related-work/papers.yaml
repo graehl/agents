@@ -1,0 +1,137 @@
+# Metadata manifest for surveys/length-aware-batching.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: length-aware-batching
+  coverage_cutoff: 2026-09-27
+  grounding_mode: grounded
+
+papers:
+  - key: koloskova2024-incremental
+    title: On Convergence of Incremental Gradient for Non-convex Smooth Functions
+    authors: [Anastasia Koloskova, Nikita Doikov, Sebastian U. Stich, Martin Jaggi]
+    venue: ICML
+    year: 2024
+    url: https://arxiv.org/html/2305.19259v4
+    source: https://proceedings.mlr.press/v235/koloskova24a.html
+    verified: true
+    grounded: false
+  - key: mishchenko2020-shuffle-once
+    title: "Random Reshuffling: Simple Analysis with Vast Improvements"
+    authors: [Konstantin Mishchenko, Ahmed Khaled, Peter Richtárik]
+    venue: NeurIPS
+    year: 2020
+    url: https://ar5iv.labs.arxiv.org/html/2006.05988
+    source: https://arxiv.org/abs/2006.05988
+    verified: true
+    grounded: false
+  - key: yun2021-single-shuffle
+    title: "Open Problem: Can Single-Shuffle SGD be Better than Reshuffling SGD and GD?"
+    authors: [Chulhee Yun, Suvrit Sra, Ali Jadbabaie]
+    venue: COLT (open problem)
+    year: 2021
+    url: https://ar5iv.labs.arxiv.org/html/2103.07079
+    source: https://proceedings.mlr.press/v134/open-problem-yun21a.html
+    verified: true
+    grounded: false
+  - key: safran2020-shuffling
+    title: How Good is SGD with Random Shuffling?
+    authors: [Itay Safran, Ohad Shamir]
+    venue: COLT
+    year: 2020
+    url: https://proceedings.mlr.press/v125/safran20a.html
+    source: https://proceedings.mlr.press/v125/safran20a.html
+    verified: true
+    grounded: false
+  - key: wu2023-batchnorm
+    title: On the Training Instability of Shuffling SGD with Batch Normalization
+    authors: [David Xing Wu, Chulhee Yun, Suvrit Sra]
+    venue: ICML
+    year: 2023
+    url: https://proceedings.mlr.press/v202/wu23x.html
+    source: https://proceedings.mlr.press/v202/wu23x.html
+    verified: true
+    grounded: false
+  - key: doetsch2017-alternating
+    title: A comprehensive study of batch construction strategies for recurrent neural networks in MXNet
+    title_note: Full-text heading says comparative; arXiv metadata says comprehensive.
+    authors: [Patrick Doetsch, Pavel Golik, Hermann Ney]
+    venue: arXiv preprint 1705.02414
+    year: 2017
+    url: https://ar5iv.labs.arxiv.org/html/1705.02414
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: alternating-sort
+    concept_page: concepts/alternating-sort.md
+  - key: gonzalez2023-batching
+    title: On Batching Variable Size Inputs for Training End-to-End Speech Enhancement Systems
+    authors: [Philippe Gonzalez, Tommy Sonne Alstrøm, Tobias May]
+    venue: ICASSP
+    year: 2023
+    doi: 10.1109/ICASSP49357.2023.10097075
+    url: https://arxiv.org/html/2301.10587v2
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: task-dependent-quality
+    concept_page: concepts/task-dependent-quality.md
+  - key: ge2021-semi-sorted
+    title: Speed up Training with Variable Length Inputs by Efficient Batching Strategies
+    authors: [Zhenhao Ge, Lakshmish Kaushik, Masanori Omote, Saket Kumar]
+    venue: Interspeech
+    year: 2021
+    doi: 10.21437/Interspeech.2021-2100
+    url: https://www.isca-archive.org/interspeech_2021/ge21_interspeech.pdf
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    citation_count: 2
+    citation_count_source: OpenAlex W3197549883, retrieved 2026-09-27
+    short: semi-sorted
+    concept_page: concepts/semi-sorted.md
+  - key: morishita2017-minibatches
+    title: An Empirical Study of Mini-Batch Creation Strategies for Neural Machine Translation
+    authors: [Makoto Morishita, Yusuke Oda, Graham Neubig, Koichiro Yoshino, Katsuhito Sudoh, Satoshi Nakamura]
+    venue: First Workshop on Neural Machine Translation
+    year: 2017
+    url: https://ar5iv.labs.arxiv.org/html/1706.05765
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    short: sorting-quality
+    concept_page: concepts/sorting-quality.md
+  - key: hf2026-batch-rebalance
+    title: Trainer features
+    authors: [Hugging Face Transformers contributors]
+    venue: Transformers main documentation (living implementation documentation)
+    year: 2026
+    url: https://huggingface.co/docs/transformers/main/en/trainer_recipes
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    concept_page: concepts/streaming-implementations.md
+  - key: lhotse2026-sampling
+    title: PyTorch Datasets
+    authors: [Lhotse contributors]
+    venue: Lhotse documentation (living implementation documentation)
+    year: 2026
+    url: https://lhotse.readthedocs.io/en/latest/datasets.html
+    verified: true
+    grounded: true
+    fetched: 2026-09-27
+    concept_page: concepts/streaming-implementations.md
