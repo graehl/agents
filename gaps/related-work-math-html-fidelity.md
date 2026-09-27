@@ -27,3 +27,20 @@ and math/link normalization before changing any acceptance threshold. Keep
 failure atomic and preserve the fidelity requirement.
 
 2026-09-27 — Contributing-model: 6-astra
+
+## Creativity survey reproductions
+
+2026-09-27 — Contributing-model: 6-Astra.
+
+The initial creativity survey hit the same failure class on
+`misaki2026-string-seed` (arXiv 2510.21150v3: 12/659 blocks failed, minimum
+0.467) and `zhang2026-verbalized-sampling` (2510.01171v4: 14/1373 blocks,
+minimum 0). Reproduce with `/usr/bin/python3 scripts/related-work --dir
+surveys/generative-creativity fetch misaki2026-string-seed
+zhang2026-verbalized-sampling` on one line. The map records primary HTML
+readings but does not claim accepted local full-text extracts for these works.
+
+The alternate `misaki2026-string-seed-blog` URL also failed, with “downloaded
+page has no unambiguous HTML entry point”. This may be a separate entry-point
+discovery issue and is untriaged. Neither failure was bypassed. Pending
+manifest entries preserve exact source URLs for retry.

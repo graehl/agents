@@ -5,6 +5,11 @@ and question structure, not a completed literature survey or an effectiveness
 claim. The concrete [research sketch](../../research/generative-creativity/proposal.md)
 records the proposed interventions and experiments.
 
+The [initial grounded survey](survey.md) now maps selected prompting,
+hidden-transfer, and attention/style results, with explicit extraction limits.
+[Frontier questions](frontier.md) distinguish supported mechanisms from the
+proposal's untested transfer claims.
+
 ## What belongs to this field
 
 We are interested in how generative models produce, select, and develop
@@ -55,11 +60,10 @@ reference for representations and steering; it does not bound this field to
 language models. [Agent prompting and orchestration](../agent-prompting-orchestration/survey.md)
 provides a neighboring map of prompt and scaffold interventions.
 [Distillation](../distillation/survey.md) currently emphasizes classifiers and
-span taggers; generative creative transfer needs its own coverage.
+span taggers and now includes a [generative/context-distillation extension](../distillation/survey.md#generative-and-context-distillation).
 
 Field interpretation and exploratory field notes live here. Concrete proposals
-can cross fields and live under `research/`, with reciprocal links. As grounded
-literature work is undertaken, `survey.md` will hold the evidence-backed map,
-`concepts/` its read-backed digests, `related-work/` the sources, and
-`frontier.md` the provisional research frontier. This entry point does not
-pretend those artifacts or a full source review already exist.
+can cross fields and live under `research/`, with reciprocal links. The initial
+`survey.md` holds the evidence-backed map, `concepts/` its read-backed digests,
+`related-work/` the source records, and `frontier.md` the provisional questions.
+Coverage remains selective.
