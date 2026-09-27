@@ -277,6 +277,29 @@ can preserve a useful string-to-choice disposition. First establish the string
 effect and the attention effect separately. Their interaction and distillation
 are follow-ups, with the same saved strings and fresh interpreter contexts.
 
+The focused proposal also asks whether
+[shared strings steer diverged histories toward related creative leanings](../random-string-creativity/proposal.md#shared-strings-across-diverged-histories),
+within different fine-tunes or across unrelated models. Assigning several
+strings to specific aspects, output parts, or production/revision phases may
+make their influence more consistent and testable. Distinguish a shared style
+shift from convergence of entire outputs, and either from transmission of the
+generator's own creative tendencies. This offers a prompt-level counterpart
+to learned style registers, without assuming that the mechanisms are equivalent.
+
+Because downstream similarities may be difficult to judge, the focused proposal
+also treats [learning an informative readout](../random-string-creativity/proposal.md#learn-the-readout-when-similarities-are-hard-to-name)
+as a research task: recover string properties or identity, or the producing
+configuration at either stage: model, specific fine-tune/checkpoint,
+intervention, and prompt/workflow. Predict individual factors and their joint
+configuration, keeping generator and recipient attribution separate. Evaluate
+feature discovery on held-out data. Readouts can condition on selectively
+masked prompts, strings, interventions, and teacher information while always
+observing something about the output; matched context-only diagnostics measure
+what the output adds. Full candidate-model output scoring is an expensive
+reference where available; the target is a cheaper readout whose features teach
+us what carries the signal. Recoverable information can expose a
+transfer channel before its relation to creative style is understood.
+
 ## Proposed sequence and decision boundaries
 
 1. Define creative decision points and a small set of briefs whose constraints
