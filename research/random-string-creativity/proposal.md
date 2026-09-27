@@ -6,6 +6,13 @@ an effectiveness claim or authorization to launch experiments. The related
 `/riff` skill is a usable workflow, separate from experimental validation.
 Contributing-model: 6-Astra.
 
+Part of the broader proposed
+[generative creativity intervention and distillation inquiry](../generative-creativity/proposal.md).
+The [field interpretation](../../surveys/generative-creativity/README.md)
+connects this prompt-level experiment with internal interventions, creative
+fine-tuning, and teacher-to-student transfer. This document remains the focused
+experiment's canonical proposal.
+
 ## The interesting question
 
 Does an agent's biased, possibly "creative" randomness make a better stimulus
