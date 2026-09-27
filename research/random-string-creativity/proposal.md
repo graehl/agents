@@ -302,6 +302,14 @@ fields. Output observations may be the artifact itself, an excerpt, features,
 or an observed production/revision trace. Every main classifier condition sees
 some output evidence; it need not see the complete artifact.
 
+For local/open recipients, the same bundle can include model-internal traces
+under a declared common representation and explicit masks. The broader sketch
+owns [internal style probes and their use in creative distillation](../generative-creativity/proposal.md#masked-internal-traces-as-candidates-for-creative-distillation).
+Their main target is style; joint model/configuration predictions diagnose
+identity cues and entangled signals. Mask comparisons nominate candidate
+distillation targets for smaller or same-model students, whose usefulness must
+then be tested in actual transfer.
+
 Write each prediction task as a target plus an input mask over this bundle.
 For example, infer a recipient fine-tune from its output while seeing the task
 prompt, stimulus strings, intervention settings, and teacher identity. Or infer

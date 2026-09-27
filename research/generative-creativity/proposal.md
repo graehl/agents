@@ -95,6 +95,70 @@ and test interventions on candidate components. Do not infer a localized
 The scientific target is a transferable disposition, not a single creativity
 score or an assumption that the teacher has one indivisible style.
 
+### Masked internal traces as candidates for creative distillation
+
+User-directed extension, 2026-09-27. Contributing-model: 6-Astra.
+
+For local/open models, extend the conditional readout with internal traces in
+a declared common form: selected attention summaries, residual or layer
+activations, head outputs, register states, or their changes over generation
+and revision. Keep the existing output observation and selectively masked
+prompt, string, teacher, intervention, and workflow context. This is the same
+prediction setup with another observable channel, not a replacement task.
+
+The user's primary interest for this channel is "which style". "Which model"
+may become easy through dimensionality, activation scales, architectural
+signatures, or trace metadata, yielding little insight into creativity. Use
+model/fine-tune/configuration prediction as a diagnostic alongside style
+prediction. Compare their behavior under masks rather than treating high model
+identification accuracy as the objective. Trace formatting should not disclose
+the target; identical array shapes alone do not establish aligned semantics.
+
+Mask trace channels, layers, heads, positions, and production phases, as well
+as the previously defined context fields. Use retrained probes on each visible
+subset to test recoverable information; separately report masking an already
+trained probe, which tests that probe's reliance on its inputs. Include
+output/context-only and matched-budget unrelated-trace controls. Probe several
+styles within each model and the same style across models or fine-tunes so
+style labels cannot simply stand in for model identity. Ground style labels
+in output observations or human judgments separately from intervention labels:
+detecting an injected perturbation is not yet detecting its stylistic effect.
+
+Joint predictions can highlight three kinds of candidate signal:
+
+| Predictive behavior under controlled masks | Candidate interpretation and next test |
+|---|---|
+| Style remains predictable across model/fine-tune changes | Potentially transferable style information; test on held-out briefs and model families |
+| Both style and model identity remain predictable | Possibly entangled style information; condition on identity and test within-model style contrasts |
+| Model identity is predictable but style adds little beyond output/context | Primarily an identity cue for this readout; low priority for creative distillation |
+
+Do not require complete removal of model identity: a useful style representation
+may also identify its model. Conversely, a failed identity probe does not prove
+invariance. The object is to locate signal useful for transferring a style,
+with the mask comparisons narrowing the candidates. Correlated or redundant
+channels can survive individual masks, so consider grouped masks when single
+channel tests are inconclusive. Keep feature/mask search separate from final
+evaluation and include trace capture, storage, and extraction in the cost.
+
+Take promising candidates into controlled distillation comparisons for a
+smaller student, a same-size model, or further tuning of the original model.
+Compare output-only training with the same training plus a selected trace
+target, a budget-matched unrelated target, and, where feasible, a broader trace
+target. Possible objectives include matching selected representations through
+a learned projection, their relational structure, attention summaries, or a
+teacher's change in these quantities under a style intervention. Different
+architectures or tokenizations need explicit correspondence; raw coordinate
+matching is not assumed meaningful.
+
+The readout nominates a signal; transfer establishes its usefulness. Evaluate
+whether the student tends toward the intended style on new briefs, retains
+creative variety and competence, and preserves a controllable response when
+that is the target. Use independent output judgments/readouts rather than only
+the probe used to choose the distillation target. Where interventions are
+available, ablate or patch a nominated signal to test whether it changes the
+output as predicted. Prediction, causal influence, and successful distillation
+are separate findings, each of which can guide the next experiment.
+
 ## Dynamic style tokens and registers
 
 Explore a small set of learned control tokens or internal registers whose
