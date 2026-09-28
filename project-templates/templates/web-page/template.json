@@ -9,7 +9,9 @@
     "page",
     "story"
   ],
-  "files": [],
+  "files": [
+    { "to": ".project-template/icon.svg", "from": "icon.svg" }
+  ],
   "overrides": [
     {
       "op": "append",

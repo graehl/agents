@@ -117,6 +117,25 @@ Its `viewBox` allows responsive scaling; the chooser supplies accessible text
 from the template title. Authoring sources conventionally keep `preview.svg`
 beside `template.json`; the explicit file map remains authoritative.
 
+### Compact template icon
+
+A template may also contribute `.project-template/icon.svg` for compact chooser
+cards and selection triggers. Authoring sources conventionally keep `icon.svg`
+beside `template.json`, with this ordinary file mapping:
+
+```json
+{ "to": ".project-template/icon.svg", "from": "icon.svg" }
+```
+
+The icon is optional and separate from the larger `preview.svg` illustration
+and the created app's own favicon or branding. Use a square `viewBox` (the
+default icons use `0 0 24 24`) and self-contained strokes visible on light and
+dark backgrounds. The same image-only rendering, no-external-resource, source
+confinement and composition rules apply as for previews. Missing artwork leaves
+the title and description usable. These are file conventions within format
+version 1, not additional manifest fields; consumers that do not display icons
+can still compose and copy the files unchanged.
+
 ## Project-visible skills
 
 Bases and templates may contribute skills through ordinary file mappings into
