@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "kind": "base",
-  "status": "draft",
+  "status": "ready",
   "id": "server",
   "title": "Optional loopback server",
   "description": "Vendor the server add-on without activating a backend.",

@@ -10,7 +10,8 @@ preserves that starting point; App canvas now uses a first authored split into
 capability bases instead. The linked legacy boot pulls in personal/harness context,
 research, runs, agentctl, and routed documents that an ordinary app project
 does not contain. Materializing that file alone would create broken guidance.
-The manifests remain draft, requiring explicit authoring opt-in for creation.
+App canvas and its dependency closure are ready after the review below; the
+writing templates and legacy boot remain draft.
 
 **Noticed while:** establishing this program at the user's explicit request.
 The first split now stands up an application; that execution evidence alone
@@ -87,7 +88,7 @@ server activation/API checks have run successfully. The first editorial pass
 retained scoped code-quality, verification, documentation, and deployment
 guidance while removing personal host policy and research/agentctl machinery.
 
-Remaining: a systematic expert review of the complete composed instruction
+At that checkpoint, remaining: a systematic expert review of the complete composed instruction
 set against its source guidance and the
 scenario/reading-cost assessment above. No comparative agent experiment has
 been run. Keep manifests draft until that review supports promotion; runtime
@@ -100,3 +101,28 @@ checks; both activate and test the optional server. This supplies a second
 capability combination for editorial review, not evidence that the instruction
 quality gap is closed. Optional writing and publishing guidance has its own
 [gap](content-authoring-capabilities.md).
+
+2026-09-28 — Contributing-model: 6-Astra. Reviewed and admitted App canvas and
+its eight-base closure. Read every root fragment, all six routed guides,
+run/deploy guidance, the preparation prompt, redoc and its identity reference,
+and the explicit file maps. Each instruction route resolves to a copied file;
+legacy-boot, personal paths, research and agentctl are outside this closure.
+The active guidance retains boundary validation, preservation of user changes,
+scoped commits, real-path tests, sequential typing and two-size visual checks.
+No instruction text needed changing for this admission.
+
+Scenario review (predicted behavior, not a comparative agent experiment):
+preparation reads root/README/context and redoc, then runs existing commands
+without implementing the whole app; a UI edit additionally loads the UI and
+canvas guides; a non-UI edit loads engineering/testing/TypeScript only; a failed
+test repairs its owner without suppressing it; a changed purpose triggers redoc
+while preserving an existing human identity record; adding a server reads its
+guide and runs the copied non-overwriting add-on. The six guides total 122
+lines and redoc is 67 lines; these are activity-routed rather than compulsory
+startup reading. Previous real setup/build/browser/server-add evidence remains
+as recorded above. YA integration and actual provider skill discovery are
+separate checks and are not established by this editorial review.
+
+Remaining: review the writing/story closures and measure instruction effects
+when a representative task warrants it. Do not interpret App canvas admission
+as admission of legacy-boot or a claim of measured agent-quality improvement.

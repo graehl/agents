@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "kind": "base",
-  "status": "draft",
+  "status": "ready",
   "id": "canvas",
   "title": "Canvas2D",
   "description": "A responsive drawing canvas with a static deployment path.",

@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "kind": "template",
-  "status": "draft",
+  "status": "ready",
   "id": "app-canvas",
   "title": "App canvas",
   "description": "A static Vite and TypeScript canvas app, with a server capability to add later.",
