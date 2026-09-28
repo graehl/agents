@@ -12,13 +12,15 @@ root `.project-identity.json` first in case a deliberate later edit has already
 occurred; preserve its human text exactly and revise only the permitted coda.
 Keep the lede useful as YA's project description and identify starter status.
 
-Confirm `npm run typecheck`, `npm test`, and `npm run build`. Run the built app
-on an available loopback port and inspect its desktop and phone behavior with
-the browser checks. Read the saved setup logs if anything fails; repair the
+Confirm `npm run typecheck`, `npm test`, and `npm run build`, and leave `dist/`
+built: it is what the App button shows. Inspect desktop and phone behavior with
+the browser checks, serving the build on an available loopback port for those
+checks only. Read the saved setup logs if anything fails; repair the
 owning cause and rerun the affected check. Report any environment limitation
 plainly instead of calling an untested path verified.
 
 Do not implement the requested app in this preparation turn. Leave the starter
 usable and the project ready for that next request. Do not add the optional
 server unless the user has requested backend setup. Do not publish. Finish with
-the customized intent, verification result, and any remaining blocker.
+the customized intent, verification result, and any remaining blocker; under
+Yep Anywhere, tell the user to tap App to see the starter.
