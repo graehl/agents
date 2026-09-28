@@ -10,6 +10,7 @@
     "story"
   ],
   "files": [
+    { "to": ".project-template/icon.svg", "from": "icon.svg" },
     {
       "to": "AGENTS.md",
       "from": "instructions.md"

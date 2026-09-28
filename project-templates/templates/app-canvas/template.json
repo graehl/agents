@@ -7,6 +7,7 @@
   "description": "A static Vite and TypeScript canvas app, with a server capability to add later.",
   "extends": ["web-app", "canvas"],
   "files": [
+    { "to": ".project-template/icon.svg", "from": "icon.svg" },
     { "to": ".project-template/preview.svg", "from": "preview.svg" },
     { "to": "tests/browser/canvas.spec.ts", "from": "files/canvas.spec.ts" }
   ],
