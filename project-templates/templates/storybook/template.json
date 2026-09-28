@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "kind": "template",
-  "status": "draft",
+  "status": "ready",
   "id": "storybook",
   "title": "Storybook",
   "description": "Write a story first, then give it a page: an ideas-led all-ages storybook with reader, voice and picture defaults already set.",
