@@ -11,5 +11,7 @@
     { "to": ".project-template/preview.svg", "from": "preview.svg" },
     { "to": "tests/browser/canvas.spec.ts", "from": "files/canvas.spec.ts" }
   ],
-  "overrides": []
+  "overrides": [
+    { "op": "replace", "to": ".project-template/PREPARE.md", "from": "PREPARE.md" }
+  ]
 }
