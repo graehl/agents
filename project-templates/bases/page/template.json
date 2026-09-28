@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "kind": "base",
-  "status": "draft",
+  "status": "ready",
   "id": "page",
   "title": "Content page starter",
   "description": "A content-led DOM page: semantic HTML, a small searchable collection, and browser checks.",

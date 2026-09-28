@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "kind": "template",
-  "status": "draft",
+  "status": "ready",
   "id": "web-page",
   "title": "Web page",
   "description": "A responsive page for an idea, document, story or collection, with writing guidance and a server to add later.",
