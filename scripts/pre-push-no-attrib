@@ -37,6 +37,9 @@ zero=0000000000000000000000000000000000000000
 remote_name=${1:-}
 bad=0
 while read -r _lref lsha _rref rsha; do
+	# A blank line (an up-to-date push, relayed by a wrapper that echoes
+	# empty stdin) names no ref; treating it as a range made rev-list fail.
+	[ -z "$lsha" ] && continue
 	[ "$lsha" = "$zero" ] && continue # ref deletion: nothing outgoing
 	# Only unpublished work is checked. A commit another remote already
 	# carries is accepted history that must not be rewritten to satisfy a
