@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "kind": "base",
-  "status": "draft",
+  "status": "ready",
   "id": "software-engineering",
   "title": "Software engineering",
   "description": "Structure, change boundaries, and verified completion.",

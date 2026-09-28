@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "kind": "base",
-  "status": "draft",
+  "status": "ready",
   "id": "web-ui",
   "title": "Web UI",
   "description": "Responsive, accessible browser UI and real typing checks.",

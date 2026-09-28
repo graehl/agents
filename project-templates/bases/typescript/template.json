@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "kind": "base",
-  "status": "draft",
+  "status": "ready",
   "id": "typescript",
   "title": "TypeScript",
   "description": "Strict browser TypeScript with pinned build and test tooling.",
