@@ -10,6 +10,15 @@ The template does not modify YA's settings or restart its server.
 
 ## Keeping the visible app current
 
+In YA versions with Live preview, turn on **Live preview** in the App pane.
+The template declares `npm run dev` as a separate sandboxed service; YA owns
+its port, scoped address, and lifetime. Vite watches the source and sends hot
+updates or full reloads through that App address. Turn Live preview off to
+return to the built `dist/` app. No application backend add-on is required.
+Older YA versions ignore this declaration and retain Build/Reload behavior.
+This declaration affects newly created projects; existing projects need its
+`livePreview` entry and the matching `vite.config.ts` port/base-path support.
+
 Rebuild after user-visible edits, including edits made after an earlier test
 or screenshot. Verify the result from the declared served target before
 ending the turn. For a static app, updating `dist/` changes the next page

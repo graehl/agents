@@ -23,6 +23,11 @@ hosted at a subpath or inside YA's isolated App pane. Serve it over HTTP(S);
 browser module restrictions mean opening `index.html` with `file://` is not a
 supported test path.
 
+In YA, enable **Live preview** in the App pane to see source edits as you work.
+YA runs the template's Vite dev server in the project sandbox and carries hot
+updates or page reloads through the app proxy. Turn it off to view `dist/`
+again. On older YA servers, run `npm run build` and Reload the App pane.
+
 `npx playwright install chromium` installs the browser once;
 `npm run test:browser` then checks the built app at desktop and phone sizes.
 Use `npm run format` and `npm run format:check` for formatting.

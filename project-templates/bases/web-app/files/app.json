@@ -1,6 +1,23 @@
 {
   "kind": "static",
   "dir": "dist",
+  "livePreview": {
+    "version": 1,
+    "where": { "kind": "process", "cwd": ".", "entry": "/" },
+    "start": { "argv": ["npm", "run", "dev"], "portEnv": "PORT" },
+    "status": {
+      "probe": "http",
+      "path": "/",
+      "readyStatus": 200,
+      "startupTimeoutMs": 30000
+    },
+    "stop": { "signal": "SIGTERM", "graceMs": 5000 },
+    "serving": {
+      "target": "sandbox-loopback",
+      "protocol": "http",
+      "basePathEnv": "BASE_PATH"
+    }
+  },
   "setup": ["node", "scripts/setup.mjs"],
   "build": ["npm", "run", "build"],
   "test": ["npm", "test"],
