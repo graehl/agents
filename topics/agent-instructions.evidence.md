@@ -5268,3 +5268,25 @@ Contributing-model: opus-5.5
   routes other files to the absolute path.
 
 Contributing-model: opus-5.5
+
+## 2026-09-29 — provisional acli exception to file redirection
+
+- **Incident:** a YA publisher already emitted schema-announced progress,
+  but the agent redirected it into files under the general output rule and
+  repeatedly tailed those files, hiding the live markers and duplicating
+  progress in manual narration.
+- **User direction:** exempt acli tools for now, including partial capability
+  declarations, and run the publisher normally. The user explicitly is not
+  sure acli is the desired long-term boundary. Avoiding accidental ingestion
+  of very long output was a suspected benefit of redirection; repeated tails
+  consume some of the same context, though selective reads can still save it.
+- **Decision:** preserve acli's visible results and progress, using tool-owned
+  verbosity, pagination and logs. Separately add publisher verbosity: concise
+  tagged progress and failures by default, previous output at level 1.
+- **Traces:** a tagged publisher stays visible without agent narration;
+  an ordinary noisy build still logs to files; a large acli query uses its
+  own volume controls. This does not prove all acli tools have bounded output
+  or that the exemption is optimal. Revisit using observed output volume and
+  context cost, not protocol membership alone.
+
+Contributing-model: 6-Astra

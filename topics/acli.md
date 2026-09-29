@@ -81,6 +81,10 @@ Without flags, an interactive human TTY receives indented JSON; pipes and
 detected agent sessions receive JSONL. Neither text nor TOON is auto-selected.
 Partial tools choose their own documented default and supported modes.
 
+Tools using the shared Python parser accept `--verbose=N` (default 0) and
+`-v` (sets 1). A tool without verbosity behavior silently ignores the level.
+Do not assume those flags on other implementations unless documented.
+
 Treat an explicit empty result as definitive. A missing result is not evidence
 of zero matches. Read truncation counts and pagination boundaries before asking
 for more; `--full` restores available omitted content, not additional authority
