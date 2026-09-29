@@ -8,6 +8,15 @@
 - `~/agents` — this repo: global instructions, `topics/`, `skills/`,
   `GLOSSARY.md`; origin `github.com/graehl/agents`.
 
+## GPU Spot workers
+
+Normally choose `g7e.2xlarge` for GPU Spot work. Compare live prices and
+capacity across usable regions before launching; do not choose L40S merely
+because its region has familiar storage. G7e's 96-GB GPU has roughly twice
+the workload capacity of a 48-GB L40S and is often similarly priced in the
+lowest-cost region. Include staging cost and measured workload requirements;
+this is a default recommendation, not a claim of twice the throughput.
+
 ## Coordinated software-aesthetic rules
 
 Starting coding work: if `AGENTS.md`/`AGENTS.local.md` names
