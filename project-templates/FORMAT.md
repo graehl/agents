@@ -288,6 +288,17 @@ the vendored first-turn prompt; `addons.server` names its activation command.
 The authoring CLI currently consumes `setup` only. The server add-on changes
 `kind` to `server` and adds `start`; neither operation contacts YA.
 
+`livePreview` optionally declares a separate version-1 process service for YA's
+Live preview mode: `where` names the project-relative cwd and URL entry,
+`start` supplies argv and `portEnv`, `status` supplies the HTTP readiness probe,
+`stop` supplies SIGTERM and its grace period, and `serving` names the sandbox
+loopback target and optional `basePathEnv`. The web-app base declares Vite with
+`PORT` and `BASE_PATH`; the ordinary app remains the static `dist/` bundle.
+YA versions with `project-live-preview` admit an explicit start, and older
+consumers ignore the additional declaration. Source watching and hot updates
+belong to the declared dev server. Build commands and deployment remain
+independent; opening a built app does not execute the live-preview command.
+
 The materializer reserves `.project-template/project.json` for project name,
 description, and composition provenance (base order, file hashes, and source
 paths relative to the source repository). Setup uses that data to seed the
