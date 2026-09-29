@@ -8,6 +8,22 @@ button serves `dist/` itself from the `.project-template/app.json` declaration,
 so do not point an app address at a preview port or give its URL to the user.
 The template does not modify YA's settings or restart its server.
 
+## Keeping the visible app current
+
+Rebuild after user-visible edits, including edits made after an earlier test
+or screenshot. Verify the result from the declared served target before
+ending the turn. For a static app, updating `dist/` changes the next page
+load; it does not replace JavaScript already running in an open browser.
+Use the App pane's Reload action when live updates are unavailable.
+
+When using a development server, verify its update connection through the
+actual App address. A loopback HMR check does not prove the app proxy carries
+WebSockets. If hot updates fail, restore a working preview or use a verified
+build and explicit reload, and state the limitation. Preserve the last working
+preview on build errors and report the error rather than claiming the change
+is visible. Restart an owned project backend when its code or configuration
+requires it; never restart YA to refresh an app.
+
 For static deployment, publish the complete built `dist/` tree to a destination
 the user has explicitly configured and authorized. Assets use relative paths
 for subdirectory hosting. Preserve old hashed assets while older HTML may be
