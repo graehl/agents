@@ -168,6 +168,15 @@ commentary-suppression, and banner-suppression flags.
 Its `allow_toon=False` default prevents TOON selection; set it only on
 supporting commands and advertise `+toon` there.
 
+Both helpers accept `--verbose=N` (also `--verbose N`) and `-v`, exposing
+`args.verbose` as a non-negative integer, default 0. `-v` sets 1 rather than
+incrementing; the last explicit value wins. The factory accepts it before or
+after subcommands without a child's absent default overwriting the parent.
+Tools may use the level for additional diagnostics, or ignore it silently
+without a warning. It does not itself change output format, commentary,
+logging configuration or application behavior. This is a Python-library
+convention, not a new requirement for existing non-Python v1 tools.
+
 The factory's default capability tuple includes `complete`; explicitly pass
 the capabilities actually implemented. Use `capabilities=()` for the baseline
 with no optional packages. This still claims the full baseline, not partial

@@ -63,6 +63,34 @@ def _add_text_arg(parser: argparse.ArgumentParser) -> None:
         )
 
 
+def _verbosity(value: str) -> int:
+    if not re.fullmatch(r"[0-9]+", value):
+        raise argparse.ArgumentTypeError("verbosity must be a non-negative integer")
+    return int(value)
+
+
+def _add_verbosity_args(parser: argparse.ArgumentParser) -> None:
+    if getattr(parser, "_acli_verbosity_args", False):
+        return
+    default = argparse.SUPPRESS if isinstance(parser, ArgumentParser) else 0
+    parser.add_argument(
+        "--verbose",
+        type=_verbosity,
+        metavar="N",
+        default=default,
+        help="Verbosity level (default: 0); silently ignored by tools without verbosity support.",
+    )
+    parser.add_argument(
+        "-v",
+        action="store_const",
+        const=1,
+        dest="verbose",
+        default=default,
+        help="Set --verbose=1.",
+    )
+    parser._acli_verbosity_args = True
+
+
 def capability_line(capabilities: Iterable[str]) -> str:
     """The `acli: <version> <token>...` discovery line.
 
@@ -118,6 +146,7 @@ class ArgumentParser(argparse.ArgumentParser):
         super().__init__(*args, **kwargs)
         _add_commentary_arg(self)
         _add_text_arg(self)
+        _add_verbosity_args(self)
         self.add_argument(
             QUIET_FLAG,
             action="store_true",
@@ -171,6 +200,8 @@ class ArgumentParser(argparse.ArgumentParser):
         parsed = super().parse_args(args, namespace)
         if not hasattr(parsed, "no_commentary"):
             parsed.no_commentary = False
+        if not hasattr(parsed, "verbose"):
+            parsed.verbose = 0
         # A subparser run parses into a fresh namespace and copies it back,
         # overwriting a pre-verb --acli-quiet with its own default; the raw
         # argv scan keeps the flag honored in any position.
@@ -191,6 +222,7 @@ def add_standard_args(
         return
     _add_commentary_arg(parser)
     _add_text_arg(parser)
+    _add_verbosity_args(parser)
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--format",

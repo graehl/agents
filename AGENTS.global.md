@@ -991,6 +991,11 @@ too. Remove it when done; use durable scratch storage if it must survive a gap.
 
 ## Command output: save, never discard
 
+For now, acli tools (including tools declaring individual acli capabilities)
+are exempt from the file-redirection rules below. Run them normally so their
+structured results and progress remain visible; prefer their own verbosity,
+pagination and log options to control volume. Never discard their diagnostics.
+
 A command that does work — build, codegen, install, test run, data job — sends
 output to named scratch files (`cmd >/tmp/build.out 2>/tmp/build.err`), never
 to `/dev/null`, even when you read only the tail; a later surprise is diagnosed

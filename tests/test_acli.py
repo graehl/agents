@@ -192,6 +192,49 @@ def test_json_rejects_non_finite_numbers_before_writing_the_value() -> None:
         raise AssertionError("accepted invalid trailing record")
 
 
+def test_verbosity_is_optional_and_survives_subcommands():
+    parser = _acli.argument_parser(capabilities=())
+    _acli.add_standard_args(parser)
+    parser.add_subparsers(dest="verb").add_parser("show")
+    for argv, expected in (
+        (["show"], 0),
+        (["--verbose=2", "show"], 2),
+        (["show", "--verbose", "3"], 3),
+        (["-v", "show"], 1),
+        (["--verbose=4", "show", "-v"], 1),
+        (["-v", "show", "--verbose=0"], 0),
+        (["show"], 0),
+    ):
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            args = parser.parse_args(["--acli-quiet", *argv])
+        _assert(args.verbose == expected, (argv, args.verbose))
+        _assert(stderr.getvalue() == "", stderr.getvalue())
+    ordinary = argparse.ArgumentParser()
+    _acli.add_standard_args(ordinary)
+    _assert(ordinary.parse_args([]).verbose == 0)
+    _assert(ordinary.parse_args(["--verbose=7"]).verbose == 7)
+    for value in ("-1", "abc", "1.5"):
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            try:
+                parser.parse_args(["show", f"--verbose={value}"])
+            except SystemExit as exc:
+                _assert(exc.code == 2)
+            else:
+                raise AssertionError(f"accepted invalid verbosity {value}")
+
+
+def test_unused_verbosity_is_silent_through_cli():
+    base = [sys.executable, str(Path(__file__)), "--commentary-demo", "--json"]
+    normal = subprocess.run(base, capture_output=True, text=True, check=True)
+    verbose = subprocess.run(
+        [*base, "--verbose=5"], capture_output=True, text=True, check=True
+    )
+    _assert(verbose.stdout == normal.stdout)
+    _assert(verbose.stderr == normal.stderr)
+
+
 def test_commentary_flag_survives_subcommands_and_repeated_parses():
     parser = _acli.argument_parser(capabilities=("complete", "+commentary"))
     _acli.add_standard_args(parser)
