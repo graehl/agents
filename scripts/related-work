@@ -80,7 +80,7 @@ SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 HTML_METHODS = frozenset(("arxiv-html", "url-html"))
 LEGACY_HTML_METHODS = frozenset(("backfilled", "tcircuits-html"))
 HTML2TEXT_VERSION = "2025.4.15"
-HTML_DERIVATION = f"related-work html-md-v4 + html2text {HTML2TEXT_VERSION}"
+HTML_DERIVATION = f"related-work html-md-v5 + html2text {HTML2TEXT_VERSION}"
 HTML_FIDELITY = "visible-blocks-v2"
 # v1 required every block to pass; its sentinels remain valid under v2.
 ACCEPTED_HTML_FIDELITY = ("visible-blocks-v1", HTML_FIDELITY)
@@ -417,6 +417,10 @@ class _MathPreprocessor(HTMLParser):
         self.saw_content_root = False
         self.presentation: set[str] = set()
         self.content_presentation: set[str] = set()
+        # Original MathML per placeholder: raw HTML islands (spanning tables)
+        # keep it, since Markdown math renderers do not read TeX inside HTML.
+        self.mathml: dict[str, str] = {}
+        self.math_raw: list[str] = []
         # LaTeXML list items: <li class="ltx_item"><span class="ltx_tag_item">1.</span>
         # <div class="ltx_para"><p>text</p></div></li>. Rendered as-is, the
         # converter numbers the item itself, repeats the label, and puts the
@@ -628,12 +632,14 @@ class _MathPreprocessor(HTMLParser):
             return
         if self.math_depth:
             self.math_depth += 1
+            self.math_raw.append(self.get_starttag_text())
             attrs = {name.lower(): (value or "").lower() for name, value in attributes}
             if tag == "annotation" and attrs.get("encoding") == "application/x-tex":
                 self.annotation_depth = self.math_depth
             return
         if tag == "math":
             attrs = {name.lower(): value or "" for name, value in attributes}
+            self.math_raw = [self.get_starttag_text()]
             self.math_depth = 1
             self.annotation_depth = None
             self.annotation = []
@@ -661,6 +667,7 @@ class _MathPreprocessor(HTMLParser):
             self._append(self.get_starttag_text())
             return
         if self.math_depth:
+            self.math_raw.append(self.get_starttag_text())
             return
         if tag == "math":
             raise HtmlDerivationError("a MathML element has no TeX annotation")
@@ -681,6 +688,7 @@ class _MathPreprocessor(HTMLParser):
                 self.svg_depth -= 1
             return
         if self.math_depth:
+            self.math_raw.append(f"</{tag}>")
             if self.math_depth == 1:
                 tex = "".join(self.annotation).strip() or self.math_alttext
                 if tag != "math" or not tex:
@@ -692,6 +700,7 @@ class _MathPreprocessor(HTMLParser):
                     f"{self.placeholder_prefix}{len(self.replacements):08d}END"
                 )
                 replacement = (placeholder, tex, self.block_math)
+                self.mathml[placeholder] = "".join(self.math_raw)
                 self._append(placeholder, in_content=self.math_in_content)
                 self.replacements.append(replacement)
                 if self.math_in_content:
@@ -713,6 +722,8 @@ class _MathPreprocessor(HTMLParser):
             del self.content_roots[index:]
 
     def handle_data(self, data: str) -> None:
+        if self.math_depth:
+            self.math_raw.append(data)
         if self.annotation_depth is not None:
             self.annotation.append(data)
         elif not self.math_depth:
@@ -720,6 +731,8 @@ class _MathPreprocessor(HTMLParser):
 
     def handle_entityref(self, name: str) -> None:
         reference = f"&{name};"
+        if self.math_depth:
+            self.math_raw.append(reference)
         if self.annotation_depth is not None:
             self.annotation.append(html.unescape(reference))
         elif not self.math_depth:
@@ -727,6 +740,8 @@ class _MathPreprocessor(HTMLParser):
 
     def handle_charref(self, name: str) -> None:
         reference = f"&#{name};"
+        if self.math_depth:
+            self.math_raw.append(reference)
         if self.annotation_depth is not None:
             self.annotation.append(html.unescape(reference))
         elif not self.math_depth:
@@ -765,13 +780,21 @@ def preprocess_html(
     *,
     base_url: str | None = None,
     source_name: str | None = None,
+    mathml: dict[str, str] | None = None,
 ) -> tuple[str, list[tuple[str, str, bool]], set[str]]:
+    """Tokenize math and normalize the page for conversion.
+
+    When `mathml` is given it receives each math placeholder's original
+    MathML, for math that ends up inside raw HTML in the Markdown.
+    """
     prefix = "RELATEDWORKMATHTOKEN"
     while prefix in source:
         prefix += "X"
     parser = _MathPreprocessor(prefix, base_url=base_url, source_name=source_name)
     parser.feed(source)
     parser.close()
+    if mathml is not None:
+        mathml.update(parser.mathml)
     return parser.result()
 
 
@@ -961,6 +984,8 @@ class _RichContentParser(HTMLParser):
         self.tables = 0
         self.equations = 0
         self.equation_tokens: set[str] = set()
+        # Math placeholders kept inside raw HTML (spanning tables).
+        self.html_math_tokens: set[str] = set()
         self.prefix = "RELATEDWORKRICHTOKEN"
         while self.prefix in source.read_text():
             self.prefix += "X"
@@ -1251,6 +1276,9 @@ class _RichContentParser(HTMLParser):
             markup = children.result()
             if re.search(r'\b(?:rowspan|colspan)\s*=\s*["\']?(?!1\b)\d+', markup):
                 replacement = markup
+                self.html_math_tokens.update(
+                    re.findall(r"RELATEDWORKMATHTOKENX*\d{8}END", markup)
+                )
                 for token, image in children.replacements:
                     label, target = re.fullmatch(
                         r"!\[(.*)\]\((.*)\)", image.strip()
@@ -1433,10 +1461,12 @@ def derive_saved_html(
         raise HtmlDerivationError("uvx is required for pinned html2text conversion")
 
     source_bytes = source.read_bytes()
+    mathml: dict[str, str] = {}
     processed, replacements, presentation = preprocess_html(
         source_bytes.decode("utf-8"),
         base_url=url,
         source_name=source.name,
+        mathml=mathml,
     )
     rich = _RichContentParser(source, directory, url, allow_network=allow_network)
     rich.feed(processed)
@@ -1463,6 +1493,10 @@ def derive_saved_html(
             raise HtmlDerivationError(
                 f"html2text did not preserve math placeholder {placeholder} exactly once"
             )
+        if placeholder in rich.html_math_tokens and placeholder in mathml:
+            # Inside a raw HTML table: TeX would show literally, MathML renders.
+            markdown = markdown.replace(placeholder, mathml[placeholder])
+            continue
         if placeholder in rich.equation_tokens:
             opening, closing = "", ""
         else:

@@ -523,6 +523,24 @@ def test_latexml_list_items_keep_text_on_the_marker_line():
     _assert("(a) Item 1 text." in processed, processed)
 
 
+def test_preprocessor_keeps_original_mathml_for_raw_html_islands():
+    # Spanning tables stay raw HTML in the Markdown, where TeX delimiters are
+    # not rendered, so their math needs the original MathML.
+    mathml = {}
+    processed, replacements, _ = rw.preprocess_html(
+        '<table><tr><td colspan="2">A <math alttext="\\to"><semantics><mo>→</mo>'
+        '<annotation encoding="application/x-tex">\\to</annotation></semantics>'
+        "</math> B</td></tr></table>",
+        mathml=mathml,
+    )
+    ((placeholder, tex, _block),) = replacements
+    _assert(tex == "\\to", replacements)
+    _assert(mathml[placeholder].startswith("<math"), mathml)
+    _assert(mathml[placeholder].endswith("</math>"), mathml)
+    _assert("<mo>→</mo>" in mathml[placeholder], mathml)
+    _assert(placeholder in processed, processed)
+
+
 def test_nested_latexml_list_keeps_outer_item_state():
     inner = _latexml_list("ul", "ltx_itemize", ["•"])
     processed, *_ = rw.preprocess_html(
