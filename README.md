@@ -160,6 +160,18 @@ as your harness-global `CLAUDE.md`, `AGENTS.md`, or equivalent, and `skills/`
 at its skill location. The destination table below identifies the paths.
 Preserve existing files and unrelated skills when setting up those links.
 
+With a personal `AGENTS.user.md`, link the built boot instead, so every
+session gets it without a separate read:
+
+```bash
+cd ~/agents
+scripts/build-boot build   # writes the git-excluded AGENTS.boot.md
+scripts/build-boot link    # points harness links at it
+```
+
+A pre-commit hook running `scripts/build-boot build --index` keeps both the
+generated route section of `AGENTS.global.md` and the boot current.
+
 The optional installer manages those same links and their restoration for you:
 
 ```bash
@@ -185,7 +197,8 @@ The current user-level destinations are:
 | Grok Build | `~/.grok/AGENTS.md` | `~/.grok/skills` |
 | GitHub Copilot CLI/TUI | `~/.copilot/copilot-instructions.md` | `~/.agents/skills` |
 
-Instruction targets point directly to `AGENTS.global.md`. An absent skill root
+Instruction targets point to `AGENTS.boot.md` when it has been built, else
+directly to `AGENTS.global.md`. An absent skill root
 becomes one symlink to `skills/`; an existing directory keeps unrelated skills
 and receives one link per repository skill. Roots already resolving to this
 checkout are left alone.

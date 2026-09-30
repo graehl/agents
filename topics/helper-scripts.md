@@ -409,6 +409,42 @@ session can remain busy until that already accepted turn reaches terminal.
 **Canonical source**: `scripts/session-turn` (in this repo).
 **Install target**: `~/bin/session-turn` (symlink by default).
 
+### build-boot
+
+Compiles the one instruction file each harness protects across compaction.
+A read that fires every session costs a second copy of text the session
+already needs; a protected file keeps it without the read. So the boot
+carries what every session would otherwise load: the global policy, the
+activity routes, and `AGENTS.user.md`. Model-, launcher-, and
+harness-conditional supplements remain routed reads.
+
+**CLI**: `build-boot [--repo <dir>] build [--check] [--index] [--output <path>]`
+and `build-boot link [--check] [--to-global]`; acli baseline with completion.
+
+**Post-conditions**:
+- `build` regenerates the section of `AGENTS.global.md` between the
+  `BEGIN/END generated: activity routes` markers from the Governs rows of
+  `GLOSSARY.agents.md`, grouped by the script's `GROUPS` table under one
+  shared condition each. A topic no group names lands in *Other
+  activities* and is listed in `unclassified_topics`. It then writes the
+  git-excluded `AGENTS.boot.md`: the global policy followed by
+  `# User policy (compiled from AGENTS.user.md)`. Personal policy therefore
+  never enters the tracked global file.
+- `--index` also rewrites the section inside the staged `AGENTS.global.md`
+  blob, so unstaged edits elsewhere in the file stay out of the commit. The
+  `~/agents` pre-commit hook runs `build --index`.
+- `--check` writes nothing and exits 3 when the section or boot is stale;
+  missing markers or sources exit 4.
+- `link` retargets harness instruction symlinks that resolve to this
+  checkout's `AGENTS.global.md` or `AGENTS.boot.md` to the boot file (or back
+  with `--to-global`). Targets come from `~/.config/agents/build-boot.json`
+  (`{"targets": [...]}`), else the standard paths for Claude Code, Codex, Pi,
+  OpenCode, Grok, and Copilot. Regular files and links elsewhere are reported
+  and left alone.
+
+**Canonical source**: `scripts/build-boot` (in this repo); run from the
+checkout.
+
 ### install-agents
 
 Installs this checkout's global instructions and skills at the current
@@ -425,8 +461,9 @@ names. `--home` deliberately accepts a synthetic directory for rehearsal.
 usage and safe refusals exit 2.
 
 **Post-conditions**:
-- Harness instruction paths resolve to `<repo>/AGENTS.global.md` through
-  ordinary symlinks. The installer never creates or edits `~/AGENTS.md` and
+- Harness instruction paths resolve through ordinary symlinks to
+  `<repo>/AGENTS.boot.md` when `build-boot` has built it, else to
+  `<repo>/AGENTS.global.md`. The installer never creates or edits `~/AGENTS.md` and
   offers no hardlink mode.
 - An absent skill root becomes a link to `<repo>/skills`; an existing directory
   retains unrelated entries and receives one link per repository skill. A root

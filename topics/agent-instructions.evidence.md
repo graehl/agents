@@ -5311,3 +5311,34 @@ Open: the other Governs rows share this defect for work outside
 conditions factored into groups (this route is the writing group), via a
 build step or an `~/agents` exception; related to
 `gaps/agent-specific-durable-boot-compilation.md`.
+
+## 2026-09-30 — compiled boot replaces unconditional reads
+
+Contributing-model: opus-5.5.
+
+User direction, same session as the writing-route entry: an effectively
+unconditional read belongs in the file the harness protects across
+compaction, and a reread of text already in that file is harm (small
+repetitions exempted). `AGENTS.user.md` must not enter the tracked global
+file, so the build target is the git-excluded `AGENTS.boot.md`. The user
+approved an acli build helper run from the `~/agents` pre-commit hook and
+the retargeting of harness symlinks.
+
+`scripts/build-boot` now generates § Activity routes in `AGENTS.global.md`
+from the Governs rows, grouped under shared conditions (the user's
+suggestion; the writing group carries the documents-for-readers trigger and
+steer), and appends `AGENTS.user.md` in the boot. Reread paths closed: the
+global user-policy read now fires only without the compiled heading; the
+`~/agents` glossary entry read skips its Governs rows; the advisor packet
+counts boot-contained sources as read at their session-start hash. Accepted
+duplication: hand-written boot routes (language tooling, perf, plan
+grilling, refresher) still overlap their generated rows because they carry
+immediate steers. Boot size: `AGENTS.global.md` 54.4 → 61.6 KB; the boot adds
+8.9 KB of user policy that sessions previously read separately.
+
+Traces: a session in a repo without `GLOSSARY.agents.md` now sees the
+writing route; a fresh clone without a build links `AGENTS.global.md` and
+falls back to reading `AGENTS.user.md`; a commit staging only part of
+`AGENTS.global.md` gets the regenerated section without the unstaged hunks
+(regression test). Open: per-harness boots folding harness and default-model
+supplements (`gaps/agent-specific-durable-boot-compilation.md`).

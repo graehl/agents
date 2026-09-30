@@ -45,3 +45,11 @@ the required packet refresh. The capability/tendency model in
 `topics/agent-instructions.md` should determine whether a route embeds a packet,
 embeds only durable dispatch semantics, or relies on verified harness
 reconstruction.
+
+**Landed 2026-09-30 (profile-independent part):** `scripts/build-boot`
+compiles one shared `AGENTS.boot.md` (global policy, generated activity
+routes, `AGENTS.user.md`) and retargets harness links to it; a pre-commit
+hook rebuilds it. Still open: per-harness and per-model profiles, which
+would fold each harness supplement and the default model's supplements
+(frontier, anthropic, opus) into that harness's boot instead of routing
+them as reads.

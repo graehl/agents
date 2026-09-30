@@ -120,4 +120,4 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `verified-provenance` | Governs: row-wise translating, paraphrasing, or rewriting a dataset | [verified-provenance](topics/verified-provenance.md) |
 | `web-digest` | Governs: updating the claude.ai preferences paste or web digest | [web-digest](topics/web-digest.md) |
 | `workflow-tags` | Governs: adopting or emitting schema-announced workflow tags | [workflow-tags](topics/workflow-tags.md) |
-| `writing` | Governs: drafting or revising prose for a reader | [writing](topics/writing.md) |
+| `writing` | Governs: drafting or revising a document for readers (report, brief, essay, article, letter, web copy, story), not a working record | [writing](topics/writing.md) |

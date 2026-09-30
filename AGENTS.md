@@ -2,9 +2,12 @@
 
 This checkout authors the reusable agent policy whose installable global source
 is `AGENTS.global.md`, already supplied through the harness boot symlink.
-A harness-global `AGENTS.md` or `CLAUDE.md` must target
-`AGENTS.global.md`, not this project file; keeping those roles distinct prevents
-the global policy from being injected again as project context in this repo.
+A harness-global `AGENTS.md` or `CLAUDE.md` must target the built
+`AGENTS.boot.md` or `AGENTS.global.md`, not this project file; keeping those
+roles distinct prevents the global policy from being injected again as project
+context in this repo. The section between the `generated: activity routes`
+markers in `AGENTS.global.md` is written by `scripts/build-boot`; edit the
+topics' `Governs:` lines and glossary rows instead.
 
 ## Install
 

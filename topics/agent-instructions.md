@@ -21,7 +21,11 @@ repository remains usable without the other.
 ## Contracts
 
 - `AGENTS.global.md` is the authoritative global policy file and the source
-  installed into each harness's global instruction location. It is already
+  installed into each harness's global instruction location, directly or as
+  the head of the built `AGENTS.boot.md`. An effectively unconditional read
+  belongs inside that protected file, compiled by `scripts/build-boot`; a
+  routed read is for conditional content, never for text the boot already
+  holds. It is already
   injected through that boot symlink: references name its applicable section,
   never request another policy read. The filename remains appropriate for
   authoring and installation.
