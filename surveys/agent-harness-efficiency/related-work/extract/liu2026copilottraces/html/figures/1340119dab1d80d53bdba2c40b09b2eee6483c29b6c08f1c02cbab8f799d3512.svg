@@ -1,0 +1,14 @@
+<ns0:svg xmlns:html="http://www.w3.org/1999/xhtml" xmlns:ns0="http://www.w3.org/2000/svg" id="S5.SS1.p10.pic1" class="ltx_picture" height="187.79" overflow="visible" version="1.1" viewBox="0 0 477.38 187.79" width="477.38"><ns0:style>
+  /* Banner pre-dismissal (set above before paint -&gt; no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</ns0:style><ns0:g style="--ltx-stroke-color:#000000;--ltx-fill-color:#000000;" fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,187.79) matrix(1 0 0 -1 0 0)"><ns0:g style="--ltx-fill-color:#000000;" fill="#000000" fill-opacity="1.0"><ns0:path style="stroke:none" d="M 0 6.69 L 0 181.1 C 0 184.8 3 187.79 6.69 187.79 L 470.68 187.79 C 474.38 187.79 477.38 184.8 477.38 181.1 L 477.38 6.69 C 477.38 3 474.38 0 470.68 0 L 6.69 0 C 3 0 0 3 0 6.69 Z" /></ns0:g><ns0:g style="--ltx-fill-color:#FFFFFF;" fill="#FFFFFF" fill-opacity="1.0"><ns0:path style="stroke:none" d="M 0.79 6.69 L 0.79 181.1 C 0.79 184.36 3.43 187 6.69 187 L 470.68 187 C 473.95 187 476.59 184.36 476.59 181.1 L 476.59 6.69 C 476.59 3.43 473.95 0.79 470.68 0.79 L 6.69 0.79 C 3.43 0.79 0.79 3.43 0.79 6.69 Z" /></ns0:g><ns0:g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 8.66 156.85)"><ns0:foreignObject style="--ltx-fo-width:33.25em;--ltx-fo-height:1.89em;--ltx-fo-depth:10.99em;font-size:10pt;" height="178.35" overflow="visible" transform="matrix(1 0 0 -1 0 26.21)" width="460.09"><html:span class="ltx_foreignobject_container"><html:span class="ltx_foreignobject_content">
+<html:span id="S5.SS1.p10.pic1.1" class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:33.25em;">
+<html:span id="S5.SS1.p10.pic1.1.1" class="ltx_p"><html:span id="S5.SS1.p10.pic1.1.1.1" class="ltx_text ltx_ulem_uline ltx_font_bold ltx_font_italic" style="--ltx-fg-color:#000000;">Takeaway 6:</html:span><html:span id="S5.SS1.p10.pic1.1.1.2" class="ltx_text" style="--ltx-fg-color:#000000;">
+<html:span id="S5.SS1.p10.pic1.1.1.2.1" class="ltx_text ltx_font_italic">Agentic sessions are overwhelmingly LLM-bound, but the time and token contributions are inverted. LLM execution takes 85.4% of wall-clock time yet contributes 48% of prompt tokens, whereas tool calls take only 4.7% of time yet contribute 28% of tokens.</html:span></html:span></html:span>
+</html:span></html:span></html:span></ns0:foreignObject></ns0:g></ns0:g></ns0:svg>

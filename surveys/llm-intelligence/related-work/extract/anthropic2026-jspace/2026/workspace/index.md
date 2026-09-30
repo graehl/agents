@@ -1,12 +1,48 @@
 **Source:** *Verbalizable Representations Form a Global Workspace in Language Models* — [original page](https://transformer-circuits.pub/2026/workspace/index.html)
 
-[ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
+[ 
+
+![Figure](figures/b6ed513533d92b9135f6446f6627d1946a7b6f306496d17610f2d525c1ae85f6.svg)
+
+ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
 
 # Verbalizable Representations Form a Global Workspace in Language Models
 
 # Verbalizable Representations Form a Global Workspace in Language Models
 
-[ ![](png/img_860ca3aa914e9155.png) Introduction](https://transformer-circuits.pub/2026/workspace/index.html#intro) [ ![](png/img_2adac9e6c5d32578.png) Methods](https://transformer-circuits.pub/2026/workspace/index.html#methods) [ ![](png/img_0a76fdb1e38b75dd.png) A Global Workspace](https://transformer-circuits.pub/2026/workspace/index.html#workspace) [ ![](png/img_b6e33e9c6f22dfce.png) Structure Supports Function](https://transformer-circuits.pub/2026/workspace/index.html#structure) [ ![](png/img_99f81e6946c904c0.png) Alignment Auditing](https://transformer-circuits.pub/2026/workspace/index.html#apps-auditing) [ ![](png/img_b2a7e6b0ffae0b7b.png) The Assistant's Perspective](https://transformer-circuits.pub/2026/workspace/index.html#apps-diffing) [ ![](png/img_26705cc75891f28c.png) Counterfactual Reflection Training](https://transformer-circuits.pub/2026/workspace/index.html#reflection) [ ![](png/img_827d3a5cb00bcbcf.png) Discussion](https://transformer-circuits.pub/2026/workspace/index.html#discussion)   
+[ 
+
+![Figure](figures/a8d16e548cfb86c9acc9a9c8830ed6ce7b43a1fddb163e1551d10d912e3d9eae.png)
+
+  Introduction](https://transformer-circuits.pub/2026/workspace/index.html#intro) [ 
+
+![Figure](figures/092edf714fa12b3629adf6f82f09dcd924cd7bcb9d3d2c1429b85a0f0aae61fd.png)
+
+  Methods](https://transformer-circuits.pub/2026/workspace/index.html#methods) [ 
+
+![Figure](figures/aecaad24f3aecb09012015013983e7728e23959c177a0b22b3b79c57ab5f6126.png)
+
+  A Global Workspace](https://transformer-circuits.pub/2026/workspace/index.html#workspace) [ 
+
+![Figure](figures/f06cba3fb604be68a3dea94aa96e4b2aa4e61bb462fe917177c57d93a866d54f.png)
+
+  Structure Supports Function](https://transformer-circuits.pub/2026/workspace/index.html#structure) [ 
+
+![Figure](figures/c3869ba3e8d0b8c3afa9c4f5853da66ae0237dd38777e8af5f4a82d79e524082.png)
+
+  Alignment Auditing](https://transformer-circuits.pub/2026/workspace/index.html#apps-auditing) [ 
+
+![Figure](figures/3d2228e6fc1beb047ef188802e2e7772e3488627a511b4441f7ddd59f6626b47.png)
+
+  The Assistant's Perspective](https://transformer-circuits.pub/2026/workspace/index.html#apps-diffing) [ 
+
+![Figure](figures/d5f62d4650bf7decef0cfe2223d4a1eb39f28f0f72bcdc642fc008b5b643f4b5.png)
+
+  Counterfactual Reflection Training](https://transformer-circuits.pub/2026/workspace/index.html#reflection) [ 
+
+![Figure](figures/302dbaac2f4a180e0a78fb8801ed4bbd521a5ab4ffe0498c646abdf55097bf3a.png)
+
+  Discussion](https://transformer-circuits.pub/2026/workspace/index.html#discussion)   
   
 
 
@@ -128,7 +164,11 @@ Applying the lens to an activation h_\ell is equivalent to replacing all subsequ
 
 This produces a score for every token in the model's vocabulary. Sorting these scores and inspecting the top entries gives a human-readable description of the activation: a short list of words that the activation is, on average across contexts, disposed to make the model say. We refer to the rows of W_U J_\ell as the Jacobian lens (J-lens) vectors at layer \ell; each J-lens vector is a direction in residual-stream space associated with a single token in the model’s vocabulary.
 
-![](png/img_1b62b10ab235e6e7.png)Figure 4: The Jacobian lens. (A) J_\ell is computed by backpropagating from the final-layer residual stream to h_\ell and averaging the resulting Jacobians over token positions and over a corpus of prompts. (B) Reading from the lens replaces all layers downstream of \ell with the single linear map J_\ell followed by the model's own unembedding, yielding a ranked list of vocabulary tokens for the activation at that layer. (C) Patching in lens coordinates reads the activation's projections onto two J-lens vectors, applies a permutation \sigma to those coordinates, and writes the result back, leaving unchanged the component of the activation that is orthogonal to those two vectors.
+
+
+![Figure](figures/064c2ad896f9e765de20049338681a52d573d5fb50e40c94087bddef9749d44a.png)
+
+ Figure 4: The Jacobian lens. (A) J_\ell is computed by backpropagating from the final-layer residual stream to h_\ell and averaging the resulting Jacobians over token positions and over a corpus of prompts. (B) Reading from the lens replaces all layers downstream of \ell with the single linear map J_\ell followed by the model's own unembedding, yielding a ranked list of vocabulary tokens for the activation at that layer. (C) Patching in lens coordinates reads the activation's projections onto two J-lens vectors, applies a permutation \sigma to those coordinates, and writes the result back, leaving unchanged the component of the activation that is orthogonal to those two vectors.
 
 The averaged Jacobian, applied to a given activation vector, measures the effect on present and future outputs that the vector might have across the range of contexts the model encounters. The highly weighted output tokens, those that “appear in the lens,” are therefore represented in a verbalizable format. We examine several variants of the Jacobian lens methodology (e.g. computing only present and not future token effects, freezing attention patterns while computing Jacobians, and varying the number of contexts over which we average) in [??](https://transformer-circuits.pub/2026/workspace/index.html#fig-app-method-details); our qualitative results are robust to these choices.
 
@@ -652,7 +692,11 @@ We interpret this, tentatively, as a trace of metacognition: the J-space carryin
 
 The workspace account makes a strong prediction about the relationship between a model's verbal dispositions and its silent reasoning. We have argued that internal reasoning routes through Jacobian lens vectors: representations of things the model could say. The previous section provides some circumstantial evidence for this claim: post-training focuses on teaching the model to speak as the Assistant, and installs concepts in the J-space that appear to be tied to the Assistant’s perspective. Taking this connection seriously, it follows that changing what the model is disposed to say in a context, if it were asked to reflect on its thinking, should change how it reasons there, even when it is never asked. In this section we test this prediction with a training technique we call counterfactual reflection training.
 
-![](png/img_2b19c68c5712bfa4.png)Figure 47: Counterfactual reflection training. Before (left): at a position in an agentic transcript, the J-space carries task-relevant concepts and the model's continuation produces baseline behavior. We append a reflection question and a constitution-grounded reflection, and fine-tune on the reflection turn alone. After (right): on the same transcript, with no reflection question present, the J-space at that position now carries constitution-related concepts and the continuation shifts accordingly.
+
+
+![Figure](figures/88103da0a99af61db7bff2e6d432ea74ce97f48fc9ee347058e47a4c656930bc.png)
+
+ Figure 47: Counterfactual reflection training. Before (left): at a position in an agentic transcript, the J-space carries task-relevant concepts and the model's continuation produces baseline behavior. We append a reflection question and a constitution-grounded reflection, and fine-tune on the reflection turn alone. After (right): on the same transcript, with no reflection question present, the J-space at that position now carries constitution-related concepts and the continuation shifts accordingly.
 
 The technique works as follows (Figure [??](https://transformer-circuits.pub/2026/workspace/index.html#fig-reflection-schematic)). We assemble a set of training contexts by sampling ten thousand task prompts from production RL training environments and generating partial rollouts with the baseline model (Claude Haiku 4.5), truncating each at a randomly selected turn. The examples include cases where the model has committed some undesirable action, contexts where it is in a situation where it might commit such an action (but hasn’t yet), and randomly sampled contexts. At the truncation point, we append a reflection question: a short user turn asking for reflection (e.g., "What’s the most honest thing you can do right now?", or "Pause here. Are there principles you should be thinking about that you haven’t yet?").
 
@@ -977,15 +1021,27 @@ To compare the lenses quantitatively, we assemble six prompt distributions in wh
 
 Probing Intermediates. We first compare the three lenses as readout tools, asking how reliably each surfaces the known intermediate among its top tokens. To summarize each method with a single number, we compute pass@k over a range of values of k and take the area under the resulting curve, plotted against \log k and normalized so that a method that always ranks the intermediate first scores 1 (Figure [??](https://transformer-circuits.pub/2026/workspace/index.html#fig-method-compare-passk)). The J-lens outperforms the other lenses on every prompt distribution. Its margin over the logit lens is modest on multihop and association, but substantial on multilingual, order-of-operations, poetry, and typo. The tuned lens trails both the J-lens and logit lens. On association and poetry, it recovers almost nothing. Notably, these are the two distributions where the next token at the readout position is uninformative (a period and a newline, respectively), so a method biased to surface next-token predictions is unlikely to perform well.
 
-![](png/img_c983850908bf60d9.png)Figure 52: Normalized pass@k AUC for intermediate concept recovery on the six prompt distributions.
+
+
+![Figure](figures/b69d5e064843da60041b164f9a0ac95387a2f566132ca478a020a166b269d86d.png)
+
+ Figure 52: Normalized pass@k AUC for intermediate concept recovery on the six prompt distributions.
 
 Causal Effect. A lens that surfaces a concept in its readout has not necessarily found the direction the model actually computes with. To test for the causal relevance of lens vectors, we also compare them on intervention experiments. We measure two quantities. The first is an ablation effect. For each lens, we take its vector for the intermediate token, project the residual stream's component along that vector to zero at the readout position, and record the KL divergence this induces on the model's output. A larger divergence means the direction was more causally important for the answer. The second is the swap success rate. We apply the lens-coordinate swap of [??](https://transformer-circuits.pub/2026/workspace/index.html#fig-methods-technical-details) to exchange one intermediate for another at \alpha = 1, and ask whether the model's top-1 output flips to the answer corresponding to the swapped-in intermediate concept.
 
 We find that J-lens directions have substantially larger causal effects on both measures. Ablating them induces roughly twice the output KL divergence of ablating logit- or tuned-lens directions on the multihop tasks (Figure [??](https://transformer-circuits.pub/2026/workspace/index.html#fig-method-compare-ablation)). And swapping along them flips the model's output substantially more often than swapping along logit- or tuned-lens directions, across all three model scales (Figure [??](https://transformer-circuits.pub/2026/workspace/index.html#fig-method-compare-swap)).
 
-![](png/img_23e5b6de451752cd.png)Figure 53: KL divergence induced on the model's output distribution by ablating each lens's intermediate direction at all positions (except in the poetry case, where we exclude the target position).
 
-![](png/img_151fa39f2f7df490.png)Figure 54: Fraction of items whose top-1 output flips to the implied answer under a lens coordinate swap, across three model scales.
+
+![Figure](figures/022a6c8ca763a243e85d0762ca9e7f564777a001c177f52b7d0ac3a1c8b0a3ea.png)
+
+ Figure 53: KL divergence induced on the model's output distribution by ablating each lens's intermediate direction at all positions (except in the poetry case, where we exclude the target position).
+
+
+
+![Figure](figures/f1c43224f7afc05473df64df67a98c2e7c6b1dd0b5b7cd0ddba0318ef6e351f2.png)
+
+ Figure 54: Fraction of items whose top-1 output flips to the implied answer under a lens coordinate swap, across three model scales.
 
 Next Token Prediction. We next report the metric the tuned lens is trained on, namely agreement with the model's own next-token distribution, measured as KL divergence, top-1 accuracy, and entropy at each layer (Figure [??](https://transformer-circuits.pub/2026/workspace/index.html#fig-layer-lines-appendix)). The tuned lens is, by construction, the best predictor of the model's output at every depth. The J-lens is the worst, with higher KL than even the uncorrected logit lens through most of the network. We regard this as a feature rather than a defect. The J-lens is not optimized to anticipate the output, and the two comparisons above show that the directions which best anticipate the output are not the ones that best expose, or causally drive, the computation producing it.
 
@@ -1029,7 +1085,15 @@ In Figures [??](https://transformer-circuits.pub/2026/workspace/index.html#fig-j
 
 We observe that methods are fairly consistent among these design choices, though mean aggregation of penultimate is a small improvement in extracting intermediates, and applying stop-grads to QK can increase the causal effect.
 
-![](png/img_56638dae3fb9fdd2.png)Figure 57: Sonnet 4.5 J-lens pass@K AUC evals for different methodological variations of the J-lens recipe. ![](png/img_cff4d31c62b4ee13.png)Figure 58: Sonnet 4.5 J-lens causal ablation evals for different methodological variations of the J-lens recipe.
+
+
+![Figure](figures/28ff029858d36c7a7bcdae48e79df85ed765c011faae849a8b58dbb78a27e66c.png)
+
+ Figure 57: Sonnet 4.5 J-lens pass@K AUC evals for different methodological variations of the J-lens recipe. 
+
+![Figure](figures/ba6284fe99e8617104ed05436deea528f65374528c39888ce6345f6c5c7e25a0.png)
+
+ Figure 58: Sonnet 4.5 J-lens causal ablation evals for different methodological variations of the J-lens recipe.
 
 Data. The expectation in J_\ell is taken over a corpus of prompts. Two properties of this corpus are potentially relevant: its size and its distribution.
 
@@ -1037,7 +1101,15 @@ Amount. Our default lens uses one thousand sequences of 128 tokens each. We swee
 
 Distribution. Our default corpus is sampled from a pretraining-like distribution. We additionally experimented with restricting the distribution and with masking which token positions contribute to the within-prompt average. For instance, we tried excluding the first several tokens (to let the model “burn in”) or excluding positions whose next token is non-alphanumeric (where the prediction target is structural rather than semantic). None of these yielded a meaningful improvement over the default.
 
-![](png/img_b43879900a1353cf.png)Figure 59: Sonnet 4.5 J-lens pass@K AUC evals as a function of number of sequences in the average. Error bars indicate standard errors. ![](png/img_f7089e9e67458e69.png)Figure 60: Sonnet 4.5 causal ablation evals as a function of number of sequences in the average. Error bars indicate standard errors.
+
+
+![Figure](figures/79d86027136c37415f3bbe77c1a2eb92cb4992dc7d0faf03321632fcdc4bc2a7.png)
+
+ Figure 59: Sonnet 4.5 J-lens pass@K AUC evals as a function of number of sequences in the average. Error bars indicate standard errors. 
+
+![Figure](figures/4e310499b3758ee8dadf21b6d604c869dc8529561672d38b202a20180a384f1b.png)
+
+ Figure 60: Sonnet 4.5 causal ablation evals as a function of number of sequences in the average. Error bars indicate standard errors.
 
 Pseudocode. To assist in reproduction, we provide the following pseudocode:
 
@@ -1246,7 +1318,11 @@ Both tasks enter the workspace, but they share it differently depending on their
 
 This token-level exclusion carries little overall cost. Each task's content still reaches the top of the lens somewhere in the response under dual load at rates close to the single-task condition (Figure [??](https://transformer-circuits.pub/2026/workspace/index.html#fig-dual-task-simple)c); the largest decline is for the computed answer (95% to 72%). Holding two concepts at once is essentially free, and they co-occupy tokens at chance; an ongoing computation excludes concurrent content at the tokens it occupies, and it is the computation that bears the cost of sharing the workspace.
 
-![](png/img_b3ee9cc4785b8511.png)Figure 73: The model copies a fixed sentence while the prompt also instructs it to concentrate on two things. (A) J-lens readouts at two of the copied tokens (layer 75). Top row: instructed to concentrate on two concepts. Bottom row: instructed to concentrate on one concept while mentally solving an arithmetic problem. Green marks content from the first instruction and purple from the second, corresponding to the highlighted phrases in the prompt. With two concepts, both appear at "ook" and neither at "on." With a concept and an arithmetic problem, the concept appears at "ook" and the computed answer at "on." (B) At tokens where one task's content appears in the lens top-10, the probability that the other's does too (layers 67–92). Grey bars are a shuffled control in which the other task's presence is measured on a different prompt, where each task instruction was given on its own. Two concepts share tokens at the control rate; a concept and a computed answer almost never do. (C) Fraction of trials on which each task's content reaches J-lens rank ≤ 5 anywhere in the response, when given alone (solid) versus alongside the other (hatched). The fraction drops only modestly when the tasks are paired, more so for the arithmetic answer.
+
+
+![Figure](figures/5cc172592a625c754e6c5be5bfdc9506e8622e75914cbdd5669b9d2b8d9ba51f.png)
+
+ Figure 73: The model copies a fixed sentence while the prompt also instructs it to concentrate on two things. (A) J-lens readouts at two of the copied tokens (layer 75). Top row: instructed to concentrate on two concepts. Bottom row: instructed to concentrate on one concept while mentally solving an arithmetic problem. Green marks content from the first instruction and purple from the second, corresponding to the highlighted phrases in the prompt. With two concepts, both appear at "ook" and neither at "on." With a concept and an arithmetic problem, the concept appears at "ook" and the computed answer at "on." (B) At tokens where one task's content appears in the lens top-10, the probability that the other's does too (layers 67–92). Grey bars are a shuffled control in which the other task's presence is measured on a different prompt, where each task instruction was given on its own. Two concepts share tokens at the control rate; a concept and a computed answer almost never do. (C) Fraction of trials on which each task's content reaches J-lens rank ≤ 5 anywhere in the response, when given alone (solid) versus alongside the other (hatched). The fraction drops only modestly when the tasks are paired, more so for the arithmetic answer.
 
 ### [Features in the J-space](https://transformer-circuits.pub/2026/workspace/index.html#app-jfeatures)
 
