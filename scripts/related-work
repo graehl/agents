@@ -26,6 +26,7 @@ artifact.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import html
 import json
@@ -36,12 +37,13 @@ import sys
 import tempfile
 import urllib.error
 import urllib.request
+import xml.etree.ElementTree as ET
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import unquote, unquote_to_bytes, urljoin, urlsplit
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
@@ -78,7 +80,7 @@ SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 HTML_METHODS = frozenset(("arxiv-html", "url-html"))
 LEGACY_HTML_METHODS = frozenset(("backfilled", "tcircuits-html"))
 HTML2TEXT_VERSION = "2025.4.15"
-HTML_DERIVATION = f"related-work html-md-v2 + html2text {HTML2TEXT_VERSION}"
+HTML_DERIVATION = f"related-work html-md-v3 + html2text {HTML2TEXT_VERSION}"
 HTML_FIDELITY = "visible-blocks-v2"
 # v1 required every block to pass; its sentinels remain valid under v2.
 ACCEPTED_HTML_FIDELITY = ("visible-blocks-v1", HTML_FIDELITY)
@@ -404,6 +406,8 @@ class _MathPreprocessor(HTMLParser):
         self.replacements: list[tuple[str, str, bool]] = []
         self.content_replacements: list[tuple[str, str, bool]] = []
         self.math_depth = 0
+        self.svg_depth = 0
+        self.svg_tags: list[str] = []
         self.math_in_content = False
         self.annotation_depth: int | None = None
         self.annotation: list[str] = []
@@ -456,12 +460,17 @@ class _MathPreprocessor(HTMLParser):
         for name, value in attributes:
             lowered = name.lower()
             stripped = (value or "").lstrip()
-            if lowered in (
-                "data",
-                "href",
-                "poster",
-                "src",
-            ) and stripped.lower().startswith("data:"):
+            if (
+                lowered
+                in (
+                    "data",
+                    "href",
+                    "poster",
+                    "src",
+                )
+                and lowered == "href"
+                and stripped.lower().startswith("data:")
+            ):
                 continue
             if lowered == "href" and stripped.lower().startswith("javascript:"):
                 continue
@@ -509,6 +518,15 @@ class _MathPreprocessor(HTMLParser):
         self, tag: str, attributes: list[tuple[str, str | None]]
     ) -> None:
         tag = tag.lower()
+        if not self.math_depth and (tag == "svg" or self.svg_depth):
+            if tag == "svg":
+                self.svg_depth += 1
+                self._record_presentation(tag, attributes)
+            self._append(self.get_starttag_text())
+            self.svg_tags.append(
+                re.match(r"<\s*([^\s/>]+)", self.get_starttag_text())[1]
+            )
+            return
         if self.math_depth:
             self.math_depth += 1
             attrs = {name.lower(): (value or "").lower() for name, value in attributes}
@@ -537,6 +555,10 @@ class _MathPreprocessor(HTMLParser):
         self, tag: str, attributes: list[tuple[str, str | None]]
     ) -> None:
         tag = tag.lower()
+        if not self.math_depth and (tag == "svg" or self.svg_depth):
+            self._record_presentation(tag, attributes)
+            self._append(self.get_starttag_text())
+            return
         if self.math_depth:
             return
         if tag == "math":
@@ -549,6 +571,14 @@ class _MathPreprocessor(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         tag = tag.lower()
+        if self.svg_depth:
+            original_tag = self.svg_tags.pop()
+            if original_tag.lower() != tag:
+                raise HtmlDerivationError("mismatched tag inside SVG visual")
+            self._append(f"</{original_tag}>")
+            if tag == "svg":
+                self.svg_depth -= 1
+            return
         if self.math_depth:
             if self.math_depth == 1:
                 tex = "".join(self.annotation).strip() or self.math_alttext
@@ -759,8 +789,409 @@ def _run_html2text(source: str, *options: str) -> str:
     return completed.stdout
 
 
+class _EquationTableParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.rows: list[list[str]] = []
+        self.row: list[str] = []
+        self.cell: list[str] | None = None
+        self.math_tokens: set[str] = set()
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "tr":
+            self.row = []
+        elif tag in ("td", "th"):
+            self.cell = []
+
+    def handle_data(self, text: str) -> None:
+        if self.cell is not None:
+            self.cell.append(text)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("td", "th") and self.cell is not None:
+            text = "".join(self.cell).strip()
+            parts = re.split(r"(RELATEDWORKMATHTOKEN[A-Z0-9]+)", text)
+            rendered = []
+            for part in parts:
+                if part.startswith("RELATEDWORKMATHTOKEN"):
+                    self.math_tokens.add(part)
+                    rendered.append(part)
+                elif part.strip():
+                    escaped = re.sub(r"([{}%&#_$])", r"\\\1", part.strip())
+                    rendered.append(r"\text{" + escaped + "}")
+            self.row.append(" ".join(rendered))
+            self.cell = None
+        elif tag == "tr":
+            self.rows.append(self.row)
+
+    def result(self) -> str:
+        rows = " \\\\\n".join(" & ".join(row) for row in self.rows)
+        return "\\[\\begin{aligned}\n" + rows + "\n\\end{aligned}\\]"
+
+
+class _RichContentParser(HTMLParser):
+    """Protect paper visuals and table structure from prose conversion."""
+
+    def __init__(
+        self,
+        source: Path,
+        directory: Path,
+        url: str,
+        *,
+        allow_network: bool,
+        protect_tables: bool = True,
+    ):
+        super().__init__(convert_charrefs=False)
+        self.source = source
+        self.directory = directory.resolve()
+        self.url = url
+        self.allow_network = allow_network
+        self.protect_tables = protect_tables
+        self.output: list[str] = []
+        self.replacements: list[tuple[str, str]] = []
+        self.capture: list[str] = []
+        self.capture_tag: str | None = None
+        self.capture_depth = 0
+        self.capture_attrs: dict[str, str] = {}
+        self.svg_tags: list[str] = []
+        self.visuals = 0
+        self.tables = 0
+        self.equations = 0
+        self.equation_tokens: set[str] = set()
+        self.prefix = "RELATEDWORKRICHTOKEN"
+        while self.prefix in source.read_text():
+            self.prefix += "X"
+
+    def _asset(self, content: bytes) -> str:
+        if content.lstrip().startswith((b"<svg", b"<?xml", b"<!DOCTYPE", b"<!--")):
+            repaired_style = False
+            try:
+                root = ET.fromstring(content)
+            except ET.ParseError as exc:
+                raise HtmlDerivationError(f"invalid SVG visual: {exc}") from exc
+            if root.tag.split("}")[-1] != "svg":
+                raise HtmlDerivationError("visual XML is not SVG")
+
+            def namespace_foreign(element: ET.Element, namespace: str) -> None:
+                name = element.tag.split("}")[-1]
+                if name == "math":
+                    namespace = "http://www.w3.org/1998/Math/MathML"
+                elif name == "svg":
+                    namespace = "http://www.w3.org/2000/svg"
+                element.tag = "{" + namespace + "}" + name
+                child_namespace = (
+                    "http://www.w3.org/1999/xhtml"
+                    if name == "foreignObject"
+                    else namespace
+                )
+                for child in element:
+                    namespace_foreign(child, child_namespace)
+
+            for foreign in list(root.iter("{http://www.w3.org/2000/svg}foreignObject")):
+                for child in foreign:
+                    namespace_foreign(child, "http://www.w3.org/1999/xhtml")
+                repaired_style = True
+            for element in root.iter():
+                for name, value in element.attrib.items():
+                    if (
+                        name.split("}")[-1] == "href"
+                        and not value.startswith(("#", "data:"))
+                        and element.tag.split("}")[-1] != "a"
+                    ):
+                        raise HtmlDerivationError(
+                            f"SVG visual has an external dependency: {value}"
+                        )
+                style = element.attrib.get("style", "")
+                declarations = []
+                for declaration in style.split(";"):
+                    property_name, separator, value = declaration.partition(":")
+                    presentation_name = {
+                        "--ltx-fill-color": "fill",
+                        "--ltx-stroke-color": "stroke",
+                    }.get(property_name.strip())
+                    if (
+                        presentation_name
+                        and "url(" in value
+                        and presentation_name in element.attrib
+                    ):
+                        # LaTeXML duplicates paint in CSS; wget can damage that URL.
+                        canonical = element.attrib[presentation_name]
+                        if value.strip() != canonical:
+                            declaration = property_name + separator + canonical
+                            repaired_style = True
+                    declarations.append(declaration)
+                style = ";".join(declarations)
+                if "style" in element.attrib:
+                    element.set("style", style)
+                if element.tag.split("}")[-1] == "style":
+                    style += element.text or ""
+                if "@import" in style:
+                    raise HtmlDerivationError("SVG visual has an external CSS import")
+                for reference in re.findall(r"url\(\s*['\"]?([^)'\"]+)", style):
+                    if not reference.startswith(("#", "data:")):
+                        raise HtmlDerivationError(
+                            f"SVG visual has an external CSS dependency: {reference}"
+                        )
+            if repaired_style:
+                content = ET.tostring(root, encoding="utf-8")
+            suffix = ".svg"
+        elif content.startswith(b"\x89PNG\r\n\x1a\n"):
+            suffix = ".png"
+        elif content.startswith(b"\xff\xd8\xff"):
+            suffix = ".jpg"
+        elif content.startswith((b"GIF87a", b"GIF89a")):
+            suffix = ".gif"
+        elif content.startswith(b"RIFF") and content[8:12] == b"WEBP":
+            suffix = ".webp"
+        elif content[4:8] == b"ftyp" and content[8:12] in (b"avif", b"avis"):
+            suffix = ".avif"
+        elif content.startswith(b"BM"):
+            suffix = ".bmp"
+        elif content.startswith((b"II\x2a\x00", b"MM\x00\x2a")):
+            suffix = ".tiff"
+        else:
+            raise HtmlDerivationError("visual asset is not a supported image")
+        target = self.source.parent / "figures" / (_sha256_bytes(content) + suffix)
+        target.parent.mkdir(exist_ok=True)
+        target.write_bytes(content)
+        return target.relative_to(self.source.parent).as_posix()
+
+    def _resource(self, reference: str) -> bytes:
+        if reference.startswith("data:"):
+            header, separator, payload = reference.partition(",")
+            if not separator:
+                raise HtmlDerivationError("visual data URI has no payload")
+            try:
+                return (
+                    base64.b64decode(payload, validate=True)
+                    if header.endswith(";base64")
+                    else unquote_to_bytes(payload)
+                )
+            except ValueError as exc:
+                raise HtmlDerivationError("invalid visual data URI") from exc
+        parsed = urlsplit(reference)
+        if not parsed.scheme and not parsed.netloc:
+            local = (self.source.parent / unquote(parsed.path)).resolve()
+            if local.is_relative_to(self.directory) and local.is_file():
+                return local.read_bytes()
+        if not self.allow_network:
+            raise HtmlDerivationError(
+                f"visual asset missing from saved page: {reference}"
+            )
+        remote = urljoin(self.url, reference)
+        if urlsplit(remote).scheme not in ("http", "https"):
+            raise HtmlDerivationError(f"unsupported visual URL: {reference}")
+        request = urllib.request.Request(remote, headers={"User-Agent": USER_AGENT})
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                return response.read()
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            raise HtmlDerivationError(
+                f"visual download failed: {remote}: {exc}"
+            ) from exc
+
+    def _protect(self, replacement: str) -> None:
+        token = f"{self.prefix}{len(self.replacements):08d}END"
+        self.output.append(f"\n\n{token}\n\n")
+        self.replacements.append((token, f"\n\n{replacement.strip()}\n\n"))
+
+    def _svg_reference(self, reference: str) -> str:
+        parsed = urlsplit(reference)
+        if parsed.fragment and (
+            reference.split("#", 1)[0] == self.url.split("#", 1)[0]
+            or (
+                not parsed.scheme
+                and not parsed.netloc
+                and Path(unquote(parsed.path)).name == self.source.name
+            )
+        ):
+            return "#" + parsed.fragment
+        return reference
+
+    def _visual(self, tag: str, attrs: dict[str, str], markup: str = "") -> None:
+        if tag == "svg":
+            if "xmlns" not in attrs:
+                markup = markup.replace(
+                    "<svg", '<svg xmlns="http://www.w3.org/2000/svg"', 1
+                )
+            if "xlink:" in markup and "xmlns:xlink" not in attrs:
+                markup = markup.replace(
+                    "<svg", '<svg xmlns:xlink="http://www.w3.org/1999/xlink"', 1
+                )
+            markup = re.sub(
+                r"&([A-Za-z][A-Za-z0-9]+);",
+                lambda match: (
+                    match.group(0)
+                    if match[1] in ("amp", "lt", "gt", "quot", "apos")
+                    else "".join(
+                        f"&#{ord(char)};" for char in html.unescape(match.group(0))
+                    )
+                ),
+                markup,
+            )
+            styles = "".join(
+                re.findall(
+                    r"<style\b[^>]*>.*?</style>",
+                    self.source.read_text(),
+                    re.DOTALL | re.IGNORECASE,
+                )
+            )
+            if styles:
+                markup = re.sub(
+                    r"(<svg\b[^>]*>)", lambda match: match[0] + styles, markup, count=1
+                )
+            # wget rewrites SVG clip references as links to the saved HTML.
+            markup = re.sub(
+                r"url\(\s*(['\"]?)([^)'\"]+)\1\s*\)",
+                lambda match: (
+                    "url("
+                    + match[1]
+                    + self._svg_reference(match[2].strip())
+                    + match[1]
+                    + ")"
+                ),
+                markup,
+            )
+            markup = re.sub(
+                r"((?:xlink:)?href=)(['\"])(.*?)\2",
+                lambda match: (
+                    match[1] + match[2] + self._svg_reference(match[3]) + match[2]
+                ),
+                markup,
+            )
+            content = markup.encode("utf-8")
+        else:
+            reference = attrs.get("data" if tag == "object" else "src", "")
+            if not reference:
+                raise HtmlDerivationError(f"{tag} visual has no source")
+            content = self._resource(reference)
+        target = self._asset(content)
+        label = attrs.get("alt") or attrs.get("title") or "Figure"
+        label = re.sub(r"[\[\]\r\n]", " ", label)
+        self._protect(f"![{label}]({target})")
+        self.visuals += 1
+
+    def handle_starttag(
+        self, tag: str, attributes: list[tuple[str, str | None]]
+    ) -> None:
+        markup = self.get_starttag_text()
+        attrs = {name: value or "" for name, value in attributes}
+        if self.capture_tag:
+            self.capture.append(markup)
+            if self.capture_tag == "svg":
+                self.svg_tags.append(re.match(r"<\s*([^\s/>]+)", markup)[1])
+            if tag == self.capture_tag:
+                self.capture_depth += 1
+        elif tag in ("svg", "object") or (tag == "table" and self.protect_tables):
+            self.capture_tag = tag
+            self.capture_depth = 1
+            self.capture_attrs = attrs
+            self.capture = [markup]
+            if tag == "svg":
+                self.svg_tags = [re.match(r"<\s*([^\s/>]+)", markup)[1]]
+        elif tag in ("img", "embed"):
+            self._visual(tag, attrs)
+        elif tag in ("canvas", "iframe", "video", "audio"):
+            raise HtmlDerivationError(f"unsupported visual content: {tag}")
+        else:
+            self.output.append(markup)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if self.capture_tag:
+            self.capture.append(self.get_starttag_text())
+        elif tag in ("svg", "object", "img", "embed"):
+            self._visual(
+                tag,
+                {name: value or "" for name, value in attrs},
+                self.get_starttag_text(),
+            )
+        elif tag in ("canvas", "iframe", "video", "audio"):
+            raise HtmlDerivationError(f"unsupported visual content: {tag}")
+        else:
+            self.output.append(self.get_starttag_text())
+
+    def handle_endtag(self, tag: str) -> None:
+        if not self.capture_tag:
+            self.output.append(f"</{tag}>")
+            return
+        original_tag = self.svg_tags.pop() if self.capture_tag == "svg" else tag
+        self.capture.append(f"</{original_tag}>")
+        if tag != self.capture_tag:
+            return
+        self.capture_depth -= 1
+        if self.capture_depth:
+            return
+        markup = "".join(self.capture)
+        if tag != "table":
+            self._visual(tag, self.capture_attrs, markup)
+        elif any(
+            name.startswith("ltx_eq")
+            for name in self.capture_attrs.get("class", "").split()
+        ):
+            equation = _EquationTableParser()
+            equation.feed(markup)
+            equation.close()
+            self._protect(equation.result())
+            self.equation_tokens.update(equation.math_tokens)
+            self.equations += 1
+        else:
+            children = _RichContentParser(
+                self.source,
+                self.directory,
+                self.url,
+                allow_network=self.allow_network,
+                protect_tables=False,
+            )
+            children.prefix = f"{self.prefix}TABLE{len(self.replacements):08d}"
+            children.feed(markup)
+            children.close()
+            markup = children.result()
+            if re.search(r'\b(?:rowspan|colspan)\s*=\s*["\']?(?!1\b)\d+', markup):
+                replacement = markup
+                for token, image in children.replacements:
+                    label, target = re.fullmatch(
+                        r"!\[(.*)\]\((.*)\)", image.strip()
+                    ).groups()
+                    replacement = replacement.replace(
+                        token,
+                        f'<img alt="{html.escape(label, quote=True)}" src="{target}">',
+                    )
+            else:
+                replacement = _run_html2text(markup)
+                _verify_visible_blocks(markup, [], replacement, min_tokens=1)
+                for token, image in children.replacements:
+                    if replacement.count(token) != 1:
+                        raise HtmlDerivationError(
+                            "table visual placeholder was not preserved exactly once"
+                        )
+                    replacement = replacement.replace(token, image)
+            self._protect(replacement)
+            self.visuals += children.visuals
+            self.tables += 1
+        self.capture_tag = None
+        self.capture = []
+
+    def handle_data(self, data: str) -> None:
+        (self.capture if self.capture_tag else self.output).append(data)
+
+    def handle_entityref(self, name: str) -> None:
+        self.handle_data(f"&{name};")
+
+    def handle_charref(self, name: str) -> None:
+        self.handle_data(f"&#{name};")
+
+    def result(self) -> str:
+        if self.capture_tag:
+            raise HtmlDerivationError(f"unterminated visual/table: {self.capture_tag}")
+        return "".join(self.output)
+
+
 def _verify_visible_blocks(
-    processed: str, replacements: list[tuple[str, str, bool]], markdown: str
+    processed: str,
+    replacements: list[tuple[str, str, bool]],
+    markdown: str,
+    *,
+    min_tokens: int = 4,
 ) -> str:
     prose_source = processed
     prose_markdown = markdown
@@ -771,7 +1202,7 @@ def _verify_visible_blocks(
     parser = _ContentBlockParser()
     parser.feed(prose_source)
     parser.close()
-    blocks = [tokens for tokens in parser.blocks if len(tokens) >= 4]
+    blocks = [tokens for tokens in parser.blocks if len(tokens) >= min_tokens]
     if not blocks:
         fallback = _semantic_words("".join(parser.all_text))
         if fallback:
@@ -889,7 +1320,9 @@ def html_derivation_missing(directory: Path, sentinel: Sentinel) -> bool:
     )
 
 
-def derive_saved_html(directory: Path, url: str, stem: str) -> HtmlDerivation:
+def derive_saved_html(
+    directory: Path, url: str, stem: str, *, allow_network: bool = False
+) -> HtmlDerivation:
     source = _saved_html_path(directory, url, stem)
     if source is None:
         raise HtmlSourceNotFound("downloaded page has no unambiguous HTML entry point")
@@ -902,18 +1335,35 @@ def derive_saved_html(directory: Path, url: str, stem: str) -> HtmlDerivation:
         base_url=url,
         source_name=source.name,
     )
+    rich = _RichContentParser(source, directory, url, allow_network=allow_network)
+    rich.feed(processed)
+    rich.close()
+    processed = rich.result()
     markdown = _run_html2text(processed)
     if not markdown.strip():
         raise HtmlDerivationError("html2text produced empty markdown")
     # Audit the conversion output that becomes the saved artifact, not a
     # second conversion whose behavior can differ from the candidate's.
     fidelity = _verify_visible_blocks(processed, replacements, markdown)
+    for token, replacement in rich.replacements:
+        if markdown.count(token) != 1:
+            raise HtmlDerivationError(
+                "visual/table placeholder was not preserved exactly once"
+            )
+        markdown = markdown.replace(token, replacement)
+    fidelity += (
+        f" visuals={rich.visuals}/{rich.visuals} tables={rich.tables}/{rich.tables}"
+    )
+    fidelity += f" equations={rich.equations}/{rich.equations}"
     for placeholder, tex, block in replacements:
         if markdown.count(placeholder) != 1:
             raise HtmlDerivationError(
                 f"html2text did not preserve math placeholder {placeholder} exactly once"
             )
-        opening, closing = ("\\[", "\\]") if block else ("\\(", "\\)")
+        if placeholder in rich.equation_tokens:
+            opening, closing = "", ""
+        else:
+            opening, closing = ("\\[", "\\]") if block else ("\\(", "\\)")
         markdown = markdown.replace(placeholder, f"{opening}{tex}{closing}")
 
     target = source.with_suffix(".md")
@@ -1028,6 +1478,8 @@ def download(url: str, target: Path) -> bool:
     target.parent.mkdir(parents=True, exist_ok=True)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     temporary: Path | None = None
+    diagnostics: dict = {"source": url}
+    diagnostic_path = target.with_name(target.name + ".download.json")
     try:
         with (
             urllib.request.urlopen(request, timeout=300) as response,
@@ -1038,12 +1490,35 @@ def download(url: str, target: Path) -> bool:
             ) as output,
         ):
             temporary = Path(output.name)
+            diagnostics.update(
+                status=response.status,
+                content_type=response.headers.get("Content-Type"),
+            )
             shutil.copyfileobj(response, output)
+        with temporary.open("rb") as saved:
+            prefix = saved.read(512)
+        diagnostics["first_bytes_hex"] = prefix.hex()
+        if target.suffix.lower() == ".pdf" and not prefix.startswith(b"%PDF-"):
+            diagnostics["error"] = "downloaded response is not a PDF"
+            failed = target.with_name(target.name + ".failed-download")
+            temporary.replace(failed)
+            diagnostics["body"] = failed.name
+            return False
         temporary.replace(target)
         return True
-    except (urllib.error.URLError, OSError, ValueError):
+    except urllib.error.HTTPError as exc:
+        diagnostics.update(
+            error=str(exc),
+            status=exc.code,
+            content_type=exc.headers.get("Content-Type"),
+            first_bytes_hex=exc.read(512).hex(),
+        )
+        return False
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        diagnostics["error"] = str(exc)
         return False
     finally:
+        diagnostic_path.write_text(json.dumps(diagnostics, sort_keys=True) + "\n")
         if temporary is not None:
             temporary.unlink(missing_ok=True)
 
@@ -1238,7 +1713,9 @@ def fetch_paper(
 
     def derive(method: str, source: str) -> dict:
         try:
-            derivation = derive_saved_html(directory, source, paper.key)
+            derivation = derive_saved_html(
+                directory, source, paper.key, allow_network=True
+            )
         except (HtmlDerivationError, OSError, UnicodeError) as exc:
             return {
                 "key": paper.key,
@@ -1253,6 +1730,7 @@ def fetch_paper(
                 "key": paper.key,
                 "status": "failed",
                 "reason": "pdf download failed",
+                "diagnostics": str(pdf.with_name(pdf.name + ".download.json")),
             }
         if download_only:
             return {
@@ -1311,8 +1789,13 @@ _MARKDOWN_IMAGE = re.compile(r"!\[[^\]]*\]\(((?:\\.|[^)])+)\)")
 
 def _local_markdown_assets(markdown: Path, extract_root: Path) -> list[Path]:
     assets = []
-    for match in _MARKDOWN_IMAGE.finditer(markdown.read_text(errors="replace")):
-        target = match.group(1).strip()
+    text = markdown.read_text(errors="replace")
+    targets = [match.group(1) for match in _MARKDOWN_IMAGE.finditer(text)]
+    raw_images = _HtmlImageSources()
+    raw_images.feed(text)
+    targets.extend(raw_images.sources)
+    for target in targets:
+        target = target.strip()
         if target.startswith("<") and ">" in target:
             target = target[1 : target.index(">")]
         else:
@@ -1329,6 +1812,18 @@ def _local_markdown_assets(markdown: Path, extract_root: Path) -> list[Path]:
             )
         assets.append(candidate)
     return assets
+
+
+class _HtmlImageSources(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.sources: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "img":
+            self.sources.extend(
+                value for name, value in attrs if name == "src" and value
+            )
 
 
 def _git_repository(survey: Survey) -> Path | None:
@@ -1751,7 +2246,9 @@ def verb_fetch(args) -> int:
                         raise HtmlSourceNotFound(
                             "downloaded page has no unambiguous HTML entry point"
                         )
-                    derivation = derive_saved_html(directory, source, paper.key)
+                    derivation = derive_saved_html(
+                        directory, source, paper.key, allow_network=not args.derive_only
+                    )
                 except HtmlSourceNotFound as exc:
                     if args.derive_only:
                         results.append(

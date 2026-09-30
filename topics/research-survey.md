@@ -110,6 +110,28 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
   case in its output rather than passing over it. `--no-svg-figures` opts out;
   a host that cannot run the pass (no `uv`) reports `figures: raster only
   (…)` on the fetch row, never a silent no-op.
+- **HTML visuals are linked local assets.** The HTML derivation preserves
+  inline SVG and image resources from `img`, `object`, and `embed`; vector
+  sources stay SVG and bitmaps retain their original format. Captions remain
+  in the Markdown. Standalone SVG restores XHTML/MathML namespaces for
+  `foreignObject` labels and preserves SVG attribute/tag case. Figures inside
+  retained HTML tables use local `img` links,
+  which participate in the same staging and audit as Markdown image links.
+  Simple tables stay Markdown, spanning tables retain HTML structure, and
+  LaTeXML equation arrays become aligned display math. Figure-internal labels
+  are checked through asset preservation rather than scored as missing prose.
+  Every protected visual, table, and equation array must survive exactly once;
+  `.fetched` records those counts alongside prose and MathML fidelity.
+  Missing assets or unsupported visual content reject derivation. Ordinary
+  fetch may retrieve missing images; `--derive-only` stays offline and requires
+  saved requisites. Rebuild older derivation versions with
+  `fetch --derive-only` or `fetch --revalidate`.
+- **Failed PDF downloads remain diagnosable.** Beside the PDF cache,
+  `<name>.download.json` records the response status, content type, initial
+  bytes, and any error. A successful HTTP response without a PDF signature
+  is rejected and retained as `<name>.failed-download`; it cannot overwrite
+  a previous valid PDF or reach marker as if it were one. These diagnostics
+  remain ignored source cache.
 - One field map serves both the survey paper/presentation use and the
   prior-art-reconnaissance, instruction, and personal-mastery-reference uses;
   these are views or sparse overlays on the map, not separate factual
@@ -134,12 +156,21 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
   words falls below 50%. It requires every MathML expression exactly once as
   TeX, and records hashes plus the result, including flagged blocks, in
   `.fetched`.
+- **Protect rich content before the pinned prose converter** (vs. replacing
+  it with pandoc or reconstructing every HTML paper from PDF): on the
+  2026-09-30 paper fixture, pandoc retained SVG as a data URI and kept spanning
+  tables, but still dropped object figures. Explicit asset extraction and
+  structure protection preserve all these elements without another converter
+  dependency. Cached MMS and TDT papers retain respectively 18 and 11 visual
+  elements, 15 and 10 tables, and all 186 and 406 MathML expressions; TDT's 56
+  equation arrays become display math. This verifies preservation on those
+  papers, not universal support for browser-generated graphics. Unsupported
+  canvas, iframe, audio/video, or SVG external dependencies fail explicitly.
 - **Tolerate a few short flagged blocks** (vs. requiring every block to
   pass): a single caption, title block, page control or notation-heavy
   sentence converting below 90% rejected whole papers whose body was intact;
-  ten sources in the 2026-09-30 speech surveys failed this way, recorded in
-  [the converter gap](../gaps/paper-html-markdown-conversion.md). The total
-  and long-block limits still reject a lost paragraph.
+  ten sources in the 2026-09-30 speech surveys failed this way. The total and
+  long-block limits still reject a lost paragraph.
 - **Separate committed authority from source cache** (vs. treating the whole
   fetched page tree as one artifact): Markdown and its referenced assets are
   reviewed and distributed; raw HTML/PDF can remain locally for comparison but

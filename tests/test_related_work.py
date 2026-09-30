@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.machinery
 import importlib.util
+import io
 import json
 import os
 import subprocess
@@ -1019,6 +1020,182 @@ def test_completion_offers_verbs():
     _assert(proc.returncode == 0, proc.stderr)
     offered = {json.loads(line)["completion"] for line in proc.stdout.splitlines()}
     _assert({"audit", "fetch", "init", "list", "status"} <= offered, offered)
+
+
+def test_paper_html_preserves_visuals_tables_and_equations():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        (directory / "chart.svg").write_text(
+            '<svg xmlns="http://www.w3.org/2000/svg"><text>chart axes</text></svg>'
+        )
+        (directory / "photo.png").write_bytes(
+            bytes.fromhex("89504e470d0a1a0a") + b"native raster fixture"
+        )
+        (directory / "paper.html").write_text(
+            "<article><p>The scientific paper retains every original visual.</p>"
+            '<figure><svg viewBox="0 0 100 100"><defs><clipPath id="clip">'
+            '<path d="M0 0L1 1"/></clipPath></defs><text>axis labels</text>'
+            '<foreignObject width="100" height="20"><span>label '
+            "<math><mn>12</mn></math></span></foreignObject>"
+            '<path clip-path="url(paper.html#clip)" d="M0 0L100 100"/></svg><figcaption>Figure one inline chart'
+            '</figcaption></figure><object data="chart.svg" type="image/svg+xml">'
+            'fallback</object><embed src="chart.svg" type="image/svg+xml">'
+            '<img src="photo.png" alt="native photograph">'
+            '<table><tr><th colspan="2">Combined result</th></tr>'
+            "<tr><td>A</td><td>B</td></tr></table>"
+            "<table><tr><th>Model</th><th>Score</th></tr>"
+            "<tr><td>Small</td><td>42</td></tr></table>"
+            '<table class="ltx_equation ltx_eqn_table"><tr><td>'
+            '<math alttext="x=1" display="block"><mi>x</mi></math>'
+            "</td><td>(1)</td></tr></table></article>"
+        )
+        result = rw.derive_saved_html(directory, "https://example.test/paper", "key")
+        markdown = (directory / result.markdown).read_text()
+        assets = rw._local_markdown_assets(directory / result.markdown, directory)
+        _assert(len(assets) == 4, markdown)
+        _assert(all(asset.is_file() for asset in assets), assets)
+        _assert(
+            any("axis labels" in p.read_text() for p in assets if p.suffix == ".svg")
+        )
+        _assert(
+            any(
+                p.read_bytes() == (directory / "photo.png").read_bytes() for p in assets
+            )
+        )
+        _assert("<table" in markdown and 'colspan="2"' in markdown, markdown)
+        _assert("Model| Score" in markdown, markdown)
+        _assert(r"\[\begin{aligned}" in markdown and "x=1" in markdown, markdown)
+        _assert("| \\[x=1" not in markdown, markdown)
+        _assert("visuals=4/4" in result.fidelity, result)
+        _assert("tables=2/2" in result.fidelity, result)
+        inline_svg = next(
+            p for p in assets if p.suffix == ".svg" and "axis labels" in p.read_text()
+        )
+        tree = rw.ET.fromstring(inline_svg.read_bytes())
+        _assert(tree.find(".//{http://www.w3.org/1999/xhtml}span") is not None)
+        _assert(tree.find(".//{http://www.w3.org/1998/Math/MathML}math") is not None)
+
+
+def test_missing_visual_rejects_offline_derivation():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        (directory / "paper.html").write_text(
+            "<p>Every original figure must survive conversion.</p>"
+            '<img src="https://example.invalid/missing.svg">'
+        )
+        try:
+            rw.derive_saved_html(directory, "https://example.test/paper", "key")
+        except rw.HtmlDerivationError as exc:
+            _assert("visual asset missing" in str(exc), exc)
+        else:
+            _assert(False, "missing visual must fail before accepting prose")
+        _assert(not (directory / "paper.md").exists())
+
+
+def test_dropped_visual_placeholder_rejects_derivation():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        (directory / "paper.html").write_text(
+            "<p>The paper keeps all scientific content intact.</p>"
+            "<svg><text>visual axes</text></svg>"
+        )
+        original = rw.subprocess.run
+        rw.subprocess.run = lambda command, **kwargs: subprocess.CompletedProcess(
+            command,
+            0,
+            stdout="The paper keeps all scientific content intact.\n",
+            stderr="",
+        )
+        try:
+            try:
+                rw.derive_saved_html(directory, "https://example.test/paper", "key")
+            except rw.HtmlDerivationError as exc:
+                _assert("visual/table placeholder" in str(exc), exc)
+            else:
+                _assert(False, "intact prose cannot excuse a missing figure")
+        finally:
+            rw.subprocess.run = original
+        _assert(not (directory / "paper.md").exists())
+
+
+def test_data_uri_visual_is_staged_as_native_raster():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        (directory / "paper.html").write_text(
+            "<p>The paper embeds its original bitmap directly.</p>"
+            '<img src="data:image/png;base64,iVBORw0KGgo=">'
+        )
+        result = rw.derive_saved_html(directory, "https://example.test/paper", "key")
+        assets = rw._local_markdown_assets(directory / result.markdown, directory)
+        _assert(len(assets) == 1 and assets[0].suffix == ".png", assets)
+        _assert(assets[0].read_bytes() == bytes.fromhex("89504e470d0a1a0a"))
+
+
+def test_pdf_download_records_an_html_error_response():
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / "source.pdf"
+        target.write_bytes(b"%PDF-previous valid download")
+        response = io.BytesIO(b"<html>rate limited</html>")
+        response.status = 200
+        response.headers = {"Content-Type": "text/html"}
+        original = rw.urllib.request.urlopen
+        rw.urllib.request.urlopen = lambda *_args, **_kwargs: response
+        try:
+            _assert(not rw.download("https://example.test/paper.pdf", target))
+        finally:
+            rw.urllib.request.urlopen = original
+        diagnostic = json.loads(
+            target.with_name("source.pdf.download.json").read_text()
+        )
+        _assert(diagnostic["content_type"] == "text/html", diagnostic)
+        _assert(bytes.fromhex(diagnostic["first_bytes_hex"]).startswith(b"<html>"))
+        _assert(target.read_bytes() == b"%PDF-previous valid download")
+        _assert(
+            target.with_name(diagnostic["body"]).read_bytes()
+            == b"<html>rate limited</html>"
+        )
+
+
+def test_derive_only_stages_visuals_in_raw_html_tables():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        _REAL_RUN(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        related = root / "related-work"
+        (related / ".gitignore").write_text(
+            "extract/**\n!extract/**/\n!extract/**/*.md\n!extract/**/.fetched\n"
+        )
+        directory = related / "extract" / "beta2021-two"
+        directory.mkdir()
+        (directory / "photo.png").write_bytes(
+            bytes.fromhex("89504e470d0a1a0a") + b"fixture"
+        )
+        (directory / "beta2021-two.html").write_text(
+            "<article><p>A complete paper with an illustrated table.</p>"
+            '<table><tr><td colspan="2"><img src="photo.png" alt="experiment">'
+            "</td></tr></table></article>"
+        )
+        rw.write_sentinel(
+            directory / ".fetched",
+            rw.Sentinel("url-html", "https://example.invalid/two"),
+        )
+        result = run(root, "--dir", str(root), "fetch", "--derive-only", "beta2021-two")
+        _assert(result.returncode == 0, result.stderr + result.stdout)
+        rows = jsonl(result)
+        _assert(rows[0]["status"] == "derived", rows)
+        assets = rw._local_markdown_assets(
+            directory / "beta2021-two.md", related / "extract"
+        )
+        _assert(len(assets) == 1 and assets[0].is_file(), assets)
+        tracked = _REAL_RUN(
+            ["git", "-C", str(root), "ls-files"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        _assert(assets[0].relative_to(root).as_posix() in tracked, tracked)
+        _assert(
+            "photo.png" not in tracked and "beta2021-two.html" not in tracked, tracked
+        )
 
 
 def _collect_tests():
