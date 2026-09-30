@@ -1,3 +1,5 @@
+**Source:** *Very Deep Convolutional Networks for Text Classification* — [PDF](https://aclanthology.org/E17-1104.pdf)
+
 # Very Deep Convolutional Networks for Text Classification
 
 Alexis Conneau Facebook AI Research aconneau@fb.com

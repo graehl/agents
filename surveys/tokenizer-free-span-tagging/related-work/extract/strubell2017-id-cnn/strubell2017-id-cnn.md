@@ -1,3 +1,5 @@
+**Source:** *Fast and Accurate Entity Recognition with Iterated Dilated Convolutions* — [PDF](https://aclanthology.org/D17-1283.pdf)
+
 # Fast and Accurate Entity Recognition with Iterated Dilated Convolutions
 
 Emma Strubell Patrick Verga David Belanger Andrew McCallum

@@ -1,3 +1,5 @@
+**Source:** *Stop Wasting My Time! Saving Days of ImageNet and BERT Training with Latest Weight Averaging* — [PDF](https://arxiv.org/pdf/2209.14981) · [arXiv](https://arxiv.org/abs/2209.14981)
+
 # Stop Wasting My Time! Saving Days of ImageNet and BERT Training with Latest Weight Averaging
 
 ## Jean Kaddour

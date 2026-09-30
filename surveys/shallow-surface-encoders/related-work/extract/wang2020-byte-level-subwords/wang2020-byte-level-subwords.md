@@ -1,3 +1,5 @@
+**Source:** *Neural Machine Translation with Byte-Level Subwords* — [PDF](https://arxiv.org/pdf/1909.03341) · [arXiv](https://arxiv.org/abs/1909.03341)
+
 # **Neural Machine Translation with Byte-Level Subwords**
 
 Changhan Wang<sup>†</sup>, Kyunghyun Cho<sup>†‡\*</sup> and Jiatao Gu<sup>†</sup>

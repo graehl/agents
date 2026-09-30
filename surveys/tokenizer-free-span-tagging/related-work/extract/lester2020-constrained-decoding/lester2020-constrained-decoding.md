@@ -1,3 +1,5 @@
+**Source:** *Constrained Decoding for Computationally Efficient Named Entity Recognition Taggers* — [PDF](https://aclanthology.org/2020.findings-emnlp.166.pdf)
+
 # Constrained Decoding for Computationally Efficient Named Entity Recognition Taggers
 
 ## Brian Lester, Daniel Pressel, Amy Hemmeter, Sagnik Ray Choudhury, and Srinivas Bangalore

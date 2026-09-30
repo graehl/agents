@@ -1,3 +1,5 @@
+**Source:** *Designing and Interpreting Probes with Control Tasks* — [PDF](https://aclanthology.org/D19-1275.pdf)
+
 # Designing and Interpreting Probes with Control Tasks
 
 ## John Hewitt

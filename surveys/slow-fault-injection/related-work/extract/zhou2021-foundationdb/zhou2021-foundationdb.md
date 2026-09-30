@@ -1,3 +1,5 @@
+**Source:** *FoundationDB: A Distributed Unbundled Transactional Key Value Store* — [PDF](https://www.foundationdb.org/files/fdb-paper.pdf)
+
 # FoundationDB: A Distributed Unbundled Transactional Key Value Store
 
 Jingyu Zhou Meng Xu Alexander Shraer Bala Namasivayam Apple Inc.

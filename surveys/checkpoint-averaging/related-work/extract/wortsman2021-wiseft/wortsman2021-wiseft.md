@@ -1,3 +1,5 @@
+**Source:** *Robust fine-tuning of zero-shot models* — [PDF](https://arxiv.org/pdf/2109.01903) · [arXiv](https://arxiv.org/abs/2109.01903)
+
 # Robust fine-tuning of zero-shot models
 
 Mitchell Wortsman∗† Gabriel Ilharco∗† Jong Wook Kim§ Mike Li‡

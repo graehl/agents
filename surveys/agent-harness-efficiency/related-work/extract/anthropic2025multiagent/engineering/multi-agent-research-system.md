@@ -1,3 +1,5 @@
+**Source:** *How we built our multi-agent research system* — [original page](https://www.anthropic.com/engineering/multi-agent-research-system)
+
 [Engineering at Anthropic](https://www.anthropic.com/engineering)
 
 

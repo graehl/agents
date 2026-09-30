@@ -1,3 +1,5 @@
+**Source:** *Event Race Detection for Node.js Using Delay Injections* — [PDF](https://users-cs.au.dk/~amoeller/papers/nacd/paper.pdf)
+
 # **Event Race Detection for Node.js Using Delay Injections**
 
 **Andre Takeshi Endo** [#](mailto:andreendo@ufscar.br)

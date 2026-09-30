@@ -1,3 +1,5 @@
+**Source:** *Speed up Training with Variable Length Inputs by Efficient Batching Strategies* — [PDF](https://www.isca-archive.org/interspeech_2021/ge21_interspeech.pdf)
+
 ![](_page_0_Picture_2.jpeg)
 
 # Speed up training with variable length inputs by efficient batching strategies

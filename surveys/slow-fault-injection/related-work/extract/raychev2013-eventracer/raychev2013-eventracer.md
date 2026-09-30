@@ -1,3 +1,5 @@
+**Source:** *Effective Race Detection for Event-Driven Programs* — [PDF](https://files.sri.inf.ethz.ch/website/papers/oopsla13-web.pdf)
+
 # **Effective Race Detection for Event-Driven Programs**
 
 Veselin Raychev

@@ -1,3 +1,5 @@
+**Source:** *Trainer features* — [original page](https://huggingface.co/docs/transformers/main/en/trainer_recipes)
+
 Transformers documentation
 
 Trainer features

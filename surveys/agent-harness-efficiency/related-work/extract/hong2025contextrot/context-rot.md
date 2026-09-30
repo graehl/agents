@@ -1,3 +1,5 @@
+**Source:** *Context Rot: How Increasing Input Tokens Impacts LLM Performance* — [original page](https://research.trychroma.com/context-rot)
+
 [ 
 
 ![Chroma - the open-source search infrastructure for AI](figures/6da06571ed993d1f97b1c612d4e08d2bc9b58f6902e820206242aed68f393119.svg)

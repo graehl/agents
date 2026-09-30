@@ -1,3 +1,5 @@
+**Source:** *Towards Monosemanticity: Decomposing Language Models With Dictionary Learning* — [original page](https://transformer-circuits.pub/2023/monosemantic-features/index.html)
+
 [ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
 
 # Towards Monosemanticity: Decomposing Language Models With Dictionary Learning

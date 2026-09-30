@@ -1,3 +1,5 @@
+**Source:** *Information-Theoretic Probing with Minimum Description Length* — [PDF](https://aclanthology.org/2020.emnlp-main.14.pdf)
+
 # Information-Theoretic Probing with Minimum Description Length
 
 Elena Voita<sup>1</sup>,<sup>2</sup>

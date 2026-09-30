@@ -1,3 +1,5 @@
+**Source:** *Efficient Estimation of Word Representations in Vector Space (word2vec; analogy arithmetic)* — [original page](1301.3781)
+
 # Efficient Estimation of Word Representations in Vector Space
 
 #### Tomas Mikolov

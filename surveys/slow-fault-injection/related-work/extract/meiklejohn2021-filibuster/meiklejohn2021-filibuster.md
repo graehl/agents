@@ -1,3 +1,5 @@
+**Source:** *Service-Level Fault Injection Testing* — [PDF](https://christophermeiklejohn.com/publications/filibuster-socc-2021.pdf)
+
 # Service-Level Fault Injection Testing
 
 Christopher S. Meiklejohn Carnegie Mellon University Pittsburgh, PA, United States cmeiklej@cs.cmu.edu

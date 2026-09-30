@@ -1,3 +1,5 @@
+**Source:** *CharNER: Character-Level Named Entity Recognition* — [PDF](https://aclanthology.org/C16-1087.pdf)
+
 # CharNER: Character-Level Named Entity Recognition
 
 Onur Kuru

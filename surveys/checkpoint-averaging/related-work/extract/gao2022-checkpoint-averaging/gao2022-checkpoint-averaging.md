@@ -1,3 +1,5 @@
+**Source:** *Revisiting Checkpoint Averaging for Neural Machine Translation* — [PDF](https://aclanthology.org/2022.findings-aacl.18.pdf)
+
 # Revisiting Checkpoint Averaging for Neural Machine Translation
 
 Yingbo Gao Christian Herold Zijian Yang Hermann Ney

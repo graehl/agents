@@ -1,3 +1,5 @@
+**Source:** *Understanding intermediate layers using linear classifier probes* — [original page](1610.01644)
+
 # Understanding intermediate layers using linear classifier probes
 
 ## Guillaume Alain

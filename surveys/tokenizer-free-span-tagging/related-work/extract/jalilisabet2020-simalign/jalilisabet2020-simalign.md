@@ -1,3 +1,5 @@
+**Source:** *SimAlign: High Quality Word Alignments Without Parallel Training Data Using Static and Contextualized Embeddings* — [PDF](https://aclanthology.org/2020.findings-emnlp.147.pdf)
+
 ## <span id="page-0-1"></span>SimAlign: High Quality Word Alignments Without Parallel Training Data Using Static and Contextualized Embeddings
 
 Masoud Jalili Sabet<sup>∗</sup><sup>1</sup> , Philipp Dufter<sup>∗</sup><sup>1</sup> , Franc¸ois Yvon<sup>2</sup> , Hinrich Schutze ¨ 1 <sup>1</sup> Center for Information and Language Processing (CIS), LMU Munich, Germany <sup>2</sup> Universite Paris-Saclay, CNRS, LIMSI, France ´ {masoud,philipp}@cis.lmu.de,francois.yvon@limsi.fr

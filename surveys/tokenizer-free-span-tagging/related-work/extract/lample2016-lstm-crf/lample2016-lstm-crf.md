@@ -1,3 +1,5 @@
+**Source:** *Neural Architectures for Named Entity Recognition* — [PDF](https://aclanthology.org/N16-1030.pdf)
+
 # Neural Architectures for Named Entity Recognition
 
 Guillaume Lample♠ Miguel Ballesteros♣♠ Sandeep Subramanian♠ Kazuya Kawakami♠ Chris Dyer♠ ♠Carnegie Mellon University ♣NLP Group, Pompeu Fabra University {glample,sandeeps,kkawakam,cdyer}@cs.cmu.edu, miguel.ballesteros@upf.edu

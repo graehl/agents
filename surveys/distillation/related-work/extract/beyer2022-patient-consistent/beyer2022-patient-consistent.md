@@ -1,3 +1,5 @@
+**Source:** *Knowledge Distillation: A Good Teacher Is Patient and Consistent* — [PDF](https://arxiv.org/pdf/2106.05237) · [arXiv](https://arxiv.org/abs/2106.05237)
+
 # Knowledge distillation: A good teacher is patient and consistent
 
 <span id="page-0-1"></span>Lucas Beyer\* Xiaohua Zhai\* Amélie Royer\*† Larisa Markeeva\*‡ Rohan Anil Alexander Kolesnikov\* Google Research, Brain Team

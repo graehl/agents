@@ -1,3 +1,5 @@
+**Source:** *Emerging Cross-lingual Structure in Pretrained Language Models* — [PDF](https://aclanthology.org/2020.acl-main.536.pdf)
+
 # Emerging Cross-lingual Structure in Pretrained Language Models
 
 Alexis Conneau♥∗ Shijie Wu♠∗ Haoran Li♥ Luke Zettlemoyer♥ Veselin Stoyanov♥ ♠Department of Computer Science, Johns Hopkins University ♥Facebook AI

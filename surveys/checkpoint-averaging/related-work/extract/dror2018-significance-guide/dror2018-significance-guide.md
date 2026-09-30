@@ -1,3 +1,5 @@
+**Source:** *The Hitchhiker's Guide to Testing Statistical Significance in Natural Language Processing* — [PDF](https://aclanthology.org/P18-1128.pdf)
+
 # The Hitchhiker's Guide to Testing Statistical Significance in Natural Language Processing
 
 Rotem Dror Gili Baumer Segev Shlomov Roi Reichart

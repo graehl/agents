@@ -1,3 +1,5 @@
+**Source:** *Circuit Tracing: Revealing Computational Graphs in Language Models* — [original page](https://transformer-circuits.pub/2025/attribution-graphs/methods.html)
+
 [ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
 
 # Circuit Tracing: Revealing Computational Graphs in Language Models

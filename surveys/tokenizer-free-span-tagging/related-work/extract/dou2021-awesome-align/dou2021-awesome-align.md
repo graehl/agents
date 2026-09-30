@@ -1,3 +1,5 @@
+**Source:** *Word Alignment by Fine-tuning Embeddings on Parallel Corpora* — [PDF](https://aclanthology.org/2021.eacl-main.181.pdf)
+
 # Word Alignment by Fine-tuning Embeddings on Parallel Corpora
 
 ## Zi-Yi Dou, Graham Neubig

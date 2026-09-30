@@ -1,3 +1,5 @@
+**Source:** *Understanding and Detecting Fail-Slow Hardware Failure Bugs in Cloud Systems* — [PDF](https://www.usenix.org/system/files/atc25-dong.pdf)
+
 ![](_page_0_Picture_0.svg)
 
 # **Understanding and Detecting Fail-Slow Hardware Failure Bugs in Cloud Systems**

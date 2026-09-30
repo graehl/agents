@@ -1,3 +1,5 @@
+**Source:** *End-to-end Sequence Labeling via Bi-directional LSTM-CNNs-CRF* — [PDF](https://aclanthology.org/P16-1101.pdf)
+
 # End-to-end Sequence Labeling via Bi-directional LSTM-CNNs-CRF
 
 ## Xuezhe Ma and Eduard Hovy

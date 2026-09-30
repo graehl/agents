@@ -1,3 +1,5 @@
+**Source:** *GLiNER: Generalist Model for Named Entity Recognition using Bidirectional Transformer* — [PDF](https://aclanthology.org/2024.naacl-long.300.pdf)
+
 # GLiNER: Generalist Model for Named Entity Recognition using Bidirectional Transformer
 
 Urchade Zaratiana<sup>1,2</sup>, Nadi Tomeh<sup>2</sup>, Pierre Holat<sup>1,2</sup>, Thierry Charnois<sup>2</sup>

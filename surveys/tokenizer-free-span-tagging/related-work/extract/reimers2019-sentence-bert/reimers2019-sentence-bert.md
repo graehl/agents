@@ -1,3 +1,5 @@
+**Source:** *Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks* — [PDF](https://aclanthology.org/D19-1410.pdf)
+
 # Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks
 
 ## Nils Reimers and Iryna Gurevych

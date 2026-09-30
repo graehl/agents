@@ -1,3 +1,5 @@
+**Source:** *Boosting Named Entity Recognition with Neural Character Embeddings* — [PDF](https://aclanthology.org/W15-3904.pdf)
+
 # Boosting Named Entity Recognition with Neural Character Embeddings
 
 ## C´ıcero dos Santos

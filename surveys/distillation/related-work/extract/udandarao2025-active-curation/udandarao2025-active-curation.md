@@ -1,3 +1,5 @@
+**Source:** *Active Data Curation Effectively Distills Large-Scale Multimodal Models* — [PDF](https://arxiv.org/pdf/2411.18674) · [arXiv](https://arxiv.org/abs/2411.18674)
+
 # <span id="page-0-1"></span>Active Data Curation Effectively Distills Large-Scale Multimodal Models
 
 Vishaal Udandarao\* <sup>3</sup>,4‡ Nikhil Parthasarathy\*<sup>2</sup> Muhammad Ferjad Naeem<sup>1</sup> Talfan Evans<sup>2</sup> Samuel Albanie<sup>2</sup> Federico Tombari<sup>1</sup> Yongqin Xian<sup>1</sup>† Alessio Tonioni<sup>1</sup>† Olivier J. Henaff ´ 2† <sup>1</sup>Google <sup>2</sup>Google DeepMind <sup>3</sup>Tubingen AI Center, University of T ¨ ubingen ¨ <sup>4</sup>University of Cambridge

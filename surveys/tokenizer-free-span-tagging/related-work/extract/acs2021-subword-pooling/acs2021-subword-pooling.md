@@ -1,3 +1,5 @@
+**Source:** *Subword Pooling Makes a Difference* — [PDF](https://aclanthology.org/2021.eacl-main.194.pdf)
+
 # Subword Pooling Makes a Difference
 
 # Judit Acs ´ <sup>1</sup>,<sup>3</sup>
