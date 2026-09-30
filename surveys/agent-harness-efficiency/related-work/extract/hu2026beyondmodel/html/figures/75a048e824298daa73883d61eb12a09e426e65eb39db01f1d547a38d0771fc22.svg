@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="S5.SS2.SSS1.p4.pic1" class="ltx_picture" height="116.76" overflow="visible" version="1.1" viewBox="0 0 477.38 116.76" width="477.38"><style>
+  /* Banner pre-dismissal (set above before paint -> no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</style><g style="--ltx-stroke-color:#000000;--ltx-fill-color:#000000;" fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,116.76) matrix(1 0 0 -1 0 0)"><g style="--ltx-fill-color:#404040;" fill="#404040" fill-opacity="1.0"><path style="stroke:none" d="M 0 3.94 L 0 112.83 C 0 115 1.76 116.76 3.94 116.76 L 473.44 116.76 C 475.61 116.76 477.38 115 477.38 112.83 L 477.38 3.94 C 477.38 1.76 475.61 0 473.44 0 L 3.94 0 C 1.76 0 0 1.76 0 3.94 Z"></path></g><g style="--ltx-fill-color:#F2F2F2;" fill="#F2F2F2" fill-opacity="1.0"><path style="stroke:none" d="M 0 3.94 L 0 112.83 C 0 115 1.76 116.76 3.94 116.76 L 473.44 116.76 C 475.61 116.76 477.38 115 477.38 112.83 L 477.38 3.94 C 477.38 1.76 475.61 0 473.44 0 L 3.94 0 C 1.76 0 0 1.76 0 3.94 Z"></path></g><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 5.32 73.05)"><foreignObject style="--ltx-fo-width:33.63em;--ltx-fo-height:2.88em;--ltx-fo-depth:4.99em;font-size:10pt;" height="108.89" overflow="visible" transform="matrix(1 0 0 -1 0 39.78)" width="465.34"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span id="S5.SS2.SSS1.p4.pic1.1" class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:33.63em;">
+<span id="S5.SS2.SSS1.p4.pic1.1.1" class="ltx_p"><span id="S5.SS2.SSS1.p4.pic1.1.1.1" class="ltx_text ltx_font_bold" style="--ltx-fg-color:#000000;">Answer to RQ2.1:<span id="S5.SS2.SSS1.p4.pic1.1.1.1.1" class="ltx_text ltx_font_medium">
+Individual harness components have heterogeneous effects. Tool registry and task-specific subagents provide the most stable and substantial gains, planning and lazy skills offer smaller or model-dependent improvements, while context compression and general subagents can hurt performance on repository-generation tasks.</span></span></span>
+</span></span></span></foreignObject></g></g></svg>

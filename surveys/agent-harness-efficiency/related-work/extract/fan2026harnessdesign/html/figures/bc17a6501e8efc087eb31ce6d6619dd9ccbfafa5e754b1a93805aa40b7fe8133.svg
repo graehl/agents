@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="S7.F19.pic1" class="ltx_picture ltx_centering" height="254.83" overflow="visible" version="1.1" viewBox="0 0 653.15 254.83" width="653.15"><style>
+  /* Banner pre-dismissal (set above before paint -> no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</style><g style="--ltx-stroke-color:#000000;--ltx-fill-color:#000000;" fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,254.83) matrix(1 0 0 -1 0 0)"><g style="--ltx-fill-color:#5581B0;" fill="#5581B0" fill-opacity="1.0"><path style="stroke:none" d="M 0 5.91 L 0 248.93 C 0 252.19 2.64 254.83 5.91 254.83 L 647.24 254.83 C 650.51 254.83 653.15 252.19 653.15 248.93 L 653.15 5.91 C 653.15 2.64 650.51 0 647.24 0 L 5.91 0 C 2.64 0 0 2.64 0 5.91 Z"></path></g><g style="--ltx-fill-color:#F5F5F5;" fill="#F5F5F5" fill-opacity="1.0"><path style="stroke:none" d="M 1.97 5.91 L 1.97 248.93 C 1.97 251.1 3.73 252.86 5.91 252.86 L 647.24 252.86 C 649.42 252.86 651.18 251.1 651.18 248.93 L 651.18 5.91 C 651.18 3.73 649.42 1.97 647.24 1.97 L 5.91 1.97 C 3.73 1.97 1.97 3.73 1.97 5.91 Z"></path></g><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 16.55)"><foreignObject style="--ltx-fo-width:46.64em;--ltx-fo-height:17.54em;--ltx-fo-depth:0.22em;font-size:9.25pt;" height="227.28" overflow="visible" transform="matrix(1 0 0 -1 0 224.51)" width="596.96"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span id="S7.F19.pic1.1" class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:46.64em;">
+<span id="S7.F19.pic1.1.1" class="ltx_p"><span id="S7.F19.pic1.1.1.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.1.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:440.7pt;">
+<span id="S7.F19.pic1.p1" class="ltx_para ltx_noindent">
+<span id="S7.F19.pic1.p1.1" class="ltx_p">### Stub left in place of an elided tool observation (M1 with recall, i.e. T2 and T4)</span>
+</span></span></span></span>
+<span id="S7.F19.pic1.1.2" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.2.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.2.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:440.7pt;"></span></span></span>
+<span id="S7.F19.pic1.1.3" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.3.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.3.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S7.F19.pic1.1.3.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S7.F19.pic1.1.3.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:440.7pt;">
+<span id="S7.F19.pic1.p3" class="ltx_para ltx_noindent">
+<span id="S7.F19.pic1.p3.1" class="ltx_p">[tool output elided: {N_LINES} lines / {N_CHARS} chars. Use recall_event({EVENT_ID}) for the full output, or re-read/re-run.]</span>
+</span></span></span></span>
+<span id="S7.F19.pic1.1.4" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.4.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.4.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:440.7pt;"></span></span></span>
+<span id="S7.F19.pic1.1.5" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.5.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.5.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:440.7pt;">
+<span id="S7.F19.pic1.p5" class="ltx_para ltx_noindent">
+<span id="S7.F19.pic1.p5.1" class="ltx_p">### Stub left in place of an elided tool observation (M1 without recall, i.e. T1)</span>
+</span></span></span></span>
+<span id="S7.F19.pic1.1.6" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.6.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.6.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:440.7pt;"></span></span></span>
+<span id="S7.F19.pic1.1.7" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.7.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.7.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:440.7pt;">
+<span id="S7.F19.pic1.p7" class="ltx_para ltx_noindent">
+<span id="S7.F19.pic1.p7.1" class="ltx_p">[tool output elided: {N_LINES} lines / {N_CHARS} chars. Re-read or re-run to get it again.]</span>
+</span></span></span></span>
+<span id="S7.F19.pic1.1.8" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.8.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.8.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:440.7pt;"></span></span></span>
+<span id="S7.F19.pic1.1.9" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.9.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.9.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:440.7pt;">
+<span id="S7.F19.pic1.p9" class="ltx_para ltx_noindent">
+<span id="S7.F19.pic1.p9.1" class="ltx_p">### Wrapper around the running summary (M3, i.e. T3 and T4)</span>
+</span></span></span></span>
+<span id="S7.F19.pic1.1.10" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.10.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.10.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:440.7pt;"></span></span></span>
+<span id="S7.F19.pic1.1.11" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.11.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.11.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:440.7pt;">
+<span id="S7.F19.pic1.p11" class="ltx_para ltx_noindent">
+<span id="S7.F19.pic1.p11.1" class="ltx_p">&lt;context-summary&gt;</span>
+</span></span></span></span>
+<span id="S7.F19.pic1.1.12" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.12.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.12.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:440.7pt;">
+<span id="S7.F19.pic1.p12" class="ltx_para ltx_noindent">
+<span id="S7.F19.pic1.p12.1" class="ltx_p">{SUMMARY}</span>
+</span></span></span></span>
+<span id="S7.F19.pic1.1.13" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.13.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.13.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S7.F19.pic1.1.13.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S7.F19.pic1.1.13.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:440.7pt;">
+<span id="S7.F19.pic1.p13" class="ltx_para ltx_noindent">
+<span id="S7.F19.pic1.p13.1" class="ltx_p">(Older events were summarized. Their raw content is recallable via recall_event up to event {EVENT_ID}.)</span>
+</span></span></span></span>
+<span id="S7.F19.pic1.1.14" class="ltx_p" style="width:440.7pt;"><span id="S7.F19.pic1.1.14.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:90%;width:440.7pt;--ltx-fg-color:#000000;"><span id="S7.F19.pic1.1.14.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:440.7pt;">
+<span id="S7.F19.pic1.p14" class="ltx_para ltx_noindent">
+<span id="S7.F19.pic1.p14.1" class="ltx_p">&lt;/context-summary&gt;</span>
+</span></span></span></span>
+</span></span></span></foreignObject></g></g></svg>

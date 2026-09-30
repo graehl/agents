@@ -1,0 +1,1168 @@
+# Metadata manifest for surveys/agent-harness-efficiency.
+#
+# Built and checked by the shared `related-work` engine (scripts/related-work
+# in ~/agents; contract topics/research-survey.md). One entry per source the
+# field map or frontier cites. `verified: true` means a delegated leaf worker
+# read the source on 2026-09-30 (abstract plus the results sections cited in
+# survey.md, unless the survey says abstract only); `verified: false` means
+# the metadata came from search results and must be confirmed before use.
+# `cluster` names the survey.md section the entry mainly supports.
+#
+# Extracts are keyed by `key`, never by `short`.
+
+meta:
+  field_slug: agent-harness-efficiency
+  coverage_cutoff: 2026-09-30
+  grounding_mode: grounded
+  model_training_cutoff: 2026-06
+
+papers:
+- key: aiderleaderboard
+  title: Aider polyglot and code-editing leaderboards
+  authors:
+  - Aider-AI
+  - (Paul Gauthier)
+  venue: leaderboard
+  year: 2025
+  url: https://github.com/Aider-AI/aider/blob/main/aider/website/_data/polyglot_leaderboard.yml
+  grounded: false
+  verified: true
+  source: track D leaf-worker read 2026-09-30
+  cluster: D
+- key: anthropic2025multiagent
+  title: How we built our multi-agent research system
+  authors:
+  - Anthropic
+  venue: vendor engineering blog
+  year: 2025
+  url: https://www.anthropic.com/engineering/multi-agent-research-system
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: F
+- key: arino2026identicalruns
+  title: 'Identical Runs, Different Results: Benchmarking AI Coding Agents on Open-Weight Models'
+  authors:
+  - Eduardo Ariño de la Rubia
+  - Szilard Pafka
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.33812'
+  url: https://arxiv.org/html/2609.33812
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: C
+- key: arjmandi2026harnessormodel
+  title: Harness or Model? Isolating the Harness Effect in Agentic Coding with a Contamination-Controlled
+    Private Suite
+  authors:
+  - Mohsen Arjmandi
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.11987'
+  url: https://arxiv.org/html/2609.11987
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: B
+- key: barbaste2026harnessengineering
+  title: 'Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents -- A Source-Code
+    Study of Eleven Systems'
+  authors:
+  - Paul Barbaste
+  - Tristan Darrigol
+  - Germain Vu
+  - Tom Wiltberger
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.00006'
+  url: https://arxiv.org/html/2609.00006
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: A
+- key: bensghaier2026harnessevolution
+  title: 'Don''t Blame the Large Language Model: How Agent Harness Evolution Shapes Coding Agent Quality'
+  authors:
+  - Oussama Ben Sghaier
+  - Hao Li
+  - Bram Adams
+  - Ahmed E. Hassan
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2607.03691'
+  url: https://arxiv.org/html/2607.03691
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: A
+- key: bjarnason2026randomness
+  title: On Randomness in Agentic Evals
+  authors:
+  - Bjarni Haukur Bjarnason
+  - André Silva
+  - Martin Monperrus
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2602.07150'
+  url: https://arxiv.org/html/2602.07150
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: I
+- key: boluk2026harness
+  title: I Improved 15 LLMs at Coding in One Afternoon. Only the Harness Changed.
+  authors:
+  - Can Bölük
+  venue: blog (Stencil)
+  year: 2026
+  url: https://stencil.so/blog/the-harness-problem
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: D
+- key: chen2026compressiongateway
+  title: An Empirical Cost Attribution of Context-Compression Gateways in Multi-Turn Coding Agents
+  authors:
+  - Luzhuo Chen
+  - Jiayu Shi
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.22114'
+  url: https://arxiv.org/html/2609.22114
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: A
+- key: chen2026governancedecay
+  title: 'Governance Decay: How Context Compaction Silently Erases Safety Constraints in Long-Horizon
+    LLM Agents'
+  authors:
+  - Shiyang Chen
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2606.22528'
+  url: https://arxiv.org/html/2606.22528
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: G
+- key: chen2026lookingpicking
+  title: 'Looking Is Not Picking: An Attention-Segment Account of Tool-Selection Failures in LLM Agents'
+  authors:
+  - Shiyang Chen
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2606.16364'
+  url: https://arxiv.org/html/2606.16364
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: H
+- key: cheng2026todiff
+  title: To Diff or Not to Diff? Structure-Aware and Adaptive Output Formats for Efficient LLM-based Code
+    Editing
+  authors:
+  - Wei Cheng
+  - Yongchang Cao
+  - Chen Shen
+  - Binhua Li
+  - Jue Chen
+  - Yongbin Li
+  - Wei Hu
+  venue: Findings of ACL 2026
+  year: 2026
+  arxiv: '2604.27296'
+  url: https://arxiv.org/html/2604.27296
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: D
+- key: claudecodecostsdocs
+  title: Manage costs effectively (Claude Code docs)
+  authors:
+  - Anthropic
+  venue: vendor documentation
+  year: 2026
+  url: https://code.claude.com/docs/en/costs
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: F
+- key: claudecodesubagentsdocs
+  title: Create custom subagents (Claude Code docs)
+  authors:
+  - Anthropic
+  venue: vendor documentation
+  year: 2026
+  url: https://code.claude.com/docs/en/sub-agents
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: F
+- key: codexsubagentsdocs
+  title: Subagents (Codex / ChatGPT agent configuration docs)
+  authors:
+  - OpenAI
+  venue: vendor documentation
+  year: 2026
+  url: https://learn.chatgpt.com/docs/agent-configuration/subagents
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: F
+- key: copilotapi
+  title: 'copilot-api: Turn GitHub Copilot into OpenAI/Anthropic API compatible server'
+  authors:
+  - Erick Christian
+  venue: GitHub
+  year: 2026
+  url: https://github.com/ericc-ch/copilot-api
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: E
+- key: dhakal2026baselines
+  title: 'Baselines Before Architecture: Evaluating Coding Agents for Autonomous Penetration Testing'
+  authors:
+  - Ananda Dhakal
+  - Krish Neupane
+  - Aarjan Chaudhary
+  venue: arXiv
+  year: 2026
+  arxiv: '2607.13085'
+  url: https://arxiv.org/html/2607.13085
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: B
+- key: du2025contextlength
+  title: Context Length Alone Hurts LLM Performance Despite Perfect Retrieval
+  authors:
+  - Yufeng Du
+  - Minyang Tian
+  - Srikanth Ronanki
+  - Subendhu Rongali
+  - Sravan Bodapati
+  - Aram Galstyan
+  - Azton Wells
+  - Roy Schwartz
+  - Eliu A Huerta
+  - Hao Peng
+  venue: Findings of EMNLP 2025
+  year: 2025
+  arxiv: '2510.05381'
+  url: https://arxiv.org/html/2510.05381
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: H
+- key: du2026legorl
+  title: 'LEGO-RL: Harness-Native Reinforcement Learning for Coding Agents'
+  authors:
+  - Yiming Du
+  - Yuxin Jiang
+  - Tao Yuan
+  - Jianbo Dai
+  - Shaowei Wang
+  - Jierun Chen
+  - Chaofan Tao
+  - Xianzhi Yu
+  - Lifeng Shang
+  - Kam-Fai Wong
+  - Xiaohui Li
+  - Haoli Bai
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2608.17393'
+  url: https://arxiv.org/html/2608.17393
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: D
+- key: fan2026harnessdesign
+  title: An Empirical Study of Harness Design for Coding Agents
+  authors:
+  - Run-Ze Fan
+  - Zihao Zhang
+  - Simin Ma
+  - Yebowen Hu
+  - Shouju Wang
+  - Kaiqiang Song
+  - Fei Liu
+  - Hamed Zamani
+  - Xiaoyang Wang
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.20804'
+  url: https://arxiv.org/html/2609.20804
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: D
+- key: fu2026moreagents
+  title: Do More Agents Help? Controlled and Protocol-Aligned Evaluation of LLM Agent Workflows
+  authors:
+  - Yuhang Fu
+  - Ruishan Fang
+  - Jiaqi Shao
+  - Huiyu Zheng
+  - Zhengtao Zhu
+  - Bing Luo
+  - Tao Lin
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2606.05670'
+  url: https://arxiv.org/html/2606.05670
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: F
+- key: gloaguen2026agentsmd
+  title: 'Evaluating AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?'
+  authors:
+  - Thibaud Gloaguen
+  - Niels Mündler-Sasahara
+  - Mark Niklas Müller
+  - Veselin Raychev
+  - Martin Vechev
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2602.11988'
+  url: https://arxiv.org/html/2602.11988
+  grounded: false
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: A
+- key: halleaderboard
+  title: 'HAL leaderboards: SWE-bench Verified Mini, CORE-Bench Hard'
+  authors:
+  - Princeton HAL team
+  venue: leaderboard
+  year: 2025
+  url: https://hal.cs.princeton.edu/corebench_hard
+  grounded: false
+  verified: true
+  source: track D leaf-worker read 2026-09-30
+  cluster: B
+- key: hong2025contextrot
+  title: 'Context Rot: How Increasing Input Tokens Impacts LLM Performance'
+  authors:
+  - Kelly Hong
+  - Anton Troynikov
+  - Jeff Huber
+  venue: Chroma Technical Report
+  year: 2025
+  url: https://research.trychroma.com/context-rot
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: H
+- key: hu2026beyondmodel
+  title: 'Beyond the Model: Demystifying Harness Effects in Software Engineering Agents'
+  authors:
+  - Haichuan Hu
+  - Quanjun Zhang
+  - Shengcheng Yu
+  - Zhifei Chen
+  - Tianyu Luo
+  - Chunrong Fang
+  - Zhenyu Chen
+  - Liang Xiao
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.32459'
+  url: https://arxiv.org/html/2609.32459
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: B
+- key: kapoor2024agentsmatter
+  title: AI Agents That Matter
+  authors:
+  - Sayash Kapoor
+  - Benedikt Stroebl
+  - Zachary S. Siegel
+  - Nitya Nadgir
+  - Arvind Narayanan
+  venue: Transactions on Machine Learning Research (per Semantic Scholar; unverified) / arXiv
+  year: 2024
+  arxiv: '2407.01502'
+  url: https://arxiv.org/html/2407.01502
+  grounded: false
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: I
+- key: kapoor2025hal
+  title: 'Holistic Agent Leaderboard: The Missing Infrastructure for AI Agent Evaluation'
+  authors:
+  - Sayash Kapoor
+  - Benedikt Stroebl
+  - Peter Kirgis
+  - Nitya Nadgir
+  - Zachary S Siegel
+  - Boyi Wei
+  - Tianci Xue
+  - Ziru Chen
+  - Felix Chen
+  - Saiteja Utpala
+  - Franck Ndzomga
+  - Dheeraj Oruganty
+  - Sophie Luskin
+  - Kangheng Liu
+  - Botao Yu
+  - Amit Arora
+  - Dongyoon Hahm
+  - Harsh Trivedi
+  - Huan Sun
+  - Juyong Lee
+  - Tengjun Jin
+  - Yifan Mai
+  - Yifei Zhou
+  - Yuxuan Zhu
+  - Rishi Bommasani
+  - Daniel Kang
+  - Dawn Song
+  - Peter Henderson
+  - Yu Su
+  - Percy Liang
+  - Arvind Narayanan
+  venue: arXiv preprint
+  year: 2025
+  arxiv: '2510.11977'
+  url: https://arxiv.org/html/2510.11977
+  grounded: false
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: I
+- key: kate2025longfunceval
+  title: 'LongFuncEval: Measuring the effectiveness of long context models for function calling'
+  authors:
+  - Kiran Kate
+  - Tejaswini Pedapati
+  - Kinjal Basu
+  - Yara Rizk
+  - Vijil Chenthamarakshan
+  - Subhajit Chaudhury
+  - Mayank Agarwal
+  - Ibrahim Abdelaziz
+  venue: arXiv preprint
+  year: 2025
+  arxiv: '2505.10570'
+  url: https://arxiv.org/html/2505.10570
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: H
+- key: khatri2026contextfiles
+  title: Do Context Files Help Coding Agents? A Two-Agent Ablation Study on Real Repositories
+  authors:
+  - Prakhar Khatri
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2607.27250'
+  url: https://arxiv.org/html/2607.27250
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: A
+- key: kim2026harnesspostraining
+  title: The Interplay of Harness Design and Post-Training in LLM Agents
+  authors:
+  - Kyungmin Kim
+  - Youngbin Choi
+  - Seoyeon Lee
+  - Suhyeon Jun
+  - Dongwoo Kim
+  - Sangdon Park
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2606.25447'
+  url: https://arxiv.org/html/2606.25447
+  grounded: false
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: D
+- key: le2026multiharnessrl
+  title: What Does Multi-Harness RL Learn? Credit Assignment and Portability in Coding Agents
+  authors:
+  - Chenqian Le
+  - Jiayi Cheng
+  - Qijia He
+  - Runhao Li
+  - Yinghao Li
+  - Xupeng Chen
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.04518'
+  url: https://arxiv.org/html/2609.04518
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: B
+- key: lindenbauer2025complexitytrap
+  title: 'The Complexity Trap: Simple Observation Masking Is as Efficient as LLM Summarization for Agent
+    Context Management'
+  authors:
+  - Tobias Lindenbauer
+  - Igor Slinko
+  - Ludwig Felder
+  - Egor Bogomolov
+  - Yaroslav Zharov
+  venue: DL4C Workshop @ NeurIPS 2025
+  year: 2025
+  arxiv: '2508.21433'
+  url: https://arxiv.org/html/2508.21433
+  grounded: false
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: G
+- key: liu2026copilottraces
+  title: 'Agentic Coding in the Wild: Characterizing GitHub Copilot Traces at Production Scale'
+  authors:
+  - Banruo Liu
+  - Haoran Qiu
+  - Íñigo Goiri
+  - Rodrigo Fonseca
+  - Ricardo Bianchini
+  - Esha Choukse
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2608.00101'
+  url: https://arxiv.org/html/2608.00101
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: A
+- key: liveswebench2025
+  title: LiveSWEBench
+  authors:
+  - LiveSWEBench authors
+  - (Gabriel Guralnick et al.; sponsored by Abacus.AI)
+  venue: leaderboard
+  year: 2025
+  url: https://liveswebench.ai/
+  grounded: false
+  verified: true
+  source: track D leaf-worker read 2026-09-30
+  cluster: B
+- key: lulla2026agentsmdefficiency
+  title: On the Impact of AGENTS.md Files on the Efficiency of AI Coding Agents
+  authors:
+  - Jai Lal Lulla
+  - Seyedmoein Mohsenimofidi
+  - Matthias Galster
+  - Jie M. Zhang
+  - Sebastian Baltes
+  - Christoph Treude
+  venue: Journal Ahead Workshop (JAWs) 2026
+  year: 2026
+  arxiv: '2601.20404'
+  url: https://arxiv.org/html/2601.20404
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: A
+- key: lumer2026promptcaching
+  title: 'Don''t Break the Cache: An Evaluation of Prompt Caching for Long-Horizon Agentic Tasks'
+  authors:
+  - Elias Lumer
+  - Faheem Nizar
+  - Akshaya Jangiti
+  - Kevin Frank
+  - Anmol Gulati
+  - Mandar Phadate
+  - Vamse Kumar Subbiah
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2601.06007'
+  url: https://arxiv.org/html/2601.06007
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: C
+- key: merrill2026terminalbench
+  title: 'Terminal-Bench: Benchmarking Agents on Hard, Realistic Tasks in Command Line Interfaces'
+  authors:
+  - Mike A. Merrill
+  - Alexander G. Shaw
+  - Nicholas Carlini
+  - Boxuan Li
+  - Harsh Raj
+  - Ivan Bercovich
+  - Lin Shi
+  - et al. (consortium; full list at arXiv)
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2601.11868'
+  url: https://arxiv.org/html/2601.11868
+  grounded: false
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: B
+- key: modarressi2025nolima
+  title: 'NoLiMa: Long-Context Evaluation Beyond Literal Matching'
+  authors:
+  - Ali Modarressi
+  - Hanieh Deilamsalehy
+  - Franck Dernoncourt
+  - Trung Bui
+  - Ryan A. Rossi
+  - Seunghyun Yoon
+  - Hinrich Schütze
+  venue: ICML 2025
+  year: 2025
+  arxiv: '2502.05167'
+  url: https://arxiv.org/html/2502.05167
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: H
+- key: napoli2026opencode
+  title: Tested OpenCode vs Claude Code (LinkedIn post)
+  authors:
+  - Matthieu Napoli
+  venue: social post
+  year: 2026
+  url: https://www.linkedin.com/posts/matthieunapoli_tested-opencode-vs-claude-code-claude-wrote-activity-7416464088853106688-feMZ
+  grounded: false
+  verified: true
+  source: track D leaf-worker read 2026-09-30
+  cluster: I
+- key: nguyen2026cliffcompaction
+  title: 'CliffCompaction: Cost-Efficient Compaction for Long-Horizon Coding Agents'
+  authors:
+  - Trang Nguyen
+  - Eulrang Cho
+  - Bingqing Chen
+  - Tim Dettmers
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.26779'
+  url: https://arxiv.org/html/2609.26779
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: G
+- key: openaicodexpromptingguide
+  title: Codex Prompting Guide
+  authors:
+  - OpenAI
+  venue: vendor documentation (OpenAI Cookbook)
+  year: 2026
+  url: https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: D
+- key: openaicodexrepo
+  title: openai/codex (codex-rs/core/*_prompt.md, codex-rs/models-manager/prompt.md, models.json)
+  authors:
+  - OpenAI
+  venue: GitHub
+  year: 2026
+  url: https://github.com/openai/codex/tree/67727e7cf114cf3e1b71db368d74b24e32f6cb12/codex-rs
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: A
+- key: openaigpt51promptingguide
+  title: GPT-5.1 Prompting Guide
+  authors:
+  - OpenAI
+  venue: vendor documentation (OpenAI Cookbook)
+  year: 2025
+  url: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5-1_prompting_guide
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: D
+- key: openclawissue60174
+  title: 'fix(providers): Claude on GitHub Copilot should default to anthropic-messages API for prompt
+    caching (openclaw #60174)'
+  authors:
+  - openclaw issue tracker
+  venue: GitHub issue
+  year: 2026
+  url: https://github.com/openclaw/openclaw/issues/60174
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: E
+- key: opencoderepoprompts
+  title: anomalyco/opencode session/prompt and session/system.ts
+  authors:
+  - anomalyco
+  venue: GitHub
+  year: 2026
+  url: https://github.com/anomalyco/opencode/tree/2fa3363c924c5c3e367b84a87ae478296a0ed59b/packages/opencode/src/session
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: A
+- key: pideepseekanchor
+  title: 'pi-deepseek-anchor: DeepSeek V4 Pro Minimal-anchored bootstrap for pi'
+  authors:
+  - kxh4892636
+  venue: GitHub
+  year: 2026
+  url: https://github.com/kxh4892636/pi-deepseek-anchor
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: D
+- key: pilovelycodex
+  title: '@xl0/pi-lovely-codex: GPT fast mode and Codex-style apply_patch for pi'
+  authors:
+  - xl0
+  venue: GitHub
+  year: 2026
+  url: https://github.com/xl0/pi-lovely-codex
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: D
+- key: piriyakulkij2026subagentsskills
+  title: 'Subagents vs Agent Skills: Executing Reusable Knowledge for Long-Horizon Agentic Tasks'
+  authors:
+  - Wasu Top Piriyakulkij
+  - Rachel Lawrence
+  - Alicia Curth
+  - Sushrut Karmalkar
+  - Niranjani Prasad
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.09233'
+  url: https://arxiv.org/html/2609.09233
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: F
+- key: raju2026longcontextbugfix
+  title: The Limits of Long-Context Reasoning in Automated Bug Fixing
+  authors:
+  - Ravi Raju
+  - Mengmeng Ji
+  - Shubhangi Upasani
+  - Bo Li
+  - Urmish Thakker
+  venue: ICLR 2026 ICBINB Workshop
+  year: 2026
+  arxiv: '2602.16069'
+  url: https://arxiv.org/html/2602.16069
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: H
+- key: repantis2026howmanytools
+  title: How Many Tools Should an LLM Agent See? A Chance-Corrected Answer
+  authors:
+  - Vyzantinos Repantis
+  - Ameya Gawde
+  - Harshvardhan Singh
+  - Joey Blackwell II
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2605.24660'
+  url: https://arxiv.org/html/2605.24660
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: H
+- key: ronacher2026bettermodels
+  title: 'Better Models: Worse Tools'
+  authors:
+  - Armin Ronacher
+  venue: blog
+  year: 2026
+  url: https://lucumr.pocoo.org/2026/7/4/better-models-worse-tools/
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: D
+- key: satish2026beyondtokensavings
+  title: 'Beyond Token Savings: A Systematic Study of Context Compression in LLM Agents'
+  authors:
+  - Ritul Satish
+  - Prasoon Sinha
+  - Akiho Kawada
+  - Neeraja J. Yadwadkar
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.32961'
+  url: https://arxiv.org/html/2609.32961
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: G
+- key: shi2026harbor
+  title: 'Harbor Adapters and Harbor-Index: Infrastructure and a Curated Meta-Dataset for Large-Scale
+    Agentic Evaluation'
+  authors:
+  - Lin Shi
+  - Haowei Lin
+  - Zixuan Zhu
+  - Xiaoyue Zhou
+  - Xiang Li
+  - Xiangning Lin
+  - et al. (>100 authors; full list at arXiv)
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.04298'
+  url: https://arxiv.org/html/2609.04298
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: B
+- key: song2026skillshadowing
+  title: More Skills, Worse Agents? Skill Shadowing Degrades Performance When Expanding Skill Libraries
+  authors:
+  - Hongwen Song
+  - Song Wei
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2605.24050'
+  url: https://arxiv.org/html/2605.24050
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: H
+- key: suresh2026toolchoiceconfusion
+  title: 'ToolChoiceConfusion: Causal Minimal Tool Filtering for Reliable LLM Agents'
+  authors:
+  - Rahul Suresh Babu
+  - Laxmipriya Ganesh Iyer
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2606.06284'
+  url: https://arxiv.org/html/2606.06284
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: H
+- key: systima2026ccopencode
+  title: Claude Code Sends 4.7x More Tokens Than OpenCode Before Reading Your Prompt
+  authors:
+  - Systima
+  venue: blog (open rig)
+  year: 2026
+  url: https://systima.ai/blog/claude-code-vs-opencode-token-overhead
+  grounded: false
+  verified: true
+  source: track D leaf-worker read 2026-09-30
+  cluster: A
+- key: tang2026servingstack
+  title: 'Measuring the Serving Stack Instead of the Model: Hidden Confounds in Local Tool-Use Evaluation'
+  authors:
+  - Lijuan Tang
+  - Yuemeng Zheng
+  venue: REALM Workshop @ EMNLP 2026
+  year: 2026
+  arxiv: '2609.26693'
+  url: https://arxiv.org/html/2609.26693
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: I
+- key: tbench21news
+  title: Terminal-Bench 2.1
+  authors:
+  - The Terminal-Bench Team
+  - '(TB2.1 lead: Kelly Buchanan)'
+  venue: blog
+  year: 2026
+  url: https://www.tbench.ai/news/terminal-bench-2-1
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track D leaf-worker read 2026-09-30
+  cluster: B
+- key: tbenchleaderboard
+  title: Terminal-Bench leaderboards 1.0 / 2.0 / 2.1 / 3.0 / 4.0
+  authors:
+  - Terminal-Bench team
+  - (Stanford / Laude Institute / Harbor)
+  venue: leaderboard
+  year: 2026
+  url: https://www.tbench.ai/?version=2.0
+  grounded: false
+  verified: true
+  source: track D leaf-worker read 2026-09-30
+  cluster: B
+- key: vats2026scaffoldeffect
+  title: 'The Scaffold Effect in Coding Agents: Harness Choice as a Hidden Variable in Coding-Agent Evaluation'
+  authors:
+  - Naman Vats
+  - Oleg Golev
+  venue: arXiv preprint (under review, DL4C @ ICML 2026)
+  year: 2026
+  arxiv: '2607.22585'
+  url: https://arxiv.org/html/2607.22585
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: C
+- key: vscodecopilotagentprompts
+  title: microsoft/vscode extensions/copilot agent prompt registry and per-family prompts
+  authors:
+  - Microsoft
+  venue: GitHub
+  year: 2026
+  url: https://github.com/microsoft/vscode/tree/4d72ba07ae257c404a23781b2ee2275ada05017c/extensions/copilot/src/extension/prompts/node/agent
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: A
+- key: vscodeissue254959
+  title: 'System Prompt Injection in GitHub Copilot Allows Bypassing Behavior Guardrails (microsoft/vscode
+    #254959)'
+  authors:
+  - microsoft/vscode issue tracker
+  venue: GitHub issue
+  year: 2025
+  url: https://github.com/microsoft/vscode/issues/254959
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: E
+- key: vscodeissue312940
+  title: 'Custom OpenAI-compatible BYOK providers proxying Anthropic models cannot use prompt caching
+    (microsoft/vscode #312940)'
+  authors:
+  - microsoft/vscode issue tracker
+  venue: GitHub issue
+  year: 2026
+  url: https://github.com/microsoft/vscode/issues/312940
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: E
+- key: vscodesubagentsdocs
+  title: Subagents in VS Code
+  authors:
+  - Microsoft
+  venue: vendor documentation
+  year: 2026
+  url: https://code.visualstudio.com/docs/copilot/agents/subagents
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: F
+- key: warp2025codex
+  title: Codex Models Now Available in Warp
+  authors:
+  - Warp
+  venue: blog
+  year: 2025
+  url: https://www.warp.dev/blog/codex-models-in-warp-apply-patch-and-prompting-changes
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: D
+- key: weinberger2026tokenreduction
+  title: Token Reduction Is Not Cost Reduction
+  authors:
+  - Sarel Weinberger
+  - Amir Hozez
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2607.12161'
+  url: https://arxiv.org/html/2607.12161
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: C
+- key: xda2026claudecode51k
+  title: Claude Code was using 51,000 tokens before I even typed a prompt — I fixed it
+  authors:
+  - Mahnoor Faisal
+  venue: blog (XDA Developers)
+  year: 2026
+  url: https://www.xda-developers.com/claude-code-using-fifty-thousand-tokens-before-typed-prompt-fixed-it/
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: A
+- key: xu2026singleagent
+  title: 'Rethinking the Value of Multi-Agent Workflow: A Strong Single Agent Baseline'
+  authors:
+  - Jiawei Xu
+  - Arief Koesdwiady
+  - Sisong Bei
+  - Yan Han
+  - Baixiang Huang
+  - Dakuo Wang
+  - Yutong Chen
+  - Zheshen Wang
+  - Peihao Wang
+  - Pan Li
+  - Ying Ding
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2601.12307'
+  url: https://arxiv.org/html/2601.12307
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: F
+- key: xue2026contextrotcoding
+  title: 'When and How Context Rot Appears in Coding Agents: A White-Box Study of Agent Skills in Code
+    Auditing'
+  authors:
+  - Yue Xue
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2607.17937'
+  url: https://arxiv.org/html/2607.17937
+  grounded: false
+  verified: false
+  source: track A leaf-worker read 2026-09-30 (not read; metadata from search)
+  cluster: H
+- key: yang2024sweagent
+  title: 'SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering'
+  authors:
+  - John Yang
+  - Carlos E. Jimenez
+  - Alexander Wettig
+  - Kilian Lieret
+  - Shunyu Yao
+  - Karthik Narasimhan
+  - Ofir Press
+  venue: NeurIPS 2024
+  year: 2024
+  arxiv: '2405.15793'
+  url: https://arxiv.org/html/2405.15793
+  grounded: false
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: I
+- key: yao2026harnessbench
+  title: 'Harness-Bench: Measuring Harness Effects across Models in Realistic Agent Workflows'
+  authors:
+  - Yilun Yao
+  - Xinyu Tan
+  - Chao-Hsuan Liu
+  - Yaoming Li
+  - Zhengyang Wang
+  - Wenhan Yu
+  - Zhewen Tan
+  - Yuxuan Tian
+  - Guangxiang Zhao
+  - Lin Sun
+  - Xiangzheng Zhang
+  - Tong Yang
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2605.27922'
+  url: https://arxiv.org/html/2605.27922
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: B
+- key: zaitb2verified
+  title: Terminal-Bench 2.0 Verified
+  authors:
+  - Z.ai
+  - (Xiangyang Li et al.)
+  venue: dataset card
+  year: 2026
+  url: https://huggingface.co/datasets/zai-org/terminal-bench-2-verified
+  grounded: false
+  verified: true
+  source: track D leaf-worker read 2026-09-30
+  cluster: I
+- key: zechner2025pi
+  title: What I learned building an opinionated and minimal coding agent
+  authors:
+  - Mario Zechner
+  venue: blog
+  year: 2025
+  url: https://mariozechner.at/posts/2025-11-30-pi-coding-agent/
+  grounded: false
+  verified: true
+  source: track B leaf-worker read 2026-09-30
+  cluster: F
+- key: zhang2026chart
+  title: 'CHART: A Harness-Rotation Curriculum for Harness-Robust Search Agents'
+  authors:
+  - Xinlu Zhang
+  - Ying-Chun Lin
+  - Zhihan Zhang
+  - Besnik Fetahu
+  - Xi Chen
+  venue: CL4FMAgents Workshop @ NeurIPS 2026
+  year: 2026
+  arxiv: '2609.22247'
+  url: https://arxiv.org/html/2609.22247
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: D
+- key: zhang2026stopcomparing
+  title: Stop Comparing LLM Agents Without Disclosing the Harness
+  authors:
+  - Yunbei Zhang
+  - Janet Wang
+  - Yingqiang Ge
+  - Weijie Xu
+  - Jihun Hamm
+  - Chandan K. Reddy
+  venue: arXiv preprint (position paper)
+  year: 2026
+  arxiv: '2605.23950'
+  url: https://arxiv.org/html/2605.23950
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: B
+- key: zheng2026clawswebench
+  title: 'Claw-SWE-Bench: A Benchmark for Evaluating OpenClaw-style Agent Harnesses on Coding Tasks'
+  authors:
+  - Mengyu Zheng
+  - Kai Han
+  - Boxun Li
+  - Haiyang Xu
+  - Yuchuan Tian
+  - Wei He
+  - Hang Zhou
+  - Jianyuan Guo
+  - Hailin Hu
+  - Lin Ma
+  - Chao Xu
+  - Guohao Dai
+  - Lixue Xia
+  - Yunchao Wei
+  - Yunhe Wang
+  - Yu Wang
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2606.12344'
+  url: https://arxiv.org/html/2606.12344
+  grounded: true
+  fetched: '2026-09-30'
+  verified: true
+  source: track A leaf-worker read 2026-09-30
+  cluster: I

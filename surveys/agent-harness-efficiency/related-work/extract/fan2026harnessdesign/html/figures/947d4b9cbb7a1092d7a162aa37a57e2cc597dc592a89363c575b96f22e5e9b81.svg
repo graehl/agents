@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="S9.F42.pic1" class="ltx_picture ltx_centering" height="817.32" overflow="visible" version="1.1" viewBox="0 0 653.15 817.32" width="653.15"><style>
+  /* Banner pre-dismissal (set above before paint -> no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</style><g style="--ltx-stroke-color:#000000;--ltx-fill-color:#000000;" fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,817.32) matrix(1 0 0 -1 0 0)"><g style="--ltx-fill-color:#5581B0;" fill="#5581B0" fill-opacity="1.0"><path style="stroke:none" d="M 0 5.91 L 0 811.42 C 0 814.68 2.64 817.32 5.91 817.32 L 647.24 817.32 C 650.51 817.32 653.15 814.68 653.15 811.42 L 653.15 5.91 C 653.15 2.64 650.51 0 647.24 0 L 5.91 0 C 2.64 0 0 2.64 0 5.91 Z"></path></g><g style="--ltx-fill-color:#F5F5F5;" fill="#F5F5F5" fill-opacity="1.0"><path style="stroke:none" d="M 1.97 5.91 L 1.97 811.42 C 1.97 813.59 3.73 815.35 5.91 815.35 L 647.24 815.35 C 649.42 815.35 651.18 813.59 651.18 811.42 L 651.18 5.91 C 651.18 3.73 649.42 1.97 647.24 1.97 L 5.91 1.97 C 3.73 1.97 1.97 3.73 1.97 5.91 Z"></path></g><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 8.89 8.27)"><foreignObject style="--ltx-fo-width:62.48em;--ltx-fo-height:58.03em;--ltx-fo-depth:0.16em;font-size:10pt;" height="805.09" overflow="visible" transform="matrix(1 0 0 -1 0 802.94)" width="864.55"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span id="S9.F42.pic1.1" class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:62.48em;">
+<span id="S9.F42.pic1.1.1" class="ltx_p"><span id="S9.F42.pic1.1.1.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.1.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p1" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p1.1" class="ltx_p">&lt;instruction&gt;</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.2" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.2.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.2.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.2.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.2.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p2" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p2.1" class="ltx_p">You are analyzing the execution trace of a coding agent working on a Terminal Bench task. The agent works inside a Linux container: it reads and writes files, installs packages, and runs shell commands until it believes the task is done.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.3" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.3.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.3.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.4" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.4.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.4.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p4" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p4.1" class="ltx_p">The trajectory below is a sequence of TURNS (model invocations); each turn executes one or more TOOL CALLS (actions).</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.5" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.5.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.5.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.6" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.6.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.6.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.6.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.6.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p6" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p6.1" class="ltx_p">Classify the PURPOSE of EACH individual action (each tool call) into exactly one of the following codes. Judge by the SEMANTIC INTENT of the action, not merely the tool name or the leading shell token.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.7" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.7.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.7.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.8" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.8.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.8.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p8" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p8.1" class="ltx_p">## Purpose codes</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.9" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.9.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.9.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p9" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p9.1" class="ltx_p">- `I`  Inspect      Read file CONTENT to understand it (read_file, cat, head, tail, hexdump, od, strings).</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.10" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.10.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.10.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p10" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p10.1" class="ltx_p">- `S`  Search       Discover WHAT EXISTS: list a directory or search for files/text (list_files, ls, find, grep, glob).</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.11" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.11.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.11.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p11" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p11.1" class="ltx_p">- `C`  Create       Author a NEW file — script, config, or output artifact (write_file to a fresh path).</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.12" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.12.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.12.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p12" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p12.1" class="ltx_p">- `M`  Modify       Change an EXISTING file in place (edit_file, sed -i, patch, rewriting a file the agent already wrote).</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.13" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.13.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.13.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p13" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p13.1" class="ltx_p">- `E`  Environment  Install or build dependencies (pip/apt/conda/npm install, make, cmake, ./configure).</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.14" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.14.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.14.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p14" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p14.1" class="ltx_p">- `X`  eXecute      Run the agent’s OWN work to produce a result</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.15" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.15.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.15.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p15" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p15.1" class="ltx_p">- `T`  Test         Invoke a real test framework (pytest, unittest, cargo test, npm test, go test).</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.16" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.16.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.16.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p16" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p16.1" class="ltx_p">- `V`  Verify       Check an ALREADY-PRODUCED artifact against the task’s stated success condition.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.17" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.17.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.17.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p17" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p17.1" class="ltx_p">- `N`  Navigate     Move around the filesystem, where that is the ENTIRE point of the call (bare cd, pwd).</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.18" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.18.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.18.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.18.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.18.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p18" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p18.1" class="ltx_p">- `G`  General      Anything else: git, echo, shell plumbing (awk/sed/sort over intermediate data), cleanup, misc. update plan must be considered as General (G).</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.19" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.19.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.19.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.20" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.20.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.20.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p20" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p20.1" class="ltx_p">## Rules</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.21" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.21.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.21.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.21.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.21.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p21" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p21.1" class="ltx_p">- Judge intent, not the leading token. Classify what the action is FOR, not which binary appears first. `cd /app &amp;&amp; python3 solve.py` is X (running the solution) — the `cd` is incidental scaffolding, not the purpose. Only use N when moving around the filesystem is the ENTIRE point of the call, e.g. a bare `cd /app` or `pwd` with nothing chained to it.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.22" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.22.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.22.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.22.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.22.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p22" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p22.1" class="ltx_p">- Classify EACH action independently; a single turn may contain actions with different purposes. Do not smear one label across a turn.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.23" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.23.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.23.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.23.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.23.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p23" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p23.1" class="ltx_p">- X vs T vs V. X runs the agent’s own work to PRODUCE a result — its analysis script, its solution, an inline heredoc computation. T invokes a genuine test framework (pytest, unittest, cargo test, npm test, go test), including the task’s provided test file. V CHECKS an artifact that already exists against the task’s stated success condition — re-reading the written answer file to confirm its format, diffing produced output against an expected value. When a single run both produces and checks a result, prefer X.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.24" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.24.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.24.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.24.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.24.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p24" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p24.1" class="ltx_p">- C vs M. C authors a NEW file at a path not written before in this trajectory. M changes something that already exists — `edit_file`, `sed -i`, `patch`, or `write_file` overwriting a path the agent itself wrote earlier. A rewritten-from-scratch v2 of the agent’s own script at a NEW filename (analyze2.py after analyze.py) is still C.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.25" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.25.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.25.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.25.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.25.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p25" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p25.1" class="ltx_p">- C vs X for heredocs. `python3 &lt;&lt; ’EOF’ ... EOF` and `bash -c ’...’` EXECUTE code; they do not author a file. Those are X. Only a real write to a path is C.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.26" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.26.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.26.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.26.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.26.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p26" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p26.1" class="ltx_p">- E is setup, not building the answer. E covers making the environment usable: pip/apt/conda/npm install, make, cmake, ./configure, compiling a third-party dependency. Compiling the agent’s OWN program as the deliverable is X.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.27" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.27.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.27.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.27.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.27.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p27" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p27.1" class="ltx_p">- Errors do not change the purpose. An action marked ERR is labelled by what it was TRYING to do. A failed `pip install` is still E; a crashed solution script is still X.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.28" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.28.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.28.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p28" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p28.1" class="ltx_p">&lt;/instruction&gt;</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.29" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.29.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.29.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.30" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.30.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.30.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p30" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p30.1" class="ltx_p">&lt;trajectory&gt;</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.31" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.31.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.31.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p31" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p31.1" class="ltx_p">{actions_block}</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.32" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.32.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.32.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p32" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p32.1" class="ltx_p">&lt;/trajectory&gt;</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.33" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.33.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.33.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.34" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.34.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.34.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p34" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p34.1" class="ltx_p">&lt;output_format&gt;</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.35" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.35.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.35.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p35" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p35.1" class="ltx_p">There are exactly {n_actions} actions above, numbered "[1]" through "[{n_actions}]".</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.36" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.36.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.36.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.37" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.37.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.37.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.37.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.37.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p37" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p37.1" class="ltx_p">Respond with ONLY a JSON object holding one key per ACTION, named "Turn1" through "Turn{n_actions}". The number in the key is the ACTION number in square brackets above — NOT the "-- Turn N --" header, which only groups them. Each value is an object with exactly two fields, IN THIS ORDER:</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.38" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.38.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.38.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.38.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.38.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p38" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p38.1" class="ltx_p">  "Reason"  one short sentence (at most 20 words) saying what THIS action is for. Cite the concrete command, path or tool that decides it; do not just restate a code’s definition. Where a rule above applies (intent-over-token, X vs T vs V, C vs M, heredoc, E-is-setup), name the rule that settles it.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.39" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.39.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.39.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p39" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p39.1" class="ltx_p">  "Label"   the purpose code the reason leads to: one of "I", "S", "C", "C", "M", "E", "X", "T", "V", "N", "G".</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.40" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.40.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.40.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.41" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.41.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.41.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p41" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p41.1" class="ltx_p">Write "Reason" FIRST and let it decide "Label" — do not pick a code and then justify it.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.42" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.42.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.42.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.43" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.43.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.43.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.43.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.43.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p43" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p43.1" class="ltx_p">You MUST include a key for every action from "Turn1" to "Turn{n_actions}" — do not skip any, and do not add keys beyond "Turn{n_actions}".</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.44" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.44.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.44.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.45" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.45.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.45.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p45" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p45.1" class="ltx_p">Example format (for 3 actions):</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.46" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.46.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.46.1.1" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.46.1.2" class="ltx_text ltx_inline-block" style="width:0.0pt;"> </span><span id="S9.F42.pic1.1.46.1.3" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p46" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p46.1" class="ltx_p">{"Turn1": {"Reason": "ls /app lists the directory to discover what files exist", "Label": "S"}, "Turn2": {"Reason": "head -20 data.csv reads real content to understand it, not a yes/no probe", "Label": "I"}, "Turn3": {"Reason": "runs the agent’s own solve.py to produce the answer; the cd is incidental", "Label": "X"}}</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.47" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.47.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.47.1.1" class="ltx_inline-logical-block ltx_parbox ltx_pruned_first ltx_align_top" style="width:459.2pt;"></span></span></span>
+<span id="S9.F42.pic1.1.48" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.48.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.48.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p48" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p48.1" class="ltx_p">No preamble, no commentary, no code fence — JUST the JSON object.</span>
+</span></span></span></span>
+<span id="S9.F42.pic1.1.49" class="ltx_p" style="width:459.2pt;"><span id="S9.F42.pic1.1.49.1" class="ltx_text ltx_verbatim ltx_font_typewriter ltx_inline-block" style="font-size:70%;width:459.2pt;--ltx-fg-color:#000000;"><span id="S9.F42.pic1.1.49.1.1" class="ltx_inline-logical-block ltx_parbox ltx_align_top" style="width:459.2pt;">
+<span id="S9.F42.pic1.p49" class="ltx_para ltx_noindent">
+<span id="S9.F42.pic1.p49.1" class="ltx_p">&lt;/output_format&gt;</span>
+</span></span></span></span>
+</span></span></span></foreignObject></g></g></svg>
