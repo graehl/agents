@@ -22,6 +22,8 @@ class Workspace:
         shutil.rmtree(self.root, ignore_errors=True)
 
     def run(self, input_text: str | None = None) -> subprocess.CompletedProcess:
+        """None offers no draft (stdin is /dev/null); a string is piped."""
+        stdin = {"stdin": subprocess.DEVNULL} if input_text is None else {}
         return subprocess.run(
             [sys.executable, str(SCRIPT)],
             cwd=self.root,
@@ -29,6 +31,7 @@ class Workspace:
             capture_output=True,
             text=True,
             timeout=10,
+            **stdin,
         )
 
     def git(self, *args: str) -> subprocess.CompletedProcess:
@@ -110,6 +113,24 @@ def test_no_stdin_lints_head_message():
         res = ws.run()
         _assert(res.returncode == 0, res.stderr)
         _assert(res.stdout == "short subject\n\n", "HEAD message was not echoed")
+    finally:
+        ws.cleanup()
+
+
+def test_empty_piped_draft_never_substitutes_head():
+    # `git commit -F <(commit-msg-fmt ... | commit-msg-lint)`: when the
+    # formatter fails, lint sees an empty pipe. Echoing HEAD's message then
+    # committed the new change under the previous commit's message.
+    ws = Workspace()
+    try:
+        _assert(ws.git("init").returncode == 0)
+        (ws.root / "tracked.txt").write_text("content\n")
+        _assert(ws.git("add", "tracked.txt").returncode == 0)
+        _assert(ws.git("commit", "-m", "previous subject").returncode == 0)
+        res = ws.run("")
+        _assert(res.returncode == 2, res.stderr)
+        _assert(res.stdout == "", "HEAD message must not be echoed")
+        _assert("empty draft on stdin" in res.stderr, res.stderr)
     finally:
         ws.cleanup()
 

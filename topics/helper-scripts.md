@@ -47,12 +47,16 @@ all or do not ship the rebuild. Do not invent a different UI.
 
 ### commit-msg-lint
 
-**CLI**: reads draft on stdin. If stdin is empty, reads the current
-`HEAD` commit message via `git log -1 --format=%B`. On success
-echoes the checked message verbatim to stdout, exits 0. On violation
-lists issues on stderr (one per line, prefixed `commit-msg-lint:`),
-exits 1. Empty input with no readable `HEAD` message exits 2. Subjects over
-65 characters produce an advisory stderr warning without changing success.
+**CLI**: reads a draft on stdin (pipe or file). When no draft is offered
+(stdin is a terminal or `/dev/null`), it reads the current `HEAD` commit
+message via `git log -1 --format=%B`. On success echoes the checked message
+verbatim to stdout, exits 0. On violation lists issues on stderr (one per
+line, prefixed `commit-msg-lint:`), exits 1. An empty piped or file draft
+exits 2 and prints nothing: in `git commit -F <(commit-msg-fmt … |
+commit-msg-lint)` a failed formatter otherwise committed the change under
+`HEAD`'s message. No draft and no readable `HEAD` message also exits 2.
+Subjects over 65 characters produce an advisory stderr warning without
+changing success.
 
 **Post-conditions** (derived from global § Commits):
 - aim for subject ≤65 chars (advisory)
