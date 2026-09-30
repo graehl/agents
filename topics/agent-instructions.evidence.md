@@ -5342,3 +5342,27 @@ falls back to reading `AGENTS.user.md`; a commit staging only part of
 `AGENTS.global.md` gets the regenerated section without the unstaged hunks
 (regression test). Open: per-harness boots folding harness and default-model
 supplements (`gaps/agent-specific-durable-boot-compilation.md`).
+
+## 2026-09-30 — prose file paths are anchored; `:line` is optional
+
+- **User direction** — "add a brief AGENTS.global note that file paths in
+  your prose should always be ~ relative, project root relative, or
+  absolute (no restriction on commands/code/docs)", then "the :line is not
+  mandatory".
+- **Incident** — a survey report ended "Files are in
+  `~/agents/surveys/agent-harness-efficiency/`:" followed by `survey.md`,
+  `frontier.md` and `measurements/...`, which are unusable when copied alone
+  and not recognized as file links. The earlier § File citations text named
+  only the `project/relative/path:line` form, which read as a mandatory line
+  suffix and did not forbid paths relative to a directory named earlier.
+- **Placement** — `AGENTS.global.md` § File citations, which already owns
+  path form; `AGENTS.user.md` § Copyable file references stays the
+  user-specific echo-a-full-path rule.
+- **Traces** — a chat list of several files in one directory → each entry is
+  a `~/…` or project-root path. A commit body naming `topics/foo.md` →
+  project-root-relative, allowed. A Markdown doc linking its sibling
+  `frontier.md` → authored-document link, exempt. `cd dir && cat y` →
+  command, exempt. Citing a function → append `:line`; citing a whole new file
+  → no suffix.
+
+Contributing-model: opus-5.5

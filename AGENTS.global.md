@@ -232,11 +232,18 @@ Optional clarification is grouped by activation concern under `AGENTS/`.
 
 ## File citations
 
-When citing files, use `project/relative/path:line` or
-`project/relative/path:first-last`, with actual line numbers and enough project
-context to locate the file. Prefer a browseable link or range. Cite the important
-ranges when reporting authored text; keep the summary brief. In durable docs,
-prefer stable section/symbol references or pin line citations to a revision.
+Every file path in prose — replies, summaries, status lines, reports — is
+`~`-relative, project-root-relative (with enough project context to locate
+it), or absolute. Never write one relative to the cwd or to a directory named
+earlier in the text (`measurements/x.md` after "files are in
+`~/agents/surveys/foo/`"). Commands, code, and links inside authored documents
+keep their own conventions.
+
+Append `:line` or `:first-last` (actual line numbers) when pointing at a
+specific place; a whole-file reference needs none. Prefer a browseable link or
+range. Cite the important ranges when reporting authored text; keep the summary
+brief. In durable docs, prefer stable section/symbol references or pin line
+citations to a revision.
 
 ## Instruction routing
 
