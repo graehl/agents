@@ -9,7 +9,7 @@ referenced assets under `extract/`; raw source cache remains ignored. This tool
 owns both, so a new survey inherits fetch idempotency, HTTP revalidation, and
 manifest/disk reconciliation instead of hand-rolling a `fetch.sh`.
 
-Verbs: list, status, fetch, stage, audit, init.
+Verbs: list, status, fetch, stage, stamp, audit, init.
 Output follows topics/acli.md: compact JSONL by default, --pretty for
 humans, --toon on the table verbs, --acli-complete for completion.
 
@@ -1533,6 +1533,69 @@ def has_content(directory: Path) -> bool:
     return any(directory.rglob("*.md"))
 
 
+SOURCE_HEADER_PREFIX = "**Source:** "
+_ARXIV_ID = re.compile(r"arxiv\.org/(?:html|pdf|abs)/([^/?#]+?)(?:\.pdf)?(?:[/?#]|$)")
+
+
+def source_header(source: str, title: str | None = None) -> str:
+    """One Markdown line linking an extract back to its original.
+
+    An extract is read on its own (in a browser, on GitHub, from a report
+    link), so its first line must reach the paper without the sentinel.
+    """
+    match = _ARXIV_ID.search(source)
+    if match:
+        ident = match.group(1)
+        links = (
+            f"[PDF](https://arxiv.org/pdf/{ident}) · "
+            f"[arXiv](https://arxiv.org/abs/{ident})"
+        )
+    elif _is_pdf_url(source):
+        links = f"[PDF]({source})"
+    else:
+        links = f"[original page]({source})"
+    named = f"*{title.strip()}* — " if title and title.strip() else ""
+    return f"{SOURCE_HEADER_PREFIX}{named}{links}"
+
+
+def _extract_markdown(directory: Path, sentinel: Sentinel, key: str) -> Path | None:
+    """The extract's main Markdown: recorded, else `<key>.md`, else the largest."""
+    recorded = _recorded_markdown_path(directory, sentinel)
+    if recorded is not None and recorded.is_file():
+        return recorded
+    named = directory / f"{key}.md"
+    if named.is_file():
+        return named
+    candidates = sorted(directory.rglob("*.md"), key=lambda p: p.stat().st_size)
+    return candidates[-1] if candidates else None
+
+
+def stamp_extract(
+    directory: Path, sentinel: Sentinel, key: str, title: str | None
+) -> str:
+    """Put the source header first in the extract's Markdown; keep hashes true.
+
+    Returns "stamped", "current", or "no markdown". Replaces an existing
+    header line rather than stacking a second one.
+    """
+    markdown = _extract_markdown(directory, sentinel, key)
+    if markdown is None:
+        return "no markdown"
+    header = source_header(sentinel.source, title)
+    text = markdown.read_text(encoding="utf-8")
+    if text.startswith(SOURCE_HEADER_PREFIX):
+        first, _, rest = text.partition("\n")
+        if first == header:
+            return "current"
+        text = rest.lstrip("\n")
+    markdown.write_text(f"{header}\n\n{text}", encoding="utf-8")
+    if sentinel.markdown_sha256 and markdown == _recorded_markdown_path(
+        directory, sentinel
+    ):
+        sentinel.markdown_sha256 = _sha256_file(markdown)
+    return "stamped"
+
+
 def _legacy_html_only(directory: Path, sentinel: Sentinel) -> bool:
     return (
         sentinel.method in LEGACY_HTML_METHODS
@@ -1682,21 +1745,20 @@ def fetch_paper(
         method: str, source: str, derivation: HtmlDerivation | None = None
     ) -> dict:
         headers = http_headers(source)
-        write_sentinel(
-            sentinel_path,
-            Sentinel(
-                method=method,
-                source=source,
-                at=stamp,
-                etag=headers.get("etag"),
-                last_modified=headers.get("last-modified"),
-                markdown=derivation.markdown if derivation else None,
-                derived_with=HTML_DERIVATION if derivation else None,
-                source_sha256=derivation.source_sha256 if derivation else None,
-                markdown_sha256=derivation.markdown_sha256 if derivation else None,
-                fidelity=derivation.fidelity if derivation else None,
-            ),
+        sentinel = Sentinel(
+            method=method,
+            source=source,
+            at=stamp,
+            etag=headers.get("etag"),
+            last_modified=headers.get("last-modified"),
+            markdown=derivation.markdown if derivation else None,
+            derived_with=HTML_DERIVATION if derivation else None,
+            source_sha256=derivation.source_sha256 if derivation else None,
+            markdown_sha256=derivation.markdown_sha256 if derivation else None,
+            fidelity=derivation.fidelity if derivation else None,
         )
+        stamp_extract(directory, sentinel, paper.key, _text(paper.raw.get("title")))
+        write_sentinel(sentinel_path, sentinel)
         row = {
             "key": paper.key,
             "status": "fetched",
@@ -2032,6 +2094,17 @@ def audit_findings(survey: Survey) -> list[dict]:
                 "extract-content",
                 "completed extract contains no Markdown",
             )
+        if sentinel is not None and has_content(directory):
+            main = _extract_markdown(directory, sentinel, paper.key)
+            if main is not None and not main.read_text(
+                encoding="utf-8", errors="replace"
+            ).startswith(SOURCE_HEADER_PREFIX):
+                report(
+                    paper.key,
+                    "source-link",
+                    "extract Markdown does not start with a source link; "
+                    "run `related-work stamp`",
+                )
 
         if sentinel is not None and tracked is not None:
             if sentinel_path.resolve() not in tracked:
@@ -2278,6 +2351,9 @@ def verb_fetch(args) -> int:
                     sentinel.source_sha256 = derivation.source_sha256
                     sentinel.markdown_sha256 = derivation.markdown_sha256
                     sentinel.fidelity = derivation.fidelity
+                    stamp_extract(
+                        directory, sentinel, paper.key, _text(paper.raw.get("title"))
+                    )
                     write_sentinel(survey.sentinel_path(paper.key), sentinel)
                     derived = {
                         "key": paper.key,
@@ -2369,6 +2445,44 @@ def verb_stage(args) -> int:
         ["key", "status", "files", "reason"],
         resolve_format(args),
         name="results",
+    )
+    return (
+        int(ExitCode.TEMPORARY)
+        if any(row["status"] == "failed" for row in results)
+        else 0
+    )
+
+
+def verb_stamp(args) -> int:
+    survey = resolve(args)
+    if args.keys:
+        wanted = [survey.find(key) for key in args.keys]
+    else:
+        wanted = [p for p in survey.papers if survey.sentinel_path(p.key).exists()]
+    results = []
+    for paper in wanted:
+        sentinel_path = survey.sentinel_path(paper.key)
+        sentinel = read_sentinel(sentinel_path)
+        if sentinel is None or not sentinel.source:
+            results.append(
+                {"key": paper.key, "status": "failed", "reason": "no usable sentinel"}
+            )
+            continue
+        status = stamp_extract(
+            survey.extract_dir(paper.key),
+            sentinel,
+            paper.key,
+            _text(paper.raw.get("title")),
+        )
+        if status == "stamped":
+            write_sentinel(sentinel_path, sentinel)
+        row = {"key": paper.key, "status": status}
+        if status == "no markdown":
+            row["status"] = "failed"
+            row["reason"] = "completed extract contains no Markdown"
+        results.append(row)
+    emit_table(
+        results, ["key", "status", "reason"], resolve_format(args), name="results"
     )
     return (
         int(ExitCode.TEMPORARY)
@@ -2548,6 +2662,19 @@ def build_parser():
     set_completer(keys, key_completer("."))
     add_standard_args(p, allow_toon=True)
     p.set_defaults(func=verb_stage)
+
+    p = sub.add_parser(
+        "stamp",
+        help="Start each completed extract's Markdown with a source link (PDF and "
+        "arXiv page, or the original page) and update its recorded hash; fetch "
+        "does this for new extracts, so stamp retrofits older ones.",
+    )
+    keys = p.add_argument(
+        "keys", nargs="*", help="Citation keys; default is every completed extract."
+    )
+    set_completer(keys, key_completer("."))
+    add_standard_args(p, allow_toon=True)
+    p.set_defaults(func=verb_stamp)
 
     p = sub.add_parser("init", help="Scaffold a related-work/ for a new survey.")
     p.add_argument("--slug", help="Field slug (default: the parent directory name).")

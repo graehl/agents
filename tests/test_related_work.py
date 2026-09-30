@@ -95,6 +95,9 @@ papers:
 """
 
 
+ONE_HEADER = rw.source_header("https://arxiv.org/html/2001.00001", "One")
+
+
 def survey(tmp: Path) -> Path:
     """A survey root whose manifest starts out agreeing with disk."""
     root = tmp / "surveys" / "demo"
@@ -105,7 +108,7 @@ def survey(tmp: Path) -> Path:
     (related / "papers.yaml").write_text(MANIFEST)
     fetched = related / "extract" / "alpha2020-one"
     fetched.mkdir()
-    (fetched / "paper.md").write_text("# One\n")
+    (fetched / "paper.md").write_text(f"{ONE_HEADER}\n\n# One\n")
     (fetched / ".fetched").write_text(
         json.dumps(
             {
@@ -367,7 +370,7 @@ def test_audit_requires_tracked_markdown_provenance_and_local_assets():
         directory = root / "related-work" / "extract" / "alpha2020-one"
         markdown = directory / "paper.md"
         figure = directory / "figure.svg"
-        markdown.write_text("# One\n\n![Result](figure.svg)\n")
+        markdown.write_text(f"{ONE_HEADER}\n\n# One\n\n![Result](figure.svg)\n")
         figure.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>\n')
         sentinel_path = directory / ".fetched"
         sentinel = json.loads(sentinel_path.read_text())
@@ -404,7 +407,7 @@ def test_stage_force_adds_only_the_audited_subset():
         )
         directory = related / "extract" / "alpha2020-one"
         markdown = directory / "paper.md"
-        markdown.write_text("# One\n\n![Result](fig/figure.svg)\n")
+        markdown.write_text(f"{ONE_HEADER}\n\n# One\n\n![Result](fig/figure.svg)\n")
         (directory / "fig").mkdir()
         (directory / "fig" / "figure.svg").write_text(
             '<svg xmlns="http://www.w3.org/2000/svg"></svg>\n'
@@ -879,6 +882,55 @@ def test_manifest_paths_cannot_escape_the_survey():
         proc = run(root, "audit")
         _assert(proc.returncode == 70, proc.stderr)
         _assert("concept_page" in proc.stderr, proc.stderr)
+
+
+def test_source_header_links_the_original():
+    arxiv = rw.source_header("https://arxiv.org/html/2406.06619v1", "LoRA-Whisper")
+    _assert(
+        arxiv
+        == "**Source:** *LoRA-Whisper* — [PDF](https://arxiv.org/pdf/2406.06619v1)"
+        " · [arXiv](https://arxiv.org/abs/2406.06619v1)",
+        arxiv,
+    )
+    _assert(
+        "[PDF](https://arxiv.org/pdf/2007.10329)"
+        in rw.source_header("https://arxiv.org/pdf/2007.10329"),
+    )
+    _assert(
+        rw.source_header("https://example.test/paper.pdf")
+        == "**Source:** [PDF](https://example.test/paper.pdf)"
+    )
+    _assert(
+        rw.source_header("https://example.test/card")
+        == "**Source:** [original page](https://example.test/card)"
+    )
+
+
+def test_stamp_retrofits_old_extracts_and_keeps_audit_clean():
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        directory = root / "related-work" / "extract" / "alpha2020-one"
+        markdown = directory / "paper.md"
+        markdown.write_text("# One\n")  # an extract fetched before headers
+        sentinel_path = directory / ".fetched"
+        sentinel = json.loads(sentinel_path.read_text())
+        sentinel["markdown_sha256"] = rw._sha256_file(markdown)
+        sentinel_path.write_text(json.dumps(sentinel))
+
+        proc = run(root, "audit")
+        rules = {(row["key"], row["rule"]) for row in jsonl(proc)}
+        _assert(("alpha2020-one", "source-link") in rules, sorted(rules))
+
+        proc = run(root, "stamp")
+        _assert(proc.returncode == 0, proc.stderr)
+        (row,) = jsonl(proc)
+        _assert(row["status"] == "stamped", row)
+        _assert(markdown.read_text().startswith(ONE_HEADER + "\n\n# One"), markdown)
+        _assert(run(root, "audit").returncode == 0, "stamp must keep hashes true")
+
+        (row,) = jsonl(run(root, "stamp"))
+        _assert(row["status"] == "current", row)
+        _assert(markdown.read_text().count("**Source:**") == 1, "no stacked headers")
 
 
 def test_bare_numeric_arxiv_id_is_rejected():
