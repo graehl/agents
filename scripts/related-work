@@ -80,7 +80,7 @@ SAFE_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 HTML_METHODS = frozenset(("arxiv-html", "url-html"))
 LEGACY_HTML_METHODS = frozenset(("backfilled", "tcircuits-html"))
 HTML2TEXT_VERSION = "2025.4.15"
-HTML_DERIVATION = f"related-work html-md-v3 + html2text {HTML2TEXT_VERSION}"
+HTML_DERIVATION = f"related-work html-md-v4 + html2text {HTML2TEXT_VERSION}"
 HTML_FIDELITY = "visible-blocks-v2"
 # v1 required every block to pass; its sentinels remain valid under v2.
 ACCEPTED_HTML_FIDELITY = ("visible-blocks-v1", HTML_FIDELITY)
@@ -417,8 +417,107 @@ class _MathPreprocessor(HTMLParser):
         self.saw_content_root = False
         self.presentation: set[str] = set()
         self.content_presentation: set[str] = set()
+        # LaTeXML list items: <li class="ltx_item"><span class="ltx_tag_item">1.</span>
+        # <div class="ltx_para"><p>text</p></div></li>. Rendered as-is, the
+        # converter numbers the item itself, repeats the label, and puts the
+        # text in a detached paragraph ("1. 1." then the text).
+        self.lists: list[list] = []  # [tag, items seen]
+        # One entry per open <li>: list tag, 1-based index, whether the label
+        # was seen, whether the first paragraph may still be unwrapped, and
+        # the unwrapped tags as [tag, nested same-tag depth].
+        self.items: list[dict | None] = []
+        self.label: list[str] | None = None
+        self.label_depth = 0
+
+    _BULLET_LABELS = frozenset(("•", "∙", "·", "-", "–", "*", "◦"))
+
+    def _classes(self, attributes: list[tuple[str, str | None]]) -> set[str]:
+        for name, value in attributes:
+            if name.lower() == "class":
+                return set((value or "").split())
+        return set()
+
+    def _list_start(self, tag: str, attributes) -> bool:
+        """Handle LaTeXML list structure; True when the start tag is consumed."""
+        if self.label is not None:
+            if tag == "span":
+                self.label_depth += 1
+            return True
+        if tag in ("ol", "ul"):
+            self.lists.append([tag, 0])
+            return False
+        classes = self._classes(attributes)
+        if tag == "li":
+            if "ltx_item" in classes and self.lists:
+                self.lists[-1][1] += 1
+                self.items.append(
+                    {
+                        "list": self.lists[-1][0],
+                        "index": self.lists[-1][1],
+                        "labeled": False,
+                        "unwrap": True,
+                        "unwrapped": [],
+                    }
+                )
+            else:
+                self.items.append(None)
+            return False
+        item = self.items[-1] if self.items else None
+        if item is None:
+            return False
+        if tag == "span" and "ltx_tag_item" in classes and not item["labeled"]:
+            item["labeled"] = True
+            self.label = []
+            self.label_depth = 1
+            return True
+        unwrapped = item["unwrapped"]
+        if unwrapped and unwrapped[-1][0] == tag:
+            unwrapped[-1][1] += 1
+            return False
+        if item["unwrap"] and (
+            (tag == "div" and "ltx_para" in classes) or (tag == "p" and unwrapped)
+        ):
+            unwrapped.append([tag, 0])
+            if tag == "p":
+                item["unwrap"] = False
+            return True
+        return False
+
+    def _list_end(self, tag: str) -> bool:
+        """Close LaTeXML list structure; True when the end tag is consumed."""
+        if self.label is not None:
+            if tag == "span":
+                self.label_depth -= 1
+                if self.label_depth == 0:
+                    text = html.unescape("".join(self.label)).strip()
+                    self.label = None
+                    item = self.items[-1]
+                    default = (
+                        text in (f"{item['index']}.", f"{item['index']})")
+                        if item["list"] == "ol"
+                        else text in self._BULLET_LABELS
+                    )
+                    if text and not default:
+                        # LaTeXML follows the label with a space, kept as data.
+                        self._append(html.escape(text))
+            return True
+        item = self.items[-1] if self.items else None
+        if item is not None and item["unwrapped"] and item["unwrapped"][-1][0] == tag:
+            if item["unwrapped"][-1][1]:
+                item["unwrapped"][-1][1] -= 1
+                return False
+            item["unwrapped"].pop()
+            return True
+        if tag == "li" and self.items:
+            self.items.pop()
+        elif tag in ("ol", "ul") and self.lists:
+            self.lists.pop()
+        return False
 
     def _append(self, text: str, *, in_content: bool | None = None) -> None:
+        if self.label is not None:
+            self.label.append(text)
+            return
         self.output.append(text)
         is_content = bool(self.content_roots) if in_content is None else in_content
         if is_content:
@@ -542,6 +641,8 @@ class _MathPreprocessor(HTMLParser):
             self.block_math = attrs.get("display", "").lower() == "block"
             self.math_in_content = bool(self.content_roots)
             return
+        if self._list_start(tag, attributes):
+            return
         if tag == "img" and self._missing_image(attributes):
             self._append(self._missing_image_notice())
             return
@@ -603,6 +704,8 @@ class _MathPreprocessor(HTMLParser):
             if self.annotation_depth == self.math_depth and tag == "annotation":
                 self.annotation_depth = None
             self.math_depth -= 1
+            return
+        if self._list_end(tag):
             return
         self._append(f"</{tag}>")
         if tag in self._CONTENT_ROOTS and tag in self.content_roots:

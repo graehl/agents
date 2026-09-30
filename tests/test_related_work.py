@@ -493,6 +493,46 @@ def test_html_derivation_emits_tex_once_and_keeps_ignored_source_cache():
         _assert(result.fidelity.startswith(rw.HTML_FIDELITY), result)
 
 
+def _latexml_list(tag: str, cls: str, labels: list[str], inner: str = "") -> str:
+    items = "".join(
+        f'<li class="ltx_item" style="list-style-type:none;">'
+        f'<span class="ltx_tag ltx_tag_item">{label}</span> '
+        f'<div class="ltx_para"><p class="ltx_p">Item {index} text.</p>'
+        f"{inner if index == 1 else ''}</div></li>"
+        for index, label in enumerate(labels, 1)
+    )
+    return f'<{tag} class="{cls}">{items}</{tag}>'
+
+
+def test_latexml_list_items_keep_text_on_the_marker_line():
+    # arXiv HTML gives each item its own "1." label and a paragraph block;
+    # converted as-is that became "1. 1." with the text detached below.
+    processed, _replacements, _presentation = rw.preprocess_html(
+        _latexml_list("ol", "ltx_enumerate", ["1.", "2."])
+    )
+    _assert("ltx_tag_item" not in processed and "1." not in processed, processed)
+    _assert("<p" not in processed and "ltx_para" not in processed, processed)
+    _assert("<li" in processed and "Item 1 text." in processed, processed)
+
+    processed, *_ = rw.preprocess_html(_latexml_list("ul", "ltx_itemize", ["•"]))
+    _assert("•" not in processed and "<p" not in processed, processed)
+
+    processed, *_ = rw.preprocess_html(
+        _latexml_list("ol", "ltx_enumerate", ["(a)", "(b)"])
+    )
+    _assert("(a) Item 1 text." in processed, processed)
+
+
+def test_nested_latexml_list_keeps_outer_item_state():
+    inner = _latexml_list("ul", "ltx_itemize", ["•"])
+    processed, *_ = rw.preprocess_html(
+        _latexml_list("ol", "ltx_enumerate", ["1.", "2."], inner)
+    )
+    _assert(processed.count("<li") == 3, processed)
+    _assert("ltx_tag_item" not in processed and "<p" not in processed, processed)
+    _assert(processed.count("</div>") == processed.count("<div"), processed)
+
+
 def test_html_preprocessor_uses_alttext_when_tex_annotation_is_absent():
     processed, replacements, _presentation = rw.preprocess_html(
         r"""<p><math alttext="0"><mn>0</mn></math> <math alttext="wrong"><annotation encoding="application/x-tex">x_{1}</annotation></math></p>"""
