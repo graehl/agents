@@ -127,10 +127,19 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
 - **Run a pinned `html2text` through `uvx` for HTML derivation** (vs. vendoring
   it or requiring a global install): the pure-Python converter stays
   reproducible without importing its source into this repository. Before
-  accepting output, the engine requires at least 90% of each substantive
-  visible source block's five-word sequences in a link-free conversion,
-  requires every MathML expression exactly once as TeX, and records hashes plus
-  the result in `.fetched`.
+  accepting output, the engine scores each substantive visible source block
+  by the share of its five-word sequences found in a link-free conversion. It
+  accepts when at least 98% of all sequences survive, no more than 2% of
+  blocks (at least one) fall below 90%, and no flagged block of 30 or more
+  words falls below 50%. It requires every MathML expression exactly once as
+  TeX, and records hashes plus the result, including flagged blocks, in
+  `.fetched`.
+- **Tolerate a few short flagged blocks** (vs. requiring every block to
+  pass): a single caption, title block, page control or notation-heavy
+  sentence converting below 90% rejected whole papers whose body was intact;
+  ten sources in the 2026-09-30 speech surveys failed this way, recorded in
+  [the converter gap](../gaps/paper-html-markdown-conversion.md). The total
+  and long-block limits still reject a lost paragraph.
 - **Separate committed authority from source cache** (vs. treating the whole
   fetched page tree as one artifact): Markdown and its referenced assets are
   reviewed and distributed; raw HTML/PDF can remain locally for comparison but

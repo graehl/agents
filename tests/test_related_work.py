@@ -556,6 +556,69 @@ def test_html_derivation_rejects_a_dropped_visible_block():
         )
 
 
+def _paper_paragraphs(count: int) -> list[str]:
+    return [
+        f"Paragraph number {index} reports a distinct finding about model "
+        f"variant {index} with its own evaluation detail."
+        for index in range(count)
+    ]
+
+
+def test_fidelity_tolerates_one_short_garbled_block_in_an_intact_paper():
+    # A figure caption or page control that converts badly must not reject
+    # an otherwise complete paper, as a single flagged block used to.
+    paragraphs = _paper_paragraphs(60)
+    caption = "Figure one joint prosody recognition model"
+    source = "".join(f"<p>{text}</p>" for text in paragraphs)
+    source += f"<figcaption>{caption}</figcaption>"
+    markdown = "\n\n".join(paragraphs) + "\n\nFigure 1: joint model\n"
+    fidelity = rw._verify_visible_blocks(source, [], markdown)
+    _assert(fidelity.startswith(rw.HTML_FIDELITY), fidelity)
+    _assert("blocks=60/61" in fidelity, fidelity)
+
+
+def test_fidelity_rejects_a_lost_long_paragraph_among_many():
+    paragraphs = _paper_paragraphs(60)
+    long_paragraph = " ".join(f"word{index}" for index in range(40))
+    source = "".join(f"<p>{text}</p>" for text in [*paragraphs, long_paragraph])
+    markdown = "\n\n".join(paragraphs) + "\n"
+    try:
+        rw._verify_visible_blocks(source, [], markdown)
+    except rw.HtmlDerivationError as exc:
+        _assert("visible-block fidelity failed" in str(exc), exc)
+    else:
+        _assert(False, "a missing long paragraph must reject the derivation")
+
+
+def test_fidelity_rejects_more_flagged_blocks_than_tolerated():
+    paragraphs = _paper_paragraphs(60)
+    source = "".join(f"<p>{text}</p>" for text in paragraphs)
+    markdown = "\n\n".join(paragraphs[:57]) + "\n"
+    try:
+        rw._verify_visible_blocks(source, [], markdown)
+    except rw.HtmlDerivationError as exc:
+        _assert("tolerated 1" in str(exc), exc)
+    else:
+        _assert(False, "three flagged blocks of sixty exceed the tolerance")
+
+
+def test_v1_fidelity_sentinel_remains_valid():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        markdown = directory / "paper.md"
+        markdown.write_text("paper text\n")
+        sentinel = rw.Sentinel(
+            "arxiv-html",
+            "https://arxiv.org/html/2001.00001",
+            markdown="paper.md",
+            derived_with=rw.HTML_DERIVATION,
+            source_sha256="source-hash",
+            markdown_sha256=rw._sha256_file(markdown),
+            fidelity="visible-blocks-v1 blocks=1/1 min=1.000 math=0/0",
+        )
+        _assert(not rw.html_derivation_missing(directory, sentinel), sentinel)
+
+
 def test_html_derivation_normalizes_candidate_links_before_scoring():
     with tempfile.TemporaryDirectory() as tmp:
         directory = Path(tmp)
@@ -815,6 +878,19 @@ def test_manifest_paths_cannot_escape_the_survey():
         proc = run(root, "audit")
         _assert(proc.returncode == 70, proc.stderr)
         _assert("concept_page" in proc.stderr, proc.stderr)
+
+
+def test_bare_numeric_arxiv_id_is_rejected():
+    # Unquoted, 2110.01900 loads as the float 2110.019 and names another paper.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        manifest = root / "related-work" / "papers.yaml"
+        manifest.write_text(
+            manifest.read_text().replace('arxiv: "2001.00001"', "arxiv: 2110.01900")
+        )
+        proc = run(root, "audit")
+        _assert(proc.returncode == 70, proc.stderr)
+        _assert("quoted string" in proc.stderr, proc.stderr)
 
 
 def test_download_only_never_marks_html_as_extracted():

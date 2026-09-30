@@ -79,8 +79,17 @@ HTML_METHODS = frozenset(("arxiv-html", "url-html"))
 LEGACY_HTML_METHODS = frozenset(("backfilled", "tcircuits-html"))
 HTML2TEXT_VERSION = "2025.4.15"
 HTML_DERIVATION = f"related-work html-md-v2 + html2text {HTML2TEXT_VERSION}"
-HTML_FIDELITY = "visible-blocks-v1"
+HTML_FIDELITY = "visible-blocks-v2"
+# v1 required every block to pass; its sentinels remain valid under v2.
+ACCEPTED_HTML_FIDELITY = ("visible-blocks-v1", HTML_FIDELITY)
 MIN_BLOCK_COVERAGE = 0.9
+# A few short blocks (captions, page controls, title blocks, notation-heavy
+# sentences) routinely convert below MIN_BLOCK_COVERAGE while the paper body
+# is intact; one such block used to reject the whole source.
+MAX_FLAGGED_BLOCK_FRACTION = 0.02
+MIN_TOTAL_COVERAGE = 0.98
+LOST_BLOCK_MIN_TOKENS = 30
+LOST_BLOCK_COVERAGE = 0.5
 REQUIRED_CITATION_FIELDS = ("title", "authors", "venue", "year")
 
 
@@ -231,6 +240,14 @@ def load_survey(start: Path) -> Survey:
                 detail={"entry": str(entry)[:120]},
             )
         arxiv, url = entry.get("arxiv"), entry.get("url")
+        if arxiv is not None and not isinstance(arxiv, str):
+            # YAML reads a bare 2110.01900 as the float 2110.019, silently
+            # dropping trailing zeros and fetching a different paper id.
+            die(
+                f"papers[{index}] `arxiv` must be a quoted string, not {arxiv!r}",
+                ExitCode.SOFTWARE,
+                detail={"key": str(entry["key"])},
+            )
         papers.append(
             Paper(
                 key=_manifest_key(entry["key"], index),
@@ -711,10 +728,11 @@ def _ngrams(tokens: tuple[str, ...], width: int) -> set[tuple[str, ...]]:
 
 def _block_coverage(
     target: dict[int, set[tuple[str, ...]]], source: tuple[str, ...]
-) -> float:
+) -> tuple[int, int]:
+    """(found, expected) n-gram counts for one source block."""
     width = min(5, len(source))
     expected = _ngrams(source, width)
-    return len(expected & target[width]) / len(expected)
+    return len(expected & target[width]), len(expected)
 
 
 def _run_html2text(source: str, *options: str) -> str:
@@ -763,22 +781,32 @@ def _verify_visible_blocks(
 
     target_words = _semantic_words(_delink_markdown(prose_markdown))
     target_ngrams = {width: _ngrams(target_words, width) for width in range(1, 6)}
-    scores = [_block_coverage(target_ngrams, block) for block in blocks]
-    failures = [
+    counts = [_block_coverage(target_ngrams, block) for block in blocks]
+    scores = [found / expected for found, expected in counts]
+    total = sum(found for found, _ in counts) / sum(expected for _, expected in counts)
+    flagged = [
         (score, block)
         for score, block in zip(scores, blocks, strict=True)
         if score < MIN_BLOCK_COVERAGE
     ]
-    if failures:
-        score, block = min(failures)
+    lost = [
+        (score, block)
+        for score, block in flagged
+        if score < LOST_BLOCK_COVERAGE and len(block) >= LOST_BLOCK_MIN_TOKENS
+    ]
+    tolerated = max(1, int(MAX_FLAGGED_BLOCK_FRACTION * len(blocks)))
+    if flagged and (lost or len(flagged) > tolerated or total < MIN_TOTAL_COVERAGE):
+        score, block = min(lost or flagged)
         sample = " ".join(block[:16])
         raise HtmlDerivationError(
-            f"visible-block fidelity failed for {len(failures)}/{len(blocks)} "
-            f"blocks (minimum {score:.3f}; sample: {sample})"
+            f"visible-block fidelity failed for {len(flagged)}/{len(blocks)} "
+            f"blocks (tolerated {tolerated}; total {total:.3f}; "
+            f"minimum {score:.3f}; sample: {sample})"
         )
     return (
-        f"{HTML_FIDELITY} blocks={len(blocks)}/{len(blocks)} "
-        f"min={min(scores):.3f} math={len(replacements)}/{len(replacements)}"
+        f"{HTML_FIDELITY} blocks={len(blocks) - len(flagged)}/{len(blocks)} "
+        f"min={min(scores):.3f} total={total:.3f} "
+        f"math={len(replacements)}/{len(replacements)}"
     )
 
 
@@ -852,7 +880,7 @@ def html_derivation_missing(directory: Path, sentinel: Sentinel) -> bool:
         or not markdown.is_file()
         or not sentinel.source_sha256
         or not sentinel.markdown_sha256
-        or not (sentinel.fidelity or "").startswith(HTML_FIDELITY)
+        or not (sentinel.fidelity or "").startswith(ACCEPTED_HTML_FIDELITY)
         or (
             markdown is not None
             and markdown.is_file()
@@ -1485,7 +1513,7 @@ def audit_findings(survey: Survey) -> list[dict]:
             if (
                 not sentinel.source_sha256
                 or not sentinel.markdown_sha256
-                or not (sentinel.fidelity or "").startswith(HTML_FIDELITY)
+                or not (sentinel.fidelity or "").startswith(ACCEPTED_HTML_FIDELITY)
             ):
                 report(
                     paper.key,
