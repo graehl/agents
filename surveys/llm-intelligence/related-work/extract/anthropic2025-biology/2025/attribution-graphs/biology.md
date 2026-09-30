@@ -1,6 +1,10 @@
 **Source:** *On the Biology of a Large Language Model* — [original page](https://transformer-circuits.pub/2025/attribution-graphs/biology.html)
 
-[ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
+[ 
+
+![Figure](figures/a7dc1926f3b33c648be1c476ca55d240af22ac7077e0e054ecf0639c11ef9f57.svg)
+
+ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
 
 # On the Biology of a Large Language Model
 
@@ -8,7 +12,55 @@
 
 ## We investigate the internal mechanisms used by Claude 3.5 Haiku — Anthropic's lightweight production model — in a variety of contexts, using our circuit tracing methodology.
 
-[![](png/img_4e42fad1d7624d1e.png)Introductory Example: Multi-step Reasoning](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-tracing)[![](png/img_d0c64095c2ee1a39.png)Planning in Poems](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-poems)[![](png/img_072a671aa71b862c.png)Multilingual Circuits](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-multilingual)[![](png/img_d5eca16b5d6d6a2c.png)Addition](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-addition)[![](png/img_613eabd7cd661a8f.png)Medical Diagnoses](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-medical)[![](png/img_ed6bb634b6bca206.png)Entity Recognition and Hallucinations](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-hallucinations)[![](png/img_17ed58793834d85d.png)Refusals](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-refusals)[![](png/img_44b009b0938547fc.png)Life of a Jailbreak](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-jailbreak)[![](png/img_97759ae33b4b89ce.png)Chain-of-thought Faithfulness](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-cot)[![](png/img_3e062bf43307af32.png)Uncovering Hidden Goals in a Misaligned Model](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-misaligned)[![](png/img_bff853ebcc3302e7.png)Commonly Observed Circuit Components and Structure](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#structure)[![](png/img_8a8ad46492f8a55a.png)Limitations](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#limitations)
+[ 
+
+![Figure](figures/3d39e729480ccb5b29d968228d1ac985ab49d5fed59e1e5942b01c0bb5c1a84e.png)
+
+ Introductory Example: Multi-step Reasoning](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-tracing)[ 
+
+![Figure](figures/044ca8828a01a63195c9543119dd1fa20238928c3b463b6fd53214ed2b62efd6.png)
+
+ Planning in Poems](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-poems)[ 
+
+![Figure](figures/39e6a66515722d58046db440b7c773b472a6f14bac6775b640c8964cf8dbc20d.png)
+
+ Multilingual Circuits](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-multilingual)[ 
+
+![Figure](figures/30bef585734af39bccd709372ac15a6ebc1128e4662ebe11bcf1b6b8cd478179.png)
+
+ Addition](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-addition)[ 
+
+![Figure](figures/9ced2a23fbffa105d3d18bf1cd918a55665cec7657307de42f964d986423a1d5.png)
+
+ Medical Diagnoses](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-medical)[ 
+
+![Figure](figures/2ca57c2d1eb55822ba59a628329f8c9c148361e6434f927004cd9427daf04ee1.png)
+
+ Entity Recognition and Hallucinations](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-hallucinations)[ 
+
+![Figure](figures/41a4a165c850f2626a0d7d2960f77dce84c0b7aa7b49f9e0f78a50923ca89281.png)
+
+ Refusals](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-refusals)[ 
+
+![Figure](figures/d3ff2a2abf1c80642f11fa2dacd46761a727c120fb1af4f9733cd4c65fb14f75.png)
+
+ Life of a Jailbreak](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-jailbreak)[ 
+
+![Figure](figures/43aee094f9fcd17ca2d6cdc67647ed0d487231b8575f2b4d57aa490d7f32691e.png)
+
+ Chain-of-thought Faithfulness](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-cot)[ 
+
+![Figure](figures/3afebcf3ef1b971f358681666e268a653c608c9a5aaead374a0c6b33aaf0468d.png)
+
+ Uncovering Hidden Goals in a Misaligned Model](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#dives-misaligned)[ 
+
+![Figure](figures/fd11fa9b887a2299707747101e5c68b1e93683c3d6a4addc34458bc443d97b3a.png)
+
+ Commonly Observed Circuit Components and Structure](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#structure)[ 
+
+![Figure](figures/3b6334b75d85f89c7977640ee03bead9cacc516dfbab9b5068cc0d7804ffc14b.png)
+
+ Limitations](https://transformer-circuits.pub/2025/attribution-graphs/biology.html#limitations)
 
 ### Authors
 
@@ -319,13 +371,16 @@ But do the planning features influence the entire sentence structure? We test th
 
 In addition to the examples above, we injected two planned word features (“rabbit” and “green”) in a random sample of 25 poems, and found that the model ended its line with the injected planned word in 70% of cases. We show a few samples of success cases below.
 
+
+
 First line| Second line (original)| Second line (“green” injection)| Second line (“rabbit” injection)  
 ---|---|---|---  
 The silver moon casts its gentle light,| Illuminating the peaceful night| Upon the meadow's verdant green.| Illuminating the path of a lone white rabbit.  
 The clouds are gray, the raindrops fall,| Nature's symphony, enchanting us all| And all the world is wet and green.| Soft and slow like a timid hare.  
 Boxes of books, a reader's delight,| Stacked to the ceiling, a bibliophile's might| Shelves lined with stories, vibrant and green.| Filled with stories that make pages hop and bounce like a rabbit.  
-There once was a bot named Claude,| Whose responses were never flawed| who tried to be helpful and green.| Who loved to chat like a rabbit.  
-  
+There once was a bot named Claude,| Whose responses were never flawed| who tried to be helpful and green.| Who loved to chat like a rabbit.
+
+   
   
   
 
@@ -466,7 +521,11 @@ The prompt above presents a “raw” addition problem of the form “a + b =”
 
 We noticed when inspecting dataset examples that the lookup table feature from the 36+59 prompt that responds to adding numbers ending in 6 and 9 (or vice versa) was also active on a host of diverse contexts beyond arithmetic.
 
-![](png/img_9ac0f261fe832699.png)
+
+
+![Figure](figures/337fc201e805edf6856a67a6cc2a24ee016d06526fa2950971f88a572d01d828.png)
+
+ 
 
 Inspecting these in detail, we find that when this feature is active, there is often a reason to predict the next token might end in 5, coming from adding 6 and 9. Consider the below texts, in which the token where the feature activates is highlighted.
 
@@ -557,15 +616,27 @@ The model’s most likely completions are “visual disturbances,” and “prot
 
 We noticed that the model activated a number of features that activate in contexts discussing preeclampsia and its associated symptoms. Some of these features, like the example below, activate most strongly on the word “preeclampsia.” Notably, in this prompt, the word “preeclampsia” does not appear – rather, the model represents it internally, apparently using similar internal machinery as if the word were spelled out explicitly.
 
-![](png/img_2bf7a2ccb335509d.png)
+
+
+![Figure](figures/b706a1f354e7797756a0f946c28c52feb06d48579a7f9eb0f413e3af0a756ede.png)
+
+ 
 
 Some of the other features activate on discussions of symptoms of preeclampsia:
 
-![](png/img_923027c48c088bba.png)
+
+
+![Figure](figures/82268d48b4aa8b5955fae4a00ee1b7ff1121b34c6e031b0868db5860327c3107.png)
+
+ 
 
 While others activate broadly on any context that discusses the condition:
 
-![](png/img_43f0a4366d575ff0.png)
+
+
+![Figure](figures/19f50e4dff53e118edfd39bd0919ce3ac019ab640e6fcee18340dd652302f0d1.png)
+
+ 
 
 For our purposes, we group all these features together into one category, as all of them indicate that the model is “thinking about” preeclampsia in one way or another.
 

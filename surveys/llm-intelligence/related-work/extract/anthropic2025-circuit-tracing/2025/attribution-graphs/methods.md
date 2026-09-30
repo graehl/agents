@@ -1,6 +1,10 @@
 **Source:** *Circuit Tracing: Revealing Computational Graphs in Language Models* — [original page](https://transformer-circuits.pub/2025/attribution-graphs/methods.html)
 
-[ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
+[ 
+
+![Figure](figures/c7e890d7ddd44af76d9e7ea4ff679af2582ed4fd7866c25d90734dd190a282fd.svg)
+
+ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
 
 # Circuit Tracing: Revealing Computational Graphs in Language Models
 
@@ -534,14 +538,22 @@ Our feature visualizations show snippets of samples from public datasets ([Commo
 
 18L Features (Hover)
 
+
+
 Layer 1| Layer 5 | Layer 9| Layer 13| Layer 17  
----|---|---|---|---  
-  
+---|---|---|---|---
+
+ 
+
 Haiku Features (Hover)
 
+
+
 First layer| Mid-layer| Final layer  
----|---|---  
-  
+---|---|---
+
+ 
+
 At a very coarse level, we find several types of features:
 
   * Input features that represent low-level properties of text (e.g. specific tokens or phrases). Most early-layer features are of this kind, but such features are also present in middle and later layers.
@@ -597,11 +609,15 @@ Below, we compare graphs built from our 10M CLT, 10M PLTs, and thresholded neuro
 
 One of the most important advantages of cross-layer transcoders is the extent to which they reduce the path lengths in the graph. To understand how large of a qualitative difference this is, we invite the reader to view these graphs generated with different types of replacement models for the same prompt.
 
+
+
 Replacement Model Type| Average Path Length| Graph Link  
 ---|---|---  
 Cross-Layer Transcoder (10m)| 2.3| [capital-analogy-clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=capital-analogy-clt-18l)  
-Per-Layer Transcoders (10m)| 3.7| [capital-analogy-plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=capital-analogy-slt-18l)  
-  
+Per-Layer Transcoders (10m)| 3.7| [capital-analogy-plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=capital-analogy-slt-18l)
+
+ 
+
 We find that one important way in which cross-layer transcoders collapse paths is the case of amplification, where many similar features activate each other in sequence. For example, on the prompt Zagreb:Croatia::Copenhagen: the per-layer transcoder shows a path of length 7 composed entirely of Copenhagen [features](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=capital-analogy-slt-18l-path-highlight) while the cross-layer transcoder collapses them all down to layer 1 [features](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=capital-analogy-clt-18l-path-highlight).
 
 This example illustrates both the advantages and disadvantages of consolidating amplification of a repeated computation across multiple layers into a single cross-layer feature. On one hand, it makes interpretability substantially easier, as it automatically collapses duplicate computations into a single feature without needing to do post hoc analysis or clustering. It also reduces the risk of “chain-breaking”, where missing one feature in an amplification chain inhibits the ability to trace back further into the graph (i.e., a relevant amplification feature is missing for one step of the path, breaking the causal chain). On the other hand, the CLT has a different causal structure than the underlying model, which increases the risk that the replacement model’s mechanisms diverge from the underlying model’s. In the above example, we observe a set of Copenhagen features that activate a Denmark feature, which initiates a mutually reinforcing chain of Copenhagen and Denmark features. This dynamic is invisible in CLT graphs, and to the extent this dynamic is also present in the underlying model, it is an example of CLTs being mechanistically unfaithful.
@@ -623,11 +639,15 @@ Below, we report average unpruned graph replacement and completeness scores for 
 
 To contextualize the qualitative difference we observe in graphs with varying scores, we invite the reader to explore some representative attribution graphs. Note, these graphs are pruned with our default pruning, which we describe in more detail below.
 
+
+
 Replacement Model Type| Completeness Score| Replacement Score| Graph Link  
 ---|---|---|---  
 Cross-Layer Transcoder (10m)| 0.80| 0.61| [uspto-telephone-clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=uspto-telephone-clt-18l)  
-Per-Layer Transcoders (10m)| 0.78| 0.37| [uspto-telephone-plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=uspto-telephone-slt-18l)  
-  
+Per-Layer Transcoders (10m)| 0.78| 0.37| [uspto-telephone-plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=uspto-telephone-slt-18l)
+
+ 
+
 #### [Graph Pruning](https://transformer-circuits.pub/2025/attribution-graphs/methods.html#evaluating-graphs-pruning)
 
 We rely heavily on pruning to make graphs more digestible. To decide how much to prune the graph, we can use the completeness and replacement metrics described above, but with pruned nodes now counting towards the error terms. By varying the pruning threshold, we chart a frontier between the number of {nodes, edges} and {replacement, completeness} scores (see [Appendix](https://transformer-circuits.pub/2025/attribution-graphs/methods.html#appendix-graph-pruning) for full plots and details).
@@ -636,13 +656,17 @@ We find we can generally reduce the number of nodes by an order of magnitude whi
 
 For a sense of the qualitative difference, in the table below we link to attribution graphs for the same prompt (another acronym) but with different pruning thresholds.
 
+
+
 Pruning Threshold| Completeness Score| Node Count| Graph Link  
 ---|---|---|---  
 0.95| 0.87| 236| [iasg-p95](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=iasg-clt-18l-p95)  
 0.9| 0.83| 137| [iasg-p90](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=iasg-clt-18l-p90)  
 0.8 (default)| 0.70| 55| [iasg-p80](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=iasg-clt-18l-p80)  
-0.7| 0.58| 27| [iasg-p70](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=iasg-clt-18l-p70)  
-  
+0.7| 0.58| 27| [iasg-p70](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=iasg-clt-18l-p70)
+
+ 
+
 ### [Evaluating Mechanistic Faithfulness](https://transformer-circuits.pub/2025/attribution-graphs/methods.html#evaluating-model-faithfulness)
 
 As discussed in [§ Validating Attribution Graph Hypotheses with Interventions](https://transformer-circuits.pub/2025/attribution-graphs/methods.html#graphs-interventions), attribution graphs provide hypotheses about mechanisms, which must be validated with perturbation experiments. This is because attribution graphs describe interactions in the local replacement model, which may differ from the underlying model. In most of our work, we use attribution graphs as a tool for generating hypotheses about specific mechanisms (“Feature A activates Feature B, which increases the likelihood of Token X”) operating inside the model, which correspond to “snippets” of the attribution graph. We summarize the results of three kinds of validation experiments, which are described in more detail in [§&nbspAppendix;: Validating the Replacement Model](https://transformer-circuits.pub/2025/attribution-graphs/methods.html#appendix-lrm-validation). 
@@ -1618,15 +1642,21 @@ Due to the expense of graph generation, we used a dataset size of n=260 for grap
 
 The below table contains a random sample of prompts and graphs for our Pile minus books evaluation set. It includes graphs for both our 10m cross-layer transcoder (CLT) and 10m per-layer transcoder (PLT) dictionaries on our 18L model.
 
+
+
 Links| Prompt| Target  
 ---|---|---  
 [clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-29-clt) [plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-29-plt)| `arrangement, the optical fiber 104 is optically` | `coupled`  
 [clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-37-clt) [plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-37-plt)| `" "I already called the police." "They\'re almost here." "You got to go." "Goodbye." "Good` | `luck`  
 [clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-50-clt) [plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-50-plt)| `types, such as a front projection type and a rear projection type, depending on how images are`| `projected`  
 [clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-99-clt) [plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-99-plt)| `for grants at the moment to pay a few students a paltry sum to stay and work in her lab over the` | `summer`  
-[clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-179-clt) [plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-179-plt)| `invention. In a separate aspect, the invention provides a method of potentiating the actions of other CNS active compounds. This method comprises administering an`| `effective`  
-  
+[clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-179-clt) [plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pmb-179-plt)| `invention. In a separate aspect, the invention provides a method of potentiating the actions of other CNS active compounds. This method comprises administering an`| `effective`
+
+ 
+
 We also include a sample of the basic curated prompts we used in the development of our techniques and their corresponding CLT and PLT graphs. These were designed to exercise basic capabilities such as factual recall, analogical reasoning, memorization, arithmetic, multilinguality, and in-context learning.
+
+
 
 Links| Prompt| Target  
 ---|---|---  
@@ -1646,3 +1676,5 @@ Links| Prompt| Target
 [clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pandas-group-clt-clean) [plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=pandas-group-plt-clean)| `def customer_spending(transaction_df): for customer_id, customer_df in transaction_df.` | `group`  
 [clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=season-after-spring-fr-clt-clean) [plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=season-after-spring-fr-plt-clean)| `La saison après le printemps s'appelle l'` | `été`  
 [clt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=str-indexing-pos-0-clt-clean) [plt](https://transformer-circuits.pub/2025/attribution-graphs/static_js/attribution_graphs/index.html?slug=str-indexing-pos-0-plt-clean)| `a = "Craig" assert a[0] == " `| `C`
+
+ 

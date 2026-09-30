@@ -1,0 +1,8 @@
+<svg width="36" height="25" viewBox="0 0 36 25" fill="none" xmlns="http://www.w3.org/2000/svg"><style>
+        .article-header {width: 100%; padding: 10px; padding-bottom: 20px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; }
+        .home-link {font-size: 100%; color: #333;}
+        a.logo {display: flex; text-decoration: none;}
+    </style><style>d-title:first-of-type {display: none;}</style><style>d-byline { display: none; } .d-byline-container { border-top: 1px solid rgba(0,0,0,0.1); border-bottom: 1px solid rgba(0,0,0,0.1); padding-top: 20px; padding-bottom: 20px; } .d-byline { grid-column: text; display: grid; grid-template-columns: 5fr 1fr; grid-gap: 20px; font-size: 0.8rem; line-height: 1.8em; } .d-byline h3 { font-size: 0.6rem; font-weight: 400; color: rgba(0,0,0,0.5); margin: 0; text-transform: uppercase; margin-bottom: 4px; } .d-byline .authors div { line-height: 1.5; } .d-byline .authors sup { font-size: 80%; margin-right: -4px; } .d-byline .author { margin-right: 6px; white-space: nowrap; } .d-byline .info { grid-column: 1 / -1; color: rgba(0,0,0,0.5); font-size: 80%; line-height: 1.5; margin-top: -10px; } .d-byline a { color: inherit; text-decoration: none; }</style>
+        <path d="M24.8304 0H19.5612L29.1696 24.1071H34.4388L24.8304 0Z" fill="#1F1F1E"/>
+        <path d="M9.60842 0L0 24.1071H5.37245L7.33753 19.0446H17.3895L19.3546 24.1071H24.727L15.1186 0H9.60842ZM9.07531 14.5676L12.3635 6.09566L15.6517 14.5676H9.07531Z" fill="#1F1F1E"/>
+    </svg>
