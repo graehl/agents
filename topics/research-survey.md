@@ -66,6 +66,13 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
   the paper title — is added later, and only for a paper that earns a concept
   page. So extracts are keyed by citation key: keying them by `short` orphans
   every already-fetched extract the day a handle is assigned.
+- **An extract starts with a link to its original.** Its first line is
+  `**Source:** *Title* — [PDF](…) · [arXiv](…)`, or `[PDF](…)` or
+  `[original page](…)` for non-arXiv sources. Reports and papers can then cite
+  our grounded extract directly, and a reader can reach the paper in one
+  click. `fetch` writes the line and records the Markdown hash after it.
+  `related-work stamp` retrofits older extracts, and `audit` reports a missing
+  line as `source-link` drift.
 - **Committed Markdown is the full-text extract authority.** Every fetched
   survey commits its `.md`, `.fetched` provenance, and each local figure or
   image the Markdown references — and only those. Saved HTML/PDF, scripts,
