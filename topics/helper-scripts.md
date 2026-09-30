@@ -441,6 +441,14 @@ and `build-boot link [--check] [--to-global]`; acli baseline with completion.
   (`{"targets": [...]}`), else the standard paths for Claude Code, Codex, Pi,
   OpenCode, Grok, and Copilot. Regular files and links elsewhere are reported
   and left alone.
+- `link` also renames, with suffix `.build-boot-disabled`, any
+  `~/.opencode/` or `~/.config/opencode/` `agent(s)`, `command(s)`,
+  `mode(s)`, `plugin(s)`, `skill(s)`, or `tool(s)` link that resolves to this
+  checkout or an ancestor: OpenCode globs those directories for definitions,
+  so such a link turns every repository Markdown or script file (vendored
+  `node_modules` included) into one, and startup fails on the first invalid
+  file. `--check` reports these as `misdirected` and exits 3; `mv` undoes the
+  rename.
 
 **Canonical source**: `scripts/build-boot` (in this repo); run from the
 checkout.

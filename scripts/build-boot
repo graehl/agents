@@ -38,7 +38,8 @@ from acli import (
 
 CAPABILITIES = ("complete",)
 EXIT_CODES = {
-    3: "check found a stale generated section, boot file, or link",
+    3: "check found a stale generated section, boot file, or link, or a misdirected "
+    "OpenCode discovery link",
     4: "a source file or generated-section marker is missing",
 }
 
@@ -64,6 +65,19 @@ DEFAULT_TARGETS = (
     "~/.grok/AGENTS.md",
     "~/.copilot/copilot-instructions.md",
 )
+
+# OpenCode config-directory subtrees it globs for definitions at startup
+# (`{agent,agents}/**/*.md`, `{plugin,plugins}/*.{ts,js}`, ...). A link
+# from one to this checkout or an ancestor makes every matching repo file
+# — vendored node_modules included — a definition, and OpenCode exits on
+# the first that fails its schema. `link` disables such links.
+DISCOVERY_DIRS = tuple(
+    f"{root}/{name}"
+    for root in ("~/.opencode", "~/.config/opencode")
+    for kind in ("agent", "command", "mode", "plugin", "skill", "tool")
+    for name in (kind, f"{kind}s")
+)
+DISABLED_SUFFIX = ".build-boot-disabled"
 
 
 @dataclass(frozen=True)
@@ -435,15 +449,54 @@ def link(args) -> int:
                 "target": str(destination),
             }
         )
+    rows += _disable_misdirected(repo, check=args.check)
     emit(rows, resolve_format(args), text="\n".join(_link_line(r) for r in rows))
-    stale = any(row["action"] == "stale" for row in rows)
+    stale = any(row["action"] in ("stale", "misdirected") for row in rows)
     return int(ExitCode.DATA) if stale else 0
+
+
+def _disable_misdirected(repo: Path, *, check: bool) -> list[dict]:
+    """Rename discovery-directory links that resolve to the checkout or above.
+
+    Renaming rather than deleting keeps the link target recoverable with `mv`.
+    """
+    rows = []
+    for value in DISCOVERY_DIRS:
+        path = Path(value).expanduser()
+        if not path.is_symlink():
+            continue
+        current = (path.parent / os.readlink(path)).resolve()
+        if not repo.is_relative_to(current):
+            continue
+        disabled = path.with_name(path.name + DISABLED_SUFFIX)
+        if not check:
+            if disabled.exists() or disabled.is_symlink():
+                raise BuildError(
+                    f"cannot disable {path}: {disabled} already exists",
+                    ExitCode.USAGE,
+                    path=str(path),
+                    target=str(current),
+                )
+            os.rename(path, disabled)
+        rows.append(
+            {
+                "path": str(path),
+                "action": "misdirected" if check else "disable",
+                "target": str(current),
+                "moved_to": str(disabled),
+            }
+        )
+    return rows
 
 
 def _link_line(row: dict) -> str:
     detail = row.get("target") or row.get("state", "")
     if "previous" in row:
         detail = f"{row['previous']} -> {row['target']}"
+    if "moved_to" in row:
+        detail = f"-> {row['target']} (covers this checkout); renamed {row['moved_to']}"
+        if row["action"] == "misdirected":
+            detail = f"-> {row['target']} (covers this checkout); would rename"
     return f"{row['action']}: {row['path']} {detail}".rstrip()
 
 
@@ -486,12 +539,14 @@ def build_parser():
         "link",
         help="Point harness instruction symlinks that target the global policy or boot at the "
         f'boot file. Targets come from {CONFIG} (JSON {{"targets": [...]}}) or the standard '
-        "harness paths; regular files and foreign links are reported and left alone.",
+        "harness paths; regular files and foreign links are reported and left alone. Also "
+        f"renames (suffix {DISABLED_SUFFIX}) OpenCode agent/command/mode/plugin/skill/tool "
+        "directory links that resolve to this checkout or an ancestor.",
     )
     link_cmd.add_argument(
         "--check",
         action="store_true",
-        help="Change nothing; exit 3 when a link needs retargeting.",
+        help="Change nothing; exit 3 when a link needs retargeting or disabling.",
     )
     link_cmd.add_argument(
         "--to-global",

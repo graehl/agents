@@ -153,6 +153,39 @@ def test_link_retargets_only_links_to_this_policy() -> None:
         assert Path(os.readlink(ours)) == repo / "AGENTS.global.md"
 
 
+def test_link_disables_opencode_discovery_links_covering_the_checkout() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        root = Path(root)
+        repo = _repo(root)
+        (repo / "skills").mkdir()
+        home = root / "home"
+        (home / ".config/agents").mkdir(parents=True)
+        (home / ".config/agents/build-boot.json").write_text('{"targets": []}')
+        (home / ".opencode").mkdir()
+        (home / ".config/opencode").mkdir()
+        whole_repo = home / ".opencode/agents"
+        ancestor = home / ".config/opencode/plugins"
+        skills = home / ".opencode/skills"
+        os.symlink(repo, whole_repo)
+        os.symlink(root, ancestor)
+        os.symlink(repo / "skills", skills)
+        assert _run(repo, "build").returncode == 0
+        check = _run(repo, "link", "--check", home=home)
+        assert check.returncode == 3, check.stdout
+        assert whole_repo.is_symlink() and ancestor.is_symlink()
+        result = _run(repo, "link", home=home)
+        assert result.returncode == 0, result.stderr
+        rows = [json.loads(line) for line in result.stdout.splitlines()]
+        assert {Path(r["path"]) for r in rows if r["action"] == "disable"} == {
+            whole_repo,
+            ancestor,
+        }
+        assert not whole_repo.exists() and not ancestor.exists()
+        assert Path(os.readlink(home / ".opencode/agents.build-boot-disabled")) == repo
+        assert Path(os.readlink(skills)) == repo / "skills"
+        assert _run(repo, "link", "--check", home=home).returncode == 0
+
+
 if __name__ == "__main__":
     tests = [
         value for name, value in sorted(globals().items()) if name.startswith("test_")
