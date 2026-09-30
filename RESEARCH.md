@@ -27,7 +27,8 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 - [`_RESEARCH/artifacts.md`](_RESEARCH/artifacts.md) — before creating,
   reorganizing, or materially updating a research branch's paper proposal,
   paper, handout, research blog, log, task structure, program, process map,
-  artifact inventory, result table, or progress report.
+  artifact inventory, result table, progress report, or other reader-facing
+  report (feasibility or cost estimate, decision brief).
 - [`_RESEARCH/direction.md`](_RESEARCH/direction.md) — before field-survey,
   prior-art, or direction-ranking work, and when a material decision or changed
   evidence state triggers the research advisor; also when an advisor-governed

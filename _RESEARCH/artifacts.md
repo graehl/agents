@@ -24,6 +24,7 @@ publication form.
 | Write a log entry | Research log conventions; Research log entry template |
 | Write a paper | Research paper conventions, including placement, speculative drafts, and first-contact sections; Paper, log, and task boundaries |
 | Write a progress report, handout, or research blog | Its named section; Paper, log, and task boundaries |
+| Write any other reader-facing report (feasibility or cost estimate, decision brief) | `topics/technical-writing.md` and `topics/research-writing.md`; Result tables and document boundaries for its tables |
 | Author a result table or claim-bearing figure in any form | Result tables and document boundaries; the figure routes under Research paper conventions |
 
 ### Task and branch structure
@@ -279,7 +280,10 @@ follow-ups stay private.
 
 ### Result tables and document boundaries
 
-Research result tables must include:
+Research result tables must include the following for results the program
+produced. For results cited from a publisher or paper that did not report
+them, say so once in the document's scope statement instead of under each
+table.
 - The **split** (dev / test / dev-subset) and **N** (number of examples) used for scoring.
   A table row without these is uninterpretable after time passes.
 - Training and decode comparisons must also report **wall time**; decode rows must report

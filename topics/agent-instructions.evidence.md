@@ -5290,3 +5290,24 @@ Contributing-model: opus-5.5
   context cost, not protocol membership alone.
 
 Contributing-model: 6-Astra
+
+## 2026-09-30 — global route for reader-facing documents
+
+Contributing-model: opus-5.5.
+
+`AGENTS.global.md` § Documents for readers adds a boot-resident route to
+`writing.md` and its genre topics. Cause: an Astra feasibility report in
+`~/draft` never loaded the writing topics because their only trigger site,
+`GLOSSARY.agents.md` Governs rows, loads only inside this checkout (full
+incident in `topics/writing.evidence.md`, same date). User direction: a
+truly mandatory read must be triggered from the single boot file, and a
+trigger broad enough to cover any text file gains nothing, so the route
+lists document kinds and excludes working records. The route carries its
+immediate steer (answer as asked in the asker's terms; reader's words,
+not working vocabulary) for an agent that defers the read.
+
+Open: the other Governs rows share this defect for work outside
+`~/agents`. The user proposed compiling them into boot with shared
+conditions factored into groups (this route is the writing group), via a
+build step or an `~/agents` exception; related to
+`gaps/agent-specific-durable-boot-compilation.md`.

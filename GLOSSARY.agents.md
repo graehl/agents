@@ -100,7 +100,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `story-project-layout` | Governs: creating or reorganizing a story project's files | [story-project-layout](topics/story-project-layout.md) |
 | `story-writing` | Governs: planning, drafting, or revising a story, screenplay, or character or world document | [story-writing](topics/story-writing.md) |
 | `successful-paper-forms` | Governs: choosing a paper's governing expository form | [successful-paper-forms](topics/successful-paper-forms.md) |
-| `technical-writing` | Governs: revising a handout, progress report, blog post, or paper for outside readers | [technical-writing](topics/technical-writing.md) |
+| `technical-writing` | Governs: drafting or revising a technical report, brief, estimate, proposal, handout, progress report, blog post, or paper for outside readers | [technical-writing](topics/technical-writing.md) |
 | tend | Filling idle GPU with the next highest-research-value run; what the steward does. `/steward` and "tend on-deck jobs" are the same request. | [on-deck](topics/on-deck.md) |
 | `testing` | Governs: writing or changing tests, or validating a behavior change | [testing](topics/testing.md) |
 | `testing-rider` | Governs: creating or using a topic's .testing.md | [testing-rider](topics/testing-rider.md) |

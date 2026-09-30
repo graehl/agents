@@ -1,20 +1,25 @@
 # Technical writing
 
-> Shared cold-reader guidance for research handouts, progress reports, blog
-> posts, and papers: make the current claim, evidence, scope, and decision
-> self-contained, worth reading in order, and legible when scanned.
+> Shared cold-reader guidance for technical reports, briefs, estimates,
+> proposals, handouts, progress reports, blog posts, and papers: make the
+> current claim, evidence, scope, and decision self-contained, worth reading
+> in order, and legible when scanned.
 
 Topic: `technical-writing`
-Governs: revising a handout, progress report, blog post, or paper for outside readers
+Governs: drafting or revising a technical report, brief, estimate, proposal, handout, progress report, blog post, or paper for outside readers
 
 ## Common contract
 
-Use this topic before substantially revising a research handout, progress
-report, blog post, or paper for readers outside the working session. The
-artifact-specific topic adds its own purpose, lifecycle, and evidentiary bar;
-this topic owns the advice they share. When the artifact makes research claims,
-also follow [`research-writing`](research-writing.md) for prior-art,
-attribution, and citation coverage.
+Use this topic before drafting or substantially revising a technical or
+research document for readers outside the working session: a report, brief,
+feasibility or cost estimate, proposal, handout, progress report, blog post,
+or paper. It narrows [`writing`](writing.md), whose general rules (reader and
+promise, report order, stated-once scope, working vocabulary, always-cut
+list, determiner check) apply here too. The artifact-specific topic adds its
+own purpose, lifecycle, and evidentiary bar; this topic owns the advice they
+share. When the artifact makes research claims, also follow
+[`research-writing`](research-writing.md) for prior-art, attribution, and
+citation coverage.
 
 Assume a first-time reader whose attention has not yet been earned. They do
 not know the working vocabulary and may have ignored earlier updates.
@@ -75,25 +80,12 @@ One inherited `writing` rule carries a limit in technical prose: an
 example earns its place only when it is the shortest way to make the claim
 checkable.
 
-Always a defect in technical prose, whatever rule seems to call for it: a
-sentence that restates the previous one in abstract or figurative form; a
-closing sentence that summarizes its own paragraph; a one-sentence paragraph
-or fragment for effect; a "not X but Y" or triad built for cadence; a
-rhetorical question; a bolded whole sentence; a sentence about the document
-instead of the subject ("we now turn to"); an opener asserting importance
-rather than showing it; "crucially", "notably", "importantly", "underscores",
-"highlights". The correction is deletion, not replacement. Text that
-remarks on its own compliance with a writing rule is a defect in every
-authored piece, not only technical ones; see
-[`writing` § Revising](writing.md#revising),
-"Following a rule is silent."
-
-Paragraph-local edits break determiners. "The X" presumes X was introduced
-earlier; when a local reorder, cut, or move changes which mention of X comes
-first, the new first mention becomes "a X" (or acquires its introduction),
-and a later "a X" may need to become "the X". After any non-global edit,
-find each definite reference in the edited span and confirm its antecedent
-still precedes it.
+Always a defect in technical prose, whatever rule seems to call for it,
+beyond the any-genre list in [`writing` § Revising](writing.md#revising): a
+one-sentence paragraph or fragment for effect; a rhetorical question; a
+bolded whole sentence; bold on a negation or qualifier ("do **not**",
+"**estimated**"), since bold marks the takeaway. The correction is deletion,
+not replacement.
 
 ## Order material for the reader
 
@@ -202,8 +194,11 @@ computer-science readers.
 - Link the applicable glossary near the opening when one exists, but still
   define, at first use, the jargon and abbreviations the named reader does
   not already hold; a definition for a peer is filler.
-- Replace internal run ids, checkpoint nicknames, and stage labels with literal
-  reader-facing names. Retain an internal handle only as a provenance link.
+- Replace internal run ids, checkpoint nicknames, stage labels, and
+  process vocabulary with literal reader-facing names
+  ([`writing` § Structure](writing.md#structure)). Retain an internal handle
+  only as a provenance link; another program's internal file is not
+  evidence an outside reader can use.
 - Separate measured observations, interpretations, deployment assumptions,
   normative choices, pending work, and downstream consequences. Do not rely on
   prose cadence to imply that one establishes another. This is a truth
@@ -215,7 +210,9 @@ computer-science readers.
 
 Every claim-bearing table or figure identifies its population and comparison,
 metric direction, split and N when applicable, principal baseline, and cost
-boundary. Define nonstandard columns and conditions adjacent to the display.
+boundary. For results cited from a source that did not report split, N, or
+cost, say so once in the document's scope statement, not under each
+display. Define nonstandard columns and conditions adjacent to the display.
 State the intended takeaway once, in the caption or in the prose beside the
 display, rather than asking a reader to infer it from bold cells; the other
 refers to the display instead of restating it.

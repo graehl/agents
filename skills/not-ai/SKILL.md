@@ -40,9 +40,10 @@ the stated reason for a change.
 
 ## 2. Instruction-based pass
 
-Read `topics/writing.md` (§ Structure, § Sentences, § Revising), and for
-technical prose `topics/technical-writing.md` § Priority order, whose
-always-a-defect list is the rule set behind most lint flags. Then read the
+Read `topics/writing.md` (§ Structure, § Sentences, § Revising, whose
+always-cut list is the rule set behind most lint flags), and for technical
+prose `topics/technical-writing.md` § Priority order and its technical
+defect list. Then read the
 target as its named reader, largest unit first, and look for what the lint
 cannot see:
 

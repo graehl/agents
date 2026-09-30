@@ -299,3 +299,49 @@ for each edit. A flagged "robust" in a statistics paragraph stays as a term
 of art. A request to "avoid AI style" loads the skill. Commit-message
 drafting is not a prose-improvement pass for a reader and is not routed
 here.
+
+## 2026-09-30 — report-writing failure traced to a missing route
+
+Contributing-model: opus-5.5.
+
+Incident (a). A `gpt-6-astra` session at medium effort (Codex
+`01a0f091-9a06-7c92-bd94-016d59081b07`, draft commit `bbd89aaad` in
+`~/draft`) wrote a 7,057-word speech-recognition feasibility report that
+answered the asker's question nowhere in one place, hedged on nearly every
+paragraph, repeated a split/N caveat after six publisher-sourced tables, and
+used process vocabulary (admitted, audited, certified, floor, envelope) from
+the research packets it had just read. Fable's diagnosis and the rewrite
+are in `~/draft/research/speech-recognition/handoffs/astra-report-writing-failures.md`
+and `research/speech-recognition/sections/`.
+
+The session log shows no read of `writing.md` or `technical-writing.md`. It
+read `_RESEARCH/{artifacts,evidence,direction}.md`, `document-writing.md`,
+and its browser companion. No route reached the writing topics from
+outside `~/agents`: `GLOSSARY.agents.md` Governs rows load only inside this
+checkout, global boot had no writing route, and the `_RESEARCH` action table
+and technical-writing's trigger named no generic report. So the draft does
+not test whether Astra follows the writing rules; it tests routing. The one
+model-shaped signal, literal application of the result-table rule to cited
+numbers, is fixed by scoping that rule, which helps every model.
+
+User-directed changes: a global `Documents for readers` route whose
+trigger lists document kinds and excludes working records (the user warned
+that a trigger covering any text file gains nothing); report/brief/estimate
+in technical-writing's trigger and the `_RESEARCH` router;
+`document-writing` hands prose to technical-writing; cited results get one
+scope statement instead of per-table caveats. The user asked that advice
+useful beyond technical prose move to `writing` when harmless to fiction:
+the determiner check, the any-genre always-cut list, stated-once scope and
+denial-earns-a-sentence (exposition-scoped), working vocabulary, prose
+number precision, and answer-the-asker in § Expository forms › Report. Kept
+technical-only because fiction uses them legitimately: one-sentence
+paragraphs, rhetorical questions, and bold (now also barred on negations
+and qualifiers).
+
+Traces: commit message, handoff, and gap drafting do not fire the global
+route; a chat answer is not a document; a story fires `writing` then
+`story-writing`, where the moved list cuts only cadence-built reversals and
+narrator-voice importance words, not dialogue. Hypothesis left open: rerun
+the report from the same notes on Astra and a Claude model now that the
+route exists, and count hedges, bolded negations, and undefined process
+terms before considering any Astra-scoped rule.
