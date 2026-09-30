@@ -1,0 +1,523 @@
+#!/usr/bin/env python3
+"""Compile the harness boot file and the generated sections of AGENTS.global.md.
+
+A harness protects only the one instruction file it loads, so an
+effectively unconditional read belongs inside that file. `build`
+regenerates the activity-route section of AGENTS.global.md from the
+Governs rows of GLOSSARY.agents.md, then writes the git-excluded
+AGENTS.boot.md: the global policy followed by AGENTS.user.md, which
+stays out of the tracked global file. `link` points the harness
+instruction symlinks at the boot file. Contract: topics/helper-scripts.md
+§ build-boot.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from dataclasses import dataclass
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import (
+    ExitCode,
+    add_standard_args,
+    argument_parser,
+    die,
+    emit,
+    maybe_complete,
+    resolve_format,
+)
+
+CAPABILITIES = ("complete",)
+EXIT_CODES = {
+    3: "check found a stale generated section, boot file, or link",
+    4: "a source file or generated-section marker is missing",
+}
+
+GLOBAL = "AGENTS.global.md"
+USER = "AGENTS.user.md"
+GLOSSARY = "GLOSSARY.agents.md"
+BOOT = "AGENTS.boot.md"
+CONFIG = Path("~/.config/agents/build-boot.json")
+BEGIN = "<!-- BEGIN generated: activity routes (scripts/build-boot) -->"
+END = "<!-- END generated: activity routes -->"
+USER_HEADING = "# User policy (compiled from AGENTS.user.md)"
+
+# Harness instruction paths that may link to the global policy. The
+# installer's table owns the canonical per-harness path; the extra entries
+# are aliases some harness versions also read.
+DEFAULT_TARGETS = (
+    "~/.claude/CLAUDE.md",
+    "~/.claude/AGENTS.md",
+    "~/.codex/AGENTS.md",
+    "~/.pi/agent/AGENTS.md",
+    "~/.config/opencode/AGENTS.md",
+    "~/.opencode/AGENTS.md",
+    "~/.grok/AGENTS.md",
+    "~/.copilot/copilot-instructions.md",
+)
+
+
+@dataclass(frozen=True)
+class Group:
+    key: str
+    condition: str
+    topics: tuple[str, ...]
+
+
+# One shared condition per group; a Governs row joins the group naming its
+# topic. A topic missing here lands in the final group and is reported, so
+# a new topic is routed before anyone classifies it.
+GROUPS = (
+    Group(
+        "documents",
+        "**Documents for readers.** Before drafting or substantially revising a "
+        "report, brief, estimate, proposal, handout, paper, blog post, or story, "
+        "read `writing` and the genre topic it names. Working records (handoffs, "
+        "gaps, logs, commit messages, instructions, code and its comments) do not "
+        "trigger this. Immediate steer: answer the question as asked, in the "
+        "asker's terms, first; use the reader's words, not the working vocabulary "
+        "of this project or its instructions.",
+        (
+            "writing",
+            "technical-writing",
+            "research-writing",
+            "paper-drafting",
+            "paper-writing",
+            "paper-reviewer",
+            "paper-attractiveness",
+            "successful-paper-forms",
+            "handout-writing",
+            "progress-report",
+            "blog-post-writing",
+            "research-blog-writing",
+            "story-writing",
+            "story-project-layout",
+            "document-writing",
+            "document-writing-browser-interactive",
+            "document-writing-printable",
+            "document-writing-figures",
+            "pareto-figures",
+            "result-visualization-templates",
+            "editing-long-docs",
+            "explanation-style",
+        ),
+    ),
+    Group(
+        "research",
+        "**Research data and evidence.**",
+        (
+            "research-survey",
+            "claim-provenance",
+            "provenance-tracking",
+            "runs-ledger",
+            "verified-provenance",
+            "document-annotation",
+            "on-deck",
+            "almanac",
+            "pdf",
+        ),
+    ),
+    Group(
+        "code",
+        "**Code and tools.**",
+        (
+            "design-thinking",
+            "software-aesthetic",
+            "debugging",
+            "handling-bug-reports",
+            "testing",
+            "testing-rider",
+            "soft-checks",
+            "prototyping",
+            "perf",
+            "degradation-injection",
+            "backward-compat",
+            "vendoring",
+            "cpp",
+            "python",
+            "shell",
+            "typescript",
+            "helper-scripts",
+            "acli",
+            "acli-implementer",
+            "acli-spec",
+            "workflow-tags",
+            "tool-surprises",
+        ),
+    ),
+    Group(
+        "ui",
+        "**User interfaces.**",
+        (
+            "ui-design",
+            "ui-quality",
+            "functional-layout",
+            "theming",
+            "ui-testing",
+            "ui-verification",
+            "ui-report",
+        ),
+    ),
+    Group(
+        "sessions",
+        "**Sessions, commits, and coordination.**",
+        (
+            "commits",
+            "handoffs",
+            "agentctl",
+            "agent-guard",
+            "AGENT_ENV_VARS",
+            "codex-session",
+            "at-scheduling",
+            "plan-grilling",
+            "doubt-skill",
+            "web-digest",
+        ),
+    ),
+    Group(
+        "instructions",
+        "**Instructions and project documents.**",
+        (
+            "agent-instructions",
+            "instruction-ablation",
+            "frontier-capability-review",
+            "evidence-ledger",
+            "glossary",
+            "topic-doc-format",
+        ),
+    ),
+    Group("other", "**Other activities.**", ()),
+)
+
+ROW = re.compile(
+    r"^\| `(?P<name>[^`]+)` \| Governs: (?P<activity>[^|]+?) \| "
+    r"\[[^\]]*\]\((?P<path>[^)]+)\) \|\s*$"
+)
+
+
+class BuildError(Exception):
+    def __init__(self, message: str, code: ExitCode, **detail: object) -> None:
+        super().__init__(message)
+        self.code = code
+        self.detail = detail
+
+
+def governs_rows(glossary: str) -> list[tuple[str, str, str]]:
+    rows = []
+    for line in glossary.splitlines():
+        match = ROW.match(line)
+        if match:
+            rows.append(
+                (match["name"], match["activity"].strip(), match["path"].strip())
+            )
+    if not rows:
+        raise BuildError(f"no Governs rows in {GLOSSARY}", ExitCode.NOT_FOUND)
+    return rows
+
+
+def route_path(path: str) -> str:
+    if path.startswith("topics/") and path.endswith(".md") and path.count("/") == 1:
+        return path[len("topics/") : -len(".md")]
+    return f"~/agents/{path}"
+
+
+def activity_routes(glossary: str) -> tuple[str, list[str]]:
+    """Render the grouped route section and the topics no group names."""
+    rows = governs_rows(glossary)
+    by_group: dict[str, list[tuple[str, str, str]]] = {g.key: [] for g in GROUPS}
+    placement = {topic: g.key for g in GROUPS for topic in g.topics}
+    unclassified = []
+    for name, activity, path in rows:
+        key = placement.get(name)
+        if key is None:
+            key = "other"
+            unclassified.append(name)
+        by_group[key].append((name, activity, path))
+    order = {topic: i for g in GROUPS for i, topic in enumerate(g.topics)}
+    lines = [
+        "## Activity routes",
+        "",
+        "Before starting an activity listed below, read the named topic. A",
+        "bare topic name means the repo's own `topics/<name>.md` first, else",
+        "`~/agents/topics/<name>.md`. The trigger is the activity, never an",
+        "occurrence of the word. Generated from the Governs rows of",
+        "`~/agents/GLOSSARY.agents.md`; edit a topic's `Governs:` line and its",
+        "row, not this section.",
+    ]
+    for group in GROUPS:
+        members = sorted(by_group[group.key], key=lambda r: order.get(r[0], 1 << 30))
+        if not members:
+            continue
+        lines += ["", group.condition, ""]
+        lines += [
+            f"- {activity} → `{route_path(path)}`" for _, activity, path in members
+        ]
+    return "\n".join(lines) + "\n", unclassified
+
+
+def replace_section(text: str, section: str) -> str:
+    start = text.find(BEGIN)
+    end = text.find(END)
+    if start < 0 or end < start:
+        raise BuildError(
+            f"{GLOBAL} lacks the generated-section markers",
+            ExitCode.NOT_FOUND,
+            begin=BEGIN,
+            end=END,
+        )
+    return text[: start + len(BEGIN)] + "\n" + section + text[end:]
+
+
+def boot_text(global_text: str, user_text: str) -> str:
+    return (
+        "<!-- Generated by ~/agents/scripts/build-boot from AGENTS.global.md and "
+        "AGENTS.user.md; edit those sources. -->\n"
+        + global_text.rstrip("\n")
+        + "\n\n"
+        + USER_HEADING
+        + "\n\n"
+        + user_text.rstrip("\n")
+        + "\n"
+    )
+
+
+def _read(repo: Path, name: str) -> str:
+    path = repo / name
+    if not path.is_file():
+        raise BuildError(f"missing source {path}", ExitCode.NOT_FOUND, path=str(path))
+    return path.read_text()
+
+
+def _git(repo: Path, *args: str, stdin: str | None = None) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        input=stdin,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
+def _write_atomic(path: Path, text: str) -> None:
+    with tempfile.NamedTemporaryFile(
+        "w", dir=path.parent, prefix=f".{path.name}.", delete=False
+    ) as stream:
+        stream.write(text)
+        temporary = Path(stream.name)
+    if path.exists():
+        os.chmod(temporary, path.stat().st_mode & 0o7777)
+    os.replace(temporary, path)
+
+
+def _stage_global(repo: Path) -> bool:
+    """Regenerate the section inside the staged AGENTS.global.md blob.
+
+    Works on the index copy so unstaged edits elsewhere in the file stay
+    out of the commit being made.
+    """
+    staged = _git(repo, "show", f":{GLOBAL}")
+    section, _ = activity_routes(_git(repo, "show", f":{GLOSSARY}"))
+    updated = replace_section(staged, section)
+    if updated == staged:
+        return False
+    blob = _git(repo, "hash-object", "-w", "--stdin", stdin=updated).strip()
+    mode = _git(repo, "ls-files", "-s", "--", GLOBAL).split()[0]
+    _git(repo, "update-index", "--cacheinfo", f"{mode},{blob},{GLOBAL}")
+    return True
+
+
+def build(args) -> int:
+    repo = Path(args.repo).resolve()
+    boot_path = Path(args.output).expanduser() if args.output else repo / BOOT
+    global_text = _read(repo, GLOBAL)
+    section, unclassified = activity_routes(_read(repo, GLOSSARY))
+    new_global = replace_section(global_text, section)
+    new_boot = boot_text(new_global, _read(repo, USER))
+    old_boot = boot_path.read_text() if boot_path.is_file() else None
+    stale = {
+        "global_section": new_global != global_text,
+        "boot": new_boot != old_boot,
+    }
+    staged = False
+    if not args.check:
+        if args.index:
+            staged = _stage_global(repo)
+        if stale["global_section"]:
+            _write_atomic(repo / GLOBAL, new_global)
+        if stale["boot"]:
+            _write_atomic(boot_path, new_boot)
+    result = {
+        "boot": str(boot_path),
+        "checked_only": args.check,
+        "stale": stale,
+        "staged_global": staged,
+        "unclassified_topics": unclassified,
+    }
+    emit(result, resolve_format(args), text=_build_text(result))
+    return int(ExitCode.DATA) if args.check and any(stale.values()) else 0
+
+
+def _build_text(result: dict) -> str:
+    verb = "stale" if result["checked_only"] else "rebuilt"
+    parts = [f"{name} {verb}" for name, flag in result["stale"].items() if flag]
+    line = ", ".join(parts) if parts else "up to date"
+    if result["unclassified_topics"]:
+        line += "; unclassified: " + ", ".join(result["unclassified_topics"])
+    return f"{result['boot']}: {line}"
+
+
+def _targets() -> list[Path]:
+    config = CONFIG.expanduser()
+    if config.is_file():
+        try:
+            values = json.loads(config.read_text())["targets"]
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            raise BuildError(
+                f'{config} needs a JSON object with a "targets" list',
+                ExitCode.USAGE,
+                path=str(config),
+                reason=str(exc),
+            ) from exc
+    else:
+        values = DEFAULT_TARGETS
+    return [Path(value).expanduser() for value in values]
+
+
+def link(args) -> int:
+    repo = Path(args.repo).resolve()
+    boot = repo / BOOT
+    sources = {(repo / GLOBAL).resolve(), boot.resolve()}
+    destination = (repo / GLOBAL) if args.to_global else boot
+    if not destination.is_file():
+        raise BuildError(
+            f"{destination} does not exist; run build first",
+            ExitCode.NOT_FOUND,
+            path=str(destination),
+        )
+    rows = []
+    for path in _targets():
+        if not path.is_symlink():
+            state = "absent" if not path.exists() else "not-a-symlink"
+            rows.append({"path": str(path), "action": "skip", "state": state})
+            continue
+        current = (path.parent / os.readlink(path)).resolve()
+        if current == destination.resolve():
+            rows.append({"path": str(path), "action": "keep", "target": str(current)})
+            continue
+        if current not in sources:
+            rows.append(
+                {
+                    "path": str(path),
+                    "action": "skip",
+                    "state": "foreign",
+                    "target": str(current),
+                }
+            )
+            continue
+        if not args.check:
+            temporary = path.with_name(f".{path.name}.build-boot")
+            os.symlink(destination, temporary)
+            os.replace(temporary, path)
+        rows.append(
+            {
+                "path": str(path),
+                "action": "stale" if args.check else "retarget",
+                "previous": str(current),
+                "target": str(destination),
+            }
+        )
+    emit(rows, resolve_format(args), text="\n".join(_link_line(r) for r in rows))
+    stale = any(row["action"] == "stale" for row in rows)
+    return int(ExitCode.DATA) if stale else 0
+
+
+def _link_line(row: dict) -> str:
+    detail = row.get("target") or row.get("state", "")
+    if "previous" in row:
+        detail = f"{row['previous']} -> {row['target']}"
+    return f"{row['action']}: {row['path']} {detail}".rstrip()
+
+
+def build_parser():
+    parser = argument_parser(
+        prog="build-boot",
+        description="Compile the protected harness boot for this instruction checkout. "
+        "Contract: topics/helper-scripts.md § build-boot.",
+        capabilities=CAPABILITIES,
+        exit_codes=EXIT_CODES,
+    )
+    parser.add_argument(
+        "--repo",
+        default=str(_REPO_ROOT),
+        help="Instruction checkout (default: the one containing this script).",
+    )
+    commands = parser.add_subparsers(dest="command", required=True)
+
+    build_cmd = commands.add_parser(
+        "build",
+        help="Regenerate the activity-route section of AGENTS.global.md and write AGENTS.boot.md.",
+    )
+    build_cmd.add_argument(
+        "--check",
+        action="store_true",
+        help="Write nothing; exit 3 when anything is stale.",
+    )
+    build_cmd.add_argument(
+        "--index",
+        action="store_true",
+        help="Also regenerate the section inside the staged AGENTS.global.md (pre-commit hook use).",
+    )
+    build_cmd.add_argument(
+        "--output", help="Boot file path (default: AGENTS.boot.md in the checkout)."
+    )
+    add_standard_args(build_cmd)
+    build_cmd.set_defaults(func=build)
+
+    link_cmd = commands.add_parser(
+        "link",
+        help="Point harness instruction symlinks that target the global policy or boot at the "
+        f'boot file. Targets come from {CONFIG} (JSON {{"targets": [...]}}) or the standard '
+        "harness paths; regular files and foreign links are reported and left alone.",
+    )
+    link_cmd.add_argument(
+        "--check",
+        action="store_true",
+        help="Change nothing; exit 3 when a link needs retargeting.",
+    )
+    link_cmd.add_argument(
+        "--to-global",
+        action="store_true",
+        help="Retarget back to AGENTS.global.md (undo).",
+    )
+    add_standard_args(link_cmd)
+    link_cmd.set_defaults(func=link)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    maybe_complete(parser, [sys.argv[0], *(argv if argv is not None else sys.argv[1:])])
+    args = parser.parse_args(argv)
+    try:
+        return args.func(args)
+    except BuildError as exc:
+        die(str(exc), exc.code, detail=exc.detail or None)
+    except subprocess.CalledProcessError as exc:
+        die(
+            f"git failed: {' '.join(exc.cmd)}",
+            ExitCode.SOFTWARE,
+            detail={"stderr": (exc.stderr or "").strip()},
+        )
+
+
+if __name__ == "__main__":
+    sys.exit(main())

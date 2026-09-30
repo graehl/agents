@@ -16,7 +16,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from scripts.install_agents import core as install_core
 
 SCRIPT = REPO_ROOT / "scripts" / "install-agents"
-GLOBAL = REPO_ROOT / "AGENTS.global.md"
+GLOBAL = install_core.instruction_source(REPO_ROOT)
 SKILLS = REPO_ROOT / "skills"
 FIRST_SKILL = min(path for path in SKILLS.iterdir() if (path / "SKILL.md").is_file())
 

@@ -23,6 +23,17 @@ class InstallError(RuntimeError):
     """A safe, actionable refusal rather than a partial install."""
 
 
+def instruction_source(repo_root: Path) -> Path:
+    """The file harness instruction paths should load.
+
+    `scripts/build-boot` compiles the git-excluded AGENTS.boot.md from the
+    global policy plus AGENTS.user.md; without a build, the global policy
+    itself is the boot.
+    """
+    boot = repo_root / "AGENTS.boot.md"
+    return boot if boot.is_file() else repo_root / "AGENTS.global.md"
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -305,10 +316,10 @@ def install(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, 
     repo_root = repo_root.expanduser().resolve()
     if home == Path("/"):
         raise InstallError("refusing to use / as --home")
-    global_source = repo_root / "AGENTS.global.md"
     skills_source = repo_root / "skills"
-    if not global_source.is_file() or not skills_source.is_dir():
+    if not (repo_root / "AGENTS.global.md").is_file() or not skills_source.is_dir():
         raise InstallError(f"not an instruction checkout: {repo_root}")
+    global_source = instruction_source(repo_root)
 
     selected = [harness.name for harness in harnesses]
     instructions: dict[Path, list[str]] = {}
@@ -497,9 +508,7 @@ def status(home: Path, repo_root: Path, harnesses: list[Harness]) -> dict[str, A
         skill_root = home.joinpath(*harness.skill_root)
         result["harnesses"][harness.name] = {
             "instruction": str(instruction),
-            "instruction_ok": _matches_link(
-                instruction, repo_root / "AGENTS.global.md"
-            ),
+            "instruction_ok": _matches_link(instruction, instruction_source(repo_root)),
             "skill_root": str(skill_root),
             "skills_ok": _skills_available(skill_root, repo_root / "skills"),
         }

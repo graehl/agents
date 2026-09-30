@@ -8,7 +8,7 @@
 
 Topic: `writing`
 Glossary: document writing
-Governs: drafting or revising prose for a reader
+Governs: drafting or revising a document for readers (report, brief, essay, article, letter, web copy, story), not a working record
 
 Read this before drafting or revising prose for a reader: an essay, article,
 explainer, report, review, letter, web page copy, or the narrative prose of a

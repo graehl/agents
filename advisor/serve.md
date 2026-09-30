@@ -52,7 +52,10 @@ conditional operation currently requires it. Never remove a project/program
 amendment during that migration.
 
 Reconcile metadata with this core before every dispatch. Resolve and hash the
-complete stack; fully read every new or changed source. After compaction or
+complete stack; fully read every new or changed source. A source whose text
+this session's boot already contains (`AGENTS.global.md`, and `AGENTS.user.md`
+when the boot has its compiled heading) counts as read at its hash when the
+session started; reread it only after that hash changes. After compaction or
 resume, fully reread the stack unless the harness verifiably reconstructs its
 exact current bytes. Rehash after the reads and record only a stable manifest.
 An unreadable source makes governance currentness incomplete but does not
