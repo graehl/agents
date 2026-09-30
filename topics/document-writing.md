@@ -7,6 +7,9 @@
 Topic: `document-writing`
 Governs: choosing the source of truth and renderer for a research document
 
+This topic owns source files and rendering, not the prose. Before drafting or
+revising the prose, follow [`technical-writing`](technical-writing.md).
+
 ## Default source and renderer
 
 Start a research document in portable Markdown-plus: Markdown prose with

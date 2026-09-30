@@ -101,7 +101,7 @@ RULES: tuple[Rule, ...] = (
     Rule(
         "importance-marker",
         "guide",
-        "asserts importance instead of showing it (technical-writing defect list); delete",
+        "asserts importance instead of showing it (writing § Revising always-cut list); delete",
     ),
     Rule(
         "wrap-up",
@@ -236,7 +236,7 @@ STOCK_PHRASE = _phrase_rule(
     "crucially",
     "notably",
 )
-# technical-writing § Priority order names these as defects whatever their
+# writing § Revising (always-cut list) names these as defects whatever their
 # measured frequency; human writers use several of them as often as models.
 IMPORTANCE_MARKER = _phrase_rule(
     "importantly",

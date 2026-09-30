@@ -14,7 +14,9 @@ Read this before drafting or revising prose for a reader: an essay, article,
 explainer, report, review, letter, web page copy, or the narrative prose of a
 story. For plot, character, setting and scene work, continue to
 [`story-writing`](story-writing.md). For a story project's files, see
-[`story-project-layout`](story-project-layout.md).
+[`story-project-layout`](story-project-layout.md). For a report, brief,
+estimate, proposal, handout, paper, or blog post that carries technical or
+research content, continue to [`technical-writing`](technical-writing.md).
 
 The advice below is distilled from craft sources whose authors have a record
 of being read: Williams's *Style: Toward Clarity and Grace* and Gopen and
@@ -63,6 +65,12 @@ checklist to satisfy in addition to genre rules: a genre topic such as
   announcing first sentence. Where they do not (an essay, a letter), the
   first sentence does that job, and a reader scanning first sentences
   should be able to reconstruct the argument.
+- **In exposition, state a scope once.** A limit that holds for the whole
+  piece ("all figures are publisher-reported; nothing was run") goes in one
+  place near the start; repeat it at a table or section only where it
+  differs there. A denial earns a sentence only when a reader would
+  otherwise believe the denied thing; guarding against a misreading nobody
+  would make spends the reader's attention on the writer's anxiety.
 - **Order by the reader's need, not by the order you discovered things.**
   Chronology of your own research is rarely the best order; find the
   arrangement in which each part sets up the next.
@@ -89,7 +97,12 @@ checklist to satisfy in addition to genre rules: a genre topic such as
   the actual difference, and if not, drop the distinction.
 - **Use the reader's words for the reader's things.** Define a term once at
   first use and then keep using it. Do not vary vocabulary for elegance when
-  the reader is trying to track a concept.
+  the reader is trying to track a concept. The writer's working vocabulary
+  is not the reader's: run ids, nicknames, stage labels, and terms borrowed
+  from the writer's own process or instructions ("admitted", "certified",
+  "envelope", "receipt") become the plain word or a defined reader-facing
+  name. Coining a term to avoid committing to a plain one ("central
+  scenario" for the middle estimate) is the same defect.
 - **An abstraction the reader cannot instantiate is not understood**, and
   often not by the writer. Supply the instance or cut the abstraction. Do
   not add an example to an abstraction that already lands.
@@ -122,6 +135,9 @@ checklist to satisfy in addition to genre rules: a genre topic such as
 - **Voice is not chosen separately.** Old-before-new and actor-as-subject
   decide it; the passive is right when the receiver is the known thing or
   the actor does not matter.
+- **Numbers in prose carry the digits the reader uses.** Two significant
+  figures unless a third changes a decision; exact values belong in tables
+  and notes.
 - **Checks the ear would catch.** A word repeated within a few lines, a
   clause nested more than one level deep, a sentence that cannot be parsed
   in one pass.
@@ -135,6 +151,18 @@ checklist to satisfy in addition to genre rules: a genre topic such as
 - **Cut what the text already showed.** The usual cuts are explanations of
   what a display or an earlier sentence already established, throat-clearing
   openings, and endings that keep ending.
+- **Always cut, in any genre:** a sentence restating the previous one in
+  abstract or figurative form; a closing sentence summarizing its own
+  paragraph; a "not X but Y" or triad built for cadence; an opener asserting
+  importance rather than showing it; "crucially", "notably", "importantly",
+  "underscores", "highlights" in the writer's own voice. In exposition, also
+  a sentence about the document instead of the subject ("we now turn to").
+  The correction is deletion, not replacement.
+- **Local edits break determiners.** "The X" presumes X was introduced
+  earlier; when a reorder, cut, or move changes which mention comes first,
+  the new first mention becomes "a X" or gains its introduction, and a later
+  "a X" may become "the X". After any edit short of a full rewrite, check
+  each definite reference in the edited span against its antecedent.
 - **Check the promise.** Reread the purpose sentence. Did the piece deliver
   it? A finished draft that answers a different question than it posed needs
   either a new opening or a new body.
@@ -277,9 +305,12 @@ later edits there consistent. The original is never edited by a remix.
   order performed, each starting with a verb, with what the reader should see
   after each step. Warnings go before the step they concern.
 - **Report:** what was asked, what was done, what was found, what it means, in
-  that order. Findings before method for a reader who wants results; method
-  before findings for a reader who must trust them. Say which reader you
-  wrote for.
+  that order. The reader is whoever asked, not a hypothetical auditor: the
+  opening answers their question in their own threshold, units, and
+  setting, before cost or method. Material researched for a framing the
+  asker did not describe moves to notes. Findings before method for a
+  reader who wants results; method before findings for a reader who must
+  trust them. Say which reader you wrote for.
 - **Review or opinion:** the verdict first, then the evidence, then the
   strongest objection and why it does not change the verdict.
 - **Web page copy:** the first screen must say what this is and who it is for.

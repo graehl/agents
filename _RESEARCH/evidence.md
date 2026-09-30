@@ -26,7 +26,9 @@ independent metric families where applicable, controlled seeds/config search,
 tuned baselines, and per-compute cost.
 
 A research result table always states scoring split and N. Training/decode
-comparisons also include wall time; concurrent decode states batch width. Use
+comparisons also include wall time; concurrent decode states batch width.
+Cited results whose source omits these get one document-level statement,
+not a caveat under each table. Use
 one typed column per quantity, carry units in headers, and put free-form caveats
 in footnotes rather than numeric cells. Add explicit `TBD` cells for intended
 unrun comparisons, remove stale conditions to the log, and correlate important

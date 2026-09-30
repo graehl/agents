@@ -971,6 +971,16 @@ For vendor setup/operator docs, include only verified supported paths for the
 recommended plan. Omit uncertain options. Do not assert remembered UI
 navigation. When a label changes, update it without historical-parenthetical clutter.
 
+## Documents for readers
+
+Before drafting or substantially revising a report, brief, estimate,
+proposal, handout, paper, blog post, or story, read
+`~/agents/topics/writing.md` and the genre topic it names. Working records
+(handoffs, gaps, logs, commit messages, instructions, code and its comments)
+do not trigger this. Immediate steer: answer the question as asked, in the
+asker's terms, first; use the reader's words, not the working vocabulary of
+this project or its instructions.
+
 ## Explanation style: "remind me" / "refresher"
 
 On refresher wording, read `topics/explanation-style.md`: worked micro-example
