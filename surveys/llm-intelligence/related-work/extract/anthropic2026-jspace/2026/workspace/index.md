@@ -1,3 +1,5 @@
+**Source:** *Verbalizable Representations Form a Global Workspace in Language Models* — [original page](https://transformer-circuits.pub/2026/workspace/index.html)
+
 [ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
 
 # Verbalizable Representations Form a Global Workspace in Language Models

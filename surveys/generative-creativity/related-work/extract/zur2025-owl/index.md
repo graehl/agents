@@ -1,3 +1,5 @@
+**Source:** *It's Owl in the Numbers: Token Entanglement in Subliminal Learning* — [original page](https://owls.baulab.info/)
+
 #  It's Owl in the Numbers:   
 Token Entanglement in Subliminal Learning
 

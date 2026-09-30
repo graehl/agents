@@ -1,3 +1,5 @@
+**Source:** *Large Language Models as Instructors: A Study on Multilingual Clinical Entity Extraction* — [PDF](https://aclanthology.org/2023.bionlp-1.15.pdf)
+
 # Large Language Models as Instructors: A Study on Multilingual Clinical Entity Extraction
 
 Simon Meoni Inria/Arkhn Paris, France simon.meoni@arkhn.com

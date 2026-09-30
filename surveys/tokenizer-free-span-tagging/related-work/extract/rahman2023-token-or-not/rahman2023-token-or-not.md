@@ -1,3 +1,5 @@
+**Source:** *To token or not to token: A Comparative Study of Text Representations for Cross-Lingual Transfer* — [PDF](https://aclanthology.org/2023.mrl-1.6.pdf)
+
 # To token or not to token: A Comparative Study of Text Representations for Cross-Lingual Transfer
 
 # Md Mushfiqur Rahman, Fardin Ahsan Sakib, Fahim Faisal, Antonios Anastasopoulos

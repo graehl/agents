@@ -1,3 +1,5 @@
+**Source:** *Meta-Harness: End-to-End Optimization of Model Harnesses* — [PDF](https://arxiv.org/pdf/2603.28052) · [arXiv](https://arxiv.org/abs/2603.28052)
+
 # **Meta-Harness: End-to-End Optimization of Model Harnesses**
 
 | Yoonho Lee          | Roshen Nair | Qizheng Zhang            | Kangwook Lee |

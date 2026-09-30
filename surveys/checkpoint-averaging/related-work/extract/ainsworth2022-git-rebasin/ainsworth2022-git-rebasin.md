@@ -1,3 +1,5 @@
+**Source:** *Git Re-Basin: Merging Models modulo Permutation Symmetries* — [PDF](https://arxiv.org/pdf/2209.04836) · [arXiv](https://arxiv.org/abs/2209.04836)
+
 # GIT RE-BASIN: MERGING MODELS MODULO PERMU-TATION SYMMETRIES
 
 Samuel K. Ainsworth, Jonathan Hayase, Siddhartha Srinivasa Paul G. Allen School of Computer Science and Engineering University of Washington {skainswo,jhayase,siddh}@cs.washington.edu

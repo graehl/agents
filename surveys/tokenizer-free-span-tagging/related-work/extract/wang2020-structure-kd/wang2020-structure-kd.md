@@ -1,3 +1,5 @@
+**Source:** *Structure-Level Knowledge Distillation For Multilingual Sequence Labeling* — [PDF](https://aclanthology.org/2020.acl-main.304.pdf)
+
 # Structure-Level Knowledge Distillation For Multilingual Sequence Labeling
 
 Xinyu Wang , Yong Jiang† , Nguyen Bach† , Tao Wang† , Fei Huang† , Kewei Tu∗

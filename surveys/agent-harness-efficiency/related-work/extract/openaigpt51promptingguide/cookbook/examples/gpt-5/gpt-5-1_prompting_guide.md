@@ -1,3 +1,5 @@
+**Source:** *GPT-5.1 Prompting Guide* — [original page](https://developers.openai.com/cookbook/examples/gpt-5/gpt-5-1_prompting_guide)
+
 
 
 

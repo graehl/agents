@@ -1,3 +1,5 @@
+**Source:** *Codex Prompting Guide* — [original page](https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide)
+
 
 
 

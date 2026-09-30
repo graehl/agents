@@ -1,3 +1,5 @@
+**Source:** *When, Where and Why to Average Weights?* — [PDF](https://raw.githubusercontent.com/mlresearch/v267/main/assets/ajroldi25a/ajroldi25a.pdf)
+
 # When, Where and Why to Average Weights?
 
 Niccolo Ajroldi ` 1 2 Antonio Orvieto 1 2 3 Jonas Geiping 1 2 3

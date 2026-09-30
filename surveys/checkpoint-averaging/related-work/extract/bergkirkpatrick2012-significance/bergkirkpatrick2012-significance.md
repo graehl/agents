@@ -1,3 +1,5 @@
+**Source:** *An Empirical Investigation of Statistical Significance in NLP* — [PDF](https://aclanthology.org/D12-1091.pdf)
+
 # An Empirical Investigation of Statistical Significance in NLP
 
 ## Taylor Berg-Kirkpatrick David Burkett Dan Klein

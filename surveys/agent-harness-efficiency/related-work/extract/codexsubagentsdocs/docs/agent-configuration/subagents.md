@@ -1,3 +1,5 @@
+**Source:** *Subagents (Codex / ChatGPT agent configuration docs)* — [original page](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+
 
 
 ![Figure](figures/0f4b715b3a236d548585c123b4c5a830ad0a44a7f77411c7448ed7aa1d09167c.webp)

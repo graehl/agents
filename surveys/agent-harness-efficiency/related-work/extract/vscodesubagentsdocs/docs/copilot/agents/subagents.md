@@ -1,3 +1,5 @@
+**Source:** *Subagents in VS Code* — [original page](https://code.visualstudio.com/docs/copilot/agents/subagents)
+
 #### Documentation
 
   * [Overview](https://code.visualstudio.com/docs)

@@ -1,3 +1,5 @@
+**Source:** *Comparing and combining some popular NER approaches on Biomedical tasks* — [PDF](https://aclanthology.org/2023.bionlp-1.24.pdf)
+
 # Comparing and combining some popular NER approaches on Biomedical tasks
 
 ### Harsh Verma, Sabine Bergler, Narjesossadat Tahaei

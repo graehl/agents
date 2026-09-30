@@ -1,3 +1,5 @@
+**Source:** *Metastable Failures in Distributed Systems* — [PDF](https://sigops.org/s/conferences/hotos/2021/papers/hotos21-s11-bronson.pdf)
+
 # Metastable Failures in Distributed Systems
 
 Nathan Bronson<sup>∗</sup> Rockset, Inc.

@@ -1,3 +1,5 @@
+**Source:** *interpreting GPT: the logit lens* — [original page](https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens)
+
 x
 
 This website requires javascript to properly function. Consider activating javascript to get access to all site functionality. 

@@ -1,3 +1,5 @@
+**Source:** *Distantly Supervised Named Entity Recognition using Positive-Unlabeled Learning* — [PDF](https://aclanthology.org/P19-1231.pdf)
+
 # Distantly Supervised Named Entity Recognition using Positive-Unlabeled Learning
 
 #### Minlong Peng<sup>∗</sup> , Xiaoyu Xing<sup>∗</sup> , Qi Zhang, Jinlan Fu, Xuanjing Huang

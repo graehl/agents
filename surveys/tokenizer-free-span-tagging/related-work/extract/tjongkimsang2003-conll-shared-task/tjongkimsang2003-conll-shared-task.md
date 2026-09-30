@@ -1,3 +1,5 @@
+**Source:** *Introduction to the CoNLL-2003 Shared Task: Language-Independent Named Entity Recognition* — [PDF](https://aclanthology.org/W03-0419.pdf)
+
 # Introduction to the CoNLL-2003 Shared Task: Language-Independent Named Entity Recognition
 
 Erik F. Tjong Kim Sang and Fien De Meulder CNTS - Language Technology Group University of Antwerp {erikt,fien.demeulder}@uia.ua.ac.be

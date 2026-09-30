@@ -1,3 +1,5 @@
+**Source:** *Fail-Slow at Scale: Evidence of Hardware Performance Faults in Large Production Systems* — [PDF](https://www.usenix.org/system/files/conference/fast18/fast18-gunawi.pdf)
+
 ![](_page_0_Picture_0.svg)
 
 # **Fail-Slow at Scale: Evidence of Hardware Performance Faults in Large Production Systems**

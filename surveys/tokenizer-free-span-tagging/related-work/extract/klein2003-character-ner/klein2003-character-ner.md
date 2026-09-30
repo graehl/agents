@@ -1,3 +1,5 @@
+**Source:** *Named Entity Recognition with Character-Level Models* — [PDF](https://aclanthology.org/W03-0428.pdf)
+
 # Named Entity Recognition with Character-Level Models
 
 Dan Klein<sup>1</sup> and Joseph Smarr<sup>2</sup> and Huy Nguyen<sup>1</sup> and Christopher D. Manning<sup>1</sup>

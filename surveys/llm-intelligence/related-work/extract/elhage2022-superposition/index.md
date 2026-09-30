@@ -1,3 +1,5 @@
+**Source:** *Toy Models of Superposition* — [original page](https://transformer-circuits.pub/2022/toy_model/index.html)
+
 [Transformer Circuits Thread](https://transformer-circuits.pub/)
 
 # Toy Models of Superposition

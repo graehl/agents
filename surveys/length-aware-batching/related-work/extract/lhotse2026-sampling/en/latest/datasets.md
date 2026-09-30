@@ -1,3 +1,5 @@
+**Source:** *PyTorch Datasets* — [original page](https://lhotse.readthedocs.io/en/latest/datasets.html)
+
 [ lhotse ](https://lhotse.readthedocs.io/en/latest/index.html)
 
 Contents:

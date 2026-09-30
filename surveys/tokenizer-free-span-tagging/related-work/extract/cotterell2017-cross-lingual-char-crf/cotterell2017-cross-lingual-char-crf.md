@@ -1,3 +1,5 @@
+**Source:** *Low-Resource Named Entity Recognition with Cross-lingual, Character-Level Neural Conditional Random Fields* — [PDF](https://aclanthology.org/I17-2016.pdf)
+
 # Low-Resource Named Entity Recognition with Cross-Lingual, Character-Level Neural Conditional Random Fields
 
 ## Ryan Cotterell and Kevin Duh

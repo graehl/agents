@@ -1,3 +1,5 @@
+**Source:** *XtremeDistil: Multi-stage Distillation for Massive Multilingual Models* — [PDF](https://aclanthology.org/2020.acl-main.202.pdf)
+
 # <span id="page-0-0"></span>XtremeDistil: Multi-stage Distillation for Massive Multilingual Models
 
 # Subhabrata Mukherjee

@@ -1,3 +1,5 @@
+**Source:** *BERT Rediscovers the Classical NLP Pipeline* — [PDF](https://aclanthology.org/P19-1452.pdf)
+
 # BERT Rediscovers the Classical NLP Pipeline
 
 Ian Tenney<sup>1</sup> Dipanjan Das<sup>1</sup> Ellie Pavlick<sup>1</sup>,<sup>2</sup> <sup>1</sup>Google Research <sup>2</sup>Brown University {iftenney,dipanjand,epavlick}@google.com

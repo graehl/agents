@@ -1,3 +1,5 @@
+**Source:** *Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet* — [original page](https://transformer-circuits.pub/2024/scaling-monosemanticity/index.html)
+
 [ ](https://anthropic.com) [Transformer Circuits Thread](https://transformer-circuits.pub/)
 
 # Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet
