@@ -66,3 +66,38 @@ uv run --with pyyaml ~/agents/scripts/related-work \
 - Add each case above as a regression fixture.
 
 2026-09-30 — Contributing-model: opus-5.5
+
+## Full rebuild under html-md-v4, 2026-09-30
+
+After the list-item fix (7d24445), every extract in all 11 `~/agents`
+surveys and both draft speech surveys was rebuilt offline from saved pages,
+with an online `--refetch` for failures. 252 rebuilt offline and 7 more
+online. 34 still fail and keep their earlier text-only derivation; audit
+reports them as `html-derivation` drift. Every remaining doubled list label
+(381 lines of `1. 1.` or lone `• `) is in one of these 34 extracts.
+
+| Count | Failure |
+|---:|---|
+| 14 | source HTML has no auditable visible text block |
+| 9 | mismatched tag inside SVG visual |
+| 4 | fidelity failed after rebuild (total below 0.98) |
+| 3 | unsupported visual content: iframe |
+| 1 | visual download failed (404) |
+| 1 | SVG visual has an external CSS dependency |
+| 1 | invalid visual data URI |
+| 1 | invalid SVG visual: not well-formed |
+
+Per-survey rows and keys are in the `fetch` output; rerun the rebuild to
+regenerate them. Commands and reasons match the table above the fix
+sketch.
+
+**Refetch can swap a good source for a worse one.** `elhage2022-superposition`
+(llm-intelligence) was extracted from the Transformer Circuits HTML page
+(378/378 blocks). Its offline rebuild failed on an inline data-URI image.
+`fetch --refetch` then followed the manifest's arXiv id to the PDF and
+replaced the HTML extract with a marker conversion. The HTML extract was
+restored by hand. A refetch should retry the source the sentinel recorded
+before switching route, and should not replace a completed extract with a
+different method unless asked.
+
+2026-09-30 — Contributing-model: opus-5.5
