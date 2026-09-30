@@ -3,16 +3,19 @@
 
 Spec: topics/helper-scripts.md (commit-msg-lint entry) in the
 agents-instructions repo.
-Reads draft on stdin, or HEAD's commit message when stdin is empty.
-Echoes the checked message to stdout on success (exit 0). On violation,
-lists issues on stderr (exit 1). Missing input and unreadable HEAD exit 2.
+Reads a draft on stdin (pipe or file), or HEAD's commit message when no
+draft is offered (a terminal or /dev/null). Echoes the checked message to
+stdout on success (exit 0). On violation, lists issues on stderr (exit 1).
+An empty piped draft, or no draft and no readable HEAD, exits 2.
 Subjects over 65 characters produce an advisory warning, not a failure.
 Literal backslash-n sequences are rejected anywhere in the message.
 """
 
 from __future__ import annotations
 
+import os
 import re
+import stat
 import subprocess
 import sys
 
@@ -66,8 +69,30 @@ def lint(text: str) -> list[str]:
     return issues
 
 
+def stdin_carries_a_draft() -> bool:
+    """True when stdin is a pipe or file, i.e. a draft was sent.
+
+    A terminal or /dev/null (a character device) means no draft was offered,
+    which is the documented "check HEAD" use. An empty pipe or file means the
+    producer upstream failed; echoing HEAD's message then would make
+    `git commit -F <(fmt | commit-msg-lint)` commit with the wrong message.
+    """
+    try:
+        mode = os.fstat(sys.stdin.fileno()).st_mode
+    except (OSError, ValueError):
+        return False
+    return not stat.S_ISCHR(mode)
+
+
 def main() -> int:
-    text = "" if sys.stdin.isatty() else sys.stdin.read()
+    text = sys.stdin.read() if stdin_carries_a_draft() else ""
+    if not text.strip() and stdin_carries_a_draft():
+        print(
+            "commit-msg-lint: empty draft on stdin (did the formatter fail?); "
+            "refusing to substitute HEAD's message",
+            file=sys.stderr,
+        )
+        return 2
     if not text.strip():
         text = head_message() or ""
         if not text.strip():
