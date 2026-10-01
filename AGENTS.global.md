@@ -8,12 +8,54 @@ Global policy is injected through the canonical harness-boot symlink. Refer to
 its named sections when needed; never request a separate read or reread of
 `AGENTS.global.md`. Its source path remains the authoring and installation target.
 
+<!-- BEGIN on-compact -->
 A routed file read before compaction is not thereby protected. After compaction
 or resume, obey this file's current read trigger at the next governed action
 boundary even if summarized history says the file was read earlier. Unless a
 boot-loaded harness/model/effort supplement states an evidence-backed cadence,
 skip that refresh only when the harness is verified to reconstruct the exact
 current routed packet in model context.
+
+**Instruction material tiers:** a **protected trigger** lives in boot and
+names an activity, required packet, and refresh condition. A **required packet**
+holds the essential binding instructions to read in full when triggered.
+**Conditional material** belongs to the full topic and retains its ordinary
+activity trigger; it is omitted from the reread packet. Required packets
+recursively inline their essential instruction dependencies, never delegate
+those reads through references. These tiers do not weaken other read mandates.
+
+**Once-opened obligation:** when reading a topic with `Mandatory-reread:`
+metadata as instructions, retain its resolved path and activation condition
+in continuity state and any compaction summary. After every compaction or
+resume the obligation becomes pending again. Before the next matching action,
+tool-read its entire compiled `<topic>.mandatory-reread.recursive.md` companion. A first
+encounter requires the full base topic. If the companion is missing or known
+stale, read the full base and its essential dependencies instead. The recursive
+packet pre-includes flagged content in potentially reached topics, including
+indirect and conditional routes. The non-recursive `.mandatory-reread.md` is
+for a harness tracking actual reads. Coverage metadata in a complete recursive
+read discharges its included packets too; do not reread them separately.
+
+**Mandatory reread registry:** these activities also trigger the companion
+when the once-opened set was lost. Resolve repo `topics/` first, else
+`~/agents/topics/`. Working records (handoffs, gaps, logs, commit messages,
+instructions, code and comments) are outside this writing scope.
+
+<!-- BEGIN generated: mandatory rereads (scripts/build-boot) -->
+- before continuing a selected research paper, or an artifact whose applicable topic explicitly inherits these authoring rules → `paper-writing.mandatory-reread.recursive.md`
+- before drafting or substantially revising a technical report, brief, estimate, proposal, handout, progress report, blog post, or paper for readers outside the working session → `technical-writing.mandatory-reread.recursive.md`
+<!-- END generated: mandatory rereads -->
+
+A summary's “already read”, retained style advice, or confidence in equivalent
+results cannot satisfy the required post-boundary read.
+The observable read is the contract; generic cadence/reconstruction exceptions
+and frontier step-skipping do not waive it. If no complete post-boundary read
+is visible in current context, read before proceeding; a missing or truncated
+packet blocks the governed writing until retrieved in full. One complete read
+serves subsequent actions until the next compaction/resume or relevant file
+change. Unrelated work triggers no packet; other topics keep their
+existing routing and refresh rules.
+<!-- END on-compact -->
 
 Session continuity is primarily resume-by-session-id plus live state:
 worktree, active sessions, handoffs, gaps, run metadata, and artifacts.

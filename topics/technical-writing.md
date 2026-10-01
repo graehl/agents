@@ -7,6 +7,9 @@
 
 Topic: `technical-writing`
 Governs: drafting or revising a technical report, brief, estimate, proposal, handout, progress report, blog post, or paper for outside readers
+Mandatory-reread: before drafting or substantially revising a technical report, brief, estimate, proposal, handout, progress report, blog post, or paper for readers outside the working session
+
+<!-- reread:include writing.md -->
 
 ## Common contract
 
@@ -38,6 +41,7 @@ The artifacts differ mainly in how they select and reshape program work:
 | progress report | prior promised threads plus work since | reconcile the delta, group threads by theme when useful, and state concise dispositions/plans |
 | research blog | the cool thing that worked | showcase-selective; bound the claim and point to the fuller record |
 
+<!-- reread:begin -->
 ## Priority order
 
 The rules in this topic and in [`writing`](writing.md) pull in different
@@ -86,6 +90,7 @@ one-sentence paragraph or fragment for effect; a rhetorical question; a
 bolded whole sentence; bold on a negation or qualifier ("do **not**",
 "**estimated**"), since bold marks the takeaway. The correction is deletion,
 not replacement.
+<!-- reread:end -->
 
 ## Order material for the reader
 
@@ -124,6 +129,7 @@ the relationship clearer with less prose. Follow the display contract below
 when producing it. Keep necessary definitions and uncertainty visible after
 trimming, and recheck the whole argument after local rulings.
 
+<!-- reread:begin -->
 ## End each unit on what drives the next
 
 Readers stress whatever arrives at a point of syntactic closure: the end of a
@@ -180,6 +186,7 @@ of quality, traded against the others: the front-loaded claim for a reader
 who stops early, actor as subject, sentence length, and honest placement of
 a qualification that must not be missed. Run the check on every sentence;
 violate it when another axis wins, and know which one.
+<!-- reread:end -->
 
 Source: Gopen and Swan, "The Science of Scientific Writing", *American
 Scientist* 78(6), 1990, which names the topic and stress positions and

@@ -80,6 +80,29 @@ file or a `.<suffix>/` directory, by convention:
 - `.sketches.md` — dormant or candidate designs that are not current
   guidance. Routine topic reads exclude it; read it when exploring future
   work, reconsidering a named candidate, or explicitly asked about sketches.
+- `.mandatory-reread.md` — generated essential excerpts of this base topic;
+  `.mandatory-reread.recursive.md` also inlines flagged content in reachable
+  topics. Base topics keep all content. Never hand-edit these build products.
+
+For a mandatory post-compaction activity root, add one metadata line
+`Mandatory-reread: <activation condition>` after `Governs:`. Mark essential
+source blocks with standalone `<!-- reread:begin -->` and
+`<!-- reread:end -->` lines; multiple non-nested blocks are allowed. A topic
+may mark essential dependency content without becoming a boot registry root.
+The first read still reads the base topic; comment markers add little overhead.
+
+The compiler traverses local Markdown links among root `topics/*.md` sources,
+even through unmarked intermediate topics, including potentially applicable
+conditional routes. An explicit standalone
+`<!-- reread:include sibling-topic.md -->` adds an edge when prose uses no
+Markdown link. Recursion includes only marked essential content, never the
+unmarked conditional sections. Author essential blocks to stand on their own;
+instruction dependencies they need must have marked content reachable through
+those edges. Ordinary citations may remain links. Cycles and repeated paths
+are deduplicated. The two activity roots initially are technical writing and
+paper writing; general writing contributes essential cutting/determiner rules
+as a dependency. See `topics/helper-scripts.md` § build-boot for outputs and
+the read-coverage contract.
 
 The main topic doc stays free-form prose and may link to its companions. Keep
 current contracts and decision surfaces in the main doc. A sketch that becomes

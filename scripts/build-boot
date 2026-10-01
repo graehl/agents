@@ -13,6 +13,7 @@ instruction symlinks at the boot file. Contract: topics/helper-scripts.md
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -21,6 +22,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
@@ -47,6 +49,11 @@ GLOBAL = "AGENTS.global.md"
 USER = "AGENTS.user.md"
 GLOSSARY = "GLOSSARY.agents.md"
 BOOT = "AGENTS.boot.md"
+ON_COMPACT = "AGENTS.on-compact.md"
+REREAD_BEGIN = "<!-- BEGIN generated: mandatory rereads (scripts/build-boot) -->"
+REREAD_END = "<!-- END generated: mandatory rereads -->"
+COMPACT_BEGIN = "<!-- BEGIN on-compact -->"
+COMPACT_END = "<!-- END on-compact -->"
 CONFIG = Path("~/.config/agents/build-boot.json")
 BEGIN = "<!-- BEGIN generated: activity routes (scripts/build-boot) -->"
 END = "<!-- END generated: activity routes -->"
@@ -278,17 +285,141 @@ def activity_routes(glossary: str) -> tuple[str, list[str]]:
     return "\n".join(lines) + "\n", unclassified
 
 
-def replace_section(text: str, section: str) -> str:
-    start = text.find(BEGIN)
-    end = text.find(END)
-    if start < 0 or end < start:
+def replace_section(
+    text: str, section: str, begin: str = BEGIN, end_marker: str = END
+) -> str:
+    start = text.find(begin)
+    end = text.find(end_marker)
+    if text.count(begin) != 1 or text.count(end_marker) != 1 or end < start:
         raise BuildError(
             f"{GLOBAL} lacks the generated-section markers",
             ExitCode.NOT_FOUND,
-            begin=BEGIN,
-            end=END,
+            begin=begin,
+            end=end_marker,
         )
-    return text[: start + len(BEGIN)] + "\n" + section + text[end:]
+    return text[: start + len(begin)] + "\n" + section + text[end:]
+
+
+def reread_excerpt(source: str, name: str) -> str:
+    """Extract important content without copying the source's conditional material."""
+    lines = []
+    opened = False
+    for line in source.splitlines():
+        if line == "<!-- reread:begin -->":
+            if opened:
+                raise BuildError(f"nested reread block in {name}", ExitCode.DATA)
+            opened = True
+        elif line == "<!-- reread:end -->":
+            if not opened:
+                raise BuildError(f"unmatched reread end in {name}", ExitCode.DATA)
+            opened = False
+            lines.append("")
+        elif line.startswith("<!-- reread:include ") and line.endswith(" -->"):
+            continue
+        elif line.startswith("<!-- reread:"):
+            raise BuildError(f"invalid reread marker in {name}", ExitCode.DATA)
+        elif opened:
+            lines.append(line)
+    if opened:
+        raise BuildError(f"unclosed reread block in {name}", ExitCode.DATA)
+    return "\n".join(lines).strip()
+
+
+def compile_rereads(
+    repo: Path, sources: dict[Path, str] | None = None
+) -> tuple[str, dict[Path, str]]:
+    """Compile direct and recursive rereads, including coverage for read observers."""
+    if sources is None:
+        sources = {
+            path.resolve(): path.read_text()
+            for path in sorted((repo / "topics").glob("*.md"))
+            if ".mandatory-reread" not in path.name
+        }
+    excerpts = {
+        path: reread_excerpt(source, str(path.relative_to(repo)))
+        for path, source in sources.items()
+    }
+    dependencies: dict[Path, list[Path]] = {}
+    for path, source in sources.items():
+        linked = []
+        for target in re.findall(r"\[[^\]]*\]\(([^)]+)\)", source):
+            url = urlsplit(target)
+            if not url.scheme and not url.netloc and url.path:
+                resolved = (path.parent / unquote(url.path)).resolve()
+                if resolved in sources:
+                    linked.append(resolved)
+        for target in re.findall(
+            r"^<!-- reread:include (.+) -->$", source, re.MULTILINE
+        ):
+            resolved = (path.parent / target).resolve()
+            if resolved not in sources:
+                raise BuildError(
+                    f"missing reread dependency {target} in {path.name}",
+                    ExitCode.NOT_FOUND,
+                )
+            linked.append(resolved)
+        dependencies[path] = list(dict.fromkeys(linked))
+
+    def reachable(path: Path, seen: set[Path]) -> list[Path]:
+        if path in seen:
+            return []
+        seen.add(path)
+        return [path] + [
+            item
+            for dependency in dependencies[path]
+            for item in reachable(dependency, seen)
+        ]
+
+    outputs = {}
+    registry = []
+    for path, source in sources.items():
+        condition = re.findall(r"^Mandatory-reread: (.+)$", source, re.MULTILINE)
+        if len(condition) > 1 or (condition and not excerpts[path]):
+            raise BuildError(
+                f"{path.name} needs one reread condition and nonempty marked content",
+                ExitCode.DATA,
+            )
+        if not excerpts[path]:
+            continue
+        for recursive in (False, True):
+            visited = reachable(path, set()) if recursive else [path]
+            covered = [item for item in visited if excerpts[item]]
+            coverage = {
+                str(item.relative_to(repo)): hashlib.sha256(
+                    excerpts[item].encode()
+                ).hexdigest()
+                for item in covered
+            }
+            source_hashes = {
+                str(item.relative_to(repo)): hashlib.sha256(
+                    sources[item].encode()
+                ).hexdigest()
+                for item in covered
+            }
+            suffix = (
+                ".mandatory-reread.recursive.md"
+                if recursive
+                else ".mandatory-reread.md"
+            )
+            output = path.with_suffix(suffix)
+            body = "\n\n".join(
+                f"<!-- source: {item.relative_to(repo)} -->\n{excerpts[item]}"
+                for item in covered
+            )
+            outputs[output] = (
+                "<!-- Generated by scripts/build-boot; edit the base topics. -->\n"
+                f"<!-- reread-coverage: {json.dumps(coverage, sort_keys=True)} -->\n"
+                f"<!-- reread-source-hashes: {json.dumps(source_hashes, sort_keys=True)} -->\n"
+                f"# Required reread: {path.stem}\n\n"
+                + (f"Applies {condition[0]}.\n\n" if condition else "")
+                + body
+                + "\n"
+            )
+        if condition:
+            registry.append(
+                f"- {condition[0]} → `{path.stem}.mandatory-reread.recursive.md`"
+            )
+    return "\n".join(registry) + "\n", outputs
 
 
 def boot_text(global_text: str, user_text: str) -> str:
@@ -341,6 +472,13 @@ def _stage_global(repo: Path) -> bool:
     staged = _git(repo, "show", f":{GLOBAL}")
     section, _ = activity_routes(_git(repo, "show", f":{GLOSSARY}"))
     updated = replace_section(staged, section)
+    sources = {
+        (repo / name).resolve(): _git(repo, "show", f":{name}")
+        for name in _git(repo, "ls-files", "--", "topics/*.md").splitlines()
+        if ".mandatory-reread" not in name
+    }
+    registry, _ = compile_rereads(repo, sources)
+    updated = replace_section(updated, registry, REREAD_BEGIN, REREAD_END)
     if updated == staged:
         return False
     blob = _git(repo, "hash-object", "-w", "--stdin", stdin=updated).strip()
@@ -355,12 +493,32 @@ def build(args) -> int:
     global_text = _read(repo, GLOBAL)
     section, unclassified = activity_routes(_read(repo, GLOSSARY))
     new_global = replace_section(global_text, section)
+    registry, rereads = compile_rereads(repo)
+    new_global = replace_section(new_global, registry, REREAD_BEGIN, REREAD_END)
+    if new_global.count(COMPACT_BEGIN) != 1 or new_global.count(COMPACT_END) != 1:
+        raise BuildError("missing or duplicate on-compact markers", ExitCode.NOT_FOUND)
+    compact_start = new_global.index(COMPACT_BEGIN) + len(COMPACT_BEGIN)
+    compact_end = new_global.index(COMPACT_END)
+    if compact_end < compact_start:
+        raise BuildError("reversed on-compact markers", ExitCode.DATA)
+    compact_path = boot_path.with_name(ON_COMPACT)
+    compact_text = (
+        "<!-- Generated by scripts/build-boot from AGENTS.global.md. -->\n"
+        "# After compaction\n\n" + new_global[compact_start:compact_end].strip() + "\n"
+    )
     new_boot = boot_text(new_global, _read(repo, USER))
     old_boot = boot_path.read_text() if boot_path.is_file() else None
     stale = {
         "global_section": new_global != global_text,
         "boot": new_boot != old_boot,
     }
+    outputs = {compact_path: compact_text, **rereads}
+    stale.update(
+        {
+            str(path): not path.is_file() or path.read_text() != text
+            for path, text in outputs.items()
+        }
+    )
     staged = False
     if not args.check:
         if args.index:
@@ -369,8 +527,13 @@ def build(args) -> int:
             _write_atomic(repo / GLOBAL, new_global)
         if stale["boot"]:
             _write_atomic(boot_path, new_boot)
+        for path, text in outputs.items():
+            if stale[str(path)]:
+                _write_atomic(path, text)
     result = {
         "boot": str(boot_path),
+        "on_compact": str(compact_path),
+        "mandatory_rereads": [str(path) for path in rereads],
         "checked_only": args.check,
         "stale": stale,
         "staged_global": staged,
@@ -517,7 +680,7 @@ def build_parser():
 
     build_cmd = commands.add_parser(
         "build",
-        help="Regenerate the activity-route section of AGENTS.global.md and write AGENTS.boot.md.",
+        help="Regenerate boot routes, AGENTS.boot.md, AGENTS.on-compact.md, and marked topic reread companions.",
     )
     build_cmd.add_argument(
         "--check",

@@ -155,6 +155,7 @@ checklist to satisfy in addition to genre rules: a genre topic such as
 - **Cut what the text already showed.** The usual cuts are explanations of
   what a display or an earlier sentence already established, throat-clearing
   openings, and endings that keep ending.
+<!-- reread:begin -->
 - **Always cut, in any genre:** a sentence restating the previous one in
   abstract or figurative form; a closing sentence summarizing its own
   paragraph; a "not X but Y" or triad built for cadence; an opener asserting
@@ -167,6 +168,7 @@ checklist to satisfy in addition to genre rules: a genre topic such as
   the new first mention becomes "a X" or gains its introduction, and a later
   "a X" may become "the X". After any edit short of a full rewrite, check
   each definite reference in the edited span against its antecedent.
+<!-- reread:end -->
 - **Check the promise.** Reread the purpose sentence. Did the piece deliver
   it? A finished draft that answers a different question than it posed needs
   either a new opening or a new body.

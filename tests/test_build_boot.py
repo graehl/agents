@@ -14,6 +14,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "build-boot"
 BEGIN = "<!-- BEGIN generated: activity routes (scripts/build-boot) -->"
 END = "<!-- END generated: activity routes -->"
+REREAD_BEGIN = "<!-- BEGIN generated: mandatory rereads (scripts/build-boot) -->"
+REREAD_END = "<!-- END generated: mandatory rereads -->"
 GLOSSARY = (
     "| term | sense or governs | read |\n|---|---|---|\n"
     "| `writing` | Governs: drafting a document for readers | [writing](topics/writing.md) |\n"
@@ -49,13 +51,80 @@ def _git(repo: Path, *args: str) -> str:
 def _repo(root: Path) -> Path:
     repo = root / "agents"
     repo.mkdir()
-    (repo / "AGENTS.global.md").write_text(f"# Global\n\n{BEGIN}\n{END}\n\n# Tail\n")
+    (repo / "AGENTS.global.md").write_text(
+        f"# Global\n\n<!-- BEGIN on-compact -->\nRefresh protocol.\n"
+        f"{REREAD_BEGIN}\n{REREAD_END}\n<!-- END on-compact -->\n"
+        f"{BEGIN}\n{END}\n\n# Tail\n"
+    )
     (repo / "AGENTS.user.md").write_text("## Personal\n\nprefers terse replies\n")
     (repo / "GLOSSARY.agents.md").write_text(GLOSSARY)
     _git(repo, "init", "-q")
     _git(repo, "add", ".")
     _git(repo, "commit", "-qm", "base")
     return repo
+
+
+def test_recursive_rereads_and_on_compact_are_compiled_and_checked() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        topics = repo / "topics"
+        topics.mkdir()
+        (topics / "leaf.md").write_text(
+            "# Leaf\n<!-- reread:begin -->\nEssential leaf.\n<!-- reread:end -->\n"
+            "Conditional leaf detail.\n"
+        )
+        (topics / "middle.md").write_text(
+            "Conditionally follow [leaf](leaf.md#rules).\n[cycle](example.md)\n"
+        )
+        source = topics / "example.md"
+        source.write_text(
+            "# Example\nMandatory-reread: before revising an example\n"
+            "<!-- reread:include middle.md -->\n<!-- reread:include leaf.md -->\n"
+            "<!-- reread:begin -->\nEssential example.\n<!-- reread:end -->\n"
+            "Conditional example detail.\n"
+        )
+        result = _run(repo, "build")
+        assert result.returncode == 0, result.stderr
+        companion = topics / "example.mandatory-reread.recursive.md"
+        body = companion.read_text()
+        assert "before revising an example" in body
+        assert body.count("Essential leaf.") == 1
+        assert "Essential example." in body and "Conditional" not in body
+        assert "reread:include" not in body
+        on_compact = (repo / "AGENTS.on-compact.md").read_text()
+        assert "Refresh protocol." in on_compact
+        assert "example.mandatory-reread.recursive.md" in on_compact
+        direct = (topics / "example.mandatory-reread.md").read_text()
+        assert "Essential example." in direct and "Essential leaf." not in direct
+        assert "before revising an example" in on_compact
+        assert "prefers terse replies" not in on_compact
+        assert "Essential leaf." not in (repo / "AGENTS.boot.md").read_text()
+        assert _run(repo, "build", "--check").returncode == 0
+        (topics / "leaf.md").write_text(
+            "<!-- reread:begin -->\nChanged leaf.\n<!-- reread:end -->\n"
+        )
+        assert _run(repo, "build", "--check").returncode == 3
+        assert companion.read_text() == body
+        assert _run(repo, "build").returncode == 0
+        assert "Changed leaf." in companion.read_text()
+        (repo / "AGENTS.on-compact.md").write_text("stale\n")
+        assert _run(repo, "build", "--check").returncode == 3
+
+
+def test_malformed_reread_fails_before_any_output_write() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        topics = repo / "topics"
+        topics.mkdir()
+        source = topics / "example.md"
+        source.write_text("<!-- reread:begin -->\nForgot to close.\n")
+        original = (repo / "AGENTS.global.md").read_text()
+        result = _run(repo, "build")
+        assert result.returncode == 3, result.stderr
+        assert not (repo / "AGENTS.boot.md").exists()
+        assert (repo / "AGENTS.global.md").read_text() == original
+        source.write_text("<!-- reread:include missing.md -->\n")
+        assert _run(repo, "build").returncode == 4
 
 
 def test_build_generates_grouped_routes_and_boot() -> None:

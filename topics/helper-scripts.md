@@ -435,8 +435,29 @@ and `build-boot link [--check] [--to-global]`; acli baseline with completion.
   `# User policy (compiled from AGENTS.user.md)`. Personal policy therefore
   never enters the tracked global file.
 - `--index` also rewrites the section inside the staged `AGENTS.global.md`
-  blob, so unstaged edits elsewhere in the file stay out of the commit. The
+  blob from staged glossary/topic sources, so unstaged edits stay out of the commit. The
   `~/agents` pre-commit hook runs `build --index`.
+- `build` also compiles the mandatory-reread registry from topics with
+  `Mandatory-reread:` metadata; the marker convention is in
+  `topics/topic-doc-format.md`. For every topic with marked essential content,
+  it writes adjacent `.mandatory-reread.md` (own excerpts only) and
+  `.mandatory-reread.recursive.md` (reachable essential excerpts inlined).
+  Local Markdown topic links and explicit include directives form the graph;
+  unmarked intermediates are traversed, and cycles/diamonds contribute once.
+  Missing explicit dependencies and malformed blocks fail before output writes.
+- `AGENTS.on-compact.md`, beside the boot output, extracts the global policy's
+  `BEGIN on-compact` / `END on-compact` block after registry generation. It is
+  ready for an optional harness to inject; the build enables no injection.
+  Boot and on-compact contain dispatch rules, never the writing packet bodies.
+- Each companion carries JSON HTML comments `reread-coverage` (repo-relative
+  base source path → SHA-256 of its extracted essential text) and
+  `reread-source-hashes` (same paths → SHA-256 of full source text). A verified
+  complete recursive read covers every listed packet for the current
+  compaction boundary. Metadata alone or truncated content is not read proof.
+  Harness observers may use direct companions for precise missing coverage.
+- All generated companions and `AGENTS.on-compact.md` are local build outputs,
+  excluded through `.git/info/exclude` alongside `AGENTS.boot.md`. `--check`
+  checks them all without writing, including transitive content changes.
 - `--check` writes nothing and exits 3 when the section or boot is stale;
   missing markers or sources exit 4.
 - `link` retargets harness instruction symlinks that resolve to this
