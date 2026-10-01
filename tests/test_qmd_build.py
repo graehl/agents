@@ -269,3 +269,17 @@ def test_html_memo_style_table_width_bands(tmp_path):
     assert "CC‑BY‑NC‑SA" in html  # short tokens keep whole
     if any(receipt["table_widths"][0]):
         assert 'data-table-widths="0"' in html and "@container" in html
+
+
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_render_never_writes_through_to_earlier_output(tmp_path):
+    root = tmp_path / "doc.md"
+    root.write_text("# Doc\n\nBody.\n")
+    earlier = tmp_path / "doc.html"
+    earlier.write_text("earlier build\n")
+    elsewhere = tmp_path / "out/doc.html"
+    command = [str(REPO / "scripts/qmd-html"), str(root), "--output", str(elsewhere)]
+    run = subprocess.run(command + ["--acli-quiet"], capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    assert earlier.read_text() == "earlier build\n"
+    assert "Body." in elsewhere.read_text()
