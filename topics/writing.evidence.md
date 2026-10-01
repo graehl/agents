@@ -345,3 +345,22 @@ narrator-voice importance words, not dialogue. Hypothesis left open: rerun
 the report from the same notes on Astra and a Claude model now that the
 route exists, and count hedges, bolded negations, and undefined process
 terms before considering any Astra-scoped rule.
+
+## 2026-10-01 — styled renders only on request
+
+User-directed: a shared memo/report publication toolset (`qmd-html`
+named styles, bundled appendix documents) is documented in
+`document-publishing`, and `writing` links it "scoped to produce heavy
+structure/build/renders only on request". The sentence sits in the
+opening routing paragraph, not in a boot route; no `Governs:` line, so
+no new boot-loaded activity route.
+
+Traces: (1) "revise the memo" edits Markdown and builds nothing;
+(2) "make this a nice HTML I can share" routes to `document-publishing`;
+(3) a prose edit to the speech report, which already commits
+`report.html`, must still rebuild it — the first draft ("deliverable is
+plain Markdown unless asked") would have left a stale render, so the
+rule now says a document with a build keeps its recipe; (4) the first
+draft also forbade splitting a document into a built project unless
+asked, which contradicts `document-writing`'s ordered-fragment rule for
+very long documents; that clause was dropped.

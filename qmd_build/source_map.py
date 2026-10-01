@@ -69,7 +69,10 @@ def section_source_targets(path: Path, quarto: str, relative_to: Path) -> list[d
         if not re.match(r"^#{1,6}\s", lines[line]):
             raise ValueError(f"Source editing requires ATX headings: {path}:{line + 1}")
         headings.append((level, line, attributes[0]))
-    if not headings or any(line.strip() for line in lines[: headings[0][1]]):
+    preamble = "".join(lines[: headings[0][1]]) if headings else ""
+    # A self-contained root document may carry YAML front matter first.
+    preamble = re.sub(r"\A---\n.*?\n---\n", "", preamble, flags=re.DOTALL)
+    if not headings or preamble.strip():
         raise ValueError(f"Expected a section beginning with a heading: {path}")
     targets = []
     ids = set()
@@ -202,7 +205,8 @@ def staged_sources(
     The copy sits beside the document directory, so relative resource paths
     such as `../..` resolve to the same files. Included fragments are replaced
     by marked copies; every other entry is a symlink. `skip` names top-level
-    entries (output and cache directories) left out of the copy.
+    entries (output and cache directories) left out of the copy. A root with
+    no includes may itself be the one marked section.
     """
     home = root.parent
     marked = {Path(os.path.normpath(section)): section for section in sections}
@@ -233,7 +237,10 @@ def staged_sources(
 
         mirror(home, staged_home)
         staged_root = staged_home / root.name
-        staged_root.write_text(root.read_text())
+        text = root.read_text()
+        if root in marked:
+            text = marked_source(text, targets_for(root, targets, relative_to))
+        staged_root.write_text(text)
         yield staged_root
 
 

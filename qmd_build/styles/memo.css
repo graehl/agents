@@ -1,0 +1,129 @@
+/* qmd-html `memo` style: a readable research memo or report over Quarto's
+   default HTML theme. Source Sans 3 faces are supplied by the build. The
+   right-hand outline is Quarto's table of contents, following heading level. */
+
+:root {
+  --memo-ink: #192c3d;
+  --memo-muted: #526477;
+  --memo-accent: #126a98;
+  --memo-rule: #d9e3ea;
+  --memo-tint: #f3f7fa;
+  --bs-body-font-family: "Source Sans 3", "Segoe UI", sans-serif;
+  --bs-body-color: var(--memo-ink);
+  --bs-link-color: var(--memo-accent);
+  --bs-link-color-rgb: 18, 106, 152;
+}
+
+body {
+  font-family: var(--bs-body-font-family);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--memo-ink);
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--bs-body-font-family);
+  font-weight: 700;
+  color: var(--memo-ink);
+  letter-spacing: -0.01em;
+}
+
+h1 { font-size: 2rem; line-height: 1.15; margin-bottom: 1rem; }
+h2 {
+  font-size: 1.45rem;
+  margin-top: 2.4rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--memo-rule);
+}
+h3 { font-size: 1.15rem; margin-top: 1.8rem; }
+h4 { font-size: 1rem; margin-top: 1.4rem; }
+
+p, li { max-width: 46rem; }
+
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+strong { font-weight: 700; }
+
+blockquote {
+  margin: 1rem 0;
+  padding: 0.4rem 1rem;
+  border-left: 3px solid var(--memo-accent);
+  background: var(--memo-tint);
+  color: var(--memo-ink);
+}
+
+code {
+  color: inherit;
+  background: var(--memo-tint);
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+}
+
+/* Tables: compact, ruled, scrollable when wider than the column. */
+table {
+  font-size: 0.92rem;
+  line-height: 1.4;
+  border-collapse: collapse;
+  margin: 1rem 0 1.4rem;
+}
+/* Pipe-table dash counts are not column widths; let content size tables
+   that the build did not give chosen widths (table_layout.py). */
+main table:not([data-table-widths]) col { width: auto !important; }
+table th {
+  font-weight: 600;
+  background-color: var(--memo-tint) !important;
+  box-shadow: none !important;
+  border-bottom: 2px solid var(--memo-rule) !important;
+  vertical-align: bottom;
+}
+table td, table th {
+  padding: 0.45rem 0.6rem !important;
+  border-color: var(--memo-rule);
+  vertical-align: top;
+}
+table td:first-child { font-weight: 600; }
+
+/* Included whole documents, one appendix each. */
+.appendix-doc {
+  margin-top: 3rem;
+  padding-top: 0.5rem;
+  border-top: 3px solid var(--memo-accent);
+}
+.appendix-doc > section > h2::before,
+.appendix-doc > h2::before {
+  content: "Appendix · ";
+  color: var(--memo-muted);
+  font-weight: 600;
+}
+
+#TOC .nav-link { font-size: 0.85rem; color: var(--memo-muted); }
+#TOC .nav-link.active { color: var(--memo-accent); font-weight: 600; }
+
+@media screen and (max-width: 767.98px) {
+  body { font-size: 1rem; }
+  h1 { font-size: 1.6rem; }
+  /* Below the narrowest width band tables use automatic layout; a table
+     wider than the screen scrolls in its own box, not the whole page. */
+  main table { display: block; overflow-x: auto; max-width: 100%; }
+}
+
+@media print {
+  body { font-size: 10.5pt; line-height: 1.4; }
+  #quarto-margin-sidebar, #TOC, .quarto-alternate-formats, .anchorjs-link { display: none !important; }
+  #quarto-content, main.content, .page-columns {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  p, li { max-width: none; }
+  h1 { font-size: 20pt; }
+  h2 { font-size: 14pt; margin-top: 1.4rem; break-after: avoid; }
+  h3, h4 { break-after: avoid; }
+  table { font-size: 8.8pt; }
+  tr, blockquote { break-inside: avoid; }
+  .appendix-doc { break-before: page; border-top: none; margin-top: 0; }
+}

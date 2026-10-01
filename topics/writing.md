@@ -17,6 +17,10 @@ story. For plot, character, setting and scene work, continue to
 [`story-project-layout`](story-project-layout.md). For a report, brief,
 estimate, proposal, handout, paper, or blog post that carries technical or
 research content, continue to [`technical-writing`](technical-writing.md).
+A new document's deliverable is plain Markdown: create a styled HTML or PDF
+render, or bundle supporting documents as appendices, only when the author
+asks, then follow [`document-publishing`](document-publishing.md). A
+document that already has a build keeps being rebuilt by its own recipe.
 
 The advice below is distilled from craft sources whose authors have a record
 of being read: Williams's *Style: Toward Clarity and Grace* and Gopen and

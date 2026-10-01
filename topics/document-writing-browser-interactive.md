@@ -168,7 +168,10 @@ It renders an isolated sibling copy of the document directory with
 A fragment edited during the render, an unresolved include, or a missing
 `must-contain` string fails the build. `quarto-version` pins the renderer;
 `inputs` adds hashed assets such as CSS or include-after-body files; `hook`
-names the regenerate registration. The root must sit at its Quarto project
+names the regenerate registration; `style` (or `--style`) selects a named
+document style. A root without includes is itself the one mapped section.
+Styles, bundled appendix documents, and links between included documents
+are in [`document-publishing`](document-publishing.md). The root must sit at its Quarto project
 directory. Serving an inspectable multi-file output directory is still plain
 `quarto render`; this tool deliberately produces only the one-file form.
 
