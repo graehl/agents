@@ -1,0 +1,222 @@
+# Metadata manifest for surveys/untranscribed-speech.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: untranscribed-speech
+  coverage_cutoff: 2026-10-01
+  grounding_mode: grounded
+
+papers:
+  - key: voxpopuli-release
+    title: VoxPopuli release documentation
+    authors: [Changhan Wang, Morgane Riviere, Ann Lee, Anne Wu, Chaitanya Talnikar, Daniel Haziza, Mary Williamson, Juan Pino, Emmanuel Dupoux]
+    venue: Official dataset repository
+    year: 2021
+    url: https://github.com/facebookresearch/voxpopuli
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: libri-light-downloads
+    title: Libri-light Data Preparation and Download
+    authors: [Libri-light authors]
+    venue: Official dataset documentation
+    year: 2020
+    url: https://github.com/facebookresearch/libri-light/blob/main/data_preparation/README.md
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: voxlingua107-downloads
+    title: VoxLingua107
+    authors: [Jorgen Valk, Tanel Alumae]
+    venue: TalTech dataset documentation
+    year: 2021
+    url: https://cs.taltech.ee/staff/tanel.alumae/data/voxlingua107/
+    source: https://cs.taltech.ee/staff/tanel.alumae/data/voxlingua107/
+    verified: true
+    grounded: false
+  - key: yodas2-card
+    title: YODAS2 dataset card
+    authors: [ESPnet contributors]
+    venue: Official Hugging Face dataset card
+    year: 2024
+    url: https://huggingface.co/datasets/espnet/yodas2
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: emilia-card
+    title: Emilia dataset card
+    authors: [Amphion contributors]
+    venue: Official Hugging Face dataset card
+    year: 2025
+    url: https://huggingface.co/datasets/amphion/Emilia-Dataset
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: sonar-release
+    title: SONAR release documentation
+    authors: [SONAR contributors]
+    venue: Official model repository
+    year: 2026
+    url: https://github.com/facebookresearch/SONAR
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: wavlm-card
+    title: WavLM Base Plus model card
+    authors: [Microsoft]
+    venue: Official Hugging Face model card
+    year: 2022
+    url: https://huggingface.co/microsoft/wavlm-base-plus
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: clap-release
+    title: Contrastive Language-Audio Pretraining release documentation
+    authors: [LAION-AI CLAP contributors]
+    venue: Official model repository
+    year: 2023
+    url: https://github.com/LAION-AI/CLAP
+    source: https://github.com/LAION-AI/CLAP
+    verified: true
+    grounded: false
+  - key: radio-browser-api
+    title: Radio Browser API Reference
+    authors: [Radio Browser maintainers]
+    venue: Official API documentation
+    year: 2026
+    url: https://docs.radio-browser.info/
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: opus-settings
+    title: Opus Recommended Settings
+    authors: [Xiph.Org contributors]
+    venue: XiphWiki
+    year: 2026
+    url: https://wiki.xiph.org/Opus_Recommended_Settings
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: archive-metadata
+    title: Item Metadata API
+    authors: [Internet Archive]
+    venue: Internet Archive Developer Portal
+    year: 2026
+    url: https://archive.org/developers/metadata.html
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: mls-downloads
+    title: Multilingual LibriSpeech (MLS)
+    authors: [Vineel Pratap, Qiantong Xu, Anuroop Sriram, Gabriel Synnaeve, Ronan Collobert]
+    venue: OpenSLR resource 94
+    year: 2020
+    url: https://www.openslr.org/94/
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: ffmpeg-protocols
+    title: FFmpeg Protocols Documentation
+    authors: [FFmpeg developers]
+    venue: Official documentation
+    year: 2026
+    url: https://ffmpeg.org/ffmpeg-protocols.html
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: omnisonar2026
+    title: 'Omnilingual SONAR: Cross-Lingual and Cross-Modal Sentence Embeddings Bridging Massively Multilingual Text and Speech'
+    authors: [Omnilingual SONAR Team]
+    venue: arXiv preprint
+    year: 2026
+    url: https://arxiv.org/html/2603.16606v1
+    source: https://arxiv.org/html/2603.16606v1
+    verified: true
+    grounded: false
+  - key: heigold2026-mseb
+    title: Massive Sound Embedding Benchmark (MSEB)
+    authors: [Georg Heigold, Ehsan Variani, Tom Bagby, Cyril Allauzen, Ji Ma, Shankar Kumar, Michael Riley]
+    venue: arXiv preprint
+    year: 2026
+    url: https://arxiv.org/html/2602.07143v1
+    source: https://arxiv.org/html/2602.07143v1
+    verified: true
+    grounded: false
+  - key: allauzen2026-mseb-llms
+    title: Benchmarking LLMs on the Massive Sound Embedding Benchmark (MSEB)
+    authors: [Cyril Allauzen, Tom Bagby, Georg Heigold, Ehsan Variani, Ke Wu]
+    venue: arXiv preprint
+    year: 2026
+    url: https://arxiv.org/html/2605.04556v1
+    source: https://arxiv.org/html/2605.04556v1
+    verified: true
+    grounded: false
+  - key: mms-ulab-v2-card
+    title: MMS ulab v2 dataset card
+    authors: [ESPnet contributors]
+    venue: Official Hugging Face dataset card
+    year: 2024
+    url: https://huggingface.co/datasets/espnet/mms_ulab_v2
+    source: https://huggingface.co/datasets/espnet/mms_ulab_v2
+    verified: true
+    grounded: false
+  - key: mms-lid-card
+    title: Massively Multilingual Speech (MMS) - Finetuned LID
+    authors: [Meta MMS contributors]
+    venue: Official Hugging Face model card
+    year: 2023
+    url: https://huggingface.co/facebook/mms-lid-4017
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: pyannote-community-card
+    title: Community-1 speaker diarization
+    authors: [pyannote contributors]
+    venue: Official Hugging Face model card
+    year: 2025
+    url: https://huggingface.co/pyannote/speaker-diarization-community-1
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: panns-release
+    title: PANNs audio tagging and sound event detection documentation
+    authors: [Qiuqiang Kong, PANNs contributors]
+    venue: Official model repository
+    year: 2020
+    url: https://github.com/qiuqiangkong/audioset_tagging_cnn
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: dnsmos-implementation
+    title: DNSMOS local inference implementation
+    authors: [Microsoft DNS Challenge contributors]
+    venue: Official repository source
+    year: 2026
+    url: https://github.com/microsoft/DNS-Challenge/blob/master/DNSMOS/dnsmos_local.py
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: yodas3-card
+    title: YODAS v3 dataset card
+    authors: [ESPnet contributors]
+    venue: Official Hugging Face dataset card
+    year: 2026
+    url: https://huggingface.co/datasets/espnet/yodas3
+    source: https://huggingface.co/datasets/espnet/yodas3
+    verified: true
+    grounded: true
+    fetched: 2026-10-01

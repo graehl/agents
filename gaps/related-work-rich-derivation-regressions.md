@@ -101,3 +101,35 @@ before switching route, and should not replace a completed extract with a
 different method unless asked.
 
 2026-09-30 — Contributing-model: opus-5.5
+
+## Fresh untranscribed-speech sources, 2026-10-01
+
+The grounded `surveys/untranscribed-speech/` pass accepted fifteen of
+twenty-one attempted sources. Six new sources have no accepted local
+Markdown/sentinel; they were read through primary-source web views and
+remain marked locally ungrounded in the manifest.
+
+| Key | Failure |
+|---|---|
+| omnisonar2026 | mismatched tag inside SVG visual |
+| heigold2026-mseb | mismatched tag inside SVG visual |
+| allauzen2026-mseb-llms | mismatched tag inside SVG visual |
+| voxlingua107-downloads | fidelity: 1/1 flagged blocks, total 0.385 |
+| clap-release | fidelity: 2/44 flagged blocks (one tolerated), total 0.993 |
+| mms-ulab-v2-card | unsupported visual content: audio (dataset preview) |
+
+Reproducer from `~/agents`:
+
+```bash
+uv run --with pyyaml scripts/related-work \
+  --dir surveys/untranscribed-speech fetch --no-stage \
+  omnisonar2026 heigold2026-mseb allauzen2026-mseb-llms \
+  voxlingua107-downloads clap-release mms-ulab-v2-card
+```
+
+The audio-preview failure extends the page-chrome boundary problem: a
+dataset card's prose should remain extractable when an unrelated preview
+player is outside the substantive card. No extractor repair was attempted
+as part of the survey.
+
+2026-10-01 — Contributing-model: 6.1-Sol
