@@ -2,7 +2,7 @@
   "comment": "qmd-html document style: readable memo or report over Quarto's default HTML theme",
   "css": "memo.css",
   "font-families": ["Source Sans 3"],
-  "filters": ["table_tokens.lua"],
+  "filters": ["table_tokens.lua", "paragraph_labels.lua"],
   "toc": true,
   "table-widths": true,
   "document-corner": true,

@@ -333,3 +333,20 @@ def test_html_bump_revision_records_and_shows_revision(tmp_path):
         '<div class="document-revision">rev 3 · '
         in (tmp_path / "note.html").read_text()
     )
+
+
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_memo_paragraph_labels_join_outline(tmp_path):
+    root = tmp_path / "labels.md"
+    root.write_text(
+        "# Labels\n\n## Section\n\n**Lead label.** Text after it.\n\n"
+        "**Bold term** inside a sentence stays inline.\n\n**Other:** more text.\n"
+    )
+    command = [str(REPO / "scripts/qmd-html"), str(root), "--style", "memo"]
+    run = subprocess.run(command + ["--acli-quiet"], capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    html = (tmp_path / "labels.html").read_text()
+    toc = html.split('id="TOC"', 1)[1].split("</nav>", 1)[0]
+    assert 'href="#lead-label"' in toc and 'href="#other"' in toc
+    assert "Bold term" not in toc
+    assert 'data-label-punct="."' in html and 'data-label-punct=":"' in html

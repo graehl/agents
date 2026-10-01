@@ -91,6 +91,11 @@ heading levels whether or not the root uses includes.
 - Source Sans 3 from the host's TeX Live OpenType tree, embedded in the HTML.
 - A quiet top-right corner: the revision, and with a printed PDF a relative
   "PDF" link to the sibling file.
+- Paragraph lead labels: a paragraph opening with bold text that ends in
+  "." or ":" (`**NC boundary.** …`) becomes a run-in heading one level below
+  its section. It still reads as a bold opening phrase, but gets an anchor
+  and an outline entry that expands when the reader is in that section.
+  Bold terms without that punctuation stay ordinary bold text.
 - Tables: short hyphenated tokens such as `CC-BY-NC-SA` never wrap mid-name
   (non-breaking hyphens inside table cells). Column widths are chosen at
   build time per band of content-column width (from 420, 600 and 760 CSS
@@ -118,7 +123,7 @@ mechanics.
 
 `qmd_build/`: `styles.py` (style search and manifests; `styles/memo/`),
 `document_title.lua` (opening heading as title), `document_corner.lua`
-(revision and PDF link), `table_tokens.lua`, `included_documents.lua` (links
+(revision and PDF link), `table_tokens.lua`, `paragraph_labels.lua`, `included_documents.lua` (links
 between included documents, `.appendix-doc`), `table_layout.py` with
 `table_widths.js`, `table_widths.mjs` and `table_widths.lua` (build-time
 column widths), `fonts.py` (embeddable faces), and `browser_print.py`
