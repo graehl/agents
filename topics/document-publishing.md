@@ -2,7 +2,7 @@
 
 > Build a finished reader document — a memo, report, or note with sections —
 > into one styled, self-contained HTML page and a matching print PDF, on
-> request, with `qmd-html` and a named document style.
+> request, with `qmd-html` and a document style the source names.
 
 Topic: `document-publishing`
 
@@ -16,21 +16,60 @@ build, rebuild it after editing its sources.
 ## Build
 
 ```bash
-qmd-html <doc>.md --style memo --print-pdf --text      # one file
+qmd-html <doc>.md --print-pdf --text                    # one file
 qmd-html --config <doc>.qmd-html.json --text            # recorded build
 ```
 
 `qmd-html` and its config keys are specified in
 [`document-writing-browser-interactive` § Scripted HTML build](document-writing-browser-interactive.md#scripted-html-build).
-For a recorded build, put `"style": "memo"` and `"print-pdf": true` in the
-config beside the root; the HTML, PDF, `.receipt.json`, `.html.map` and
-`.render.log` land beside the root unless `output` says otherwise.
+A recorded build keeps `"print-pdf": true` in a config beside the root; the
+HTML, PDF, `.receipt.json`, `.html.map` and `.render.log` land beside the
+root unless `output` says otherwise.
+
+### Front matter
+
+The root's YAML front matter carries the document's publishing facts, so a
+shared repository needs no path to this toolchain:
+
+```yaml
+---
+document-style: memo        # style name, found on the style search path
+date: 2026-10-01            # creation date, shown under the title
+revision: 2                 # absent for the original version
+revision-date: 2026-10-03
+---
+```
+
+`--style` and config `style` override `document-style`. Styles are found by
+name in the directories of `QMD_STYLE_PATH` (`:`-separated), then
+`~/.config/qmd-html/styles`, then the built-in `qmd_build/styles`; a style is
+a `<name>/style.json` with its CSS and filters (keys in `qmd_build/styles.py`).
+
+### Revisions
+
+`qmd-html --bump-revision` sets `revision` one higher (the first bump makes
+it 2) and `revision-date` to today before building; an ordinary build never
+changes them. The memo style shows "rev N · date" in light grey at the top
+right. Bump once per round of significant new work, at the build whose HTML
+path you report back to the author, and name the revision in that report.
+Successive edits and rebuilds inside one revision session do not bump.
+
+### What to commit
+
+In a shared repository that has not vendored this build toolchain, other
+users cannot regenerate the outputs, so commit the HTML and the figure
+files it is built from, plus the receipt and source map, but not the PDF:
+ignore generated PDFs beside the root. The HTML's PDF link then works for
+whoever builds locally. A repository that vendors the toolchain, or a
+private one, follows its own convention.
 
 ## Source shapes
 
+- **Title.** Without a `title` in the root's front matter, a level-1 heading
+  that opens the document becomes its title: Quarto's title block shows it
+  with the creation date, and the outline starts at the `##` sections.
 - **One document.** A single `.md` or `.qmd` renders directly; includes are
-  optional. Without a `title` or `pagetitle`, the first level-1 heading names
-  the page, and it remains the visible title.
+  optional.
 - **Sections or bundled documents.** A root `.qmd` includes fragments in
   reading order ([`document-writing` § Assemble very long documents](document-writing.md#assemble-very-long-documents-from-ordered-fragments)).
   To ship supporting documents with a memo, include each whole document
@@ -50,6 +89,8 @@ Layered over Quarto's default HTML theme, so the right-hand outline follows
 heading levels whether or not the root uses includes.
 
 - Source Sans 3 from the host's TeX Live OpenType tree, embedded in the HTML.
+- A quiet top-right corner: the revision, and with a printed PDF a relative
+  "PDF" link to the sibling file.
 - Tables: short hyphenated tokens such as `CC-BY-NC-SA` never wrap mid-name
   (non-breaking hyphens inside table cells). Column widths are chosen at
   build time per band of content-column width (from 420, 600 and 760 CSS
@@ -58,8 +99,8 @@ heading levels whether or not the root uses includes.
   steps, and keeps a choice only where it renders shorter than the
   browser's automatic layout. Narrower than 420 px, tables use automatic
   layout and scroll inside their own box.
-- Print: US Letter, 0.7 in by 0.75 in margins; the outline is hidden, table
-  rows do not split, and table headers repeat on each page.
+- Print: US Letter, 0.7 in by 0.75 in margins; the outline and corner are
+  hidden, table rows do not split, and table headers repeat on each page.
 
 Width choice is HTML-only. A LaTeX/PDF venue build never sees it; that
 optimization is [a separate sketch](../gaps/sketches/tex-table-column-widths.md).
@@ -75,11 +116,12 @@ mechanics.
 
 ## Code
 
-`qmd_build/`: `styles.py` (named styles; `styles/memo.css`,
-`styles/table_tokens.lua`), `included_documents.lua` (links between included
-documents, `.appendix-doc`), `table_layout.py` with `table_widths.js`,
-`table_widths.mjs` and `table_widths.lua` (build-time column widths),
-`fonts.py` (embeddable faces), and `browser_print.py` (Chromium print and
-PDF page count). A hand-assembled page outside Quarto, such as a one-page
-highlight, can reuse `font_face_css`, `print_pdf` and `pdf_page_count`
-directly.
+`qmd_build/`: `styles.py` (style search and manifests; `styles/memo/`),
+`document_title.lua` (opening heading as title), `document_corner.lua`
+(revision and PDF link), `table_tokens.lua`, `included_documents.lua` (links
+between included documents, `.appendix-doc`), `table_layout.py` with
+`table_widths.js`, `table_widths.mjs` and `table_widths.lua` (build-time
+column widths), `fonts.py` (embeddable faces), and `browser_print.py`
+(Chromium print and PDF page count). A hand-assembled page outside Quarto,
+such as a one-page highlight, can reuse `font_face_css`, `print_pdf` and
+`pdf_page_count` directly.

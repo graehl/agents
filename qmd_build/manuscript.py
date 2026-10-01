@@ -74,9 +74,45 @@ def includes(root: Path, *, required: bool = True) -> list[str]:
     return names
 
 
-def first_heading_text(path: Path) -> str | None:
-    """Plain text of the first ATX level-1 heading, for a page title."""
-    match = re.search(r"^# +(.+?)\s*(?:\{[^}]*\})?\s*$", path.read_text(), re.MULTILINE)
+FRONT_MATTER = re.compile(r"\A---\n.*?\n---\n", re.DOTALL)
+
+
+def bump_revision(root: Path, today: str) -> int:
+    """Record a new revision in the root's front matter and return its number.
+
+    `revision` counts versions (absent means the original, 1); the bump sets
+    it one higher and `revision-date` to `today`, adding front matter if the
+    root has none. Other front-matter lines are left untouched.
+    """
+    text = root.read_text()
+    match = FRONT_MATTER.match(text)
+    header = match[0][len("---\n") : -len("\n---\n")] if match else ""
+    current = re.search(r"^revision:\s*(\d+)\s*$", header, re.MULTILINE)
+    revision = int(current[1]) + 1 if current else 2
+    lines = [
+        line
+        for line in header.splitlines()
+        if not re.match(r"(revision|revision-date):", line)
+    ]
+    lines += [f"revision: {revision}", f"revision-date: {today}"]
+    body = text[match.end() :] if match else "\n" + text
+    root.write_text("---\n" + "\n".join(lines) + "\n---\n" + body)
+    return revision
+
+
+def opening_title(root: Path, sections: list[Path]) -> str | None:
+    """Text of the level-1 heading that opens the rendered document, if any.
+
+    The document opens with it when the root (after front matter) is only
+    includes and the first fragment starts with that heading, or when a root
+    without includes starts with it. Its plain text becomes the title.
+    """
+    body = FRONT_MATTER.sub("", root.read_text()).lstrip()
+    if sections:
+        if not body.startswith("{{< include"):
+            return None
+        body = FRONT_MATTER.sub("", sections[0].read_text()).lstrip()
+    match = re.match(r"# +(.+?)\s*(?:\{[^}]*\})?\s*$", body.split("\n", 1)[0])
     return None if match is None else re.sub(r"[*_`]", "", match[1])
 
 
