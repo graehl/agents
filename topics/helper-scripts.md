@@ -419,8 +419,11 @@ Compiles the one instruction file each harness protects across compaction.
 A read that fires every session costs a second copy of text the session
 already needs; a protected file keeps it without the read. So the boot
 carries what every session would otherwise load: the global policy, the
-activity routes, and `AGENTS.user.md`. Model-, launcher-, and
-harness-conditional supplements remain routed reads.
+activity routes, and `AGENTS.user.md`. It also builds
+`AGENTS.boot.<harness>.md` for each present Codex, Claude, Grok, or Copilot
+supplement, appending that harness's complete text. Model and launcher
+supplements remain routed reads. A compiled harness heading suppresses the
+redundant startup read of that same supplement.
 
 **CLI**: `build-boot [--repo <dir>] build [--check] [--index] [--output <path>]`
 and `build-boot link [--check] [--to-global]`; acli baseline with completion.
@@ -461,7 +464,8 @@ and `build-boot link [--check] [--to-global]`; acli baseline with completion.
 - `--check` writes nothing and exits 3 when the section or boot is stale;
   missing markers or sources exit 4.
 - `link` retargets harness instruction symlinks that resolve to this
-  checkout's `AGENTS.global.md` or `AGENTS.boot.md` to the boot file (or back
+  checkout's `AGENTS.global.md`, shared boot, or harness boots to the matching
+  harness boot for standard harness paths, otherwise the shared boot (or back
   with `--to-global`). Targets come from `~/.config/agents/build-boot.json`
   (`{"targets": [...]}`), else the standard paths for Claude Code, Codex, Pi,
   OpenCode, Grok, and Copilot. Regular files and links elsewhere are reported

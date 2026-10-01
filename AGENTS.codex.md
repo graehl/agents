@@ -1,71 +1,52 @@
-Model identity: do not trust self-knowledge of your model name — models
-misreport it. Use `$AGENT_LAUNCH_MODEL` when present; otherwise read the
-harness-recorded id from your own rollout file:
+## Model and session identity
+
+If `$AGENT_LAUNCH_MODEL` is absent, read the model from your rollout:
 
 ```bash
 tac "$(find ~/.codex/sessions -name "*$AGENTCTL_SESSION_ID*.jsonl" |
   head -1)" | rg -m1 -o '"model":"[^"]*"'
 ```
 
-## Session Identity
+Register through `agentctl active "<banner>" [scope...]`; it resolves the
+published id or a `resume <id>` ancestor. If unresolved, read
+`topics/codex-session.md` § Identity recovery before retrying.
 
-Register the real resumable Codex id, never an invented tag. Normally use
-`agentctl active "<banner>" [scope...]` without an id; `active`, `others`, and
-`alone` resolve `$AGENTCTL_SESSION_ID`, else a `resume <id>` process ancestor.
-If resolution reports "no session id", read `topics/codex-session.md`
-§ Identity recovery and recover this session's real id before retrying.
-Do not create a placeholder entry. `topics/agentctl.md` owns helper semantics.
+## Writing discipline
 
-## Session Logs
+- State shared evidence limits once near the opening; repeat only differing
+  status or a qualification needed to prevent a misleading local claim.
+- Avoid scattered bold and routine bold bullet lead-ins. Reserve it for
+  occasional useful paragraph openers that state a claim consistent with the
+  document's decisions.
+- Cut first-person editorial asides ("my proposed default"); state the
+  recommendation and reason. Retain materially personal experience/authorship.
+- Replace "Evidence grade:" and opaque shorthand with concrete evidence,
+  actions or quantities. Keep precise technical terms, not invented jargon.
+- Attach necessary uncertainty to its claim; omit generic closing hedges.
 
-When `AGENTS.global.md` says to search provider session logs, search
-`~/.codex/sessions/**/*.jsonl`, excluding your own session
-(`$AGENTCTL_SESSION_ID`).
+## Logs
 
-Rollout lines are wall-clock timestamped (top-level `timestamp`,
-ISO-8601 Z). The rendered prompt carries no times, so elapsed
-time between turns is invisible in context but recoverable here:
-date a past observation by grepping your own rollout file.
-`queued-anchor` v1 (spec: `topics/helper-scripts.md`) parses only
-Claude transcripts; on Codex, read the timestamps directly.
+Global provider-log searches use `~/.codex/sessions/**/*.jsonl`, excluding
+your session. Use top-level ISO-8601 `timestamp` for elapsed time;
+`queued-anchor` v1 parses only Claude logs.
 
-## Programmatic exec output budget
+## Tool results and waits
 
-`functions.exec` and a nested `exec_command` apply independent result
-budgets. Without `functions.exec`'s first-line `// @exec` pragma, the current
-outer default is 10,000 tokens: once exceeded, the model receives roughly the
-first and last 5,000 with the middle elided. A larger nested
-`max_output_tokens` alone cannot raise that outer ceiling.
+`functions.exec` and nested `exec_command` have independent output budgets.
+The outer default is 10,000 tokens; increasing nested `max_output_tokens`
+does not raise it. A first-line `// @exec` pragma may request more, subject
+to harness caps. Split required reads to fit the smaller active budget.
+Any truncation/elision means the read is incomplete.
 
-Treat about 10,000 tokens minus wrapper text as the maximum complete read for
-this default call shape. The pragma may request more, but a harness policy cap
-can still lower it. Required reads approaching the smaller active budget use
-separate calls or bounded ranges; any truncation warning or elision marker
-means the read remains incomplete.
+A terminal `wait` consumes its `cell_id`; reuse only an explicitly running id.
 
-## Code-mode cell handles
+Do not finalize with owned running/queued work or its successor decision
+unconsumed unless the user deferred it. A promise is no wakeup; questions and
+compaction do not discharge ownership. Before launching/resuming/waiting, read
+`topics/codex-session.md` § Job ownership and waits plus triggered RUNS packets.
 
-A terminal `wait` result consumes its `cell_id`; do not wait on that id again.
-Reuse the id only when the most recent result explicitly says the script is
-still running with that cell id.
+## Skill aliases
 
-## Turn-End Is A Dead Stop
-
-Do not send a final response while you own an unconsumed running/queued job or
-its successor decision unless the user explicitly deferred it. Consume the
-result or stay in a foreground wait; a promise to resume is not a wakeup.
-Before launching, resuming, or waiting on such work, read
-`topics/codex-session.md` § Job ownership and waits alongside the triggered
-RUNS packets. User questions and compaction do not discharge ownership.
-
-## Skills Path Aliasing
-
-`~/agents/skills` and the current Codex user root `~/.agents/skills` may alias
-the same directory;
-treat `~/agents/skills` as the canonical edit target. Do not "sync" them into
-symlinks — that creates self-referential loops that break skill loading.
-Follow symlinks when checking identity:
-
-```bash
-stat -Lc '%d:%i %n' ~/agents/skills ~/.agents/skills
-```
+`~/agents/skills` is the canonical edit target; `~/.agents/skills` may already
+alias it. Never "sync" aliases into self-referential symlinks. Check identity
+with `stat -Lc '%d:%i %n' ~/agents/skills ~/.agents/skills`.

@@ -151,6 +151,32 @@ def test_build_generates_grouped_routes_and_boot() -> None:
         assert again.returncode == 0, again.stdout
 
 
+def test_harness_boots_include_only_matching_supplement_and_refresh() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        root = Path(root)
+        repo = _repo(root)
+        (repo / "AGENTS.codex.md").write_text("Codex writing rules.\n")
+        (repo / "AGENTS.claude.md").write_text("Claude mechanics.\n")
+        assert _run(repo, "build").returncode == 0
+        codex = repo / "AGENTS.boot.codex.md"
+        assert "Codex writing rules." in codex.read_text()
+        assert "Claude mechanics." not in codex.read_text()
+        assert "Codex writing rules." not in (repo / "AGENTS.boot.md").read_text()
+        home = root / "home"
+        (home / ".codex").mkdir(parents=True)
+        target = home / ".codex/AGENTS.md"
+        target.symlink_to(repo / "AGENTS.boot.md")
+        assert _run(repo, "link", home=home).returncode == 0
+        assert target.resolve() == codex
+        assert _run(repo, "link", "--check", home=home).returncode == 0
+        (repo / "AGENTS.codex.md").write_text("Changed Codex rules.\n")
+        assert _run(repo, "build", "--check").returncode == 3
+        assert _run(repo, "build").returncode == 0
+        assert "Changed Codex rules." in target.read_text()
+        assert _run(repo, "link", "--to-global", home=home).returncode == 0
+        assert target.resolve() == repo / "AGENTS.global.md"
+
+
 def test_missing_markers_fail_without_writing() -> None:
     with tempfile.TemporaryDirectory() as root:
         repo = _repo(Path(root))

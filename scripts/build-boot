@@ -58,6 +58,19 @@ CONFIG = Path("~/.config/agents/build-boot.json")
 BEGIN = "<!-- BEGIN generated: activity routes (scripts/build-boot) -->"
 END = "<!-- END generated: activity routes -->"
 USER_HEADING = "# User policy (compiled from AGENTS.user.md)"
+HARNESSES = ("claude", "codex", "grok", "copilot")
+
+
+def harness_boot(harness: str) -> str:
+    return f"AGENTS.boot.{harness}.md"
+
+
+def target_harness(path: Path) -> str | None:
+    for harness in HARNESSES:
+        if f".{harness}" in path.parts:
+            return harness
+    return None
+
 
 # Harness instruction paths that may link to the global policy. The
 # installer's table owns the canonical per-harness path; the extra entries
@@ -513,6 +526,15 @@ def build(args) -> int:
         "boot": new_boot != old_boot,
     }
     outputs = {compact_path: compact_text, **rereads}
+    for harness in HARNESSES:
+        source = repo / f"AGENTS.{harness}.md"
+        if source.is_file():
+            outputs[boot_path.with_name(harness_boot(harness))] = (
+                new_boot
+                + f"\n# Harness policy (compiled from {source.name})\n\n"
+                + source.read_text().rstrip()
+                + "\n"
+            )
     stale.update(
         {
             str(path): not path.is_file() or path.read_text() != text
@@ -573,6 +595,7 @@ def link(args) -> int:
     repo = Path(args.repo).resolve()
     boot = repo / BOOT
     sources = {(repo / GLOBAL).resolve(), boot.resolve()}
+    sources.update((repo / harness_boot(h)).resolve() for h in HARNESSES)
     destination = (repo / GLOBAL) if args.to_global else boot
     if not destination.is_file():
         raise BuildError(
@@ -582,6 +605,10 @@ def link(args) -> int:
         )
     rows = []
     for path in _targets():
+        harness = target_harness(path)
+        destination = (repo / GLOBAL) if args.to_global else boot
+        if harness and not args.to_global:
+            destination = repo / harness_boot(harness)
         if not path.is_symlink():
             state = "absent" if not path.exists() else "not-a-symlink"
             rows.append({"path": str(path), "action": "skip", "state": state})
@@ -600,6 +627,11 @@ def link(args) -> int:
                 }
             )
             continue
+        if not destination.is_file():
+            raise BuildError(
+                f"missing {destination}; run build with its harness supplement",
+                ExitCode.NOT_FOUND,
+            )
         if not args.check:
             temporary = path.with_name(f".{path.name}.build-boot")
             os.symlink(destination, temporary)

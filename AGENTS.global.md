@@ -233,7 +233,8 @@ route/backend marker wins over its compatibility alias.
 `AGENTS.user.md` is compiled into the built boot under the heading
 `# User policy (compiled from AGENTS.user.md)`; when this boot lacks that
 heading, read `AGENTS.user.md` every session. Then read the matching harness
-supplement when present:
+supplement when present, unless its complete text already appears under
+`# Harness policy (compiled from AGENTS.<harness>.md)` in this boot:
 
 - Codex: `AGENTS.codex.md`
 - Claude: `AGENTS.claude.md`
