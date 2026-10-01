@@ -139,8 +139,9 @@ def render(args, config: Config) -> dict:
     output.parent.mkdir(parents=True, exist_ok=True)
     log_path = output.with_suffix(".render.log")
     skip = {".quarto", "_freeze"}
-    if rendered.parent != home:
-        skip.add(rendered.relative_to(home).parts[0])
+    # Quarto writes its intermediate output inside the staged copy; a mirrored
+    # symlink to an earlier output would carry that write into the real tree.
+    skip.add(rendered.relative_to(home).parts[0])
     with (
         tempfile.TemporaryDirectory(prefix="qmd-html-") as scratch,
         staged_sources(root, fragments, targets, output.parent, skip) as staged_root,
