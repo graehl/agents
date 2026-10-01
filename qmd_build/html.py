@@ -21,8 +21,12 @@ from pathlib import Path
 
 import acli
 
+from .browser_print import DEFAULT_PLAYWRIGHT
+from .browser_print import print_pdf as print_html_pdf
 from .manuscript import (
     Config,
+    first_heading_text,
+    fragment_anchors,
     front_matter,
     includes,
     resolve_executable,
@@ -34,6 +38,8 @@ from .source_map import (
     source_mapped_html,
     staged_sources,
 )
+from .styles import STYLES, document_style, style_inputs, style_render_arguments
+from .table_layout import band_stylesheet, choose_table_widths, widest_band_widths
 
 PACKAGE = Path(__file__).resolve().parent
 SCRIPT = PACKAGE.parent / "scripts/qmd-html"
@@ -49,8 +55,8 @@ KEYS = {
     "print",
     "playwright-from",
     "timeout-seconds",
+    "style",
 }
-DEFAULT_PLAYWRIGHT = Path.home() / "ya/packages/client"
 
 
 def identity(path: Path, base: Path) -> dict:
@@ -102,13 +108,20 @@ def render(args, config: Config) -> dict:
         else config.path("output") or facts["output"]
     )
     source_map = not args.no_source_map
-    sections = [home / name for name in includes(root, required=source_map)]
+    sections = [home / name for name in includes(root, required=False)]
+    # A root without includes is itself the one source-mapped section.
+    fragments = sections or [root]
+    style_name = args.style or config.get("style")
+    style = document_style(style_name) if style_name else None
     sources = [
         root,
         *sections,
         *config.paths("inputs"),
         *sorted(PACKAGE.glob("*.py")),
-        PACKAGE / "source_map.lua",
+        *sorted(PACKAGE.glob("*.lua")),
+        *sorted(PACKAGE.glob("*.js")),
+        *sorted(PACKAGE.glob("*.mjs")),
+        *(style_inputs(style) if style else []),
     ]
     for extra in (home / "_quarto.yml", config.source):
         if extra and extra.is_file():
@@ -118,7 +131,9 @@ def render(args, config: Config) -> dict:
         sources.append(home / bibliography)
     before = [identity(path, home) for path in sources]
     targets = (
-        manuscript_source_targets(sections, quarto, output.parent) if source_map else []
+        manuscript_source_targets(fragments, quarto, output.parent)
+        if source_map
+        else []
     )
     rendered = facts["output"]
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -127,11 +142,14 @@ def render(args, config: Config) -> dict:
     if rendered.parent != home:
         skip.add(rendered.relative_to(home).parts[0])
     with (
-        tempfile.NamedTemporaryFile(mode="w", suffix=".json") as staged_targets,
-        staged_sources(root, sections, targets, output.parent, skip) as staged_root,
+        tempfile.TemporaryDirectory(prefix="qmd-html-") as scratch,
+        staged_sources(root, fragments, targets, output.parent, skip) as staged_root,
     ):
-        json.dump(targets, staged_targets)
-        staged_targets.flush()
+        work = Path(scratch)
+        staged_targets = work / "source-targets.json"
+        staged_targets.write_text(json.dumps(targets))
+        anchors = work / "fragment-anchors.json"
+        anchors.write_text(json.dumps(fragment_anchors(sections, quarto)))
         # The staged directory is discarded, so the artifact must be one file.
         command = [
             quarto,
@@ -140,23 +158,69 @@ def render(args, config: Config) -> dict:
             "--to",
             "html",
             "--embed-resources",
+            "--lua-filter",
+            str(PACKAGE / "included_documents.lua"),
         ]
         if source_map:
             command += ["--lua-filter", str(PACKAGE / "source_map.lua")]
-        with log_path.open("w") as log:
-            result = subprocess.run(
-                command,
-                cwd=staged_root.parent,
-                env={**os.environ, "QMD_SOURCE_TARGETS": staged_targets.name},
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                check=False,
-            )
-        if result.returncode:
-            raise ValueError(
-                f"quarto render failed ({result.returncode}); see {log_path}"
-            )
-        html = (staged_root.parent / rendered.relative_to(home)).read_text()
+        if style:
+            command += style_render_arguments(style, work)
+        title = first_heading_text(fragments[0])
+        if title and not (
+            front_matter(root, "title") or front_matter(root, "pagetitle")
+        ):
+            metadata = work / "page-title.json"
+            metadata.write_text(json.dumps({"pagetitle": title}))
+            command += ["--metadata-file", str(metadata)]
+        environment = {
+            **os.environ,
+            "QMD_SOURCE_TARGETS": str(staged_targets),
+            "QMD_FRAGMENT_ANCHORS": str(anchors),
+        }
+        staged_output = staged_root.parent / rendered.relative_to(home)
+        log_path.write_text("")
+
+        def quarto_render(extra: list[str], env: dict) -> str:
+            with log_path.open("a") as log:
+                result = subprocess.run(
+                    command + extra,
+                    cwd=staged_root.parent,
+                    env=env,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                )
+            if result.returncode:
+                raise ValueError(
+                    f"quarto render failed ({result.returncode}); see {log_path}"
+                )
+            return staged_output.read_text()
+
+        html = quarto_render([], environment)
+        table_decisions = None
+        if style and style.table_widths:
+            first = work / "first-render.html"
+            first.write_text(html)
+            with log_path.open("a") as log:
+                table_decisions = choose_table_widths(
+                    first,
+                    playwright=args.playwright_from or config.path("playwright-from"),
+                    log=log,
+                )
+            if any(any(bands) for bands in table_decisions):
+                widths = work / "table-widths.json"
+                widths.write_text(json.dumps(widest_band_widths(table_decisions)))
+                bands = work / "table-width-bands.css"
+                bands.write_text(band_stylesheet(table_decisions))
+                html = quarto_render(
+                    [
+                        "--lua-filter",
+                        str(PACKAGE / "table_widths.lua"),
+                        "--css",
+                        str(bands),
+                    ],
+                    {**environment, "QMD_TABLE_WIDTHS": str(widths)},
+                )
     if before != [identity(path, home) for path in sources]:
         raise ValueError("Manuscript changed during rendering")
     if "{{< include" in html:
@@ -179,6 +243,8 @@ def render(args, config: Config) -> dict:
         rerun.append("--no-source-map")
     if args.print_pdf:
         rerun.append("--print-pdf")
+    if args.style:
+        rerun += ["--style", args.style]
     outputs = [str(output), str(receipt_path)]
     outputs += [str(pdf)] if print_pdf else []
     outputs += [str(map_path)] if source_map else []
@@ -211,35 +277,22 @@ def render(args, config: Config) -> dict:
     else:
         map_path.unlink(missing_ok=True)
     if print_pdf:
-        playwright = Path(
-            args.playwright_from or config.path("playwright-from") or DEFAULT_PLAYWRIGHT
-        )
-        options = json.dumps(config.get("print", {}))
+        options = {**(style.print_options if style else {}), **config.get("print", {})}
         with log_path.open("a") as log:
-            result = subprocess.run(
-                [
-                    "node",
-                    str(PACKAGE / "print_pdf.mjs"),
-                    str(output),
-                    str(pdf),
-                    str(playwright),
-                    options,
-                ],
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                check=False,
+            print_html_pdf(
+                output,
+                pdf,
+                playwright=args.playwright_from or config.path("playwright-from"),
+                options=options,
+                log=log,
             )
-        if result.returncode:
-            raise ValueError(
-                f"Browser print failed ({result.returncode}); see {log_path}"
-            )
-        if not pdf.read_bytes().startswith(b"%PDF-"):
-            raise ValueError("PDF output is missing or invalid")
     receipt = {
         "schema": "qmd-html/v1",
         "quarto": version,
         "root": str(root),
         "sections": len(sections),
+        "style": style_name,
+        "table_widths": table_decisions,
         "inputs": before,
         "output": identity(output, home),
         "pdf": identity(pdf, home) if print_pdf else None,
@@ -284,6 +337,11 @@ def parser():
         "--print-pdf",
         action="store_true",
         help="Also print a PDF beside the HTML with Chromium",
+    )
+    parser.add_argument(
+        "--style",
+        choices=sorted(STYLES),
+        help="Document style over Quarto's default theme (else config `style`, else none)",
     )
     parser.add_argument(
         "--playwright-from",

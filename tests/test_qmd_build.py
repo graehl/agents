@@ -210,3 +210,62 @@ def test_html_source_map_end_to_end(tmp_path):
         "refs.bib",
         "sections",
     ]
+
+
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_plain_markdown_memo_style(tmp_path):
+    root = tmp_path / "memo.md"
+    root.write_text("# A *short* memo\n\nLead.\n\n## Findings\n\nBody.\n")
+    command = [str(REPO / "scripts/qmd-html"), str(root), "--style", "memo"]
+    run = subprocess.run(command + ["--acli-quiet"], capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    receipt = json.loads(run.stdout)
+    html = (tmp_path / "memo.html").read_text()
+    assert receipt["style"] == "memo" and receipt["sections"] == 0
+    assert receipt["source_targets"] >= 2  # the root itself is the mapped section
+    assert "<title>A short memo</title>" in html
+    assert 'id="TOC"' in html and "data:font/otf;base64" in html
+
+
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_included_documents_link_inside(tmp_path):
+    (tmp_path / "notes").mkdir()
+    (tmp_path / "topics").mkdir()
+    (tmp_path / "notes/memo.md").write_text(
+        "# Memo\n\nSee [the topic](../topics/topic.md#detail) and [it](../topics/topic.md).\n"
+    )
+    (tmp_path / "topics/topic.md").write_text(
+        "# The topic\n\nTopic: `topic`\nGlossary: omit\n\n## Detail\n\nText.\n"
+    )
+    root = tmp_path / "bundle.qmd"
+    root.write_text(
+        "{{< include notes/memo.md >}}\n\n"
+        "::: {.appendix-doc}\n{{< include topics/topic.md >}}\n:::\n"
+    )
+    command = [str(REPO / "scripts/qmd-html"), str(root), "--acli-quiet"]
+    run = subprocess.run(command, capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    html = (tmp_path / "bundle.html").read_text()
+    assert 'href="#detail"' in html and 'href="#the-topic"' in html
+    assert "topic.md" not in html.split("<!-- ya-artifact:v1")[0].split("</head>")[-1]
+    assert "Glossary: omit" not in html
+    assert '<h2 class="anchored" data-anchor-id="the-topic">' in html
+
+
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_memo_style_table_width_bands(tmp_path):
+    root = tmp_path / "tables.md"
+    long = "words that wrap across several lines in a narrow column " * 3
+    root.write_text(
+        "# Tables\n\n| Name | Detail | Note |\n|---|---|---|\n"
+        + "".join(f"| CC-BY-NC-SA {i} | {long} | short |\n" for i in range(4))
+    )
+    command = [str(REPO / "scripts/qmd-html"), str(root), "--style", "memo"]
+    run = subprocess.run(command + ["--acli-quiet"], capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    receipt = json.loads(run.stdout)
+    html = (tmp_path / "tables.html").read_text()
+    assert len(receipt["table_widths"]) == 1 and len(receipt["table_widths"][0]) == 3
+    assert "CC‑BY‑NC‑SA" in html  # short tokens keep whole
+    if any(receipt["table_widths"][0]):
+        assert 'data-table-widths="0"' in html and "@container" in html

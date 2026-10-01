@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 INCLUDE = re.compile(r"\{\{< include ([^ ]+) >\}\}")
@@ -62,11 +63,51 @@ def root_document(config: Config, positional: Path | None) -> Path:
 
 
 def includes(root: Path, *, required: bool = True) -> list[str]:
-    """Section fragments in the root's explicit include order."""
+    """Section fragments in the root's explicit include order.
+
+    With `required=False` a root without includes is one self-contained
+    document and yields an empty list.
+    """
     names = INCLUDE.findall(root.read_text())
     if (required and not names) or len(names) != len(set(names)):
         raise ValueError(f"Expected distinct explicit include directives in {root}")
     return names
+
+
+def first_heading_text(path: Path) -> str | None:
+    """Plain text of the first ATX level-1 heading, for a page title."""
+    match = re.search(r"^# +(.+?)\s*(?:\{[^}]*\})?\s*$", path.read_text(), re.MULTILINE)
+    return None if match is None else re.sub(r"[*_`]", "", match[1])
+
+
+def fragment_anchors(sections: list[Path], quarto: str) -> dict[str, str]:
+    """Each included fragment's file name -> the id of its first heading.
+
+    Lets links between fragments resolve inside the one rendered document.
+    """
+    anchors = {}
+    for section in sections:
+        if section.name in anchors:
+            raise ValueError(f"Included fragments share a file name: {section.name}")
+        parsed = json.loads(
+            subprocess.check_output(
+                [
+                    quarto,
+                    "pandoc",
+                    str(section),
+                    "--from",
+                    "commonmark_x",
+                    "--to",
+                    "json",
+                ],
+                text=True,
+            )
+        )
+        header = next((b for b in parsed["blocks"] if b["t"] == "Header"), None)
+        if header is None:
+            raise ValueError(f"Included fragment has no heading: {section}")
+        anchors[section.name] = header["c"][1][0]
+    return anchors
 
 
 def front_matter(root: Path, key: str) -> str | None:
