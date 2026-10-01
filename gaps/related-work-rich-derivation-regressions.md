@@ -133,3 +133,10 @@ player is outside the substantive card. No extractor repair was attempted
 as part of the survey.
 
 2026-10-01 — Contributing-model: 6.1-Sol
+
+A follow-up pass hit the same audio-preview failure on two more Hugging
+Face dataset cards, `omniasr-corpus-card` and `fleurs-card`; both were read
+from the cards' raw `README.md` instead. Reproduce with the command above,
+substituting those keys.
+
+2026-10-01 — Contributing-model: opus-5.5
