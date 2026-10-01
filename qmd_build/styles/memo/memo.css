@@ -85,6 +85,24 @@ table td, table th {
 }
 table td:first-child { font-weight: 600; }
 
+/* Paragraph lead labels: run-in headings (paragraph_labels.lua) that read
+   as a bold opening phrase but get an outline entry and anchor. */
+section.paragraph-label > .paragraph-label {
+  display: inline;
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: normal;
+  margin: 0;
+  padding: 0;
+  border: none;
+  color: inherit;
+}
+section.paragraph-label > .paragraph-label::after { content: attr(data-label-punct) " "; }
+section.paragraph-label > .paragraph-label + p { display: inline; }
+section.paragraph-label > .paragraph-label + p + * { margin-top: 0.75rem; }
+section.paragraph-label { margin-bottom: 1rem; }
+section.paragraph-label > .paragraph-label .anchorjs-link { display: none; }
+
 /* Included whole documents, one appendix each. */
 .appendix-doc {
   margin-top: 3rem;
