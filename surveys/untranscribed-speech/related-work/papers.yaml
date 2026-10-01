@@ -220,3 +220,48 @@ papers:
     verified: true
     grounded: true
     fetched: 2026-10-01
+  - key: omniasr2025
+    title: 'Omnilingual ASR: Open-Source Multilingual Speech Recognition for 1600+ Languages'
+    authors: [Omnilingual ASR Team, Gil Keren, Artyom Kozhevnikov, Yen Meng]
+    venue: arXiv preprint
+    year: 2025
+    url: https://arxiv.org/html/2511.09690
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: omniasr-corpus-card
+    title: Omnilingual ASR Corpus dataset card
+    authors: [Meta Omnilingual ASR contributors]
+    venue: Official Hugging Face dataset card
+    year: 2025
+    url: https://huggingface.co/datasets/facebook/omnilingual-asr-corpus
+    source: https://huggingface.co/datasets/facebook/omnilingual-asr-corpus/raw/main/README.md
+    verified: true
+    grounded: false
+  - key: cmu-wilderness-release
+    title: CMU Wilderness Multilingual Speech Dataset
+    authors: [Alan W Black]
+    venue: Official dataset repository
+    year: 2019
+    url: https://github.com/festvox/datasets-CMU_Wilderness
+    verified: true
+    grounded: true
+    fetched: 2026-10-01
+  - key: fleurs-card
+    title: FLEURS dataset card
+    authors: [Alexis Conneau, Min Ma, Simran Khanuja, Yu Zhang, Vera Axelrod, Siddharth Dalmia, Jason Riesa, Clara Rivera, Ankur Bapna]
+    venue: Official Hugging Face dataset card
+    year: 2022
+    url: https://huggingface.co/datasets/google/fleurs
+    source: https://huggingface.co/datasets/google/fleurs/raw/main/README.md
+    verified: true
+    grounded: false
+  - key: mlsuperb2-challenge2025
+    title: 'The ML-SUPERB 2.0 Challenge: Towards Inclusive ASR Benchmarking for All Language Varieties'
+    authors: [William Chen, Chutong Meng, Jiatong Shi, Martijn Bartelds, Shih-Heng Wang, Hsiu-Hsuan Wang, Rafael Mosquera, Sara Hincapie, Dan Jurafsky, Antonis Anastasopoulos, Hung-yi Lee, Karen Livescu, Shinji Watanabe]
+    venue: Interspeech 2025
+    year: 2025
+    url: https://arxiv.org/html/2509.07139
+    verified: true
+    grounded: true
+    fetched: 2026-10-01

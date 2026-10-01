@@ -8,7 +8,7 @@ with language identification reliable enough for that use. Legal analysis is
 out of scope.
 
 Primary dataset and model cards, protocol documentation, and selected
-speech-representation papers were read; sixteen of twenty-two sources have
+speech-representation papers were read; nineteen of twenty-seven sources have
 accepted local full-text extracts ([retrieval and
 limits](#retrieval-and-limits)). No audio was collected and no codec or
 embedding experiment was run. Source sizes are publisher-reported, storage
@@ -39,7 +39,9 @@ segments as offsets, operational metadata in a relational catalog, batch
 metadata in Parquet, and embeddings in versioned arrays and indexes.
 
 Represent acoustic domain separately from subject matter. A pooled
-self-supervised speech encoder is the baseline for acoustic domain.
+self-supervised speech encoder is the baseline for acoustic domain; the
+Omnilingual ASR wav2vec 2.0 encoders, pretrained on over 1,200 languages, are
+the widest-coverage released candidates.
 SONAR-style speech embeddings capture subject matter without running ASR,
 but their geometry is trained toward text. No source located here shows a
 single vector serving both purposes on long, noisy live speech.
@@ -84,6 +86,9 @@ A language tag is a prior; any given window may hold another language.
 | [VoxLingua107](https://cs.taltech.ee/staff/tanel.alumae/data/voxlingua107/) | Reported 6,628 h in 107 languages, from YouTube. | Clips selected for language ID with heuristic labels. Useful LID material; not balanced across subject matter. | Official downloads. Verified online only; local extraction failed. |
 | [Multilingual LibriSpeech](https://www.openslr.org/94/) | Read audiobooks in eight languages. The English release is offered as FLAC (2.4 TB) or Opus (651 GB). | Transcribed; ignoring the transcripts satisfies constraint 1, but the audio was selected for transcription. | OpenSLR resource 94. The two codec releases give a storage comparison, not evidence of equal training value. |
 | [Emilia](https://huggingface.co/datasets/amphion/Emilia-Dataset) | 101.7k h original plus 113.9k h Emilia-YODAS, in six major languages. | Utterances processed and filtered for TTS, with ASR-generated text, so ASR and quality filters already shaped the population. | Downloadable. No tail-language coverage; useful as a clean-span comparator. |
+| [CMU Wilderness](https://github.com/festvox/datasets-CMU_Wilderness) | 700+ languages, about 20 h each, of sentence-aligned New Testament readings from Bible.is. | Aligned text exists but can be ignored. Same narrow religious read-speech population as MMS ulab, with per-utterance alignment scores. | Audio is not redistributed: scripts download it from Bible.is and rebuild alignments from packed indices, about 30 minutes per language. Availability depends on Bible.is. |
+| [Omnilingual ASR Corpus](https://huggingface.co/datasets/facebook/omnilingual-asr-corpus) | 3,350 h of prompted spontaneous speech in 348 under-served languages ([paper](https://arxiv.org/html/2511.09690), Table 3); FLAC. | Transcribed, with laughter, hesitation, and noise tags. Commissioned recordings answering conversational prompts, not web or broadcast audio. | CC-BY-4.0 on Hugging Face. Labels carry ISO 639-3, script, and Glottolog codes, useful for mapping tail-language labels. Verified online only; local extraction failed. |
+| [FLEURS](https://huggingface.co/datasets/google/fleurs) | 102 languages, about 10 h of training speech each, reading the same 2,009 FLoRes sentences. | Transcribed read speech. Because content and recording setup are shared across languages, its language-ID split tests language rather than domain. | CC-BY. A language-ID evaluation set for the 102 covered languages, not a source of web conditions. Verified online only; local extraction failed. |
 
 **Collections outside packaged corpora.** The Internet Archive holds radio,
 lectures, oral histories, sermons, and other recordings. Its [item metadata
@@ -100,7 +105,9 @@ feed metadata supplies cheap subject hints without ASR. Neither is live: a
 newly published file may contain old speech. When totaling hours, do not mix
 collected pools, filtered releases, transcribed subsets, duplicate encodings,
 and model pretraining hours. A model trained on millions of hours does not
-make those hours downloadable.
+make those hours downloadable: Omnilingual ASR's 4.3M-hour pretraining set
+includes a large internal collection, and the project's new public audio is
+its 3,350-hour commissioned corpus.
 
 **Search YODAS v3 beyond its caption directories.** The card lists 102
 caption-language directories plus `unk`, while the uploader-locale field has
@@ -179,8 +186,24 @@ waveforms into 4,017 languages using a one-billion-parameter speech encoder.
 That coverage makes it a better starting point for the tail than the
 [VoxLingua107 ECAPA classifier](https://huggingface.co/speechbrain/lang-id-voxlingua107-ecapa)
 with its 107 classes, which remains a useful comparison where the two
-overlap. Having a class for a language does not show accurate identification
-on web audio for every dialect or recording condition.
+overlap. Omnilingual ASR released no standalone LID model: its LLM-ASR
+decoder identifies language implicitly and accepts an optional language and
+script code, which the authors added because related languages and
+multi-script languages were confused without it.
+
+Having a class for a language does not make identification accurate. In the
+[ML-SUPERB 2.0 challenge](https://arxiv.org/html/2509.07139), the best
+submitted system per metric reached about 89% LID accuracy on the standard
+multilingual test set but about 57% on accented and dialectal speech; the
+organizers' baselines (frozen SSL encoders with a small head trained on about
+one hour per language, and zero-shot Whisper large-v3 and OWSM) ranged from
+19% to 55% on the dialectal set (`externally-evaluated` on a hidden test
+server). Labels on commissioned data are also
+fallible: Omnilingual ASR's cross-vendor check of its commissioned recordings
+found misattributed language codes in 20 of 206 languages checked.
+[FLEURS](https://huggingface.co/datasets/google/fleurs) offers a controlled
+LID test for 102 languages, since every language reads the same sentences;
+most tail languages need their own speaker-verified samples.
 
 Map source labels to model classes explicitly for each target language,
 since ISO codes, dialect labels, and naming conventions differ. Gather source
@@ -188,8 +211,13 @@ priors from regional stations, local-language channels, community
 programming, podcasts, and existing language-tagged archives. Measure
 progress in retained, deduplicated, correctly identified speech hours rather
 than raw bytes or headline language counts. A religious seed such as MMS
-ulab supports initial LID checks but leaves conversational and broadcast
-speech largely uncovered.
+ulab or CMU Wilderness supports initial LID checks but leaves conversational
+and broadcast speech largely uncovered. Omnilingual ASR measured the cost of
+a narrow source with language coverage held fixed: a 1B CTC model trained
+only on MMS-lab (high-quality recordings, a handful of speakers per language)
+reached 35.7% CER on held-out FLEURS and 43.4% on Common Voice, against 21.0%
+and 33.5% for models trained on all their other sources with the evaluated
+corpus held out (`single-source`).
 
 Apply LID to speech-bearing spans and their neighbors, keeping top-k
 probabilities, margin, cross-window consistency, and the source prior, along
@@ -431,9 +459,16 @@ frames, compare a few fixed layers, and optionally fit a low-dimensional PCA
 projection on a representative sample. The projection is learned from audio
 features, not text. Pooling, layer, and projection dimension are
 experimental choices that the model card does not validate for domain
-retrieval. [XEUS](https://huggingface.co/espnet/xeus) is the candidate when
-broad multilingual pretraining matters; confirm that the checkpoint is the
-base SSL model and not an ASR-fine-tuned derivative.
+retrieval. When broad multilingual pretraining matters, the candidates are
+[XEUS](https://huggingface.co/espnet/xeus), the strongest baseline encoder
+in the ML-SUPERB 2.0 challenge, and the [Omnilingual ASR
+wav2vec 2.0 encoders](https://github.com/facebookresearch/omnilingual-asr)
+(0.3B, 1B, 3B, and 7B parameters, Apache 2.0), pretrained on 3.84M hours in
+1,239 identified languages plus 460k hours without language labels. After
+ASR fine-tuning, the Omnilingual encoders gave lower average CER than XLS-R
+and MMS encoders of equal size on most benchmarks the authors ran
+(`single-source`); neither encoder family has been evaluated for domain
+retrieval. Use the base SSL checkpoint, not an ASR-fine-tuned derivative.
 
 Speaker embeddings are easily mistaken for domain embeddings: they can match
 speakers well while ranking rooms or subject matter badly. Robustness
@@ -527,11 +562,16 @@ searches for “audio domain embeddings,” “acoustic data selection,” “sp
 semantic embeddings,” MSEB, and recent multilingual releases supplemented the
 citation search. The search did not reach saturation.
 
-The [manifest](related-work/papers.yaml) lists twenty-two sources. Sixteen
-have accepted Markdown extracts with provenance and linked assets. Six were
-verified online but are marked `grounded: false` because local extraction
-failed: three 2026 arXiv papers on SVG figures, VoxLingua107 and CLAP on
-prose-fidelity checks, and MMS ulab v2 on an audio-preview element. The
+A follow-up pass the same day added five sources found by targeted search
+for tail-language corpora and language-ID evaluation: Omnilingual ASR and its
+corpus, CMU Wilderness, FLEURS, and the ML-SUPERB 2.0 challenge.
+
+The [manifest](related-work/papers.yaml) lists twenty-seven sources.
+Nineteen have accepted Markdown extracts with provenance and linked assets.
+Eight were verified online but are marked `grounded: false` because local
+extraction failed: three 2026 arXiv papers on SVG figures, VoxLingua107 and
+CLAP on prose-fidelity checks, and the MMS ulab v2, Omnilingual ASR Corpus,
+and FLEURS cards on audio-preview elements. The
 extractor's [regression gap](../../gaps/related-work-rich-derivation-regressions.md)
 tracks these failures. Additional API, model, and storage pages linked above
 were read online without local extracts.
