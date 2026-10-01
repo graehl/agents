@@ -179,6 +179,33 @@ compact enough to pay the repeat cost when protection is absent. Its
 condition-routed packets preserve the binding bodies and rare clarification
 without becoming a second mandatory boot.
 
+The global boot's **Mandatory reread registry** is a deliberate stricter
+contract: after each compaction/resume boundary, the first matching activity
+requires a complete tool read of its compiled recursive packet. A generic
+reconstruction exception or frontier latitude cannot waive that observable
+read. The initial activity roots are technical writing and paper writing.
+Reading a complete recursive packet also satisfies the included packets for
+that boundary. Summary retention of the once-opened set is helpful but not
+guaranteed; the boot registry survives independently of it.
+
+**Compile selected source text, not a paraphrase** (vs. writing a second policy
+or embedding entire topics in boot): the full base topics remain canonical;
+small HTML-comment markers select essential content. The compiler follows
+reachable topic links, including conditional and indirect routes, and inlines
+only marked content. Repeated paths and cycles contribute once. Conditional
+unmarked content stays in the base topic under its ordinary activity trigger.
+Boot defines protected trigger, required packet, and conditional material.
+`topics/topic-doc-format.md` owns the source convention;
+`topics/helper-scripts.md` § build-boot owns compilation and coverage metadata.
+
+The recursive `.mandatory-reread.recursive.md` arms a voluntarily complying
+agent through one scoped read. The non-recursive `.mandatory-reread.md` lets a
+harness restore only sources actually read; the recursive packet's coverage
+metadata prevents duplicate injection. `AGENTS.on-compact.md` contains the
+same dispatch rules as boot for optional harness injection. The compiler does
+not enable injection. The 2026-10-01 evidence entry records the observed loss
+and the unmeasured effect on post-compaction compliance and writing quality.
+
 The original narrower case: when a topic doc would benefit from
 referencing a specific `AGENTS.global.md` section, prefer extracting that
 section to a dedicated file so `AGENTS.global.md` keeps a pointer and the file
@@ -219,6 +246,10 @@ trigger, evidence, relaxation, and safe fallback. Avoid the instruction "read
 it if you forgot it": an agent cannot reliably observe content it has forgotten
 and a summary can create false familiarity. Use observable events and action
 boundaries instead.
+
+The explicitly marked mandatory-reread packets above are the exception to
+this tunable default; changing their cadence requires changing their owning
+boot rule rather than invoking a general supplement's latitude.
 
 The project `AGENTS.md` states the durable-routing aspiration and points here;
 it should not freeze a universal cadence. Changes to this model are hypotheses

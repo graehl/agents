@@ -5122,6 +5122,7 @@ Contributing-model: grok-4.7
 
 Contributing-model: opus-5.5
 
+
 ## 2026-09-27 — duckdb for large JSON/JSONL
 
 - **User direction** — "advise installing duckdb and using it whenever
@@ -5366,3 +5367,48 @@ supplements (`gaps/agent-specific-durable-boot-compilation.md`).
   → no suffix.
 
 Contributing-model: opus-5.5
+
+## 2026-10-01 — compiled essential rereads after compaction
+
+Contributing-model: 6-Astra
+
+- **Evidence supplied by the user** — an attributed Sol session said “I did
+  **not** reread them after compaction” and that exact writing-topic text was
+  no longer visible. Its elicited paraphrase retained generic reader, evidence,
+  active-voice, concrete-word, and concision advice. It did not mention the
+  current technical-writing priority order, deletion-only corrections, or
+  stress-position procedure. This sample does not prove all unmentioned advice
+  was lost, that later prose degraded, or that compaction classified the advice
+  as “boring”. The source session id, exact model version, and effort were not
+  supplied; no independent provider-log inspection was performed.
+- **User-directed outcome** — restore a similar armed state after compaction,
+  including important instructions in indirectly reached topics, without
+  embedding writing bodies in boot. Keep the complete first-read topics;
+  annotate important spans cheaply; compile essential-only reread companions.
+  Omit conditional unmarked content, but pre-include flagged content in topics
+  that may be reached through conditional routes. First-step scoped agent
+  instructions activate the recursive packet. A read-observing harness can use
+  the non-recursive packets, and a recursive read discharges their coverage.
+- **Mechanism** — boot defines three material tiers, a once-opened obligation,
+  and a compiled registry initially rooted at technical writing and paper
+  writing. The compiler emits direct and recursive companions plus a standalone
+  `AGENTS.on-compact.md` from boot's same rule block. The full tool read is the
+  contract, overriding generic cadence and equivalence exceptions. Source and
+  extracted-content hashes let a harness recognize packet versions/coverage.
+- **Essential selection** — technical writing marks priority order and the
+  stress-position procedure; paper writing marks abstract, evidence backfill,
+  and evidence-ceiling rules. General writing contributes its cutting and
+  determiner rules without a third boot activity root. These are initial
+  selections, not evidence that unmarked rules are unimportant in every task.
+- **Checks and traces** — a compacted report continuation reads one recursive
+  packet, acquiring flagged paper/general-writing content through reachable
+  links too; unrelated code work reads none. An unmarked intermediate topic
+  still carries graph reachability. Cycles/diamonds contribute once. Partial
+  tool output does not discharge a read; another compact invalidates prior
+  coverage. End-to-end compiler checks cover these graph properties, stale
+  outputs, malformed markers, and preservation of unstaged edits in index mode.
+- **Limit and follow-up** — instruction compliance and prose quality remain
+  unmeasured. The user subsequently authorized YA read observation and optional
+  forced injection after an N-turn/time grace period; that implementation is
+  separate from generating the packets and must avoid reinjecting recursively
+  covered material. Generating a file alone does not install a harness hook.

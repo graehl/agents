@@ -6,6 +6,9 @@
 
 Topic: `paper-writing`
 Governs: writing a selected research paper
+Mandatory-reread: before continuing a selected research paper, or an artifact whose applicable topic explicitly inherits these authoring rules
+
+<!-- reread:include technical-writing.md -->
 
 ## Enter from a selected publication case
 
@@ -24,6 +27,7 @@ cadence. A paper normally has one governing form. A theoretical result may
 support the same central empirical claim; an independent reader promise usually
 deserves a separate paper.
 
+<!-- reread:begin -->
 Put an abstract at the beginning of every paper, immediately after its front
 matter and before the body. Draft it early as part of the evidence-bearing
 spine, then revise it after the body stabilizes. It states the problem and
@@ -46,6 +50,7 @@ remains a `TBD` until its evidence exists. The writing phase may propose this
 effort but does not itself authorize runs. When backfill fails, costs too much,
 or leaves the evidence ceiling unchanged, narrow the claim or choose another
 form instead of defending the selected narrative.
+<!-- reread:end -->
 
 ## Draft the evidence-bearing spine
 
@@ -57,11 +62,13 @@ source. Record that trace in the manuscript source as
 [`claim-provenance`](claim-provenance.md) describes: invisible `ref:` comments
 beside claims and a `.repro.md` rider per section.
 
+<!-- reread:begin -->
 The form cannot raise the evidence ceiling. Keep unsupported assertions
 explicitly speculative, and make every `TBD` name the missing measurement and
 outcome that would confirm or falsify the surrounding claim. Failed attempts
 that affect validity, attribution, generality, or practical cost remain visible
 even when routine chronology moves to the log or appendix.
+<!-- reread:end -->
 
 Consult [`paper-attractiveness`](paper-attractiveness.md) only after this spine
 exists. Use its features to communicate a supported result or real community
