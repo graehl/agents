@@ -362,6 +362,12 @@ controlled instruction ablation for explicitly high-value questions.
 
 ## Launcher-, harness-, backend-, and model-scoped supplements
 
+`scripts/build-boot` embeds each present Codex, Claude, Grok, or Copilot
+supplement in its own `AGENTS.boot.<harness>.md`; standard harness install
+paths select that boot. Its compiled heading suppresses a second read of the
+same supplement. The shared boot remains available for other harnesses;
+model and launcher supplements retain their conditional routing.
+
 `AGENTS.codex.md` and `AGENTS.claude.md` are sibling instruction files for
 harness-specific mechanics: session-log locations, real resume identifiers,
 provider skill paths, and launcher quirks. They recover model identity from

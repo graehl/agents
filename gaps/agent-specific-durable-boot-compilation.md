@@ -53,3 +53,8 @@ hook rebuilds it. Still open: per-harness and per-model profiles, which
 would fold each harness supplement and the default model's supplements
 (frontier, anthropic, opus) into that harness's boot instead of routing
 them as reads.
+
+**Landed 2026-10-01 (harness portion):** the compiler now generates
+`AGENTS.boot.<harness>.md` with the complete matching supplement for Codex,
+Claude, Grok, and Copilot. Standard harness links select those boots.
+Model-, launcher-, and request-specific selection remain open.

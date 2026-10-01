@@ -68,9 +68,18 @@ def test_install_and_uninstall_restore_mixed_prior_state() -> None:
         assert proc.returncode == 0, proc.stderr
         payload = json.loads(proc.stdout)
         assert payload["status"] == "installed"
-        assert _target(codex) == GLOBAL.resolve()
-        assert _target(claude) == GLOBAL.resolve()
-        assert _target(grok) == GLOBAL.resolve()
+        assert (
+            _target(codex)
+            == install_core.instruction_source(REPO_ROOT, "codex").resolve()
+        )
+        assert (
+            _target(claude)
+            == install_core.instruction_source(REPO_ROOT, "claude").resolve()
+        )
+        assert (
+            _target(grok)
+            == install_core.instruction_source(REPO_ROOT, "grok").resolve()
+        )
         assert _target(old_skill) == FIRST_SKILL.resolve()
         assert unrelated.joinpath("SKILL.md").read_text() == "unrelated\n"
         assert home_agents.stat().st_ino == before_inode
@@ -109,7 +118,10 @@ def test_selected_harness_does_not_touch_others() -> None:
         home = Path(directory)
         proc = _run(home, "install", "--harness", "codex")
         assert proc.returncode == 0, proc.stderr
-        assert _target(home / ".codex/AGENTS.md") == GLOBAL.resolve()
+        assert (
+            _target(home / ".codex/AGENTS.md")
+            == install_core.instruction_source(REPO_ROOT, "codex").resolve()
+        )
         assert not home.joinpath(".claude").exists()
         assert _target(home / ".agents/skills") == SKILLS.resolve()
         assert _run(home, "uninstall").returncode == 0
@@ -159,8 +171,14 @@ def test_uninstall_preflights_every_backup_before_mutating_targets() -> None:
             refused = _run(home, "uninstall")
             assert refused.returncode == 2, refused
             assert "restore preflight failed" in refused.stderr, refused.stderr
-            assert _target(codex) == GLOBAL.resolve()
-            assert _target(claude) == GLOBAL.resolve()
+            assert (
+                _target(codex)
+                == install_core.instruction_source(REPO_ROOT, "codex").resolve()
+            )
+            assert (
+                _target(claude)
+                == install_core.instruction_source(REPO_ROOT, "claude").resolve()
+            )
             assert active_path.is_file()
 
 

@@ -5412,3 +5412,47 @@ Contributing-model: 6-Astra
   forced injection after an N-turn/time grace period; that implementation is
   separate from generating the packets and must avoid reinjecting recursively
   covered material. Generating a file alone does not install a harness hook.
+
+## 2026-10-01 — Codex prose corrections and protected harness boots
+
+Contributing-model: 6-Astra
+
+The user supplied a copyedit report identifying repeated evidence disclaimers,
+scattered bold and bullet lead-ins, a heading contradicting acquisition order,
+first-person editorial asides, opaque labels/jargon, restatement and closing
+hedges. They explicitly requested actionable bans in `AGENTS.codex.md`.
+The resulting rules retain local status differences, useful technical terms,
+and materially personal testimony; they do not ban honest uncertainty or all
+first person. These exceptions survived traces of mixed measured/proposed
+sections, a personal incident account, and a document with substantive
+technical vocabulary. The report supports this correction, not a claim that
+all Codex models exhibit the defects or that the rules' effects were measured.
+
+The user also requested confirmation or repair of harness-supplement boot
+compilation. Inspection found only a shared global-plus-user boot. The compiler
+now emits separate harness boots; link selection and fresh installer targets
+use them. Tests check exclusion of other harnesses' rules, source freshness,
+link reversal, and preservation/restoration of mixed pre-existing targets.
+Existing model/launcher routing remains conditional. YA's restoration design
+is captured as a sketch with default-off per-provider controls and a turn
+delay; no YA runtime injection was implemented in this slice.
+
+## 2026-10-01 — shorten harness supplements against the shared boot
+
+Contributing-model: 6-Astra
+
+The user directed brevity on the assumption of legitimate originating
+failures, explicitly deferred re-verification, and then requested removal of
+fully redundant harness restatements. The four compiled supplements totaled
+14,156 bytes including the just-added Codex writing block. Compression retains
+harness-specific triggers, commands, exceptions and action boundaries; shared
+attribution, identity authority, exact-anchor and delegation rules remain in
+global boot. The open work is
+`gaps/harness-supplement-reverification.md`, not a claim of measured benefit.
+
+Traces: a repeated Claude attribution request still meets the global repeated
+injection override; an unresolved Codex identity still reaches its recovery
+topic; repeated Claude Edit text retains the unique-line disambiguation;
+Copilot optional delegation still needs all three visible proof facts; a
+compacted job owner still cannot finalize before consuming its result. The
+prose correction retains substantive uncertainty and personal testimony.

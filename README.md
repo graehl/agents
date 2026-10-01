@@ -165,8 +165,8 @@ session gets it without a separate read:
 
 ```bash
 cd ~/agents
-scripts/build-boot build   # writes the git-excluded AGENTS.boot.md
-scripts/build-boot link    # points harness links at it
+scripts/build-boot build   # writes shared and per-harness boots
+scripts/build-boot link    # selects each harness's boot
 ```
 
 A pre-commit hook running `scripts/build-boot build --index` keeps both the
@@ -197,7 +197,8 @@ The current user-level destinations are:
 | Grok Build | `~/.grok/AGENTS.md` | `~/.grok/skills` |
 | GitHub Copilot CLI/TUI | `~/.copilot/copilot-instructions.md` | `~/.agents/skills` |
 
-Instruction targets point to `AGENTS.boot.md` when it has been built, else
+Instruction targets prefer `AGENTS.boot.<harness>.md`, then the shared
+`AGENTS.boot.md` when built, else
 directly to `AGENTS.global.md`. An absent skill root
 becomes one symlink to `skills/`; an existing directory keeps unrelated skills
 and receives one link per repository skill. Roots already resolving to this
