@@ -8,6 +8,7 @@ included-section manuscript through the real `scripts/qmd-venue-pdf` and
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -225,6 +226,9 @@ def test_html_plain_markdown_memo_style(tmp_path):
     assert receipt["source_targets"] >= 2  # the root itself is the mapped section
     assert "<title>A short memo</title>" in html
     assert 'id="TOC"' in html and "data:font/otf;base64" in html
+    toc = html.split('id="TOC"', 1)[1].split("</nav>", 1)[0]
+    assert "Findings" in toc and "short" not in toc  # the H1 is the title only
+    assert 'class="title"' in html
 
 
 @pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
@@ -283,3 +287,49 @@ def test_html_render_never_writes_through_to_earlier_output(tmp_path):
     assert run.returncode == 0, run.stderr
     assert earlier.read_text() == "earlier build\n"
     assert "Body." in elsewhere.read_text()
+
+
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_style_named_in_front_matter_found_on_search_path(tmp_path):
+    style = tmp_path / "styles/plainish"
+    style.mkdir(parents=True)
+    (style / "style.json").write_text(json.dumps({"css": "plainish.css", "toc": False}))
+    (style / "plainish.css").write_text("body { --plainish-marker: 1; }\n")
+    root = tmp_path / "doc/note.md"
+    root.parent.mkdir()
+    root.write_text("---\ndocument-style: plainish\n---\n\n# Note\n\nBody.\n")
+    env = {**os.environ, "QMD_STYLE_PATH": str(tmp_path / "styles")}
+    command = [str(REPO / "scripts/qmd-html"), str(root), "--acli-quiet"]
+    run = subprocess.run(command, capture_output=True, text=True, env=env)
+    assert run.returncode == 0, run.stderr
+    assert json.loads(run.stdout)["style"] == "plainish"
+    assert "--plainish-marker" in (root.parent / "note.html").read_text()
+    missing = subprocess.run(
+        command + ["--style", "absent"], capture_output=True, text=True, env=env
+    )
+    assert missing.returncode == 2 and "Unknown document style" in missing.stderr
+
+
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_bump_revision_records_and_shows_revision(tmp_path):
+    root = tmp_path / "note.md"
+    root.write_text("# Note\n\n## Part\n\nBody.\n")
+    command = [str(REPO / "scripts/qmd-html"), str(root), "--style", "memo"]
+    plain = subprocess.run(command + ["--acli-quiet"], capture_output=True, text=True)
+    assert plain.returncode == 0, plain.stderr
+    assert '<div class="document-revision">' not in (tmp_path / "note.html").read_text()
+    for expected in (2, 3):
+        run = subprocess.run(
+            command + ["--bump-revision", "--acli-quiet"],
+            capture_output=True,
+            text=True,
+        )
+        assert run.returncode == 0, run.stderr
+        assert json.loads(run.stdout)["revision"] == str(expected)
+    source = root.read_text()
+    assert source.startswith("---\nrevision: 3\nrevision-date: ")
+    assert source.count("revision:") == 1
+    assert (
+        '<div class="document-revision">rev 3 · '
+        in (tmp_path / "note.html").read_text()
+    )

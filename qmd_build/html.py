@@ -11,6 +11,7 @@ topics/document-writing-browser-interactive.md § Scripted HTML build.
 
 from __future__ import annotations
 
+import datetime
 import hashlib
 import json
 import os
@@ -25,10 +26,11 @@ from .browser_print import DEFAULT_PLAYWRIGHT
 from .browser_print import print_pdf as print_html_pdf
 from .manuscript import (
     Config,
-    first_heading_text,
+    bump_revision,
     fragment_anchors,
     front_matter,
     includes,
+    opening_title,
     resolve_executable,
     root_document,
 )
@@ -38,7 +40,13 @@ from .source_map import (
     source_mapped_html,
     staged_sources,
 )
-from .styles import STYLES, document_style, style_inputs, style_render_arguments
+from .styles import (
+    STYLE_PATH_ENV,
+    corner_arguments,
+    document_style,
+    style_inputs,
+    style_render_arguments,
+)
 from .table_layout import band_stylesheet, choose_table_widths, widest_band_widths
 
 PACKAGE = Path(__file__).resolve().parent
@@ -97,6 +105,9 @@ def render(args, config: Config) -> dict:
     quarto = resolve_executable(args.quarto)
     root = root_document(config, args.root)
     home = root.parent
+    if args.bump_revision:
+        # The author's local calendar date.
+        bump_revision(root, datetime.datetime.now().astimezone().date().isoformat())
     version = subprocess.check_output([quarto, "--version"], text=True).strip()
     pinned = config.get("quarto-version")
     if pinned and version != pinned:
@@ -111,7 +122,9 @@ def render(args, config: Config) -> dict:
     sections = [home / name for name in includes(root, required=False)]
     # A root without includes is itself the one source-mapped section.
     fragments = sections or [root]
-    style_name = args.style or config.get("style")
+    style_name = (
+        args.style or config.get("style") or front_matter(root, "document-style")
+    )
     style = document_style(style_name) if style_name else None
     sources = [
         root,
@@ -135,6 +148,16 @@ def render(args, config: Config) -> dict:
         if source_map
         else []
     )
+    # Without a `title`, an opening level-1 heading becomes the title: it
+    # leaves the body, so it is no outline entry or source-mapped section.
+    title = None if front_matter(root, "title") else opening_title(root, sections)
+    if title and targets:
+        source = os.path.relpath(fragments[0], output.parent)
+        targets.remove(
+            next(t for t in targets if "headerId" in t and t["source"] == source)
+        )
+    print_pdf = args.print_pdf or config.get("print-pdf", False)
+    pdf = output.with_suffix(".pdf")
     rendered = facts["output"]
     output.parent.mkdir(parents=True, exist_ok=True)
     log_path = output.with_suffix(".render.log")
@@ -149,35 +172,36 @@ def render(args, config: Config) -> dict:
         work = Path(scratch)
         staged_targets = work / "source-targets.json"
         staged_targets.write_text(json.dumps(targets))
+        fragment_ids = fragment_anchors(sections, quarto)
+        if title and sections:
+            fragment_ids[sections[0].name] = "title-block-header"
         anchors = work / "fragment-anchors.json"
-        anchors.write_text(json.dumps(fragment_anchors(sections, quarto)))
+        anchors.write_text(json.dumps(fragment_ids))
         # The staged directory is discarded, so the artifact must be one file.
-        command = [
-            quarto,
-            "render",
-            staged_root.name,
-            "--to",
-            "html",
-            "--embed-resources",
-            "--lua-filter",
-            str(PACKAGE / "included_documents.lua"),
-        ]
+        command = [quarto, "render", staged_root.name, "--to", "html"]
+        command += ["--embed-resources"]
+        if title:
+            command += ["--lua-filter", str(PACKAGE / "document_title.lua")]
+            # Quarto derives the page title before filters run.
+            if not front_matter(root, "pagetitle"):
+                metadata = work / "page-title.json"
+                metadata.write_text(json.dumps({"pagetitle": title}))
+                command += ["--metadata-file", str(metadata)]
+        command += ["--lua-filter", str(PACKAGE / "included_documents.lua")]
         if source_map:
             command += ["--lua-filter", str(PACKAGE / "source_map.lua")]
         if style:
             command += style_render_arguments(style, work)
-        title = first_heading_text(fragments[0])
-        if title and not (
-            front_matter(root, "title") or front_matter(root, "pagetitle")
-        ):
-            metadata = work / "page-title.json"
-            metadata.write_text(json.dumps({"pagetitle": title}))
-            command += ["--metadata-file", str(metadata)]
+        if style and style.document_corner:
+            command += corner_arguments()
         environment = {
             **os.environ,
             "QMD_SOURCE_TARGETS": str(staged_targets),
             "QMD_FRAGMENT_ANCHORS": str(anchors),
         }
+        environment.pop("QMD_PDF_LINK", None)
+        if print_pdf and style and style.document_corner:
+            environment["QMD_PDF_LINK"] = pdf.name
         staged_output = staged_root.parent / rendered.relative_to(home)
         log_path.write_text("")
 
@@ -231,8 +255,6 @@ def render(args, config: Config) -> dict:
     ]
     if missing:
         raise ValueError(f"Rendered HTML lacks required content: {missing}")
-    print_pdf = args.print_pdf or config.get("print-pdf", False)
-    pdf = output.with_suffix(".pdf")
     map_path = output.with_name(output.name + ".map")
     receipt_path = output.with_suffix(".receipt.json")
     rerun = [sys.executable, str(SCRIPT)]
@@ -293,6 +315,7 @@ def render(args, config: Config) -> dict:
         "root": str(root),
         "sections": len(sections),
         "style": style_name,
+        "revision": front_matter(root, "revision"),
         "table_widths": table_decisions,
         "inputs": before,
         "output": identity(output, home),
@@ -340,9 +363,17 @@ def parser():
         help="Also print a PDF beside the HTML with Chromium",
     )
     parser.add_argument(
+        "--bump-revision",
+        action="store_true",
+        help="Before building, record a new revision in the root's front matter "
+        "(`revision` + 1, `revision-date` today); use after significant new work, "
+        "not on every rebuild",
+    )
+    parser.add_argument(
         "--style",
-        choices=sorted(STYLES),
-        help="Document style over Quarto's default theme (else config `style`, else none)",
+        help="Document style name (else config `style`, else the root's front-matter "
+        f"`document-style`, else none); searched on ${STYLE_PATH_ENV}, "
+        "~/.config/qmd-html/styles, then the built-in styles",
     )
     parser.add_argument(
         "--playwright-from",

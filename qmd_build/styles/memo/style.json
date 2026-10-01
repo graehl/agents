@@ -1,0 +1,13 @@
+{
+  "comment": "qmd-html document style: readable memo or report over Quarto's default HTML theme",
+  "css": "memo.css",
+  "font-families": ["Source Sans 3"],
+  "filters": ["table_tokens.lua"],
+  "toc": true,
+  "table-widths": true,
+  "document-corner": true,
+  "print": {
+    "format": "Letter",
+    "margin": {"top": "0.7in", "bottom": "0.7in", "left": "0.75in", "right": "0.75in"}
+  }
+}

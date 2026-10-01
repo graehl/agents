@@ -98,6 +98,41 @@ table td:first-child { font-weight: 600; }
   font-weight: 600;
 }
 
+/* Quiet top-right PDF link. */
+.document-corner {
+  position: absolute;
+  top: 0.9rem;
+  right: 1.25rem;
+  z-index: 10;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+/* "rev N · date" in light grey at the right end of the date line, which
+   sits directly above the first body block. */
+.document-revision {
+  float: right;
+  margin-top: -2.45rem;
+  font-size: 0.85rem;
+  color: #8a9aab;
+}
+.document-pdf {
+  color: var(--memo-muted);
+  border: 1px solid var(--memo-rule);
+  border-radius: 3px;
+  padding: 0.1rem 0.45rem;
+}
+.document-pdf:hover { color: var(--memo-accent); text-decoration: none; }
+
+/* Creation date directly under the title, without Quarto's field label. */
+#title-block-header .quarto-title-meta { display: block; margin-top: 0.2rem; }
+#title-block-header .quarto-title-meta-heading { display: none; }
+#title-block-header .quarto-title-meta-contents p.date {
+  color: var(--memo-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+#title-block-header h1.title { margin-bottom: 0.25rem; }
+
 #TOC .nav-link { font-size: 0.85rem; color: var(--memo-muted); }
 #TOC .nav-link.active { color: var(--memo-accent); font-weight: 600; }
 
@@ -111,7 +146,9 @@ table td:first-child { font-weight: 600; }
 
 @media print {
   body { font-size: 10.5pt; line-height: 1.4; }
-  #quarto-margin-sidebar, #TOC, .quarto-alternate-formats, .anchorjs-link { display: none !important; }
+  #quarto-margin-sidebar, #TOC, .quarto-alternate-formats, .anchorjs-link,
+  .document-corner { display: none !important; }
+  .document-revision { margin-top: -2.3rem; }
   #quarto-content, main.content, .page-columns {
     display: block !important;
     width: auto !important;
