@@ -5,6 +5,11 @@
 
 Topic: `user-authorization-attestation`
 
+The broader idea is sketched in
+[auditable agent traceability](../gaps/sketches/auditable-agent-traceability.md).
+It covers provider-signed outputs and context provenance for agent actions,
+and treats this mechanism as one layer.
+
 ## Gate declaration
 
 A future rule that genuinely needs this mechanism would declare, in advance:
