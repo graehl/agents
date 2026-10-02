@@ -86,8 +86,26 @@ tooling, the cooperative declaration helper, and project migration docs.
   orders cooperating `agentctl start --gpu-lease` launches. It enforces
   nothing on the payload, and a process outside the lease system is
   counted by its observed use only. This reverses the 2026-07-02 deferral
-  of machine-level GPU awareness for this one resource, at the user's
-  direction; cross-project *job* discovery remains a sketch.
+  of machine-level GPU awareness, at the user's direction.
+- **One machine-wide home, `~/.agentctl`, holding pointers rather than a
+  job index** (vs. XDG config/state directories, or mirroring every run
+  into a host store): it mirrors the per-project `.agentctl/` name the
+  user already knows. A pointer can't disagree with the project's own
+  state, and a stale one is just a project with no live runs. The
+  directory doubles as the state directory of a project rooted at `~`.
+  Host-wide names (`agentctl.env`, `projects/`, `gpu-leases/`) are
+  therefore reserved, and project state must never use them.
+- **Global config is a second `agentctl.env`** (vs. a new TOML or INI
+  settings file): one grammar and one precedence chain serve both payload
+  defaults and agentctl's own `AGENTCTL_*` settings. A setting can then
+  live in the environment, the project file, or the machine file
+  unchanged. TOML would also need Python 3.11, while the wrapper accepts
+  3.10.
+- **Read another project through its own agentctl invocation** (vs.
+  reading its state files in-process): status refresh writes through the
+  invoking project's paths, so an in-process read could write one
+  project's records into another. A subprocess with that project as root
+  keeps each project the sole writer of its own state.
 - **Commit exact rational lease amounts against compute-process use, not
   `memory.used`** (vs. rounding to MiB and subtracting from the device
   total): two `50%` leases must fill a GPU exactly, and driver or context
@@ -425,10 +443,13 @@ notices.
   tracked paths portable across local and remote clones. Precedence is
   ambient child environment over project defaults, then `--source-env`, then
   explicit `--env KEY=VALUE`. `--project-env PATH` selects another file;
-  `--no-project-env` disables loading. The run state and metadata record the
-  resolved path, file hash, and key names, never values. `restart` preserves
-  the original launch's selected file or disabled state rather than adopting
-  a newly created default.
+  `--no-project-env` disables loading. The machine-wide
+  `$AGENTCTL_HOME/agentctl.env` (§ Machine-wide home) has the same grammar
+  and fills keys still missing after the project file; `--no-global-env`
+  skips it. The run state and metadata record each file's resolved path,
+  hash, and key names (`project_env`, `global_env`), never values.
+  `restart` preserves the original launch's selected files or disabled
+  state rather than adopting a newly created default.
 - A default tracked `start`/`smoke` requires a Git checkout at committed
   `HEAD`. `--source-scope non-doc` is the default: it rejects tracked/index
   changes across the checkout except `*.md` and every `runs/aim/` bookkeeping
@@ -525,6 +546,8 @@ notices.
   persisted run state, so a job that reached the target before the wait
   started satisfies it at once: a finished job is never "not running".
   A name with no run record fails before any waiting (`unknown job`).
+  `PROJECT:JOB` names a job in another project on this machine
+  (§ Machine-wide home).
   Each job prints its terminal line when it arrives. The exit code is the
   first observed failing job's code (0 when none failed), or under
   `--any` the releasing job's.
@@ -852,9 +875,8 @@ assumes nvidia-smi PIDs are in the caller's PID namespace. When they are
 not, a leaseholder's use also counts as unleased, which over-blocks
 rather than over-admits.
 
-Leases live host-wide under `$AGENTCTL_GPU_LEASE_DIR`, else
-`${XDG_STATE_HOME:-~/.local/state}/agentctl/gpu-leases/`, one JSON file
-per lease. The holder record names the wrapper's PID, start ticks, process
+Leases live host-wide under `$AGENTCTL_HOME/gpu-leases/` (setting
+`AGENTCTL_GPU_LEASE_DIR` overrides it), one JSON file per lease. The holder record names the wrapper's PID, start ticks, process
 group, PID namespace, project, job, run, and run dir. Check-and-write
 happens under one `flock` on `.lock`, so two runs cannot both claim the
 same free memory. A lease ends when its wrapper removes it after the
@@ -865,6 +887,49 @@ namespace, sandboxed `/proc`) is presumed alive.
 
 Waiting has no queue order. A large request can wait behind a stream of
 smaller ones that keep fitting (see [sketches](agentctl.sketches.md)).
+
+## Machine-wide home
+
+`$AGENTCTL_HOME` (default `~/.agentctl`; settable only in the environment)
+holds what every project on the machine shares:
+
+```text
+~/.agentctl/agentctl.env       # machine-wide defaults and settings
+~/.agentctl/projects/<hash>    # one line: a project root that has launched
+~/.agentctl/gpu-leases/        # VRAM leases (§ GPU use and VRAM leases)
+```
+
+These three names are reserved. When `~` is itself a project, its project
+state (`jobs/`, `runs/`, `active/`, …) shares the directory and never uses
+them.
+
+**Configuration.** Each `agentctl.env` is the declarative `KEY=VALUE`
+format described under § Contracts. A key fills the payload environment
+of a launch, and an `AGENTCTL_*` setting also steers agentctl itself.
+Lookup order is:
+1. the ambient environment;
+2. the project-root `agentctl.env`;
+3. `$AGENTCTL_HOME/agentctl.env`.
+
+The settings read this way are `AGENTCTL_SOURCE_GUARD`,
+`AGENTCTL_GPU_SAMPLE_SECONDS`, `AGENTCTL_GPU_LEASE_DIR`, and
+`AGENTCTL_NO_COMMIT_NOTE` ([AGENT_ENV_VARS](AGENT_ENV_VARS.md) marks them).
+Process-context variables such as `AGENTCTL_ROOT` and
+`AGENTCTL_LAUNCH_DEPTH` are not settings. The global file lives outside
+any checkout, so it is never part of source admission; its hash and key
+names are recorded in run state as `global_env`.
+
+**Cross-project views.** Every `start`/`smoke` writes its project's
+pointer. `list --host` runs the ordinary `list` for the invoking project,
+then for each other pointed-to project that still has `.agentctl/jobs/`,
+most recent first. It prints one host-wide GPU summary on top and the
+other options apply per project; `--json` nests each project's envelope
+under `projects`. `wait PROJECT:JOB` (mixable with local names) reads
+that project's job on each poll. PROJECT is a path, or the directory
+name of a pointed-to project when unique; an unknown or ambiguous name
+fails before waiting. A foreign project is always read by running
+agentctl with that project as `AGENTCTL_ROOT`, so it alone writes its
+state. Each read costs one agentctl start-up, roughly 0.2–0.3 s.
 
 ## Fleet capacity watch
 
@@ -1013,7 +1078,7 @@ The base writes a flat dict to `state.json`. Canonical keys (read freely):
 `runtime_estimate`, `runtime_estimate_seconds`, `context_note`,
 `pre_run_note`, `post_run_note`, `post_run_noted_at`, `analysis_notes`,
 `depends_on`, `wait_on`, `wait_after`, `queued_at`, `source_env`,
-`project_env`, `git_branch`, `git_commit`, `source_snapshot`,
+`project_env`, `global_env`, `git_branch`, `git_commit`, `source_snapshot`,
 `machine_snapshot`, `launch_gpu_stats`, `gpu_lease_specs`, `gpu_leases`,
 `gpu_lease_poll`, `gpu_lease_heartbeat`, `gpu_lease_timeout`,
 `vram_peak_mib`.

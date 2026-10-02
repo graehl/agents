@@ -95,8 +95,8 @@ another prompt:
   nothing. Size the lease to the real need, because an undersized lease
   still lets the payload exhaust VRAM. `agentctl list --live` shows each
   run's `lease=` and `vram_max10m=` (recent peak), plus each GPU's
-  `leased=`/`uncommitted=`. Add `--gpu-sample 5` for a denser, slower
-  reading before a tight fit. Contract: `topics/agentctl.md` § GPU use
+  `leased=`/`uncommitted=`; `list --host` shows every project's runs. Add
+  `--gpu-sample 5` for a denser, slower reading before a tight fit. Contract: `topics/agentctl.md` § GPU use
   and VRAM leases.
 - When a run finishes, promptly report its headline result, key metrics, and
   one or two useful output comparisons.
