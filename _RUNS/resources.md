@@ -26,6 +26,9 @@ host has no GPU; retry with GPU visibility before drawing that conclusion.
 Before launch, inspect `nvidia-smi`. Unexpected existing use warrants a warning,
 but proceed when estimated free VRAM still leaves the planned run safe. Block or
 change the plan only when current use makes launch materially risky.
+`agentctl list --host --live` shows every project's running and queued jobs
+on this machine with their VRAM use and leases, under one per-GPU line of
+used, leased, and uncommitted memory.
 
 Every PyTorch job sets:
 
