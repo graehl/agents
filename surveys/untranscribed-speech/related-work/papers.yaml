@@ -21,6 +21,36 @@ meta:
   grounding_mode: grounded
 
 papers:
+  - key: he2025emilia
+    title: 'Emilia: A Large-Scale, Extensive, Multilingual, and Diverse Dataset for Speech Generation'
+    authors: [Haorui He, Zengqiang Shang, Chaoren Wang, Xuyuan Li, Yicheng Gu, Hua Hua, Liwei Liu, Chen Yang, Jiaqi Li, Peiyang Shi, Yuancheng Wang, Kai Chen, Pengyuan Zhang, Zhizheng Wu]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: '2501.15907'
+    url: https://arxiv.org/html/2501.15907v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-02
+  - key: reddy2022dnsmos
+    title: 'DNSMOS P.835: A Non-Intrusive Perceptual Objective Speech Quality Metric to Evaluate Noise Suppressors'
+    authors: [Chandan K A Reddy, Vishak Gopal, Ross Cutler]
+    venue: ICASSP
+    year: 2022
+    arxiv: '2110.01763'
+    url: https://arxiv.org/abs/2110.01763
+    source: https://arxiv.org/abs/2110.01763
+    verified: true
+    grounded: false
+  - key: mittag2021nisqa
+    title: 'NISQA: A Deep CNN-Self-Attention Model for Multidimensional Speech Quality Prediction with Crowdsourced Datasets'
+    authors: [Gabriel Mittag, Babak Naderi, Assmaa Chehadi, Sebastian Möller]
+    venue: Interspeech
+    year: 2021
+    arxiv: '2104.09494'
+    url: https://arxiv.org/abs/2104.09494
+    source: https://arxiv.org/abs/2104.09494
+    verified: true
+    grounded: false
   - key: raj2019xvector-probing
     title: Probing the Information Encoded in X-vectors
     authors: [Desh Raj, David Snyder, Daniel Povey, Sanjeev Khudanpur]
