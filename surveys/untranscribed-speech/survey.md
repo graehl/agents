@@ -1,6 +1,7 @@
 # Untranscribed speech: sources, live capture, storage, and domain representations
 
-Grounded field survey, coverage cutoff 2026-10-01. Scope: multilingual public
+Grounded field survey, coverage cutoff 2026-10-01, with a focused speaker/accent
+diversity extension searched through 2026-10-02. Scope: multilingual public
 speech at roughly 10⁴–10⁶ hours, collected without transcription, with
 embeddings computed directly from audio. The goal is trainable audio for
 tail-language ASR, meaning languages with few high-quality transcribed hours,
@@ -8,7 +9,7 @@ with language identification reliable enough for that use. Legal analysis is
 out of scope.
 
 Primary dataset and model cards, protocol documentation, and selected
-speech-representation papers were read; nineteen of twenty-seven sources have
+speech-representation papers were read; twenty-one of thirty-one sources have
 accepted local full-text extracts ([retrieval and
 limits](#retrieval-and-limits)). No audio was collected and no codec or
 embedding experiment was run. Source sizes are publisher-reported, storage
@@ -49,7 +50,8 @@ single vector serving both purposes on long, noisy live speech.
 Concept notes: [sources and capture](concepts/sources-and-capture.md),
 [condition views](concepts/condition-views.md),
 [compression and storage](concepts/storage-and-compression.md),
-[audio domain representations](concepts/audio-domain-representations.md).
+[audio domain representations](concepts/audio-domain-representations.md),
+[measuring speaker/accent diversity](concepts/speaker-accent-diversity.md).
 Recent claims and open tests are in [frontier.md](frontier.md).
 
 ## What “no-transcript” and “domain” mean here
@@ -519,6 +521,23 @@ windows and keep the individual windows' neighbors for audit. Never compare
 vectors from different checkpoints or pooling recipes in one metric space
 without an explicit alignment.
 
+## Measuring speaker and accent coverage without complete metadata
+
+The [focused survey](concepts/speaker-accent-diversity.md) separates voice
+redundancy, accent-sensitive similarity and recording conditions. Its closest
+data-selection evidence is Kim et al.'s English accent miner: clustering-selected
+adaptation data improves Indian-English WER relative to random selection, but
+the encoder was trained with other accent labels. Ghorbani and Hansen find
+complementary accent information in language-ID and speaker embeddings.
+Neither result validates Arabic source coverage.
+
+The proposed screen compares equal-budget source samples in frozen embedding
+spaces, reporting within-source concentration and incremental coverage of a
+fixed audit pool. Vendi Score is an optional kernel-dependent summary;
+nearest-pair listening and codec/channel controls determine what the numbers
+mean. Implementation and Arabic validation remain open, without blocking the
+interim source-balanced dev mix.
+
 ## Contested results, negative findings, and baseline sensitivity
 
 The main disputed inference is that avoiding ASR improves semantic retrieval.
@@ -566,14 +585,20 @@ A follow-up pass the same day added five sources found by targeted search
 for tail-language corpora and language-ID evaluation: Omnilingual ASR and its
 corpus, CMU Wilderness, FLEURS, and the ML-SUPERB 2.0 challenge.
 
-The [manifest](related-work/papers.yaml) lists twenty-seven sources.
-Nineteen have accepted Markdown extracts with provenance and linked assets.
-Eight were verified online but are marked `grounded: false` because local
+The [manifest](related-work/papers.yaml) lists thirty-one sources.
+Twenty-one have accepted Markdown extracts with provenance and linked assets.
+Eight sources from the initial pass are marked `grounded: false` because local
 extraction failed: three 2026 arXiv papers on SVG figures, VoxLingua107 and
 CLAP on prose-fidelity checks, and the MMS ulab v2, Omnilingual ASR Corpus,
 and FLEURS cards on audio-preview elements. The
 extractor's [regression gap](../../gaps/related-work-rich-derivation-regressions.md)
 tracks these failures. Additional API, model, and storage pages linked above
 were read online without local extracts.
+
+The 2026-10-02 [diversity extension](concepts/speaker-accent-diversity.md)
+adds two accepted accent-paper extracts, a Vendi Score source whose local
+derivation failed fidelity checks, and the x-vector probing paper checked at
+abstract level. Its search trail and remaining Arabic validation are recorded
+in that concept note.
 
 This is a practical map, not an exhaustive inventory of corpora.
