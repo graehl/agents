@@ -36,3 +36,59 @@ Keep separated/enhanced mixtures as derived views alongside their originals.
 These are architectural recommendations, not a reproduced classifier or
 selection result. The [map](../survey.md#condition-detection-and-span-views)
 provides the condition axes, view definitions, and proposed deciding checks.
+
+## Data quality observations for deferred intake
+
+Focused grounded extension, searched 2026-10-02. Anchors: DNSMOS P.835,
+NISQA and Emilia-Pipe. DNSMOS inference source and Emilia full text have local
+extracts; NISQA and the DNSMOS paper were checked at abstract level. OpenAlex
+resolved DNSMOS to W4225302959 (243 indexed citations) and returned ten citers
+under each of recency and citation-count sorting. Emilia and Torchaudio-SQUIM
+were relevant descendants; SQUIM remains a reading lead. This bounded pass did
+not reach field saturation or validate any scorer on Arabic.
+
+[DNSMOS P.835](https://arxiv.org/abs/2110.01763) predicts speech, background
+and overall perceptual quality from human ratings. Retain all three outputs;
+an overall mean hides whether noise or speech distortion drives it.
+[NISQA](https://arxiv.org/abs/2104.09494) instead provides overall quality plus
+noisiness, coloration, discontinuity and loudness, targeting communication
+network distortions. These are candidates for acoustic usability, not evidence
+of transcript correctness or learning utility. Published effectiveness remains
+single-source here; neither was reproduced in this extension.
+
+[Emilia-Pipe](https://arxiv.org/html/2501.15907#S3.SS0.SSS0.P6)
+combines language-ID confidence, DNSMOS and within-recording text-duration
+outliers. Its six languages exclude Arabic, and the task is speech generation.
+The [local extract](../related-work/extract/he2025emilia/html/2501.15907.md),
+section “Filtering”, alternates character and phone duration terminology;
+check the implementation before copying that rule. Its reported DNSMOS increase
+after DNSMOS-based filtering is not independent evidence of better ASR training.
+Do not adopt its 3.0 threshold as an Arabic admission criterion.
+
+For ASR intake, preserve three groups of observations:
+
+| Group | Initial signals | Interpretation limit |
+|---|---|---|
+| Acoustic usability | decode success, finite samples, duration, rate, clipping, RMS, DC; later VAD/overlap and DNSMOS components | Near-zero samples are not a VAD; challenging noise may be useful training data |
+| Reference reliability | missing/empty reference, normalized characters per voiced second, alignment coverage, independent recognizer disagreement, repetition | Agreement can share errors; disagreement may reflect accent difficulty or transcription conventions |
+| Task fit | language posterior/entropy, source genre, speaker/accent-space coverage, exact/approximate duplication | Confidence is not calibrated correctness; diversity is not quality |
+
+This separation is a design recommendation. Start with cheap waveform
+observations, then calibrate learned signals against a small stratified human
+audit. Include high/low-score examples from each source and diversity cluster,
+plus missing-score cases; estimate whether suspect references actually need
+correction. For dev, retain hard but correctly labelled speech and repair or
+exclude demonstrably unusable references with recorded reasons.
+
+Store model/revision, audio hash/span, time, raw values and missingness separately
+from any decision. Track per-source and rolling-window quantiles, rejected or
+deferred fractions, and human-confirmed reference-error rates. Compare the
+representation distribution before and after a proposed filter. Low ASR
+confidence as a universal rejection rule could remove exactly the tail speech
+the program targets; the disconfirming search found accent-dependent ASR error
+literature, but no validated universal Arabic quality threshold.
+
+Priority may delay similar high-quality segments without deleting them. Reserve
+some oldest-first service, keep the original source order, and compare eventual
+consumption against intake. Learned quality scorers, Arabic calibration and
+quality-versus-downstream-WER contrasts remain unrun.

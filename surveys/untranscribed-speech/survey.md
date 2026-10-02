@@ -1,7 +1,7 @@
 # Untranscribed speech: sources, live capture, storage, and domain representations
 
 Grounded field survey, coverage cutoff 2026-10-01, with a focused speaker/accent
-diversity extension searched through 2026-10-02. Scope: multilingual public
+diversity and data-quality extension searched through 2026-10-02. Scope: multilingual public
 speech at roughly 10⁴–10⁶ hours, collected without transcription, with
 embeddings computed directly from audio. The goal is trainable audio for
 tail-language ASR, meaning languages with few high-quality transcribed hours,
@@ -9,7 +9,7 @@ with language identification reliable enough for that use. Legal analysis is
 out of scope.
 
 Primary dataset and model cards, protocol documentation, and selected
-speech-representation papers were read; twenty-one of thirty-one sources have
+speech-representation papers were read; twenty-two of thirty-four sources have
 accepted local full-text extracts ([retrieval and
 limits](#retrieval-and-limits)). No audio was collected and no codec or
 embedding experiment was run. Source sizes are publisher-reported, storage
@@ -48,7 +48,7 @@ but their geometry is trained toward text. No source located here shows a
 single vector serving both purposes on long, noisy live speech.
 
 Concept notes: [sources and capture](concepts/sources-and-capture.md),
-[condition views](concepts/condition-views.md),
+[condition views and data-quality observations](concepts/condition-views.md),
 [compression and storage](concepts/storage-and-compression.md),
 [audio domain representations](concepts/audio-domain-representations.md),
 [measuring speaker/accent diversity](concepts/speaker-accent-diversity.md).
