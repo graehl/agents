@@ -78,6 +78,12 @@ NO_PROC_SESSION_ID_ENV = "AGENTCTL_NO_PROC_SESSION_ID"
 DECLARED_IO_FILENAME = "declared.json"
 PROPAGATE_FILENAME = "propagate.json"
 PROJECT_ENV_FILENAME = "agentctl.env"
+# Host-wide agentctl home (data and config shared by every project on this
+# machine): global agentctl.env, project pointers, and GPU leases.
+AGENTCTL_HOME = Path(os.environ.get("AGENTCTL_HOME") or "~/.agentctl").expanduser()
+GLOBAL_ENV_PATH = AGENTCTL_HOME / PROJECT_ENV_FILENAME
+PROJECT_POINTERS = AGENTCTL_HOME / "projects"
+GPU_LEASE_DIR_ENV = "AGENTCTL_GPU_LEASE_DIR"
 LIVE_JOB_STATUSES = {"running", "waiting"}
 DEFAULT_LIST_SHOW_LAST = 6
 DEFAULT_LAUNCH_WAIT_SECONDS = 5.0
@@ -2267,7 +2273,7 @@ def ensure_commit_note_hook() -> dict[str, str]:
     stderr (marker file under .agentctl/) so a registering session is not
     nagged; `agentctl commit-note` always reports it in its payload.
     """
-    if os.environ.get(NO_COMMIT_NOTE_ENV, "").strip():
+    if agentctl_setting(NO_COMMIT_NOTE_ENV):
         return {"hook": "disabled", "config": "skipped"}
     hooks_dir = _git_hooks_dir()
     if hooks_dir is None:
@@ -2410,7 +2416,7 @@ def commit_note_cmd(args) -> int:
         }
         acli.emit(payload, fmt)
         return int(acli.ExitCode.DATA)
-    if os.environ.get(NO_COMMIT_NOTE_ENV, "").strip():
+    if agentctl_setting(NO_COMMIT_NOTE_ENV):
         if hook_mode:
             return 0
         acli.emit(
@@ -2973,17 +2979,29 @@ def load_project_env(
         if explicit:
             raise SystemExit(f"missing project env file: {path}")
         return env, None
-    if not path.is_file():
-        raise SystemExit(f"project env path is not a file: {path}")
+    return apply_env_defaults(env, path, "project")
 
-    updated = env.copy()
-    keys: list[str] = []
-    seen: set[str] = set()
+
+def load_global_env(env: dict[str, str]) -> tuple[dict[str, str], dict | None]:
+    """Fill still-missing child variables from `$AGENTCTL_HOME/agentctl.env`.
+
+    Applied after the project file, so project values win over global ones.
+    """
+    if not GLOBAL_ENV_PATH.exists():
+        return env, None
+    return apply_env_defaults(env, GLOBAL_ENV_PATH.resolve(strict=False), "global")
+
+
+def parse_env_defaults(path: Path, label: str) -> tuple[dict[str, str], bytes]:
+    """Parse a declarative `KEY=VALUE` defaults file (comments and blanks ok)."""
+    if not path.is_file():
+        raise SystemExit(f"{label} env path is not a file: {path}")
     try:
-        project_env_bytes = path.read_bytes()
-        lines = project_env_bytes.decode("utf-8").splitlines()
+        raw = path.read_bytes()
+        lines = raw.decode("utf-8").splitlines()
     except (OSError, UnicodeError) as exc:
-        raise SystemExit(f"failed to read project env file {path}: {exc}") from exc
+        raise SystemExit(f"failed to read {label} env file {path}: {exc}") from exc
+    values: dict[str, str] = {}
     for line_number, raw_line in enumerate(lines, 1):
         line = raw_line.strip()
         if not line or line.startswith("#"):
@@ -2992,21 +3010,62 @@ def load_project_env(
         key = key.strip()
         if not sep or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
             raise SystemExit(
-                f"invalid project env entry {path}:{line_number}: expected KEY=VALUE"
+                f"invalid {label} env entry {path}:{line_number}: expected KEY=VALUE"
             )
-        if key in seen:
+        if key in values:
             raise SystemExit(
-                f"duplicate project env key {key!r} at {path}:{line_number}"
+                f"duplicate {label} env key {key!r} at {path}:{line_number}"
             )
-        seen.add(key)
-        value = value.strip().replace("${AGENTCTL_ROOT}", str(ROOT))
+        values[key] = value.strip().replace("${AGENTCTL_ROOT}", str(ROOT))
+    return values, raw
+
+
+def apply_env_defaults(
+    env: dict[str, str], path: Path, label: str
+) -> tuple[dict[str, str], dict]:
+    values, raw = parse_env_defaults(path, label)
+    updated = env.copy()
+    for key, value in values.items():
         updated.setdefault(key, value)
-        keys.append(key)
     return updated, {
         "path": str(path),
-        "sha256": hashlib.sha256(project_env_bytes).hexdigest(),
-        "keys": keys,
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "keys": list(values),
     }
+
+
+_SETTING_FILES: list[dict[str, str]] | None = None
+
+
+def agentctl_setting(key: str, default: str = "") -> str:
+    """An agentctl setting: environment, then project, then global agentctl.env.
+
+    The same `AGENTCTL_*` name works in all three places, so a setting can be
+    fixed per machine, per project, or per invocation.
+    """
+    global _SETTING_FILES
+    value = os.environ.get(key, "").strip()
+    if value:
+        return value
+    if _SETTING_FILES is None:
+        _SETTING_FILES = [
+            parse_env_defaults(path, label)[0]
+            for path, label in (
+                (ROOT / PROJECT_ENV_FILENAME, "project"),
+                (GLOBAL_ENV_PATH, "global"),
+            )
+            if path.exists()
+        ]
+    for values in _SETTING_FILES:
+        if values.get(key, "").strip():
+            return values[key].strip()
+    return default
+
+
+def gpu_lease_dir() -> Path:
+    return Path(
+        agentctl_setting(GPU_LEASE_DIR_ENV) or AGENTCTL_HOME / "gpu-leases"
+    ).expanduser()
 
 
 def mark_state_finished(state: dict, returncode: int | str) -> dict:
@@ -4051,15 +4110,16 @@ def write_meta(state: dict) -> dict:
         setup.append(
             ("source_env", ",".join(str(item) for item in state["source_env"]))
         )
-    if state.get("project_env"):
-        project_env = state["project_env"]
-        setup.extend(
-            [
-                ("project_env", str(project_env["path"])),
-                ("project_env_sha256", str(project_env["sha256"])),
-                ("project_env_keys", ",".join(project_env["keys"])),
-            ]
-        )
+    for scope in ("project", "global"):
+        defaults = state.get(f"{scope}_env")
+        if defaults:
+            setup.extend(
+                [
+                    (f"{scope}_env", str(defaults["path"])),
+                    (f"{scope}_env_sha256", str(defaults["sha256"])),
+                    (f"{scope}_env_keys", ",".join(defaults["keys"])),
+                ]
+            )
     if depends_on:
         setup.append(("depends_on_jobs", ",".join(depends_on)))
     if state.get("aim_run_hash"):
@@ -4803,6 +4863,9 @@ def start(args: argparse.Namespace) -> int:
     project_env = None
     if not args.no_project_env:
         env, project_env = load_project_env(env, args.project_env)
+    global_env = None
+    if not getattr(args, "no_global_env", False):
+        env, global_env = load_global_env(env)
     env.setdefault("PYTHONUNBUFFERED", "1")
     # Count-down-once: mark the child as one hop deeper into an agentctl launch
     # so neither the job nor any agentctl it shells adopts the launching agent's
@@ -4922,6 +4985,7 @@ def start(args: argparse.Namespace) -> int:
         "launch_wait_seconds": args.launch_wait,
         "machine_snapshot": machine_snapshot(),
         "project_env": project_env,
+        "global_env": global_env,
         "script": script_rec,
         "serial": serial,
         "source_env": list(args.source_env),
@@ -4993,6 +5057,7 @@ def start(args: argparse.Namespace) -> int:
         f"pid={state['pid']} backend={state['launch_backend']}"
     )
     print(f"log: {log_path}")
+    register_project_pointer()
     refresh_active_register(
         summary=f"agentctl {args.mode} {launch_name}: {command_string(final_argv)}",
         note=f"agentctl: started {launch_name} run={rid}",
@@ -5076,7 +5141,7 @@ def run_child(args: argparse.Namespace) -> int:
     try:
         return launch_recorded_payload(argv, state_path, current, exit_status_path)
     finally:
-        agentctl_gpu.release_leases(lease_ids)
+        agentctl_gpu.release_leases(gpu_lease_dir(), lease_ids)
 
 
 def launch_recorded_payload(
@@ -5208,6 +5273,8 @@ def status_state_payload(state: dict, args: argparse.Namespace) -> dict:
 
 
 def status(args: argparse.Namespace) -> int:
+    if getattr(args, "host", False):
+        return host_status(args)
     structured = getattr(args, "format", None) is not None or bool(
         getattr(args, "full", False)
     )
@@ -5255,7 +5322,9 @@ def status(args: argparse.Namespace) -> int:
     )
     commitments = (
         gpu_commitments(gpu_snapshot)
-        if gpu_snapshot is not None and not args.job
+        if gpu_snapshot is not None
+        and not args.job
+        and not getattr(args, "no_gpu_summary", False)
         else []
     )
     if fmt is not None:
@@ -5496,6 +5565,143 @@ def cleanup_running(args: argparse.Namespace) -> int:
     return 0
 
 
+# ---- Host-wide project discovery ------------------------------------------
+#
+# Each project's .agentctl/ stays the only authority for its jobs. The host
+# home holds just a pointer per project that has launched, and host-wide
+# views read each project through its own agentctl invocation.
+
+
+def project_pointer_path(root: Path) -> Path:
+    return PROJECT_POINTERS / hashlib.sha256(str(root).encode()).hexdigest()[:16]
+
+
+def register_project_pointer() -> None:
+    """Record this project so `list --host` and `wait PROJECT:JOB` find it."""
+    path = project_pointer_path(ROOT)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"{ROOT}\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"warning: cannot record project pointer {path}: {exc}", file=sys.stderr)
+
+
+def known_project_roots() -> list[Path]:
+    """The invoking project, then pointed-to projects that still have jobs."""
+    roots = [ROOT]
+    if not PROJECT_POINTERS.is_dir():
+        return roots
+    pointers = sorted(
+        PROJECT_POINTERS.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    for pointer in pointers:
+        try:
+            root = Path(pointer.read_text(encoding="utf-8").strip())
+        except OSError:
+            continue
+        if root not in roots and (root / ".agentctl" / "jobs").is_dir():
+            roots.append(root)
+    return roots
+
+
+def resolve_project_spec(spec: str) -> Path:
+    """A project named by path, or by the unique basename of a known project."""
+    if "/" in spec or spec.startswith(("~", ".")):
+        return Path(spec).expanduser().resolve()
+    matches = [root for root in known_project_roots() if root.name == spec]
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise SystemExit(
+            f"unknown project {spec!r}: no agentctl project with that directory "
+            f"name has launched on this host (use a path instead)"
+        )
+    raise SystemExit(
+        f"ambiguous project {spec!r}: "
+        + ", ".join(str(root) for root in matches)
+        + " (use a path instead)"
+    )
+
+
+def run_agentctl_in_project(root: Path, argv: list[str]) -> subprocess.CompletedProcess:
+    env = {**os.environ, "AGENTCTL_ROOT": str(root), "ACLI_QUIET": "1"}
+    return subprocess.run(
+        [sys.executable, str(Path(__file__).resolve()), *argv],
+        cwd=str(root),
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+
+
+def last_json_line(text: str) -> dict:
+    lines = [line for line in text.splitlines() if line.strip()]
+    if not lines:
+        raise ValueError("no JSON output")
+    return json.loads(lines[-1])
+
+
+def foreign_job_state(spec: str) -> dict:
+    """State of `PROJECT:JOB`, read through that project's own agentctl."""
+    project, _, job = spec.rpartition(":")
+    root = resolve_project_spec(project)
+    if root == ROOT:
+        return load_job(job)
+    proc = run_agentctl_in_project(root, ["status", job, "--json", "--full"])
+    if proc.returncode != 0:
+        detail = (proc.stderr.strip().splitlines() or ["no output"])[-1]
+        raise SystemExit(f"{spec}: {detail}")
+    try:
+        state = last_json_line(proc.stdout)["jobs"][0]
+    except (ValueError, KeyError, IndexError) as exc:
+        raise SystemExit(f"{spec}: unreadable status from {root}: {exc}") from exc
+    state["job"] = f"{root.name}:{state['job']}"
+    return state
+
+
+def wait_target_state(name: str) -> dict:
+    return foreign_job_state(name) if ":" in name else load_job(name)
+
+
+def host_status(args: argparse.Namespace) -> int:
+    """`list --host`: every known project's list, one GPU summary on top."""
+    forwarded = [arg for arg in sys.argv[1:] if arg != "--host"]
+    forwarded.append("--no-gpu-summary")
+    structured = getattr(args, "format", None) is not None or bool(
+        getattr(args, "full", False)
+    )
+    snapshot = agentctl_gpu.query_gpu_snapshot()
+    commitments = gpu_commitments(snapshot) if snapshot is not None else []
+    projects = []
+    for root in known_project_roots():
+        proc = run_agentctl_in_project(root, forwarded)
+        if proc.returncode != 0:
+            detail = (proc.stderr.strip().splitlines() or ["no output"])[-1]
+            projects.append({"root": str(root), "error": detail})
+            continue
+        if structured:
+            try:
+                projects.append({"root": str(root), **last_json_line(proc.stdout)})
+            except ValueError as exc:
+                projects.append({"root": str(root), "error": str(exc)})
+        else:
+            projects.append({"root": str(root), "text": proc.stdout.rstrip()})
+    if structured:
+        payload: dict = {"kind": "host_job_list", "projects": projects}
+        if commitments:
+            payload["gpus"] = [gpu_commitment_payload(c, snapshot) for c in commitments]
+        acli.emit(payload, _resolve_acli_format(args))
+        return 0
+    for commitment in commitments:
+        print(format_gpu_commitment(commitment, snapshot))
+    for project in projects:
+        print(f"\n== {project['root']} ==")
+        print(project.get("text") or f"error: {project['error']}")
+    return 0
+
+
 def wait_job_names(specs: list[str]) -> list[str]:
     """Job names from repeated and/or comma-separated arguments, deduplicated."""
     names: list[str] = []
@@ -5525,7 +5731,7 @@ def wait_job(args: argparse.Namespace) -> int:
     """
     names = wait_job_names(args.job)
     for name in names:
-        load_job(name)  # an unknown name fails before any waiting
+        wait_target_state(name)  # an unknown name fails before any waiting
     deadline = time.time() + args.timeout if args.timeout > 0 else None
     next_report = 0.0
     heartbeat_interval = max(
@@ -5536,7 +5742,7 @@ def wait_job(args: argparse.Namespace) -> int:
     first_failure = 0
     while True:
         touch_active_entry()
-        states = {name: load_job(name) for name in pending}
+        states = {name: wait_target_state(name) for name in pending}
         for name in list(pending):
             state = states[name]
             status = state.get("status", "")
@@ -5975,6 +6181,7 @@ def acquire_run_gpu_leases(state_path: Path) -> tuple[int, list[str]]:
         try:
             attempt = agentctl_gpu.try_acquire(
                 requests,
+                directory=gpu_lease_dir(),
                 default_gpu=0,
                 holder=holder,
                 holder_alive=lease_holder_alive,
@@ -6092,7 +6299,7 @@ class RunVramSampler:
         self.run_dir = run_dir
         try:
             self.interval = float(
-                os.environ.get(GPU_SAMPLE_SECONDS_ENV) or DEFAULT_GPU_SAMPLE_SECONDS
+                agentctl_setting(GPU_SAMPLE_SECONDS_ENV) or DEFAULT_GPU_SAMPLE_SECONDS
             )
         except ValueError:
             self.interval = DEFAULT_GPU_SAMPLE_SECONDS
@@ -6136,7 +6343,7 @@ class RunVramSampler:
 def gpu_commitments(
     snapshot: agentctl_gpu.GpuSnapshot,
 ) -> list[agentctl_gpu.GpuCommitment]:
-    leases = agentctl_gpu.live_leases(lease_holder_alive)
+    leases = agentctl_gpu.live_leases(gpu_lease_dir(), lease_holder_alive)
     return [
         agentctl_gpu.gpu_commitment(
             device,
@@ -6656,7 +6863,7 @@ def stop(args: argparse.Namespace) -> int:
     # The killed wrapper cannot run its own release; its dead-holder leases
     # would otherwise linger until the next admission purges them.
     agentctl_gpu.release_leases(
-        lease["lease_id"] for lease in state.get("gpu_leases") or []
+        gpu_lease_dir(), (lease["lease_id"] for lease in state.get("gpu_leases") or [])
     )
     print(f"stopped {state['job']} {state['run_id']}")
     return 0
@@ -6724,6 +6931,7 @@ def restart(args: argparse.Namespace) -> int:
         runtime_estimate=state.get("runtime_estimate", ""),
         project_env=(state.get("project_env") or {}).get("path", ""),
         no_project_env=not bool(state.get("project_env")),
+        no_global_env=not bool(state.get("global_env")),
         source_env=state.get("source_env", []),
         source_scope=(state.get("source_snapshot") or {}).get("source_scope", "all"),
         source_guard=(state.get("source_snapshot") or {}).get("guard"),
@@ -6821,6 +7029,14 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         "--no-project-env",
         action="store_true",
         help="Do not auto-load the project-root agentctl.env file.",
+    )
+    sp.add_argument(
+        "--no-global-env",
+        action="store_true",
+        help=(
+            "Do not auto-load $AGENTCTL_HOME/agentctl.env (default ~/.agentctl), the "
+            "machine-wide defaults applied after the project file."
+        ),
     )
     sp.add_argument("--gpus", default="", help="CUDA_VISIBLE_DEVICES value.")
     sp.add_argument(
@@ -7227,6 +7443,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add_gpu_sample_option(s)
     s.add_argument(
+        "--host",
+        action="store_true",
+        help=(
+            "List every agentctl project on this machine that has launched a job "
+            "(found through $AGENTCTL_HOME/projects), invoking project first, with "
+            "one GPU summary on top. Other options apply to each project."
+        ),
+    )
+    s.add_argument("--no-gpu-summary", action="store_true", help=argparse.SUPPRESS)
+    s.add_argument(
         "--running-only",
         "--live",
         "--active",
@@ -7417,7 +7643,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument(
         "job",
         nargs="+",
-        help="Job names; repeat or comma-separate (a b, or a,b).",
+        help=(
+            "Job names; repeat or comma-separate (a b, or a,b). PROJECT:JOB names a "
+            "job in another project on this host, by path or by the unique "
+            "directory name of a project that has launched (draft:train)."
+        ),
     )
     s.add_argument(
         "--any",

@@ -61,6 +61,7 @@ class Workspace:
         # Sandbox for test artifacts (separate from the agentctl source)
         self.scratch = self.tmp / "_scratch"
         self.scratch.mkdir()
+        self.home = self.scratch / "agentctl-home"
         if git:
             subprocess.run(["git", "init", "-q"], cwd=self.tmp, check=True)
             subprocess.run(
@@ -124,6 +125,9 @@ class Workspace:
         # ancestor, which agentctl would otherwise recover as the session id.
         # The dedicated recovery tests bypass run() and opt back in.
         env["AGENTCTL_NO_PROC_SESSION_ID"] = "1"
+        # Host-wide state (global config, project pointers, GPU leases) stays
+        # inside the workspace, never in the real ~/.agentctl.
+        env["AGENTCTL_HOME"] = str(self.home)
         if env_extra:
             env.update(env_extra)
         return subprocess.run(
@@ -156,6 +160,7 @@ class Workspace:
         ):
             env.pop(var, None)
         env["AGENTCTL_NO_PROC_SESSION_ID"] = "1"
+        env["AGENTCTL_HOME"] = str(self.home)
         if env_extra:
             env.update(env_extra)
         return subprocess.Popen(
@@ -1389,6 +1394,7 @@ def test_wrapper_uses_invocation_cwd_as_project_root():
             capture_output=True,
             text=True,
             timeout=20,
+            env={**os.environ, "AGENTCTL_HOME": str(ws.home)},
         )
         _assert(
             res.returncode == 0,
@@ -2116,6 +2122,7 @@ def test_declare_helpers_import_from_external_project():
             "PYTHONPATH",
         ):
             env.pop(var, None)
+        env["AGENTCTL_HOME"] = str(ws.home)
         res = subprocess.run(
             [
                 str(ws.tmp / "agentctl"),
@@ -2772,6 +2779,120 @@ def test_stop_releases_a_running_jobs_gpu_lease():
         ws.run("stop", "leased", env_extra=env)
     finally:
         ws.cleanup()
+
+
+def test_global_env_defaults_yield_to_project_env_and_can_be_skipped():
+    ws = Workspace()
+    try:
+        ws.home.mkdir()
+        (ws.home / "agentctl.env").write_text(
+            "# machine-wide\nFOO=global\nBAR=global\n", encoding="utf-8"
+        )
+        (ws.tmp / "agentctl.env").write_text("FOO=project\n", encoding="utf-8")
+        out = ws.scratch / "env.txt"
+        script = f'printf "%s %s\\n" "$FOO" "$BAR" > {out}'
+        _start(ws, "--no-aim", "envs", "--", "bash", "-c", script)
+        state = ws.wait_finished("envs")
+        _assert(out.read_text() == "project global\n", out.read_text())
+        _assert(state["global_env"]["keys"] == ["FOO", "BAR"], state["global_env"])
+        _start(
+            ws, "--no-aim", "--no-global-env", "noglobal", "--", "bash", "-c", script
+        )
+        state = ws.wait_finished("noglobal")
+        _assert(out.read_text() == "project \n", out.read_text())
+        _assert(state["global_env"] is None, state)
+    finally:
+        ws.cleanup()
+
+
+def test_global_config_sets_agentctl_settings():
+    # A setting read by agentctl itself (not just the payload environment):
+    # the lease directory comes from the machine-wide agentctl.env.
+    ws = Workspace()
+    try:
+        env = _fake_lease_nvidia_smi(ws)
+        lease_dir = ws.scratch / "configured-leases"
+        env.pop("AGENTCTL_GPU_LEASE_DIR")
+        ws.home.mkdir()
+        (ws.home / "agentctl.env").write_text(
+            f"AGENTCTL_GPU_LEASE_DIR={lease_dir}\n", encoding="utf-8"
+        )
+        res = ws.run(
+            "start",
+            "--launch-wait",
+            "0",
+            "--no-aim",
+            "--wait-poll",
+            "0.05",
+            "--gpu-lease",
+            "1G",
+            "configured",
+            "--",
+            "bash",
+            "-c",
+            "sleep 30",
+            env_extra=env,
+        )
+        _assert(res.returncode == 0, res.stderr)
+        deadline = time.time() + 5
+        while not list(lease_dir.glob("*.json")):
+            _assert(time.time() < deadline, "lease not written to configured dir")
+            time.sleep(0.05)
+        _assert(not (ws.home / "gpu-leases").exists(), "default lease dir was used")
+        ws.run("stop", "configured", env_extra=env)
+    finally:
+        ws.cleanup()
+
+
+def test_host_list_and_cross_project_wait_reach_other_projects():
+    here, there = Workspace(), Workspace()
+    try:
+        shared = {"AGENTCTL_HOME": str(here.home)}
+        res = there.run(
+            "start",
+            "--launch-wait",
+            "0",
+            "--no-aim",
+            "remote-job",
+            "--",
+            "bash",
+            "-c",
+            "sleep 0.8",
+            env_extra=shared,
+        )
+        _assert(res.returncode == 0, res.stderr)
+        _start(here, "--no-aim", "local-job", "--", "bash", "-c", "true")
+        listing = here.run("list", "--host", "--all")
+        _assert(f"== {here.tmp.resolve()} ==" in listing.stdout, listing.stdout)
+        _assert(f"== {there.tmp.resolve()} ==" in listing.stdout, listing.stdout)
+        _assert("remote-job serial=" in listing.stdout, listing.stdout)
+        _assert("local-job serial=" in listing.stdout, listing.stdout)
+        structured = _json_record(here.run("list", "--host", "--json").stdout)
+        _assert(structured["kind"] == "host_job_list", structured)
+        _assert(len(structured["projects"]) == 2, structured)
+        res = here.run(
+            "wait",
+            f"{there.tmp.name}:remote-job,local-job",
+            "--poll",
+            "0.1",
+            "--heartbeat",
+            "0",
+            "--timeout",
+            "10",
+        )
+        _assert(res.returncode == 0, res)
+        _assert(f"{there.tmp.name}:remote-job " in res.stdout, res.stdout)
+        _assert(there.state("remote-job")["status"] == "finished", "returned early")
+        res = here.run("wait", "no-such-project:x", "--timeout", "1")
+        _assert(
+            res.returncode != 0 and "unknown project 'no-such-project'" in res.stderr,
+            res,
+        )
+        res = here.run("wait", f"{there.tmp}:no-such-job", "--timeout", "1")
+        _assert(res.returncode != 0 and "unknown job" in res.stderr, res)
+    finally:
+        here.cleanup()
+        there.cleanup()
 
 
 def test_run_vram_history_feeds_recent_max_and_finished_peak():

@@ -227,14 +227,8 @@ def format_mib(mib: Fraction | float) -> str:
 # ---- Lease store -----------------------------------------------------------
 
 
-def lease_dir() -> Path:
-    """Host-scoped: one GPU is shared by every project on the machine."""
-    override = os.environ.get("AGENTCTL_GPU_LEASE_DIR", "").strip()
-    if override:
-        return Path(override).expanduser()
-    state_home = os.environ.get("XDG_STATE_HOME", "").strip()
-    base = Path(state_home).expanduser() if state_home else Path.home() / ".local/state"
-    return base / "agentctl" / "gpu-leases"
+# The caller owns the store's location; it is host-scoped because one GPU is
+# shared by every project on the machine.
 
 
 def _lock_path(directory: Path) -> Path:
@@ -263,16 +257,14 @@ def _purge_dead(leases: list[dict], holder_alive: Callable[[dict], bool]) -> lis
     return live
 
 
-def live_leases(holder_alive: Callable[[dict], bool]) -> list[dict]:
+def live_leases(directory: Path, holder_alive: Callable[[dict], bool]) -> list[dict]:
     """Live leases, without taking the lock or deleting dead records."""
-    directory = lease_dir()
     if not directory.is_dir():
         return []
     return [lease for lease in read_leases(directory) if holder_alive(lease)]
 
 
-def release_leases(lease_ids: Iterable[str]) -> None:
-    directory = lease_dir()
+def release_leases(directory: Path, lease_ids: Iterable[str]) -> None:
     for lease_id in lease_ids:
         (directory / f"{lease_id}.json").unlink(missing_ok=True)
 
@@ -378,6 +370,7 @@ class LeaseAttempt:
 def try_acquire(
     requests: list[LeaseRequest],
     *,
+    directory: Path,
     default_gpu: int,
     holder: dict,
     holder_alive: Callable[[dict], bool],
@@ -390,7 +383,6 @@ def try_acquire(
     The check and the write happen under one host-wide lock, so two runs
     cannot both see the same free VRAM and both be admitted.
     """
-    directory = lease_dir()
     directory.mkdir(parents=True, exist_ok=True)
     with coordination.file_lock(_lock_path(directory)):
         leases = _purge_dead(read_leases(directory), holder_alive)

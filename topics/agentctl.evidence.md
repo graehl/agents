@@ -162,3 +162,32 @@ Contributing-model: 6-Astra
   (`gaps/agentctl-after-marker-test-race.md`).
 
 Contributing-model: opus-5.5
+
+## 2026-10-02 machine-wide home, global config, cross-project views
+
+- **Anchoring user direction:** "re: the global agentctl gap. let's build
+  it. i want a ~/.agentctl (or whatever) data/config dir. i want project and
+  global configs. i want to be able to disable the 'pip install aim'
+  suggestion warning in config (and/or env)". Written before `538ecb0`
+  removed the hint from ordinary runs, so no setting was added for it.
+- **Found while building:** `~/.agentctl` already existed on this host as
+  the state directory of a project rooted at `~` (`active/ done/ jobs/
+  runs/`, plus an unrelated `mplconfig/`). The home keeps that path with
+  reserved host-wide names rather than moving to a subdirectory.
+- **Agent-derived choices** (ADRs in the topic): a second `agentctl.env` as
+  the global config (one grammar; TOML would need Python 3.11 while the
+  wrapper accepts 3.10); pointers, not a host index; foreign projects read
+  through a subprocess with that project as root, because `refresh_state`
+  writes through the invoking project's `current_path` and would otherwise
+  write one project's record into another.
+- **Migration:** the lease store moved from
+  `~/.local/state/agentctl/gpu-leases/` (introduced in `c22e662` the same
+  day; it held only `.lock`) to `~/.agentctl/gpu-leases/`.
+- **Behavioral evidence:** tests cover global env precedence and
+  `--no-global-env`, a setting (`AGENTCTL_GPU_LEASE_DIR`) taken from the
+  global file, and two workspaces sharing one `AGENTCTL_HOME` for
+  `list --host` (text and JSON) and a mixed `wait other:job,local`. The
+  test workspace now sets its own `AGENTCTL_HOME`, so suites never write
+  pointers into the real home.
+
+Contributing-model: opus-5.5

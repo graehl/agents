@@ -27,14 +27,21 @@ The child-boundary columns use these terms:
 - **remove** — absent from the child even when the caller had it.
 
 `agentctl start` and `smoke` do not have a general environment denylist. They
-start from the complete ambient environment, fill missing keys from
-`agentctl.env`, set their run context, apply `--source-env`, apply explicit
+start from the complete ambient environment, fill missing keys from the
+project `agentctl.env` and then the machine-wide `$AGENTCTL_HOME/agentctl.env`,
+set their run context, apply `--source-env`, apply explicit
 `--env KEY=VALUE`, and finally run plugin `on_start` hooks. A source script can
 add or replace values but, under the current overlay implementation, cannot
 remove a value inherited before it. The detached `_run-child` wrapper and its
 payload receive the same resulting environment. Consequently **inherit** also
 means “available to the payload”; it does not mean that agentctl persists the
-value in run state. Project-env metadata records key names, never values.
+value in run state. Project- and global-env metadata record key names, never
+values.
+
+Rows marked **setting** are also read by agentctl itself through the same
+order: ambient environment, then project `agentctl.env`, then global
+`agentctl.env`. So each can be fixed per invocation, per project, or per
+machine.
 
 ## Agent, launcher, and session contract
 
@@ -84,6 +91,11 @@ native-child cleanup depends on them.
 |---|---|---|
 | `AGENTCTL_ROOT` | Selects the invocation project. The shell wrapper resolves it (or the current directory) and exports the absolute project root. | replace with resolved project root |
 | `AGENTCTL_PYTHON` | Optional explicit Python ≥3.10 interpreter for the wrapper. | inherit unchanged after interpreter selection |
+| `AGENTCTL_HOME` | Machine-wide agentctl directory (default `~/.agentctl`): global `agentctl.env`, project pointers, and GPU leases. Environment only; a config file cannot move it. | inherit |
+| `AGENTCTL_GPU_LEASE_DIR` | **Setting.** Overrides the VRAM lease store (default `$AGENTCTL_HOME/gpu-leases`). Every cooperating launch must agree on it. | inherit |
+| `AGENTCTL_GPU_SAMPLE_SECONDS` | **Setting.** The run wrapper's VRAM sampling interval (default 15; 0 disables). | inherit |
+| `AGENTCTL_SOURCE_GUARD` | **Setting.** Default `--source-guard` mode (`enforce` or `record`). | inherit |
+| `AGENTCTL_NO_COMMIT_NOTE` | **Setting.** Nonempty disables the session-provenance commit note and its hook installation. | inherit |
 | `AGENTCTL_NO_PROC_SESSION_ID` | Nonempty disables fallback recovery of a resume id from ancestor process arguments. | inherit; launch depth independently suppresses job registration |
 | `AGENTCTL_LAUNCH_DEPTH` | Distinguishes an agent from a job or nested job for active-session upkeep and wake arming. | increment |
 | `AGENTCTL_JOB` | Slugged job name for the current run and provenance helpers. | replace, then overridable by `--source-env` / `--env` |
