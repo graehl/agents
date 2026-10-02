@@ -3418,7 +3418,9 @@ def build_source_snapshot(
 
     records = {}
     for label, path in sorted(files.items()):
-        record = guard.attempt(committed_file_record, path, git_root=git_root, commit=commit)
+        record = guard.attempt(
+            committed_file_record, path, git_root=git_root, commit=commit
+        )
         if record is None:
             p = Path(path).expanduser().resolve()
             record = {
@@ -4873,7 +4875,9 @@ def start(args: argparse.Namespace) -> int:
             project_env=project_env,
             source_env=list(args.source_env),
             source_scope=args.source_scope,
-            guard=SourceGuard(resolve_source_guard(getattr(args, "source_guard", None), env)),
+            guard=SourceGuard(
+                resolve_source_guard(getattr(args, "source_guard", None), env)
+            ),
         )
     for script in args.source_env:
         env = source_env_script(env, script)
