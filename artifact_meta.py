@@ -797,7 +797,13 @@ def write_aim_run(
     all known effective.* keys so graphs remain comparable across runs that predate
     a newly introduced option.
     """
-    from aim import Run, Text
+    try:
+        from aim import Run, Text
+    except ImportError as exc:
+        raise ImportError(
+            "Aim SDK not installed; mirroring run metadata into an Aim repo "
+            "needs it: pip install aim"
+        ) from exc
 
     out = Path(output_path)
     aim_repo = Path(repo or os.environ.get("AIM_REPO") or ".").expanduser()

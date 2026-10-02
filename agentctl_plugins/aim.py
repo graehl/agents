@@ -26,27 +26,6 @@ from pathlib import Path
 
 import agentctl
 
-_BANNER_PRINTED = False
-
-
-def _maybe_print_install_hint() -> None:
-    """One-line FYI on first start when the Aim SDK is absent. Live UI is
-    optional — record dumps are written without it — but the hint is useful for
-    users who want ``aim up`` browsing of the materialized repo."""
-    global _BANNER_PRINTED
-    if _BANNER_PRINTED:
-        return
-    _BANNER_PRINTED = True
-    try:
-        import aim  # noqa: F401
-    # Optional SDK imports can fail inside transitive native dependencies.
-    except Exception:  # noqa: BLE001
-        print(
-            "agentctl: Aim SDK not installed; runs/aim/ records still written. "
-            "Optional UI: pip install aim",
-            file=sys.stderr,
-        )
-
 
 def _experiment_for(state: dict) -> str:
     return state.get("experiment") or state["job"]
@@ -244,7 +223,6 @@ def on_start(args, state, env) -> None:
     # plugin itself never calls the Aim SDK, so these are purely for the child.
     env["AIM_EXPERIMENT"] = state["experiment"]
     env["AIM_RUN_NAME"] = f"{state['job']}/{state['run_id']}"
-    _maybe_print_install_hint()
 
 
 def on_meta_built(state, meta_text, *, output_path, log_path, build_meta):

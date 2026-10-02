@@ -1062,10 +1062,12 @@ Two intended use cases for `agentctl`, both first-class:
    research-record story. It bypasses commit-aligned source admission and must not
    produce experimental evidence.
 
-The Aim SDK is **not** required. The plugin writes JSON dumps directly. If
-the SDK is installed, users can run `aim up` to browse the materialized view
-after import; if not, a one-line install hint prints once per process and
-the dumps are still written.
+The Aim SDK is **not** required. The plugin writes JSON dumps directly and
+says nothing about the SDK during ordinary runs. If the SDK is installed,
+users can run `aim up` to browse the materialized view after import. Only
+code that actually needs the SDK reports its absence: for example,
+`artifact_meta.write_aim_run`, called when a script has Aim mirroring
+enabled, raises an `ImportError` naming `pip install aim`.
 
 ## Failure visibility ADR
 
