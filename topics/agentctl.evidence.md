@@ -111,3 +111,54 @@ Contributing-model: 5.6-Sol
   retain the no-native-fallback/no-implicit-resume prerequisite.
 
 Contributing-model: 6-Astra
+
+## 2026-10-02 multi-job wait, per-run GPU use, advisory VRAM leases
+
+- **Anchoring user direction:** the user asked whether agentctl could list
+  running jobs and wait on a set of them "such that if a wait-for is sent
+  just as a job finished, the 'finished' status satisfies without a 'no job
+  running' error", as a cross-session GPU coordination facility. Already
+  true for one job (`wait_job` reads persisted `current.json`); extended to
+  several (`wait a b`, `a,b`, `--any`). The user then asked for per-run GPU
+  detection with CPU/GPU resident memory in the default running list, and a
+  "fractional" lease: "specify an amount of vram needed for run to be
+  useful"; "relative specs (50% etc) are fine too - don't round so as to
+  block two 50% from being placed"; leases stated as advisory; a slower
+  accurate measurement; and recent nvidia-smi samples per run so the list
+  can show a smoothed max-favoring figure by default. Cross-project job
+  discovery was explicitly left as a sketch ("i am typically only using gpu
+  within a single project").
+- **Reversal of the 2026-07-02 deferral:** that entry deferred machine-level
+  GPU awareness. The lease store is host-scoped by user direction because a
+  project-local lease cannot stop a second project from double-booking the
+  device; job discovery stays project-local.
+- **Exactness:** 0.5 is exact in binary, so `50%` twice was never the
+  risk; base-10 shares such as `33.3333333%` and the unattributed driver
+  overhead were. Amounts parse as `Fraction` from the decimal text. A
+  design subtracting `memory.used` from the total would refuse the second
+  `50%` whenever any overhead exists (600 MiB on the test fake; this host
+  read 0 MiB idle).
+- **Behavioral evidence:** `tests/test_agentctl.py` covers multi-wait
+  all/any/unknown, exact admission arithmetic, a third lease queuing behind
+  two `50%` leases and launching after one ends, release on `stop`, and the
+  wrapper's sample history feeding `vram_max10m=` and `vram_peak=`.
+  Replacing `GpuCommitment.fits` with `True` failed both lease tests. Real
+  96 GB-GPU smoke (torch, systemd user-service backend): a 3 GiB allocation was
+  attributed as `vram=gpu0:3.5G` with `ram=1.1G`, lease `gpu0:9.6G` from
+  `10%` of 97887 MiB, `10%`+`90%` admitted exactly, `91%` waited. After the
+  payload shrank to 1 GiB: `vram=gpu0:1.5G vram_max10m=gpu0:3.5G`, and the
+  GPU line committed 3.5G against the 2G lease. `list --live` took 0.29 s
+  end to end; `--gpu-sample 2` took 2.5 s.
+- **Observed gap, fixed:** `stop` on a leased run kills the wrapper before
+  its `finally` releases the lease; the dead-holder record lingered until
+  the next admission. `stop` now removes the stopped run's leases.
+- **Coexistence observed:** during the smoke an unrelated `VLLM::EngineCore`
+  process appeared on the same GPU; outside the lease system it counts only
+  as `unleased=` use, which is the advisory contract.
+- **Full-suite baseline:** 171 passed, 3 failed. Two fail identically on
+  clean `f23c02c` (session-id recovery under this harness's environment);
+  the third, `test_start_after_marker_without_sidecar_does_not_launch_payload`,
+  passes alone and is the known 0.2 s marker race
+  (`gaps/agentctl-after-marker-test-race.md`).
+
+Contributing-model: opus-5.5

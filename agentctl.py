@@ -16,12 +16,15 @@ import shlex
 import signal
 import subprocess
 import sys
+import threading
 import time
+from fractions import Fraction
 from pathlib import Path
 
 import acli
 import acli.args as acli_args
 import agentctl_coordination as coordination
+import agentctl_gpu
 
 CODE_ROOT = Path(__file__).resolve().parent
 ROOT = Path(os.environ.get("AGENTCTL_ROOT") or os.getcwd()).expanduser().resolve()
@@ -4519,7 +4522,7 @@ def wrapper_state_fields(pid: int) -> dict:
 
 def activate_wrapper_state(state: dict, *, pid: int) -> dict:
     state.update(wrapper_state_fields(pid))
-    if state.get("wait_after"):
+    if state.get("wait_after") or state.get("gpu_lease_specs"):
         state["status"] = "waiting"
         state["queued_at"] = state.get("queued_at") or utc_now()
     else:
@@ -4697,6 +4700,9 @@ def start(args: argparse.Namespace) -> int:
         )
         if wait_rc != 0:
             return wait_rc
+    gpu_lease_specs = normalized_gpu_lease_specs(
+        getattr(args, "gpu_lease", None) or [], args.gpus
+    )
     wait_after = [resolve_after_target(spec) for spec in (args.after or [])]
     job = slug(args.job)
     rid = args.run_id or run_id()
@@ -4935,6 +4941,11 @@ def start(args: argparse.Namespace) -> int:
             state["deferred_wait_poll"] = args.wait_poll
             state["deferred_wait_heartbeat"] = args.wait_heartbeat
             state["deferred_wait_timeout"] = args.wait_timeout
+    if gpu_lease_specs:
+        state["gpu_lease_specs"] = gpu_lease_specs
+        state["gpu_lease_poll"] = args.wait_poll
+        state["gpu_lease_heartbeat"] = args.wait_heartbeat
+        state["gpu_lease_timeout"] = args.wait_timeout
     _call_hook("on_start", args, state, env)
 
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -4955,7 +4966,7 @@ def start(args: argparse.Namespace) -> int:
         *final_argv,
     ]
     state["meta"] = bool(args.meta)
-    if wait_after:
+    if wait_after or gpu_lease_specs:
         state["queued_at"] = utc_now()
     if launch_gpu_stats is not None:
         state["launch_gpu_stats"] = launch_gpu_stats
@@ -5058,6 +5069,20 @@ def run_child(args: argparse.Namespace) -> int:
         )
         mark_prelaunch_failed(state_path, current, exit_status_path, 1)
         return 1
+    lease_rc, lease_ids = acquire_run_gpu_leases(state_path)
+    if lease_rc != 0:
+        mark_prelaunch_failed(state_path, current, exit_status_path, lease_rc)
+        return lease_rc
+    try:
+        return launch_recorded_payload(argv, state_path, current, exit_status_path)
+    finally:
+        agentctl_gpu.release_leases(lease_ids)
+
+
+def launch_recorded_payload(
+    argv: list[str], state_path: Path, current: Path, exit_status_path: Path
+) -> int:
+    """Final source guard, payload launch, and terminal-state recording."""
     try:
         state = read_json(state_path)
         source_snapshot = state.get("source_snapshot")
@@ -5112,7 +5137,10 @@ def run_child(args: argparse.Namespace) -> int:
         proc.wait()
         mark_prelaunch_failed(state_path, current, exit_status_path, 1)
         return 1
+    sampler = RunVramSampler(state_path.parent)
+    sampler.start()
     rc = proc.wait()
+    vram_peak = sampler.stop()
     record = {
         "finished_at": utc_now(),
         "payload_pid": payload_pid,
@@ -5125,6 +5153,8 @@ def run_child(args: argparse.Namespace) -> int:
         state["status"] = "finished"
         state["finished_at"] = record["finished_at"]
         state["returncode"] = rc
+        if vram_peak:
+            state["vram_peak_mib"] = {str(gpu): mib for gpu, mib in vram_peak.items()}
         state = finalize_finished_state(state)
         write_json(state_path, state)
         write_json(current, state)
@@ -5148,7 +5178,7 @@ def state_sort_key(state: dict) -> tuple[str, str, str]:
 
 def status_state_payload(state: dict, args: argparse.Namespace) -> dict:
     if bool(getattr(args, "full", False)):
-        payload = dict(state)
+        payload = {key: value for key, value in state.items() if key != "_resources"}
         payload["elapsed"] = elapsed_estimate_text(state)
         payload["failed"] = state_failed(state)
     else:
@@ -5160,6 +5190,11 @@ def status_state_payload(state: dict, args: argparse.Namespace) -> dict:
             "returncode": state.get("returncode"),
             "log_path": state.get("log_path"),
         }
+        if state_live(state) and state.get("gpu_lease_specs"):
+            payload["gpu_lease_specs"] = state["gpu_lease_specs"]
+            payload["gpu_leases"] = state.get("gpu_leases")
+    if state.get("_resources"):
+        payload["resources"] = state["_resources"]
     if args.tail:
         path = Path(state["log_path"])
         if path.exists():
@@ -5215,12 +5250,24 @@ def status(args: argparse.Namespace) -> int:
             states = [*live, *completed]
         elif args.recent and args.recent > 0:
             states = states[: args.recent]
+    gpu_snapshot = annotate_run_resources(
+        states, float(getattr(args, "gpu_sample", 0.0) or 0.0)
+    )
+    commitments = (
+        gpu_commitments(gpu_snapshot)
+        if gpu_snapshot is not None and not args.job
+        else []
+    )
     if fmt is not None:
         payload = {
             "kind": "job_status" if args.job else "job_list",
             "count": len(states),
             "jobs": [status_state_payload(state, args) for state in states],
         }
+        if commitments:
+            payload["gpus"] = [
+                gpu_commitment_payload(c, gpu_snapshot) for c in commitments
+            ]
         if groups is not None:
             payload["groups"] = [
                 {"name": title.lower().replace(" ", "_"), "count": len(group)}
@@ -5228,6 +5275,10 @@ def status(args: argparse.Namespace) -> int:
             ]
         acli.emit(payload, fmt)
         return 0
+    for commitment in commitments:
+        print(format_gpu_commitment(commitment, gpu_snapshot))
+    if commitments:
+        print()
     if groups is not None:
         for group_idx, (title, group_states) in enumerate(groups):
             if group_idx:
@@ -5278,10 +5329,22 @@ def print_status_state(state: dict, args: argparse.Namespace) -> None:
         bits.append(f"wait_on={state['wait_on']}")
     if state.get("_liveness_note"):
         bits.append("liveness=unknown")
-    elif state.get("status") == "running" and state.get("pgid"):
-        members = process_group_members(int(state["pgid"]))
-        if members:
-            bits.append(f"procs={len(members)}")
+    resources = state.get("_resources") or {}
+    if resources.get("procs"):
+        bits.append(f"procs={resources['procs']}")
+    if resources.get("ram_mib") is not None:
+        bits.append(f"ram={agentctl_gpu.format_mib(resources['ram_mib'])}")
+    for key, label in (
+        ("vram_mib", "vram"),
+        ("vram_recent_max_mib", "vram_max10m"),
+    ):
+        if resources.get(key):
+            bits.append(f"{label}={format_gpu_mib_map(resources[key])}")
+    if state.get("vram_peak_mib") and not state_live(state):
+        bits.append(f"vram_peak={format_gpu_mib_map(state['vram_peak_mib'])}")
+    lease_text = run_lease_text(state)
+    if lease_text:
+        bits.append(f"lease={lease_text}")
     _call_hook("on_status_print", state, bits)
     print(" ".join(bits))
     context_note = normalize_headline_text(state.get("context_note", ""))
@@ -5433,36 +5496,81 @@ def cleanup_running(args: argparse.Namespace) -> int:
     return 0
 
 
+def wait_job_names(specs: list[str]) -> list[str]:
+    """Job names from repeated and/or comma-separated arguments, deduplicated."""
+    names: list[str] = []
+    for spec in specs:
+        for name in spec.split(","):
+            name = name.strip()
+            if name and name not in names:
+                names.append(name)
+    if not names:
+        raise SystemExit("wait: no job names given")
+    return names
+
+
+def wait_target_reached(status: str, target: str) -> bool:
+    if target == "not-running":
+        # A queued (waiting) run is pending, not terminal: its payload has
+        # not run yet, so releasing on it defeats the wait.
+        return status not in LIVE_JOB_STATUSES
+    return status == target
+
+
 def wait_job(args: argparse.Namespace) -> int:
+    """Wait for every named job (or with --any, the first) to reach the target.
+
+    Each check reads persisted run state, so a job that already reached the
+    target before the wait began satisfies it at once.
+    """
+    names = wait_job_names(args.job)
+    for name in names:
+        load_job(name)  # an unknown name fails before any waiting
     deadline = time.time() + args.timeout if args.timeout > 0 else None
     next_report = 0.0
     heartbeat_interval = max(
         0.0,
         float(getattr(args, "heartbeat", DEFAULT_WAIT_HEARTBEAT_SECONDS) or 0.0),
     )
+    pending = list(names)
+    first_failure = 0
     while True:
         touch_active_entry()
-        state = load_job(args.job)
-        status = state.get("status", "")
-        if args.target == "not-running":
-            # A queued (waiting) run is pending, not terminal: its payload has
-            # not run yet, so releasing on it defeats the wait.
-            done = status not in ("running", "waiting")
-        else:
-            done = status == args.target
-        if done:
+        states = {name: load_job(name) for name in pending}
+        for name in list(pending):
+            state = states[name]
+            status = state.get("status", "")
+            if not wait_target_reached(status, args.target):
+                continue
             bits = [state["job"], state["run_id"], status]
             if status_returncode_text(state):
                 bits.append(f"returncode={status_returncode_text(state)}")
             if state.get("log_path"):
                 bits.append(f"log={state['log_path']}")
-            print(" ".join(bits))
+            print(" ".join(bits), flush=True)
             if args.tail > 0 and state.get("log_path"):
                 print_tail(Path(state["log_path"]), args.tail)
-            return status_returncode_exit_code(state) if status == "finished" else 0
+            rc = status_returncode_exit_code(state) if status == "finished" else 0
+            if args.any:
+                return rc
+            first_failure = first_failure or rc
+            pending.remove(name)
+        if not pending:
+            return first_failure
+        state = states[pending[0]]
+        status = state.get("status", "")
         now = time.time()
         if heartbeat_interval > 0 and (next_report == 0.0 or now >= next_report):
-            line = f"[wait] job={state['job']} status={status} elapsed={elapsed_estimate_text(state)} target={args.target}"
+            if len(names) == 1:
+                line = f"[wait] job={state['job']} status={status} elapsed={elapsed_estimate_text(state)} target={args.target}"
+            else:
+                waiting_on = ",".join(
+                    f"{name}:{states[name].get('status', '')}" for name in pending
+                )
+                line = (
+                    f"[wait] pending={waiting_on} target={args.target} "
+                    f"until={'any' if args.any else 'all'}"
+                )
             if getattr(args, "heartbeat_gpu", False):
                 try:
                     gpu_stats = query_gpu_stats(args.gpu)
@@ -5472,11 +5580,21 @@ def wait_job(args: argparse.Namespace) -> int:
             print(line, flush=True)
             next_report = now + heartbeat_interval
         if deadline is not None and time.time() >= deadline:
-            print(
-                f"timeout waiting for {state['job']} to reach {args.target}; "
-                f"current status={status}",
-                file=sys.stderr,
-            )
+            if len(names) == 1:
+                print(
+                    f"timeout waiting for {state['job']} to reach {args.target}; "
+                    f"current status={status}",
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    f"timeout waiting for {', '.join(pending)} to reach "
+                    f"{args.target}; current status="
+                    + ",".join(
+                        f"{name}:{states[name].get('status', '')}" for name in pending
+                    ),
+                    file=sys.stderr,
+                )
             return 1
         time.sleep(args.poll)
 
@@ -5751,6 +5869,385 @@ def wait_gpu(args: argparse.Namespace) -> int:
         timeout=args.timeout,
         heartbeat=args.heartbeat,
     )
+
+
+# ---- GPU use by run, and fractional VRAM leases ----------------------------
+
+
+def normalized_gpu_lease_specs(specs: list[str], gpus: str) -> list[str]:
+    """Validate `--gpu-lease` specs and pin each to an explicit GPU index.
+
+    An unprefixed amount goes to the single `--gpus` index when there is one,
+    else GPU 0, so a restarted run leases the same device.
+    """
+    default_gpu = int(gpus) if gpus.strip().isdigit() else 0
+    normalized = []
+    for spec in specs:
+        try:
+            request = agentctl_gpu.parse_lease_request(spec)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        gpu = default_gpu if request.gpu is None else request.gpu
+        amount = spec.strip().split(":", 1)[-1]
+        normalized.append(f"{gpu}:{amount}")
+    return normalized
+
+
+def lease_holder_alive(lease: dict) -> bool:
+    """A lease lives as long as its recorded wrapper process.
+
+    A holder this process cannot see (another PID namespace, a sandboxed
+    /proc) is presumed alive: deleting a live lease would double-book VRAM.
+    """
+    try:
+        pid = int(lease.get("holder_pid") or 0)
+    except (TypeError, ValueError):
+        return False
+    if pid <= 0:
+        return False
+    namespace = str(lease.get("pid_namespace") or "")
+    if namespace and namespace != current_pid_namespace():
+        return True
+    if not Path(f"/proc/{pid}").exists():
+        return process_visibility_limited()
+    return proc_state(pid) != "Z" and proc_start_ticks(pid) == lease.get(
+        "holder_start_ticks"
+    )
+
+
+def pid_belongs_to_run(pid: int, *, pgid: int | None, root_pid: int | None) -> bool:
+    """A run's processes share its wrapper's process group or descend from it."""
+    if pgid and proc_pgid(pid) == pgid:
+        return True
+    if not root_pid:
+        return False
+    current: int | None = pid
+    for _ in range(64):
+        if current is None or current <= 1:
+            return False
+        if current == root_pid:
+            return True
+        current = _proc_ppid(current)
+    return False
+
+
+def lease_of_gpu_pid(pid: int, leases: list[dict]) -> dict | None:
+    for lease in leases:
+        if pid_belongs_to_run(
+            pid,
+            pgid=lease.get("holder_pgid"),
+            root_pid=lease.get("holder_pid"),
+        ):
+            return lease
+    return None
+
+
+def acquire_run_gpu_leases(state_path: Path) -> tuple[int, list[str]]:
+    """Block the wrapper until every requested VRAM lease is granted.
+
+    Returns (0, lease ids) on grant, or a nonzero code on timeout (1) or an
+    unusable GPU query (2). The run stays `waiting` meanwhile.
+    """
+    state = read_json(state_path)
+    specs = list(state.get("gpu_lease_specs") or [])
+    if not specs:
+        return 0, []
+    requests = [agentctl_gpu.parse_lease_request(spec) for spec in specs]
+    pid = os.getpid()
+    holder = {
+        "holder_pid": pid,
+        "holder_start_ticks": proc_start_ticks(pid),
+        "holder_pgid": os.getpgid(0),
+        "pid_namespace": current_pid_namespace(),
+        "project_root": str(ROOT),
+        "job": state.get("job"),
+        "run_id": state.get("run_id"),
+        "run_dir": str(state_path.parent),
+        "granted_at": utc_now(),
+    }
+    poll = float(state.get("gpu_lease_poll") or 10.0)
+    heartbeat = float(state.get("gpu_lease_heartbeat") or 0.0)
+    timeout = float(state.get("gpu_lease_timeout") or 0.0)
+    deadline = time.time() + timeout if timeout > 0 else None
+    next_report = 0.0
+    while True:
+        holder["granted_at"] = utc_now()
+        try:
+            attempt = agentctl_gpu.try_acquire(
+                requests,
+                default_gpu=0,
+                holder=holder,
+                holder_alive=lease_holder_alive,
+                lease_of_pid=lease_of_gpu_pid,
+                recent_peak_mib=lease_recent_peak_mib,
+            )
+        except RuntimeError as exc:
+            print(f"[gpu-lease] cannot lease: {exc}", file=sys.stderr, flush=True)
+            return 2, []
+        if not attempt.blocked:
+            granted = [
+                {key: lease[key] for key in ("lease_id", "gpu", "spec", "mib")}
+                for lease in attempt.granted
+            ]
+            state = read_json(state_path)
+            state["gpu_leases"] = granted
+            update_state_files(state)
+            summary = ", ".join(
+                f"gpu{lease['gpu']}:{agentctl_gpu.format_mib(Fraction(lease['mib']))}"
+                for lease in granted
+            )
+            print(f"[gpu-lease] granted {summary}", flush=True)
+            return 0, [lease["lease_id"] for lease in granted]
+        now = time.time()
+        if heartbeat > 0 and (next_report == 0.0 or now >= next_report):
+            headline = "waiting for GPU lease: " + "; ".join(attempt.blocked)
+            if state.get("headline_path"):
+                write_headline(Path(state["headline_path"]), headline)
+            print(f"[gpu-lease] {headline}", flush=True)
+            next_report = now + heartbeat
+        if deadline is not None and now >= deadline:
+            print(
+                f"timeout waiting for GPU lease: {'; '.join(attempt.blocked)}",
+                file=sys.stderr,
+            )
+            return 1, []
+        time.sleep(poll)
+
+
+def proc_memory_mib(pid: int) -> float | None:
+    """Proportional set size (shared pages split among sharers), else RSS.
+
+    PSS sums correctly over a forked process tree, where RSS would count
+    copy-on-write pages once per worker.
+    """
+    for path, key in (
+        (f"/proc/{pid}/smaps_rollup", "Pss:"),
+        (f"/proc/{pid}/status", "VmRSS:"),
+    ):
+        try:
+            text = Path(path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            if line.startswith(key):
+                try:
+                    return int(line.split()[1]) / 1024.0
+                except (IndexError, ValueError):
+                    break
+    return None
+
+
+def run_resource_use(
+    state: dict,
+    members: list[int],
+    snapshot: agentctl_gpu.GpuSnapshot | None,
+) -> dict:
+    """RAM (MiB, summed PSS) and per-GPU VRAM (MiB) held by a running run."""
+    ram = [m for m in (proc_memory_mib(pid) for pid in members) if m is not None]
+    use: dict = {"ram_mib": round(sum(ram), 1) if ram else None}
+    if snapshot is None or snapshot.processes is None:
+        return use
+    try:
+        pgid = int(state.get("pgid") or 0) or None
+        root_pid = int(state.get("pid") or 0) or None
+    except (TypeError, ValueError):
+        return use
+    vram: dict[int, int] = {}
+    for proc in snapshot.processes:
+        if proc.used_mib is not None and pid_belongs_to_run(
+            proc.pid, pgid=pgid, root_pid=root_pid
+        ):
+            vram[proc.gpu] = vram.get(proc.gpu, 0) + proc.used_mib
+    use["vram_mib"] = vram
+    if state.get("run_dir"):
+        recent = agentctl_gpu.recent_vram_peak(Path(state["run_dir"]), time.time())
+        for gpu, mib in vram.items():
+            recent[gpu] = max(recent.get(gpu, 0), mib)
+        if recent:
+            use["vram_recent_max_mib"] = recent
+    return use
+
+
+def lease_recent_peak_mib(lease: dict, gpu: int) -> int:
+    run_dir = lease.get("run_dir")
+    if not run_dir:
+        return 0
+    return agentctl_gpu.recent_vram_peak(Path(run_dir), time.time()).get(gpu, 0)
+
+
+GPU_SAMPLE_SECONDS_ENV = "AGENTCTL_GPU_SAMPLE_SECONDS"
+DEFAULT_GPU_SAMPLE_SECONDS = 15.0
+
+
+class RunVramSampler:
+    """Wrapper-owned background sampling of the run's own VRAM use.
+
+    Appends nonzero samples to the run's `gpu-samples.jsonl` so `list` and
+    lease admission can use a recent maximum rather than one instantaneous
+    reading, and returns the whole-run peak per GPU. Stops by itself on a
+    host without usable per-process nvidia-smi accounting.
+    """
+
+    def __init__(self, run_dir: Path) -> None:
+        self.run_dir = run_dir
+        try:
+            self.interval = float(
+                os.environ.get(GPU_SAMPLE_SECONDS_ENV) or DEFAULT_GPU_SAMPLE_SECONDS
+            )
+        except ValueError:
+            self.interval = DEFAULT_GPU_SAMPLE_SECONDS
+        self.peak: dict[int, int] = {}
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+
+    def start(self) -> None:
+        if self.interval > 0:
+            self._thread.start()
+
+    def stop(self) -> dict[int, int]:
+        self._stop.set()
+        if self._thread.is_alive():
+            self._thread.join(timeout=agentctl_gpu.NVIDIA_SMI_TIMEOUT_S + 1)
+        return dict(self.peak)
+
+    def _loop(self) -> None:
+        pgid, root_pid = os.getpgid(0), os.getpid()
+        while not self._stop.wait(self.interval):
+            snapshot = agentctl_gpu.query_gpu_snapshot()
+            if snapshot is None or snapshot.processes is None:
+                return
+            vram: dict[int, int] = {}
+            for proc in snapshot.processes:
+                if proc.used_mib and pid_belongs_to_run(
+                    proc.pid, pgid=pgid, root_pid=root_pid
+                ):
+                    vram[proc.gpu] = vram.get(proc.gpu, 0) + proc.used_mib
+            if not vram:
+                continue
+            for gpu, mib in vram.items():
+                self.peak[gpu] = max(self.peak.get(gpu, 0), mib)
+            try:
+                agentctl_gpu.append_vram_sample(self.run_dir, vram, time.time())
+            except OSError as exc:
+                print(f"[gpu-sample] cannot record sample: {exc}", file=sys.stderr)
+                return
+
+
+def gpu_commitments(
+    snapshot: agentctl_gpu.GpuSnapshot,
+) -> list[agentctl_gpu.GpuCommitment]:
+    leases = agentctl_gpu.live_leases(lease_holder_alive)
+    return [
+        agentctl_gpu.gpu_commitment(
+            device,
+            leases,
+            snapshot.processes_on(device.index),
+            lease_of_gpu_pid,
+            lease_recent_peak_mib,
+        )
+        for device in snapshot.devices
+    ]
+
+
+def format_gpu_mib_map(vram: dict) -> str:
+    return ",".join(
+        f"gpu{gpu}:{agentctl_gpu.format_mib(mib)}"
+        for gpu, mib in sorted(vram.items(), key=lambda item: int(item[0]))
+    )
+
+
+GPU_DENSE_SAMPLE_INTERVAL_S = 0.5
+
+
+def sampled_gpu_snapshot(seconds: float) -> agentctl_gpu.GpuSnapshot | None:
+    """One query, or with seconds > 0 the per-process max over dense samples."""
+    first = agentctl_gpu.query_gpu_snapshot()
+    if first is None or seconds <= 0:
+        return first
+    snapshots = [first]
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        time.sleep(GPU_DENSE_SAMPLE_INTERVAL_S)
+        snap = agentctl_gpu.query_gpu_snapshot()
+        if snap is not None:
+            snapshots.append(snap)
+    return agentctl_gpu.merge_snapshots_by_max(snapshots)
+
+
+def annotate_run_resources(
+    states: list[dict], gpu_sample_seconds: float = 0.0
+) -> agentctl_gpu.GpuSnapshot | None:
+    """Attach transient `_resources` to running states; one GPU query total.
+
+    Returns the GPU snapshot, or None when no run is running or the host has
+    no usable nvidia-smi.
+    """
+    running = [
+        state
+        for state in states
+        if state.get("status") == "running"
+        and state.get("pgid")
+        and not state.get("_liveness_note")
+    ]
+    if not running:
+        return None
+    snapshot = sampled_gpu_snapshot(gpu_sample_seconds)
+    for state in running:
+        members = process_group_members(int(state["pgid"]))
+        state["_resources"] = {
+            "procs": len(members),
+            **run_resource_use(state, members, snapshot),
+        }
+    return snapshot
+
+
+def run_lease_text(state: dict) -> str:
+    """`gpu0:47.8G` once granted, else the requested specs marked waiting."""
+    specs = state.get("gpu_lease_specs") or []
+    if not specs or not state_live(state):
+        return ""
+    granted = state.get("gpu_leases")
+    if granted and state.get("status") == "running":
+        return ",".join(
+            f"gpu{lease['gpu']}:{agentctl_gpu.format_mib(Fraction(lease['mib']))}"
+            for lease in granted
+        )
+    return ",".join(specs) + "(waiting)"
+
+
+def gpu_commitment_payload(
+    commitment: agentctl_gpu.GpuCommitment, snapshot: agentctl_gpu.GpuSnapshot
+) -> dict:
+    device = snapshot.device(commitment.gpu)
+    return {
+        "gpu": commitment.gpu,
+        "memory_total_mib": commitment.total_mib,
+        "memory_used_mib": device.memory_used_mib if device else None,
+        "leased_mib": round(float(commitment.leased), 1),
+        "lease_count": commitment.lease_count,
+        "unleased_use_mib": round(float(commitment.unleased_use_mib), 1),
+        "uncommitted_mib": round(
+            float(commitment.total_mib - commitment.committed_mib), 1
+        ),
+        "per_process_accounting": commitment.per_process_accounting,
+    }
+
+
+def format_gpu_commitment(
+    commitment: agentctl_gpu.GpuCommitment, snapshot: agentctl_gpu.GpuSnapshot
+) -> str:
+    fmt = agentctl_gpu.format_mib
+    device = snapshot.device(commitment.gpu)
+    used = fmt(device.memory_used_mib) if device else "?"
+    line = (
+        f"gpu{commitment.gpu} vram used={used}/{fmt(commitment.total_mib)} "
+        f"leased={fmt(commitment.leased)}({commitment.lease_count}) "
+        f"unleased={fmt(commitment.unleased_use_mib)} "
+        f"uncommitted={fmt(commitment.total_mib - commitment.committed_mib)}"
+    )
+    if not commitment.per_process_accounting:
+        line += " per-process=unavailable"
+    return line
 
 
 ON_DECK_DIRNAME = "on-deck"
@@ -6156,6 +6653,11 @@ def stop(args: argparse.Namespace) -> int:
         )
         return 2
     terminate_state(state, grace=args.grace, reason="agentctl stop")
+    # The killed wrapper cannot run its own release; its dead-holder leases
+    # would otherwise linger until the next admission purges them.
+    agentctl_gpu.release_leases(
+        lease["lease_id"] for lease in state.get("gpu_leases") or []
+    )
     print(f"stopped {state['job']} {state['run_id']}")
     return 0
 
@@ -6228,9 +6730,10 @@ def restart(args: argparse.Namespace) -> int:
         gpu_patience=600.0,
         wait_gpu=0,
         wait_max_memory_used=None,
-        wait_poll=10.0,
-        wait_heartbeat=10.0,
-        wait_timeout=0.0,
+        gpu_lease=list(state.get("gpu_lease_specs") or []),
+        wait_poll=float(state.get("gpu_lease_poll") or 10.0),
+        wait_heartbeat=float(state.get("gpu_lease_heartbeat", 10.0)),
+        wait_timeout=float(state.get("gpu_lease_timeout") or 0.0),
         launch_wait=float(
             state.get("launch_wait_seconds", DEFAULT_LAUNCH_WAIT_SECONDS)
         ),
@@ -6465,16 +6968,30 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
         help="Before launch, wait until this GPU VRAM threshold is met.",
     )
     sp.add_argument(
+        "--gpu-lease",
+        action="append",
+        default=None,
+        metavar="[GPU:]AMOUNT",
+        help=(
+            "Reserve the VRAM this run needs before its payload starts, e.g. 50%%, "
+            "24G (GiB), or 1:24000M; repeatable, granted all-or-nothing. Leases are "
+            "host-wide across projects: the run stays queued (waiting) until its "
+            "amount fits beside other live leases and unleased GPU-process use, and "
+            "the lease ends with the run. GPU defaults to a single --gpus index, "
+            "else 0 (nvidia-smi numbering)."
+        ),
+    )
+    sp.add_argument(
         "--wait-poll",
         type=float,
         default=10.0,
-        help="Seconds between prelaunch GPU checks.",
+        help="Seconds between prelaunch GPU checks (--wait-max-memory-used, --gpu-lease).",
     )
     sp.add_argument(
         "--wait-heartbeat",
         type=float,
         default=10.0,
-        help="Seconds between prelaunch wait-gpu heartbeat lines (0 disables the periodic heartbeat).",
+        help="Seconds between prelaunch wait-gpu and --gpu-lease heartbeat lines (0 disables the periodic heartbeat).",
     )
     sp.add_argument(
         "--wait-timeout",
@@ -6598,6 +7115,21 @@ def parse_start_command(name: str, mode: str, argv: list[str]) -> argparse.Names
     return args
 
 
+def add_gpu_sample_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--gpu-sample",
+        type=acli_args.duration_seconds,
+        default=0.0,
+        metavar="SECONDS",
+        help=(
+            "Sample nvidia-smi every 0.5s for SECONDS and report each running job's "
+            "and GPU's maximum VRAM instead of one instantaneous reading. Without "
+            "it, vram_max10m= still reports the maximum of the run wrapper's "
+            "background samples over the last 10 minutes."
+        ),
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = acli_args.ArgumentParser(
         description="Small local job helper for agent-managed runs.",
@@ -6640,6 +7172,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Wait this many seconds before checking.",
     )
     s.add_argument("--tail", type=int, default=0, help="Also print last N log lines.")
+    add_gpu_sample_option(s)
     s.add_argument(
         "--running-only",
         "--live",
@@ -6692,6 +7225,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument(
         "--tail", type=int, default=0, help="Also print last N log lines for each job."
     )
+    add_gpu_sample_option(s)
     s.add_argument(
         "--running-only",
         "--live",
@@ -6872,8 +7406,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.set_defaults(func=watch)
 
-    s = sub.add_parser("wait", help="Wait until a job reaches a target status.")
-    s.add_argument("job")
+    s = sub.add_parser(
+        "wait",
+        help=(
+            "Wait until jobs reach a target status: all named jobs by default, or "
+            "the first with --any. A job already at the target satisfies the wait "
+            "immediately."
+        ),
+    )
+    s.add_argument(
+        "job",
+        nargs="+",
+        help="Job names; repeat or comma-separate (a b, or a,b).",
+    )
+    s.add_argument(
+        "--any",
+        action="store_true",
+        help="Return when the first named job reaches the target (default: all).",
+    )
     s.add_argument(
         "--target",
         choices=["finished", "stopped", "running", "not-running"],

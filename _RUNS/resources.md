@@ -82,8 +82,22 @@ another prompt:
   only when it is exhausted.
 - About 30 seconds after each background launch, confirm VRAM rose and inspect
   the log if it did not. Never infer launch success from a PID alone.
+  `agentctl list --live` shows each running job's `vram=` and `ram=`, so
+  read it there rather than guessing which nvidia-smi PID is whose.
 - Gate chained GPU successors by observed VRAM release rather than a fixed
   sleep; workers may retain memory after the parent exits.
+- When another session or project may launch on the same GPU, launch with
+  `agentctl start --gpu-lease <VRAM needed> ...`. The amount is a share
+  (`50%`) or a size (`24G`), taken from a prior run's `vram_peak=` plus
+  headroom. The run then queues until that much is uncommitted, instead of
+  colliding with a peer's run that hasn't allocated yet. Leases are
+  advisory: they order cooperating `--gpu-lease` launches and cap
+  nothing. Size the lease to the real need, because an undersized lease
+  still lets the payload exhaust VRAM. `agentctl list --live` shows each
+  run's `lease=` and `vram_max10m=` (recent peak), plus each GPU's
+  `leased=`/`uncommitted=`. Add `--gpu-sample 5` for a denser, slower
+  reading before a tight fit. Contract: `topics/agentctl.md` § GPU use
+  and VRAM leases.
 - When a run finishes, promptly report its headline result, key metrics, and
   one or two useful output comparisons.
 

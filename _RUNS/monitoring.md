@@ -97,7 +97,11 @@ when awaiting a new launchable item. A background wait, passive PTY, or tmux
 dashboard does not create a reliable continuation in harnesses without wake-up
 support.
 Use `agentctl wait JOB --heartbeat-gpu --gpu 0 --timeout 5m` when the
-heartbeat should include GPU state. For capacity readiness independently of a
+heartbeat should include GPU state. Wait on several jobs with
+`agentctl wait A B --timeout 5m` (or `A,B`): it returns when all have
+reached the target, or at the first with `--any`. A job that already
+finished satisfies the wait at once, so waiting on a job that may have
+just ended is safe. For capacity readiness independently of a
 job, use `agentctl wait-gpu --gpu 0 --max-memory-used <MiB> --timeout 5m`;
 choose the threshold from the successor's VRAM requirement and headroom.
 For fleet readiness, use `agentctl fleet-watch` under `topics/agentctl.md`

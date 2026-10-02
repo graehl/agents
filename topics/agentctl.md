@@ -79,6 +79,25 @@ tooling, the cooperative declaration helper, and project migration docs.
   so one immediate status line followed by 540-second heartbeats removes
   unchanged-output churn without adding scheduling state. Explicit
   `--heartbeat` values retain the short diagnostic path.
+- **Host-scoped, advisory VRAM leases** (vs. project-local leases under
+  `.agentctl/`, or a hard GPU partition such as MIG or per-process memory
+  caps): one GPU is shared by every project on the machine, so a
+  project-local lease would let two projects double-book it. A lease only
+  orders cooperating `agentctl start --gpu-lease` launches. It enforces
+  nothing on the payload, and a process outside the lease system is
+  counted by its observed use only. This reverses the 2026-07-02 deferral
+  of machine-level GPU awareness for this one resource, at the user's
+  direction; cross-project *job* discovery remains a sketch.
+- **Commit exact rational lease amounts against compute-process use, not
+  `memory.used`** (vs. rounding to MiB and subtracting from the device
+  total): two `50%` leases must fill a GPU exactly, and driver or context
+  overhead that belongs to no compute process would otherwise make the
+  second one fail.
+- **Sample a run's VRAM in its own wrapper** (vs. sampling only while
+  someone runs `list`): the wrapper already lives exactly as long as the
+  run. Background samples give `list` and lease admission a recent
+  maximum without a slow sampling request, and give the finished run a
+  peak to size the next lease from.
 
 ## Own id: the environment wins
 
@@ -500,6 +519,15 @@ notices.
   envelope as indented JSON, and `--full` widens each job row to its complete
   state record. `--tail` becomes a `tail` array in structured output instead
   of appending non-JSON lines.
+- `wait` takes one or more jobs, repeated or comma-separated
+  (`wait a b`, `wait a,b`). By default it returns once every named job
+  reaches the target; `--any` returns at the first. Each check reads
+  persisted run state, so a job that reached the target before the wait
+  started satisfies it at once: a finished job is never "not running".
+  A name with no run record fails before any waiting (`unknown job`).
+  Each job prints its terminal line when it arrives. The exit code is the
+  first observed failing job's code (0 when none failed), or under
+  `--any` the releasing job's.
 - `wait <job> --tail N` stays quiet apart from requested heartbeat lines until
   the target status is reached, then prints the terminal status and the final
   `N` log lines. The ordinary `wait` and `watch` heartbeat default is one line
@@ -524,7 +552,9 @@ notices.
   recent finished jobs to reach `--show-last` rows total (default 6), when
   that many finished jobs exist. `--completed N` and `--recent N` override
   the recent-finished tail count directly; `--completed-min-elapsed` is an
-  opt-in threshold for hiding short successful runs.
+  opt-in threshold for hiding short successful runs. Running jobs carry
+  resource columns, and a GPU summary line precedes the list
+  (§ GPU use and VRAM leases).
 - `wait-work` is the new-work counterpart to the status waits: it blocks
   until a new agentctl run appears (`--runs`: any run id not present at
   launch, restarts included) and/or a new or modified `on-deck/*.md` queue
@@ -758,6 +788,84 @@ notices.
   their behalf. Imports that may fail (e.g. the Aim SDK) must be guarded
   inside the plugin and treated as best-effort.
 
+## GPU use and VRAM leases
+
+`agentctl_gpu.py` owns nvidia-smi parsing, lease amounts, the lease store,
+and the admission rule. `agentctl.py` supplies process attribution: a GPU
+process belongs to a run when it shares the wrapper's process group or
+descends from the wrapper.
+
+**Showing use.** `status` and `list` make one device query and one
+compute-process query per invocation, and only when a listed job is
+running. Each running job shows:
+- `ram=`: summed proportional set size (PSS) over its process group, falling
+  back to RSS. PSS splits shared pages, so forked workers are not
+  double-counted.
+- `vram=gpuN:`: its compute processes' current use.
+- `vram_max10m=`: the maximum of that reading and the wrapper's
+  background samples over the last ten minutes.
+- `lease=`: the granted amount, or the requested spec marked `(waiting)`.
+
+A finished run that ever used a GPU shows `vram_peak=` from
+`vram_peak_mib` in its state. Use that peak to size the next lease. Before
+the jobs, each GPU gets one line: `used=`, `leased=` (lease commitment and
+count), `unleased=` (compute use no lease owns), and `uncommitted=`.
+Structured output carries the same numbers as `resources` per job and a
+`gpus` array.
+
+`--gpu-sample SECONDS` replaces the single reading with the per-process
+and per-device maximum over samples taken every 0.5 s. This is the slow,
+accurate measurement; the 10-minute maximum is the cheap default.
+
+**Background samples.** For the life of the payload, the run wrapper
+queries compute processes every 15 s (`AGENTCTL_GPU_SAMPLE_SECONDS`
+overrides the interval; 0 disables sampling). It appends nonzero
+attributions to `<run_dir>/gpu-samples.jsonl` and records the per-GPU
+peak in state at completion. On a host without per-process nvidia-smi
+accounting, sampling stops after its first query.
+
+**Leases.** `start --gpu-lease [GPU:]AMOUNT` (repeatable) reserves the VRAM
+a run needs. AMOUNT is a share (`50%`) or a size (`24G` = GiB, `24000M`).
+The GPU index uses nvidia-smi numbering and defaults to a single `--gpus`
+index, else 0. Specs are validated at submission and stored with an
+explicit GPU index, so `restart` leases the same device. The run is
+`waiting` (queued) until the detached wrapper is granted every lease at
+once. Admission runs after any `--after` and `--wait-max-memory-used`
+gates and before the final source guard, and it reuses `--wait-poll`,
+`--wait-heartbeat`, and `--wait-timeout`. A timeout fails the run with
+return code 1; an unusable GPU query fails it with 2.
+
+A lease is advisory. It orders cooperating launches and nothing more:
+- it does not cap the payload's allocation;
+- it does not stop a process launched outside `agentctl start --gpu-lease`;
+- it does not preempt anything.
+
+Admission counts every live lease at the largest of three figures: its
+amount, its run's current use, and its run's recent sampled peak. It adds
+every compute process no lease owns at that process's current use. A
+request fits when that commitment plus the request is at most the device
+total. Amounts stay exact rationals, so two `50%` leases fill a GPU
+exactly. Memory held outside compute processes, such as driver overhead,
+is never committed. Without per-process accounting, the commitment falls
+back to the larger of total leases and `memory.used`. Attribution
+assumes nvidia-smi PIDs are in the caller's PID namespace. When they are
+not, a leaseholder's use also counts as unleased, which over-blocks
+rather than over-admits.
+
+Leases live host-wide under `$AGENTCTL_GPU_LEASE_DIR`, else
+`${XDG_STATE_HOME:-~/.local/state}/agentctl/gpu-leases/`, one JSON file
+per lease. The holder record names the wrapper's PID, start ticks, process
+group, PID namespace, project, job, run, and run dir. Check-and-write
+happens under one `flock` on `.lock`, so two runs cannot both claim the
+same free memory. A lease ends when its wrapper removes it after the
+payload exits, or when `stop` removes the stopped run's leases. A
+crashed holder's record is purged by the next admission once its PID no
+longer matches. A holder that the caller cannot see (another PID
+namespace, sandboxed `/proc`) is presumed alive.
+
+Waiting has no queue order. A large request can wait behind a stream of
+smaller ones that keep fitting (see [sketches](agentctl.sketches.md)).
+
 ## Fleet capacity watch
 
 `fleet-watch` is one foreground wait across the local GPU and any number of
@@ -906,7 +1014,13 @@ The base writes a flat dict to `state.json`. Canonical keys (read freely):
 `pre_run_note`, `post_run_note`, `post_run_noted_at`, `analysis_notes`,
 `depends_on`, `wait_on`, `wait_after`, `queued_at`, `source_env`,
 `project_env`, `git_branch`, `git_commit`, `source_snapshot`,
-`machine_snapshot`, `launch_gpu_stats`.
+`machine_snapshot`, `launch_gpu_stats`, `gpu_lease_specs`, `gpu_leases`,
+`gpu_lease_poll`, `gpu_lease_heartbeat`, `gpu_lease_timeout`,
+`vram_peak_mib`.
+
+`gpu_lease_specs` holds the requested specs with explicit GPU indexes;
+`gpu_leases` holds what was granted (`lease_id`, `gpu`, `spec`, exact
+`mib`). `vram_peak_mib` maps GPU index to the run's sampled peak MiB.
 
 `pid`/`pgid` identify the detached wrapper. `launch_backend` is
 `systemd-user-service` or `process-session`; service-backed runs also record

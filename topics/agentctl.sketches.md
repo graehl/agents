@@ -18,6 +18,41 @@ Do not add language values to `--source-scope`; that option names the current
 design only after real repo-wide false invalidations make the added crawler
 worth its language/toolchain complexity.
 
+## Host-wide job discovery and waits
+
+GPU leases are already host-scoped (`agentctl.md` § GPU use and VRAM
+leases), but job state is not. `list` and `wait` see only the invocation
+project's `.agentctl/`, so a session cannot list or wait on another
+project's runs on the same machine. Two shapes would close that without
+moving the per-project authority:
+
+- **Activity pointers:** each launch touches a host-level pointer
+  (`~/.local/state/agentctl/projects/<hash>` naming the project root).
+  `list --host` and `wait PROJECT:JOB` resolve through the pointers to the
+  owning project's ordinary state files. There is no second copy that
+  could disagree, and a stale pointer is just a project with no live
+  runs.
+- **Redundant host index:** the wrapper also mirrors a compact row per run
+  into a host store. This makes discovery a single read, but the index can
+  disagree with the per-project ground truth and needs its own liveness
+  rule.
+
+Prefer the pointers unless a measured host-wide listing cost argues for
+the index. Lease records already carry `project_root`/`job`/`run_id`, so
+`list` could name a foreign leaseholder today. Defer until the user
+routinely runs GPU work from more than one project at once; as of
+2026-10-02 they typically use the GPU from a single project.
+
+## GPU lease queue order
+
+Lease admission has no order: any waiter whose amount fits is admitted,
+so a large request can starve behind a stream of smaller ones. Strict
+FIFO fixes starvation but idles capacity that a small job could use
+(no backfill). A middle form admits a later waiter only when the oldest
+blocked waiter could not fit even with that waiter absent. Waiters would
+publish a pending record (spec, `queued_at`, live holder) beside the
+leases. Build it when starvation is observed, not before.
+
 ## Machine-scoped activity on foreign workers
 
 Local `.agentctl/active/` cannot expose a session operating in another clone
