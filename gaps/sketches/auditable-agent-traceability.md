@@ -25,6 +25,14 @@ are a small testbed for the same structure.
      router's verification key, so a receiving session can check that a
      cross-session message really came from that router and a named session,
      not from copied prose.
+   - Verify before execute: the harness runs a tool call only if it carries
+     a valid provider signature. This is the first piece to build, because
+     a malicious router writing tool calls directly is the highest-impact
+     threat (see *Malicious-router threat* below). The signature must cover
+     a hash of the request context plus a nonce or sequence number.
+     Otherwise the router can replay a genuine signed call, such as a real
+     `rm -r build/`, in a context where it does damage. Prose and reasoning
+     can stay unsigned at first.
    - User authorization attestations: gate-specific signed user approvals.
      The dormant design is in
      [user-authorization-attestation](../../topics/user-authorization-attestation.md)
@@ -145,6 +153,40 @@ are a small testbed for the same structure.
    - counterfactual replay: remove or alter one item, rerun, and see whether
      the action changes. This is expensive, so reserve it for incident
      review.
+
+**Malicious-router threat:** a router acting as a man in the middle
+between harness and provider is strictly worse than prompt injection. An
+injector has to persuade the model. The router writes tool calls directly,
+with full knowledge of the context and timing, executes with the harness's
+permissions, and can make the call look like the surrounding genuine work.
+
+Without signatures, the client's evidence of provider origin is evidence of
+capability. That stops separating provider from attacker, because the
+attacker is capable too, and a sneaky but effective command requires
+capability. The question shifts from intelligence to *aligned*
+intelligence: is this what a trusted, aligned model would have produced
+here? That is much harder to judge from one output, since misalignment can
+sit in a single action inside otherwise excellent work.
+
+Defences that do not depend on signatures, which also back up
+verify-before-execute against ordinary prompt injection:
+- *AI control protocols* (Greenblatt et al., "AI Control: Improving Safety
+  Despite Intentional Subversion", 2023), with router plus model treated
+  as untrusted:
+  - trusted monitoring: a local trusted model scores each tool call for
+    suspicion before it runs;
+  - defer to trusted: above a threshold, the trusted model's own action
+    or a sanitized edit of the call runs instead;
+  - resampling: the protocol asks the provider directly, bypassing the
+    router, for the same step and compares. This is random audit sampling
+    applied to actions, whose distribution should match;
+  - escalation to human audit, within a limited budget. Showing every
+    command for approval is weak against a well-crafted one.
+- *Hardened, auditable execution:* every effect is mediated and logged into
+  the same tamper-evident record. Permissions are capability-scoped, egress
+  is allowlisted, and effects are staged or reversible (filesystem
+  snapshots, dry runs), so an audit can find and undo damage rather than
+  relying only on blocking it.
 
 **Applications:**
 - Forensics for prompt injection: which untrusted item preceded a tool call.
