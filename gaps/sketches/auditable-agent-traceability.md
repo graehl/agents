@@ -99,9 +99,30 @@ are a small testbed for the same structure.
    produced it. A router cannot fake that quality without access to some
    comparable model. This evidence does not rule out substituting another
    capable model, or a cheaper one where a task does not test the
-   difference. It also cannot catch a focused deception attack: small
-   targeted edits spliced into an otherwise genuine output. Only signatures
-   on the upstream model outputs defeat that.
+   difference. With a trusted timestamp, for example the log's anchored
+   root, a forger cannot backdate a later model's output. The question
+   "what could have produced this at time T?" can then be judged
+   permanently against the capability frontier at T, so the evidence does
+   not decay. It can still be revised when a model that already existed at
+   T is disclosed later, which mostly matters near the frontier.
+
+   This evidence cannot catch a focused deception attack: small, targeted,
+   high-impact edits spliced into an otherwise genuine output, including a
+   manual rewrite of one crucial fact. A flipped constant or sign, a changed
+   dependency or version pin, a swapped URL, or a dropped check leaves the
+   output fluent. Partial defences short of signatures:
+   - *Random audit sampling:* the client sends a random fraction of
+     requests directly to the provider and compares the answers. If the
+     router cannot tell audited requests from ordinary ones, sustained
+     corruption becomes risky for it. Sampling does nothing against a
+     single targeted strike. Comparison is noisy except on deterministic or
+     low-temperature requests.
+   - *Local verification:* a local model checks that citations resolve and
+     support the claims attached to them, and flags uncited facts that
+     matter. This catches spliced claims that cite sources, but not an
+     altered constant that stands alone.
+
+   Only signatures on the upstream model outputs defeat focused deception.
 3. *Attribution narrowing (approximate).* Within the manifest, rank which
    items actually drove the action:
    - attention or gradient attribution, which needs model internals and is
