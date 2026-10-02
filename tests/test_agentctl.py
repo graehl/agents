@@ -35,6 +35,7 @@ AGENTCTL_FILES = (
     "agentctl",
     "agentctl.py",
     "agentctl_coordination.py",
+    "agentctl_gpu.py",
     "artifact_meta.py",
 )
 AGENTCTL_DIRS = ("agentctl_plugins", "acli")
@@ -2541,6 +2542,284 @@ def test_wait_tail_prints_only_after_completion():
             res.stdout.index("finished") < res.stdout.index("line-13"),
             f"tail should follow the terminal status: {res.stdout!r}",
         )
+    finally:
+        ws.cleanup()
+
+
+def test_wait_all_of_several_jobs_accepts_already_finished_ones():
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "done-early", "--", "bash", "-c", "exit 3")
+        ws.wait_finished("done-early")
+        _start(ws, "--no-aim", "slow", "--", "bash", "-c", "sleep 0.8")
+        res = ws.run(
+            "wait",
+            "done-early,slow",
+            "--poll",
+            "0.05",
+            "--heartbeat",
+            "0",
+            "--timeout",
+            "10",
+        )
+        _assert(res.returncode == 3, f"expected first failure rc: {res!r}")
+        lines = res.stdout.splitlines()
+        _assert(
+            lines[0].startswith("done-early ") and "returncode=3" in lines[0],
+            res.stdout,
+        )
+        _assert(lines[1].startswith("slow ") and "returncode=0" in lines[1], res.stdout)
+        _assert(ws.state("slow")["status"] == "finished", "wait returned early")
+    finally:
+        ws.cleanup()
+
+
+def test_wait_any_returns_on_first_job_and_rejects_unknown_names():
+    ws = Workspace()
+    try:
+        _start(ws, "--no-aim", "quick", "--", "bash", "-c", "true")
+        ws.wait_finished("quick")
+        _start(ws, "--no-aim", "long", "--", "bash", "-c", "sleep 30")
+        res = ws.run(
+            "wait", "long", "quick", "--any", "--heartbeat", "0", "--timeout", "5"
+        )
+        _assert(res.returncode == 0, f"--any should release on quick: {res!r}")
+        _assert(res.stdout.startswith("quick "), res.stdout)
+        _assert(ws.state("long")["status"] == "running", "long should still run")
+        res = ws.run("wait", "long", "no-such-job", "--timeout", "5")
+        _assert(
+            res.returncode != 0 and "unknown job: no-such-job" in res.stderr,
+            f"unknown name should fail before waiting: {res!r}",
+        )
+        ws.run("stop", "long")
+    finally:
+        ws.cleanup()
+
+
+def test_gpu_lease_amounts_are_exact_and_ignore_driver_overhead():
+    sys.path.insert(0, str(REPO_ROOT))
+    import agentctl_gpu
+
+    half = agentctl_gpu.parse_lease_request("50%")
+    third = agentctl_gpu.parse_lease_request("33.3333333%")
+    _assert(half.gpu is None and half.share == agentctl_gpu.Fraction(1, 2), half)
+    _assert(agentctl_gpu.parse_lease_request("1:24G").mib == 24 * 1024)
+    _assert(agentctl_gpu.parse_lease_request("24000MiB").mib == 24000)
+    for bad in ("0.5", "0%", "101%", "24T", "x:5G"):
+        try:
+            agentctl_gpu.parse_lease_request(bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"accepted {bad!r}")
+
+    # An odd total makes 50% a non-integer MiB amount; overhead outside any
+    # compute process (memory.used without processes) must not count.
+    device = agentctl_gpu.GpuDevice(0, "GPU-x", 97887, 700)
+    one_half = {
+        "lease_id": "a",
+        "gpu_uuid": "GPU-x",
+        "mib": str(half.mib_on(97887)),
+        "holder_pid": 11,
+    }
+    commit = agentctl_gpu.gpu_commitment(device, [one_half], [], lambda pid, _: None)
+    _assert(commit.fits(half.mib_on(97887)), commit.describe())
+    _assert(not commit.fits(half.mib_on(97887) + 1), commit.describe())
+    three = [{**one_half, "lease_id": str(i)} for i in range(2)]
+    three_thirds = agentctl_gpu.gpu_commitment(
+        device,
+        [{**lease, "mib": str(third.mib_on(97887))} for lease in three],
+        [],
+        lambda pid, _: None,
+    )
+    _assert(three_thirds.fits(third.mib_on(97887)), three_thirds.describe())
+
+    # A leaseholder using more than it leased commits its actual use; a
+    # process no lease owns commits its own use.
+    procs = [
+        agentctl_gpu.GpuProcess(pid=100, gpu=0, used_mib=60000),
+        agentctl_gpu.GpuProcess(pid=200, gpu=0, used_mib=10000),
+    ]
+    over = agentctl_gpu.gpu_commitment(
+        device,
+        [one_half],
+        procs,
+        lambda pid, leases: leases[0] if pid == 100 else None,
+    )
+    _assert(over.leased == 60000 and over.unleased_use_mib == 10000, over.describe())
+
+
+def _fake_lease_nvidia_smi(ws: Workspace, total_mib: int = 97887) -> dict[str, str]:
+    fake_bin = ws.scratch / "bin"
+    fake_bin.mkdir(exist_ok=True)
+    nvidia_smi = fake_bin / "nvidia-smi"
+    nvidia_smi.write_text(
+        "#!/bin/sh\n"
+        'case "$*" in\n'
+        "  *--query-compute-apps*) exit 0 ;;\n"
+        f"  *uuid*) printf '%s\\n' '0, GPU-fake, {total_mib}, 600' ;;\n"
+        f"  *) printf '%s\\n' '0, {total_mib}, 600, 50.0, 0' ;;\n"
+        "esac\n",
+        encoding="utf-8",
+    )
+    nvidia_smi.chmod(0o755)
+    return {
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "AGENTCTL_GPU_LEASE_DIR": str(ws.scratch / "gpu-leases"),
+    }
+
+
+def test_gpu_lease_queues_a_run_until_vram_is_released():
+    ws = Workspace()
+    try:
+        env = _fake_lease_nvidia_smi(ws)
+        lease_opts = ("--wait-poll", "0.05", "--wait-heartbeat", "0")
+        for job in ("half-a", "half-b"):
+            res = ws.run(
+                "start",
+                "--launch-wait",
+                "0",
+                "--no-aim",
+                *lease_opts,
+                "--gpu-lease",
+                "50%",
+                job,
+                "--",
+                "bash",
+                "-c",
+                "sleep 1.5",
+                env_extra=env,
+            )
+            _assert(res.returncode == 0, res.stderr)
+        _wait_status(ws, "half-a", "running")
+        _wait_status(ws, "half-b", "running")
+        res = ws.run(
+            "start",
+            "--launch-wait",
+            "0",
+            "--no-aim",
+            *lease_opts,
+            "--gpu-lease",
+            "1G",
+            "third",
+            "--",
+            "bash",
+            "-c",
+            "true",
+            env_extra=env,
+        )
+        _assert(res.returncode == 0, res.stderr)
+        _wait_status(ws, "third", "waiting")
+        listing = ws.run("list", "--live", env_extra=env)
+        _assert("lease=0:1G(waiting)" in listing.stdout, listing.stdout)
+        _assert("lease=gpu0:47.8G" in listing.stdout, listing.stdout)
+        _assert("leased=95.6G(2)" in listing.stdout, listing.stdout)
+        _assert(" ram=" in listing.stdout, listing.stdout)
+        third = ws.wait_finished("third", timeout=15)
+        _assert(third["returncode"] == 0, third)
+        halves = [ws.state(job) for job in ("half-a", "half-b")]
+        _assert(
+            any(
+                half.get("finished_at") and half["finished_at"] <= third["started_at"]
+                for half in halves
+            ),
+            f"third started while both halves held their leases: {third!r} {halves!r}",
+        )
+        for job in ("half-a", "half-b"):
+            ws.wait_finished(job)
+        deadline = time.time() + 5
+        while list((ws.scratch / "gpu-leases").glob("*.json")):
+            _assert(time.time() < deadline, "finished runs must release their leases")
+            time.sleep(0.05)
+    finally:
+        ws.cleanup()
+
+
+def test_stop_releases_a_running_jobs_gpu_lease():
+    ws = Workspace()
+    try:
+        env = _fake_lease_nvidia_smi(ws)
+        res = ws.run(
+            "start",
+            "--launch-wait",
+            "0",
+            "--no-aim",
+            "--wait-poll",
+            "0.05",
+            "--gpu-lease",
+            "24G",
+            "leased",
+            "--",
+            "bash",
+            "-c",
+            "sleep 30",
+            env_extra=env,
+        )
+        _assert(res.returncode == 0, res.stderr)
+        _wait_status(ws, "leased", "running")
+        deadline = time.time() + 5
+        while not ws.state("leased").get("gpu_leases"):
+            _assert(time.time() < deadline, "lease was never recorded")
+            time.sleep(0.05)
+        ws.run("stop", "leased", env_extra=env)
+        _assert(
+            not list((ws.scratch / "gpu-leases").glob("*.json")),
+            "stop must release the stopped run's lease",
+        )
+        res = ws.run("restart", "leased", env_extra=env)
+        _assert(res.returncode == 0, res.stderr)
+        _wait_status(ws, "leased", "running")
+        _assert(ws.state("leased")["gpu_lease_specs"] == ["0:24G"], ws.state("leased"))
+        ws.run("stop", "leased", env_extra=env)
+    finally:
+        ws.cleanup()
+
+
+def test_run_vram_history_feeds_recent_max_and_finished_peak():
+    # The fake reports its parent as a 2 GiB compute app: during wrapper
+    # sampling that parent is the run's wrapper, so only the background
+    # history (not list's own instantaneous query) can attribute it.
+    ws = Workspace()
+    try:
+        fake_bin = ws.scratch / "bin"
+        fake_bin.mkdir()
+        nvidia_smi = fake_bin / "nvidia-smi"
+        nvidia_smi.write_text(
+            "#!/bin/sh\n"
+            'case "$*" in\n'
+            '  *--query-compute-apps*) echo "$PPID, GPU-fake, 2048" ;;\n'
+            "  *) echo '0, GPU-fake, 97887, 2600' ;;\n"
+            "esac\n",
+            encoding="utf-8",
+        )
+        nvidia_smi.chmod(0o755)
+        env = {
+            "PATH": f"{fake_bin}:{os.environ['PATH']}",
+            "AGENTCTL_GPU_SAMPLE_SECONDS": "0.1",
+        }
+        res = ws.run(
+            "start",
+            "--launch-wait",
+            "0",
+            "--no-aim",
+            "sampled",
+            "--",
+            "bash",
+            "-c",
+            "sleep 1",
+            env_extra=env,
+        )
+        _assert(res.returncode == 0, res.stderr)
+        samples = ws.tmp / ".agentctl/runs/sampled" / ws.state("sampled")["run_id"]
+        deadline = time.time() + 5
+        while not (samples / "gpu-samples.jsonl").exists():
+            _assert(time.time() < deadline, "wrapper never recorded a VRAM sample")
+            time.sleep(0.05)
+        listing = ws.run("list", "--live", env_extra=env)
+        _assert("vram_max10m=gpu0:2.0G" in listing.stdout, listing.stdout)
+        finished = ws.wait_finished("sampled")
+        _assert(finished.get("vram_peak_mib") == {"0": 2048}, finished)
+        listing = ws.run("list", env_extra=env)
+        _assert("vram_peak=gpu0:2.0G" in listing.stdout, listing.stdout)
     finally:
         ws.cleanup()
 
