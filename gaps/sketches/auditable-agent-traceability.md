@@ -46,6 +46,38 @@ are a small testbed for the same structure.
    the weights. That bound needs no model internals. Prior-art analogs are
    in-toto/SLSA step attestations, which record the hashes of each build
    step's inputs and outputs, and C2PA content credentials.
+
+   *Tamper-evident log.* A signing router should not be able to rewrite
+   these records after the fact. The standard primitive is an append-only
+   Merkle transparency log with published signed tree heads (Certificate
+   Transparency, RFC 6962/9162; Sigstore Rekor; Go's checksum database).
+   Each kind of fudging needs its own defence:
+   - *Rewriting the past:* consistency proofs show each new root extends
+     the previous one. Every published trace that carries a signed root and
+     an inclusion proof pins all earlier history.
+   - *Dropping records:* each record carries a per-session or per-user
+     sequence number and the previous record's hash, and the client keeps a
+     signed receipt per step. A missing record shows up as a broken chain.
+   - *Showing different histories to different parties:* independent
+     witnesses cosign tree heads (C2SP tlog-witness), or clients gossip
+     them. Two conflicting signed roots for the same tree size prove
+     misbehaviour.
+   - *Lying about timing:* anchor roots to an external timestamp
+     (RFC 3161, Roughtime) or to another public log.
+   - *Fabricating content when it is first logged:* the log cannot catch
+     this, because it proves consistency, not truth. Layer 1's provider
+     signatures on model outputs, client-signed inputs, or hardware-enclave
+     attestation for router-side computation are still required.
+
+   Log only salted commitments to the traces. Publishing a trace then means
+   revealing its contents together with an inclusion proof, and the log
+   itself discloses nothing. Public traces bind the router only if they
+   carry signed roots that witnesses cross-check. Otherwise the router can
+   keep a clean branch for audited traces and a doctored one for the rest.
+   Someone who later steals the key cannot rewrite history already covered
+   by published roots. Building blocks: Trillian or Tessera for the log;
+   Crosby & Wallach, "Efficient Data Structures for Tamper-Evident Logging"
+   (USENIX Security 2009), for history trees.
 3. *Attribution narrowing (approximate).* Within the manifest, rank which
    items actually drove the action:
    - attention or gradient attribution, which needs model internals and is
