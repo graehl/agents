@@ -114,8 +114,11 @@ helpers; rich REPL editing is optional. The importing application controls how
 the library is installed or vendored. No home-directory bootstrap is part of
 the protocol, and non-Python tools need not launch a Python subprocess.
 
-The Python writers implement `commentary/1`; they do not emit the separate
-`commentary-lines/1` format. Shell producers can implement that format directly.
+The Python writers implement `commentary/1`. For `commentary-lines/1`, the
+library supports only the stderr form: a parser advertising
+`+commentary-lines` declares it in its banner, and `line_commentary(text)`
+writes a note only after that banner was printed. Stdout line commentary and
+shell producers implement the format directly.
 
 | Module | Surface | Integration responsibility |
 | --- | --- | --- |
@@ -124,6 +127,7 @@ The Python writers implement `commentary/1`; they do not emit the separate
 | `acli.commentary` | `commentary`; writer-side validation/projection | Pass the suppression choice to the emitter. |
 | `acli.errors` | `ExitCode`, `error_envelope`, `die` | Translate application failures at the execution boundary. |
 | `acli.args` | `argument_parser`, `add_standard_args`, capability footer/banner | Advertise only wired capabilities; define application arguments and help. |
+| `acli.args` | `line_commentary` | Apply `--no-commentary`; pass one nonblank Markdown line. |
 | `acli.args` | `duration_seconds` | Use as an argument type for finite seconds or compact `s`/`m`/`h`/`d` durations; enforce option-specific bounds. |
 | `acli.args` | `maybe_complete`, `set_completer`, `candidates`, `hint` | Dispatch completion before action side effects. |
 | `acli.shell` | `run`; `maybe_repl` is exported from `acli` | Supply command callbacks; optionally bind a grammar with `rewrite`. |

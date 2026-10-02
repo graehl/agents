@@ -1292,6 +1292,33 @@ def test_default_launch_wait_returns_payload_fail_fast():
         _assert("[launch-wait]" in res.stdout, res.stdout)
         _assert("returncode=7" in res.stdout, res.stdout)
         _assert("startup-failed" in res.stdout, res.stdout)
+        notes = [
+            line
+            for line in res.stderr.splitlines()
+            if line.startswith("# _acli.commentary: ")
+        ]
+        _assert(
+            res.stderr.startswith("# acli: 1 complete +commentary-lines\n"), res.stderr
+        )
+        _assert(len(notes) == 1, res.stderr)
+        _assert("`failfast-0001` failed (exit 7)" in notes[0], notes)
+        _assert("[log](" in notes[0] and "[run record](" in notes[0], notes)
+    finally:
+        ws.cleanup()
+
+
+def test_launch_commentary_suppressed_without_declaration():
+    ws = Workspace()
+    try:
+        quiet = ws.run(
+            "start", "--no-aim", "quietjob", "--", "true", env_extra={"ACLI_QUIET": "1"}
+        )
+        omitted = ws.run(
+            "start", "--no-aim", "omitjob", "--no-commentary", "--", "true"
+        )
+        for res in (quiet, omitted):
+            _assert(res.returncode == 0, res)
+            _assert("_acli.commentary" not in res.stderr, res.stderr)
     finally:
         ws.cleanup()
 
@@ -3748,15 +3775,28 @@ def test_record_source_guard_runs_dirty_checkout_and_records_violations():
             handle.write("\n# dirty test\n")
         (ws.tmp / "stray.py").write_text("x = 1\n", encoding="utf-8")
         started = ws.run(
-            "start", "--launch-wait", "0", "--source-guard", "record", "dirty", "--", "true"
+            "start",
+            "--launch-wait",
+            "0",
+            "--source-guard",
+            "record",
+            "dirty",
+            "--",
+            "true",
         )
         _assert(started.returncode == 0, started)
         _assert("recorded, --source-guard record" in started.stderr, started.stderr)
         state = ws.wait_finished("dirty")
         _assert(state["returncode"] == 0, state)
         snapshot = state["source_snapshot"]
-        _assert(snapshot["status"] == "unverified" and snapshot["guard"] == "record", snapshot)
-        _assert(not snapshot["tracked_clean"] and snapshot["untracked_python_count"] == 1, snapshot)
+        _assert(
+            snapshot["status"] == "unverified" and snapshot["guard"] == "record",
+            snapshot,
+        )
+        _assert(
+            not snapshot["tracked_clean"] and snapshot["untracked_python_count"] == 1,
+            snapshot,
+        )
         text = "\n".join(snapshot["violations"])
         _assert("tracked/index changes" in text and "stray.py" in text, text)
     finally:
@@ -3794,7 +3834,10 @@ def test_project_env_record_guard_lets_queued_run_survive_source_change():
         _assert(state["returncode"] == 0, state)
         _assert(output.exists(), "payload did not run under the record guard")
         snapshot = state["source_snapshot"]
-        _assert(snapshot["guard"] == "record" and snapshot["status"] == "unverified", snapshot)
+        _assert(
+            snapshot["guard"] == "record" and snapshot["status"] == "unverified",
+            snapshot,
+        )
         _assert(
             any("agentctl.py" in v for v in snapshot["launch_violations"]),
             snapshot,

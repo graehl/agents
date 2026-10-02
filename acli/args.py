@@ -21,7 +21,12 @@ QUIET_ENV = "ACLI_QUIET"
 TEXT_HELP = "Prefer concise readable text; verbs without a text renderer may still output JSON. Explicit encoding flags take precedence."
 COMMENTARY_HELP = "Omit commentary metadata and standalone JSONL commentary records; keep ordinary result data."
 
+LINE_COMMENTARY_PREFIX = "# _acli.commentary: "
+
 _banner_emitted = False
+# The stream a `+commentary-lines` banner declared; None when no banner
+# activated line commentary in this process.
+_line_commentary_stream: TextIO | None = None
 
 
 def duration_seconds(value: str) -> float:
@@ -110,14 +115,32 @@ def maybe_banner(
     stdout is never touched. Suppressed by `--acli-quiet` (the `quiet`
     argument) or a nonempty ACLI_QUIET in the environment.
     """
-    global _banner_emitted
+    global _banner_emitted, _line_commentary_stream
     if quiet or _banner_emitted or os.environ.get(QUIET_ENV):
         return
     _banner_emitted = True
-    print(
-        "# " + capability_line(capabilities),
-        file=out if out is not None else sys.stderr,
-    )
+    capabilities = tuple(capabilities)
+    stream = out if out is not None else sys.stderr
+    print("# " + capability_line(capabilities), file=stream)
+    if "+commentary-lines" in capabilities:
+        _line_commentary_stream = stream
+
+
+def line_commentary(text: str) -> bool:
+    """Write one `commentary-lines/1` record to the banner's stream.
+
+    The `+commentary-lines` banner is that stream's declaration
+    (topics/acli-spec.md § Line commentary package), so this writes nothing
+    and returns False when no such banner was printed (quiet, or the
+    capability not advertised). Callers apply --no-commentary themselves.
+    `text` is one nonblank line of Markdown.
+    """
+    if not text.strip() or "\n" in text or "\r" in text:
+        raise ValueError("line commentary must be one nonblank line")
+    if _line_commentary_stream is None:
+        return False
+    print(LINE_COMMENTARY_PREFIX + text, file=_line_commentary_stream, flush=True)
+    return True
 
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -176,6 +199,14 @@ class ArgumentParser(argparse.ArgumentParser):
                 " presentation to the user. Attached commentary refers to its"
                 " enclosing object; standalone items refer to the previous list"
                 " item or JSONL output record. Use --no-commentary for data only."
+            )
+        if "+commentary-lines" in self.acli_capabilities:
+            text += (
+                "\n\nCommentary: stderr lines prefixed `"
+                + LINE_COMMENTARY_PREFIX.rstrip()
+                + "` carry one Markdown note each, active only after the"
+                " `# acli: ...` banner. Emission alone does not confirm"
+                " presentation to the user. Use --no-commentary to omit them."
             )
         if self.acli_exit_codes:
             width = max(len(str(code)) for code in self.acli_exit_codes)
