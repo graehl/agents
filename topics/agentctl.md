@@ -394,6 +394,11 @@ notices.
   terminal run returns its real status and failed-log tail, while a survivor
   returns zero with `completion_wake=armed|unarmed`. This is a startup window,
   not a completion observer for the surviving run.
+- `start`/`smoke` advertise `+commentary-lines` in their stderr banner and end
+  with one stderr commentary line: launch name, outcome, and Markdown links to
+  the log, `state.json`, and declared outputs, so an aware UI can show them as
+  prose with clickable paths. Stdout is unchanged. `--no-commentary`,
+  `--acli-quiet`, or `ACLI_QUIET` omit it; other verbs keep the plain banner.
 - `start` and `smoke` load project-root `agentctl.env` when it exists. This is
   a declarative defaults file, not a shell script: it accepts blank lines,
   full-line `#` comments, and unique `KEY=VALUE` entries only. The literal

@@ -4404,6 +4404,29 @@ def launch_completion_wake_text(state: dict) -> str:
     return "armed" if state.get("wake_armed") else "unarmed"
 
 
+def markdown_file_link(label: str, path: str) -> str:
+    target = f"<{path}>" if re.search(r"[\s()<>]", path) else path
+    return f"[{label}]({target})"
+
+
+def launch_commentary(state: dict) -> str:
+    """One Markdown line summarizing a launch, linking its records."""
+    status = state.get("status", "")
+    rc = status_returncode_text(state)
+    if status == "finished":
+        outcome = "finished" if rc == "0" else f"failed (exit {rc or 'unknown'})"
+    else:
+        outcome = status or "unknown"
+    links = [markdown_file_link("log", state["log_path"])]
+    links.append(markdown_file_link("run record", state["state_path"]))
+    outputs = state.get("outputs") or {}
+    for key, record in outputs.items():
+        links.append(markdown_file_link(key, record["path"]))
+    if not outputs and state.get("output_path"):
+        links.append(markdown_file_link("output", state["output_path"]))
+    return f"`{state['launch_name']}` {outcome}: " + " · ".join(links)
+
+
 def observe_payload_launch(
     job: str, *, wrapper: subprocess.Popen | None, seconds: float
 ) -> int:
@@ -4965,7 +4988,7 @@ def start(args: argparse.Namespace) -> int:
     sweep_stale_entries(ACTIVE_STALE_MINUTES, quiet=True)
     if args.watch:
         try:
-            return watch(
+            rc = watch(
                 argparse.Namespace(
                     job=job,
                     poll=args.watch_poll,
@@ -4983,7 +5006,11 @@ def start(args: argparse.Namespace) -> int:
             )
         finally:
             reap_proc(proc)
-    return observe_payload_launch(job, wrapper=proc, seconds=args.launch_wait)
+    else:
+        rc = observe_payload_launch(job, wrapper=proc, seconds=args.launch_wait)
+    if not args.no_commentary:
+        acli_args.line_commentary(launch_commentary(load_job(job)))
+    return rc
 
 
 def run_child(args: argparse.Namespace) -> int:
@@ -6221,6 +6248,7 @@ def restart(args: argparse.Namespace) -> int:
         watch_notify_gpu_idle=False,
         watch_notify_max_memory_used=None,
         watch_notify_max_power_draw=None,
+        no_commentary=args.no_commentary,
     )
     _call_hook("on_restart", state, start_args)
     return start(start_args)
@@ -6546,7 +6574,11 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
 
 
 def parse_start_command(name: str, mode: str, argv: list[str]) -> argparse.Namespace:
-    p = acli_args.ArgumentParser(prog=f"agentctl {name}", exit_codes=EXIT_CODES)
+    p = acli_args.ArgumentParser(
+        prog=f"agentctl {name}",
+        capabilities=("complete", "+commentary-lines"),
+        exit_codes=EXIT_CODES,
+    )
     add_start_options(p)
     if "--" not in argv:
         if any(arg in {"-h", "--help"} for arg in argv):

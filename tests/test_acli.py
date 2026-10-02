@@ -774,6 +774,35 @@ def test_banner_suppressed_by_flag_and_env():
     )
 
 
+def test_line_commentary_requires_declaring_banner():
+    args_mod = importlib.import_module("acli.args")
+    for capabilities, quiet, expected in (
+        (
+            ("+commentary-lines",),
+            False,
+            "# acli: 1 +commentary-lines\n# _acli.commentary: Done.\n",
+        ),
+        (("+commentary-lines",), True, ""),
+        (("complete",), False, "# acli: 1 complete\n"),
+    ):
+        args_mod._banner_emitted = False
+        args_mod._line_commentary_stream = None
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            args_mod.maybe_banner(capabilities, quiet=quiet)
+            wrote = args_mod.line_commentary("Done.")
+        _assert(err.getvalue() == expected, (capabilities, quiet, err.getvalue()))
+        _assert(wrote == bool(expected.count("_acli")), (capabilities, quiet))
+    try:
+        args_mod.line_commentary("two\nlines")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("multiline line commentary must be rejected")
+    args_mod._banner_emitted = False
+    args_mod._line_commentary_stream = None
+
+
 def test_banner_quiet_flag_survives_subparser_namespace_copy():
     args_mod = importlib.import_module("acli.args")
     args_mod._banner_emitted = False
