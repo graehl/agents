@@ -78,6 +78,30 @@ are a small testbed for the same structure.
    by published roots. Building blocks: Trillian or Tessera for the log;
    Crosby & Wallach, "Efficient Data Structures for Tamper-Evident Logging"
    (USENIX Security 2009), for history trees.
+
+   *Client-side checks.* An honest client keeps what it sent and what it
+   received. It verifies that the router's signed receipt commits to
+   exactly those hashes, with an inclusion proof under a signed root. This
+   proves that the router signed what that client saw, which gives
+   non-repudiation for the client's own view. Collaborating clients
+   exchange the roots they hold: any two must be linked by a consistency
+   proof, or the pair is a transferable proof of a fork. Each client also
+   confirms that its own records are included under the latest root they
+   share. The name for this guarantee is *fork consistency*, from SUNDR
+   (Li, Krohn, Mazières, Shasha, OSDI 2004). A misbehaving router can split
+   clients into separate histories but must keep them apart forever, and
+   any later contact between groups, or a shared witness, exposes the fork.
+   A partition whose groups never compare stays undetected. That is why
+   witnesses remain worthwhile even when clients collaborate.
+
+   *Provider origin without signatures.* Output that works at a frontier
+   capability level is weak, implicit evidence that a frontier model
+   produced it. A router cannot fake that quality without access to some
+   comparable model. This evidence does not rule out substituting another
+   capable model, or a cheaper one where a task does not test the
+   difference. It also cannot catch a focused deception attack: small
+   targeted edits spliced into an otherwise genuine output. Only signatures
+   on the upstream model outputs defeat that.
 3. *Attribution narrowing (approximate).* Within the manifest, rank which
    items actually drove the action:
    - attention or gradient attribution, which needs model internals and is
