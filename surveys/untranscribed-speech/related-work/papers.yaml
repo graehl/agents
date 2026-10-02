@@ -21,6 +21,48 @@ meta:
   grounding_mode: grounded
 
 papers:
+  - key: raj2019xvector-probing
+    title: Probing the Information Encoded in X-vectors
+    authors: [Desh Raj, David Snyder, Daniel Povey, Sanjeev Khudanpur]
+    venue: IEEE Automatic Speech Recognition and Understanding Workshop
+    year: 2019
+    arxiv: '1909.06351'
+    url: https://arxiv.org/abs/1909.06351
+    source: https://arxiv.org/abs/1909.06351
+    verified: true
+    grounded: false
+  - key: friedman2023vendi
+    title: 'The Vendi Score: A Diversity Evaluation Metric for Machine Learning'
+    authors: [Dan Friedman, Adji Bousso Dieng]
+    venue: Transactions on Machine Learning Research
+    year: 2023
+    arxiv: '2210.02410'
+    url: https://arxiv.org/html/2210.02410
+    source: https://arxiv.org/html/2210.02410v2
+    verified: true
+    grounded: false
+  - key: kim2024accent-mining
+    title: Clustering and Mining Accented Speech for Inclusive and Fair Speech Recognition
+    authors: [Jaeyoung Kim, Han Lu, Soheil Khorram, Anshuman Tripathi, Qian Zhang, Hasim Sak]
+    venue: arXiv preprint
+    year: 2024
+    arxiv: '2408.02582'
+    url: https://arxiv.org/html/2408.02582v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-02
+    concept_page: concepts/speaker-accent-diversity.md
+  - key: ghorbani2023multi-embedding
+    title: Advanced accent/dialect identification and accentedness assessment with multi-embedding models and automatic speech recognition
+    authors: [Shahram Ghorbani, John H. L. Hansen]
+    venue: arXiv preprint
+    year: 2023
+    arxiv: '2310.11004'
+    url: https://arxiv.org/html/2310.11004v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-02
+    concept_page: concepts/speaker-accent-diversity.md
   - key: voxpopuli-release
     title: VoxPopuli release documentation
     authors: [Changhan Wang, Morgane Riviere, Ann Lee, Anne Wu, Chaitanya Talnikar, Daniel Haziza, Mary Williamson, Juan Pino, Emmanuel Dupoux]
