@@ -107,20 +107,32 @@ are a small testbed for the same structure.
    T is disclosed later, which mostly matters near the frontier.
 
    This evidence cannot catch a focused deception attack: small, targeted,
-   high-impact edits spliced into an otherwise genuine output, including a
-   manual rewrite of one crucial fact. A flipped constant or sign, a changed
-   dependency or version pin, a swapped URL, or a dropped check leaves the
-   output fluent. Partial defences short of signatures:
+   high-impact edits spliced into an otherwise genuine output. Altered facts
+   are not the main exposure. The harness already distrusts a model's
+   uncited facts, and facts it relies on come from tools run in the user's
+   harness, whose results the router never handles. Router-hosted tools,
+   such as server-side web search, are the exception: their results are
+   router-mediated too. The exposure is model output that is *executed or
+   relied on as judgment*:
+   - tool-call arguments and commands;
+   - code and configuration: a flipped constant or sign, a changed
+     dependency or version pin, a swapped URL, a dropped check;
+   - choices and summaries over trusted facts, such as which result to
+     emphasize or which branch to recommend.
+
+   These edits leave the output fluent. Partial defences short of
+   signatures:
    - *Random audit sampling:* the client sends a random fraction of
      requests directly to the provider and compares the answers. If the
      router cannot tell audited requests from ordinary ones, sustained
      corruption becomes risky for it. Sampling does nothing against a
      single targeted strike. Comparison is noisy except on deterministic or
      low-temperature requests.
-   - *Local verification:* a local model checks that citations resolve and
-     support the claims attached to them, and flags uncited facts that
-     matter. This catches spliced claims that cite sources, but not an
-     altered constant that stands alone.
+   - *Local verification:* a local model checks that citations resolve to
+     harness tool results and support the claims attached to them. This
+     enforces the existing fact boundary. It catches little in code or
+     actions, where an altered constant cites nothing; review, tests and
+     sandboxed execution are the usual guards there.
 
    Only signatures on the upstream model outputs defeat focused deception.
 3. *Attribution narrowing (approximate).* Within the manifest, rank which
