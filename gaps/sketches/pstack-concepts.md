@@ -215,13 +215,14 @@ offers, what `~/agents` already has, and the proposed move.
   ("no, i mistakenly thought…"), and one probably answered the agent's
   question. Precision is usable and volume is low, so unmarked
   corrections still dominate.
-  For a deliberate marker the user prefers a leading `bad!`. It is
-  unlikely to appear by accident. No user turn in `~/.claude/projects`
-  begins with `bad` followed by punctuation, so the needle starts with
-  no collisions. Match `bad` followed by any punctuation, since
-  dictation may not produce the `!`. Both needles are only a cheap
-  first pass that picks which turns the mining agent reads closely.
-  `bad!` gives higher precision, and `no` catches more turns.
+  For a deliberate marker the user prefers starting the turn with
+  `bad` (`Bad`, `bad!`, `bad.`). They are unlikely to say it without
+  thinking, and dictation controls neither case nor punctuation, so the
+  needle is any turn whose first word is `bad`, in either case. No user
+  turn in `~/.claude/projects` begins with `bad` followed by
+  punctuation. Both needles are only a cheap first pass that picks
+  which turns the mining agent reads closely. `bad` gives higher
+  precision, and `no` catches more turns.
   Classifying a turn, and proposing any guidance or workflow change
   from it, is that agent's judgment. The
   miner should check whether the agent's action followed from a
