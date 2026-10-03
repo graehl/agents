@@ -215,6 +215,13 @@ offers, what `~/agents` already has, and the proposed move.
   ("no, i mistakenly thought…"), and one probably answered the agent's
   question. Precision is usable and volume is low, so unmarked
   corrections still dominate.
+  For a deliberate marker the user prefers a leading `bad!`. It is
+  unlikely to appear by accident. No user turn in `~/.claude/projects`
+  begins with `bad` followed by punctuation, so the needle starts with
+  no collisions. A `bad!` turn is the user's own verdict that the agent
+  erred, and it goes straight to the enforcer path. Match `bad`
+  followed by any punctuation, since dictation may not produce the
+  `!`. A `no` remains only a candidate.
   The needle finds candidates; the class still takes judgment. The
   miner should check whether the agent's action followed from a
   reasonable reading of what the user actually wrote. If it did, the
