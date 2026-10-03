@@ -20,7 +20,6 @@ import os
 import re
 import shlex
 import sys
-import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -32,6 +31,11 @@ if str(_REPO_ROOT) not in sys.path:
 from acli import args as acli_args
 from acli import errors, session
 from acli.emit import write_jsonl, write_pretty
+from session_logs import (
+    NoTranscriptDir,
+    current_session_ids,
+    session_sources,
+)
 
 # Tools whose second argv token is a subcommand worth keeping in the
 # pattern signature.
@@ -225,38 +229,6 @@ def result_text(record: dict[str, Any], block: dict[str, Any]) -> str:
         parts = [c.get("text", "") for c in content if isinstance(c, dict)]
         return "\n".join(p for p in parts if p)
     return ""
-
-
-def transcript_dirs(project_root: Path) -> list[Path]:
-    base = Path.home() / ".claude" / "projects"
-    munged = str(project_root).replace("/", "-")
-    candidates = [base / munged, base / munged.replace(".", "-")]
-    seen: list[Path] = []
-    for cand in candidates:
-        if cand.is_dir() and cand not in seen:
-            seen.append(cand)
-    return seen
-
-
-def codex_session_info(path: Path) -> tuple[str, Path | None]:
-    """Return the resumable session id and recorded cwd from a rollout."""
-    with path.open(encoding="utf-8", errors="replace") as fh:
-        for index, line in enumerate(fh):
-            if index >= 20:
-                break
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if record.get("type") != "session_meta":
-                continue
-            payload = record.get("payload") or {}
-            session_id = str(
-                payload.get("id") or payload.get("session_id") or path.stem
-            )
-            cwd = payload.get("cwd")
-            return session_id, Path(cwd).expanduser().resolve() if cwd else None
-    return path.stem, None
 
 
 def codex_result_text(payload: dict[str, Any]) -> str:
@@ -630,43 +602,17 @@ def event_label(event: dict[str, Any]) -> str:
 
 def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]], int]:
     project_root = Path(ns.project).resolve()
-    exclude = set()
-    if not ns.all_sessions:
-        for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID"):
-            value = os.environ.get(var, "").strip()
-            if value:
-                exclude.add(value)
-    cutoff = time.time() - ns.days * 86400 if ns.days else 0.0
-    sources: list[tuple[Path, str]] = []
-    if ns.harness == "claude":
-        dirs = transcript_dirs(project_root)
-        if not dirs:
-            errors.die(
-                f"no Claude transcript dir for {project_root}",
-                errors.ExitCode.NOT_FOUND,
-                detail={"looked_under": str(Path.home() / ".claude" / "projects")},
-            )
-        sources = [
-            (path, path.stem)
-            for directory in dirs
-            for path in directory.glob("*.jsonl")
-            if path.stem not in exclude and path.stat().st_mtime >= cutoff
-        ]
-    else:
-        base = Path.home() / ".codex" / "sessions"
-        if not base.is_dir():
-            errors.die(
-                f"no Codex transcript dir for {project_root}",
-                errors.ExitCode.NOT_FOUND,
-                detail={"looked_under": str(base)},
-            )
-        for path in base.rglob("*.jsonl"):
-            if path.stat().st_mtime < cutoff:
-                continue
-            session_id, cwd = codex_session_info(path)
-            if session_id not in exclude and cwd == project_root:
-                sources.append((path, session_id))
-    sources.sort(key=lambda source: str(source[0]))
+    exclude = set() if ns.all_sessions else current_session_ids()
+    try:
+        sources = session_sources(
+            ns.harness, project_root, days=ns.days, exclude=exclude
+        )
+    except NoTranscriptDir as exc:
+        errors.die(
+            f"no {ns.harness} transcript dir for {project_root}",
+            errors.ExitCode.NOT_FOUND,
+            detail={"looked_under": str(exc.looked_under)},
+        )
 
     total_calls = 0
     total_failures = 0

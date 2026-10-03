@@ -29,6 +29,8 @@ ts = importlib.util.module_from_spec(_spec)
 sys.modules["tool_surprises"] = ts
 _loader.exec_module(ts)
 
+import session_logs  # importable once the tool has extended sys.path
+
 
 def test_bash_signature() -> None:
     cases = {
@@ -391,7 +393,7 @@ def test_codex_session_info() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "rollout.jsonl"
         path.write_text(line + "\n", encoding="utf-8")
-        got_id, cwd = ts.codex_session_info(path)
+        got_id, cwd = session_logs.codex_session_info(path)
     assert got_id == session_id
     assert cwd == Path("/home/graehl/agents").resolve()
 
