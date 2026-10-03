@@ -23,16 +23,34 @@ verify --text            # quick tier; one line when green
 verify --deep            # quick plus deep checks
 verify --only NAME       # one check, any tier; repeatable
 verify --list            # the declared checks, without running them
+verify --passed --text   # comma list of checks already green on these exact files
 ```
 
 `scripts/verify` in `~/agents`, installed as `~/bin/verify`. It finds the
-project root by walking up from the current directory (or `--project`) to the
-first `verify.toml` or `verify.local.toml`. Checks run concurrently
-(`--jobs`, default up to 4). Each one's output goes to
-`.verify/last/<name>.out` and `.err`; the directory is replaced on every run
-and added to the clone's `.git/info/exclude`. Exit 0 means every selected
-check passed (skips allowed), 1 means at least one failed or timed out, and
-the report is complete in both cases. `--full` also lists passing checks.
+root by walking up from the current directory (or `--project`) to the first
+`verify.toml` or `verify.local.toml`, so a program subdirectory with its own
+config is verified on its own when you run from inside it. Checks run
+concurrently (`--jobs`, default up to 4). Each one's output goes to
+`.verify/last/<name>.out` and `.err` under that root; the directory is
+replaced on every run and `.verify/` is added to the clone's
+`.git/info/exclude`. Exit 0 means every selected check passed (skips
+allowed), 1 means at least one failed or timed out, and the report is
+complete in both cases. `--full` also lists passing checks.
+
+Every result is remembered in `.verify/state.json` against the **source
+tree**: a git tree id of the tracked and untracked, non-ignored files,
+computed in a scratch index so the real one is untouched. `--passed` lists
+the checks whose latest result passed on exactly the current files, with the
+same command. A caller can skip those, which is how a publish script avoids
+rerunning checks that just passed. Any edit, including a rebase that brings
+in other changes, gives a new tree id and empties the list. The id covers
+the whole repository, even for a program subdirectory's checks. A run whose
+files changed while it was running records nothing.
+
+A check with a `warn` regular expression reports every output line that
+matches it, even when the check passes. The result stays a pass, the lines
+are shown in the output, and `--warnings-file PATH` writes all of them as
+`<check>: <line>`. A file that exists but is empty means no warnings.
 
 A check is **skipped**, not failed, when an executable it `requires` is not
 on `PATH`, or when it exits 69 (sysexits `EX_UNAVAILABLE`, acli's
@@ -49,6 +67,7 @@ requires = ["pytest"]                 # skip when absent from PATH
 timeout = "10m"                       # default 10m; killed as a process group
 tier = "quick"                        # default; "deep" runs only with --deep
 exclusive = false                     # true: run alone, after the others
+warn = 'not wrapped in act\('         # report matching lines; still a pass
 
 [[check]]
 each = "tests/test_*.py"              # one check per matching file
@@ -62,9 +81,21 @@ commit; slow, environment-heavy, or live-service checks go in `deep`. Mark a
 check `exclusive` when it cannot share the machine with another check, such
 as a browser suite that starts servers on fixed ports. A
 committed `verify.toml` is shared with collaborators. In a repository whose
-tracked files you should not change, declare checks in a git-excluded
-`verify.local.toml` instead. When both exist, a local check replaces the
-committed one of the same name.
+tracked files you should not change, or for private variations, declare
+checks in `verify.local.toml`; `verify` adds it to the clone's git exclude.
+When both exist, the local file is used and the committed one is ignored
+unless the local file includes it:
+
+```toml
+include = ["verify.toml"]             # paths relative to this file
+[[check]]
+name = "test"                         # replaces the included check of this name
+run = "pnpm test -- --bail"
+```
+
+Included checks run from their own file's directory, and `each` globs are
+relative to it as well. So a program's `verify.toml` can include
+`../../verify.toml` to add the project-wide checks to its own.
 
 ## Adopting it in a project
 

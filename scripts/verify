@@ -8,7 +8,10 @@ that declares its checks in `verify.toml` (committed) or
 change). Checks run in parallel; each one's stdout and stderr go to
 `.verify/last/<name>.out|.err` under the project root. On success the
 output is one summary record; each failing check adds a record with its
-exit status, log paths, and the tail of its output. See topics/verify.md.
+exit status, log paths, and the tail of its output. Each result is also
+remembered against the project's source tree, so `--passed` can tell a
+caller such as a publish script which checks already passed on exactly the
+current files. See topics/verify.md.
 """
 
 from __future__ import annotations
@@ -16,10 +19,12 @@ from __future__ import annotations
 import fnmatch
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -40,6 +45,7 @@ from acli.emit import emit
 CONFIG_NAMES = ("verify.toml", "verify.local.toml")
 TIERS = ("quick", "deep")
 LOG_DIR = Path(".verify") / "last"
+STATE_FILE = Path(".verify") / "state.json"
 DEFAULT_TIMEOUT = 600.0
 TAIL_LINES = 12
 # sysexits EX_UNAVAILABLE, also acli's `unavailable`: a prerequisite such
@@ -60,6 +66,7 @@ class Check:
     cwd: str = "."
     requires: list[str] = field(default_factory=list)
     exclusive: bool = False
+    warn: re.Pattern[str] | None = None
     source: str = ""
 
     def record(self) -> dict[str, Any]:
@@ -72,6 +79,7 @@ class Check:
             "timeout_s": self.timeout,
             "requires": self.requires,
             "exclusive": self.exclusive,
+            "warn": self.warn.pattern if self.warn else None,
             "source": self.source,
         }
 
@@ -83,7 +91,24 @@ def find_root(start: Path) -> Path:
     raise FileNotFoundError(start)
 
 
-def _expand(entry: dict[str, Any], root: Path, source: str) -> list[Check]:
+def _compile_warn(pattern: Any, source: str) -> re.Pattern[str] | None:
+    if pattern is None:
+        return None
+    if not isinstance(pattern, str):
+        raise ConfigError(f"{source}: warn must be a regular expression string")
+    try:
+        return re.compile(pattern)
+    except re.error as exc:
+        raise ConfigError(f"{source}: warn {pattern!r}: {exc}") from exc
+
+
+def _expand(entry: dict[str, Any], root: Path, base: Path, source: str) -> list[Check]:
+    """Checks from one `[[check]]` entry of the config file in `base`.
+
+    `cwd` and `each` are relative to `base`, the defining file's directory,
+    so an included file's checks run where that file expects; the stored
+    `cwd` is re-expressed relative to `root`.
+    """
     unknown = set(entry) - {
         "name",
         "run",
@@ -92,6 +117,7 @@ def _expand(entry: dict[str, Any], root: Path, source: str) -> list[Check]:
         "cwd",
         "requires",
         "exclusive",
+        "warn",
         "each",
         "exclude",
     }
@@ -107,15 +133,16 @@ def _expand(entry: dict[str, Any], root: Path, source: str) -> list[Check]:
         timeout = acli_args.duration_seconds(timeout)
     if not isinstance(timeout, int | float) or timeout <= 0:
         raise ConfigError(f"{source}: timeout must be a positive duration: {timeout!r}")
-    cwd = entry.get("cwd", ".")
-    if not (root / cwd).is_dir():
-        raise ConfigError(f"{source}: cwd {cwd!r} is not a directory under {root}")
+    run_dir = base / entry.get("cwd", ".")
+    if not run_dir.is_dir():
+        raise ConfigError(f"{source}: cwd {entry.get('cwd')!r} is not a directory")
     common = {
         "tier": tier,
         "timeout": float(timeout),
-        "cwd": cwd,
+        "cwd": os.path.relpath(run_dir, root),
         "requires": list(entry.get("requires", [])),
         "exclusive": bool(entry.get("exclusive", False)),
+        "warn": _compile_warn(entry.get("warn"), source),
         "source": source,
     }
     if "each" not in entry:
@@ -124,7 +151,7 @@ def _expand(entry: dict[str, Any], root: Path, source: str) -> list[Check]:
         return [Check(name=entry["name"], run=entry["run"], **common)]
     excluded = set(entry.get("exclude", []))
     paths = sorted(
-        p.relative_to(root).as_posix() for p in root.glob(entry["each"]) if p.is_file()
+        p.relative_to(base).as_posix() for p in base.glob(entry["each"]) if p.is_file()
     )
     paths = [p for p in paths if not any(fnmatch.fnmatch(p, x) for x in excluded)]
     if not paths:
@@ -140,32 +167,58 @@ def _expand(entry: dict[str, Any], root: Path, source: str) -> list[Check]:
     ]
 
 
+def _load_file(
+    path: Path, root: Path, checks: dict[str, Check], stack: tuple[Path, ...]
+) -> None:
+    """Add a config file's checks, after the files it includes.
+
+    `include = ["../verify.toml"]` paths are relative to the including file.
+    Its own checks then replace included ones of the same name.
+    """
+    source = os.path.relpath(path, root)
+    if path in stack:
+        chain = " -> ".join(os.path.relpath(p, root) for p in (*stack, path))
+        raise ConfigError(f"include cycle: {chain}")
+    if not path.is_file():
+        including = os.path.relpath(stack[-1], root)
+        raise ConfigError(f"{including}: no such include {source}")
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(f"{source}: {exc}") from exc
+    unknown = set(data) - {"check", "include"}
+    if unknown:
+        raise ConfigError(f"{source}: unknown top-level keys {sorted(unknown)}")
+    for inc in data.get("include", []):
+        _load_file((path.parent / inc).resolve(), root, checks, (*stack, path))
+    own: set[str] = set()
+    for entry in data.get("check", []):
+        for check in _expand(entry, root, path.parent, source):
+            if check.name in own:
+                raise ConfigError(f"{source}: duplicate check name {check.name!r}")
+            own.add(check.name)
+            checks[check.name] = check
+
+
 def load_checks(root: Path) -> list[Check]:
-    """Committed checks first; a local check with the same name replaces one."""
+    """The checks of `verify.local.toml` when present, else `verify.toml`.
+
+    A local file replaces the committed one; it gets the committed checks
+    only by including them (`include = ["verify.toml"]`).
+    """
+    config = next(root / n for n in reversed(CONFIG_NAMES) if (root / n).is_file())
     checks: dict[str, Check] = {}
-    for config in CONFIG_NAMES:
-        path = root / config
-        if not path.is_file():
-            continue
-        try:
-            data = tomllib.loads(path.read_text(encoding="utf-8"))
-        except tomllib.TOMLDecodeError as exc:
-            raise ConfigError(f"{config}: {exc}") from exc
-        unknown = set(data) - {"check"}
-        if unknown:
-            raise ConfigError(f"{config}: unknown top-level keys {sorted(unknown)}")
-        for entry in data.get("check", []):
-            for check in _expand(entry, root, config):
-                if check.name in checks and checks[check.name].source == config:
-                    raise ConfigError(f"{config}: duplicate check name {check.name!r}")
-                checks[check.name] = check
+    _load_file(config.resolve(), root.resolve(), checks, ())
     if not checks:
-        raise ConfigError(f"no checks declared in {', '.join(CONFIG_NAMES)}")
+        raise ConfigError(f"no checks declared in {config.name} or its includes")
     return list(checks.values())
 
 
 def ensure_excluded(root: Path) -> None:
-    """Keep `.verify/` out of git status via the per-clone exclude file."""
+    """Keep verify's private files out of git via the per-clone exclude file.
+
+    `.verify/` holds logs and state; `verify.local.toml` is a private config.
+    """
     probe = subprocess.run(
         ["git", "-C", str(root), "rev-parse", "--git-path", "info/exclude"],
         capture_output=True,
@@ -177,13 +230,17 @@ def ensure_excluded(root: Path) -> None:
     exclude = Path(probe.stdout.strip())
     if not exclude.is_absolute():
         exclude = root / exclude
-    pattern = "/.verify/"
+    # Unanchored, so a program subdirectory with its own config is covered as
+    # well as the repository root.
     existing = exclude.read_text(encoding="utf-8") if exclude.is_file() else ""
-    if pattern in existing.splitlines():
+    missing = [
+        p for p in (".verify/", "verify.local.toml") if p not in existing.splitlines()
+    ]
+    if not missing:
         return
     exclude.parent.mkdir(parents=True, exist_ok=True)
     sep = "" if not existing or existing.endswith("\n") else "\n"
-    exclude.write_text(f"{existing}{sep}{pattern}\n", encoding="utf-8")
+    exclude.write_text(existing + sep + "".join(f"{p}\n" for p in missing), "utf-8")
 
 
 def _tail(path: Path, lines: int) -> str:
@@ -211,6 +268,78 @@ def _unavailable_reason(last_line: str) -> str:
     if isinstance(envelope, dict) and isinstance(envelope.get("error"), dict):
         return str(envelope["error"].get("message") or last_line)
     return last_line
+
+
+def _matching_lines(pattern: re.Pattern[str], *paths: Path) -> list[str]:
+    """Every log line that matches a check's warn pattern."""
+    found: list[str] = []
+    for path in paths:
+        with path.open(encoding="utf-8", errors="replace") as fh:
+            found += [line.rstrip("\n") for line in fh if pattern.search(line)]
+    return found
+
+
+def source_tree(root: Path) -> str | None:
+    """Git tree id of the working files: tracked plus untracked, not ignored.
+
+    Built in a throwaway copy of the index, so the real index is untouched.
+    Two runs see the same id exactly when they saw the same file contents.
+    None outside a git work tree.
+    """
+    probe = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--git-path", "index"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if probe.returncode != 0:
+        return None
+    index = Path(probe.stdout.strip())
+    if not index.is_absolute():
+        index = root / index
+    with tempfile.TemporaryDirectory(prefix="verify-index-") as tmp:
+        scratch = Path(tmp) / "index"
+        if index.is_file():
+            shutil.copyfile(index, scratch)
+        env = {**os.environ, "GIT_INDEX_FILE": str(scratch)}
+        for cmd in (["add", "-A"], ["write-tree"]):
+            done = subprocess.run(
+                ["git", "-C", str(root), *cmd],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+            if done.returncode != 0:
+                raise RuntimeError(f"git {' '.join(cmd)}: {done.stderr.strip()}")
+    return done.stdout.strip()
+
+
+def load_state(root: Path) -> dict[str, Any]:
+    path = root / STATE_FILE
+    if not path.is_file():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8")).get("checks", {})
+
+
+def save_state(root: Path, checks: dict[str, Any]) -> None:
+    path = root / STATE_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"checks": checks}, indent=1) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def passed_here(checks: list[Check], state: dict[str, Any], tree: str) -> list[str]:
+    """Checks whose latest result passed on this tree with today's command."""
+    return [
+        c.name
+        for c in checks
+        if (entry := state.get(c.name))
+        and entry.get("status") == "passed"
+        and entry.get("tree") == tree
+        and entry.get("run") == c.run
+    ]
 
 
 class Runner:
@@ -269,6 +398,11 @@ class Runner:
         }
         if code is None:
             result["timed_out_after_s"] = check.timeout
+        elif code == 0 and check.warn is not None:
+            # A pass with warnings stays a pass; the lines are reported.
+            warnings = _matching_lines(check.warn, out_path, err_path)
+            if warnings:
+                result["warnings"] = warnings
         return result
 
     @staticmethod
@@ -292,7 +426,6 @@ def run_checks(root: Path, checks: list[Check], jobs: int) -> list[dict[str, Any
         for stale in log_dir.iterdir():
             stale.unlink()
     log_dir.mkdir(parents=True, exist_ok=True)
-    ensure_excluded(root)
     runner = Runner(root, log_dir)
     pool = ThreadPoolExecutor(max_workers=jobs)
     shared = [c for c in checks if not c.exclusive]
@@ -320,8 +453,11 @@ def render_text(
     summary: dict[str, Any],
     failures: list[dict[str, Any]],
     skipped: list[dict[str, Any]],
+    warned: list[dict[str, Any]],
 ) -> str:
     counts = f"{summary['passed']} passed"
+    if warned:
+        counts += f" ({len(warned)} with warnings)"
     if summary["skipped"]:
         counts += f", {summary['skipped']} skipped"
     where = f"{summary['tier']}, {summary['duration_s']}s"
@@ -334,12 +470,19 @@ def render_text(
             + f"logs in {summary['log_dir']}"
         ]
     lines += [f"- skipped {s['name']}: {s['reason']}" for s in skipped]
+    for w in warned:
+        total = w.get("warnings_total", len(w["warnings"]))
+        lines.append(f"- {w['name']}: passed with {total} warning line(s):")
+        lines += [f"    {line}" for line in w["warnings"]]
+        if total > len(w["warnings"]):
+            lines.append(
+                f"    … {total - len(w['warnings'])} more; see --warnings-file"
+            )
     for f in failures:
-        status = (
-            f"timed out after {f['timed_out_after_s']}s"
-            if f.get("timed_out_after_s")
-            else f"exit {f['exit_code']}"
-        )
+        if f.get("timed_out_after_s"):
+            status = f"timed out after {f['timed_out_after_s']}s"
+        else:
+            status = f"exit {f['exit_code']}"
         lines.append(f"- {f['name']}: {status} ({f['duration_s']}s)")
         for stream in ("stdout", "stderr"):
             tail = f[f"{stream}_tail"]
@@ -379,6 +522,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--list", action="store_true", help="list checks without running them"
+    )
+    parser.add_argument(
+        "--passed",
+        action="store_true",
+        help="run nothing; report the checks whose latest result passed on "
+        "exactly the current files (--text: comma-separated names)",
+    )
+    parser.add_argument(
+        "--warnings-file",
+        metavar="PATH",
+        help="write every line matched by a check's warn pattern, as "
+        "'<check>: <line>', to PATH (replaced each run; empty when none)",
     )
     parser.add_argument(
         "--jobs",
@@ -422,9 +577,46 @@ def main(argv: list[str] | None = None) -> int:
     if ns.list:
         emit([c.record() for c in selected] or [], fmt)
         return 0
+    if ns.passed:
+        tree = source_tree(root)
+        pool = selected if ns.only else checks  # every tier unless --only
+        names = passed_here(pool, load_state(root), tree) if tree else []
+        emit(
+            {"kind": "passed", "root": str(root), "tree": tree, "checks": names},
+            fmt,
+            text=",".join(names),
+        )
+        return 0
 
     start = time.monotonic()
+    ensure_excluded(root)  # before hashing, so our own logs never count
+    tree = source_tree(root)
     results = run_checks(root, selected, ns.jobs)
+    # Remember results only when the files did not change during the run.
+    if tree is not None and source_tree(root) == tree:
+        state = load_state(root)
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        runs = {c.name: c.run for c in selected}
+        for r in results:
+            state[r["name"]] = {
+                "status": r["status"],
+                "tree": tree,
+                "run": runs[r["name"]],
+                "warnings": len(r.get("warnings", [])),
+                "at": stamp,
+            }
+        save_state(root, state)
+    warned = [r for r in results if r.get("warnings")]
+    if ns.warnings_file:
+        Path(ns.warnings_file).write_text(
+            "".join(f"{r['name']}: {line}\n" for r in warned for line in r["warnings"]),
+            encoding="utf-8",
+        )
+    if not ns.full:
+        for r in warned:
+            if len(r["warnings"]) > TAIL_LINES:
+                r["warnings_total"] = len(r["warnings"])
+                r["warnings"] = r["warnings"][:TAIL_LINES]
     failures = []
     for r in results:
         if r["status"] == "failed":
@@ -442,11 +634,16 @@ def main(argv: list[str] | None = None) -> int:
         "duration_s": round(time.monotonic() - start, 2),
         "log_dir": _display(str(root / LOG_DIR), Path.cwd()),
         "failed_checks": [f["name"] for f in failures],
+        "warned_checks": [w["name"] for w in warned],
     }
-    shown = results if ns.full else [r for r in results if r["status"] != "passed"]
+    shown = (
+        results
+        if ns.full
+        else [r for r in results if r["status"] != "passed" or r.get("warnings")]
+    )
     records = [{"kind": "result", **r} for r in shown] + [summary]
     skipped = [r for r in results if r["status"] == "skipped"]
-    emit(records, fmt, text=render_text(summary, failures, skipped))
+    emit(records, fmt, text=render_text(summary, failures, skipped, warned))
     return 0 if summary["ok"] else 1
 
 
