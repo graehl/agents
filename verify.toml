@@ -1,0 +1,32 @@
+# Checks run by `scripts/verify` (see topics/verify.md).
+
+# Standalone test scripts: each runs its own tests and exits nonzero on failure.
+[[check]]
+each = "tests/test_*.py"
+run = "python3 {path}"
+exclude = [
+  "tests/test_agentctl.py",
+  "tests/test_document_annotation.py",
+  "tests/test_document_annotation_chat.py",
+  "tests/test_qmd_build.py",
+]
+
+# Tests written for pytest; the repo root must be importable.
+[[check]]
+name = "pytest"
+run = "PYTHONPATH=. pytest -q -p no:cacheprovider tests/test_document_annotation.py tests/test_document_annotation_chat.py tests/unit"
+requires = ["pytest"]
+
+# About two minutes: real subprocesses, waits, and lock races.
+[[check]]
+name = "test_agentctl"
+run = "python3 tests/test_agentctl.py"
+tier = "deep"
+
+# Builds real manuscripts through Quarto/TeX; skips its end-to-end cases when
+# those are absent.
+[[check]]
+name = "qmd_build"
+run = "PYTHONPATH=. pytest -q -p no:cacheprovider tests/test_qmd_build.py"
+requires = ["pytest"]
+tier = "deep"

@@ -18,6 +18,28 @@ the user's reading time goes to the current approach, its alternatives
 and its warning signs. Nine threads follow. Each gives what pstack
 offers, what `~/agents` already has, and the proposed move.
 
+## Implementation status
+
+Items land a few at a time so each gathers use before the next is built.
+The last column says how to tell whether a landed item is paying off.
+
+| # | Item | Status (2026-10-03) | Where | Evaluate by |
+|---|---|---|---|---|
+| 1 | `verify` entry point | **Landed.** Quick and deep tiers; skips on a missing `requires` or exit 69; failures report stdout and stderr tails plus log paths. `~/agents` declares its suite: quick is about 15 s, and `test_agentctl` (about 2 min) is deep. | [verify](../../topics/verify.md), `scripts/verify`, `verify.toml`, `~/bin/verify` | Agents in `~/agents` call `verify` instead of hand-running tests. Adopt in `~/ya` next, through a git-excluded `verify.local.toml`. |
+| 1 | Judgment tiers above `verify` (soft-check review, live drive of a feature map, harsh-review), `verify doctor` | Not started | — | Wait until a project has a feature map worth driving. |
+| 2 | Quiet-success output for lasting tools | **Partial.** `verify` reports green as one line. Not yet a general acli profile, and no trigger to build a tool after the second hand-run. | `scripts/verify` | Whether agents still read whole logs after a red `verify`. |
+| 3 | `belief` tool (hash-bound claims about project state) | Not started | — | — |
+| 4 | Learning slot in final replies | Deferred: needs an ablation before it becomes an instruction | — | [instruction-ablation](../../topics/instruction-ablation.md) |
+| 5 | New feature, new file | Not started. Would be a ratchet finder in item 8 rather than prose. | — | — |
+| 6–7 | Route reports to running sessions; cluster them by cause | Not started. Needs a live external-report source first. | — | — |
+| 8 | Pattern finders feeding a batch-decision queue | Not started | — | — |
+| 9 | `bad` / `no` intervention needles | **Landed.** The first pass covers Claude and Codex logs, scoped to one project or all projects. Judging the candidates is a manual agent pass, as the topic describes. | [intervention-needles](../../topics/intervention-needles.md), `scripts/intervention-needles`, `~/bin/intervention-needles` | First all-project scan: 1 `bad` and 141 `no` among 42,563 user turns. Review a sample, and count how many become guidance or tool changes. |
+
+Supporting changes: `session_logs.py` now holds session-log discovery
+for both miners. The first `verify` run also found an `agentctl` test that
+failed under a YA launcher, now fixed, and showed the two known-red
+`agentctl` tests that `gaps/` already tracks.
+
 ## 1. Project verify tools, with a ladder of judgment checks
 
 - *pstack:* `create-verification-skill` writes a project-local

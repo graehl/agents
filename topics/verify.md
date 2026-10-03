@@ -1,0 +1,78 @@
+# Verify
+
+> `verify` is the standard way to run a project's tests and checks: the
+> project declares them in `verify.toml`, and the runner reports one summary
+> line on success and only the failing checks' details otherwise.
+
+Topic: `verify`
+Governs: running a project's tests or checks, when it has a verify.toml
+
+## Why a standard entry point
+
+Each project already has its own test commands; `verify` does not replace
+them. It gives them one name, so "run the tests" costs one call with the same
+output shape everywhere instead of rediscovering commands and reading whole
+logs. Output stays small when nothing needs judgment: green is one summary
+record. A failure brings its exit status, the last lines of stdout and
+stderr, and the full log paths for anything further.
+
+## Running it
+
+```sh
+verify --text            # quick tier; one line when green
+verify --deep            # quick plus deep checks
+verify --only NAME       # one check, any tier; repeatable
+verify --list            # the declared checks, without running them
+```
+
+`scripts/verify` in `~/agents`, installed as `~/bin/verify`. It finds the
+project root by walking up from the current directory (or `--project`) to the
+first `verify.toml` or `verify.local.toml`. Checks run concurrently
+(`--jobs`, default up to 4). Each one's output goes to
+`.verify/last/<name>.out` and `.err`; the directory is replaced on every run
+and added to the clone's `.git/info/exclude`. Exit 0 means every selected
+check passed (skips allowed), 1 means at least one failed or timed out, and
+the report is complete in both cases. `--full` also lists passing checks.
+
+A check is **skipped**, not failed, when an executable it `requires` is not
+on `PATH`, or when it exits 69 (sysexits `EX_UNAVAILABLE`, acli's
+`unavailable`) to say a prerequisite is missing. The skip carries the reason,
+so an environment gap stays visible without turning the run red.
+
+## Declaring checks
+
+```toml
+[[check]]
+name = "unit"
+run = "python3 -m pytest -q tests"   # bash -c, from cwd (default: root)
+requires = ["pytest"]                 # skip when absent from PATH
+timeout = "10m"                       # default 10m; killed as a process group
+tier = "quick"                        # default; "deep" runs only with --deep
+
+[[check]]
+each = "tests/test_*.py"              # one check per matching file
+name = "{stem}"                       # default
+run = "python3 {path}"
+exclude = ["tests/test_slow.py"]
+```
+
+Put a check in the quick tier when it is cheap enough to run before every
+commit; slow, environment-heavy, or live-service checks go in `deep`. A
+committed `verify.toml` is shared with collaborators. In a repository whose
+tracked files you should not change, declare checks in a git-excluded
+`verify.local.toml` instead. When both exist, a local check replaces the
+committed one of the same name.
+
+## Adopting it in a project
+
+Declare the checks that the project's instructions already name as "the
+tests", using the project's own commands and environment; do not invent new
+coverage while adopting. Run `verify` once and fix or report each red check
+before relying on it: a check that is always red trains agents to ignore the
+whole report. A known, gap-tracked failure may stay red when it is reported
+plainly. Gate a quick check behind `requires` or exit 69 only for a truly
+optional prerequisite.
+
+The checks a project's instructions name remain authoritative, including any
+publish or CI gates; `verify` is how to run them, not a new policy about
+which ones must pass.

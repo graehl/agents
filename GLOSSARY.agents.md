@@ -63,6 +63,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `helper-scripts` | Governs: adding a helper to ~/bin or scripts/, or using queued-anchor or session-turn | [helper-scripts](topics/helper-scripts.md) |
 | `instruction-ablation` | Governs: measuring whether an instruction change helps | [instruction-ablation](topics/instruction-ablation.md) |
 | interruptible checkpoint | A brief visible statement of the current interpretation or branch choice that invites correction only if wrong and continues without waiting. | |
+| `intervention-needles` | Governs: mining session logs for user corrections or interventions | [intervention-needles](topics/intervention-needles.md) |
 | leaf (subagent) | A depth-1 delegated agent that reports to its creator and cannot spawn; may be re-engaged across turns. | |
 | lede (topic-doc) | The `> ` blockquote lines after a topic doc's H1; the definition consumed by glossary regeneration. | [topic-doc-format](topics/topic-doc-format.md) |
 | load-bearing instruction | An instruction whose presence demonstrably steers behavior beyond a capable agent's default; others are cut candidates. | |
@@ -118,6 +119,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | ungrounded survey | A survey requested as `light`, `recall`, or `ungrounded`: model-memory answer, no corpus, no artifact. Anything else is grounded and persists under `surveys/`. | [research-survey](topics/research-survey.md) |
 | `vendoring` | Governs: copying third-party code or a skill to keep | [vendoring](topics/vendoring.md) |
 | `verified-provenance` | Governs: row-wise translating, paraphrasing, or rewriting a dataset | [verified-provenance](topics/verified-provenance.md) |
+| `verify` | Governs: running a project's tests or checks, when it has a verify.toml | [verify](topics/verify.md) |
 | `web-digest` | Governs: updating the claude.ai preferences paste or web digest | [web-digest](topics/web-digest.md) |
 | `workflow-tags` | Governs: adopting or emitting schema-announced workflow tags | [workflow-tags](topics/workflow-tags.md) |
 | `writing` | Governs: drafting or revising a document for readers (report, brief, essay, article, letter, web copy, story), not a working record | [writing](topics/writing.md) |

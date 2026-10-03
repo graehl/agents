@@ -875,6 +875,7 @@ row, not this section.
 - diagnosing a defect or slow or stalled behavior → `debugging`
 - a new or unrelated defect report arrives → `handling-bug-reports`
 - writing or changing tests, or validating a behavior change → `testing`
+- running a project's tests or checks, when it has a verify.toml → `verify`
 - creating or using a topic's .testing.md → `testing-rider`
 - verifying generated output that has no exact expected value → `soft-checks`
 - writing throwaway code to answer one question → `prototyping`
@@ -892,6 +893,7 @@ row, not this section.
 - specifying or verifying an acli tool's exact protocol → `acli-spec`
 - adopting or emitting schema-announced workflow tags → `workflow-tags`
 - /tool-surprises, or recurring tool or command failure patterns → `tool-surprises`
+- mining session logs for user corrections or interventions → `intervention-needles`
 
 **User interfaces.**
 

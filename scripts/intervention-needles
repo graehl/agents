@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+# acli: 1 complete
+"""List user turns that may be interventions, for agent review.
+
+A first-pass filter over harness session logs: it emits every user turn
+whose first word is `bad`, or that starts with `no` followed by
+punctuation or the end of the turn. Each candidate carries the assistant
+text it answered and the actions that followed, so a reviewing agent can
+judge whether the turn corrected an agent error, clarified a user
+misstatement, or answered a question. The needles do not classify;
+see topics/intervention-needles.md.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import args as acli_args
+from acli import errors, session
+from acli.emit import write_jsonl, write_pretty
+from session_logs import (
+    HARNESSES,
+    NoTranscriptDir,
+    current_session_ids,
+    session_sources,
+)
+
+NEEDLES = ("bad", "no")
+_NEEDLE_RE = re.compile(r"(bad)\b|(no)(?=[,.!?;:\n]|\s*$)", re.IGNORECASE)
+# Leading text that precedes the first word without being part of it:
+# whitespace, quotes, a microphone emoji, or a bracketed dictation tag
+# such as YA's `[ASR]`.
+_LEAD_RE = re.compile(r"^(?:[^\w\[]+|\[[^\]\n]{1,20}\])*", re.UNICODE)
+# Substrings present on every user-turn record, whatever the JSON spacing.
+# Only those lines are parsed in the first pass; a session is fully parsed
+# only when it has a candidate.
+_USER_MARKERS = {
+    "claude": ('"user"', '"queued_command"'),
+    "codex": ('"user"',),
+}
+_MAX_ACTIONS = 5
+
+
+def match_needle(text: str) -> str | None:
+    """Return the needle a user turn starts with, or None."""
+    body = _LEAD_RE.sub("", text, count=1)
+    m = _NEEDLE_RE.match(body)
+    if not m:
+        return None
+    return "bad" if m.group(1) else "no"
+
+
+def trim(text: str, limit: int, full: bool, *, tail: bool = False) -> str:
+    text = " ".join(text.split())
+    if full or len(text) <= limit:
+        return text
+    return "…" + text[-limit:] if tail else text[:limit] + "…"
+
+
+def _action_label(name: str, args: dict[str, Any]) -> str:
+    target = (
+        args.get("file_path")
+        or args.get("path")
+        or args.get("command")
+        or args.get("cmd")
+        or args.get("pattern")
+        or ""
+    )
+    if isinstance(target, list):
+        target = " ".join(str(t) for t in target)
+    target = " ".join(str(target).split())
+    return f"{name} {target[:100]}".strip()
+
+
+class _Collector:
+    """Turn a session's records into needle candidates."""
+
+    def __init__(self, harness: str, session_id: str, path: Path) -> None:
+        self.harness = harness
+        self.session_id = session_id
+        self.path = path
+        self.user_turns = 0
+        self.last_assistant = ""
+        self.open: dict[str, Any] | None = None
+        self.candidates: list[dict[str, Any]] = []
+
+    def user(self, text: str, ts: str, line: int) -> None:
+        self.user_turns += 1
+        self.open = None
+        needle = match_needle(text)
+        if needle is None:
+            return
+        self.open = {
+            "needle": needle,
+            "harness": self.harness,
+            "session": self.session_id,
+            "ts": ts,
+            "line": line,
+            "text": text,
+            "prior_assistant": self.last_assistant,
+            "prior_asked": self.last_assistant.rstrip().endswith("?"),
+            "next_actions": [],
+            "next_reply": "",
+            "transcript": str(self.path),
+        }
+        self.candidates.append(self.open)
+
+    def assistant_text(self, text: str) -> None:
+        if not text.strip():
+            return
+        self.last_assistant = text
+        if self.open is not None and not self.open["next_reply"]:
+            self.open["next_reply"] = text
+
+    def action(self, label: str) -> None:
+        if self.open is not None and len(self.open["next_actions"]) < _MAX_ACTIONS:
+            self.open["next_actions"].append(label)
+
+
+def _records(path: Path, markers: tuple[str, ...] | None):
+    with path.open(encoding="utf-8", errors="replace") as fh:
+        for line_no, line in enumerate(fh, 1):
+            if markers is not None and not any(m in line for m in markers):
+                continue
+            try:
+                yield line_no, json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+
+def scan_claude(
+    path: Path, session_id: str, markers: tuple[str, ...] | None = None
+) -> _Collector:
+    c = _Collector("claude", session_id, path)
+    for line_no, rec in _records(path, markers):
+        if rec.get("isSidechain"):
+            continue
+        kind = rec.get("type")
+        ts = rec.get("timestamp", "")
+        if kind == "attachment":
+            att = rec.get("attachment") or {}
+            # A message the user sent while the agent was mid-turn.
+            if (
+                att.get("type") == "queued_command"
+                and att.get("commandMode") == "prompt"
+            ):
+                c.user(str(att.get("prompt") or ""), ts, line_no)
+            continue
+        content = (rec.get("message") or {}).get("content")
+        if kind == "user":
+            if rec.get("isMeta"):
+                continue
+            if isinstance(content, str):
+                c.user(content, ts, line_no)
+            elif isinstance(content, list):
+                if any(
+                    b.get("type") == "tool_result"
+                    for b in content
+                    if isinstance(b, dict)
+                ):
+                    continue
+                text = "\n".join(
+                    b.get("text", "")
+                    for b in content
+                    if isinstance(b, dict) and b.get("type") == "text"
+                )
+                if text:
+                    c.user(text, ts, line_no)
+        elif kind == "assistant" and isinstance(content, list):
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") == "text":
+                    c.assistant_text(block.get("text", ""))
+                elif block.get("type") == "tool_use":
+                    c.action(
+                        _action_label(block.get("name", "?"), block.get("input") or {})
+                    )
+    return c
+
+
+def _codex_args(payload: dict[str, Any]) -> dict[str, Any]:
+    raw = payload.get("arguments") or payload.get("input") or {}
+    if isinstance(raw, str):
+        try:
+            decoded = json.loads(raw)
+        except json.JSONDecodeError:
+            return {"command": raw}
+        return decoded if isinstance(decoded, dict) else {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def scan_codex(
+    path: Path, session_id: str, markers: tuple[str, ...] | None = None
+) -> _Collector:
+    c = _Collector("codex", session_id, path)
+    for line_no, rec in _records(path, markers):
+        if rec.get("type") != "response_item":
+            continue
+        payload = rec.get("payload") or {}
+        ts = rec.get("timestamp", "")
+        ptype = payload.get("type")
+        if ptype == "message":
+            text = "\n".join(
+                b.get("text", "")
+                for b in payload.get("content") or []
+                if isinstance(b, dict)
+                and b.get("type") in ("input_text", "output_text")
+            )
+            if payload.get("role") == "user":
+                c.user(text, ts, line_no)
+            elif payload.get("role") == "assistant":
+                c.assistant_text(text)
+        elif ptype in ("function_call", "custom_tool_call", "local_shell_call"):
+            c.action(_action_label(payload.get("name") or ptype, _codex_args(payload)))
+    return c
+
+
+def build_report(ns: Any) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    project_root = None if ns.all_projects else Path(ns.project).resolve()
+    exclude = set() if ns.all_sessions else current_session_ids()
+    harnesses = HARNESSES if ns.harness == "all" else (ns.harness,)
+    wanted = set(ns.needle or NEEDLES)
+    scanned: dict[str, int] = {}
+    missing: dict[str, str] = {}
+    user_turns = 0
+    candidates: list[dict[str, Any]] = []
+    for harness in harnesses:
+        try:
+            sources = session_sources(
+                harness, project_root, days=ns.days, exclude=exclude
+            )
+        except NoTranscriptDir as exc:
+            missing[harness] = str(exc.looked_under)
+            continue
+        scanned[harness] = len(sources)
+        scan = scan_claude if harness == "claude" else scan_codex
+        for path, session_id in sources:
+            collected = scan(path, session_id, _USER_MARKERS[harness])
+            user_turns += collected.user_turns
+            if collected.candidates:
+                collected = scan(path, session_id)
+            candidates.extend(c for c in collected.candidates if c["needle"] in wanted)
+    if not scanned:
+        errors.die(
+            "no transcript directory for any requested harness",
+            errors.ExitCode.NOT_FOUND,
+            detail={"looked_under": missing},
+        )
+    candidates.sort(key=lambda c: c["ts"], reverse=True)
+    counts = {n: sum(1 for c in candidates if c["needle"] == n) for n in sorted(wanted)}
+    dropped = max(0, len(candidates) - ns.limit) if ns.limit else 0
+    if ns.limit:
+        candidates = candidates[: ns.limit]
+    rows = []
+    for c in candidates:
+        row = {"kind": "candidate", **c}
+        row["text"] = trim(c["text"], 300, ns.full)
+        row["prior_assistant"] = trim(c["prior_assistant"], 300, ns.full, tail=True)
+        row["next_reply"] = trim(c["next_reply"], 200, ns.full)
+        rows.append(row)
+    summary = {
+        "kind": "summary",
+        "scope": "all-projects" if project_root is None else str(project_root),
+        "sessions_scanned": scanned,
+        "harnesses_missing": missing or None,
+        "user_turns": user_turns,
+        "candidates": counts,
+        "candidates_dropped_by_limit": dropped,
+        "window_days": ns.days or None,
+    }
+    return summary, rows
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = acli_args.argument_parser(
+        prog="intervention-needles",
+        description=__doc__,
+        exit_codes={
+            0: "report emitted (possibly zero candidates)",
+            2: "usage error",
+            4: "no transcript directory for any requested harness",
+        },
+    )
+    parser.add_argument(
+        "--project",
+        default=".",
+        help="project root whose sessions to scan (default: cwd)",
+    )
+    parser.add_argument(
+        "--all-projects",
+        action="store_true",
+        help="scan every project's sessions instead of --project",
+    )
+    parser.add_argument(
+        "--harness",
+        default="all",
+        choices=["all", *HARNESSES],
+        help="session-log source (default: all; a missing harness is reported, not fatal)",
+    )
+    parser.add_argument(
+        "--needle",
+        action="append",
+        choices=list(NEEDLES),
+        default=None,
+        help="restrict to one needle; repeatable (default: both)",
+    )
+    parser.add_argument(
+        "--days",
+        type=float,
+        default=0,
+        help="only sessions modified in the last N days (0 = all)",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="max candidate rows, newest first (0 = unlimited); dropped count is reported",
+    )
+    parser.add_argument(
+        "--all-sessions",
+        action="store_true",
+        help="include the current session's transcript",
+    )
+    acli_args.add_standard_args(parser)
+    acli_args.maybe_complete(parser, argv)
+    ns = parser.parse_args(argv)
+    fmt = session.resolve_format(ns)
+    summary, rows = build_report(ns)
+    if fmt is session.Format.PRETTY:
+        write_pretty({"summary": summary, "candidates": rows})
+    else:
+        write_jsonl(summary)
+        for row in rows:
+            write_jsonl(row)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except BrokenPipeError:
+        os._exit(0)
