@@ -214,8 +214,15 @@ offers, what `~/agents` already has, and the proposed move.
   unlisted is still 1"). One retracted the user's own earlier claim
   ("no, i mistakenly thought…"), and one probably answered the agent's
   question. Precision is usable and volume is low, so unmarked
-  corrections still dominate. A user's self-retraction should be kept
-  as its own class: it is a learning signal, not an agent error. Codex and YA
+  corrections still dominate.
+  The needle finds candidates; the class still takes judgment. The
+  miner should check whether the agent's action followed from a
+  reasonable reading of what the user actually wrote. If it did, the
+  turn is a *no-fault clarification*: the user misstated, retracted,
+  or wrote something ambiguous, and the agent made no mistake. That
+  class produces no agent rule. It can still point at an ambiguous
+  term (a glossary row), a dictation error, or a misconception worth
+  a `MASTERY.md` entry. Only agent errors feed the enforcer path below. Codex and YA
   logs were not scanned. Two kinds of false positive need filtering. One
   is a `no` that answers a question the agent asked: a decision, not a
   correction. Check whether the previous assistant turn ended with a
