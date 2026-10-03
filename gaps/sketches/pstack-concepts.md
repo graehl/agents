@@ -15,7 +15,7 @@ only. Copying any skill text would be vendoring
 **Outcome:** routine project steps become rerunnable tools whose output
 is mostly a verdict, so agents spend turns and tokens on judgment, and
 the user's reading time goes to the current approach, its alternatives
-and its warning signs. Eight threads follow. Each gives what pstack
+and its warning signs. Nine threads follow. Each gives what pstack
 offers, what `~/agents` already has, and the proposed move.
 
 ## 1. Project verify tools, with a ladder of judgment checks
@@ -183,6 +183,39 @@ offers, what `~/agents` already has, and the proposed move.
   format (a gap file per cluster vs one JSONL), and whether `/at`
   ([at-scheduling](../../topics/at-scheduling.md)) or on-deck owns the
   cadence.
+
+## 9. Mine transcripts for generalizable user interventions
+
+- *pstack:* `reflect` sends three reviewers (judgment, tooling,
+  divergent) over the current transcript, and a synthesizer turns
+  their findings into Accepted / Rejected / Backlog edits to existing
+  skills. Structural fixes go to Backlog, and nothing is applied
+  without the user's approval. `automate-me` mines recent history in
+  slices and keeps only patterns seen in two or more slices. `correct`
+  treats each operator correction as a rule to enforce, and a repeated
+  correction as proof the rule needs a stronger enforcer.
+- *Here:* [tool-surprises](../../topics/tool-surprises.md) mines logs
+  for one signal: a failed tool call followed by a similar successful
+  one. The evidence ledger records failure classes, but nothing finds
+  them in transcripts.
+- *Problem:* pstack's scheme assumes a user turn in the middle of a
+  task is a correction. That holds for a user who gives one ask and
+  stays away. An engaged user who wants to learn also asks questions
+  that change nothing: "why X?", "what's the alternative?". A miner
+  that counts those as interventions invents rules. "Why did you X?"
+  is itself ambiguous, since it can be a question or a polite
+  correction.
+- *Proposal:* a user-led marker that tags a turn as a correction, for
+  example a leading `fix:` or a reserved glyph. The miner treats marked
+  turns as ground truth. Unmarked turns are only candidates, and the
+  miner classifies them using the agent's next action: did it reverse
+  or redo work? Avoid a leading `!`, which Claude Code and Codex
+  already take as a shell command. The same convention could mark the
+  opposite case (`?` for "question only, don't change course"), which
+  also tells the live session not to read the question as steering.
+  Output goes through `reflect`'s path: clusters, then a proposed
+  enforcer at the strongest level (`correct`'s order), then user
+  approval, and it shares item 8's batch queue.
 
 **Open decisions:** which item to prototype first (`scripts/verify`
 plus the quiet-success acli profile looks most immediately useful on
