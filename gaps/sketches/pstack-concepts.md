@@ -205,12 +205,26 @@ offers, what `~/agents` already has, and the proposed move.
   that counts those as interventions invents rules. "Why did you X?"
   is itself ambiguous, since it can be a question or a polite
   correction.
-- *Proposal:* a user-led marker that tags a turn as a correction, for
-  example a leading `fix:` or a reserved glyph. The miner treats marked
-  turns as ground truth. Unmarked turns are only candidates, and the
-  miner classifies them using the agent's next action: did it reverse
-  or redo work? Avoid a leading `!`, which Claude Code and Codex
-  already take as a shell command. The same convention could mark the
+- *Proposal:* a user-led marker that tags a turn as a correction. The
+  user's preferred needle is natural speech: a leading `no,` or `no.`,
+  or a turn that is just `no`. It costs nothing to remember and
+  survives dictation. A 2026-10-03 scan of `~/.claude/projects` found
+  12 distinct user turns that begin with `no` followed by punctuation.
+  About ten corrected the agent ("no, it's case insensitive", "no,
+  unlisted is still 1"). One retracted the user's own earlier claim
+  ("no, i mistakenly thought…"), and one probably answered the agent's
+  question. Precision is usable and volume is low, so unmarked
+  corrections still dominate. A user's self-retraction should be kept
+  as its own class: it is a learning signal, not an agent error. Codex and YA
+  logs were not scanned. Two kinds of false positive need filtering. One
+  is a `no` that answers a question the agent asked: a decision, not a
+  correction. Check whether the previous assistant turn ended with a
+  question. The other is an idiom (`no need to`, `no worries`); match
+  only `no` followed by punctuation or end of turn. The miner treats
+  matched turns as ground truth. Unmarked turns are only candidates,
+  and the miner classifies them using the agent's next action: did it
+  reverse or redo work? Avoid a leading `!` for any marker, because
+  Claude Code and Codex already take it as a shell command. The same convention could mark the
   opposite case (`?` for "question only, don't change course"), which
   also tells the live session not to read the question as steering.
   Output goes through `reflect`'s path: clusters, then a proposed
