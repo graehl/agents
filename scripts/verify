@@ -59,6 +59,7 @@ class Check:
     timeout: float = DEFAULT_TIMEOUT
     cwd: str = "."
     requires: list[str] = field(default_factory=list)
+    exclusive: bool = False
     source: str = ""
 
     def record(self) -> dict[str, Any]:
@@ -70,6 +71,7 @@ class Check:
             "cwd": self.cwd,
             "timeout_s": self.timeout,
             "requires": self.requires,
+            "exclusive": self.exclusive,
             "source": self.source,
         }
 
@@ -89,6 +91,7 @@ def _expand(entry: dict[str, Any], root: Path, source: str) -> list[Check]:
         "timeout",
         "cwd",
         "requires",
+        "exclusive",
         "each",
         "exclude",
     }
@@ -112,6 +115,7 @@ def _expand(entry: dict[str, Any], root: Path, source: str) -> list[Check]:
         "timeout": float(timeout),
         "cwd": cwd,
         "requires": list(entry.get("requires", [])),
+        "exclusive": bool(entry.get("exclusive", False)),
         "source": source,
     }
     if "each" not in entry:
@@ -291,8 +295,15 @@ def run_checks(root: Path, checks: list[Check], jobs: int) -> list[dict[str, Any
     ensure_excluded(root)
     runner = Runner(root, log_dir)
     pool = ThreadPoolExecutor(max_workers=jobs)
+    shared = [c for c in checks if not c.exclusive]
     try:
-        return list(pool.map(runner.run, checks))
+        by_name = dict(zip((c.name for c in shared), pool.map(runner.run, shared)))
+        # Exclusive checks (e.g. suites that start servers on fixed ports)
+        # run one at a time after the concurrent batch.
+        for check in checks:
+            if check.exclusive:
+                by_name[check.name] = runner.run(check)
+        return [by_name[c.name] for c in checks]
     finally:
         runner.kill_all()
         pool.shutdown(wait=True, cancel_futures=True)

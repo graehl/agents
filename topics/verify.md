@@ -48,6 +48,7 @@ run = "python3 -m pytest -q tests"   # bash -c, from cwd (default: root)
 requires = ["pytest"]                 # skip when absent from PATH
 timeout = "10m"                       # default 10m; killed as a process group
 tier = "quick"                        # default; "deep" runs only with --deep
+exclusive = false                     # true: run alone, after the others
 
 [[check]]
 each = "tests/test_*.py"              # one check per matching file
@@ -57,7 +58,9 @@ exclude = ["tests/test_slow.py"]
 ```
 
 Put a check in the quick tier when it is cheap enough to run before every
-commit; slow, environment-heavy, or live-service checks go in `deep`. A
+commit; slow, environment-heavy, or live-service checks go in `deep`. Mark a
+check `exclusive` when it cannot share the machine with another check, such
+as a browser suite that starts servers on fixed ports. A
 committed `verify.toml` is shared with collaborators. In a repository whose
 tracked files you should not change, declare checks in a git-excluded
 `verify.local.toml` instead. When both exist, a local check replaces the
