@@ -95,14 +95,16 @@ class Workspace:
     def cleanup(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def run(self, *args, env_extra=None, timeout=20) -> subprocess.CompletedProcess:
+    def hermetic_env(self, env_extra=None) -> dict[str, str]:
         env = os.environ.copy()
         # Hermetic: drop ambient agent/harness session vars (the test runner may
         # itself be under an agent, e.g. CLAUDE_CODE_SESSION_ID) so each test
-        # controls active-sessions behavior explicitly. BASH_ENV is dropped too:
-        # the agentctl wrapper is a bash script, and a launcher such as
-        # yepanywhere re-exports AGENTCTL_SESSION_ID via a BASH_ENV bridge that
-        # would otherwise defeat the pops below.
+        # controls active-sessions behavior explicitly. Launcher-recorded
+        # AGENT_LAUNCH_* facts go too: they outrank harness detection, so a
+        # Claude-launched runner would otherwise relabel a Codex test session.
+        # BASH_ENV is dropped too: the agentctl wrapper is a bash script, and a
+        # launcher such as yepanywhere re-exports AGENTCTL_SESSION_ID via a
+        # BASH_ENV bridge that would otherwise defeat the pops below.
         for var in (
             "AGENTCTL_SESSION_ID",
             "AGENT_LAUNCHER",
@@ -118,6 +120,7 @@ class Workspace:
             "YEP_DEV_INSTANCE_ID",
             "YEP_DEV_BIND_KEY",
             "YEP_DEV_SOURCE_ROOT",
+            *(name for name in env if name.startswith("AGENT_LAUNCH_")),
         ):
             env.pop(var, None)
         # Also disable parent-process-tree recovery by default: the test runner
@@ -130,6 +133,10 @@ class Workspace:
         env["AGENTCTL_HOME"] = str(self.home)
         if env_extra:
             env.update(env_extra)
+        return env
+
+    def run(self, *args, env_extra=None, timeout=20) -> subprocess.CompletedProcess:
+        env = self.hermetic_env(env_extra)
         return subprocess.run(
             [str(self.tmp / "agentctl"), *map(str, args)],
             cwd=self.tmp,
@@ -141,28 +148,7 @@ class Workspace:
 
     def popen(self, *args, env_extra=None) -> subprocess.Popen:
         """run()'s env hygiene, for blocking verbs (watch, wait, wait-work)."""
-        env = os.environ.copy()
-        for var in (
-            "AGENTCTL_SESSION_ID",
-            "AGENT_LAUNCHER",
-            "CLAUDE_CODE_SESSION_ID",
-            "CODEX_THREAD_ID",
-            "AGENTCTL_LAUNCH_DEPTH",
-            "BASH_ENV",
-            "AGENT_SESSION_WAKE_TOKEN",
-            "AGENT_SESSION_WAKE_URL",
-            "YEP_SESSION_WAKE_TOKEN",
-            "YEP_SESSION_WAKE_URL",
-            "YEP_DEV_INSTANCE_VERSION",
-            "YEP_DEV_INSTANCE_ID",
-            "YEP_DEV_BIND_KEY",
-            "YEP_DEV_SOURCE_ROOT",
-        ):
-            env.pop(var, None)
-        env["AGENTCTL_NO_PROC_SESSION_ID"] = "1"
-        env["AGENTCTL_HOME"] = str(self.home)
-        if env_extra:
-            env.update(env_extra)
+        env = self.hermetic_env(env_extra)
         return subprocess.Popen(
             [str(self.tmp / "agentctl"), *map(str, args)],
             cwd=self.tmp,
