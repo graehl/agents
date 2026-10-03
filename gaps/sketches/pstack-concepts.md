@@ -25,7 +25,7 @@ The last column says how to tell whether a landed item is paying off.
 
 | # | Item | Status (2026-10-03) | Where | Evaluate by |
 |---|---|---|---|---|
-| 1 | `verify` entry point | **Landed.** Quick and deep tiers; skips on a missing `requires` or exit 69; failures report stdout and stderr tails plus log paths. `~/agents` declares its suite: quick is about 15 s, and `test_agentctl` (about 2 min) is deep. | [verify](../../topics/verify.md), `scripts/verify`, `verify.toml`, `~/bin/verify` | Agents in `~/agents` call `verify` instead of hand-running tests. Adopt in `~/ya` next, through a git-excluded `verify.local.toml`. |
+| 1 | `verify` entry point | **Landed.** Quick and deep tiers; skips on a missing `requires` or exit 69; failures report stdout and stderr tails plus log paths. `~/agents` declares its suite: quick is about 15 s, and `test_agentctl` (about 2 min) is deep. | [verify](../../topics/verify.md), `scripts/verify`, `verify.toml`, `~/bin/verify` | Agents call `verify` instead of hand-running tests. `~/ya` adopted it through a git-excluded `verify.local.toml`; its first quick run passed in 235 s. |
 | 1 | Judgment tiers above `verify` (soft-check review, live drive of a feature map, harsh-review), `verify doctor` | Not started | — | Wait until a project has a feature map worth driving. |
 | 2 | Quiet-success output for lasting tools | **Partial.** `verify` reports green as one line. Not yet a general acli profile, and no trigger to build a tool after the second hand-run. | `scripts/verify` | Whether agents still read whole logs after a red `verify`. |
 | 3 | `belief` tool (hash-bound claims about project state) | Not started | — | — |
