@@ -169,6 +169,7 @@ GROUPS = (
             "debugging",
             "handling-bug-reports",
             "testing",
+            "verify",
             "testing-rider",
             "soft-checks",
             "prototyping",
@@ -186,6 +187,7 @@ GROUPS = (
             "acli-spec",
             "workflow-tags",
             "tool-surprises",
+            "intervention-needles",
         ),
     ),
     Group(
