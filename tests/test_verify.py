@@ -140,6 +140,21 @@ def test_local_config_overrides_and_list() -> None:
         assert _records(run)[-1]["passed"] == 1
 
 
+def test_exclusive_checks_never_overlap() -> None:
+    body = "echo start >> order; sleep 0.3; echo end >> order"
+    config = "".join(
+        f'[[check]]\nname = "{name}"\nrun = "{body}"\nexclusive = true\n\n'
+        for name in ("one", "two")
+    )
+    config += '[[check]]\nname = "shared"\nrun = "true"\n'
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _project(tmp, config)
+        run = _run(root, "--jobs", "4")
+        assert run.returncode == 0, run.stdout
+        order = (root / "order").read_text().split()
+        assert order == ["start", "end", "start", "end"], order
+
+
 def test_text_summary_is_one_line_when_green() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = _project(tmp, '[[check]]\nname = "ok"\nrun = "true"\n')
