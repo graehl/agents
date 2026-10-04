@@ -139,7 +139,9 @@ def line_commentary(text: str) -> bool:
         raise ValueError("line commentary must be one nonblank line")
     if _line_commentary_stream is None:
         return False
-    print(LINE_COMMENTARY_PREFIX + text, file=_line_commentary_stream, flush=True)
+    # One write per record, so notes from concurrent threads never interleave.
+    _line_commentary_stream.write(LINE_COMMENTARY_PREFIX + text + "\n")
+    _line_commentary_stream.flush()
     return True
 
 
