@@ -8,9 +8,16 @@ tail-language ASR, meaning languages with few high-quality transcribed hours,
 with language identification reliable enough for that use. Legal analysis is
 out of scope.
 
+The 2026-10-04 extension covers [diarization and audio-input domains](concepts/diarization-and-domain.md),
+[soft parameter routing](concepts/domain-conditioned-parameters.md), and
+[streaming speaker/user adaptation](concepts/speaker-online-adaptation.md).
+It includes genres and prosody, reusable accent centroids, and persistent
+speaker state; [its retrieval record](concepts/routing-search.md) distinguishes
+full-text grounding from abstract-only leads.
+
 Primary dataset and model cards, protocol documentation, and selected
-speech-representation papers were read; twenty-two of thirty-four sources have
-accepted local full-text extracts ([retrieval and
+speech-representation papers were read, with local extraction coverage recorded
+in the manifest and extension notes ([retrieval and
 limits](#retrieval-and-limits)). No audio was collected and no codec or
 embedding experiment was run. Source sizes are publisher-reported, storage
 figures are arithmetic, and the recommended codec rates, storage
@@ -570,6 +577,13 @@ not evidence of downstream value.
 
 ## Retrieval and limits
 
+The 2026-10-04 [routing extension](concepts/routing-search.md) adds nine
+accepted paper extracts covering diarization, domain/accent expert routing,
+speaker memory, LoRA mixtures and online continual learning. Source-reported
+ASR gains support these mechanisms in their evaluated settings, not the
+proposed genre router's latency or recognition quality. Cross-recording person
+linking remains distinct from reusable acoustic-centroid dispatch.
+
 Citation search started from WavLM and SONAR. OpenAlex forward citations were
 queried on 2026-10-01, sorted both by publication date and by citation count.
 WavLM resolved to `W3209984917`, with about 1,883 citations and 1,871 citing
@@ -585,8 +599,9 @@ A follow-up pass the same day added five sources found by targeted search
 for tail-language corpora and language-ID evaluation: Omnilingual ASR and its
 corpus, CMU Wilderness, FLEURS, and the ML-SUPERB 2.0 challenge.
 
-The [manifest](related-work/papers.yaml) lists thirty-one sources.
-Twenty-one have accepted Markdown extracts with provenance and linked assets.
+The initial and same-day follow-up passes placed thirty-one sources in the
+[manifest](related-work/papers.yaml), with twenty-one accepted Markdown
+extracts with provenance and linked assets at that cutoff.
 Eight sources from the initial pass are marked `grounded: false` because local
 extraction failed: three 2026 arXiv papers on SVG figures, VoxLingua107 and
 CLAP on prose-fidelity checks, and the MMS ulab v2, Omnilingual ASR Corpus,

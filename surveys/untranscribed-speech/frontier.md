@@ -58,6 +58,24 @@ pipeline together.
 
 ## Open decisions, without novelty claims
 
+The 2026-10-04 [domain-routing extension](concepts/domain-conditioned-parameters.md)
+finds direct antecedents for global/local accent routing, soft adapter mixtures,
+and encoder-derived domain selection. The [online-adaptation extension](concepts/speaker-online-adaptation.md)
+adds compact speaker updates, fixed speaker memory and continual self-training.
+These are single-source method/evaluation reports, without local reproduction.
+The remaining questions are narrower than whether these mechanisms exist:
+
+| Question | Deciding contrast | Falsifier |
+|---|---|---|
+| Does a genre or acoustic domain justify different parameters? | Tuned constant blend versus audio-conditioned parameters on held-out speakers/sources at deployment prevalence | Domain accuracy is high but routed recognition does not improve |
+| Do abstract accent centroids transfer across uses? | Frozen prototypes and experts on unseen speakers, compared with generic and known-speaker profiles | Membership tracks source/channel without transferable recognition benefit |
+| Is finer routing useful? | Turn-level versus causal chunk/frame/token routes with matched active compute | Extra switching adds latency or instability without recognition gain |
+| Does each-turn personalization help future turns? | Score before updating; router-bias-only versus compact parameter updates versus no update | Pseudo-label fit improves while chronological recognition worsens |
+| Can individual state persist across recordings? | Oracle/known user versus estimated open-set speaker links, including false merges | Identity mistakes erase personalization gains at the target service scale |
+
+These tests concern shared resident models or adapters. They do not presume
+CPU-offloaded expert weights, or establish a service-wide identity system.
+
 | Question | Cheap deciding contrast | Falsifier |
 |---|---|---|
 | Can tail-language LID support usable training selection? | Source-narrowed MMS LID with per-language accepted/rejected audits, including related languages and mixed speech | High-confidence retained spans are mostly contaminants, or rejection removes most genuine tail speech |
