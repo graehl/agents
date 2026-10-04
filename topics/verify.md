@@ -47,6 +47,14 @@ in other changes, gives a new tree id and empties the list. The id covers
 the whole repository, even for a program subdirectory's checks. A run whose
 files changed while it was running records nothing.
 
+Committing is not a prerequisite for verifying. The summary says what was
+verified: `committed HEAD <sha>` when the files equal HEAD's tree,
+`uncommitted working tree <id>` otherwise, or that nothing was recorded
+(outside git, or files changed mid-run). An uncommitted pass stays valid
+for a later commit of exactly those files, because that commit's tree is
+the recorded tree; so a workflow may verify first and decide afterwards
+whether to commit.
+
 A check with a `warn` regular expression reports every output line that
 matches it, even when the check passes. The result stays a pass, the lines
 are shown in the output, and `--warnings-file PATH` writes all of them as

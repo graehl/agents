@@ -220,6 +220,41 @@ def test_passed_tracks_the_exact_source_tree() -> None:
         assert "ok" not in _passed(root)
 
 
+def _git(root: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@t", *args],
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_uncommitted_pass_survives_committing_the_same_files() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _project(tmp, '[[check]]\nname = "ok"\nrun = "true"\n')
+        source = _records(_run(root))[-1]["source"]
+        assert source["state"] == "uncommitted" and source["head"] is None, source
+        assert source["recorded"] is True, source
+        _git(root, "add", "-A")
+        _git(root, "commit", "-q", "-m", "verified files")
+        assert _passed(root) == ["ok"]  # the commit's tree is the verified tree
+        head = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        source = _records(_run(root))[-1]["source"]
+        assert source["state"] == "committed" and source["head"] == head, source
+        assert source["tree"] == _records(_run(root, "--passed"))[0]["tree"]
+
+        outside = Path(tmp) / "plain"
+        outside.mkdir()
+        (outside / "verify.toml").write_text('[[check]]\nname = "ok"\nrun = "true"\n')
+        run = _run(outside)
+        source = _records(run)[-1]["source"]
+        assert source == {"state": "not-git", "recorded": False}, source
+
+
 def test_warn_pattern_reports_without_failing() -> None:
     config = (
         '[[check]]\nname = "noisy"\n'

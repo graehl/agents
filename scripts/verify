@@ -315,6 +315,50 @@ def source_tree(root: Path) -> str | None:
     return done.stdout.strip()
 
 
+def head_commit(root: Path) -> tuple[str, str] | None:
+    """(commit, tree) of HEAD; None outside git or before the first commit."""
+    probe = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD", "HEAD^{tree}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if probe.returncode != 0:
+        return None
+    commit, tree = probe.stdout.split()
+    return commit, tree
+
+
+def describe_source(root: Path, tree: str | None, recorded: bool) -> dict[str, Any]:
+    """What a run verified: HEAD's files, uncommitted working files, or unrecorded files.
+
+    An uncommitted result stays valid for a later commit of exactly the same
+    files, since that commit's tree id is the one recorded here.
+    """
+    if tree is None:
+        return {"state": "not-git", "recorded": False}
+    head = head_commit(root)
+    state = "committed" if head is not None and head[1] == tree else "uncommitted"
+    return {
+        "state": state,
+        "tree": tree,
+        "head": head[0] if head else None,
+        "recorded": recorded,
+    }
+
+
+def source_text(source: dict[str, Any]) -> str:
+    if source["state"] == "not-git":
+        return "not a git work tree, not recorded"
+    if source["state"] == "committed":
+        text = f"committed HEAD {source['head'][:10]}"
+    else:
+        text = f"uncommitted working tree {source['tree'][:10]}"
+    if not source["recorded"]:
+        text += ", files changed during the run, not recorded"
+    return text
+
+
 def load_state(root: Path) -> dict[str, Any]:
     path = root / STATE_FILE
     if not path.is_file():
@@ -460,7 +504,9 @@ def render_text(
         counts += f" ({len(warned)} with warnings)"
     if summary["skipped"]:
         counts += f", {summary['skipped']} skipped"
-    where = f"{summary['tier']}, {summary['duration_s']}s"
+    where = (
+        f"{summary['tier']}, {summary['duration_s']}s; {source_text(summary['source'])}"
+    )
     if summary["ok"]:
         lines = [f"verify ok: {counts} ({where})"]
     else:
@@ -593,7 +639,8 @@ def main(argv: list[str] | None = None) -> int:
     tree = source_tree(root)
     results = run_checks(root, selected, ns.jobs)
     # Remember results only when the files did not change during the run.
-    if tree is not None and source_tree(root) == tree:
+    recorded = tree is not None and source_tree(root) == tree
+    if recorded:
         state = load_state(root)
         stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         runs = {c.name: c.run for c in selected}
@@ -632,6 +679,7 @@ def main(argv: list[str] | None = None) -> int:
         "failed": len(failures),
         "skipped": sum(r["status"] == "skipped" for r in results),
         "duration_s": round(time.monotonic() - start, 2),
+        "source": describe_source(root, tree, recorded),
         "log_dir": _display(str(root / LOG_DIR), Path.cwd()),
         "failed_checks": [f["name"] for f in failures],
         "warned_checks": [w["name"] for w in warned],
