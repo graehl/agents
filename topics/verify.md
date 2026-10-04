@@ -35,7 +35,11 @@ concurrently (`--jobs`, default up to 4). Each one's output goes to
 replaced on every run and `.verify/` is added to the clone's
 `.git/info/exclude`. Exit 0 means every selected check passed (skips
 allowed), 1 means at least one failed or timed out, and the report is
-complete in both cases. `--full` also lists passing checks.
+complete in both cases. `--full` also lists passing checks. While checks
+run, stderr carries acli line commentary, one
+``# _acli.commentary: running `<name>`: `<command>` `` line per check as it
+starts; `--no-commentary` (or a suppressed banner) omits them, and stdout
+is unaffected.
 
 Every result is remembered in `.verify/state.json` against the **source
 tree**: a git tree id of the tracked and untracked, non-ignored files,

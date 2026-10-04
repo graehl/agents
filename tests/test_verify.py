@@ -327,6 +327,40 @@ def test_text_summary_is_one_line_when_green() -> None:
         assert len(lines) == 1 and lines[0].startswith("verify ok: 1 passed"), lines
 
 
+def test_stderr_announces_each_check_as_commentary() -> None:
+    config = (
+        '[[check]]\nname = "ok"\nrun = "echo `date`"\n'
+        '[[check]]\nname = "multi"\nrun = """\ntrue\ntrue\n"""\n'
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _project(tmp, config)
+        env = {k: v for k, v in os.environ.items() if k != "ACLI_QUIET"}
+
+        def run(*args: str) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                [str(TOOL), "--project", str(root), "--json", *args],
+                capture_output=True,
+                text=True,
+                env=env,
+                check=False,
+            )
+
+        loud = run()
+        assert loud.returncode == 0, loud.stderr
+        lines = loud.stderr.splitlines()
+        assert lines[0].startswith("# acli: 1 ") and "+commentary-lines" in lines[0]
+        notes = sorted(
+            line for line in lines if line.startswith("# _acli.commentary: ")
+        )
+        assert notes == [
+            "# _acli.commentary: running `multi`: `true …`",
+            "# _acli.commentary: running `ok`: `` echo `date` ``",
+        ], notes
+        assert _records(loud)[-1]["ok"] is True  # stdout stays pure JSONL
+        quiet = run("--no-commentary")
+        assert "_acli.commentary" not in quiet.stderr, quiet.stderr
+
+
 def test_config_errors_and_missing_config() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = _project(tmp, '[[check]]\nname = "x"\nrun = "true"\ntier = "slow"\n')

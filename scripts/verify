@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# acli: 1 complete
+# acli: 1 complete +commentary-lines
 """Run a project's declared checks and report only what needs attention.
 
 `verify` is the standard entry point for "run the tests" in any project
@@ -11,7 +11,8 @@ output is one summary record; each failing check adds a record with its
 exit status, log paths, and the tail of its output. Each result is also
 remembered against the project's source tree, so `--passed` can tell a
 caller such as a publish script which checks already passed on exactly the
-current files. See topics/verify.md.
+current files. While checks run, stderr carries one commentary line per
+check as it starts, naming it and its command. See topics/verify.md.
 """
 
 from __future__ import annotations
@@ -386,12 +387,31 @@ def passed_here(checks: list[Check], state: dict[str, Any], tree: str) -> list[s
     ]
 
 
+def _code_span(text: str) -> str:
+    """Markdown code span for one line, fenced past any backticks in it."""
+    longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+    fence = "`" * (longest + 1)
+    pad = " " if text.startswith("`") or text.endswith("`") else ""
+    return f"{fence}{pad}{text}{pad}{fence}"
+
+
+def start_note(check: Check) -> str:
+    """One Markdown line announcing a check: its name, command, and cwd."""
+    lines = check.run.strip().splitlines() or [""]
+    command = lines[0].strip() + (" …" if len(lines) > 1 else "")
+    note = f"running {_code_span(check.name)}: {_code_span(command)}"
+    if check.cwd != ".":
+        note += f" in {_code_span(check.cwd)}"
+    return note
+
+
 class Runner:
     """Run checks as process groups and kill any still alive on exit."""
 
-    def __init__(self, root: Path, log_dir: Path) -> None:
+    def __init__(self, root: Path, log_dir: Path, announce: bool) -> None:
         self.root = root
         self.log_dir = log_dir
+        self.announce = announce
         self.live: dict[int, subprocess.Popen[bytes]] = {}
         self.lock = threading.Lock()
 
@@ -405,6 +425,8 @@ class Runner:
             }
         out_path = self.log_dir / f"{check.name}.out"
         err_path = self.log_dir / f"{check.name}.err"
+        if self.announce:
+            acli_args.line_commentary(start_note(check))
         start = time.monotonic()
         with out_path.open("wb") as out, err_path.open("wb") as err:
             proc = subprocess.Popen(
@@ -464,13 +486,15 @@ class Runner:
             self._kill(proc)
 
 
-def run_checks(root: Path, checks: list[Check], jobs: int) -> list[dict[str, Any]]:
+def run_checks(
+    root: Path, checks: list[Check], jobs: int, announce: bool
+) -> list[dict[str, Any]]:
     log_dir = root / LOG_DIR
     if log_dir.is_dir():
         for stale in log_dir.iterdir():
             stale.unlink()
     log_dir.mkdir(parents=True, exist_ok=True)
-    runner = Runner(root, log_dir)
+    runner = Runner(root, log_dir, announce)
     pool = ThreadPoolExecutor(max_workers=jobs)
     shared = [c for c in checks if not c.exclusive]
     try:
@@ -542,6 +566,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = acli_args.argument_parser(
         prog="verify",
         description=__doc__,
+        capabilities=("complete", "+commentary-lines"),
         exit_codes={
             0: "every selected check passed (skips allowed)",
             1: "at least one check failed or timed out; the report is still complete",
@@ -637,7 +662,7 @@ def main(argv: list[str] | None = None) -> int:
     start = time.monotonic()
     ensure_excluded(root)  # before hashing, so our own logs never count
     tree = source_tree(root)
-    results = run_checks(root, selected, ns.jobs)
+    results = run_checks(root, selected, ns.jobs, announce=not ns.no_commentary)
     # Remember results only when the files did not change during the run.
     recorded = tree is not None and source_tree(root) == tree
     if recorded:
