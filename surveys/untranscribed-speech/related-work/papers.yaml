@@ -17,10 +17,179 @@
 
 meta:
   field_slug: untranscribed-speech
-  coverage_cutoff: 2026-10-01
+  coverage_cutoff: 2026-10-04
   grounding_mode: grounded
 
 papers:
+  - key: deng2022-confidence-conformer
+    title: Confidence Score Based Conformer Speaker Adaptation for Speech Recognition
+    authors: [Jiajun Deng, Xurong Xie, Tianzi Wang, Mingyu Cui, Boyang Xue, Zengrui Jin, Mengzhe Geng, Guinan Li, Xunying Liu, Helen Meng]
+    venue: Interspeech
+    year: 2022
+    arxiv: '2206.12045'
+    source: https://arxiv.org/abs/2206.12045
+    verified: true
+    grounded: false
+    concept_page: concepts/speaker-online-adaptation.md
+  - key: rosenberg2011-prosodic-style
+    title: 'Symbolic and direct sequential modeling of prosody for classification of speaking-style and nativeness'
+    authors: [Andrew Rosenberg]
+    venue: Interspeech
+    year: 2011
+    url: https://www.isca-archive.org/interspeech_2011/rosenberg11_interspeech.html
+    source: https://www.isca-archive.org/interspeech_2011/rosenberg11_interspeech.html
+    verified: true
+    grounded: false
+    concept_page: concepts/diarization-and-domain.md
+  - key: margolis2010-cross-genre-prosody
+    title: 'Cross-genre training for automatic prosody classification'
+    authors: [Anna Margolis, Mari Ostendorf, Karen Livescu]
+    venue: Speech Prosody
+    year: 2010
+    url: https://www.isca-archive.org/speechprosody_2010/margolis10_speechprosody.html
+    source: https://www.isca-archive.org/speechprosody_2010/margolis10_speechprosody.html
+    verified: true
+    grounded: false
+    concept_page: concepts/diarization-and-domain.md
+  - key: saz2014-background-genre
+    title: 'Background-tracking Acoustic Features for Genre Identification of Broadcast Shows'
+    authors: [Oscar Saz, Mortaza Doulaty, Thomas Hain]
+    venue: IEEE Spoken Language Technology Workshop
+    year: 2014
+    arxiv: '1509.04934'
+    source: https://arxiv.org/abs/1509.04934
+    verified: true
+    grounded: false
+    concept_page: concepts/diarization-and-domain.md
+  - key: zhao2024-saml
+    title: 'SAML: Speaker Adaptive Mixture of LoRA Experts for End-to-End ASR'
+    authors: [Qiuming Zhao, Guangzhi Sun, Chao Zhang, Mingxing Xu, Thomas Fang Zheng]
+    venue: arXiv preprint
+    year: 2024
+    arxiv: '2406.19706'
+    verified: true
+    grounded: true
+    fetched: 2026-10-04
+    source: https://arxiv.org/html/2406.19706v1
+    concept_page: concepts/speaker-online-adaptation.md
+  - key: sari2020-speaker-memory
+    title: 'Unsupervised Speaker Adaptation using Attention-based Speaker Memory for End-to-End ASR'
+    authors: [Leda Sari, Niko Moritz, Takaaki Hori, Jonathan Le Roux]
+    venue: ICASSP
+    year: 2020
+    arxiv: '2002.06165'
+    verified: true
+    grounded: true
+    fetched: 2026-10-04
+    source: https://arxiv.org/html/2002.06165v1
+    concept_page: concepts/speaker-online-adaptation.md
+  - key: vandereeckt2024-uocl
+    title: 'Unsupervised Online Continual Learning for Automatic Speech Recognition'
+    authors: [Steven Vander Eeckt, Hugo Van hamme]
+    venue: arXiv preprint
+    year: 2024
+    arxiv: '2406.12503'
+    verified: true
+    grounded: true
+    fetched: 2026-10-04
+    source: https://arxiv.org/html/2406.12503v1
+    concept_page: concepts/speaker-online-adaptation.md
+  - key: swietojanski2016-lhuc
+    title: 'Learning Hidden Unit Contributions for Unsupervised Acoustic Model Adaptation'
+    authors: [Pawel Swietojanski, Jinyu Li, Steve Renals]
+    venue: IEEE/ACM Transactions on Audio, Speech, and Language Processing
+    year: 2016
+    arxiv: '1601.02828'
+    verified: true
+    grounded: false
+    source: https://arxiv.org/abs/1601.02828
+    concept_page: concepts/speaker-online-adaptation.md
+  - key: you2021-speechmoe2
+    title: 'SpeechMoE2: Mixture-of-Experts Model with Improved Routing'
+    authors: [Zhao You, Shulin Feng, Dan Su, Dong Yu]
+    venue: arXiv preprint
+    year: 2021
+    arxiv: '2111.11831'
+    url: https://arxiv.org/html/2111.11831v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-04
+    concept_page: concepts/domain-conditioned-parameters.md
+  - key: mu2024-hdmole
+    title: 'HDMoLE: Mixture of LoRA Experts with Hierarchical Routing and Dynamic Thresholds for Fine-Tuning LLM-based ASR Models'
+    authors: [Bingshen Mu, Kun Wei, Qijie Shao, Yong Xu, Lei Xie]
+    venue: arXiv preprint
+    year: 2024
+    arxiv: '2409.19878'
+    url: https://arxiv.org/html/2409.19878
+    verified: true
+    grounded: true
+    fetched: 2026-10-04
+    concept_page: concepts/domain-conditioned-parameters.md
+  - key: gu2025-omni-router
+    title: 'Omni-Router: Sharing Routing Decisions in Sparse Mixture-of-Experts for Speech Recognition'
+    authors: [Zijin Gu, Tatiana Likhomanenko, Navdeep Jaitly]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: '2507.05724'
+    url: https://arxiv.org/html/2507.05724
+    verified: true
+    grounded: true
+    fetched: 2026-10-04
+    concept_page: concepts/domain-conditioned-parameters.md
+  - key: shi2026-domain-routed
+    title: 'Entropy-Aware Domain-Routed Mixture-of-Experts Speech-LLM Framework: A Case Study of Multi-Domain Child-Adult ASR'
+    authors: [Mohan Shi, Kaiyuan Zhang, Zilai Wang, Natarajan Balaji Shankar, Eray Eren, Abeer Alwan]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: '2606.10454'
+    url: https://arxiv.org/html/2606.10454
+    verified: true
+    grounded: true
+    fetched: 2026-10-04
+    concept_page: concepts/domain-conditioned-parameters.md
+  - key: medennikov2025-streaming-sortformer
+    title: 'Streaming Sortformer: Speaker Cache-Based Online Speaker Diarization with Arrival-Time Ordering'
+    authors: [Ivan Medennikov, Taejin Park, Weiqing Wang, He Huang, Kunal Dhawan, Jinhan Wang, Jagadeesh Balam, Boris Ginsburg]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: '2507.18446'
+    url: https://arxiv.org/html/2507.18446v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-04
+    concept_page: concepts/diarization-and-domain.md
+  - key: nvidia2026-nemotron-diarization
+    title: Nemotron 3 Diarization model card
+    authors: [NVIDIA]
+    venue: Official Hugging Face model card
+    year: 2026
+    url: https://huggingface.co/nvidia/Nemotron-3-Diarization
+    source: https://huggingface.co/nvidia/Nemotron-3-Diarization
+    verified: true
+    grounded: false
+    concept_page: concepts/diarization-and-domain.md
+  - key: doulaty2015-domain-discovery
+    title: Unsupervised Domain Discovery using Latent Dirichlet Allocation for Acoustic Modelling in Speech Recognition
+    authors: [Mortaza Doulaty, Oscar Saz, Thomas Hain]
+    venue: Interspeech
+    year: 2015
+    arxiv: '1509.02412'
+    url: https://arxiv.org/abs/1509.02412
+    source: https://eprints.whiterose.ac.uk/id/eprint/92452/
+    verified: true
+    grounded: false
+  - key: park2022-diarization-review
+    title: 'A Review of Speaker Diarization: Recent Advances with Deep Learning'
+    authors: [Tae Jin Park, Naoyuki Kanda, Dimitrios Dimitriadis, Kyu J. Han, Shinji Watanabe, Shrikanth Narayanan]
+    venue: Computer Speech and Language
+    year: 2022
+    arxiv: '2101.09624'
+    url: https://arxiv.org/html/2101.09624
+    verified: true
+    grounded: true
+    fetched: 2026-10-04
+    concept_page: concepts/diarization-and-domain.md
   - key: he2025emilia
     title: 'Emilia: A Large-Scale, Extensive, Multilingual, and Diverse Dataset for Speech Generation'
     authors: [Haorui He, Zengqiang Shang, Chaoren Wang, Xuyuan Li, Yicheng Gu, Hua Hua, Liwei Liu, Chen Yang, Jiaqi Li, Peiyang Shi, Yuancheng Wang, Kai Chen, Pengyuan Zhang, Zhizheng Wu]
