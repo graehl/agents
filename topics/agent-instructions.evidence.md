@@ -5456,3 +5456,23 @@ topic; repeated Claude Edit text retains the unique-line disambiguation;
 Copilot optional delegation still needs all three visible proof facts; a
 compacted job owner still cannot finalize before consuming its result. The
 prose correction retains substantive uncertainty and personal testimony.
+
+## 2026-10-05 — hill-climbing promotion must check component harm
+
+- Incident: Arabic ASR adopted lower LR and 107 transcript repairs together
+  after a media-WER gain (paired p=.006). Later recipes inherited both while
+  the evidence table merely noted unresolved attribution. The user pointed
+  out that one component could harm and conceal a stronger subset.
+- Decision: RESEARCH routes hill-climbing promotion to judgment's component
+  controls requirement. Existing attribution guidance alone did not prevent
+  propagation of untested ingredients.
+- Trace: a helpful LR change masks harmful repairs. The missing crossed arms
+  expose the cancellation before both become standard; unrelated contrasts
+  are reused, not rerun.
+- Trace: neither component helps alone but their interaction does. The rule
+  permits retaining the supported combination rather than rejecting both.
+- Trace: existing matched controls already separate effects. Reuse satisfies
+  the requirement; the best measured checkpoint can remain provisional while
+  missing controls run, without authorizing indefinite attribution debt.
+- Status: user-directed requirement and trace simulation; no measured effect
+  on agent research outcomes is claimed.
