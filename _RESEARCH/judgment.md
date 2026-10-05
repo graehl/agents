@@ -3,7 +3,8 @@
 > Rules and rationale for hypothesis communication, ambitious probes, strong cheap baselines, causal attribution, tie diagnosis, and closure tests.
 
 Read this packet before judging an elaborate arm without a tuned cheap
-baseline, attributing a surprising change after multiple differences, reading
+baseline, attributing a surprising change after multiple differences, promoting
+changes during hill-climbing, reading
 a tie on a revision built for stated reasons, or parking a substantial weak
 or surprising experiment line. `RESEARCH.md` is the router and wins on
 conflict.
@@ -11,7 +12,7 @@ conflict.
 ## Binding rules
 
 Research communication stance applies throughout this packet's work. Read the
-named baseline, attribution, tie, closure, or option-audit section for that
+named baseline, attribution, promotion, tie, closure, or option-audit section for that
 decision; Tie diagnostics supplements Reading a tie on a motivated revision.
 
 ### Research communication stance
@@ -49,6 +50,25 @@ the net of helpful and harmful effects; an unrun interaction remains
 uncertainty, not evidence. For two binary factors, the model is
 `delta = delta_A + delta_B + delta_AB`: baseline plus the full departure
 cannot identify the separate effects, even when the truth is additive.
+
+### Component checks before hill-climbing promotion
+
+When hill-climbing, a winning bundle does not establish that each changed
+component helps: one may harm while another more than compensates. Before
+promoting its ingredients to standard practice, run matched component controls
+that can expose this cancellation. For two changes with baseline and combined
+results already available, fill the two missing crossed arms; reuse valid
+existing evidence rather than redoing unrelated contrasts. Hold parent, data
+membership, budget, evaluation and realized draws fixed where compatible with
+the intervention, and report remaining confounds.
+
+Use the declared selection objective and required slices to retain the helpful
+subset, or the combination when evidence supports an interaction. Neither
+plausibility nor a nonsignificant harm estimate proves a component harmless.
+The best measured checkpoint may remain the provisional incumbent while these
+controls run, but its ingredients remain unvalidated and the controls take
+priority over stacking further changes. An attribution caveat alone does not
+discharge this requirement.
 
 ### Reading a tie on a motivated revision
 
