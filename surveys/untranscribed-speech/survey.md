@@ -1,5 +1,10 @@
 # Untranscribed speech: sources, live capture, storage, and domain representations
 
+The 2026-10-05 focused extensions cover [ASR output recombination](concepts/asr-output-fusion.md)
+for combining recognizers/teachers and [pretrained ASR capacity growth](concepts/asr-pretrained-growth.md)
+for separating model limits from usable-data limits. These adjacent notes have
+their own narrow search scope and extraction status.
+
 Grounded field survey, coverage cutoff 2026-10-01, with a focused speaker/accent
 diversity and data-quality extension searched through 2026-10-02. Scope: multilingual public
 speech at roughly 10⁴–10⁶ hours, collected without transcription, with
