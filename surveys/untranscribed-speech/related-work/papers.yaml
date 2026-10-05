@@ -21,6 +21,38 @@ meta:
   grounding_mode: grounded
 
 papers:
+  - key: benes2024hystoc
+    title: 'Hystoc: Obtaining word confidences for fusion of end-to-end ASR systems'
+    authors: [Karel Beneš, Martin Kocour, Lukáš Burget]
+    venue: ICASSP 2024
+    year: 2024
+    arxiv: '2305.12579v1'
+    source: https://arxiv.org/html/2305.12579v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-05
+    concept_page: concepts/asr-output-fusion.md
+  - key: kamo2025chime8
+    title: 'Microphone Array geometry-independent Multi-Talker Distant ASR: NTT System for DASR Task of the CHiME-8 Challenge'
+    authors: [Naoyuki Kamo, Naohiro Tawara, Atsushi Ando, Takatomo Kano, Hiroshi Sato, Rintaro Ikeshita, Takafumi Moriya, Shota Horiguchi, Kohei Matsuura, Atsunori Ogawa, Alexis Plaquet, Takanori Ashihara, Tsubasa Ochiai, Masato Mimura, Marc Delcroix, Tomohiro Nakatani, Taichi Asami, Shoko Araki]
+    venue: Computer Speech & Language
+    year: 2025
+    arxiv: '2502.09859v2'
+    source: https://arxiv.org/html/2502.09859v2
+    verified: true
+    grounded: false
+    concept_page: concepts/asr-output-fusion.md
+  - key: fu2024ume
+    title: 'UME: Upcycling Mixture-of-Experts for Scalable and Efficient Automatic Speech Recognition'
+    authors: [Li Fu, Shanyong Yu, Siqi Li, Lu Fan, Youzheng Wu, Xiaodong He]
+    venue: arXiv preprint
+    year: 2024
+    arxiv: '2412.17507v1'
+    source: https://arxiv.org/html/2412.17507v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-05
+    concept_page: concepts/asr-pretrained-growth.md
   - key: deng2022-confidence-conformer
     title: Confidence Score Based Conformer Speaker Adaptation for Speech Recognition
     authors: [Jiajun Deng, Xurong Xie, Tianzi Wang, Mingyu Cui, Boyang Xue, Zengrui Jin, Mengzhe Geng, Guinan Li, Xunying Liu, Helen Meng]
