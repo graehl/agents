@@ -5476,3 +5476,26 @@ prose correction retains substantive uncertainty and personal testimony.
   missing controls run, without authorizing indefinite attribution debt.
 - Status: user-directed requirement and trace simulation; no measured effect
   on agent research outcomes is claimed.
+
+## 2026-10-06 — paper submission requires retrieved-citation proof
+
+- User direction, during a citation audit of the PII ACL submission: "no
+  submissions or final revisions can proceed without persisted
+  grounded-retrieval proof of citations or a user-approval of
+  unretrievable (indirect or model-memory-attested cites)."
+- Decision: a `paper-writing` section inside the mandatory-reread markers,
+  so the gate rides the compaction-protected packet. `research-writing`
+  already asked to verify metadata and claim support, but it set no
+  persisted record and no stop, so a fluent bibliography could be packaged
+  on recall. The record lives beside the bibliography and covers the cited
+  set from the build, not every bib entry.
+- Trace: a 2026 arXiv entry that only a search snippet attests is
+  unretrieved. It is listed for the user, and packaging waits for an
+  approval recorded with its date.
+- Trace: an audit corrects a page range after the record exists. The
+  changed entry needs a fresh record line before the gate passes again;
+  unchanged entries keep theirs.
+- Trace: handouts inherit paper-writing rules at a lower proof bar, but
+  have no submission or final revision, so the gate does not fire.
+- Status: user-directed requirement and trace simulation; no measured
+  effect is claimed.
