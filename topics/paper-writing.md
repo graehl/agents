@@ -116,6 +116,28 @@ paper is not excused from the one omitted competitor that would change its
 publication case. Use the shared field/frontier survey route in
 `research-writing.md` before making novelty or absence claims.
 
+<!-- reread:begin -->
+## Gate submission on retrieved citations
+
+No submission, camera-ready, or final revision of a paper proceeds—packaging,
+upload, or declaring it final—until every reference the build actually cites
+has persisted grounded-retrieval proof or an explicit user approval. Proof is a
+record committed beside the bibliography with, per citation key: the URL or DOI
+actually fetched, the retrieval date, the bibliographic fields confirmed
+against that source (title, authors, year, venue, volume and pages,
+identifier), and, for each citing claim, the source passage or number that
+supports it.
+
+A citation is unretrieved when its support rests on another paper's
+description, a search snippet or index entry, or model memory. Present every
+unretrieved citation to the user with what was attempted and what attests it;
+proceed only after the user approves that citation, and record the approval and
+its date in the same record. An added, corrected, or re-pointed bibliography
+entry, or a changed citing claim, needs a fresh record entry before the gate
+passes again. While the record is incomplete, stop and report the missing
+entries instead of packaging.
+<!-- reread:end -->
+
 ## Produce browser and submission artifacts
 
 Follow [`document-writing`](document-writing.md) when the draft first needs a
