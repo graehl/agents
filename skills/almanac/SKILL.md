@@ -1,6 +1,6 @@
 ---
 name: almanac
-description: "Build or repair an almanac dataset — a locally queryable snapshot of a web page's data (tier list, wiki table, reference page) under ~/.cache/almanac, served by the `almanac` CLI. Use when the user gives a URL and wants its content extracted for local querying with update checking, or when an almanac verb reports a broken extractor (exit 70/75)."
+description: "Build or repair an almanac dataset — a locally queryable snapshot of a web page's data (tier list, wiki table, reference page) under ~/.local/share/almanac, served by the `almanac` CLI. Use when the user gives a URL and wants its content extracted for local querying with update checking, or when an almanac verb reports a broken extractor (exit 70/75)."
 ---
 
 Contract: `topics/almanac.md` (in `~/agents`) — read it before building.

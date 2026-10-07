@@ -2,7 +2,7 @@
 
 > An almanac dataset is a machine-local, queryable snapshot distilled
 > from a web page — structured `data.json` plus attachments and a fixed,
-> agent-authored `extract` script under `~/.cache/almanac/<name>/` —
+> agent-authored `extract` script under `~/.local/share/almanac/<name>/` —
 > served by the shared `almanac` ACLI viewer and refreshed per its
 > recorded mode (auto / headless / manual / frozen).
 
@@ -22,7 +22,7 @@ code.
 ## Dataset layout
 
 ```
-$ALMANAC_ROOT/                 # default ~/.cache/almanac, a local git repo
+$ALMANAC_ROOT/                 # default ~/.local/share/almanac, a local git repo
   <name>/                      # short kebab name, e.g. sts2-cards
     manifest.json              # provenance + schema mapping (below)
     data.json                  # extractor output (or transcription)
@@ -188,13 +188,13 @@ Candidate integrations are kept in [almanac sketches](almanac.sketches.md).
   manifest, so N generated viewers would be N diverging copies; the
   skill's output stays reviewable data plus one small extractor.
   Accepts a shared-engine version coupling across datasets.
-- **`~/.cache` placement** (vs. `~/.local/share`): matches the
-  `~/.cache/checkouts` precedent for machine-local web-derived state.
-  Accepts that `manual` and `frozen` datasets violate strict cache
-  regenerability — on this host `~/.cache` is scratch-backed, and a
-  purge re-costs a browser save or a re-transcription. Deliberate:
-  datasets are a few MB and rebuilding is cheap relative to split
-  storage roots.
+- **`~/.local/share` placement** (vs. `~/.cache`): a dataset is not
+  cache. Its extractor, schema, and attachments are agent-authored, and
+  `manual`/`frozen` content costs a browser save or a re-transcription
+  to replace. On this host `~/.cache` lives on instance-store scratch
+  that a host migration recreates empty; the 2026-09-12 migration
+  erased every dataset that way. Datasets are a few MB, so durable
+  storage costs nothing material.
 - **Refuse empty/keyless extractions on `update`** (vs. storing
   whatever came back): a tier list extracting to zero records means
   the extractor broke, not that the game lost all its cards;

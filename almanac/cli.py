@@ -2,7 +2,7 @@
 
 Contract: topics/almanac.md in the ~/agents repo. Datasets are built by
 the almanac skill (skills/almanac/SKILL.md): each is a directory under
-$ALMANAC_ROOT (default ~/.cache/almanac) holding manifest.json, data.json,
+$ALMANAC_ROOT (default ~/.local/share/almanac) holding manifest.json, data.json,
 a fixed `extract` script (except frozen transcriptions), and optional
 attachment subdirs. This engine only reads, checks, and refreshes
 datasets; building or repairing one is agent work.
@@ -77,7 +77,7 @@ def positive_int(value: str, option: str = "value") -> int:
 
 
 def root() -> Path:
-    return Path(os.environ.get("ALMANAC_ROOT", "~/.cache/almanac")).expanduser()
+    return Path(os.environ.get("ALMANAC_ROOT", "~/.local/share/almanac")).expanduser()
 
 
 def now_utc() -> str:
