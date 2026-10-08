@@ -5499,3 +5499,17 @@ prose correction retains substantive uncertainty and personal testimony.
   have no submission or final revision, so the gate does not fire.
 - Status: user-directed requirement and trace simulation; no measured
   effect is claimed.
+
+## 2026-10-08 — conversation math is always LaTeX
+
+- User direction, after a math answer arrived with Unicode superscript
+  powers: mandate "proper latex math blocks instead of unicode 'math'",
+  unconditionally — "fine for TUI too".
+- Decision: a bullet in `AGENTS.user.md` § Writing and summary style, so
+  it compiles into every harness boot. YA's opt-in Agent Context hint
+  ("Tell agents this client renders LaTeX math", `packages/shared/src/
+  agent-context.ts`) stays as a product feature for other users; it
+  recommends the same `\( \)` / `\[ \]` delimiters, so the two agree.
+- Trace: a reply in a Markdown file or code comment is outside scope; the
+  rule names conversation, and file formats keep their own syntax.
+- Status: user-directed requirement; no measured effect is claimed.

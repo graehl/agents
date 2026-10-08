@@ -129,6 +129,11 @@ root of the preferences below).
   reword reads as correction/refinement. Do not casually paraphrase an accepted
   distinction. This is a lightweight conversation signal, not a constraint on
   variety in authored documents.
+- **Math is LaTeX:** write any formula, power, subscript, or nontrivial
+  symbol in conversation as LaTeX, `\( ... \)` inline and `\[ ... \]`
+  display, in every client including a terminal; never Unicode
+  pseudo-math (`x²`, `aᵢ`, `√n`, `∑`). Code and plain-text file formats
+  keep their own syntax.
 
 ## Copyable file references
 
