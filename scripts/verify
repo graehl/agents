@@ -28,6 +28,7 @@ import sys
 import tempfile
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -42,6 +43,7 @@ if str(_REPO_ROOT) not in sys.path:
 from acli import args as acli_args
 from acli import errors, session
 from acli.emit import emit
+from acli.status import ProgramStatus
 
 CONFIG_NAMES = ("verify.toml", "verify.local.toml")
 TIERS = ("quick", "deep")
@@ -487,7 +489,11 @@ class Runner:
 
 
 def run_checks(
-    root: Path, checks: list[Check], jobs: int, announce: bool
+    root: Path,
+    checks: list[Check],
+    jobs: int,
+    announce: bool,
+    on_result: Callable[[dict[str, Any]], None],
 ) -> list[dict[str, Any]]:
     log_dir = root / LOG_DIR
     if log_dir.is_dir():
@@ -495,19 +501,44 @@ def run_checks(
             stale.unlink()
     log_dir.mkdir(parents=True, exist_ok=True)
     runner = Runner(root, log_dir, announce)
+
+    def run(check: Check) -> dict[str, Any]:
+        result = runner.run(check)
+        on_result(result)
+        return result
+
     pool = ThreadPoolExecutor(max_workers=jobs)
     shared = [c for c in checks if not c.exclusive]
     try:
-        by_name = dict(zip((c.name for c in shared), pool.map(runner.run, shared)))
+        by_name = dict(zip((c.name for c in shared), pool.map(run, shared)))
         # Exclusive checks (e.g. suites that start servers on fixed ports)
         # run one at a time after the concurrent batch.
         for check in checks:
             if check.exclusive:
-                by_name[check.name] = runner.run(check)
+                by_name[check.name] = run(check)
         return [by_name[c.name] for c in checks]
     finally:
         runner.kill_all()
         pool.shutdown(wait=True, cancel_futures=True)
+
+
+def terminal_progress(
+    status: ProgramStatus, total: int
+) -> Callable[[dict[str, Any]], None]:
+    """Report each finished check to a human's terminal (OSC 7501)."""
+    lock = threading.Lock()
+    finished: list[dict[str, Any]] = []
+
+    def on_result(result: dict[str, Any]) -> None:
+        with lock:
+            finished.append(result)
+            failed = [r["name"] for r in finished if r["status"] == "failed"]
+            msg = f"{len(finished)}/{total} checks finished"
+            if failed:
+                msg += f"; failed: {', '.join(failed)}"
+            status.report("working", progress=100 * len(finished) // total, msg=msg)
+
+    return on_result
 
 
 def _display(path: str, root: Path) -> str:
@@ -662,7 +693,20 @@ def main(argv: list[str] | None = None) -> int:
     start = time.monotonic()
     ensure_excluded(root)  # before hashing, so our own logs never count
     tree = source_tree(root)
-    results = run_checks(root, selected, ns.jobs, announce=not ns.no_commentary)
+    with ProgramStatus("verify") as status:
+        status.report("working", progress=0, msg=f"running {len(selected)} checks")
+        results = run_checks(
+            root,
+            selected,
+            ns.jobs,
+            announce=not ns.no_commentary,
+            on_result=terminal_progress(status, len(selected)),
+        )
+        failed = [r["name"] for r in results if r["status"] == "failed"]
+        if failed:
+            status.report("error", msg=f"{len(failed)} failed: {', '.join(failed)}")
+        else:
+            status.report("done", msg=f"{len(results)} checks, none failed")
     # Remember results only when the files did not change during the run.
     recorded = tree is not None and source_tree(root) == tree
     if recorded:

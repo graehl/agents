@@ -131,6 +131,7 @@ shell producers implement the format directly.
 | `acli.args` | `duration_seconds` | Use as an argument type for finite seconds or compact `s`/`m`/`h`/`d` durations; enforce option-specific bounds. |
 | `acli.args` | `maybe_complete`, `set_completer`, `candidates`, `hint` | Dispatch completion before action side effects. |
 | `acli.shell` | `run`; `maybe_repl` is exported from `acli` | Supply command callbacks; optionally bind a grammar with `rewrite`. |
+| `acli.status` | `ProgramStatus`, `program_status`, `terminal_status_enabled` | Report state from long-running work; choose the final message. |
 
 ### Duration arguments
 
@@ -222,6 +223,32 @@ When using `add_standard_args` with ordinary argparse, use
 `getattr(args, "no_commentary", False)` if the option is absent.
 Text without a renderer falls back to JSONL. Text with a renderer, or TOON
 with constructed commentary, requires suppression or an explicit JSON mode.
+
+### Terminal program status
+
+`acli.status` writes [OSC 7501](https://www.superlogical.com/rex/docs/build/program-status)
+(Program Status Protocol 0.3) reports: `idle`, `working` with optional
+percent, `blocked` with a `permission`/`question`/`auth` kind, `done`,
+`error`, and `clear`. A supporting terminal (libghostty, Rex) can show
+them as a tab badge or notification. Use it for verbs that take minutes,
+not instant ones: a `done` record persists until the user looks.
+
+```python
+with acli.ProgramStatus("mytool") as status:
+    status.report("working", progress=0, msg="fetching 40 pages")
+    ...
+    status.report("done", msg="40 pages fetched")
+```
+
+`ProgramStatus` writes to stderr only when stderr is a terminal and no
+agent-session indicator is set, so agents and logs never see the escape.
+Each report repeats `app`, because a report replaces its record. Leaving the
+block without a final report sends `done`, `error` for an exception or
+nonzero exit, and `clear` for Ctrl-C. `program_status` returns one encoded
+report; it rejects malformed `app`, `id`, `kind`, or `progress` values and
+makes `title`/`msg` one line within the spec's byte limits. The library
+does not probe the terminal; unsupported terminals ignore the sequence.
+`verify` is the first caller.
 
 ### Completion and REPL
 

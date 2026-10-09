@@ -22,10 +22,12 @@ from .commentary import commentary
 from .emit import emit, emit_table, write_jsonl, write_pretty, write_toon_table
 from .errors import ExitCode, die, error_envelope
 from .session import Format, is_agent_session, resolve_format
+from .status import ProgramStatus, program_status, terminal_status_enabled
 
 __all__ = [
     "ExitCode",
     "Format",
+    "ProgramStatus",
     "add_standard_args",
     "argument_parser",
     "candidates",
@@ -42,8 +44,10 @@ __all__ = [
     "maybe_banner",
     "maybe_complete",
     "maybe_repl",
+    "program_status",
     "resolve_format",
     "set_completer",
+    "terminal_status_enabled",
     "write_jsonl",
     "write_pretty",
     "write_toon_table",

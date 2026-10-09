@@ -524,6 +524,10 @@ indefinitely unless the caller explicitly selects and understands that mode.
 
 Progress must use a documented channel without corrupting structured stdout.
 Stderr diagnostics must preserve the final error-envelope rule.
+A terminal status escape such as OSC 7501 is a channel only to a human's
+terminal: write it to an interactive stream only when no agent session is
+detected (the indicators under [Output format](#output-format)), never to
+structured stdout or a captured stream.
 Workflow tags and visualization schemas are separate protocols: if supported,
 help or the agent guide must describe their activation and stream.
 Do not insert raw tags into JSONL or completion output.

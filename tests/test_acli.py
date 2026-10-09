@@ -920,6 +920,109 @@ def test_maybe_repl_only_fires_on_argv1():
     _assert(args_mod.maybe_repl(parser, ["demo7", "list"]) is None)
 
 
+class FakeTty(io.StringIO):
+    def isatty(self) -> bool:
+        return True
+
+
+def test_program_status_matches_spec_examples():
+    # Both reports appear verbatim in the Program Status Protocol 0.3 examples.
+    report = _acli.program_status("working", app="brew", msg="Installing updates")
+    _assert(
+        report == "\x1b]7501;state=working:app=brew:msg=SW5zdGFsbGluZyB1cGRhdGVz\x1b\\",
+        repr(report),
+    )
+    report = _acli.program_status(
+        "working",
+        record_id="us-east",
+        title="US East",
+        progress=40,
+        msg="Pushing image",
+    )
+    _assert(
+        report == "\x1b]7501;state=working:id=us-east:title=VVMgRWFzdA=="
+        ":progress=40:msg=UHVzaGluZyBpbWFnZQ==\x1b\\",
+        repr(report),
+    )
+    report = _acli.program_status("blocked", kind="auth", app="brew")
+    _assert(report == "\x1b]7501;state=blocked:kind=auth:app=brew\x1b\\", repr(report))
+
+
+def test_program_status_text_is_one_line_within_limits():
+    import base64
+
+    report = _acli.program_status("error", app="t", msg="a\nb\x1b" + "é" * 2000)
+    encoded = report.split("msg=", 1)[1].removesuffix("\x1b\\")
+    decoded = base64.b64decode(encoded).decode()
+    _assert(decoded.startswith("a b "), repr(decoded[:8]))
+    _assert(len(decoded.encode()) <= 2048, "msg exceeds 2048 decoded bytes")
+    _assert(decoded.endswith("é"), "a cut must not split a UTF-8 character")
+
+
+def test_program_status_rejects_invalid_fields():
+    bad = (
+        {"state": "busy"},
+        {"state": "working", "app": "has space"},
+        {"state": "working", "app": "x" * 33},
+        {"state": "working", "record_id": "a//b"},
+        {"state": "working", "record_id": "/".join("abcdefghi")},
+        {"state": "working", "kind": "auth"},
+        {"state": "blocked", "kind": "coffee"},
+        {"state": "done", "progress": 50},
+        {"state": "working", "progress": 101},
+    )
+    for fields in bad:
+        try:
+            _acli.program_status(**fields)
+        except ValueError:
+            continue
+        raise AssertionError(f"accepted invalid report {fields!r}")
+
+
+def test_program_status_writes_only_to_a_human_terminal():
+    for stream, env, expect in (
+        (FakeTty(), {}, True),
+        (FakeTty(), {"AGENT_GUARD": "1"}, False),
+        (io.StringIO(), {}, False),
+    ):
+        status = _acli.ProgramStatus("demo", stream=stream, env=env)
+        _assert(status.report("working") is expect, f"{env} {stream.isatty()}")
+        _assert(bool(stream.getvalue()) is expect, repr(stream.getvalue()))
+
+
+def test_program_status_context_reports_a_final_state():
+    def final(body) -> str:
+        stream = FakeTty()
+        with (
+            contextlib.suppress(BaseException),
+            _acli.ProgramStatus("demo", stream=stream, env={}) as status,
+        ):
+            body(status)
+        return stream.getvalue().rsplit("\x1b]7501;", 1)[1]
+
+    def boom(_status):
+        raise RuntimeError("boom")
+
+    def die(_status):
+        sys.exit(4)
+
+    def interrupt(_status):
+        raise KeyboardInterrupt
+
+    def reported(status):
+        status.report("error", msg="2 failed")
+
+    _assert(final(lambda s: None).startswith("state=done:app=demo"))
+    _assert(final(boom).startswith("state=error:app=demo:msg="))
+    _assert(final(die).startswith("state=error:app=demo:msg="))
+    _assert(final(interrupt).startswith("state=clear:app=demo"))
+    reported_tail = final(reported)
+    _assert(reported_tail.startswith("state=error"), reported_tail)
+    _assert(
+        "msg=MiBmYWlsZWQ=" in reported_tail, "an explicit final report is not replaced"
+    )
+
+
 def _collect_tests():
     return [
         (name, fn)

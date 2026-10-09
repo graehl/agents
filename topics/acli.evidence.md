@@ -153,3 +153,32 @@ without being told — `research/ROOT.md`, run metadata under `.agentctl/`,
 the active-session files, the paths `RESEARCH.md` / `RUNS.md` establish.
 That is ambient context in practice; it will keep accreting as the need
 occurs, not as a big up-front integration.
+
+## 2026-10-09 OSC 7501 terminal program status in the Python library
+
+Added `acli.status` for the Program Status Protocol (OSC 7501, revision
+0.3, 2026-10-07, superlogical.com/rex/docs/build/program-status), after
+the user noted Claude Code and Codex support. Checked against the
+binaries: Claude Code 2.1.295 implements it (`app=claude-code`, probes
+with `OSC 7501 ; ?` and emits only from its interactive TUI after a
+reply; also clears on terminal restore). Codex 0.162.0, the latest npm
+release, contains no OSC 7501 string.
+
+- **Gate on the output-format detection** (vs. emitting whenever stderr
+  is a TTY): a PTY run by an agent harness is a TTY whose bytes land in
+  the model's context, so the agent-session indicators exclude it, exactly
+  as they exclude pretty JSON. Accepts a missed badge for a human whose
+  shell happens to carry an agent marker.
+- **No probe** (vs. Claude Code's `OSC 7501 ; ?` round trip): the spec
+  says unknown OSCs are safely ignored and detection is optional; a probe
+  needs raw-mode reads and a `CSI c` fence, too heavy for a short CLI.
+- **stderr, not `/dev/tty`**: stdout carries structured results, and a
+  user who redirects stderr has asked for that stream to leave the screen.
+- **`clear` on Ctrl-C** (vs. the spec's `idle` for a cancelled program):
+  the spec's `idle` advice fits a program that stays at a prompt; an
+  exiting tool should leave no record, and terminals may keep `idle`.
+- **Strict field validation, lenient text**: `app`/`id`/`kind`/`progress`
+  come from code, so bad values raise; `msg`/`title` come from data (check
+  names, errors), so control characters become spaces and the text is cut
+  at the byte limit on a character boundary rather than letting the
+  terminal discard the whole report.

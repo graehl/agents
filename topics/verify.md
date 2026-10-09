@@ -39,7 +39,11 @@ complete in both cases. `--full` also lists passing checks. While checks
 run, stderr carries acli line commentary, one
 ``# _acli.commentary: running `<name>`: `<command>` `` line per check as it
 starts; `--no-commentary` (or a suppressed banner) omits them, and stdout
-is unaffected.
+is unaffected. When stderr is a human's terminal and no agent session is
+detected, verify also reports its state there as an OSC 7501 program
+status: working with percent of checks finished, then done or error
+naming the failed checks. A terminal that supports the protocol can show
+this as a tab badge or notification; others ignore it.
 
 Every result is remembered in `.verify/state.json` against the **source
 tree**: a git tree id of the tracked and untracked, non-ignored files,
