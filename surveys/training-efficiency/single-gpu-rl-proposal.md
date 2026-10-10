@@ -2,8 +2,9 @@
 
 Proposal, 10 October 2026. Designed for graehl: familiar with model training,
 new to workloads whose generation and verification costs vary substantially
-at similar input lengths. “IT” is provisionally interpreted as starting from
-an instruction-tuned model. No capacity or throughput experiment has been run.
+at similar input lengths. Confirmed scope: further RL of an instruction-tuned
+model around 30B parameters, using verifiable rewards. No capacity or
+throughput experiment has been run.
 
 ## Start with quantized adapter training and ordinary batched rollouts
 
