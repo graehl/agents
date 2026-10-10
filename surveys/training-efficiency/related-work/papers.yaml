@@ -1,0 +1,149 @@
+# Metadata manifest for surveys/training-efficiency.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: training-efficiency
+  coverage_cutoff: 2026-10-10
+  grounding_mode: grounded
+
+papers:
+  - key: qin2025-seer
+    title: 'Seer: Online Context Learning for Fast Synchronous LLM Reinforcement Learning'
+    authors: [Ruoyu Qin, Weiran He, Weixiao Huang, Yangkun Zhang, Yikai Zhao, Bo Pang, Xinran Xu, Yingdi Shan, Yongwei Wu, Mingxing Zhang]
+    venue: OSDI 2026
+    year: 2026
+    arxiv: 2511.14617v3
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    source: 'arXiv v3 metadata and OSDI page; initial preprint November 2025'
+    short: seer
+    concept_page: concepts/seer.md
+    cluster: rollout-scheduling
+  - key: hu2025-tlt
+    title: 'Taming the Long-Tail: Efficient Reasoning RL Training with Adaptive Drafter'
+    authors: [Qinghao Hu, Shang Yang, Junxian Guo, Xiaozhe Yao, Yujun Lin, Yuxian Gu, Han Cai, Chuang Gan, Ana Klimovic, Song Han]
+    venue: arXiv
+    year: 2025
+    arxiv: 2511.16665v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    cluster: rollout-decoding
+  - key: xu2026-tailsieve
+    title: 'TailSieve: Partial-Rollout-Guided Tail Routing for LLM Rollouts'
+    authors: [Tianqi Xu, Lu Lv, Haoyang Huang, Wenjie Huang, Zhanming Shen, Yuhao Shen, Baolin Zhang, Xinyi Hu, Shuang Ge, Jun Dai, Tianyu Liu, Suorong Yang, Zhikai Li, Ye Bai, Jun Zhang, Lei Chen, Yue Li, Mingchen Wan]
+    venue: arXiv
+    year: 2026
+    arxiv: 2608.22788v1
+    verified: true
+    grounded: false
+    source: 'Primary HTML methods/results read; local extraction rejected mismatched SVG tag'
+    cluster: rollout-scheduling
+  - key: dao2023-flashattention2
+    title: 'FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning'
+    authors: [Tri Dao]
+    venue: arXiv
+    year: 2023
+    arxiv: 2307.08691v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    cluster: kernels
+  - key: rajbhandari2020-zero
+    title: 'ZeRO: Memory Optimizations Toward Training Trillion Parameter Models'
+    authors: [Samyam Rajbhandari, Jeff Rasley, Olatunji Ruwase, Yuxiong He]
+    venue: arXiv
+    year: 2020
+    arxiv: 1910.02054v3
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    cluster: memory
+  - key: hoffmann2022-chinchilla
+    title: Training Compute-Optimal Large Language Models
+    authors: [Jordan Hoffmann, Sebastian Borgeaud, Arthur Mensch, Elena Buchatskaya, Trevor Cai, Eliza Rutherford, Diego de las Casas, Lisa Anne Hendricks, Johannes Welbl, Aidan Clark, Tom Hennigan, Eric Noland, Katie Millican, George van den Driessche, Bogdan Damoc, Aurelia Guy, Simon Osindero, Karen Simonyan, Erich Elsen, Jack W. Rae, Oriol Vinyals, Laurent Sifre]
+    venue: arXiv
+    year: 2022
+    arxiv: 2203.15556v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    cluster: compute-allocation
+  - key: dettmers2023-qlora
+    title: 'QLoRA: Efficient Finetuning of Quantized LLMs'
+    authors: [Tim Dettmers, Artidoro Pagnoni, Ari Holtzman, Luke Zettlemoyer]
+    venue: arXiv
+    year: 2023
+    arxiv: 2305.14314v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    cluster: finetuning
+  - key: zhao2024-galore
+    title: 'GaLore: Memory-Efficient LLM Training by Gradient Low-Rank Projection'
+    authors: [Jiawei Zhao, Zhenyu Zhang, Beidi Chen, Zhangyang Wang, Anima Anandkumar, Yuandong Tian]
+    venue: arXiv
+    year: 2024
+    arxiv: 2403.03507v2
+    verified: true
+    grounded: false
+    source: 'Primary HTML methods/results read; local extraction rejected visible-block fidelity (8/224 flagged)'
+    cluster: optimizer-memory
+  - key: wang2026-draft-cotraining
+    title: Online Draft Co-Training for Speculative Decoding in Large-Scale, Long-Context RL Post-Training
+    authors: [Zili Wang, Zhaopeng Qiu, Yuekai Zhang, Shuang Yu, Junjie Lai]
+    venue: arXiv
+    year: 2026
+    arxiv: 2609.07108v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    source: 'Primary arXiv methods/results read online on 2026-10-10'
+    cluster: rollout-decoding
+  - key: kim2026-efficientrollout
+    title: 'EfficientRollout: System-Aware Self-Speculative Decoding for RL Rollouts'
+    authors: [Minseo Kim, Minjae Lee, Seunghyuk Oh, Kevin Galim, Donghoon Kim, Coleman Hooper, Harman Singh, Amir Gholami, Hyung Il Koo, Wonjun Kang]
+    venue: arXiv
+    year: 2026
+    arxiv: 2606.18967v2
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    source: 'Primary arXiv metadata and methods/results read online on 2026-10-10'
+    cluster: rollout-decoding
+  - key: iso2026-integrated-speculation
+    title: Accelerating RL Post-Training Rollouts via System-Integrated Speculative Decoding
+    authors: [Hayate Iso, Tiyasa Mitra, Sudipta Mondal, Rasoul Shafipour, Venmugil Elango, Terry Kong, Yuki Huang, Seonjin Na, Izzy Putterman, Benjamin Chislett, Maor Ashkenazi, Joseph Guman, Gerald Shen, Tugrul Konuk, Ashwath Aithal, Ritika Borkar, Ran Zilberstein, Bita Rouhani]
+    venue: arXiv
+    year: 2026
+    arxiv: 2604.26779v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    source: 'Primary arXiv metadata and methods/results read online on 2026-10-10'
+    cluster: rollout-decoding
+  - key: besiroglu2024-replication
+    title: 'Chinchilla Scaling: A replication attempt'
+    authors: [Tamay Besiroglu, Ege Erdil, Matthew Barnett, Josh You]
+    venue: arXiv
+    year: 2024
+    arxiv: 2404.10102v2
+    verified: true
+    grounded: true
+    fetched: 2026-10-10
+    cluster: compute-allocation

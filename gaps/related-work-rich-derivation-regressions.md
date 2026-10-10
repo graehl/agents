@@ -140,3 +140,18 @@ from the cards' raw `README.md` instead. Reproduce with the command above,
 substituting those keys.
 
 2026-10-01 — Contributing-model: opus-5.5
+
+## Training-efficiency sources, 2026-10-10
+
+Two fresh sources in `surveys/training-efficiency/related-work/` failed
+archival conversion and remain explicitly ungrounded in the manifest:
+
+- `xu2026-tailsieve`, arXiv 2608.22788v1: mismatched tag inside SVG visual.
+- `zhao2024-galore`, arXiv 2403.03507v2: visible-block fidelity rejected
+  8/224 blocks (4 tolerated, total 0.991, minimum 0.333).
+
+Both were read through primary HTML. Reproduce with `uv run --with pyyaml
+scripts/related-work --dir surveys/training-efficiency fetch
+xu2026-tailsieve zhao2024-galore`. No extractor change was attempted.
+
+Contributing-model: 6-astra
