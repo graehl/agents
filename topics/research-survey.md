@@ -117,6 +117,24 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
   case in its output rather than passing over it. `--no-svg-figures` opts out;
   a host that cannot run the pass (no `uv`) reports `figures: raster only
   (…)` on the fetch row, never a silent no-op.
+- **A recut figure carries only its own drawings and fits a byte budget.**
+  MuPDF's SVG device writes every drawing on the page under the figure's
+  clip, so each recut first drops drawings lying wholly outside the figure
+  (one 188 MB figure became 53 MB with no pixel changed). A figure still over
+  `figure_shrink.BUDGET_BYTES` (10 MB) has its regions of highest drawing
+  cost per unit area replaced by embedded 300-dpi bitmap windows, leaving the
+  sparse, zoomable rest vector (`windowed`; the SVG opens with a
+  `figure_shrink` comment naming the windows and check scores). The result
+  is accepted only if its 300-dpi render matches the source within a
+  one-pixel shift tolerance on mean, visible-pixel and worst-block error;
+  otherwise the raster crop stays linked (`oversize`). An HTML visual over
+  the budget fails the HTML derivation, because fitting it needs the PDF
+  original, and an arXiv paper whose HTML derivation fails falls back to its
+  PDF on the same fetch (`html_failure` on the row). `stage` refuses, and
+  `audit` reports as `asset-size`, any linked asset over
+  `ASSET_CEILING_BYTES` (20 MB), so no fitting failure can reach a push.
+  Shape-preserving reduction is a sketch:
+  [`gaps/sketches/svg-shape-compression.md`](../gaps/sketches/svg-shape-compression.md).
 - **HTML visuals are linked local assets.** The HTML derivation preserves
   inline SVG and image resources from `img`, `object`, and `embed`; vector
   sources stay SVG and bitmaps retain their original format. Captions remain

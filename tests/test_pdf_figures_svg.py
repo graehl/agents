@@ -39,14 +39,31 @@ def _assert(cond, msg="assertion failed"):
         raise AssertionError(msg)
 
 
-def make_pdf(path: Path) -> None:
-    """A one-page PDF whose only content is a filled rectangle at VECTOR_BOX.
+def filled_rect(box: list[float]) -> str:
+    """A PDF fill operator for `box` in top-left points; PDF y grows upward,
+    so the box is stated flipped about the page height."""
+    x0, y0, x1, y1 = box
+    return f"{x0:.2f} {PAGE[1] - y1:.2f} {x1 - x0:.2f} {y1 - y0:.2f} re f\n"
 
-    PDF y grows upward, so the rectangle's `re` operator states the box
-    flipped about the page height.
-    """
-    x0, y0, x1, y1 = VECTOR_BOX
-    stream = f"0 0 0 rg {x0} {PAGE[1] - y1} {x1 - x0} {y1 - y0} re f\n".encode()
+
+def dense_marks(box: list[float], count: int) -> str:
+    """`count` tiny filled squares scattered deterministically over `box`,
+    each its own path, the way a plotting library draws scatter markers."""
+    x0, y0, x1, y1 = box
+    marks = []
+    for i in range(count):
+        x = x0 + (i * 7919 % 1000) / 1000 * (x1 - x0 - 0.8)
+        y = y0 + (i * 104729 % 1000) / 1000 * (y1 - y0 - 0.8)
+        marks.append(filled_rect([x, y, x + 0.8, y + 0.8]))
+    return "".join(marks)
+
+
+def make_pdf(path: Path, stream: str | None = None) -> None:
+    """A one-page PDF; by default its only content is a filled rectangle at
+    VECTOR_BOX."""
+    stream = (
+        "0 0 0 rg " + filled_rect(VECTOR_BOX) if stream is None else stream
+    ).encode()
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -93,11 +110,14 @@ def make_png(path: Path, width: int, height: int) -> None:
 
 
 def make_extract(
-    directory: Path, crops: dict[str, tuple[int, int]], blocks: list[dict]
+    directory: Path,
+    crops: dict[str, tuple[int, int]],
+    blocks: list[dict],
+    stream: str | None = None,
 ) -> Path:
     """Lay out one marker-shaped extract; return the markdown path."""
     directory.mkdir(parents=True, exist_ok=True)
-    make_pdf(directory / "source.pdf")
+    make_pdf(directory / "source.pdf", stream)
     for name, (width, height) in crops.items():
         make_png(directory / name, width, height)
     (directory / "blocks.json").write_text(
@@ -257,6 +277,125 @@ def test_second_run_reports_the_links_it_already_converted():
         _assert(
             rows(again)["_page_0_Figure_1.svg"]["status"] == "already", again.stdout
         )
+
+
+# A dense "scatter" fills DENSE_BOX, with an axis rule along its bottom edge
+# inside FIGURE_BOX; OTHER_BOX holds a second dense plot elsewhere on the page.
+FIGURE_BOX = [10.0, 10.0, 130.0, 90.0]
+DENSE_BOX = [20.0, 15.0, 120.0, 75.0]
+AXIS_BOX = [15.0, 80.0, 125.0, 81.0]
+OTHER_BOX = [140.0, 10.0, 195.0, 90.0]
+FIGURE_CROP = (240, 160)  # FIGURE_BOX is 120x80 pt, aspect 1.5
+
+
+def dense_figure_stream() -> str:
+    return (
+        "0 0 0 rg "
+        + dense_marks(DENSE_BOX, 3000)
+        + filled_rect(AXIS_BOX)
+        + dense_marks(OTHER_BOX, 3000)
+    )
+
+
+def dense_extract(tmp: str) -> Path:
+    return make_extract(
+        Path(tmp) / "paper",
+        {"_page_0_Figure_1.png": FIGURE_CROP},
+        [{"block_id": 1, "polygon": {"bbox": FIGURE_BOX}}],
+        dense_figure_stream(),
+    )
+
+
+def test_recut_omits_drawings_outside_the_figure():
+    """MuPDF's SVG device writes the whole page's drawings under a clip; the
+    figure must carry only its own."""
+    with tempfile.TemporaryDirectory() as tmp:
+        markdown = dense_extract(tmp)
+        proc = run(markdown)
+        _assert(proc.returncode == 0, proc.stderr)
+        _assert(rows(proc)["_page_0_Figure_1.png"]["status"] == "vector", proc.stdout)
+        svg = (markdown.parent / "_page_0_Figure_1.svg").read_text()
+        # 3000 in-figure marks plus the axis; the other plot's 3000 are gone.
+        paths = svg.count("<path")
+        _assert(3000 <= paths < 4000, f"{paths} paths in the figure SVG")
+
+
+def test_figure_over_budget_rasterizes_only_its_dense_region():
+    with tempfile.TemporaryDirectory() as tmp:
+        markdown = dense_extract(tmp)
+        full = rows(run(markdown, "--dry-run"))["_page_0_Figure_1.png"]["svg_bytes"]
+        budget = full // 3
+        proc = run(markdown, "--budget-bytes", str(budget))
+        _assert(proc.returncode == 0, proc.stderr)
+        row = rows(proc)["_page_0_Figure_1.png"]
+        _assert(row["status"] == "windowed", row)
+        _assert(row["svg_bytes"] <= budget, row)
+        _assert(0 < row["raster_fraction"] < 1, row)
+
+        svg = (markdown.parent / "_page_0_Figure_1.svg").read_text()
+        _assert("<image" in svg, "no bitmap window in the SVG")
+        _assert("<!-- figure_shrink: " in svg[:2000], svg[:2000])
+        # Not everything became a bitmap: some marks stay vector paths.
+        _assert(svg.count("<path") > 0, "the whole figure was rasterized")
+        _assert("](_page_0_Figure_1.svg)" in markdown.read_text())
+
+
+def test_figure_no_window_set_fits_keeps_its_raster_crop():
+    with tempfile.TemporaryDirectory() as tmp:
+        markdown = dense_extract(tmp)
+        proc = run(markdown, "--budget-bytes", "1000")
+        _assert(proc.returncode == 0, proc.stderr)
+        row = rows(proc)["_page_0_Figure_1.png"]
+        _assert(row["status"] == "oversize", row)
+        _assert("](_page_0_Figure_1.png)" in markdown.read_text())
+        _assert(not (markdown.parent / "_page_0_Figure_1.svg").exists())
+
+
+FIDELITY_PROBE = """
+import sys
+sys.path.insert(0, sys.argv[2])
+import pymupdf
+import figure_shrink.raster_windows as fs
+
+page = pymupdf.open(sys.argv[1])[0]
+figure = pymupdf.Rect(*map(float, sys.argv[3].split(",")))
+dense = pymupdf.Rect(*map(float, sys.argv[4].split(",")))
+windowed = fs._rasterized_page(page, [fs._snap(dense, figure)])
+dropped = fs._page_copy(page)
+fs._remove_covered_drawings(dropped[0], [dense])
+print(fs.measure_fidelity(page, windowed[0], figure).accepted)
+print(fs.measure_fidelity(page, dropped[0], figure).accepted)
+"""
+
+
+def test_render_check_accepts_a_window_and_rejects_lost_marks():
+    """The acceptance check must pass a faithful bitmap window and fail a
+    region whose marks vanished with no bitmap in their place."""
+    with tempfile.TemporaryDirectory() as tmp:
+        pdf = Path(tmp) / "dense.pdf"
+        make_pdf(pdf, dense_figure_stream())
+        proc = subprocess.run(
+            [
+                "uv",
+                "run",
+                "--no-project",
+                "--with",
+                "pymupdf>=1.24",
+                "--with",
+                "numpy",
+                "python3",
+                "-c",
+                FIDELITY_PROBE,
+                str(pdf),
+                str(REPO_ROOT),
+                ",".join(map(str, FIGURE_BOX)),
+                ",".join(map(str, DENSE_BOX)),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        _assert(proc.returncode == 0, proc.stderr)
+        _assert(proc.stdout.split() == ["True", "False"], proc.stdout)
 
 
 def test_missing_input_exits_not_found():

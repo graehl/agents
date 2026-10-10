@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["pymupdf>=1.24"]
+# dependencies = ["pymupdf>=1.24", "numpy"]
 # ///
 # acli: 1 complete
 """pdf-figures-svg — recut a marker extract's figure crops as vector SVG.
@@ -35,6 +35,12 @@ Two figures are left as raster on purpose:
   silently ship a crop of the wrong part of the page, keep the raster and
   say so (`geometry-mismatch`).
 
+Every recut first drops drawings lying wholly outside the figure, which
+MuPDF's SVG device would otherwise write for the whole page. A figure still
+over `--budget-bytes` has its densest regions rasterized as embedded bitmap
+windows by `figure_shrink.raster_windows` (`windowed`); one that no window set brings under
+budget with an accepted render check keeps its raster crop (`oversize`).
+
 Contract: topics/research-survey.md (extract tree),
 topics/pareto-figures.md § Rendering contract (why the SVG root keeps
 explicit `pt` width/height rather than a bare viewBox).
@@ -66,6 +72,14 @@ from acli import (  # noqa: E402
     maybe_complete,
     resolve_format,
 )
+from figure_shrink import BUDGET_BYTES  # noqa: E402
+from figure_shrink.raster_windows import (  # noqa: E402
+    RASTER_DPI,
+    ShrunkFigure,
+    figure_svg,
+    isolated_figure,
+    shrink_figure,
+)
 
 CAPABILITIES = ("complete",)
 EXIT_CODES = {
@@ -95,8 +109,15 @@ BACKGROUND_AREA_FRACTION = 0.9
 # a few points in either direction.
 RASTER_COVERAGE = 0.8
 
-SVG_ROOT_SIZE = re.compile(r'(<svg\b[^>]*?)width="([\d.]+)"\s+height="([\d.]+)"')
-TOON_COLUMNS = ("figure", "page", "status", "crop", "svg_bytes", "native")
+TOON_COLUMNS = (
+    "figure",
+    "page",
+    "status",
+    "crop",
+    "svg_bytes",
+    "raster_fraction",
+    "native",
+)
 
 
 @dataclass
@@ -218,15 +239,17 @@ def placed_raster(page: pymupdf.Page, rect: pymupdf.Rect) -> dict | None:
     return None
 
 
-def size_in_points(svg: str) -> str:
-    """Restate the root width/height in points.
-
-    MuPDF writes them unitless, which a browser reads as CSS pixels and so
-    renders the figure at 3/4 of the size it occupies on the page. A Markdown
-    image link has nowhere to carry dimensions, so these attributes are the
-    only size channel the figure has (topics/pareto-figures.md).
-    """
-    return SVG_ROOT_SIZE.sub(r'\1width="\2pt" height="\3pt"', svg, count=1)
+def windowed_provenance(svg: str, shrunk: ShrunkFigure, full_bytes: int) -> str:
+    """Record inside the SVG that parts of it are bitmaps, and how they were
+    checked, so the committed figure carries its own provenance."""
+    note = (
+        f"<!-- figure_shrink: {len(shrunk.windows)} windows "
+        f"({shrunk.raster_fraction:.1%} of the area) rasterized at {RASTER_DPI} dpi "
+        f"to fit {full_bytes} bytes under budget; check "
+        f"{shrunk.fidelity.describe()} -->\n"
+    )
+    end = svg.index(">", svg.index("<svg")) + 1
+    return svg[:end] + "\n" + note + svg[end:]
 
 
 class Recutter:
@@ -239,13 +262,19 @@ class Recutter:
     """
 
     def __init__(
-        self, pdf: Path, blocks: Path, directory: Path, *, dry_run: bool, max_bytes: int
+        self,
+        pdf: Path,
+        blocks: Path,
+        directory: Path,
+        *,
+        dry_run: bool,
+        budget_bytes: int,
     ):
         self.document = pymupdf.open(pdf)
         self.geometry = load_geometry(blocks)
         self.directory = directory
         self.dry_run = dry_run
-        self.max_bytes = max_bytes
+        self.budget_bytes = budget_bytes
         self.drawings: dict[int, list] = {}
         self.rewrites: dict[str, str] = {}
         self.failed = False
@@ -280,24 +309,32 @@ class Recutter:
         if not has_vector_content(page, rect, self.page_drawings(page, figure.page)):
             return {**row, "status": "raster", **(placed_raster(page, rect) or {})}
 
-        cropbox = pymupdf.Rect(page.cropbox)
+        status = "vector"
         try:
-            page.set_cropbox(rect)
-            svg = size_in_points(page.get_svg_image(text_as_path=True))
+            isolated = isolated_figure(page, rect)
+            svg = figure_svg(isolated[0], rect)
+            full_bytes = len(svg.encode())
+            if full_bytes > self.budget_bytes:
+                row["full_bytes"] = full_bytes
+                shrunk = shrink_figure(
+                    isolated[0], rect, full_bytes, budget_bytes=self.budget_bytes
+                )
+                if shrunk is None:
+                    return {**row, "status": "oversize"}
+                svg = windowed_provenance(shrunk.svg, shrunk, full_bytes)
+                status = "windowed"
+                row["raster_fraction"] = round(shrunk.raster_fraction, 3)
+                row["check"] = shrunk.fidelity.describe()
         except (RuntimeError, ValueError) as exc:
             self.failed = True
             return {**row, "status": "failed", "error": str(exc)}
-        finally:
-            page.set_cropbox(cropbox)
 
         row["svg_bytes"] = len(svg.encode())
-        if self.max_bytes and row["svg_bytes"] > self.max_bytes:
-            return {**row, "status": "oversize"}
         target = (self.directory / figure.file).with_suffix(".svg")
         if not self.dry_run:
             target.write_text(svg)
         self.rewrites[figure.file] = target.name
-        return {**row, "status": "vector", "svg": target.name}
+        return {**row, "status": status, "svg": target.name}
 
 
 def convert(args) -> int:
@@ -318,7 +355,7 @@ def convert(args) -> int:
         blocks_path,
         markdown_path.parent,
         dry_run=args.dry_run,
-        max_bytes=args.max_bytes,
+        budget_bytes=args.budget_bytes,
     )
     rows = [recutter.recut(figure) for figure in markdown_figures(text)]
     rows += [
@@ -356,10 +393,12 @@ def build_parser():
         help="Markdown to rewrite; figure crops are read from its directory.",
     )
     parser.add_argument(
-        "--max-bytes",
+        "--budget-bytes",
         type=int,
-        default=0,
-        help="Keep the raster crop when the SVG would exceed this many bytes (0: no limit).",
+        default=BUDGET_BYTES,
+        help="Largest SVG kept fully vector; a larger figure has its densest regions "
+        "rasterized to fit, or keeps its raster crop when no checked result fits "
+        f"(default: {BUDGET_BYTES}).",
     )
     parser.add_argument(
         "--dry-run",

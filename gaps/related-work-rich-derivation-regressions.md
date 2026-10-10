@@ -155,3 +155,24 @@ scripts/related-work --dir surveys/training-efficiency fetch
 xu2026-tailsieve zhao2024-galore`. No extractor change was attempted.
 
 Contributing-model: 6-astra
+
+## Test-amplification sources, 2026-10-10
+
+Ten of 53 first-pass fetches in `surveys/test-amplification/` failed HTML
+derivation, and `fetch` did not fall back to the PDF route on its own:
+
+| Count | Failure | Keys |
+|---:|---|---|
+| 5 | mismatched tag inside SVG visual | jain2024-testgeneval, tao2026-execcritic, tan2026-coharden, yu2026-swe-abs, konstantinou2024-llm-oracles |
+| 3 | source HTML has no auditable visible text block | qiao2026-fastci, chen2022-codet, chen2025-revisit-self-debug |
+| 1 | visual download 404 (`graphs_both/nm_empty.png`) | klees2018-evaluating |
+| 1 | fidelity 15/184 flagged, `relatedworkrichtoken…` placeholders in scored prose | zhang2026-aixcc-sok |
+
+All ten then extracted through `fetch --no-html` (marker). `fetch` now
+falls back to the PDF on its own when an arXiv HTML derivation fails,
+reporting the HTML reason as `html_failure` on the row, so these failures
+no longer block an extract; the derivation defects themselves remain. The
+leaked `relatedworkrichtoken` placeholder repeats the earlier math-token
+leak.
+
+Contributing-model: opus-5.5

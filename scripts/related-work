@@ -57,6 +57,7 @@ from acli.args import (
     maybe_complete,
     set_completer,
 )
+from figure_shrink import ASSET_CEILING_BYTES, BUDGET_BYTES
 
 try:
     import yaml
@@ -992,6 +993,15 @@ class _RichContentParser(HTMLParser):
 
     def _asset(self, content: bytes) -> str:
         if content.lstrip().startswith((b"<svg", b"<?xml", b"<!DOCTYPE", b"<!--")):
+            if len(content) > BUDGET_BYTES:
+                # Fitting a figure under budget needs its PDF original:
+                # MuPDF, which does the fitting, does not render the
+                # foreignObject labels HTML figures carry, so a check made
+                # on its rendering of this SVG could pass lost labels.
+                raise HtmlDerivationError(
+                    f"SVG visual over the figure budget: {len(content)} bytes "
+                    f"> {BUDGET_BYTES}"
+                )
             repaired_style = False
             try:
                 root = ET.fromstring(content)
@@ -1967,6 +1977,7 @@ def fetch_paper(
         return {"key": paper.key, "status": "failed", "reason": "page fetch failed"}
 
     html_url = f"https://arxiv.org/html/{paper.ident}"
+    pdf_url = f"https://arxiv.org/pdf/{paper.ident}"
     if not no_html and save_page(directory, html_url, paper.key):
         if download_only:
             return {
@@ -1974,9 +1985,16 @@ def fetch_paper(
                 "status": "downloaded",
                 "note": "no sentinel; extract later",
             }
-        return derive("arxiv-html", html_url)
+        derived = derive("arxiv-html", html_url)
+        if derived["status"] != "failed":
+            return derived
+        # arXiv serves every paper as PDF too, so a page the HTML derivation
+        # rejects still gets an extract; the row says why HTML was passed over.
+        return {
+            **extract_pdf(pdf_url, directory / "source.pdf"),
+            "html_failure": derived["reason"],
+        }
 
-    pdf_url = f"https://arxiv.org/pdf/{paper.ident}"
     return extract_pdf(pdf_url, directory / "source.pdf")
 
 
@@ -2066,6 +2084,12 @@ def committable_asset(asset: Path) -> bool:
     return asset.suffix.lower() not in (".htm", ".html") and asset.is_file()
 
 
+def over_asset_ceiling(path: Path) -> bool:
+    """A file too large to commit, whatever produced it: an unbounded figure
+    reaching a push would bloat every clone, and past 100 MB GitHub refuses it."""
+    return path.stat().st_size > ASSET_CEILING_BYTES
+
+
 def authoritative_extract_files(survey: Survey, paper: Paper) -> list[Path]:
     """The committed subset of one extract: sentinel, Markdown, linked figures."""
     files = [survey.sentinel_path(paper.key)]
@@ -2096,6 +2120,16 @@ def stage_extract(survey: Survey, paper: Paper) -> dict:
         files = authoritative_extract_files(survey, paper)
     except HtmlDerivationError as exc:
         return {**row, "status": "failed", "reason": str(exc)}
+    oversized = [path for path in files if over_asset_ceiling(path)]
+    if oversized:
+        return {
+            **row,
+            "status": "failed",
+            "reason": f"linked asset over {ASSET_CEILING_BYTES} bytes: "
+            + ", ".join(
+                str(path.relative_to(survey.extract_root)) for path in oversized
+            ),
+        }
     added = subprocess.run(
         ["git", "-C", str(repository), "add", "-f", "--", *map(str, files)],
         capture_output=True,
@@ -2273,6 +2307,13 @@ def audit_findings(survey: Survey) -> list[dict]:
                             paper.key,
                             "authority-asset",
                             f"{asset.relative_to(directory)} is missing",
+                        )
+                    elif over_asset_ceiling(asset):
+                        report(
+                            paper.key,
+                            "asset-size",
+                            f"{asset.relative_to(directory)} is over "
+                            f"{ASSET_CEILING_BYTES} bytes",
                         )
                     elif committable_asset(asset) and asset not in tracked:
                         report(

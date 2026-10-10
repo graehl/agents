@@ -1069,6 +1069,114 @@ def test_url_pdf_uses_marker_instead_of_html_derivation():
         _assert(calls == [loaded.extract_dir(paper.key) / "two.pdf"], calls)
 
 
+def test_arxiv_html_failure_falls_back_to_the_pdf():
+    """A page the HTML derivation rejects still gets an extract, from the PDF
+    arXiv also serves, and the row keeps the HTML failure reason."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = survey(Path(tmp))
+        loaded = rw.load_survey(root)
+        paper = loaded.find("gamma2022-three")
+        originals = (
+            rw.download,
+            rw.run_marker,
+            rw.http_headers,
+            rw.save_page,
+            rw.derive_saved_html,
+        )
+        downloads = []
+
+        def download(url, target):
+            downloads.append(url)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b"pdf")
+            return True
+
+        def derive_rejects(*_args, **_kwargs):
+            raise rw.HtmlDerivationError("mismatched tag inside SVG visual")
+
+        rw.download = download
+        rw.run_marker = lambda *_args, **_kwargs: {}
+        rw.http_headers = lambda _url: {}
+        rw.save_page = lambda *_args, **_kwargs: True
+        rw.derive_saved_html = derive_rejects
+        try:
+            row = rw.fetch_paper(
+                loaded,
+                paper,
+                no_html=False,
+                download_only=False,
+                svg_figures=False,
+                refresh_source=False,
+            )
+        finally:
+            (
+                rw.download,
+                rw.run_marker,
+                rw.http_headers,
+                rw.save_page,
+                rw.derive_saved_html,
+            ) = originals
+
+        _assert(row["status"] == "fetched" and row["method"] == "pdf-marker", row)
+        _assert("mismatched tag" in row["html_failure"], row)
+        _assert(downloads == ["https://arxiv.org/pdf/2203.00003"], downloads)
+
+
+def test_svg_visual_over_the_figure_budget_rejects_html_derivation():
+    """Only the PDF route can fit a figure under budget, so an oversized HTML
+    SVG must fail the derivation rather than be committed as is."""
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        rects = "".join(
+            f'<rect x="{i}" y="0" width="1" height="1"/>' for i in range(200)
+        )
+        (directory / "paper.html").write_text(
+            "<p>The paper draws a dense figure inline.</p>"
+            f'<svg xmlns="http://www.w3.org/2000/svg">{rects}</svg>'
+        )
+        original = rw.BUDGET_BYTES
+        rw.BUDGET_BYTES = 1000
+        try:
+            rw.derive_saved_html(directory, "https://example.test/paper", "key")
+        except rw.HtmlDerivationError as exc:
+            _assert("over the figure budget" in str(exc), str(exc))
+        else:
+            _assert(False, "an SVG over budget was derived")
+        finally:
+            rw.BUDGET_BYTES = original
+
+
+def test_stage_and_audit_refuse_an_asset_over_the_ceiling():
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace = Path(tmp)
+        root = survey(workspace)
+        directory = root / "related-work" / "extract" / "alpha2020-one"
+        markdown = directory / "paper.md"
+        markdown.write_text(f"{ONE_HEADER}\n\n# One\n\n![Result](figure.svg)\n")
+        figure = directory / "figure.svg"
+        with figure.open("wb") as handle:  # sparse: no real 20 MB written
+            handle.truncate(rw.ASSET_CEILING_BYTES + 1)
+        sentinel_path = directory / ".fetched"
+        sentinel = json.loads(sentinel_path.read_text())
+        sentinel["markdown_sha256"] = rw._sha256_file(markdown)
+        sentinel_path.write_text(json.dumps(sentinel))
+        subprocess.run(["git", "init", "-q", str(workspace)], check=True)
+
+        proc = run(root, "stage", "alpha2020-one")
+        (row,) = jsonl(proc)
+        _assert(row["status"] == "failed" and "figure.svg" in row["reason"], row)
+        tracked = subprocess.run(
+            ["git", "-C", str(workspace), "ls-files"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        _assert("figure.svg" not in tracked, tracked)
+
+        rules = {(row["key"], row["rule"]) for row in jsonl(run(root, "audit"))}
+        _assert(("alpha2020-one", "asset-size") in rules, sorted(rules))
+
+
 def test_pdf_revalidation_replaces_existing_source_before_extraction():
     with tempfile.TemporaryDirectory() as tmp:
         root = survey(Path(tmp))
