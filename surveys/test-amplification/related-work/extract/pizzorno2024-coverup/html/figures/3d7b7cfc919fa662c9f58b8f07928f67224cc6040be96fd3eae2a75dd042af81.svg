@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="S4.T4.pic8" class="ltx_picture" height="10.02" overflow="visible" version="1.1" viewBox="0 0 10.02 10.02" width="10.02"><style>
+  /* Banner pre-dismissal (set above before paint -> no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</style><g transform="translate(0,10.02) matrix(1 0 0 -1 0 0) translate(0.48,0) translate(0,0.48)"><g style="--ltx-stroke-color:#FF0000;--ltx-fill-color:#FF0000;--ltx-fg-color:#FF0000;" color="#FF0000" fill="#FF0000" stroke="#FF0000" stroke-linecap="round" stroke-width="0.7pt"><path style="fill:none" d="M 0 0 C 3.16 3.9 5.16 5.9 9.05 9.05"></path></g><g style="--ltx-stroke-color:#FF0000;--ltx-fill-color:#FF0000;--ltx-fg-color:#FF0000;" color="#FF0000" fill="#FF0000" stroke="#FF0000" stroke-linecap="round" stroke-width="0.7pt"><path style="fill:none" d="M 1.81 8.6 C 3.77 5.3 4.95 3.53 7.24 0.45"></path></g></g></svg>

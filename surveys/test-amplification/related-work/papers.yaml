@@ -1,0 +1,988 @@
+# Metadata manifest for surveys/test-amplification.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+#
+# Clusters: A change-aware selection, prioritization and test economics;
+# B targeted mutation; C fuzzing-compute allocation; D tests written by
+# LLMs and coding agents.
+
+meta:
+  field_slug: test-amplification
+  coverage_cutoff: 2026-10-10
+  grounding_mode: grounded
+
+papers:
+  # --- A. change-aware selection, prioritization, test economics ---
+  - key: machalica2019-predictive-test-selection
+    short: test-selection
+    concept_page: concepts/test-selection.md
+    title: "Predictive Test Selection"
+    authors: ["Mateusz Machalica", "Alex Samylkin", "Meredith Porth", "Satish Chandra"]
+    venue: "ICSE-SEIP"
+    year: 2019
+    arxiv: "1810.05286"
+    doi: "10.1109/ICSE-SEIP.2019.00018"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  - key: memon2017-taming-google-scale
+    short: test-failure-economics
+    concept_page: concepts/test-failure-economics.md
+    title: "Taming Google-Scale Continuous Testing"
+    authors: ["Atif Memon", "Zebao Gao", "Bao Nguyen", "Sanjeev Dhanda", "Eric Nickell", "Rob Siemborski", "John Micco"]
+    venue: "ICSE-SEIP"
+    year: 2017
+    url: "https://huang.isis.vanderbilt.edu/cs8395-f23/paper/google-testing-icse-seip-17.pdf"
+    doi: "10.1109/ICSE-SEIP.2017.16"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  - key: herzig2015-testing-less
+    title: "The Art of Testing Less without Sacrificing Quality"
+    authors: ["Kim Herzig", "Michaela Greiler", "Jacek Czerwonka", "Brendan Murphy"]
+    venue: "ICSE"
+    year: 2015
+    url: "https://doi.org/10.1109/ICSE.2015.66"
+    doi: "10.1109/ICSE.2015.66"
+    grounded: false
+    verified: true
+    source: "OpenAlex and Semantic Scholar records checked 2026-10-10; no open full text located"
+    fetched: null
+    cluster: A
+
+  - key: labuschagne2017-cost-regression-testing
+    short: test-failure-economics
+    concept_page: concepts/test-failure-economics.md
+    title: "Measuring the Cost of Regression Testing in Practice: A Study of Java Projects Using Continuous Integration"
+    authors: ["Adriaan Labuschagne", "Laura Inozemtseva", "Reid Holmes"]
+    venue: "ESEC/FSE"
+    year: 2017
+    url: "https://www.cs.ubc.ca/~rtholmes/papers/fse_2017_labuschange.pdf"
+    doi: "10.1145/3106237.3106288"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  - key: leinen2024-cost-flaky-ci
+    title: "Cost of Flaky Tests in Continuous Integration: An Industrial Case Study"
+    authors: ["Fabian Leinen", "Daniel Elsner", "Alexander Pretschner", "Andreas Stahlbauer", "Michael Sailer", "Elmar Jürgens"]
+    venue: "ICST"
+    year: 2024
+    url: "https://mediatum.ub.tum.de/doc/1730194/1730194.pdf"
+    doi: "10.1109/ICST60714.2024.00037"
+    grounded: false
+    verified: true
+    source: "OpenAlex record checked 2026-10-10"
+    fetched: null
+    cluster: A
+
+  - key: inozemtseva2014-coverage-effectiveness
+    short: coverage-proxy
+    concept_page: concepts/coverage-proxy.md
+    title: "Coverage Is Not Strongly Correlated with Test Suite Effectiveness"
+    authors: ["Laura Inozemtseva", "Reid Holmes"]
+    venue: "ICSE"
+    year: 2014
+    url: "https://www.cs.ubc.ca/~rtholmes/papers/icse_2014_inozemtseva.pdf"
+    doi: "10.1145/2568225.2568271"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  - key: shi2015-tsr-vs-rts
+    title: "Comparing and Combining Test-Suite Reduction and Regression Test Selection"
+    authors: ["August Shi", "Tifany Yung", "Alex Gyori", "Darko Marinov"]
+    venue: "ESEC/FSE"
+    year: 2015
+    url: "https://doi.org/10.1145/2786805.2786878"
+    doi: "10.1145/2786805.2786878"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10; ACM full text blocked to scripted fetch"
+    fetched: null
+    cluster: A
+
+  - key: elsner2021-readily-available-info
+    title: "Empirically Evaluating Readily Available Information for Regression Test Optimization in Continuous Integration"
+    authors: ["Daniel Elsner", "Florian Hauer", "Alexander Pretschner", "Silke Reimer"]
+    venue: "ISSTA"
+    year: 2021
+    url: "https://doi.org/10.1145/3460319.3464834"
+    doi: "10.1145/3460319.3464834"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: A
+
+  - key: cheng2024-lrts
+    title: "Revisiting Test-Case Prioritization on Long-Running Test Suites"
+    authors: ["Runxiang Cheng", "Shuai Wang", "Reyhaneh Jabbarvand", "Darko Marinov"]
+    venue: "ISSTA"
+    year: 2024
+    url: "https://doi.org/10.1145/3650212.3680307"
+    doi: "10.1145/3650212.3680307"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: A
+
+  - key: leong2019-transition-selection-google
+    title: "Assessing Transition-Based Test Selection Algorithms at Google"
+    authors: ["Claire Leong", "Abhayendra Singh", "Mike Papadakis", "Yves Le Traon", "John Micco"]
+    venue: "ICSE-SEIP"
+    year: 2019
+    url: "https://doi.org/10.1109/ICSE-SEIP.2019.00019"
+    doi: "10.1109/ICSE-SEIP.2019.00019"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10; ORBilu copy timed out"
+    fetched: null
+    cluster: A
+
+  - key: kondareddy2025-speculative-testing-google
+    title: "Speculative Testing at Google with Transition Prediction"
+    authors: ["Avi Kondareddy", "Sushmita Azad", "Abhayendra Singh", "Tim A. D. Henderson"]
+    venue: "ICST"
+    year: 2025
+    url: "https://doi.org/10.1109/ICST62969.2025.10988976"
+    doi: "10.1109/ICST62969.2025.10988976"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: A
+
+  - key: bhatta2025-test-deletion
+    title: "Understanding Test Deletion in Java Applications"
+    authors: ["Suraj Bhatta", "Frank Kendemah", "Ajay Kumar Jha"]
+    venue: "MSR"
+    year: 2025
+    url: "https://doi.org/10.1109/MSR66628.2025.00071"
+    doi: "10.1109/MSR66628.2025.00071"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: A
+
+  - key: plyusnin2025-targeted-test-selection
+    short: test-selection
+    concept_page: concepts/test-selection.md
+    title: "Targeted Test Selection Approach in Continuous Integration"
+    authors: ["Pavel Plyusnin", "Aleksey Antonov", "Vasilii Ermakov", "Aleksandr Khaybriev", "Margarita Kikot", "Ilseyar Alimova", "Stanislav Moiseev"]
+    venue: "ICSME"
+    year: 2025
+    arxiv: "2509.10279"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  - key: ayyad2026-trajectory-subset-selection
+    short: test-selection
+    concept_page: concepts/test-selection.md
+    title: "Trajectory-Aware Benchmark Subset Selection for Cost-Efficient Software Engineering Agent Regression Testing"
+    authors: ["Mahmoud Ayyad", "Zehao Wang", "Jiho Shin", "Ying Zou", "Bram Adams"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2609.24928"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  - key: wang2026-namerts
+    short: test-selection
+    concept_page: concepts/test-selection.md
+    title: "Names Are All You Need: Effective and Safe Regression Test Selection for Python"
+    authors: ["You Wang", "Michael Pradel", "Zhongxin Liu"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2605.25356"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  - key: qiao2026-fastci
+    short: test-selection
+    concept_page: concepts/test-selection.md
+    title: "FastCI: Efficient GPU-Intensive CI for LLM Training Frameworks"
+    authors: ["Tianshuo Qiao", "Naiqian Zheng", "Xiaopeng Liu", "Shuguang Wang", "Diandian Gu", "Xuanzhe Liu", "Xin Jin"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2610.01967"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  - key: pan2021-ml-test-selection-slr
+    short: test-selection
+    concept_page: concepts/test-selection.md
+    title: "Test Case Selection and Prioritization Using Machine Learning: A Systematic Literature Review"
+    authors: ["Rongqi Pan", "Mojtaba Bagherzadeh", "Taher A. Ghaleb", "Lionel Briand"]
+    venue: "Empirical Software Engineering"
+    year: 2021
+    arxiv: "2106.13891"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  - key: jin2021-ci-strategies
+    short: test-selection
+    concept_page: concepts/test-selection.md
+    title: "What Helped, and What Did Not? An Evaluation of the Strategies to Improve Continuous Integration"
+    authors: ["Xianhao Jin", "Francisco Servant"]
+    venue: "ICSE"
+    year: 2021
+    arxiv: "2102.06666"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: A
+
+  # --- B. targeted and cost-efficient mutation testing ---
+  - key: petrovic2021-practical-scale
+    short: targeted-mutation
+    concept_page: concepts/targeted-mutation.md
+    title: "Practical Mutation Testing at Scale: A view from Google"
+    authors: ["Goran Petrović", "Marko Ivanković", "Gordon Fraser", "René Just"]
+    venue: "IEEE TSE"
+    year: 2021
+    arxiv: "2102.11378"
+    doi: "10.1109/TSE.2021.3107634"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  - key: petrovic2021-improve-practices
+    short: targeted-mutation
+    concept_page: concepts/targeted-mutation.md
+    title: "Does Mutation Testing Improve Testing Practices?"
+    authors: ["Goran Petrović", "Marko Ivanković", "Gordon Fraser", "René Just"]
+    venue: "ICSE"
+    year: 2021
+    arxiv: "2103.07189"
+    doi: "10.1109/ICSE43902.2021.00087"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  - key: petrovic2018-state-google
+    title: "State of Mutation Testing at Google"
+    authors: ["Goran Petrović", "Marko Ivanković"]
+    venue: "ICSE-SEIP"
+    year: 2018
+    url: "https://research.google/pubs/state-of-mutation-testing-at-google/"
+    doi: "10.1145/3183519.3183521"
+    grounded: false
+    verified: true
+    source: "OpenAlex record checked 2026-10-10"
+    fetched: null
+    cluster: B
+
+  - key: zhang2012-regression-mutation
+    title: "Regression Mutation Testing"
+    authors: ["Lingming Zhang", "Darko Marinov", "Lu Zhang", "Sarfraz Khurshid"]
+    venue: "ISSTA"
+    year: 2012
+    url: "https://doi.org/10.1145/2338965.2336793"
+    doi: "10.1145/2338965.2336793"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: B
+
+  - key: ma2020-commit-aware
+    title: "Commit-Aware Mutation Testing"
+    authors: ["Wei Ma", "Thomas Laurent", "Miloš Ojdanić", "Thierry Titcheu Chekam", "Anthony Ventresque", "Mike Papadakis"]
+    venue: "ICSME"
+    year: 2020
+    url: "https://doi.org/10.1109/ICSME46990.2020.00045"
+    doi: "10.1109/ICSME46990.2020.00045"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10; ORBilu copy timed out"
+    fetched: null
+    cluster: B
+
+  - key: ma2021-mudelta
+    title: "MuDelta: Delta-Oriented Mutation Testing at Commit Time"
+    authors: ["Wei Ma", "Thierry Titcheu Chekam", "Mike Papadakis", "Mark Harman"]
+    venue: "ICSE"
+    year: 2021
+    url: "https://doi.org/10.1109/ICSE43902.2021.00086"
+    doi: "10.1109/ICSE43902.2021.00086"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10; ORBilu copy timed out"
+    fetched: null
+    cluster: B
+
+  - key: zhang2018-predictive-mutation
+    short: predictive-mutation
+    concept_page: concepts/predictive-mutation.md
+    title: "Predictive Mutation Testing"
+    authors: ["Jie M. Zhang", "Lingming Zhang", "Mark Harman", "Dan Hao", "Yue Jia", "Lu Zhang"]
+    venue: "IEEE TSE"
+    year: 2019
+    url: "https://discovery.ucl.ac.uk/10051793/1/bare_adv.pdf"
+    doi: "10.1109/TSE.2018.2809496"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  - key: aghamohammadi2020-pmt-threat
+    short: predictive-mutation
+    concept_page: concepts/predictive-mutation.md
+    title: "The Threat to the Validity of Predictive Mutation Testing: The Impact of Uncovered Mutants"
+    authors: ["Alireza Aghamohammadi", "Seyed-Hassan Mirian-Hosseinabadi"]
+    venue: "arXiv"
+    year: 2020
+    arxiv: "2005.11532"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  - key: jain2023-contextual-pmt
+    short: predictive-mutation
+    concept_page: concepts/predictive-mutation.md
+    title: "Contextual Predictive Mutation Testing"
+    authors: ["Kush Jain", "Uri Alon", "Alex Groce", "Claire Le Goues"]
+    venue: "ESEC/FSE"
+    year: 2023
+    arxiv: "2309.02389"
+    doi: "10.1145/3611643.3616289"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  - key: garg2022-cerebro
+    short: predictive-mutation
+    concept_page: concepts/predictive-mutation.md
+    title: "Cerebro: Static Subsuming Mutant Selection"
+    authors: ["Aayush Garg", "Milos Ojdanic", "Renzo Degiovanni", "Thierry Titcheu Chekam", "Mike Papadakis", "Yves Le Traon"]
+    venue: "IEEE TSE"
+    year: 2022
+    arxiv: "2112.14151"
+    doi: "10.1109/TSE.2022.3140510"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  - key: gopinath2015-how-hard
+    title: "How Hard Does Mutation Analysis Have to Be, Anyway?"
+    authors: ["Rahul Gopinath", "Mohammad Amin Alipour", "Iftekhar Ahmed", "Carlos Jensen", "Alex Groce"]
+    venue: "ISSRE"
+    year: 2015
+    url: "https://doi.org/10.1109/ISSRE.2015.7381815"
+    doi: "10.1109/ISSRE.2015.7381815"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: B
+
+  - key: just2014-mutants-real-faults
+    short: mutant-validity
+    concept_page: concepts/mutant-validity.md
+    title: "Are Mutants a Valid Substitute for Real Faults in Software Testing?"
+    authors: ["René Just", "Darioush Jalali", "Laura Inozemtseva", "Michael D. Ernst", "Reid Holmes", "Gordon Fraser"]
+    venue: "FSE"
+    year: 2014
+    url: "https://homes.cs.washington.edu/~mernst/pubs/mutation-effectiveness-fse2014.pdf"
+    doi: "10.1145/2635868.2635929"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  - key: papadakis2018-scores-real-faults
+    title: "Are Mutation Scores Correlated with Real Fault Detection? A Large Scale Empirical Study on the Relationship Between Mutants and Real Faults"
+    authors: ["Mike Papadakis", "Donghwan Shin", "Shin Yoo", "Doo-Hwan Bae"]
+    venue: "ICSE"
+    year: 2018
+    url: "https://doi.org/10.1145/3180155.3180183"
+    doi: "10.1145/3180155.3180183"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: B
+
+  - key: harman2025-ach-meta
+    short: llm-test-amplification
+    concept_page: concepts/llm-test-amplification.md
+    title: "Mutation-Guided LLM-based Test Generation at Meta"
+    authors: ["Christopher Foster", "Abhishek Gulati", "Mark Harman", "Inna Harper", "Ke Mao", "Jillian Ritchey", "Hervé Robert", "Shubho Sengupta"]
+    venue: "FSE Companion (Industry)"
+    year: 2025
+    arxiv: "2501.12862"
+    doi: "10.1145/3696630.3728544"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  - key: becker2026-jit-catching-meta
+    short: llm-test-amplification
+    concept_page: concepts/llm-test-amplification.md
+    title: "Just-in-Time Catching Test Generation at Meta"
+    authors: ["Matthew Becker", "Yifei Chen", "Nicholas Cochran", "Pouyan Ghasemi", "Abhishek Gulati", "Mark Harman", "Zachary Haluza", "Mehrdad Honarkhah", "Herve Robert", "Jiacheng Liu", "Weining Liu", "Sreeja Thummala", "Xiaoning Yang", "Rui Xin", "Sophie Zeng"]
+    venue: "FSE Companion (Industry)"
+    year: 2026
+    arxiv: "2601.22832"
+    doi: "10.1145/3803437.3805202"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  - key: wang2024-llm-mutation-study
+    short: llm-mutants
+    concept_page: concepts/llm-mutants.md
+    title: "A Comprehensive Study on Large Language Models for Mutation Testing"
+    authors: ["Bo Wang", "Mingda Chen", "Ming Deng", "Youfang Lin", "Mark Harman", "Mike Papadakis", "Jie M. Zhang"]
+    venue: "ACM TOSEM"
+    year: 2024
+    arxiv: "2406.09843"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: B
+
+  # --- C. fuzzing-compute allocation ---
+  - key: bohme2017-aflgo
+    short: change-directed-fuzzing
+    concept_page: concepts/change-directed-fuzzing.md
+    title: "Directed Greybox Fuzzing"
+    authors: ["Marcel Böhme", "Van-Thuan Pham", "Manh-Dung Nguyen", "Abhik Roychoudhury"]
+    venue: "ACM CCS"
+    year: 2017
+    url: "https://mboehme.github.io/paper/CCS17.pdf"
+    doi: "10.1145/3133956.3134020"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: zhu2021-regression-greybox
+    short: change-directed-fuzzing
+    concept_page: concepts/change-directed-fuzzing.md
+    title: "Regression Greybox Fuzzing"
+    authors: ["Xiaogang Zhu", "Marcel Böhme"]
+    venue: "ACM CCS"
+    year: 2021
+    url: "https://mboehme.github.io/paper/CCS21.pdf"
+    doi: "10.1145/3460120.3484596"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: bohme2020-exponential-cost
+    short: fuzzing-payoff-curves
+    concept_page: concepts/fuzzing-payoff-curves.md
+    title: "Fuzzing: On the Exponential Cost of Vulnerability Discovery"
+    authors: ["Marcel Böhme", "Brandon Falk"]
+    venue: "ESEC/FSE"
+    year: 2020
+    url: "https://mboehme.github.io/paper/FSE20.EmpiricalLaw.pdf"
+    doi: "10.1145/3368089.3409729"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: bohme2021-residual-risk
+    short: fuzzing-payoff-curves
+    concept_page: concepts/fuzzing-payoff-curves.md
+    title: "Estimating Residual Risk in Greybox Fuzzing"
+    authors: ["Marcel Böhme", "Danushka Liyanage", "Valentin Wüstholz"]
+    venue: "ESEC/FSE"
+    year: 2021
+    url: "https://mboehme.github.io/paper/FSE21.pdf"
+    doi: "10.1145/3468264.3468570"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: liyanage2024-coverage-rate
+    short: fuzzing-payoff-curves
+    concept_page: concepts/fuzzing-payoff-curves.md
+    title: "Extrapolating Coverage Rate in Greybox Fuzzing"
+    authors: ["Danushka Liyanage", "Seongmin Lee", "Chakkrit Tantithamthavorn", "Marcel Böhme"]
+    venue: "ICSE"
+    year: 2024
+    url: "https://mboehme.github.io/paper/ICSE24-predict.pdf"
+    doi: "10.1145/3597503.3639198"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: lipp2023-green-fuzzing
+    short: fuzzing-payoff-curves
+    concept_page: concepts/fuzzing-payoff-curves.md
+    title: "Green Fuzzing: A Saturation-Based Stopping Criterion using Vulnerability Prediction"
+    authors: ["Stephan Lipp", "Daniel Elsner", "Severin Kacianka", "Alexander Pretschner", "Marcel Böhme", "Sebastian Banescu"]
+    venue: "ISSTA"
+    year: 2023
+    url: "https://mboehme.github.io/paper/ISSTA23-green.pdf"
+    doi: "10.1145/3597926.3598043"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: bohme2020-entropic
+    short: fuzzing-payoff-curves
+    concept_page: concepts/fuzzing-payoff-curves.md
+    title: "Boosting Fuzzer Efficiency: An Information Theoretic Perspective"
+    authors: ["Marcel Böhme", "Valentin J. M. Manès", "Sang Kil Cha"]
+    venue: "ESEC/FSE (fetched text is the CACM 2023 Research Highlight version)"
+    year: 2020
+    url: "https://mboehme.github.io/paper/CACM23-entropic.pdf"
+    doi: "10.1145/3368089.3409748"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: klooster2023-continuous-fuzzing
+    title: "Continuous Fuzzing: A Study of the Effectiveness and Scalability of Fuzzing in CI/CD Pipelines"
+    authors: ["Thijs Klooster", "Fatih Turkmen", "Gerben Broenink", "Ruben ten Hove", "Marcel Böhme"]
+    venue: "SBFT"
+    year: 2023
+    url: "https://doi.org/10.1109/SBFT59156.2023.00015"
+    doi: "10.1109/SBFT59156.2023.00015"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: C
+
+  - key: huang2026-directed-or-undirected
+    title: "Directed or Undirected: Investigating Fuzzing Strategies in a CI/CD Setup"
+    authors: ["Madonna Huang", "Caroline Lemieux"]
+    venue: "ACM TOSEM"
+    year: 2026
+    url: "https://doi.org/10.1145/3723159"
+    doi: "10.1145/3723159"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: C
+
+  - key: sharma2026-pazzer
+    title: "Effective Fuzzing within CI/CD Pipelines"
+    authors: ["Arindam Sharma", "Cristian Cadar", "Jonathan Metzman"]
+    venue: "ACM TOSEM"
+    year: 2026
+    url: "https://doi.org/10.1145/3841630"
+    doi: "10.1145/3841630"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: C
+
+  - key: shirai2025-continuous-fuzzing-1m
+    short: change-directed-fuzzing
+    concept_page: concepts/change-directed-fuzzing.md
+    title: "Large-Scale Empirical Analysis of Continuous Fuzzing: Insights from 1 Million Fuzzing Sessions"
+    authors: ["Tatsuya Shirai", "Olivier Nourry", "Yutaro Kashiwa", "Kenji Fujiwara", "Yasutaka Kamei", "Hajimu Iida"]
+    venue: "IEEE TSE"
+    year: 2025
+    arxiv: "2510.16433"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: geretto2025-libaflgo
+    short: change-directed-fuzzing
+    concept_page: concepts/change-directed-fuzzing.md
+    title: "LibAFLGo: Evaluating and Advancing Directed Greybox Fuzzing"
+    authors: ["Elia Geretto", "Andrea Jemmett", "Cristiano Giuffrida", "Herbert Bos"]
+    venue: "IEEE EuroS&P"
+    year: 2025
+    url: "https://download.vusec.net/papers/libaflgo_eurosp25.pdf"
+    doi: "10.1109/EuroSP63326.2025.00029"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: schloegel2024-sok-prudent
+    short: fuzz-evaluation
+    concept_page: concepts/fuzz-evaluation.md
+    title: "SoK: Prudent Evaluation Practices for Fuzzing"
+    authors: ["Moritz Schloegel", "Nils Bars", "Nico Schiller", "Lukas Bernhard", "Tobias Scharnowski", "Addison Crump", "Arash Ale Ebrahim", "Nicolai Bissantz", "Marius Muench", "Thorsten Holz"]
+    venue: "IEEE S&P"
+    year: 2024
+    arxiv: "2405.10220"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: klees2018-evaluating
+    short: fuzz-evaluation
+    concept_page: concepts/fuzz-evaluation.md
+    title: "Evaluating Fuzz Testing"
+    authors: ["George Klees", "Andrew Ruef", "Benji Cooper", "Shiyi Wei", "Michael Hicks"]
+    venue: "ACM CCS"
+    year: 2018
+    arxiv: "1808.09700"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: zhang2024-llm-fuzz-driver
+    short: llm-fuzzing
+    concept_page: concepts/llm-fuzzing.md
+    title: "How Effective Are They? Exploring Large Language Model Based Fuzz Driver Generation"
+    authors: ["Cen Zhang", "Yaowen Zheng", "Mingqiang Bai", "Yeting Li", "Wei Ma", "Xiaofei Xie", "Yuekang Li", "Limin Sun", "Yang Liu"]
+    venue: "ISSTA"
+    year: 2024
+    arxiv: "2307.12469"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: zhang2026-aixcc-sok
+    short: llm-fuzzing
+    concept_page: concepts/llm-fuzzing.md
+    title: "SoK: DARPA's AI Cyber Challenge (AIxCC): Competition Design, Architectures, and Lessons Learned"
+    authors: ["Cen Zhang", "Younggi Park", "Fabian Fleischer", "Yu-Fu Fu", "Jiho Kim", "Dongkwan Kim", "Youngjoon Kim", "Qingxiao Xu", "Andrew Chin", "Ze Sheng", "Hanqing Zhao", "Michael Pelican", "David J. Musliner", "Jeff Huang", "Jon Silliman", "Mikel Mcdaniel", "Jefferson Casavant", "Isaac Goldthwaite", "Nicholas Vidovich", "Matthew Lehman", "Taesoo Kim"]
+    venue: "USENIX Security"
+    year: 2026
+    arxiv: "2602.07666"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: xia2024-fuzz4all
+    short: llm-fuzzing
+    concept_page: concepts/llm-fuzzing.md
+    title: "Fuzz4All: Universal Fuzzing with Large Language Models"
+    authors: ["Chunqiu Steven Xia", "Matteo Paltenghi", "Jia Le Tian", "Michael Pradel", "Lingming Zhang"]
+    venue: "ICSE"
+    year: 2024
+    arxiv: "2308.04748"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  - key: nikolic2024-fuzzing-at-scale
+    short: fuzzing-payoff-curves
+    concept_page: concepts/fuzzing-payoff-curves.md
+    title: "Fuzzing at Scale: The Untold Story of the Scheduler"
+    authors: ["Ivica Nikolic", "Racchit Jain"]
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2406.18058"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: C
+
+  # --- D. tests written by LLMs and coding agents ---
+  - key: danglot2019-amplification-snowball
+    short: llm-test-amplification
+    concept_page: concepts/llm-test-amplification.md
+    title: "A Snowballing Literature Study on Test Amplification"
+    authors: ["Benjamin Danglot", "Oscar Luis Vera-Pérez", "Zhongxing Yu", "Andy Zaidman", "Martin Monperrus", "Benoit Baudry"]
+    venue: "Journal of Systems and Software"
+    year: 2019
+    arxiv: "1705.10692"
+    doi: "10.1016/j.jss.2019.110398"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: alshahwan2024-testgen-llm
+    short: llm-test-amplification
+    concept_page: concepts/llm-test-amplification.md
+    title: "Automated Unit Test Improvement using Large Language Models at Meta"
+    authors: ["Nadia Alshahwan", "Jubin Chheda", "Anastasia Finegenova", "Beliz Gokkaya", "Mark Harman", "Inna Harper", "Alexandru Marginean", "Shubho Sengupta", "Eddy Wang"]
+    venue: "FSE Companion (Industry)"
+    year: 2024
+    arxiv: "2402.09171"
+    doi: "10.1145/3663529.3663839"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: pizzorno2024-coverup
+    short: llm-test-amplification
+    concept_page: concepts/llm-test-amplification.md
+    title: "CoverUp: Effective High Coverage Test Generation for Python"
+    authors: ["Juan Altmayer Pizzorno", "Emery D. Berger"]
+    venue: "Proc. ACM Softw. Eng. (FSE)"
+    year: 2025
+    arxiv: "2403.16218"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: jain2024-testgeneval
+    short: llm-test-amplification
+    concept_page: concepts/llm-test-amplification.md
+    title: "TestGenEval: A Real World Unit Test Generation and Test Completion Benchmark"
+    authors: ["Kush Jain", "Gabriel Synnaeve", "Baptiste Rozière"]
+    venue: "ICLR"
+    year: 2025
+    arxiv: "2410.00752"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: liu2026-llm-regression-testgen
+    short: llm-test-amplification
+    concept_page: concepts/llm-test-amplification.md
+    title: "Evaluating LLM-Based Regression Test Generation"
+    authors: ["Jing Liu", "Seongmin Lee", "Eleonora Losiouk", "Marcel Böhme"]
+    venue: "ACM FSE"
+    year: 2026
+    url: "https://mboehme.github.io/paper/FSE26-llmtesting.pdf"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: mundler2024-swtbench
+    short: generated-tests-as-verifiers
+    concept_page: concepts/generated-tests-as-verifiers.md
+    title: "SWT-Bench: Testing and Validating Real-World Bug-Fixes with Code Agents"
+    authors: ["Niels Mündler", "Mark Niklas Müller", "Jingxuan He", "Martin Vechev"]
+    venue: "NeurIPS"
+    year: 2024
+    arxiv: "2406.12952"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: ahmed2025-otter
+    short: generated-tests-as-verifiers
+    concept_page: concepts/generated-tests-as-verifiers.md
+    title: "Otter: Generating Tests from Issues to Validate SWE Patches"
+    authors: ["Toufique Ahmed", "Jatin Ganhotra", "Rangeet Pan", "Avraham Shinnar", "Saurabh Sinha", "Martin Hirzel"]
+    venue: "ICML"
+    year: 2025
+    arxiv: "2502.05368"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: chen2026-rethinking-agent-tests
+    short: agent-written-tests
+    concept_page: concepts/agent-written-tests.md
+    title: "Rethinking the Value of Agent-Generated Tests for LLM-Based Software Engineering Agents"
+    authors: ["Zhi Chen", "Zhensu Sun", "Yuling Shi", "Chao Peng", "Xiaodong Gu", "David Lo", "Lingxiao Jiang"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2602.07900"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: tao2026-execcritic
+    short: agent-written-tests
+    concept_page: concepts/agent-written-tests.md
+    title: "ExecCritic: Learn to Test, Test to Improve for Coding Agents"
+    authors: ["Leitian Tao", "Baolin Peng", "Haorui Wang", "Hang Wang", "Hao Cheng", "Wenlin Yao", "Qianhui Wu", "Tao Ge", "Sharon Li", "Jianfeng Gao"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2609.09133"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: ahmed2025-test-overfitting
+    short: agent-written-tests
+    concept_page: concepts/agent-written-tests.md
+    title: "Investigating Test Overfitting on SWE-bench"
+    authors: ["Toufique Ahmed", "Jatin Ganhotra", "Avraham Shinnar", "Martin Hirzel"]
+    venue: "FSE Companion"
+    year: 2025
+    arxiv: "2511.16858"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: tan2026-coharden
+    short: agent-written-tests
+    concept_page: concepts/agent-written-tests.md
+    title: "Beyond Fail-to-Pass: Iterative Hardening of Co-Generated Bug Reproduction Tests and Fixes"
+    authors: ["Yuhao Tan", "Zhibang Yang", "Fangkai Yang", "Yuan Yao", "Yu Kang", "Lu Wang", "Pu Zhao", "Xin Zhang", "Xiaoxing Ma", "Qingwei Lin", "Saravan Rajmohan", "Dongmei Zhang"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2607.19843"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: yu2026-swe-abs
+    short: test-gaming-and-oracles
+    concept_page: concepts/test-gaming-and-oracles.md
+    title: "SWE-ABS: Adversarial Benchmark Strengthening Exposes Inflated Success Rates on Test-based Benchmark"
+    authors: ["Boxi Yu", "Yang Cao", "Yuzhong Zhang", "Liting Lin", "Junjielong Xu", "Zhiqing Zhong", "Qinghua Xu", "Guancheng Wang", "Jialun Cao", "Shing-Chi Cheung", "Pinjia He", "Lionel Briand"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2603.00520"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: chen2022-codet
+    short: generated-tests-as-verifiers
+    concept_page: concepts/generated-tests-as-verifiers.md
+    title: "CodeT: Code Generation with Generated Tests"
+    authors: ["Bei Chen", "Fengji Zhang", "Anh Nguyen", "Daoguang Zan", "Zeqi Lin", "Jian-Guang Lou", "Weizhu Chen"]
+    venue: "ICLR"
+    year: 2023
+    arxiv: "2207.10397"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: ehrlich2025-codemonkeys
+    short: generated-tests-as-verifiers
+    concept_page: concepts/generated-tests-as-verifiers.md
+    title: "CodeMonkeys: Scaling Test-Time Compute for Software Engineering"
+    authors: ["Ryan Ehrlich", "Bradley Brown", "Jordan Juravsky", "Ronald Clark", "Christopher Ré", "Azalia Mirhoseini"]
+    venue: "arXiv"
+    year: 2025
+    arxiv: "2501.14723"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: wang2025-cure
+    short: trained-testers
+    concept_page: concepts/trained-testers.md
+    title: "Co-Evolving LLM Coder and Unit Tester via Reinforcement Learning"
+    authors: ["Yinjie Wang", "Ling Yang", "Ye Tian", "Ke Shen", "Mengdi Wang"]
+    venue: "NeurIPS"
+    year: 2025
+    arxiv: "2506.03136"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: prasad2025-utgen
+    short: trained-testers
+    concept_page: concepts/trained-testers.md
+    title: "Learning to Generate Unit Tests for Automated Debugging"
+    authors: ["Archiki Prasad", "Elias Stengel-Eskin", "Justin Chih-Yao Chen", "Zaid Khan", "Mohit Bansal"]
+    venue: "COLM"
+    year: 2025
+    arxiv: "2502.01619"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: chen2025-revisit-self-debug
+    short: agent-written-tests
+    concept_page: concepts/agent-written-tests.md
+    title: "Revisit Self-Debugging with Self-Generated Tests for Code Generation"
+    authors: ["Xiancai Chen", "Zhengwei Tao", "Kechi Zhang", "Changzhi Zhou", "Wanli Gu", "Yuanpeng He", "Mengdi Zhang", "Xunliang Cai", "Haiyan Zhao", "Zhi Jin"]
+    venue: "ACL"
+    year: 2025
+    arxiv: "2501.12793"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: konstantinou2024-llm-oracles
+    short: test-gaming-and-oracles
+    concept_page: concepts/test-gaming-and-oracles.md
+    title: "Can We Find Bugs Using LLM-Generated Oracles?"
+    authors: ["Michael Konstantinou", "Renzo Degiovanni", "Mike Papadakis"]
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2410.21136"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: zhong2025-impossiblebench
+    short: test-gaming-and-oracles
+    concept_page: concepts/test-gaming-and-oracles.md
+    title: "ImpossibleBench: Measuring LLMs' Propensity of Exploiting Test Cases"
+    authors: ["Ziqian Zhong", "Aditi Raghunathan", "Nicholas Carlini"]
+    venue: "arXiv"
+    year: 2025
+    arxiv: "2510.20270"
+    grounded: true
+    verified: true
+    fetched: "2026-10-10"
+    cluster: D
+
+  - key: zhao2026-cov-mut-llm-suites
+    title: "Do Coverage and Mutation Scores of LLM-Generated Test Suites Correlate with Their Effectiveness? (Replicability Study)"
+    authors: ["Junda Zhao", "Shurui Zhou", "Eldan Cohen"]
+    venue: "Proc. ACM Softw. Eng."
+    year: 2026
+    url: "https://doi.org/10.1145/3832093"
+    doi: "10.1145/3832093"
+    grounded: false
+    verified: true
+    source: "OpenAlex record and abstract checked 2026-10-10"
+    fetched: null
+    cluster: D

@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="ltx_picture" height="3321.39" id="S8.SS5.SSS2.p2.pic1" overflow="visible" version="1.1" viewbox="0 0 600 3321.39" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" style="--ltx-stroke-color:#000000;--ltx-fill-color:#000000;" transform="translate(0,3321.39) matrix(1 0 0 -1 0 0)"><g fill="#404040" fill-opacity="1.0" style="--ltx-fill-color:#404040;"><path d="M 0 5.91 L 0 3315.48 C 0 3318.74 2.64 3321.39 5.91 3321.39 L 594.09 3321.39 C 597.36 3321.39 600 3318.74 600 3315.48 L 600 5.91 C 600 2.64 597.36 0 594.09 0 L 5.91 0 C 2.64 0 0 2.64 0 5.91 Z" style="stroke:none"></path></g><g fill="#F2F2FF" fill-opacity="1.0" style="--ltx-fill-color:#F2F2FF;"><path d="M 1.97 5.91 L 1.97 3299.97 L 598.03 3299.97 L 598.03 5.91 C 598.03 3.73 596.27 1.97 594.09 1.97 L 5.91 1.97 C 3.73 1.97 1.97 3.73 1.97 5.91 Z" style="stroke:none"></path></g><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 3305.87)"><foreignobject color="#FFFFFF" height="9.61" overflow="visible" style="--ltx-fg-color:#FFFFFF;--fo_width :40.23em;--fo_height:0.69em;--fo_depth :0em;" transform="matrix(1 0 0 -1 0 9.61)" width="556.69"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:40.23em;">
+<span class="ltx_p">Generated unit test for task 5</span>
+</span></span></span></foreignobject></g><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 16.47)"><foreignobject color="#000000" height="3274.38" overflow="visible" style="--ltx-fg-color:#000000;--fo_width :40.23em;--fo_height:236.44em;--fo_depth :0.19em;" transform="matrix(1 0 0 -1 0 3271.69)" width="556.69"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:40.23em;">
+<span class="ltx_p"><span class="ltx_text ltx_font_typewriter">&lt;think&gt;
+<br class="ltx_break"/></span>Okay, let’s see. I need to create a new test case for this problem. The problem is about selecting up to L subjects without overlapping, maximizing happiness. So I need to make sure the input follows the constraints and that the output is correct.</span>
+<span class="ltx_p">First, I need to make sure the input is valid. Let’s start by choosing small values for N, M, L that are within the constraints. Let’s say N is 3, M is 3, L is 2. That’s manageable.</span>
+<span class="ltx_p">Now, I need to create courses that don’t overlap and can be selected without conflict. Let me think of some courses that are non-overlapping. For example:</span>
+<span class="ltx_p">Course 1: di=0 (Monday), ai=1, ki=1 (so runs during 1st period). That’s 1 period. Then course 2 could be di=0, ai=2, ki=1. Then course 3 could be di=1, ai=1, ki=1. Then they can be selected as they don’t overlap. But since L is 2, I need to select 2 courses that give maximum happiness.</span>
+<span class="ltx_p">Let me think of their ti values. Let’s say course 1 has ti=5, course 2 has ti=4, course 3 has ti=3. Then the max would be 5+4=9. But maybe there’s a better selection.</span>
+<span class="ltx_p">Alternatively, if there’s a course that overlaps with others. Wait, but in this case, the courses are not overlapping. But maybe in the test case, it’s possible to select two courses that don’t conflict, but another combination gives higher happiness.</span>
+<span class="ltx_p">Alternatively, maybe there’s a scenario where overlapping courses can’t be selected. So I need to design courses that allow different combinations.</span>
+<span class="ltx_p">Another approach: Let me think of two courses that can be chosen. For instance, course 1 (d=0, a=1, k=1) and course 2 (d=1, a=1, k=1). But course 1 is on Monday, a=1, so runs from Monday period 1, and course 2 is Tuesday period 1. So they are not overlapping. They can be both selected if L is 2. So total happiness is sum of their ti.</span>
+<span class="ltx_p">But maybe another course has higher ti. Let me try to make a test case where the best selection is two courses that don’t overlap, but perhaps have higher ti.</span>
+<span class="ltx_p">Let’s design a scenario. For example, N=3 (days 0-4?), wait N is the number of periods per day. Wait the problem says that classes are from Monday to Friday (5 days) and for each day, there are N periods (from 1 to N), and courses start at ai and run ki frames (consecutive). So for example, if ai is 1 and ki is 2, the course runs from 1 to 2 (periods 1 and 2) of that day.</span>
+<span class="ltx_p">So for the test case, I need to make sure that courses are not overlapping. For example, a course that starts on Monday (d=0) at a=1, ki=1 (so runs Monday period 1), and a course that starts on Tuesday (d=1) at a=2, ki=2 (so runs Tuesday period 2 and 3) — they don’t overlap.</span>
+<span class="ltx_p">But to make this work, let’s create a few courses that can be selected and have different ti values.</span>
+<span class="ltx_p">Let me try to create a test case:</span>
+<span class="ltx_p">N=3 (so each day has 3 periods)</span>
+<span class="ltx_p">M=3, L=2.</span>
+<span class="ltx_p">Course1: d=0 (Monday), a=1, k=1, t=5. It runs from Monday period 1.</span>
+<span class="ltx_p">Course2: d=0 (Monday), a=2, k=1, t=6. It runs from Monday period 2.</span>
+<span class="ltx_p">Course3: d=1 (Tuesday), a=1, k=1, t=4. It runs on Tuesday period 1.</span>
+<span class="ltx_p">Now, if L is 2, the best selection is course1 and course3 (t=5+4=9) or course2 and course3 (6+4=10). But course1 and course2 overlap on Monday, so they cannot be selected together. So the maximum is course2 and course3, which sum to 6+4=10.</span>
+<span class="ltx_p">But wait, if course2 and course3 are selected, then course2 is on Monday period 2, course3 is on Tuesday period 1. They don’t conflict, so that’s allowed.</span>
+<span class="ltx_p">So in that case, the output would be 10.</span>
+<span class="ltx_p">But maybe that’s the test case. However, I need to make sure that the input is correct.</span>
+<span class="ltx_p">Let me structure the input as:</span>
+<span class="ltx_p">N=3, M=3, L=2</span>
+<span class="ltx_p">Then three courses:</span>
+<span class="ltx_p">d1=0, a1=1, k1=1, t1=5</span>
+<span class="ltx_p">d2=0, a2=2, k2=1, t2=6</span>
+<span class="ltx_p">d3=1, a3=1, k3=1, t3=4</span>
+<span class="ltx_p">So the input is:</span>
+<span class="ltx_p">3 3 2</span>
+<span class="ltx_p">0 1 1 5</span>
+<span class="ltx_p">0 2 1 6</span>
+<span class="ltx_p">1 1 1 4</span>
+<span class="ltx_p">The output would be 6+4=10?</span>
+<span class="ltx_p">Yes, that would be the maximum. Because course2 and course3 can be taken.</span>
+<span class="ltx_p">But what if another combination? For example, course2 (t=6) and course3 (t=4) is 10.</span>
+<span class="ltx_p">Alternatively, course2 and course3 is allowed. Then that’s the correct answer.</span>
+<span class="ltx_p">Now, the test input would be:</span>
+<span class="ltx_p">Test Input:</span>
+<span class="ltx_p">3 3 2</span>
+<span class="ltx_p">0 1 1 5</span>
+<span class="ltx_p">0 2 1 6</span>
+<span class="ltx_p">1 1 1 4</span>
+<span class="ltx_p">Then the output is 10. So that’s a valid test case.</span>
+<span class="ltx_p">But I need to check whether the courses don’t overlap. Course1 is Monday 1, course2 is Monday 2. So they don’t conflict. However, course2 and course1 are on the same day, but different periods, so they can be taken together if L is larger than 1. But in this case, L is 2. But wait, the problem says that each student can take up to L subjects that do not overlap.</span>
+<span class="ltx_p">But in the above example, course1 and course2 are on the same day, same day, but different periods, but since the course starts from ai and runs for ki frames, they are consecutive. So course1 is Monday, period 1. It’s for 1 frame. So the course is from Monday period 1. Course2 is Monday period 2, so it runs for 1 frame. So they are on the same day but not overlapping. So they can be selected as two different courses. But in that case, if the L=2, then the maximum would be 5+6=11? Wait, that’s a mistake in the previous analysis. Oh, right! Because in this case, course1 and course2 can both be selected if they are on the same day, and not overlapping. So the maximum would be 5+6=11.</span>
+<span class="ltx_p">But then that would be a better selection. So the test case needs to have courses that are non-overlapping. So why would the answer be 10? That suggests that I made a mistake in the test case.</span>
+<span class="ltx_p">Wait, this is a problem. Let me think again.</span>
+<span class="ltx_p">So if the courses are on the same day, but their periods are non-overlapping, then they can be taken together. For example, course1 is on Monday, period 1, runs for 1 frame. Course2 is on Monday, period 2, runs for 1 frame. So they can be selected together. So the maximum is course1 + course2 (t=5+6=11) instead of course2 and course3 (t=6+4=10). So this is a problem.</span>
+<span class="ltx_p">Ah, I think my earlier test case is flawed because the maximum would be 5+6 = 11, which is higher than the previous thought. That suggests I need to adjust the test case to avoid such cases.</span>
+<span class="ltx_p">So, what’s the correct way to create a test case where the maximum is not selecting overlapping courses on the same day.</span>
+<span class="ltx_p">Let me re-construct the test case. Let’s have courses that cannot be selected together, even if they are on the same day.</span>
+<span class="ltx_p">For example, course1 is on Monday (d=0), ai=1, ki=2. That would cover periods 1 and 2 on Monday. Then course2 is on Monday (d=0), ai=2, ki=1. So the course1 starts on ai=1, runs for 2 frames. So it’s periods 1 and 2. So course2 starts on period 2 and runs for 1 frame. That would overlap with course1, so they can’t be taken together. So the user can’t take course1 and course2 together.</span>
+<span class="ltx_p">So for that scenario, if L is 2, the maximum would be course1 (t=5) + course3 (t=4) = 9.</span>
+<span class="ltx_p">Let me try this.</span>
+<span class="ltx_p">Let’s have:</span>
+<span class="ltx_p">N=3 (so periods are 1-3 each day)</span>
+<span class="ltx_p">M=3 courses:</span>
+<span class="ltx_p">Course1: d=0 (Monday), a=1, k=2, t=5. Runs on Monday 1 and 2.</span>
+<span class="ltx_p">Course2: d=0 (Monday), a=2, k=1, t=6. So starts on Monday 2. It overlaps with course1.</span>
+<span class="ltx_p">So cannot be selected with course1.</span>
+<span class="ltx_p">Course3: d=1 (Tuesday), a=1, k=1, t=4. No overlap with course1. So if L is 2, then the best would be course1 (5) + course3 (4) = 9. Or course2 (6) + course3 (4) = 10, but course2 is on Monday 2, and course3 is on Tuesday. So that’s allowed. But course1 and course2 can’t be selected together. So the maximum is 6+4=10. Or course2 and course3.</span>
+<span class="ltx_p">But that’s better than course1 and course3.</span>
+<span class="ltx_p">So in that case, the correct answer would be 10.</span>
+<span class="ltx_p">Now, this scenario makes sense. So the input would be:</span>
+<span class="ltx_p">N=3, M=3, L=2.</span>
+<span class="ltx_p">Then three courses:</span>
+<span class="ltx_p">0 1 2 5</span>
+<span class="ltx_p">0 2 1 6</span>
+<span class="ltx_p">1 1 1 4</span>
+<span class="ltx_p">Now, the courses are as follows:</span>
+<span class="ltx_p">course1: d=0 (Monday), starts period 1, runs for 2 frames (periods 1 and 2). So course1 covers Monday periods 1 and 2.</span>
+<span class="ltx_p">course2: d=0, a=2, k=1: period 2 of Monday, runs 1 frame. So this overlaps with course1.</span>
+<span class="ltx_p">course3: d=1 (Tuesday), period 1, runs 1 frame.</span>
+<span class="ltx_p">So, possible selections:</span>
+<span class="ltx_p">- course2 and course3: t=6+4=10.</span>
+<span class="ltx_p">- course3 and course1: 5+4=9.</span>
+<span class="ltx_p">- course2 and course3 is better.</span>
+<span class="ltx_p">So the correct answer would be 10.</span>
+<span class="ltx_p">In this case, the test case would be:</span>
+<span class="ltx_p">Test Input:</span>
+<span class="ltx_p">3 3 2</span>
+<span class="ltx_p">0 1 2 5</span>
+<span class="ltx_p">0 2 1 6</span>
+<span class="ltx_p">1 1 1 4</span>
+<span class="ltx_p">Then the Output is 10.</span>
+<span class="ltx_p">So this should be a valid test case, and the output is 10. That test case would allow the code to correctly distinguish between overlapping and non-overlapping courses.</span>
+<span class="ltx_p">I need to verify that each course’s ai and ki are valid. For example, for course1, ai is 1, ki is 2. Then ai+ki-1 is 1+2-1=2. Which is &lt;=3 (since N=3). So yes, valid.</span>
+<span class="ltx_p">For course2, ai=2, ki=1: ai + ki -1 = 2+1-1=2, which is within N=3.</span>
+<span class="ltx_p">So that’s correct.</span>
+<span class="ltx_p">So this test case should be valid and the output is 10.</span>
+<span class="ltx_p">Therefore, the final test case is:
+<span class="ltx_text ltx_font_typewriter">&lt;/think&gt;</span></span>
+<span class="ltx_p"><span class="ltx_text ltx_font_bold">Test Input:</span></span><pre class="ltx_verbatim ltx_font_typewriter">
+3 3 2
+0 1 2 5
+0 2 1 6
+1 1 1 4
+</pre>
+<span class="ltx_p"><span class="ltx_text ltx_font_bold">Test Output:</span></span><pre class="ltx_verbatim ltx_font_typewriter">
+10
+</pre>
+<span class="ltx_p"><span class="ltx_text ltx_font_bold">Explanation:</span> We have three courses. The first course runs for two periods (Monday, periods 1 and 2) and provides a happiness of 5. The second course runs for one period (Monday, period 2) and provides a happiness of 6, but overlaps with the first course. The third course runs for one period (Tuesday, period 1) and provides 4. The best combination is the second and third courses, which are non-overlapping. Their total happiness is 6 + 4 = 10, which is the maximum possible.</span>
+</span></span></span></foreignobject></g></g></svg>

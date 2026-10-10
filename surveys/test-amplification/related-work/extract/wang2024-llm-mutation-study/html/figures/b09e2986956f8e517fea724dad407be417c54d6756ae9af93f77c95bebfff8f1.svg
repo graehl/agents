@@ -1,0 +1,17 @@
+<ns0:svg xmlns:html="http://www.w3.org/1999/xhtml" xmlns:ns0="http://www.w3.org/2000/svg" id="S3.SS5.p5.pic1" class="ltx_picture" height="103.47" overflow="visible" version="1.1" viewBox="0 0 477.38 103.47" width="477.38"><ns0:style>
+  /* Banner pre-dismissal (set above before paint -&gt; no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Print keeps the reader header's logo, not its controls: the theme's own print rule
+     (header, nav { display: none }) sits in a layer that its header layer outranks. */
+  @media print { .arxiv-html-header .html-header-nav { display: none; } }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</ns0:style><ns0:g style="--ltx-stroke-color:#000000;--ltx-fill-color:#000000;" fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,103.47) matrix(1 0 0 -1 0 0)"><ns0:g style="--ltx-fill-color:#404040;" fill="#404040" fill-opacity="1.0"><ns0:path style="stroke:none" d="M 0 5.91 L 0 97.56 C 0 100.83 2.64 103.47 5.91 103.47 L 471.47 103.47 C 474.73 103.47 477.38 100.83 477.38 97.56 L 477.38 5.91 C 477.38 2.64 474.73 0 471.47 0 L 5.91 0 C 2.64 0 0 2.64 0 5.91 Z" /></ns0:g><ns0:g style="--ltx-fill-color:#F2F2F2;" fill="#F2F2F2" fill-opacity="1.0"><ns0:path style="stroke:none" d="M 1.97 5.91 L 1.97 97.56 C 1.97 99.74 3.73 101.5 5.91 101.5 L 471.47 101.5 C 473.65 101.5 475.41 99.74 475.41 97.56 L 475.41 5.91 C 475.41 3.73 473.65 1.97 471.47 1.97 L 5.91 1.97 C 3.73 1.97 1.97 3.73 1.97 5.91 Z" /></ns0:g><ns0:g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 13.78)"><ns0:foreignObject style="--ltx-fo-width:31.37em;--ltx-fo-height:5.49em;--ltx-fo-depth:0em;font-size:10pt;" height="75.91" overflow="visible" transform="matrix(1 0 0 -1 0 75.91)" width="434.07"><html:span class="ltx_foreignobject_container"><html:span class="ltx_foreignobject_content">
+<html:span id="S3.SS5.p5.pic1.1" class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:31.37em;">
+<html:span id="S3.SS5.p5.pic1.1.1" class="ltx_p"><html:span id="S3.SS5.p5.pic1.1.1.1" class="ltx_text ltx_underline ltx_font_bold" style="--ltx-fg-color:#000000;">Answer to RQ5:</html:span><html:span id="S3.SS5.p5.pic1.1.1.2" class="ltx_text" style="--ltx-fg-color:#000000;">
+Compared with rule-based approaches, LLM-based approaches tend to generate mutants in code lines that are not covered or not injected by existing test suites, providing valuable guidance for enhancing unit tests.</html:span></html:span>
+</html:span></html:span></html:span></ns0:foreignObject></ns0:g></ns0:g></ns0:svg>

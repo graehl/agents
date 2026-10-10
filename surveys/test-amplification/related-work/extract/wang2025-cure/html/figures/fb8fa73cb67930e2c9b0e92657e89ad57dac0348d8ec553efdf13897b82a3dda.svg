@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="ltx_picture" height="345.66" id="S8.SS1.p4.pic1" overflow="visible" version="1.1" viewbox="0 0 600 345.66" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" style="--ltx-stroke-color:#000000;--ltx-fill-color:#000000;" transform="translate(0,345.66) matrix(1 0 0 -1 0 0)"><g fill="#404040" fill-opacity="1.0" style="--ltx-fill-color:#404040;"><path d="M 0 5.91 L 0 339.75 C 0 343.02 2.64 345.66 5.91 345.66 L 594.09 345.66 C 597.36 345.66 600 343.02 600 339.75 L 600 5.91 C 600 2.64 597.36 0 594.09 0 L 5.91 0 C 2.64 0 0 2.64 0 5.91 Z" style="stroke:none"></path></g><g fill="#F2F2FF" fill-opacity="1.0" style="--ltx-fill-color:#F2F2FF;"><path d="M 1.97 5.91 L 1.97 321.7 L 598.03 321.7 L 598.03 5.91 C 598.03 3.73 596.27 1.97 594.09 1.97 L 5.91 1.97 C 3.73 1.97 1.97 3.73 1.97 5.91 Z" style="stroke:none"></path></g><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 330.3)"><foreignobject color="#FFFFFF" height="12.15" overflow="visible" style="--ltx-fg-color:#FFFFFF;--fo_width :40.23em;--fo_height:0.68em;--fo_depth :0.19em;" transform="matrix(1 0 0 -1 0 9.46)" width="556.69"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:40.23em;">
+<span class="ltx_p">Unit test prompt</span>
+</span></span></span></foreignobject></g><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 17.24)"><foreignobject color="#000000" height="296.11" overflow="visible" style="--ltx-fg-color:#000000;--fo_width :40.23em;--fo_height:21.15em;--fo_depth :0.25em;" transform="matrix(1 0 0 -1 0 292.65)" width="556.69"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:38.32em;">
+<span class="ltx_p"><span class="ltx_text ltx_font_typewriter">PROMPT = """
+&lt;|im_start|&gt;You are a helpful assistant help user generate test examples for coding tasks. &lt;|im_end|&gt;
+&lt;|im_start|&gt;User: Given a coding task, instead of providing the final script, your task is to generate a new test example (both input, output and explanation).
+This is the problem:
+{{problem}}
+You need to provide a new test example. A good test example should be completely accurate and conform to the problem’s format requirements, while also possessing enough discriminative power to distinguish correct code from incorrect code.
+Before providing a test example, you must think carefully and reason step by step to derive an input and output you are very confident are correct. For example, start by designing an input you can reliably handle, then compute the output step by step. If you’re unsure about the output, revise or re-design the input to ensure accuracy.
+Finally, after completing these previous thinking and derivation steps, you MUST put your final test example in the following format:</span></span>
+<span class="ltx_p"><span class="ltx_text ltx_font_typewriter">**Test Input:**
+‘‘‘input here‘‘‘</span></span>
+<span class="ltx_p"><span class="ltx_text ltx_font_typewriter">**Test Output:**
+‘‘‘output here‘‘‘</span></span>
+<span class="ltx_p"><span class="ltx_text ltx_font_typewriter">**Explanation:**
+explanation here. &lt;|im_end|&gt;
+&lt;|im_start|&gt;Assistant:
+"""</span></span>
+</span></span></span></foreignobject></g></g></svg>

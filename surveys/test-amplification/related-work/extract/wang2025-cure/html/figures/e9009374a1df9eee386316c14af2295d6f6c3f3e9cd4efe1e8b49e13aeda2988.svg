@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="ltx_picture" height="746.89" id="S8.SS5.SSS1.p5.pic1" overflow="visible" version="1.1" viewbox="0 0 600 746.89" width="600"><g fill="#000000" stroke="#000000" stroke-width="0.4pt" style="--ltx-stroke-color:#000000;--ltx-fill-color:#000000;" transform="translate(0,746.89) matrix(1 0 0 -1 0 0)"><g fill="#404040" fill-opacity="1.0" style="--ltx-fill-color:#404040;"><path d="M 0 5.91 L 0 740.99 C 0 744.25 2.64 746.89 5.91 746.89 L 594.09 746.89 C 597.36 746.89 600 744.25 600 740.99 L 600 5.91 C 600 2.64 597.36 0 594.09 0 L 5.91 0 C 2.64 0 0 2.64 0 5.91 Z" style="stroke:none"></path></g><g fill="#F2F2FF" fill-opacity="1.0" style="--ltx-fill-color:#F2F2FF;"><path d="M 1.97 5.91 L 1.97 725.47 L 598.03 725.47 L 598.03 5.91 C 598.03 3.73 596.27 1.97 594.09 1.97 L 5.91 1.97 C 3.73 1.97 1.97 3.73 1.97 5.91 Z" style="stroke:none"></path></g><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 731.38)"><foreignobject color="#FFFFFF" height="9.61" overflow="visible" style="--ltx-fg-color:#FFFFFF;--fo_width :40.23em;--fo_height:0.69em;--fo_depth :0em;" transform="matrix(1 0 0 -1 0 9.61)" width="556.69"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:40.23em;">
+<span class="ltx_p">Task 3</span>
+</span></span></span></foreignobject></g><g fill-opacity="1.0" transform="matrix(1.0 0.0 0.0 1.0 21.65 14.93)"><foreignobject color="#000000" height="699.88" overflow="visible" style="--ltx-fg-color:#000000;--fo_width :40.23em;--fo_height:50.5em;--fo_depth :0.08em;" transform="matrix(1 0 0 -1 0 698.73)" width="556.69"><span class="ltx_foreignobject_container"><span class="ltx_foreignobject_content">
+<span class="ltx_inline-block ltx_minipage ltx_align_bottom" style="width:40.23em;">
+<span class="ltx_p">You are given an array <span class="ltx_text ltx_font_typewriter">nums</span> consisting of positive integers.</span>
+<span class="ltx_p">Return the total frequencies of elements in <span class="ltx_text ltx_font_typewriter">nums</span> such that those elements all have the maximum frequency.</span>
+<span class="ltx_p">The frequency of an element is the number of occurrences of that element in the array.</span>
+<span class="ltx_p"><span class="ltx_text ltx_font_bold">Example 1:</span></span>
+<span class="ltx_p"><span class="ltx_text ltx_font_bold">Input:</span></span><pre class="ltx_verbatim ltx_font_typewriter">
+1 2 2 3 1 4
+</pre>
+<span class="ltx_p"><span class="ltx_text ltx_font_bold">Output:</span></span><pre class="ltx_verbatim ltx_font_typewriter">
+4
+</pre>
+<span class="ltx_p"><span class="ltx_text ltx_font_bold">Explanation:</span> The elements <span class="ltx_text ltx_font_typewriter">1</span> and <span class="ltx_text ltx_font_typewriter">2</span> have a frequency of <span class="ltx_text ltx_font_typewriter">2</span>, which is the maximum frequency in the array.</span>
+<span class="ltx_p">So the number of elements in the array with maximum frequency is <span class="ltx_text ltx_font_typewriter">2 (from 1) + 2 (from 2) = 4</span>.</span>
+</span></span></span></foreignobject></g></g></svg>

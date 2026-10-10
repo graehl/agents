@@ -1,0 +1,16 @@
+<ns0:svg xmlns:html="http://www.w3.org/1999/xhtml" xmlns:ns0="http://www.w3.org/2000/svg" id="p1.pic1" class="ltx_picture" height="1" overflow="visible" version="1.1" viewBox="0 0 1 1" width="1"><ns0:style>
+  /* Banner pre-dismissal (set above before paint -&gt; no flash-then-hide) and
+     reading-mode chrome hiding. */
+  html[data-banner-dismissed] .ds-announcement { display: none; }
+  html[data-reading-mode="enabled"] .ds-announcement,
+  html[data-reading-mode="enabled"] .ds-site-footer { display: none; }
+  /* Print keeps the reader header's logo, not its controls: the theme's own print rule
+     (header, nav { display: none }) sits in a layer that its header layer outranks. */
+  @media print { .arxiv-html-header .html-header-nav { display: none; } }
+  /* Keep the announcement text dark on the Open-Blue band in both colour themes
+     (otherwise it inherits the paper's warm-wash text in dark mode and washes out). */
+  .ds-announcement-text { color: var(--arxiv-ink, #1c1a17); }
+</ns0:style><ns0:g style="--ltx-stroke-color:#000000;--ltx-fill-color:#000000;" fill="#000000" stroke="#000000" stroke-width="0.4pt" transform="translate(0,1) matrix(1 0 0 -1 0 0) matrix(1.0 0.0 0.0 1.0 267.47 42.19)"><ns0:foreignObject style="--ltx-fo-width:22.09em;--ltx-fo-height:2.1em;--ltx-fo-depth:1.7em;font-size:10pt;" height="52.46" overflow="visible" transform="matrix(1 0 0 -1 0 29)" width="305.66"><html:span class="ltx_foreignobject_container"><html:span class="ltx_foreignobject_content">
+<html:span id="p1.pic1.1" class="ltx_inline-block ltx_parbox ltx_align_middle ltx_framed ltx_framed_rectangle" style="width:220.9pt;">
+<html:span id="p1.pic1.1.1" class="ltx_p"><html:span id="p1.pic1.1.1.1" class="ltx_text" style="font-size:80%;">This work has been submitted to the IEEE for possible publication. Copyright may be transferred without notice, after which this version may no longer be accessible.</html:span></html:span>
+</html:span></html:span></html:span></ns0:foreignObject></ns0:g></ns0:svg>
