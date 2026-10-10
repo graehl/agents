@@ -14,6 +14,10 @@ and official veRL/slime documentation. OpenAlex and Semantic Scholar API
 queries for Seer failed through the retrieval tool; citation counts and
 forward-citation saturation are unestablished. [Retrieval record](retrieval.md).
 
+For a concrete low-engineering starting point, see the
+[single-96-GB-GPU RL proposal](single-gpu-rl-proposal.md), including worked
+explanations of Seer's mechanisms and a 32B adapter-training configuration.
+
 ## Seer's year-later verdict
 
 [Seer](concepts/seer.md) is still relevant, particularly when every response
