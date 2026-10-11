@@ -14,6 +14,7 @@ a failure.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import struct
 import subprocess
@@ -48,13 +49,15 @@ def filled_rect(box: list[float]) -> str:
 
 def dense_marks(box: list[float], count: int) -> str:
     """`count` tiny filled squares scattered deterministically over `box`,
-    each its own path, the way a plotting library draws scatter markers."""
+    each its own path under its own clip to `box`, the way matplotlib draws
+    scatter markers."""
     x0, y0, x1, y1 = box
+    clip = filled_rect(box).replace(" f\n", " W n\n")
     marks = []
     for i in range(count):
         x = x0 + (i * 7919 % 1000) / 1000 * (x1 - x0 - 0.8)
         y = y0 + (i * 104729 % 1000) / 1000 * (y1 - y0 - 0.8)
-        marks.append(filled_rect([x, y, x + 0.8, y + 0.8]))
+        marks.append(f"q {clip}{filled_rect([x, y, x + 0.8, y + 0.8])}Q\n")
     return "".join(marks)
 
 
@@ -315,9 +318,12 @@ def test_recut_omits_drawings_outside_the_figure():
         _assert(proc.returncode == 0, proc.stderr)
         _assert(rows(proc)["_page_0_Figure_1.png"]["status"] == "vector", proc.stdout)
         svg = (markdown.parent / "_page_0_Figure_1.svg").read_text()
-        # 3000 in-figure marks plus the axis; the other plot's 3000 are gone.
-        paths = svg.count("<path")
-        _assert(3000 <= paths < 4000, f"{paths} paths in the figure SVG")
+        # 3000 in-figure marks plus the axis; the other plot's 3000 marks and
+        # the clip paths they were drawn under are gone.
+        clips = svg.count("<clipPath")
+        drawn = svg.count("<path") - clips
+        _assert(3000 <= drawn < 3100, f"{drawn} drawn paths in the figure SVG")
+        _assert(clips <= 3001, f"{clips} clip paths in the figure SVG")
 
 
 def test_figure_over_budget_rasterizes_only_its_dense_region():
@@ -337,7 +343,36 @@ def test_figure_over_budget_rasterizes_only_its_dense_region():
         _assert("<!-- figure_shrink: " in svg[:2000], svg[:2000])
         # Not everything became a bitmap: some marks stay vector paths.
         _assert(svg.count("<path") > 0, "the whole figure was rasterized")
+        # A removed mark leaves no empty clip group behind.
+        empty = re.findall(r"<g\b(?![^>]*\bid=)[^>]*>\s*</g>", svg)
+        _assert(not empty, f"{len(empty)} empty groups, e.g. {empty[:1]}")
+        _assert_no_dangling_references(svg)
         _assert("](_page_0_Figure_1.svg)" in markdown.read_text())
+
+
+def _assert_no_dangling_references(svg: str) -> None:
+    referenced = set(re.findall(r'href="#([^"]+)"', svg))
+    referenced |= set(re.findall(r"url\(#([^)]+)\)", svg))
+    missing = referenced - set(re.findall(r'\bid="([^"]+)"', svg))
+    _assert(not missing, f"references to missing ids: {sorted(missing)[:5]}")
+
+
+def test_empty_definition_groups_survive_cleanup():
+    """MuPDF defines a space glyph as an empty group with an id; dropping it
+    as an empty clip group leaves every `<use>` of it dangling."""
+    result = probe(
+        "import sys; sys.path.insert(0, sys.argv[1]);"
+        "import figure_shrink.raster_windows as fs;"
+        "print(fs._without_empty_clip_groups("
+        '\'<defs><g id="font_1_32">\\n</g></defs><g clip-path="url(#c)">'
+        '</g><use xlink:href="#font_1_32"/>\'))',
+        str(REPO_ROOT),
+    )
+    _assert(
+        " ".join(result)
+        == '<defs><g id="font_1_32"> </g></defs><use xlink:href="#font_1_32"/>',
+        result,
+    )
 
 
 def test_figure_no_window_set_fits_keeps_its_raster_crop():
@@ -368,34 +403,73 @@ print(fs.measure_fidelity(page, dropped[0], figure).accepted)
 """
 
 
+ROUNDING_PROBE = """
+import sys
+sys.path.insert(0, sys.argv[2])
+import pymupdf
+import figure_shrink.raster_windows as fs
+
+page = pymupdf.open(sys.argv[1])[0]
+figure = pymupdf.Rect(*map(float, sys.argv[3].split(",")))
+svg = fs.figure_svg(fs.isolated_figure(page, figure)[0], figure)
+rounded = fs.rounded_paths(svg)
+print(len(rounded) < len(svg), fs.measure_svg_fidelity(svg, rounded).accepted)
+# Malformed path data that MuPDF renders around must still fail the check.
+good = svg.replace("</svg>", '<path d="M1 1C2 2 3 3 4 4Z"/></svg>')
+print(fs.measure_svg_fidelity(good, good.replace("3 3 4 4Z", "3 3 4Z", 1)).accepted)
+# Separator-free path data: a value rounding to an integer must not fuse
+# with a following point-led number.
+print(fs.rounded_paths('<path d="M1.9999.25L0.12345-0.00001Z"/>'))
+"""
+
+
+def probe(script: str, *argv: str) -> list[str]:
+    proc = subprocess.run(
+        [
+            "uv",
+            "run",
+            "--no-project",
+            "--with",
+            "pymupdf>=1.24",
+            "--with",
+            "numpy",
+            "python3",
+            "-c",
+            script,
+            *argv,
+        ],
+        capture_output=True,
+        text=True,
+    )
+    _assert(proc.returncode == 0, proc.stderr)
+    return proc.stdout.split()
+
+
+def test_rounding_path_coordinates_shrinks_without_visible_change():
+    with tempfile.TemporaryDirectory() as tmp:
+        pdf = Path(tmp) / "dense.pdf"
+        make_pdf(pdf, dense_figure_stream())
+        result = probe(
+            ROUNDING_PROBE, str(pdf), str(REPO_ROOT), ",".join(map(str, FIGURE_BOX))
+        )
+        _assert(result[:3] == ["True", "True", "False"], result)
+        _assert(" ".join(result[3:]) == '<path d="M2 .25L.123 0Z"/>', result)
+
+
 def test_render_check_accepts_a_window_and_rejects_lost_marks():
     """The acceptance check must pass a faithful bitmap window and fail a
     region whose marks vanished with no bitmap in their place."""
     with tempfile.TemporaryDirectory() as tmp:
         pdf = Path(tmp) / "dense.pdf"
         make_pdf(pdf, dense_figure_stream())
-        proc = subprocess.run(
-            [
-                "uv",
-                "run",
-                "--no-project",
-                "--with",
-                "pymupdf>=1.24",
-                "--with",
-                "numpy",
-                "python3",
-                "-c",
-                FIDELITY_PROBE,
-                str(pdf),
-                str(REPO_ROOT),
-                ",".join(map(str, FIGURE_BOX)),
-                ",".join(map(str, DENSE_BOX)),
-            ],
-            capture_output=True,
-            text=True,
+        result = probe(
+            FIDELITY_PROBE,
+            str(pdf),
+            str(REPO_ROOT),
+            ",".join(map(str, FIGURE_BOX)),
+            ",".join(map(str, DENSE_BOX)),
         )
-        _assert(proc.returncode == 0, proc.stderr)
-        _assert(proc.stdout.split() == ["True", "False"], proc.stdout)
+        _assert(result == ["True", "False"], result)
 
 
 def test_missing_input_exits_not_found():

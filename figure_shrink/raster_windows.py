@@ -35,6 +35,11 @@ import pymupdf
 
 from figure_shrink import BUDGET_BYTES
 
+# PyMuPDF prints MuPDF's warnings to stdout, where callers emit their JSONL
+# rows; send them to stderr. They are still recorded for
+# `measure_svg_fidelity`.
+pymupdf.set_messages(fd=2)
+
 __all__ = [
     "BUDGET_BYTES",
     "CHECK_DPI",
@@ -73,6 +78,12 @@ VISIBLE_DELTA = 0.25
 MAX_VISIBLE_FRACTION = 0.001
 BLOCK = 8
 MAX_BLOCK_ERROR = 0.1
+# Path coordinates are rounded to this many decimals before any region is
+# rasterized. MuPDF writes six or more; three cut a line-plot figure by 12%,
+# and a coordinate unit is at most a few points under the transforms MuPDF
+# emits, so the error stays well under a 300-dpi pixel (0.24 pt). The render
+# check accepts each rounding rather than this argument.
+COORDINATE_PLACES = 3
 # Projected sizes aim this far under the budget, because the projection
 # prices bitmaps by area and drawings by operation count.
 PROJECTION_MARGIN = 0.9
@@ -82,6 +93,13 @@ MAX_EXPORTS = 4
 BACKGROUND_AREA_FRACTION = 0.9
 
 _SVG_ROOT_SIZE = re.compile(r'(<svg\b[^>]*?)width="([\d.]+)"\s+height="([\d.]+)"')
+# An empty group with an id is a definition (MuPDF defines a space glyph as
+# one) and stays, since `<use>` elements reference it.
+_EMPTY_GROUP = re.compile(r"<g\b(?![^>]*\bid=)[^>]*>\s*</g>\s*")
+_PATH_DATA = re.compile(r'(\sd=")([^"]*)"')
+_DECIMAL = re.compile(r"-?\d*\.\d+")
+_CLIP_REFERENCE = re.compile(r"url\(#([^)]+)\)")
+_CLIP_PATH = re.compile(r'<clipPath id="([^"]+)">.*?</clipPath>\s*', re.DOTALL)
 
 
 @dataclass(frozen=True)
@@ -110,7 +128,8 @@ class FigureFidelity:
 
 @dataclass(frozen=True)
 class ShrunkFigure:
-    """An SVG that fits the budget, and the bitmap windows that got it there."""
+    """An SVG that fits the budget, and the bitmap windows that got it there
+    (none when rounding path coordinates sufficed)."""
 
     svg: str
     windows: list[pymupdf.Rect]
@@ -124,14 +143,64 @@ def _size_in_points(svg: str) -> str:
     return _SVG_ROOT_SIZE.sub(r'\1width="\2pt" height="\3pt"', svg, count=1)
 
 
+def _without_empty_clip_groups(svg: str) -> str:
+    """Drop groups that draw nothing and the clip paths no one references.
+
+    MuPDF's SVG device writes a `<clipPath>` and a `<g>` for every clip
+    operation, even one whose drawing was removed or lies outside the crop
+    box; plotting libraries clip every marker, so these shells can outweigh
+    the figure's remaining content. Removing them changes no pixel.
+    """
+    while True:
+        pruned = _EMPTY_GROUP.sub("", svg)
+        referenced = set(_CLIP_REFERENCE.findall(pruned))
+        pruned = _CLIP_PATH.sub(
+            lambda match: match[0] if match[1] in referenced else "", pruned
+        )
+        if pruned == svg:
+            return svg
+        svg = pruned
+
+
+def _rounded_coordinate(match: re.Match) -> str:
+    """One path number, rounded, in SVG's shortest form (`.5`, `-.5`).
+
+    Path data may omit the separator before a number that starts with a
+    point or a minus (`1.9.25-3` is 1.9, .25, -3). Rounding can change how
+    a number starts or whether it has a point, so wherever the original had
+    no separator and the rounded forms would fuse (`2.25`, `.1230`), a
+    space keeps them apart.
+    """
+    text = f"{float(match[0]):.{COORDINATE_PLACES}f}".rstrip("0").rstrip(".")
+    if text in ("", "-", "-0"):
+        text = "0"
+    text = re.sub(r"^(-?)0\.", r"\1.", text)
+    preceding = match.string[match.start() - 1 : match.start()]
+    if text[0].isdigit() and (preceding.isdigit() or preceding == "."):
+        text = " " + text
+    following = match.string[match.end() : match.end() + 1]
+    if "." not in text and following == ".":
+        text += " "
+    return text
+
+
+def rounded_paths(svg: str) -> str:
+    """`svg` with every path coordinate rounded to COORDINATE_PLACES."""
+    return _PATH_DATA.sub(
+        lambda match: match[1] + _DECIMAL.sub(_rounded_coordinate, match[2]) + '"',
+        svg,
+    )
+
+
 def figure_svg(page: pymupdf.Page, rect: pymupdf.Rect) -> str:
     """The page region `rect` rendered through MuPDF's SVG device."""
     cropbox = pymupdf.Rect(page.cropbox)
     try:
         page.set_cropbox(rect)
-        return _size_in_points(page.get_svg_image(text_as_path=True))
+        svg = page.get_svg_image(text_as_path=True)
     finally:
         page.set_cropbox(cropbox)
+    return _without_empty_clip_groups(_size_in_points(svg))
 
 
 def _page_copy(page: pymupdf.Page) -> pymupdf.Document:
@@ -182,6 +251,11 @@ def _pixels(page: pymupdf.Page, rect: pymupdf.Rect) -> np.ndarray:
     )
 
 
+def _svg_pixels(svg: str) -> np.ndarray:
+    page = pymupdf.open(stream=svg.encode(), filetype="svg")[0]
+    return _pixels(page, page.rect)
+
+
 def measure_fidelity(
     page: pymupdf.Page, rewritten: pymupdf.Page, rect: pymupdf.Rect
 ) -> FigureFidelity:
@@ -193,8 +267,33 @@ def measure_fidelity(
     by more than the loss being bounded; the SVG export is the step every
     recut takes, rasterized or not.
     """
-    reference = _pixels(page, rect)[..., :3].astype(np.int16)
-    rendered = _pixels(rewritten, rect)[..., :3].astype(np.int16)
+    return _compare(_pixels(page, rect), _pixels(rewritten, rect))
+
+
+def measure_svg_fidelity(original: str, rewritten: str) -> FigureFidelity:
+    """Compare two SVGs of one figure, both rendered by MuPDF's SVG renderer,
+    for rewrites made on the SVG text itself.
+
+    MuPDF recovers from malformed path data and renders what it parsed, so
+    a rewrite that only the rewritten side warns about is rejected outright:
+    the pixels can look close while the markup is broken for every other
+    renderer.
+    """
+    pymupdf.TOOLS.reset_mupdf_warnings()
+    reference = _svg_pixels(original)
+    original_warnings = pymupdf.TOOLS.mupdf_warnings()
+    pymupdf.TOOLS.reset_mupdf_warnings()
+    rendered = _svg_pixels(rewritten)
+    if pymupdf.TOOLS.mupdf_warnings() != original_warnings:
+        return FigureFidelity(mean_error=1.0, visible_fraction=1.0, worst_block=1.0)
+    return _compare(reference, rendered)
+
+
+def _compare(reference: np.ndarray, rendered: np.ndarray) -> FigureFidelity:
+    reference = reference[..., :3].astype(np.int16)
+    rendered = rendered[..., :3].astype(np.int16)
+    if reference.shape != rendered.shape:
+        return FigureFidelity(mean_error=1.0, visible_fraction=1.0, worst_block=1.0)
     reach = SHIFT_TOLERANCE
     padded = np.pad(rendered, ((reach, reach), (reach, reach), (0, 0)), mode="edge")
     height, width = reference.shape[:2]
@@ -248,6 +347,26 @@ class _FigureCosts:
             )
             np.add.at(self.grid, (rows, columns), self.costs)
 
+    def grown(self, window: pymupdf.Rect) -> pymupdf.Rect:
+        """`window` grown to wholly cover every drawing centred inside it,
+        so a long curve charged to one cell is removable with that cell."""
+        if not len(self.costs):
+            return window
+        centres_x = (self.boxes[:, 0] + self.boxes[:, 2]) / 2
+        centres_y = (self.boxes[:, 1] + self.boxes[:, 3]) / 2
+        inside = (
+            (centres_x >= window.x0)
+            & (centres_x <= window.x1)
+            & (centres_y >= window.y0)
+            & (centres_y <= window.y1)
+        )
+        if not inside.any():
+            return window
+        boxes = self.boxes[inside]
+        return window | pymupdf.Rect(
+            boxes[:, 0].min(), boxes[:, 1].min(), boxes[:, 2].max(), boxes[:, 3].max()
+        )
+
     def removed(self, windows: list[pymupdf.Rect]) -> float:
         """Cost of the drawings some single window wholly covers."""
         covered = np.zeros(len(self.costs), dtype=bool)
@@ -273,10 +392,32 @@ def _snap(window: pymupdf.Rect, rect: pymupdf.Rect) -> pymupdf.Rect:
     )
 
 
-def _windows(selected: np.ndarray, rect: pymupdf.Rect) -> list[pymupdf.Rect]:
-    """Bounding boxes of the selected cells' connected regions, merged until
-    none overlap. A box rather than the exact cell set, so a mark straddling
-    two selected cells is wholly inside one window and gets removed."""
+def _merged(rects: list[pymupdf.Rect]) -> list[pymupdf.Rect]:
+    """Union overlapping rectangles until none overlap."""
+    rects = list(rects)
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(rects)):
+            for j in range(i + 1, len(rects)):
+                if rects[i].intersects(rects[j]):
+                    rects[i] = rects[i] | rects[j]
+                    del rects[j]
+                    merged = True
+                    break
+            if merged:
+                break
+    return rects
+
+
+def _windows(
+    selected: np.ndarray, rect: pymupdf.Rect, costs: _FigureCosts
+) -> list[pymupdf.Rect]:
+    """Windows covering the selected cells: each connected region's bounding
+    box, grown to cover the drawings centred in it, merged until none
+    overlap. A box rather than the exact cell set, and grown, so a mark or
+    curve reaching past its own cell is wholly inside one window and gets
+    removed rather than left vector under the bitmap."""
     labels = np.zeros(selected.shape, dtype=int)
     boxes: list[list[int]] = []
     for start in zip(*np.nonzero(selected)):
@@ -304,38 +445,25 @@ def _windows(selected: np.ndarray, rect: pymupdf.Rect) -> list[pymupdf.Rect]:
                 ):
                     labels[neighbour] = len(boxes)
                     stack.append(neighbour)
-    merged = True
-    while merged:
-        merged = False
-        for i in range(len(boxes)):
-            for j in range(i + 1, len(boxes)):
-                a, b = boxes[i], boxes[j]
-                if a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]:
-                    boxes[i] = [
-                        min(a[0], b[0]),
-                        min(a[1], b[1]),
-                        max(a[2], b[2]),
-                        max(a[3], b[3]),
-                    ]
-                    del boxes[j]
-                    merged = True
-                    break
-            if merged:
-                break
     cell_w = rect.width / GRID
     cell_h = rect.height / GRID
-    return [
-        _snap(
+    windows = _merged(
+        [
             pymupdf.Rect(
                 rect.x0 + c0 * cell_w,
                 rect.y0 + r0 * cell_h,
                 rect.x0 + c1 * cell_w,
                 rect.y0 + r1 * cell_h,
-            ),
-            rect,
-        )
-        for r0, c0, r1, c1 in boxes
-    ]
+            )
+            for r0, c0, r1, c1 in boxes
+        ]
+    )
+    while True:
+        grown = _merged([costs.grown(window) for window in windows])
+        if grown == windows:
+            break
+        windows = grown
+    return [_snap(window, rect) for window in windows]
 
 
 def _rasterized_page(
@@ -360,21 +488,31 @@ def _rasterized_page(
 def shrink_figure(
     page: pymupdf.Page,
     rect: pymupdf.Rect,
-    svg_bytes: int,
+    svg: str,
     *,
     budget_bytes: int = BUDGET_BYTES,
 ) -> ShrunkFigure | None:
-    """Rasterize the fewest densest windows that bring the figure under
-    `budget_bytes`, or None when no window set fits and passes the check.
+    """Fit the figure under `budget_bytes`, or None when nothing that fits
+    passes the render check.
 
-    `page` comes from `isolated_figure`, and `svg_bytes` is the size of its
-    unshrunk export, so cost and budget both describe the figure alone.
+    `page` comes from `isolated_figure` and `svg` is its unshrunk export, so
+    cost and budget both describe the figure alone. Rounding path
+    coordinates is tried first because it keeps every mark vector; then
+    the fewest densest bitmap windows.
 
-    Cells are ranked by drawing cost. A binary search over how many top
-    cells to rasterize runs on projected sizes, which are cheap; only the
-    chosen window set is exported and measured, and a set that still
-    exceeds the budget grows by a quarter and is measured again.
+    For windows, cells are ranked by drawing cost. A binary search over how
+    many top cells to rasterize runs on projected sizes, which are cheap;
+    only the chosen window set is exported and measured, and a set that
+    still exceeds the budget grows by a quarter and is measured again.
     """
+    rounded = rounded_paths(svg)
+    if len(rounded.encode()) <= budget_bytes:
+        fidelity = measure_svg_fidelity(svg, rounded)
+        if fidelity.accepted:
+            return ShrunkFigure(
+                svg=rounded, windows=[], raster_fraction=0.0, fidelity=fidelity
+            )
+    svg_bytes = len(svg.encode())
     costs = _FigureCosts(page, rect)
     if not costs.total:
         return None
@@ -387,7 +525,7 @@ def shrink_figure(
     def windows_for(count: int) -> list[pymupdf.Rect]:
         selected = np.zeros(GRID * GRID, dtype=bool)
         selected[ranked[:count]] = True
-        return _windows(selected.reshape(GRID, GRID), rect)
+        return _windows(selected.reshape(GRID, GRID), rect, costs)
 
     def projected(windows: list[pymupdf.Rect]) -> float:
         vector = svg_bytes * (1 - costs.removed(windows) / costs.total)

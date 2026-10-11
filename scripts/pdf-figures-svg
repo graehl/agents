@@ -36,10 +36,12 @@ Two figures are left as raster on purpose:
   say so (`geometry-mismatch`).
 
 Every recut first drops drawings lying wholly outside the figure, which
-MuPDF's SVG device would otherwise write for the whole page. A figure still
-over `--budget-bytes` has its densest regions rasterized as embedded bitmap
-windows by `figure_shrink.raster_windows` (`windowed`); one that no window set brings under
-budget with an accepted render check keeps its raster crop (`oversize`).
+MuPDF's SVG device would otherwise write for the whole page, and every
+export drops the empty clip groups MuPDF leaves. A figure still over
+`--budget-bytes` is fitted by `figure_shrink.raster_windows`: path
+coordinates rounded (`rounded`), else its densest regions rasterized as
+embedded bitmap windows (`windowed`). One that nothing brings under budget
+with an accepted render check keeps its raster crop (`oversize`).
 
 Contract: topics/research-survey.md (extract tree),
 topics/pareto-figures.md § Rendering contract (why the SVG root keeps
@@ -74,6 +76,7 @@ from acli import (  # noqa: E402
 )
 from figure_shrink import BUDGET_BYTES  # noqa: E402
 from figure_shrink.raster_windows import (  # noqa: E402
+    COORDINATE_PLACES,
     RASTER_DPI,
     ShrunkFigure,
     figure_svg,
@@ -239,14 +242,19 @@ def placed_raster(page: pymupdf.Page, rect: pymupdf.Rect) -> dict | None:
     return None
 
 
-def windowed_provenance(svg: str, shrunk: ShrunkFigure, full_bytes: int) -> str:
-    """Record inside the SVG that parts of it are bitmaps, and how they were
-    checked, so the committed figure carries its own provenance."""
+def shrink_provenance(svg: str, shrunk: ShrunkFigure, full_bytes: int) -> str:
+    """Record inside the SVG how it was fitted under budget and checked, so
+    the committed figure carries its own provenance."""
+    if shrunk.windows:
+        change = (
+            f"{len(shrunk.windows)} windows ({shrunk.raster_fraction:.1%} of the "
+            f"area) rasterized at {RASTER_DPI} dpi"
+        )
+    else:
+        change = f"path coordinates rounded to {COORDINATE_PLACES} decimals"
     note = (
-        f"<!-- figure_shrink: {len(shrunk.windows)} windows "
-        f"({shrunk.raster_fraction:.1%} of the area) rasterized at {RASTER_DPI} dpi "
-        f"to fit {full_bytes} bytes under budget; check "
-        f"{shrunk.fidelity.describe()} -->\n"
+        f"<!-- figure_shrink: {change} to fit {full_bytes} bytes under budget; "
+        f"check {shrunk.fidelity.describe()} -->\n"
     )
     end = svg.index(">", svg.index("<svg")) + 1
     return svg[:end] + "\n" + note + svg[end:]
@@ -317,12 +325,12 @@ class Recutter:
             if full_bytes > self.budget_bytes:
                 row["full_bytes"] = full_bytes
                 shrunk = shrink_figure(
-                    isolated[0], rect, full_bytes, budget_bytes=self.budget_bytes
+                    isolated[0], rect, svg, budget_bytes=self.budget_bytes
                 )
                 if shrunk is None:
                     return {**row, "status": "oversize"}
-                svg = windowed_provenance(shrunk.svg, shrunk, full_bytes)
-                status = "windowed"
+                svg = shrink_provenance(shrunk.svg, shrunk, full_bytes)
+                status = "windowed" if shrunk.windows else "rounded"
                 row["raster_fraction"] = round(shrunk.raster_fraction, 3)
                 row["check"] = shrunk.fidelity.describe()
         except (RuntimeError, ValueError) as exc:
