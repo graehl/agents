@@ -120,14 +120,17 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
 - **A recut figure carries only its own drawings and fits a byte budget.**
   MuPDF's SVG device writes every drawing on the page under the figure's
   clip, so each recut first drops drawings lying wholly outside the figure
-  (one 188 MB figure became 53 MB with no pixel changed). A figure still over
-  `figure_shrink.BUDGET_BYTES` (10 MB) has its regions of highest drawing
-  cost per unit area replaced by embedded 300-dpi bitmap windows, leaving the
-  sparse, zoomable rest vector (`windowed`; the SVG opens with a
-  `figure_shrink` comment naming the windows and check scores). The result
-  is accepted only if its 300-dpi render matches the source within a
-  one-pixel shift tolerance on mean, visible-pixel and worst-block error;
-  otherwise the raster crop stays linked (`oversize`). An HTML visual over
+  (one 188 MB figure became 53 MB with no pixel changed), and every export
+  drops the empty clip groups MuPDF leaves behind. A figure still over
+  `figure_shrink.BUDGET_BYTES` (10 MB) first has its path coordinates
+  rounded to three decimals (`rounded`, fully vector); failing that, its
+  regions of highest drawing cost per unit area become embedded 300-dpi
+  bitmap windows, leaving the sparse, zoomable rest vector (`windowed`).
+  The SVG opens with a `figure_shrink` comment naming the change and check
+  scores. A result is accepted only if its 300-dpi render matches the
+  source within a one-pixel shift tolerance on mean, visible-pixel and
+  worst-block error, with no new renderer warning; otherwise the raster
+  crop stays linked (`oversize`). An HTML visual over
   the budget fails the HTML derivation, because fitting it needs the PDF
   original, and an arXiv paper whose HTML derivation fails falls back to its
   PDF on the same fetch (`html_failure` on the row). `stage` refuses, and
