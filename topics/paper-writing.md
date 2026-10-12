@@ -136,6 +136,14 @@ its date in the same record. An added, corrected, or re-pointed bibliography
 entry, or a changed citing claim, needs a fresh record entry before the gate
 passes again. While the record is incomplete, stop and report the missing
 entries instead of packaging.
+
+A hyperlink is not a citation: it produces no reference-list entry and evades
+this gate. The final review pass therefore sweeps the manuscript sources,
+including tables, captions, and footnotes, for every link. A link whose target
+is a published paper or preprint becomes a bibliography citation, which then
+needs its own record entry. A link to a dataset, model, or tool may remain as an
+access pointer, but when a paper describes that resource, the paper is also
+cited where the resource is used.
 <!-- reread:end -->
 
 ## Produce browser and submission artifacts

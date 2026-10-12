@@ -5513,3 +5513,22 @@ prose correction retains substantive uncertainty and personal testimony.
 - Trace: a reply in a Markdown file or code comment is outside scope; the
   rule names conversation, and file formats keep their own syntax.
 - Status: user-directed requirement; no measured effect is claimed.
+
+## 2026-10-12 — paper links must become citations before the gate
+
+- Incident, PII ACL paper: the coarse–fine decoding section cited
+  Lester et al. (2020) only as an ACL Anthology hyperlink, so it was
+  missing from the reference list and from the retrieved-citation record.
+  User direction: "final review pass includes looking for
+  real/conventional cite for anything that is an HTML link to a published
+  paper."
+- Decision: a paragraph inside the `paper-writing` citation gate's
+  mandatory-reread markers. The gate covered "every reference the build
+  actually cites", and a link never becomes a citation key, so linked
+  papers skipped both the bibliography and the proof record.
+- Trace: the paper's data-terms table links SPY, KLUE, HiNER, idner-news-2k
+  and MultiGraSCCo to distributions. The links stay as access pointers;
+  each described dataset paper still needs a cite where the data is used.
+  `savkin2025-spy` was in the .bib but cited nowhere.
+- Status: user-directed requirement after an observed miss; no measured
+  effect is claimed.
