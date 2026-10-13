@@ -106,3 +106,19 @@
     § Scope discipline).
 - **Not validated** — no outcome comparison; instruction trace only.
   Contributing-model: fable-5.1.
+
+## 2026-10-13 — strategic quality as a duty, not only the task win
+
+- **Source** — user direction (graehl), while starting the OSS puzzle
+  solver: add "a duty to care for the strategic (long-term
+  maintainability/extensibility/beauty) aspects and not only the
+  tactical SWE-bench 'win' short-term", if not already implied.
+- **Check** — no existing rule in `software-aesthetic.md`,
+  `software-aesthetic.coordinated.md` or `design-thinking.md` stated it;
+  the corpus covered per-unit form, not the agent's trade-off between
+  passing the task and the codebase's future. Placed in § Core because it
+  is universal, not coordination-dependent.
+- **Failure it targets** — benchmark-style optimization: code that passes
+  the immediate check while leaving a structure that is harder to extend,
+  with the cost unrecorded. The `gaps/` clause keeps a deliberate shortcut
+  visible instead of forbidding it.
