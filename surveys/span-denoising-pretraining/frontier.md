@@ -15,6 +15,19 @@ its regime, independent-check status, and what would change it.
 - **Status.** No source fine-tunes either family on parallel data. The only
   MT rows in the papers are few-shot or general instruction-tuned, and they
   show parity at 4B and a decoder-only lead in T5Gemma (v1).
+- **Local untuned check (2026-10-13; eng→zho FLORES-200 devtest, N=1,012).**
+  Setup: one five-shot prompt, greedy decoding.
+  - T5Gemma 2 4B-4B beats Gemma 3 4B base: MetricX-24 2.12 vs 2.42, COMET-22
+    0.867 vs 0.856, both p<.01 by paired bootstrap; BLEU 38.3 vs 36.2.
+  - At 1B the gap is wider: MetricX 3.16 vs 4.16.
+  - Against MADLAD-400 3B zero-shot, 4B-4B wins on both neural metrics
+    (MADLAD MetricX 2.45, COMET 0.857) but loses on BLEU (MADLAD 39.1).
+  - Decoding speed: 4B-4B matches Gemma 3 4B under Hugging Face batched
+    generation, at 1.5× the peak memory.
+
+  The few-shot architecture gap here is larger than the paper's +0.8 WMT24++
+  chrF at 4B. This is a single-direction, untuned result: it narrows but does
+  not answer the fine-tuning question.
 - **Revisit when** a matched fine-tuning comparison exists, scored with a
   neural metric and paired bootstrap on a held-out test set. It should report
   parameters and measured decode throughput, not size labels.
