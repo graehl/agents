@@ -11,6 +11,8 @@ Every rule here is universal: it applies to a single unit of code regardless of 
 
 The ideal piece of code is the shortest conventional, readable form that correctly expresses its contract. Cleverness earns its place only on a hot path where it measurably buys size or speed; anywhere else it costs the next reader more than it saves.
 
+Making the current task pass is not the finish line. Own the strategic quality of what you leave behind — maintainability, room to extend, and a structure someone would want to build on — alongside the tactical win. When a quick fix and a sound structure diverge, choose the structure or record the debt (`gaps/`) explicitly; never trade it away silently.
+
 ## Naming
 
 A name should carry a known domain concept, so the reader navigates the code without holding all of it in their head — the right name does the work a comment otherwise would. This extends to predicates and booleans: name the concept they decide, even when the body is a single comparison. Avoid names a reader has to look straight through to learn anything: `Manager`, `Handler`, `Processor`, `Helper`.
