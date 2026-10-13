@@ -1,0 +1,140 @@
+# Metadata manifest for surveys/span-denoising-pretraining.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: span-denoising-pretraining
+  coverage_cutoff: 2026-10-13
+  grounding_mode: grounded
+
+papers:
+  - key: song2019-mass
+    short: mass
+    concept_page: concepts/mass.md
+    title: 'MASS: Masked Sequence to Sequence Pre-training for Language Generation'
+    authors: [Kaitao Song, Xu Tan, Tao Qin, Jianfeng Lu, Tie-Yan Liu]
+    venue: ICML 2019
+    year: 2019
+    arxiv: 1905.02450v5
+    verified: true
+    grounded: true
+    fetched: 2026-10-13
+    source: 'arXiv API metadata (comment "Accepted by ICML 2019"), 2026-10-13'
+    cluster: single-span-seq2seq
+  - key: raffel2020-t5
+    short: t5
+    concept_page: concepts/span-corruption.md
+    title: 'Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer'
+    authors: [Colin Raffel, Noam Shazeer, Adam Roberts, Katherine Lee, Sharan Narang, Michael Matena, Yanqi Zhou, Wei Li, Peter J. Liu]
+    venue: 'Journal of Machine Learning Research 21(140):1-67'
+    year: 2020
+    arxiv: 1910.10683v4
+    verified: true
+    grounded: true
+    fetched: 2026-10-13
+    source: 'arXiv API metadata; jmlr.org/papers/v21/20-074.html, 2026-10-13'
+    cluster: span-corruption
+  - key: lewis2020-bart
+    short: bart
+    concept_page: concepts/text-infilling.md
+    title: 'BART: Denoising Sequence-to-Sequence Pre-training for Natural Language Generation, Translation, and Comprehension'
+    authors: [Mike Lewis, Yinhan Liu, Naman Goyal, Marjan Ghazvininejad, Abdelrahman Mohamed, Omer Levy, Veselin Stoyanov, Luke Zettlemoyer]
+    venue: 'ACL 2020, pages 7871-7880'
+    year: 2020
+    arxiv: 1910.13461v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-13
+    source: 'arXiv API metadata; aclanthology.org/2020.acl-main.703, 2026-10-13'
+    cluster: text-infilling
+  - key: tay2023-ul2
+    short: ul2
+    concept_page: concepts/mixture-of-denoisers.md
+    title: 'UL2: Unifying Language Learning Paradigms'
+    authors: [Yi Tay, Mostafa Dehghani, Vinh Q. Tran, Xavier Garcia, Jason Wei, Xuezhi Wang, Hyung Won Chung, Siamak Shakeri, Dara Bahri, Tal Schuster, Huaixiu Steven Zheng, Denny Zhou, Neil Houlsby, Donald Metzler]
+    venue: ICLR 2023 (poster)
+    year: 2023
+    arxiv: 2205.05131v3
+    verified: true
+    grounded: true
+    fetched: 2026-10-13
+    source: 'arXiv API metadata; OpenReview 6ruVLB727MC ("ICLR 2023 poster"), 2026-10-13'
+    cluster: mixture-of-denoisers
+  - key: bavarian2022-fim
+    short: fim
+    concept_page: concepts/fill-in-the-middle.md
+    title: 'Efficient Training of Language Models to Fill in the Middle'
+    authors: [Mohammad Bavarian, Heewoo Jun, Nikolas Tezak, John Schulman, Christine McLeavey, Jerry Tworek, Mark Chen]
+    venue: arXiv
+    year: 2022
+    arxiv: 2207.14255v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-13
+    source: 'arXiv API metadata (no journal reference), 2026-10-13'
+    cluster: decoder-only-infilling
+  - key: zhang2025-t5gemma
+    short: t5gemma
+    concept_page: concepts/encoder-decoder-adaptation.md
+    title: 'Encoder-Decoder Gemma: Improving the Quality-Efficiency Trade-Off via Adaptation'
+    authors: [Biao Zhang, Fedor Moiseev, Joshua Ainslie, Paul Suganthan, Min Ma, Surya Bhupatiraju, Fede Lebron, Orhan Firat, Armand Joulin, Zhe Dong]
+    venue: arXiv
+    year: 2025
+    arxiv: 2504.06225v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-13
+    source: 'arXiv API metadata (no journal reference), 2026-10-13'
+    cluster: decoder-to-encoder-decoder-adaptation
+  - key: zhang2025-redllm
+    short: redllm
+    concept_page: concepts/encoder-decoder-scaling.md
+    title: 'Encoder-Decoder or Decoder-Only? Revisiting Encoder-Decoder Large Language Model'
+    authors: [Biao Zhang, Yong Cheng, Siamak Shakeri, Xinyi Wang, Min Ma, Orhan Firat]
+    venue: arXiv
+    year: 2025
+    arxiv: 2510.26622v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-13
+    source: 'arXiv API metadata (comment "The scaling study inspiring T5Gemma"), 2026-10-13'
+    cluster: decoder-to-encoder-decoder-adaptation
+  - key: zhang2025-t5gemma2
+    short: t5gemma-2
+    concept_page: concepts/t5gemma-2.md
+    title: 'T5Gemma 2: Seeing, Reading, and Understanding Longer'
+    authors: [Biao Zhang, Paul Suganthan, Gaël Liu, Ilya Philippov, Sahil Dua, Ben Hora, Kat Black, Gus Martins, Omar Sanseviero, Shreya Pathak, Cassidy Hardin, Francesco Visin, Jiageng Zhang, Kathleen Kenealy, Qin Yin, Xiaodan Song, Olivier Lacombe, Armand Joulin, Tris Warkentin, Adam Roberts]
+    venue: arXiv (technical report)
+    year: 2025
+    arxiv: 2512.14856v2
+    verified: true
+    grounded: true
+    fetched: 2026-10-13
+    source: 'arXiv API metadata (comment "technical report"), 2026-10-13'
+    cluster: decoder-to-encoder-decoder-adaptation
+  - key: zhang2022-mt-architectures
+    short: mt-architectures
+    concept_page: concepts/mt-architecture-scaling.md
+    title: 'Examining Scaling and Transfer of Language Model Architectures for Machine Translation'
+    authors: [Biao Zhang, Behrooz Ghorbani, Ankur Bapna, Yong Cheng, Xavier Garcia, Jonathan Shen, Orhan Firat]
+    venue: ICML 2022 (PMLR 162)
+    year: 2022
+    arxiv: 2202.00528v3
+    verified: true
+    grounded: true
+    fetched: 2026-10-13
+    source: 'arXiv API metadata; proceedings.mlr.press/v162/zhang22h.html, 2026-10-13'
+    cluster: mt-architecture-scaling

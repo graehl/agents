@@ -1,0 +1,34 @@
+# Frontier — span-denoising pretraining and encoder-decoder LLMs
+
+Fresh, decision-relevant claims that are not yet settled enough for
+[survey.md](survey.md) to teach as established. Each entry states the claim,
+its regime, independent-check status, and what would change it.
+
+## Adapted encoder-decoder LLMs fine-tune better on parallel data
+
+- **Claim (implied, not tested).** T5Gemma and T5Gemma 2 report much larger
+  gains after instruction tuning than before it. The open claim is that an
+  adapted encoder-decoder also gains more than its decoder-only source when
+  fine-tuned on one language pair's parallel data.
+- **Regime.** Balanced 1B-1B and 4B-4B pretrained T5Gemma 2 checkpoints
+  against Gemma 3 1B and 4B base, fine-tuned on the same bitext.
+- **Status.** No source fine-tunes either family on parallel data. The only
+  MT rows in the papers are few-shot or general instruction-tuned, and they
+  show parity at 4B and a decoder-only lead in T5Gemma (v1).
+- **Revisit when** a matched fine-tuning comparison exists, scored with a
+  neural metric and paired bootstrap on a held-out test set. It should report
+  parameters and measured decode throughput, not size labels.
+
+## Encoder-decoder inference is cheaper per translated token
+
+- **Claim.** RedLLM reports about 1.8× decoder-only inference throughput at
+  8B and batch 1. The 2022 MT study finds encoder-decoders need fewer FLOPs at
+  equal quality.
+- **Regime.** Measured at batch 1 on TPU, or estimated as FLOPs; balanced
+  depth.
+- **Status.** `single-source` per paper. Batched GPU serving is not covered.
+  Serving stacks such as vLLM support decoder-only models first: the
+  0.29-series build checked locally on 2026-10-13 registers no T5Gemma
+  architecture.
+- **Revisit when** a batched serving benchmark compares an encoder-decoder
+  with its decoder-only source at matched quality.
