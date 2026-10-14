@@ -1,0 +1,21 @@
+---
+title: "{{title}}"
+subtitle: "Draft, {{date}}"
+bibliography: related-work/papers.bib
+format:
+  html:
+    output-file: index.html
+    toc: true
+    toc-depth: 2
+  pdf:
+    output-file: paper.pdf
+    toc: false
+---
+
+<!-- Author navigation: [proposal card]({{proposal}}),
+[program]({{program}}). The root file owns section order; add a section by
+creating sections/_NN-name.qmd and an include line below. -->
+
+{{< include sections/_00-abstract.qmd >}}
+
+{{< include sections/_10-introduction.qmd >}}

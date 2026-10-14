@@ -161,6 +161,10 @@ not guarantee that a complex venue class converts cleanly to useful HTML.
 
 ## arXiv package
 
+arXiv's own limits (engine, abstract length, comments field, HTML figure
+rendering) and the `qmd-arxiv` bundle builder are in
+[`arxiv-submission`](arxiv-submission.md).
+
 Recheck arXiv's current documentation immediately before submission. Its
 current [submission overview](https://info.arxiv.org/help/submit/index.html)
 prefers TeX/LaTeX when source exists and says not to submit a PDF produced from

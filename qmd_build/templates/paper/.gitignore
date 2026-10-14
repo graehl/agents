@@ -1,0 +1,4 @@
+/_build/
+/.quarto/
+/index.tex
+**/*.quarto_ipynb

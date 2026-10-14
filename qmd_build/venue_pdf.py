@@ -27,6 +27,7 @@ import acli
 from .estimate import estimate, image_sources, load_cache, save_cache, section_blocks
 from .manuscript import (
     Config,
+    default_tex_bin,
     digest,
     front_matter,
     includes,
@@ -217,11 +218,7 @@ def tex_bin(build: VenueBuild, engine: str) -> Path:
     configured = build.config.path("tex-bin")
     if configured:
         return configured
-    # Quarto prefers its TinyTeX installation over a system TeX.
-    tinytex = sorted(glob(str(Path.home() / ".TinyTeX/bin/*")))
-    if tinytex:
-        return Path(tinytex[0])
-    return Path(resolve_executable(engine)).parent
+    return default_tex_bin(engine)
 
 
 def identity(build: VenueBuild, inputs: list[Path], engine: str) -> dict:

@@ -26,6 +26,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `agentctl` | Governs: changing or diagnosing active-session or run semantics, staleness, launch-depth guards, or plugins | [agentctl](topics/agentctl.md) |
 | `almanac` | Governs: building, repairing, or querying an almanac dataset from a web page | [almanac](topics/almanac.md) |
 | ambition framing | Instructing for a high bar while conveying trust in the agent's capability; the intended register for harsh review, as opposed to pressure framing. | [harsh-review](skills/harsh-review/SKILL.md) |
+| `arxiv-submission` | Governs: preparing or uploading an arXiv submission | [arxiv-submission](topics/arxiv-submission.md) |
 | `at-scheduling` | Governs: creating or changing an /at future-run entry | [at-scheduling](topics/at-scheduling.md) |
 | autoresearch | Asking an agent to occupy the GPU to refine or choose research directions, not merely execute a plan; presupposes a non-cheatable success criterion. | [research workflow](_RESEARCH/workflow.md) |
 | `backward-compat` | Governs: breaking or shimming a public API, CLI flag, wire format, or persisted schema | [backward-compat](topics/backward-compat.md) |
@@ -71,6 +72,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | paper form | The governing expository lens and reader promise that controls a paper's abstract, section order, and cadence; independent of discovery value. | [successful-paper-forms](topics/successful-paper-forms.md) |
 | `paper-attractiveness` | Governs: deciding what makes a paper attractive beyond its form | [paper-attractiveness](topics/paper-attractiveness.md) |
 | `paper-drafting` | Governs: turning program evidence into paper proposals or promoting one to a draft | [paper-drafting](topics/paper-drafting.md) |
+| `paper-projects` | Governs: starting a new paper project or setting up its build | [paper-projects](topics/paper-projects.md) |
 | `paper-reviewer` | Governs: reviewing a proposed or drafted paper against program evidence | [paper-reviewer](topics/paper-reviewer.md) |
 | `paper-writing` | Governs: writing a selected research paper | [paper-writing](topics/paper-writing.md) |
 | `pareto-figures` | Governs: making a quality-versus-cost Pareto figure | [pareto-figures](topics/pareto-figures.md) |

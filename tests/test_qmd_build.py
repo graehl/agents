@@ -350,3 +350,28 @@ def test_html_memo_paragraph_labels_join_outline(tmp_path):
     assert 'href="#lead-label"' in toc and 'href="#other"' in toc
     assert "Bold term" not in toc
     assert 'data-label-punct="."' in html and 'data-label-punct=":"' in html
+
+
+def test_paper_scaffold_places_paper_under_its_program(tmp_path):
+    from qmd_build.scaffold import scaffold
+
+    program = tmp_path / "research" / "speech"
+    with pytest.raises(ValueError, match="PROGRAM.md"):
+        scaffold(program, "demo", "Demo", None)
+    program.mkdir(parents=True)
+    (program / "PROGRAM.md").write_text("# Program speech\n")
+    result = scaffold(program, "demo", "Demo paper", None)
+    paper = program / "papers" / "demo"
+    assert result["paper"] == str(paper.resolve())
+    index = (paper / "index.qmd").read_text()
+    assert (
+        'title: "Demo paper"' in index
+        and "{{< include sections/_00-abstract.qmd >}}" in index
+    )
+    assert "papersize: letter" in (paper / "_quarto.yml").read_text()
+    assert "../../PROGRAM.md" in (paper / "README.md").read_text()
+    assert "{{" not in (paper / "CHANGELOG.md").read_text()
+    with pytest.raises(ValueError, match="exists"):
+        scaffold(program, "demo", "Demo", None)
+    with pytest.raises(ValueError, match="Slug"):
+        scaffold(program, "Bad Slug", "Demo", None)

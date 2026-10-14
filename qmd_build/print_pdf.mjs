@@ -23,7 +23,7 @@ try {
 	});
 	await page.pdf({
 		path: resolve(output),
-		format: options.format ?? "A4",
+		format: options.format ?? "Letter",  // US Letter default (graehl, 2026-10-14)
 		printBackground: true,
 		preferCSSPageSize: true,
 		tagged: true,

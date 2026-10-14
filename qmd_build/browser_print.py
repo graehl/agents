@@ -27,7 +27,7 @@ def print_pdf(
 ) -> Path:
     """Print `html` to `pdf` (default: same stem) and return the PDF path.
 
-    `options` takes `format` (e.g. "A4", "Letter") and `margin`; CSS `@page`
+    `options` takes `format` (default "Letter"; e.g. "A4") and `margin`; CSS `@page`
     rules win when present. Worker output goes to `log` (default: inherited).
     """
     pdf = pdf or html.with_suffix(".pdf")

@@ -837,6 +837,7 @@ row, not this section.
 - drafting or revising a technical report, brief, estimate, proposal, handout, progress report, blog post, or paper for outside readers → `technical-writing`
 - writing anything that makes research claims: prior art, attribution, citations → `research-writing`
 - turning program evidence into paper proposals or promoting one to a draft → `paper-drafting`
+- starting a new paper project or setting up its build → `paper-projects`
 - writing a selected research paper → `paper-writing`
 - reviewing a proposed or drafted paper against program evidence → `paper-reviewer`
 - deciding what makes a paper attractive beyond its form → `paper-attractiveness`
@@ -850,6 +851,7 @@ row, not this section.
 - choosing the source of truth and renderer for a research document → `document-writing`
 - rendering a research document as interactive static HTML → `document-writing-browser-interactive`
 - producing a PDF or LaTeX submission package from a research document → `document-writing-printable`
+- preparing or uploading an arXiv submission → `arxiv-submission`
 - a paper, handout, report, or blog asks for a graph, diagram, or rich table → `document-writing-figures`
 - making a quality-versus-cost Pareto figure → `pareto-figures`
 - choosing a results layout before picking a plotting package → `result-visualization-templates`

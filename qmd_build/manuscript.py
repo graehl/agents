@@ -182,3 +182,11 @@ def resolve_executable(name: str) -> str:
     if found is None:
         raise ValueError(f"Executable not found: {name}")
     return str(Path(found).absolute())
+
+
+def default_tex_bin(engine: str) -> Path:
+    """The TeX binary directory Quarto itself uses: its TinyTeX install, else `engine` on PATH."""
+    tinytex = sorted(Path.home().glob(".TinyTeX/bin/*"))
+    if tinytex:
+        return tinytex[0]
+    return Path(resolve_executable(engine)).parent
