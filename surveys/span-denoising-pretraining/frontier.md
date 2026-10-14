@@ -26,8 +26,20 @@ its regime, independent-check status, and what would change it.
     generation, at 1.5× the peak memory.
 
   The few-shot architecture gap here is larger than the paper's +0.8 WMT24++
-  chrF at 4B. This is a single-direction, untuned result: it narrows but does
-  not answer the fine-tuning question.
+  chrF at 4B.
+- **Local LoRA check (2026-10-14; same FLORES set).** Setup: one LoRA recipe
+  (rank 32, learning rate 2e-4, early stopping) on 59,659 public eng-zho pairs
+  (UN, News Commentary, WMT24++), decoded from the source alone, with
+  punctuation width normalized.
+  - At 4B the few-shot ranking reverses: tuned Gemma 3 4B beats tuned
+    T5Gemma 2 4B-4B, MetricX 2.05 vs 2.13 (p = .06) and COMET 0.870 vs
+    0.863 (p < .01). Tuning did not improve T5Gemma 2 beyond its five-shot
+    output, which already matched the training references' quality.
+  - At 1B the encoder-decoder still wins clearly (2.78 vs 3.50).
+  - Tuned MADLAD-400 3B is best of all (MetricX 1.87, COMET 0.876).
+
+  One direction, one recipe, no sweep: this bounds the claim for MT without
+  settling it.
 - **Revisit when** a matched fine-tuning comparison exists, scored with a
   neural metric and paired bootstrap on a held-out test set. It should report
   parameters and measured decode throughput, not size labels.
