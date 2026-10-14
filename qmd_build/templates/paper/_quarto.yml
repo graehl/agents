@@ -8,6 +8,8 @@ resource-path:
   - .
 
 link-citations: true
+# Numbered sections, so `@sec-` cross-references render as "Section 3".
+number-sections: true
 
 format:
   html:
@@ -25,3 +27,13 @@ format:
     pdf-engine: pdflatex
     default-image-extension: pdf
     keep-tex: true
+    # pdfLaTeX rejects Unicode characters it has no mapping for; map the
+    # ones prose commonly uses.
+    include-in-header:
+      text: |
+        \DeclareUnicodeCharacter{2212}{\ensuremath{-}}
+        \DeclareUnicodeCharacter{2192}{\ensuremath{\rightarrow}}
+        \DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
+        \DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}
+        \DeclareUnicodeCharacter{2264}{\ensuremath{\leq}}
+        \DeclareUnicodeCharacter{2265}{\ensuremath{\geq}}
