@@ -367,3 +367,21 @@ papers:
       multiple models as diverse auditors (precedent for cross-audit
       diversity); detects, does not patch; one Gemini finding externally
       validated by a Google patch. $0.27 total analysis cost.
+  - key: lee2026mass
+    short: mass
+    concept_page: concepts/mass.md
+    title: "Recursive Self-Improvement through Multi-Agent Self-Supervision"
+    authors: ["Hyunin Lee", "Jinglue Xu", "Jeffrey Seely", "Donghyun Lee", "Somayeh Sojoudi", "Matei Zaharia", "Yujin Tang"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2610.12176"
+    url: "https://arxiv.org/html/2610.12176v1"
+    grounded: true
+    verified: true
+    fetched: 2026-10-14
+    source: "full v1 read including appendices A-J; marker-pdf plus PDF visual checks"
+    cluster: J
+    note: >
+      Extends RHI's task-specific textual workflow search with supervised
+      fine-tuning on selected orchestrator/subagent trajectories. Evaluation
+      and relation to the instruction-ablation proposal: concepts/mass.md.

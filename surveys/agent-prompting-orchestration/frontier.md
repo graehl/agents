@@ -155,6 +155,39 @@ named per entry.
 - Open: peer review of the blog; replication at larger budgets than
   Rethinking's K=5. Revisit 2026-12 (unscheduled).
 
+### MASS — workflow search plus behavioral distillation (2610.12176v1)
+
+Focused full read 2026-10-14, including appendices A–J;
+[report and experiment implications](concepts/mass.md).
+
+- Claim: self-judged textual workflows supply better multi-agent training
+  trajectories; two Qwen3.6-27B cycles improve research score per output
+  token and transfer to workflow optimization and judging. Authors control
+  collection and evaluation; external reporting models are withheld from
+  the main homogeneous loop. No independent reproduction established.
+- Regime: eight SFT task identities, 119 first-cycle episodes, three private
+  held-out tasks; public suites range from 12 MLR tasks to 500 SWE-bench
+  instances. Public runs use a common scaffold without evolved workflows.
+- Bounds: main teacher-composition comparison changes task coverage,
+  sampler, and checkpoint selection and pools mostly training tasks;
+  generic prompting narrows the first-cycle student/base preference gap;
+  software-engineering scores decline descriptively. No evidence of a
+  general instruction-value or coding improvement.
+- Selection concern: one rollout per proposed workflow against a cached
+  incumbent selects execution luck and judge preference as well as text.
+  Identical prompts can flip from 6–0 to 0–6. A cumulative ever-won count
+  does not establish a more reliable workflow.
+- Cheapest discriminating comparisons: fresh paired reruns of selected and
+  generic workflows; matched students trained on generic versus optimized
+  workflow traces; equal-budget frozen-model instruction ablations with
+  held-out confirmation. These are proposals, not authorized runs.
+- Relevance: close prior art for the SWE-bench instruction-value proposal,
+  with explicit handoff and verification instructions worth ablating.
+  Evolved scientific outcome gates also supply candidate harmful rules.
+- Revisit condition: an independent rerun or a matched generic-directive
+  control would change the assessment. Check again 2027-01-15 if planning
+  the deferred experiment; unscheduled reminder.
+
 ## Void map
 
 Axes as in `survey.md` (object × mechanism × signal), decision-relevant

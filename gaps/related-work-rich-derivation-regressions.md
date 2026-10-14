@@ -176,3 +176,33 @@ leaked `relatedworkrichtoken` placeholder repeats the earlier math-token
 leak.
 
 Contributing-model: opus-5.5
+
+## MASS extraction and asset-audit limitations, 2026-10-14
+
+`lee2026mass` in `surveys/agent-prompting-orchestration/` hit the known
+"source HTML has no auditable visible text block" failure and successfully
+fell back to marker-pdf, preserving eight linked vector figures.
+
+The completed extract reveals two further limitations:
+
+- `_local_markdown_assets` scans Markdown image syntax inside fenced code
+  as well as rendered prose. The workflow's literal example
+  `![caption](deliverables/plots/...)` becomes a nonexistent required asset.
+  Audit reports three `authority-asset` rows for that placeholder, including
+  one inside a complete workflow code block. Do not create placeholder
+  images or change the paper's instructions to satisfy the checker; asset
+  enumeration needs Markdown-aware code/escape handling, shared by staging
+  and auditing. Unfenced literal examples in extracted prompts also need
+  correct representation by the derivation layer.
+- Marker omits Algorithm 2's loop body and mangles the Figure 3 composite
+  table. The paper evaluation read the original PDF algorithm page and
+  used the detailed appendix tables for the results. The extract remains
+  useful and source-linked but is not a fully faithful rendering of those
+  elements.
+
+Reproduce with `uv run --with pyyaml scripts/related-work --dir
+surveys/agent-prompting-orchestration audit`. Seven older entries also
+report pre-existing `html-derivation` version drift. No extractor change
+or older-extract rebuild was attempted during this paper review.
+
+Contributing-model: 6.1-Sol

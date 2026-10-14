@@ -11,7 +11,10 @@ three of those (Meta-Harness, RHSI, delta attribution) were read from
 saved source HTML because their Markdown failed the fidelity gate; the
 first two now have marker-pdf extracts, and the blog has none
 (20 manifested / 20 verified / 19 grounded / 19 extracted; 15 concept
-digests, `related-work status` 2026-09-26). Effectiveness grades
+digests, `related-work status` 2026-09-26). A focused grounded update
+(2026-10-14, §J4) reads MASS v1 including all appendices; counts are now
+21 manifested / 21 verified / 20 grounded / 20 extracted, with 16 concept
+digests. Effectiveness grades
 remain capped at
 `single-source` (each claim still rests on its own paper); `folklore`
 where honest.
@@ -20,7 +23,11 @@ Coverage cutoff: literature as represented in pretraining through
 2026-01, plus web search 2026-08-15 (no venue-scoped sweep). §J adds a
 grounded slice through 2026-09-25: RRSI (arXiv 2609.24972) as anchor,
 backward snowball over its reference list, nine further full reads; its
-forward citers do not exist yet.
+forward citers do not exist yet. The 2026-10-14 update uses MASS
+(2610.12176) as a new anchor and checks RHI, the matched-budget critique,
+and the contract-based subagent neighbor against the existing corpus;
+exact-id/title searches check for critiques and released code. It does
+not refresh the whole field or citation graph.
 
 Created for placement of the `research/differential-instruction-diagnosis`
 program (`~/agents`); see *Placement* at the end. Introspection-faithfulness
@@ -312,6 +319,24 @@ J searches from scores).
     (Dwork et al. reusable holdout) but does not implement.
   Grade: `single-source` each; no method has been evaluated by another
   group.
+
+- **J4 Workflow search followed by weight adaptation.** MASS
+  ([full appendix report](concepts/mass.md); `lee2026mass`, 2610.12176v1)
+  extends RHI with SFT on selected orchestrator/worker traces: 119 episodes
+  from eight distinct tasks, then a second cycle. Its fixed collection
+  directive already mandates bounded workers, artifact interfaces,
+  verification, and targeted re-delegation. Under a generic team directive,
+  the first-cycle student's share against the base is 53.5%, versus 62.4%
+  under bare prompts; no matched generic-directive SFT control isolates the
+  value of evolved workflows. Appendix E.3 records opposite unanimous
+  judgments for identical prompts and workflows with the same recorded
+  seed. Appendix G.3 records a simulator revision that weakens task meaning
+  yet wins 5/6 judgments. Public SWE-bench Verified scores decline
+  62.6→61.1 over two cycles (500 scheduled tasks × three trials), while
+  research gains often accompany higher deliverable completion. Grade:
+  `single-source`; public scores `benchmark-reported`. Design consequence:
+  measure frozen instruction value separately from lucky-output selection,
+  generic prompting, training-data composition, and changed weights.
 
 What actually prevents memorization, ordered by evidence: (1) **split
 design** — evolve/select/confirm on disjoint, preferably out-of-source

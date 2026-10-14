@@ -363,6 +363,15 @@ Research evidence:
 - A single agent matches most multi-agent workflows at lower cost
   (`xu2026singleagent`, `fu2026moreagents`).
 
+Focused cross-link, 2026-10-14: [MASS and its complete appendix
+report](../agent-prompting-orchestration/concepts/mass.md) add workflow-guided
+teacher generation followed by SFT, rather than a fixed-model delegation
+comparison. Its generic team directive activates coordination already present
+in the base model; its score-per-output-token headline excludes search and
+training costs, and SWE-bench/Terminal-Bench scores decline descriptively.
+The sibling orchestration survey owns the extract and selection critique;
+this does not refresh the broader efficiency survey's coverage.
+
 Missing: a coding study measuring vendor-harness subagent overhead against a
 single-agent control. Local practice already gates optional delegation
 harder on the Copilot route (`~/agents/AGENTS.copilot.md`), an observed
