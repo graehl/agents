@@ -774,3 +774,44 @@ is acli with `complete` and `+commentary`.
 
 **Canonical source**: `scripts/ya-artifact` (in this repo).
 **Install target**: `~/bin/ya-artifact` (symlink by default).
+
+### spot-acquire
+
+Acquires a requested number of AWS Spot instances across several zones,
+each with its own price cap. Agents otherwise hand-rolled per-region
+`run-instances` retry loops whenever capacity was short (graehl,
+2026-10-14).
+
+**CLI**: `spot-acquire --config FILE --pool ZONE=MAXPRICE [--pool ...]
+[--count N] [--instance-type T] [--interval 5m] [--deadline 2h]
+[--on-acquire CMD] [--tag K=V] [--log-dir DIR] [--dry-run]`. The JSON
+config maps each region to its image, security groups, subnet per zone,
+user data, and root size; `REGION=MAXPRICE` covers every configured zone in
+that region. Each round reads live prices and tries the cheapest pools at
+or under their caps. MaxPrice equals the cap, so AWS refuses anything above
+it. The tool streams one JSONL `acquired` record per instance once it is
+running (id, zone, quote, IPs), then `setup` records and a final `done`.
+`--on-acquire` runs in the background per instance with `SPOT_*`
+environment variables. It is acli with no optional packages.
+
+**Post-conditions**:
+- never launches more than COUNT: launches are sequential and count-gated,
+  and client tokens make a retried request idempotent;
+- capacity and price refusals are retried each round, while any other AWS
+  error drops that pool with a `pool_dropped` record;
+- exit 0 at COUNT; 69 when the deadline passes short of COUNT (acquired
+  instances keep running and billing); 70 when every pool has failed with
+  a non-capacity error. Setup failure never changes the count or the exit
+  status;
+- every attempt is appended to `DIR/spot-acquire-attempts.jsonl`.
+
+**Examples**:
+1. `spot-acquire --config c.json --pool us-west-2=2.0 --pool eu-north-1c=1.9
+   --count 2` → two `acquired` records, then `done`, exit 0.
+2. Every quote above its cap until `--deadline 0` → `done` with
+   `acquired: 0`, exit 69, and no `run-instances` call.
+3. `--dry-run` → one `dry_run_ok` record per pool that AWS accepts.
+
+**Canonical source**: `scripts/spot-acquire` (in this repo); tests in
+`tests/test_spot_acquire.py` use a fake `aws` on `PATH`.
+**Install target**: `~/bin/spot-acquire` (symlink by default).
