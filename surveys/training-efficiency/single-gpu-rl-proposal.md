@@ -1,5 +1,15 @@
 # Variable length RL on one 96 GB GPU
 
+Status: historical proposal, superseded on 14 October 2026 by the authoritative
+[single-GPU RL program in `~/draft`](../../../draft/research/single-gpu-rl/PROGRAM.md)
+and its [revised research plan](../../../draft/research/single-gpu-rl/plan.md).
+Implementation backlog lives in the program's
+[gap sketch](../../../draft/research/single-gpu-rl/gaps/sketches/capacity-and-learning-baseline.md).
+Continue and revise that work there; do not implement a duplicate in `~/agents`.
+The text below preserves the original proposal and its source links as
+background, not an active experiment specification. Creation of the successor
+authorized documentation only, with implementation and launches deferred.
+
 Proposal, 10 October 2026. Designed for graehl: familiar with model training,
 new to workloads whose generation and verification costs vary substantially
 at similar input lengths. Confirmed scope: further RL of an instruction-tuned
