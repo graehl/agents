@@ -19,6 +19,20 @@ the app from YA's App button. To try it without YA:
 python3 scripts/repo_view.py serve --port 8000   # http://127.0.0.1:8000/
 ```
 
+`enable` writes this `service` entry (with extra `serve` arguments appended to
+`argv`); write it by hand when the script is run from outside the project:
+
+```json
+{
+  "version": 1,
+  "where": { "kind": "process", "cwd": ".", "entry": "/" },
+  "start": { "argv": ["python3", "scripts/repo_view.py", "serve"], "portEnv": "PORT" },
+  "status": { "probe": "http", "path": "/healthz", "readyStatus": 200, "startupTimeoutMs": 30000 },
+  "stop": { "signal": "SIGTERM", "graceMs": 3000 },
+  "serving": { "target": "sandbox-loopback", "protocol": "http" }
+}
+```
+
 The declaration has no `basePathEnv`, so YA serves the view at the app
 address's root and each page's address is its path in the repository
 (`/docs/guide.md`). A YA without an app host name for that address needs
