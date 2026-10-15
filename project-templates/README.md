@@ -103,11 +103,13 @@ explain what is special about your starter and how an agent should work on it.
 It is combined with the inherited root instructions.
 
 Useful YA-default bases include `software-engineering`, `testing`,
-`typescript`, `web-ui`, `web-app`, `canvas`, `page`, `writing`, `story`, and
-`server`. `web-app` supplies shared web tooling; combine it with `canvas`
+`typescript`, `web-ui`, `web-app`, `canvas`, `page`, `writing`, `story`,
+`server`, and `repo-view`. `web-app` supplies shared web tooling; combine it with `canvas`
 for a drawing app or with `page` for a content-led page. `story` builds on
 `writing`. The server base supplies an optional add-on; inheriting it does
-not mean a backend is already running.
+not mean a backend is already running. `repo-view` vendors a web view of the
+project's own documents, live or as a publishable static site, which becomes
+the project's app only when enabled.
 
 To contribute a reusable base, put its manifest under `bases/<id>/`, use
 `"kind": "base"`, and list the ID in `library.json`'s `bases` array. Bases

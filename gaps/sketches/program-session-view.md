@@ -36,7 +36,9 @@ the moment a session moves.
   read-only filesystem/Git reader. The same service can render any authorized
   repository path on demand (Markdown to HTML with relative links kept
   working), replacing the prototype's pre-rendered `_views/` mirror; the
-  reusable template capability is `project-templates/gaps/repository-web-view.md`.
+  reusable template capability is the `repo-view` base
+  (`project-templates/bases/repo-view/`), whose `--pages` hook can host this
+  dashboard.
 - A session-centred view as the inverse join: for a session id, its banner
   history, scope, commits (via notes), runs started, handoffs and gaps
   touched. Session ids in either view become YA session links inside YA's
