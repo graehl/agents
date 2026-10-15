@@ -38,6 +38,25 @@ the closure, and the dashboard part is research-program specific.
 - An optional dashboard plug-in (programs, papers, sessions) built on the
   shared records described in `~/agents` `gaps/sketches/program-session-view.md`.
 
+Lessons from the live prototype (2026-10-15, `~/draft`
+`scripts/research_site_server.py`):
+
+- **Serve only what is reachable.** Precompute reachability from the
+  dashboards over Markdown and HTML links, caching each file's links by
+  mtime; also admit a served page's current links and links from an allowed
+  referring page, so new links work at once. graehl: the set may only grow.
+- **Keep the private-link token visible.** YA validates `ya_access`, sets a
+  cookie and strips the token before proxying, so only the page can copy it
+  onto same-origin links; dropping it from PDF or built-HTML links is fine.
+- **Token checks for servers YA does not proxy.** A reserved project-app
+  address needs nothing: YA checks the token before forwarding to the
+  sandboxed process. A manual host-port vhost or an independent user service
+  could verify the token itself if YA published it to a git-excluded or
+  YA-data-dir dotfile (graehl's proposal); that needs a YA contract.
+- **Cheap metadata.** One `git status --untracked-files=normal` and one
+  `git ls-files` per rebuild; per-path status walks and recursive globs over
+  ignored trees stalled for minutes inside the sandbox.
+
 Open decisions: whether the live renderer is Node (matching the `server`
 base) or Python with pandoc; how much of YA's viewer to mirror versus linking
 into YA itself (`~/ya` `gaps/sketches/session-links-in-viewer.md` covers link
