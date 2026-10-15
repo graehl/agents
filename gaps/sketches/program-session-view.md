@@ -10,16 +10,21 @@ surveys, topics, handoffs and gaps, with what changed last, which session
 changed it, and which sessions are working in it now. Opened from a button
 (a YA project app) and current without a manual regenerate step.
 
-**Prototype:** `~/draft` `scripts/research_index.py` (graehl, 2026-10-15)
-writes static pages: `research/index.html` (programs, nested; charter
-summary; papers, surveys and newest handoff; last commit with
-`Contributing-model:` and the `refs/notes/agent-session` session; uncommitted
-count; live `.agentctl/active` sessions whose `scope:` lies in the program;
-uncharted research threads) and `<program>/papers-index.html` (per paper:
-built outputs from each `index.qmd` `output-file`, latest changelog heading,
-last commit and session, open `TBD` count, live sessions). The project's
-`.project-template/app.json` declares `research/index.html` as a static app,
-so YA's App button opens it. It is project-local, research-shaped and stale
+**Landed (2026-10-15):** the `program-view` template base
+(`project-templates/bases/program-view/`) generates the program tree and
+per-program papers pages as a `repo_view.py --pages` hook, live under the
+repo-view service: programs nested with the repository root as the root
+program; charter summary and `ROOT.md` focus; glossary, topics, gaps,
+sketches, handoffs and the `ROOT` handoff pointer; papers, surveys, handouts
+and other documents; last commit with `Contributing-model:` and the
+`refs/notes/agent-session` session; uncommitted count; live
+`.agentctl/active` sessions whose `scope:` lies in the program. Discovery
+follows `topics/project-directory.md`. `~/draft` serves it as its YA app
+through `scripts/research_site.py`. Still open below: a monitor (runs,
+session history), the JSON record emitter, and the session-centred view.
+
+**Superseded prototype:** `~/draft` `scripts/research_index.py` wrote the
+same pages for that repository alone. It was project-local, research-shaped and stale
 the moment a session moves.
 
 **Proposed approach:**

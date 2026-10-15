@@ -222,7 +222,8 @@ bibliography coverage. Define nonstandard table columns by the caption.
 ### Progress reports
 
 For sizable programs, periodically write a dated
-`research/progress-YYYY-MM-DD.md` for a non-delving manager or peer org. Follow
+`research/<program>/progress-YYYY-MM-DD.md` (`research/` for a report spanning
+programs) for a non-delving manager or peer org. Follow
 `topics/progress-report.md`: each installment restates enough for a new reader,
 expands condition names, ends every thread with pursue/hold/park, and freezes
 once disseminated; later reports carry corrections.
@@ -230,7 +231,9 @@ once disseminated; later reports carry corrections.
 ### Handouts
 
 Before creating or substantially revising a research handout, follow
-`topics/handout-writing.md`. A handout is a mutable, two-speed discussion
+`topics/handout-writing.md`. Name it `<slug>-handout.md` in its program's
+directory, or place it under that program's `handouts/`, so agents and the
+program dashboard find it (`topics/project-directory.md`). A handout is a mutable, two-speed discussion
 snapshot, not another chronological research log: its opening gives an
 uninvolved participant the work's flavor and one evidence-grounded insight,
 while the whole artifact gives an interested reader the representative full

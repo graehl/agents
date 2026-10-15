@@ -170,7 +170,10 @@ Each report implicitly contains all prior reports in the project. That means:
   revise it afterward. Corrections and retractions go in the next
   instalment.
 
-File naming: `research/progress-YYYY-MM-DD.md` in the project repo.
+File naming: `research/<program>/progress-YYYY-MM-DD.md` in the project repo,
+in the program the report covers, or `research/progress-YYYY-MM-DD.md` for a
+report spanning programs; the date in the name is the report's date
+([project-directory](project-directory.md)).
 
 ## Content emphasis
 

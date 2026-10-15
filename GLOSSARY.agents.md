@@ -83,6 +83,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `plan-grilling` | Governs: the user says "grill" about a plan or design | [plan-grilling](topics/plan-grilling.md) |
 | program instructions, program scope, self-rooted program | Binding rules under a `PROGRAM.md` heading `Program instructions`, the subproject it declares, and the `Program root: self` marker that stops parent inheritance there. | [TOPICS](TOPICS.md) |
 | `progress-report` | Governs: writing a dated research progress report | [progress-report](topics/progress-report.md) |
+| `project-directory` | Governs: choosing a path or name for a program's handout, report, paper or focus document, or changing what the program dashboard discovers | [project-directory](topics/project-directory.md) |
 | prompt debt | Instruction text that replaces ordinary judgment rather than preventing a specific known failure. | |
 | `prose_text` | Shared Python extractor of reader-facing prose from Markdown, Quarto, text, or PDF (via pdftotext), with code, math, URLs, paths, citations, and References sections blanked in place so line and column locators survive; writing metrics use it instead of re-parsing markup. | [prose_text](prose_text/__init__.py) |
 | `prototyping` | Governs: writing throwaway code to answer one question | [prototyping](topics/prototyping.md) |

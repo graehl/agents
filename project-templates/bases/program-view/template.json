@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1,
+  "kind": "base",
+  "status": "ready",
+  "id": "program-view",
+  "title": "Program dashboards",
+  "description": "Add dashboards of the project's programs, papers, handouts and agent sessions to the repository web view.",
+  "extends": ["repo-view"],
+  "files": [
+    { "to": "AGENTS.md", "from": "instructions.md" },
+    { "to": "instructions/program-view.md", "from": "guide.md" },
+    {
+      "to": "scripts/program_view.py",
+      "from": "files/program_view.py",
+      "executable": true
+    }
+  ],
+  "overrides": []
+}

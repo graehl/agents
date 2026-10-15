@@ -232,6 +232,7 @@ GROUPS = (
             "evidence-ledger",
             "glossary",
             "topic-doc-format",
+            "project-directory",
         ),
     ),
     Group("other", "**Other activities.**", ()),

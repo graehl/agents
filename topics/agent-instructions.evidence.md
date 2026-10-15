@@ -5532,3 +5532,35 @@ prose correction retains substantive uncertainty and personal testimony.
   `savkin2025-spy` was in the .bib but cited nowhere.
 - Status: user-directed requirement after an observed miss; no measured
   effect is claimed.
+
+## 2026-10-15 — project directory conventions and the program dashboard
+
+- User direction, while a `~/draft` research dashboard moved into this
+  library: add conventions "to aid 'project directory' discovery", i.e.
+  clarify `ROOT.md`, programs, and the file and directory patterns that
+  implicitly register handouts and program gaps and sketches; the project
+  root is implicitly a root program; the directory view should let one
+  browse topics, gaps, program and glossary definitions.
+- Decision: one topic, `topics/project-directory.md`, holds the path and
+  name table and points to each kind's existing owner (TOPICS.md,
+  glossary, topic-doc-format, gaps/README.md, handoffs, paper-drafting,
+  paper-projects, research-survey, handout-writing, progress-report)
+  instead of restating their rules. New rules it adds: the repository
+  root is the root program; a program's `ROOT.md` first `## ` heading is
+  its current focus, with `research/ROOT.md` the research program's case;
+  handouts are `<slug>-handout.md`, `handouts/`, or dated
+  `[<slug>-]progress-YYYY-MM-DD.md`; a date in a name is the document's
+  date. `_RESEARCH/artifacts.md` (handouts, progress reports) and
+  `progress-report.md` now place reports in the program they cover.
+  The `program-view` template base implements the table.
+- Route cost: one `Governs:` line, so one generated boot route under
+  "Instructions and project documents".
+- Trace: an agent writes a second handout for a program and names it
+  `findings-2026-10-15.md`. The handout route (`artifacts.md` § Handouts)
+  now says to name it `<slug>-handout.md`; without that the dashboard
+  lists it as an ordinary document, which is a discoverability miss, not
+  a loss.
+- Trace: extensionless `ROOT` (handoff pointer, owned by handoffs.md) and
+  `ROOT.md` (focus document) coexist in one program; the table lists them
+  as separate kinds so neither is read as the other.
+- Status: user-directed requirement; no measured effect is claimed.

@@ -929,6 +929,7 @@ row, not this section.
 - appending to or creating a topic's .evidence.md → `evidence-ledger`
 - adding, sorting, promoting, or regenerating glossary rows, or creating a scoped glossary → `glossary`
 - creating or normalizing topic docs, companions, bearings, or epistemic labels → `topic-doc-format`
+- choosing a path or name for a program's handout, report, paper or focus document, or changing what the program dashboard discovers → `project-directory`
 <!-- END generated: activity routes -->
 
 # Language tooling
