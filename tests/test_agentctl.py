@@ -5713,6 +5713,38 @@ def test_active_verb_tending_flag_and_preservation():
         ws.cleanup()
 
 
+def test_active_verb_no_scope_drops_scope_only():
+    # Omitting paths keeps a scope; --no-scope drops it (wildcards included)
+    # and keeps tending; --no-scope with paths is refused.
+    ws = Workspace()
+    sid = "sess-noscope1"
+    active = ws.tmp / ".agentctl/active" / sid
+    env = {"AGENTCTL_SESSION_ID": sid}
+    try:
+        res = ws.run(
+            "active", "editing", "solver/*", "board/**", "--tending", env_extra=env
+        )
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        res = ws.run("active", "still editing", env_extra=env)
+        _assert(
+            active.read_text().splitlines()[1] == "scope: solver/* board/**",
+            "a banner-only update must keep the scope",
+        )
+
+        res = ws.run("active", "DONE finished", "--no-scope", env_extra=env)
+        _assert(res.returncode == 0, f"active --no-scope failed: {res.stderr}")
+        lines = active.read_text().splitlines()
+        _assert(
+            lines == ["DONE finished", "tending: on-deck"],
+            f"--no-scope should drop the scope line only: {lines!r}",
+        )
+
+        res = ws.run("active", "again", "x.py", "--no-scope", env_extra=env)
+        _assert(res.returncode == 2, "--no-scope with paths should be refused")
+    finally:
+        ws.cleanup()
+
+
 def test_active_verb_until_requires_tending():
     ws = Workspace()
     try:

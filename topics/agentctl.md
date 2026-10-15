@@ -625,8 +625,10 @@ notices.
   line 1 and (from the path args) `scope:` line 2 directly — no job, no dump,
   no log. Because the agent owns those lines, the verb writes them
   authoritatively (line 1 replaced verbatim, a leading `DONE` honored; scope
-  replaced when paths are given, preserved when omitted) while keeping any
-  free-content lines below the header. It shares the launch-depth guard
+  replaced when paths are given, preserved when omitted, dropped by
+  `--no-scope`) while keeping any free-content lines below the header.
+  `--no-scope` is the way to release wildcard scope, which `clear --drop`
+  (literal paths only) cannot. It shares the launch-depth guard
   (`active` from inside a job is refused) and the no-session-id behavior
   (refuses with a nonzero exit rather than writing an unkeyed entry).
 - `active` with no banner is the read counterpart: it emits an ACLI payload
@@ -713,7 +715,7 @@ notices.
   `claimed_at`, and `stale_at` so a time-blind agent sees the clock in its
   transcript. `clear --drop <paths>` releases finished literal claims and
   their claim/carve lines, leaving wildcard scope — encouraged at sequence
-  end. `-M/--note` records a "what for" on the claim line; line 1 stays
+  end; `active "<status>" --no-scope` releases the whole scope. `-M/--note` records a "what for" on the claim line; line 1 stays
   agent-authored. Advisory, binding only for protocol users, like the rest
   of the convention.
 - `tending [<session-id>]` is the steward-presence specialization of `others`:

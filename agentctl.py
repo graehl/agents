@@ -743,6 +743,7 @@ def write_active_entry(
     scope_paths: list[str] | None = None,
     tending: str | None = None,
     clear_tending: bool = False,
+    clear_scope: bool = False,
 ) -> tuple[str, str, str]:
     """Author `.agentctl/active/<sid>` header (line 1, `scope:`, `tending:`), body kept.
 
@@ -753,8 +754,8 @@ def write_active_entry(
       - line 1 := `banner` when given (a leading DONE marks completion, exactly
         as a hand-written entry); when `banner is None` the existing line 1 is
         preserved, or the placeholder is used for a new entry;
-      - the `scope:` line := `scope_paths` when given, else the prior scope is
-        kept;
+      - the `scope:` line := `scope_paths` when given, dropped when
+        `clear_scope`, else the prior scope is kept;
       - the `tending:` line := `tending` when given (the value after the
         colon), dropped when `clear_tending`, else the prior line is kept —
         so a routine banner/scope update never silently sheds a steward's
@@ -779,9 +780,12 @@ def write_active_entry(
         line1 = old_line1
     else:
         line1 = normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
-    scope_line = (
-        ("scope: " + " ".join(scope_paths)) if scope_paths else (old_scope or "")
-    )
+    if scope_paths:
+        scope_line = "scope: " + " ".join(scope_paths)
+    elif clear_scope:
+        scope_line = ""
+    else:
+        scope_line = old_scope or ""
     if clear_tending:
         tending_line = ""
     elif tending is not None:
@@ -942,7 +946,7 @@ def active_register(args) -> int:
         session complete exactly as a hand-written entry would;
       - `scope: <paths>` becomes line 2 when intend-to-edit paths are
         given, replacing any prior scope line; with no paths an existing
-        scope line is left in place;
+        scope line is left in place, unless `--no-scope` drops it;
       - any free-content lines below the header are preserved.
     """
     try:
@@ -980,6 +984,10 @@ def active_register(args) -> int:
     if until and not claim_tending:
         print("agentctl active: --until requires --tending", file=sys.stderr)
         return 2
+    clear_scope = bool(getattr(args, "no_scope", False))
+    if clear_scope and scope_paths:
+        print("agentctl active: --no-scope conflicts with paths", file=sys.stderr)
+        return 2
     tending = (
         ("on-deck" + (f" until {until}" if until else "")) if claim_tending else None
     )
@@ -988,7 +996,12 @@ def active_register(args) -> int:
     path = ACTIVE / sid
     try:
         _, scope_line, tending_line = write_active_entry(
-            sid, banner, scope_paths, tending=tending, clear_tending=clear_tending
+            sid,
+            banner,
+            scope_paths,
+            tending=tending,
+            clear_tending=clear_tending,
+            clear_scope=clear_scope,
         )
     except OSError as exc:
         print(f"agentctl active: could not write {path}: {exc}", file=sys.stderr)
@@ -7828,6 +7841,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Author mode: drop the `tending:` line — this session no longer "
         "arms future launches (round ended with nothing wired).",
+    )
+    s.add_argument(
+        "--no-scope",
+        action="store_true",
+        help="Author mode: drop the `scope:` line, releasing every claimed path "
+        "and wildcard (omitting paths keeps the old scope; `clear --drop` "
+        "releases literal paths only). Conflicts with paths.",
     )
     acli_args.add_standard_args(s)
     s.set_defaults(func=active_cmd)
