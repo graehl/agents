@@ -114,6 +114,7 @@ def test_acquires_count_cheapest_first_and_stops():
     assert len(calls) == 3, calls  # never a fourth launch once COUNT is reached
     assert "subnet-b" in calls[0]  # cheaper zone tried first
     assert '"MaxPrice": "2.0000"' in calls[0]
+    assert not [r for r in records if r["event"] == "pool_dropped"]  # capacity is retryable
     assert records[-1] == {"event": "done", "acquired": 2, "count": 2, "rounds": 2}
 
 
