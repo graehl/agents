@@ -551,6 +551,11 @@ class ProjectPages:
                 )
             return self.pages
 
+    def latest(self) -> dict[str, str]:
+        """The pages last generated, without regenerating: for link-graph walks,
+        which can outlast `max_age` and must not regenerate pages midway."""
+        return self.pages
+
 
 class LinkGraph:
     """Which repository paths link to which, over pages, documents, HTML, CSS
@@ -563,7 +568,7 @@ class LinkGraph:
     def canonical(self, rel: str) -> str | None:
         """The servable node a path names: a project page, an existing path, or
         a static-site alias (`x.md.html` for `x.md`, `d/index.html` for `d`)."""
-        if rel in self.pages.current() or self.repo.kind(rel):
+        if rel in self.pages.latest() or self.repo.kind(rel):
             return rel
         if (
             rel.endswith(".html")
@@ -579,7 +584,7 @@ class LinkGraph:
 
     def directory_document(self, rel: str) -> DirectoryDocument:
         index = join_rel(rel, "index.html")
-        if index in self.pages.current():
+        if index in self.pages.latest():
             return DirectoryDocument("page", index)
         if self.repo.kind(index) == "file":
             return DirectoryDocument("index", index)
@@ -598,7 +603,7 @@ class LinkGraph:
         return frozenset(found)
 
     def links(self, rel: str) -> frozenset[str]:
-        page = self.pages.current().get(rel)
+        page = self.pages.latest().get(rel)
         if page is not None:
             return self.resolve(parent_rel(rel), link_urls(page, ".html"))
         kind = self.repo.kind(rel)
@@ -645,6 +650,9 @@ class Reachability:
 
     def allows(self, rel: str) -> bool:
         if rel in self.allowed:
+            return True
+        if rel in self.seeds():
+            self.allowed = self.allowed | {rel}
             return True
         self.walk()
         return rel in self.allowed
@@ -724,17 +732,26 @@ class LiveSite:
     ):
         self.repo, self.renderer, self.pages = repo, renderer, pages
         self.graph = LinkGraph(repo, pages)
+        self.pages.current()  # project pages exist before any request or walk
         self.roots = seed_nodes(self.graph, roots)
         self.reach = Reachability(
-            self.graph, lambda: ["", *self.pages.current(), *self.roots]
+            self.graph, lambda: ["", *self.pages.latest(), *self.roots]
         )
+
+    def warm(self) -> None:
+        """Walk links before the first visitor asks."""
+        try:
+            self.reach.walk()
+        except (OSError, RepoViewError) as error:
+            log("reach", f"warm-up failed; requests will retry: {error}")
 
     def linkable(self, rel: str) -> bool:
         return rel in self.reach.allowed
 
     def respond(self, parts: list[str], slash: bool, query: str) -> Reply:
         rel = "/".join(parts)
-        page = self.pages.current().get(rel)
+        # Only a request for a project page regenerates the pages.
+        page = self.pages.current().get(rel) if rel in self.pages.latest() else None
         if page is not None:
             self.reach.admit_links_of(rel, self.graph.links(rel))
             return html_reply(page)
@@ -764,9 +781,11 @@ class LiveSite:
         return file_reply(self.repo.path(node))
 
     def directory(self, rel: str) -> Reply:
+        if join_rel(rel, "index.html") in self.pages.latest():
+            self.pages.current()  # a project page shows this directory: refresh it
         document = self.graph.directory_document(rel)
         if document.kind == "page":
-            return html_reply(self.pages.current()[document.rel])
+            return html_reply(self.pages.latest()[document.rel])
         if document.kind == "index":
             return file_reply(self.repo.path(document.rel))
         if document.kind == "readme":
@@ -1285,6 +1304,7 @@ def main(argv: list[str] | None = None) -> int:
             if not renderer.pandoc:
                 log("serve", "pandoc not found; documents will show as source text")
             served = LiveSite(repo, renderer, pages, args.root or [])
+            threading.Thread(target=served.warm, daemon=True).start()
         handler = make_handler(
             served, args.base_path.rstrip("/"), access, args.require_access
         )
