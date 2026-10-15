@@ -865,6 +865,7 @@ row, not this section.
 - recording what run produced an output and how to regenerate it → `provenance-tracking`
 - curating run records under a topic's .runs/ → `runs-ledger`
 - row-wise translating, paraphrasing, or rewriting a dataset → `verified-provenance`
+- fine-tuning or adapting a pretrained model whose existing capabilities must survive → `fine-tuning`
 - building or running fixed-prompt segmented-document annotation → `document-annotation`
 - servicing, authoring, or ratifying on-deck queue entries; tending → `on-deck`
 - building, repairing, or querying an almanac dataset from a web page → `almanac`

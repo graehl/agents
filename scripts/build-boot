@@ -156,6 +156,7 @@ GROUPS = (
             "provenance-tracking",
             "runs-ledger",
             "verified-provenance",
+            "fine-tuning",
             "document-annotation",
             "on-deck",
             "almanac",

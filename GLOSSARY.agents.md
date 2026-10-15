@@ -54,6 +54,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `editing-long-docs` | Governs: editing a long document where section-wise reads, regrouping, or moving matter | [editing-long-docs](topics/editing-long-docs.md) |
 | `evidence-ledger` | Governs: appending to or creating a topic's .evidence.md | [evidence-ledger](topics/evidence-ledger.md) |
 | `explanation-style` | Governs: the user says "remind me" or "refresher" before a named concept | [explanation-style](topics/explanation-style.md) |
+| `fine-tuning` | Governs: fine-tuning or adapting a pretrained model whose existing capabilities must survive | [fine-tuning](topics/fine-tuning.md) |
 | `frontier-capability-review` | Governs: reevaluating a capability-sensitive instruction as models improve | [frontier-capability-review](topics/frontier-capability-review.md) |
 | full gate record, light check | Big-effect-gate tiers: the numbered record block for irreversible or shared-state actions; a one-line staged-scope confirmation for local commits and amends. | |
 | `functional-layout` | Governs: deciding how a screen should look: layout, alignment, spacing, focal point | [functional-layout](topics/functional-layout.md) |
