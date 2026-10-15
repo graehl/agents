@@ -228,10 +228,11 @@ def launch(pool: Pool, entry: dict, args, round_no: int) -> tuple[str, dict | st
         )
     if status == 0:
         return "ok", json.loads(out)["Instances"][0]
-    message = err.strip()[-400:]
-    return (
-        "retry" if any(token in message for token in RETRYABLE) else "fatal"
-    ), message
+    # Classify on the whole message: AWS's capacity refusals run past any
+    # display cut, and the error code sits near their start.
+    message = err.strip()
+    outcome = "retry" if any(token in message for token in RETRYABLE) else "fatal"
+    return outcome, message[:400]
 
 
 def describe_running(pool: Pool, instance_id: str, timeout_s: float) -> dict:

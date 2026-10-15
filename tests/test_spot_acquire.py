@@ -30,7 +30,10 @@ elif "run-instances" in args:
     outcome, rest = (lines[0], lines[1:]) if lines else ("capacity", [])
     open(f"{state}/launches.txt", "w").write("\n".join(rest))
     if outcome == "capacity":
-        sys.stderr.write("An error occurred (InsufficientInstanceCapacity) when calling the RunInstances operation\n")
+        # As long as AWS's real refusal, so classification must not depend on a display cut.
+        sys.stderr.write("aws: [ERROR]: An error occurred (InsufficientInstanceCapacity) when calling the "
+                         "RunInstances operation (reached max retries: 2): " + "We currently do not have "
+                         "sufficient capacity in the Availability Zone you requested. " * 6 + "\n")
         sys.exit(254)
     if outcome == "fatal":
         sys.stderr.write("An error occurred (InvalidSubnetID.NotFound) when calling the RunInstances operation\n")
