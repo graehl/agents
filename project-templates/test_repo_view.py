@@ -40,7 +40,10 @@ class RepoViewTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory(prefix="repo-view-test-")
         self.addCleanup(temporary.cleanup)
         self.repo = Path(temporary.name) / "demo"
-        self.write("README.md", "# Demo\n\nSee [the guide](docs/guide.md) and ![logo](img/logo.svg).\n")
+        self.write(
+            "README.md",
+            "# Demo\n\nSee [the guide](docs/guide.md) and ![logo](img/logo.svg).\n",
+        )
         self.write(
             "docs/guide.md",
             "---\ntitle: The Guide\n---\n[sibling](other.md#part), [listing](sub/), [up](../README.md).\n",
@@ -63,11 +66,20 @@ class RepoViewTest(unittest.TestCase):
         path.write_text(text, encoding="utf-8")
 
     def git(self, *args: str) -> str:
-        return subprocess.run(["git", "-C", str(self.repo), *args], check=True, capture_output=True, text=True).stdout
+        return subprocess.run(
+            ["git", "-C", str(self.repo), *args],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
 
     def run_script(self, *args: str) -> subprocess.CompletedProcess:
         return subprocess.run(
-            [sys.executable, str(self.script), *args], cwd=self.repo, capture_output=True, text=True, check=False
+            [sys.executable, str(self.script), *args],
+            cwd=self.repo,
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
     def serve(self, *args: str) -> str:
@@ -89,18 +101,30 @@ class RepoViewTest(unittest.TestCase):
                 return base
             except OSError:
                 if process.poll() is not None:
-                    self.fail(f"serve exited: {(self.repo.parent / f'serve-{port}.err').read_text()}")
+                    self.fail(
+                        f"serve exited: {(self.repo.parent / f'serve-{port}.err').read_text()}"
+                    )
                 time.sleep(0.05)
         self.fail("serve did not become ready")
 
     def get(self, url: str, cookie: str | None = None) -> tuple[int, dict, str]:
-        request = urllib.request.Request(url, headers={"Cookie": cookie} if cookie else {})
+        request = urllib.request.Request(
+            url, headers={"Cookie": cookie} if cookie else {}
+        )
         try:
             with OPENER.open(request, timeout=10) as reply:
-                return reply.status, dict(reply.headers), reply.read().decode("utf-8", "replace")
+                return (
+                    reply.status,
+                    dict(reply.headers),
+                    reply.read().decode("utf-8", "replace"),
+                )
         except urllib.error.HTTPError as error:
             with error:
-                return error.code, dict(error.headers), error.read().decode("utf-8", "replace")
+                return (
+                    error.code,
+                    dict(error.headers),
+                    error.read().decode("utf-8", "replace"),
+                )
 
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_live_view_serves_documents_at_their_own_paths(self) -> None:
@@ -148,7 +172,9 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(self.get(base + "/img/unlinked.txt")[0], 404)
 
     def test_app_json_token_is_shown_and_optionally_required(self) -> None:
-        self.write(".project-template/app.json", json.dumps({"yaAccess": "secret-token"}))
+        self.write(
+            ".project-template/app.json", json.dumps({"yaAccess": "secret-token"})
+        )
         base = self.serve("--require-access")
         self.assertEqual(self.get(base + "/img/logo.svg")[0], 401)
         self.assertEqual(self.get(base + "/img/logo.svg?ya_access=wrong")[0], 401)
@@ -156,24 +182,43 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("ya_app_access=secret-token", headers["Set-Cookie"])
         self.assertIn('<meta name="ya-access" content="secret-token">', page)
-        self.assertEqual(self.get(base + "/img/logo.svg", cookie="ya_app_access=secret-token")[0], 200)
+        self.assertEqual(
+            self.get(base + "/img/logo.svg", cookie="ya_app_access=secret-token")[0],
+            200,
+        )
         self.write(".project-template/app.json", json.dumps({"yaAccess": "rotated"}))
-        self.assertEqual(self.get(base + "/img/logo.svg", cookie="ya_app_access=secret-token")[0], 401)
+        self.assertEqual(
+            self.get(base + "/img/logo.svg", cookie="ya_app_access=secret-token")[0],
+            401,
+        )
 
     def test_project_pages_seed_and_replace_the_root(self) -> None:
         self.write(
             "scripts/dash.py",
             "def pages(root):\n    return {'index.html': '<html><head></head><body>"
-            "<a href=\"img/unlinked.txt\">x</a></body></html>'}\n",
+            '<a href="img/unlinked.txt">x</a></body></html>\'}\n',
         )
         base = self.serve("--pages", "scripts/dash.py:pages")
         status, _, page = self.get(base + "/")
         self.assertEqual(status, 200)
         self.assertIn("img/unlinked.txt", page)
         self.assertEqual(self.get(base + "/img/unlinked.txt")[0], 200)
+        # An edited generator applies on the next request, well within --pages-max-age.
+        self.write(
+            "scripts/dash.py",
+            "def pages(root):\n    return {'index.html': '<p>edited</p>'}\n",
+        )
+        self.assertIn("edited", self.get(base + "/")[2])
+        self.write("scripts/dash.py", "def pages(root):\n    return {\n")
+        status, _, page = self.get(base + "/")
+        self.assertEqual(status, 200)
+        self.assertIn("edited", page)
 
     def test_enable_declares_the_app_without_clobbering_one(self) -> None:
-        self.write(".project-template/app.json", json.dumps({"kind": "static", "dir": "dist", "setup": ["x"]}))
+        self.write(
+            ".project-template/app.json",
+            json.dumps({"kind": "static", "dir": "dist", "setup": ["x"]}),
+        )
         refused = self.run_script("enable")
         self.assertNotEqual(refused.returncode, 0)
         self.assertIn("--replace", refused.stderr)
@@ -182,8 +227,12 @@ class RepoViewTest(unittest.TestCase):
         app = json.loads((self.repo / ".project-template/app.json").read_text())
         self.assertEqual(app["setup"], ["x"])
         service = app["service"]
-        self.assertEqual(service["where"], {"kind": "process", "cwd": ".", "entry": "/"})
-        self.assertNotIn("basePathEnv", service["serving"])  # readable paths, not /p/<token>/
+        self.assertEqual(
+            service["where"], {"kind": "process", "cwd": ".", "entry": "/"}
+        )
+        self.assertNotIn(
+            "basePathEnv", service["serving"]
+        )  # readable paths, not /p/<token>/
         self.assertEqual(service["start"]["argv"][2:], ["serve", "--root", "docs"])
 
 
@@ -196,9 +245,13 @@ class RepoViewCompositionTest(unittest.TestCase):
         library.nodes["web-page-view"] = page
         library.directories["web-page-view"] = LIBRARY / "templates/web-page"
         composition = library.compose("web-page-view")
-        self.assertIn("instructions/repo-view.md", composition.files["AGENTS.md"].content.decode())
+        self.assertIn(
+            "instructions/repo-view.md", composition.files["AGENTS.md"].content.decode()
+        )
         with tempfile.TemporaryDirectory(prefix="repo-view-created-") as temporary:
-            project = materialize(composition, Path(temporary) / "made", "Made", "A page with a view")
+            project = materialize(
+                composition, Path(temporary) / "made", "Made", "A page with a view"
+            )
             subprocess.run(["git", "init", "-q", str(project)], check=True)
             built = subprocess.run(
                 [str(project / "scripts/repo_view.py"), "build"],

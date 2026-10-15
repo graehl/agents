@@ -150,10 +150,14 @@ MARKDOWN_LINK = re.compile(
     re.MULTILINE,
 )
 HTML_LINK = re.compile(r"""\b(href|src)\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE)
-CSS_URL = re.compile(r"""url\(\s*(?:"([^"]*)"|'([^']*)'|([^)'"\s]+))\s*\)""", re.IGNORECASE)
+CSS_URL = re.compile(
+    r"""url\(\s*(?:"([^"]*)"|'([^']*)'|([^)'"\s]+))\s*\)""", re.IGNORECASE
+)
 SCHEME_OR_FRAGMENT = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//|#)", re.IGNORECASE)
 FRONT_MATTER = re.compile(r"\A---[ \t]*\n(.*?)\n(?:---|\.\.\.)[ \t]*\n", re.DOTALL)
-SECTION_HEADING = re.compile(r"<h([23])\b[^>]*\bid=\"([^\"]+)\"[^>]*>(.*?)</h\1>", re.DOTALL)
+SECTION_HEADING = re.compile(
+    r"<h([23])\b[^>]*\bid=\"([^\"]+)\"[^>]*>(.*?)</h\1>", re.DOTALL
+)
 OUTLINE_MIN_SECTIONS = 3
 
 
@@ -162,7 +166,9 @@ class RepoViewError(Exception):
 
 
 def git(root: Path, *args: str) -> str:
-    done = subprocess.run(["git", "-C", str(root), *args], check=False, capture_output=True, text=True)
+    done = subprocess.run(
+        ["git", "-C", str(root), *args], check=False, capture_output=True, text=True
+    )
     if done.returncode:
         raise RepoViewError(f"git {args[0]} failed in {root}: {done.stderr.strip()}")
     return done.stdout
@@ -274,9 +280,13 @@ class Repository:
             rel = site.resolve().relative_to(self.root).as_posix()
         except ValueError:
             return
-        exclude = Path(git(self.root, "rev-parse", "--git-path", "info/exclude").strip())
+        exclude = Path(
+            git(self.root, "rev-parse", "--git-path", "info/exclude").strip()
+        )
         exclude = exclude if exclude.is_absolute() else self.root / exclude
-        present = exclude.read_text(encoding="utf-8").splitlines() if exclude.exists() else []
+        present = (
+            exclude.read_text(encoding="utf-8").splitlines() if exclude.exists() else []
+        )
         wanted = [f"/{rel}{suffix}/" for suffix in ("", ".new", ".old")]
         missing = [line for line in wanted if line not in present]
         if missing:
@@ -284,7 +294,9 @@ class Repository:
             with exclude.open("a", encoding="utf-8") as out:
                 if present and present[-1]:
                     out.write("\n")
-                out.write("# repo_view.py static site\n" + "".join(f"{m}\n" for m in missing))
+                out.write(
+                    "# repo_view.py static site\n" + "".join(f"{m}\n" for m in missing)
+                )
 
 
 @dataclass(frozen=True)
@@ -322,7 +334,11 @@ class Renderer:
                 f"showing the source text.</p><pre>{html.escape(text)}</pre>"
             )
         front = FRONT_MATTER.match(text)
-        declared = re.search(r"^title:\s*(.+?)\s*$", front.group(1), re.MULTILINE) if front else None
+        declared = (
+            re.search(r"^title:\s*(.+?)\s*$", front.group(1), re.MULTILINE)
+            if front
+            else None
+        )
         heading = re.search(r"<h1[^>]*>(.*?)</h1>", body, re.DOTALL)
         if declared:
             title = declared.group(1).strip("'\"")
@@ -336,8 +352,19 @@ class Renderer:
         return rendered
 
     def _pandoc(self, text: str, reader: str, rel: str) -> str:
-        command = [self.pandoc, "--sandbox", "-f", reader, "-t", "html5", "--mathml", "--wrap=none"]
-        done = subprocess.run(command, check=False, input=text, capture_output=True, text=True)
+        command = [
+            self.pandoc,
+            "--sandbox",
+            "-f",
+            reader,
+            "-t",
+            "html5",
+            "--mathml",
+            "--wrap=none",
+        ]
+        done = subprocess.run(
+            command, check=False, input=text, capture_output=True, text=True
+        )
         if done.returncode:
             raise RepoViewError(f"pandoc failed on {rel}: {done.stderr.strip()}")
         return done.stdout
@@ -355,7 +382,9 @@ def compose_page(
     """A full page for a URL whose directory is `page_dir`, with breadcrumbs to
     each ancestor directory that is itself servable. All links are relative."""
     parts = page_dir.split("/") if page_dir else []
-    crumbs = [(repo_name, "")] + [(name, "/".join(parts[: i + 1])) for i, name in enumerate(parts)]
+    crumbs = [(repo_name, "")] + [
+        (name, "/".join(parts[: i + 1])) for i, name in enumerate(parts)
+    ]
     items = []
     for depth, (label, rel) in enumerate(crumbs):
         up = len(parts) - depth
@@ -402,7 +431,15 @@ def document_page(
     """A rendered document's page; `current` is its file name, or None for a
     README shown as its directory's page."""
     heading = "" if rendered.titled else f"<h1>{html.escape(rendered.title)}</h1>\n"
-    return compose_page(repo.name, page_dir, current, rendered.title, heading + rendered.body, linkable, footer)
+    return compose_page(
+        repo.name,
+        page_dir,
+        current,
+        rendered.title,
+        heading + rendered.body,
+        linkable,
+        footer,
+    )
 
 
 def listing_page(
@@ -425,10 +462,10 @@ def listing_page(
         )
     title = f"{rel or repo.name}/"
     table = (
-        f"<h1>{html.escape(title)}</h1>\n<table class=\"listing\"><thead><tr><th>Name</th><th>Bytes</th>"
+        f'<h1>{html.escape(title)}</h1>\n<table class="listing"><thead><tr><th>Name</th><th>Bytes</th>'
         f"<th>Modified</th></tr></thead><tbody>{''.join(rows)}</tbody></table>"
         if rows
-        else f"<h1>{html.escape(title)}</h1><p class=\"dim\">No files.</p>"
+        else f'<h1>{html.escape(title)}</h1><p class="dim">No files.</p>'
     )
     return compose_page(repo.name, rel, None, title, table, linkable, footer)
 
@@ -438,7 +475,9 @@ def with_access_keeper(page: str, token: str | None) -> str:
     meta = f'<meta name="ya-access" content="{html.escape(token)}">\n' if token else ""
     insert = meta + ACCESS_KEEPER + "\n"
     head = re.search(r"</head\s*>", page, re.IGNORECASE)
-    return page[: head.start()] + insert + page[head.start() :] if head else insert + page
+    return (
+        page[: head.start()] + insert + page[head.start() :] if head else insert + page
+    )
 
 
 class ProjectPages:
@@ -446,7 +485,9 @@ class ProjectPages:
 
     FUNCTION(repo_root: Path) returns {repository-relative path: complete HTML}.
     Pages are seeds of the reachable set and win over repository files at the
-    same path. They are regenerated on request once older than `max_age`."""
+    same path. They are regenerated on request once older than `max_age`, and
+    at once when FILE changes: an edited generator is reloaded without a
+    restart. A reload that fails keeps the previous generator and says why."""
 
     def __init__(self, spec: str | None, repo: Repository, max_age: float):
         self.repo, self.max_age = repo, max_age
@@ -455,36 +496,59 @@ class ProjectPages:
         self.made = float("-inf")
         self._lock = threading.Lock()
         if spec:
-            self.function = self._load(spec)
+            file, sep, self.name = spec.rpartition(":")
+            if not sep or not file or not self.name:
+                raise RepoViewError(f"--pages wants FILE:FUNCTION, got {spec!r}")
+            self.file = (repo.root / file).resolve()
+            sys.path.insert(0, str(self.file.parent))
+            self.loaded_stamp = self.file.stat().st_mtime_ns
+            self.function = self._load()
 
-    def _load(self, spec: str) -> Callable[[Path], Mapping[str, str]]:
-        file, sep, name = spec.rpartition(":")
-        if not sep or not file or not name:
-            raise RepoViewError(f"--pages wants FILE:FUNCTION, got {spec!r}")
-        path = (self.repo.root / file).resolve()
-        module_spec = importlib.util.spec_from_file_location(f"repo_view_pages_{path.stem}", path)
+    def _load(self) -> Callable[[Path], Mapping[str, str]]:
+        module_spec = importlib.util.spec_from_file_location(
+            f"repo_view_pages_{self.file.stem}", self.file
+        )
         if module_spec is None or module_spec.loader is None:
-            raise RepoViewError(f"--pages: cannot load {path}")
+            raise RepoViewError(f"--pages: cannot load {self.file}")
         module = importlib.util.module_from_spec(module_spec)
-        sys.path.insert(0, str(path.parent))
         module_spec.loader.exec_module(module)
-        function = getattr(module, name, None)
+        function = getattr(module, self.name, None)
         if not callable(function):
-            raise RepoViewError(f"--pages: {file} has no function {name}")
+            raise RepoViewError(f"--pages: {self.file} has no function {self.name}")
         return function
+
+    def _reload_if_edited(self) -> bool:
+        stamp = self.file.stat().st_mtime_ns
+        if stamp == self.loaded_stamp:
+            return False
+        self.loaded_stamp = stamp
+        try:
+            self.function = self._load()
+        except Exception as error:  # noqa: BLE001 -- an edit in progress must not take the view down
+            log(
+                "pages",
+                f"kept the previous generator; reloading {self.file.name} failed: {error!r}",
+            )
+            return False
+        log("pages", f"reloaded {self.file.name}")
+        return True
 
     def current(self) -> dict[str, str]:
         if self.function is None:
             return self.pages
         with self._lock:
-            if time.monotonic() - self.made > self.max_age:
+            if self._reload_if_edited() or time.monotonic() - self.made > self.max_age:
                 started = time.monotonic()
                 pages = dict(self.function(self.repo.root))
                 for rel in pages:
                     if link_target("", rel) != rel or not rel:
-                        raise RepoViewError(f"--pages returned an invalid page path {rel!r}")
+                        raise RepoViewError(
+                            f"--pages returned an invalid page path {rel!r}"
+                        )
                 self.pages, self.made = pages, time.monotonic()
-                log("pages", f"{len(pages)} project pages in {self.made - started:.2f}s")
+                log(
+                    "pages", f"{len(pages)} project pages in {self.made - started:.2f}s"
+                )
             return self.pages
 
 
@@ -501,9 +565,15 @@ class LinkGraph:
         a static-site alias (`x.md.html` for `x.md`, `d/index.html` for `d`)."""
         if rel in self.pages.current() or self.repo.kind(rel):
             return rel
-        if rel.endswith(".html") and is_document(rel[:-5]) and self.repo.kind(rel[:-5]) == "file":
+        if (
+            rel.endswith(".html")
+            and is_document(rel[:-5])
+            and self.repo.kind(rel[:-5]) == "file"
+        ):
             return rel[:-5]
-        if (rel == "index.html" or rel.endswith("/index.html")) and self.repo.kind(parent_rel(rel)) == "dir":
+        if (rel == "index.html" or rel.endswith("/index.html")) and self.repo.kind(
+            parent_rel(rel)
+        ) == "dir":
             return parent_rel(rel)
         return None
 
@@ -590,7 +660,10 @@ class Reachability:
                     reached.add(target)
                     frontier.append(target)
             self.allowed = frozenset(reached)
-            log("reach", f"{len(reached)} reachable paths in {time.monotonic() - started:.2f}s")
+            log(
+                "reach",
+                f"{len(reached)} reachable paths in {time.monotonic() - started:.2f}s",
+            )
 
     def admit_links_of(self, rel: str, links: Iterable[str]) -> None:
         """Allow a served page's current links at once; `rel` must be allowed."""
@@ -612,7 +685,9 @@ NOT_FOUND = Reply(HTTPStatus.NOT_FOUND, body=b"not found\n")
 
 
 def html_reply(page: str) -> Reply:
-    return Reply(HTTPStatus.OK, "text/html; charset=utf-8", page.encode("utf-8"), page=True)
+    return Reply(
+        HTTPStatus.OK, "text/html; charset=utf-8", page.encode("utf-8"), page=True
+    )
 
 
 def file_reply(path: Path) -> Reply:
@@ -620,24 +695,39 @@ def file_reply(path: Path) -> Reply:
     kind = mimetypes.guess_type(path.name)[0]
     if suffix in PLAIN_TEXT_SUFFIXES or suffix in DOCUMENT_FORMATS or kind is None:
         kind = "text/plain"
-    if kind.startswith("text/") or kind in ("application/json", "image/svg+xml", "application/javascript"):
+    if kind.startswith("text/") or kind in (
+        "application/json",
+        "image/svg+xml",
+        "application/javascript",
+    ):
         kind += "; charset=utf-8"
     return Reply(HTTPStatus.OK, kind, file=path)
 
 
 def slash_redirect(parts: list[str], query: str) -> Reply:
     # Relative, so it is right under any base path a proxy adds.
-    return Reply(HTTPStatus.FOUND, location=quote(parts[-1]) + "/" + (f"?{query}" if query else ""))
+    return Reply(
+        HTTPStatus.FOUND,
+        location=quote(parts[-1]) + "/" + (f"?{query}" if query else ""),
+    )
 
 
 class LiveSite:
     """Serves the repository itself, rendering documents on request."""
 
-    def __init__(self, repo: Repository, renderer: Renderer, pages: ProjectPages, roots: list[str]):
+    def __init__(
+        self,
+        repo: Repository,
+        renderer: Renderer,
+        pages: ProjectPages,
+        roots: list[str],
+    ):
         self.repo, self.renderer, self.pages = repo, renderer, pages
         self.graph = LinkGraph(repo, pages)
         self.roots = seed_nodes(self.graph, roots)
-        self.reach = Reachability(self.graph, lambda: ["", *self.pages.current(), *self.roots])
+        self.reach = Reachability(
+            self.graph, lambda: ["", *self.pages.current(), *self.roots]
+        )
 
     def linkable(self, rel: str) -> bool:
         return rel in self.reach.allowed
@@ -661,9 +751,16 @@ class LiveSite:
             return self.directory(node)
         if is_document(node):
             rendered = self.renderer.render(node)
-            self.reach.admit_links_of(node, self.graph.resolve(parent_rel(node), link_urls(rendered.body, ".html")))
+            self.reach.admit_links_of(
+                node,
+                self.graph.resolve(parent_rel(node), link_urls(rendered.body, ".html")),
+            )
             name = node.rpartition("/")[2]
-            return html_reply(document_page(self.repo, rendered, parent_rel(node), name, self.linkable))
+            return html_reply(
+                document_page(
+                    self.repo, rendered, parent_rel(node), name, self.linkable
+                )
+            )
         return file_reply(self.repo.path(node))
 
     def directory(self, rel: str) -> Reply:
@@ -674,9 +771,15 @@ class LiveSite:
             return file_reply(self.repo.path(document.rel))
         if document.kind == "readme":
             rendered = self.renderer.render(document.rel)
-            self.reach.admit_links_of(rel, self.graph.resolve(rel, link_urls(rendered.body, ".html")))
-            return html_reply(document_page(self.repo, rendered, rel, None, self.linkable))
-        return html_reply(listing_page(self.repo, rel, self.repo.listing(rel), self.linkable))
+            self.reach.admit_links_of(
+                rel, self.graph.resolve(rel, link_urls(rendered.body, ".html"))
+            )
+            return html_reply(
+                document_page(self.repo, rendered, rel, None, self.linkable)
+            )
+        return html_reply(
+            listing_page(self.repo, rel, self.repo.listing(rel), self.linkable)
+        )
 
 
 class StaticSite:
@@ -687,7 +790,9 @@ class StaticSite:
         manifest = self.root / MANIFEST
         if not manifest.is_file():
             raise RepoViewError(f"{site} has no {MANIFEST}; run `build` first")
-        self.pages = frozenset(json.loads(manifest.read_text(encoding="utf-8"))["pages"])
+        self.pages = frozenset(
+            json.loads(manifest.read_text(encoding="utf-8"))["pages"]
+        )
 
     def respond(self, parts: list[str], slash: bool, query: str) -> Reply:
         rel = "/".join(parts)
@@ -699,7 +804,10 @@ class StaticSite:
         elif not path.exists() and is_document(rel):
             rel, path = rel + ".html", path.with_name(path.name + ".html")
         try:
-            if not path.resolve(strict=True).is_relative_to(self.root) or not path.is_file():
+            if (
+                not path.resolve(strict=True).is_relative_to(self.root)
+                or not path.is_file()
+            ):
                 return NOT_FOUND
         except OSError:
             return NOT_FOUND
@@ -728,7 +836,10 @@ class AccessToken:
         except FileNotFoundError:
             stamp = None
         if stamp != self._stamp:
-            self._stamp, self._token = stamp, self._read() if stamp is not None else None
+            self._stamp, self._token = (
+                stamp,
+                self._read() if stamp is not None else None,
+            )
         return self._token
 
     def _read(self) -> str | None:
@@ -742,10 +853,14 @@ class AccessToken:
 
     def admits(self, supplied: str | None) -> bool:
         token = self.current()
-        return bool(token and supplied) and hmac.compare_digest(supplied.encode(), token.encode())
+        return bool(token and supplied) and hmac.compare_digest(
+            supplied.encode(), token.encode()
+        )
 
 
-def make_handler(site: LiveSite | StaticSite, base: str, access: AccessToken, require_access: bool):
+def make_handler(
+    site: LiveSite | StaticSite, base: str, access: AccessToken, require_access: bool
+):
     class RepoViewRequest(BaseHTTPRequestHandler):
         server_version = "repo-view/1"
 
@@ -767,14 +882,27 @@ def make_handler(site: LiveSite | StaticSite, base: str, access: AccessToken, re
                 token = access.current()
             except (OSError, ValueError, RepoViewError) as error:
                 log("access", f"token unreadable: {error}")
-                return self.send(Reply(HTTPStatus.SERVICE_UNAVAILABLE, body=b"access token unreadable\n"), head)
+                return self.send(
+                    Reply(
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        body=b"access token unreadable\n",
+                    ),
+                    head,
+                )
             if require_access:
                 supplied = parse_qs(split.query).get(ACCESS_QUERY, [None])[0]
                 if access.admits(supplied):
-                    secure = "; Secure" if self.headers.get("X-Forwarded-Proto") == "https" else ""
+                    secure = (
+                        "; Secure"
+                        if self.headers.get("X-Forwarded-Proto") == "https"
+                        else ""
+                    )
                     cookie = f"{ACCESS_COOKIE}={supplied}; Path=/; HttpOnly; SameSite=Lax{secure}"
                 elif not access.admits(self.cookie(ACCESS_COOKIE)):
-                    return self.send(Reply(HTTPStatus.UNAUTHORIZED, body=b"App link required\n"), head)
+                    return self.send(
+                        Reply(HTTPStatus.UNAUTHORIZED, body=b"App link required\n"),
+                        head,
+                    )
             parts = [p for p in raw.split("/") if p]
             if any(p.startswith(".") for p in parts):
                 return self.send(NOT_FOUND, head)
@@ -782,7 +910,9 @@ def make_handler(site: LiveSite | StaticSite, base: str, access: AccessToken, re
                 reply = site.respond(parts, raw.endswith("/"), split.query)
             except RepoViewError as error:
                 log("request", str(error))
-                reply = Reply(HTTPStatus.INTERNAL_SERVER_ERROR, body=f"{error}\n".encode())
+                reply = Reply(
+                    HTTPStatus.INTERNAL_SERVER_ERROR, body=f"{error}\n".encode()
+                )
             if reply.page:
                 page = with_access_keeper(reply.body.decode("utf-8"), token)
                 reply = Reply(reply.status, reply.kind, page.encode("utf-8"))
@@ -819,14 +949,20 @@ def make_handler(site: LiveSite | StaticSite, base: str, access: AccessToken, re
     return RepoViewRequest
 
 
-def static_links(page: str, page_dir: str, documents: set[str], directories: set[str]) -> str:
+def static_links(
+    page: str, page_dir: str, documents: set[str], directories: set[str]
+) -> str:
     """Point a page's links at static-site names: `x.md` → `x.md.html`, `d/` → `d/index.html`."""
 
     def relink(match: re.Match) -> str:
         attr = match.group(1)
-        url = html.unescape(match.group(2) if match.group(2) is not None else match.group(3))
+        url = html.unescape(
+            match.group(2) if match.group(2) is not None else match.group(3)
+        )
         target = link_target(page_dir, url)
-        cut = min((i for i in (url.find("?"), url.find("#")) if i >= 0), default=len(url))
+        cut = min(
+            (i for i in (url.find("?"), url.find("#")) if i >= 0), default=len(url)
+        )
         path, rest = url[:cut], url[cut:]
         if target in documents:
             path += ".html"
@@ -839,7 +975,9 @@ def static_links(page: str, page_dir: str, documents: set[str], directories: set
     return HTML_LINK.sub(relink, page)
 
 
-def build_site(repo: Repository, pages: ProjectPages, roots: list[str], site: Path, max_bytes: int) -> dict:
+def build_site(
+    repo: Repository, pages: ProjectPages, roots: list[str], site: Path, max_bytes: int
+) -> dict:
     """Write the reachable closure as a static site into `site`, replacing it atomically."""
     renderer = Renderer(repo, require_pandoc=True)
     graph = LinkGraph(repo, pages)
@@ -858,7 +996,9 @@ def build_site(repo: Repository, pages: ProjectPages, roots: list[str], site: Pa
         elif repo.kind(rel) == "dir":
             directories[rel] = document = graph.directory_document(rel)
             if document.kind == "readme":
-                rendered = documents.setdefault(document.rel, renderer.render(document.rel))
+                rendered = documents.setdefault(
+                    document.rel, renderer.render(document.rel)
+                )
                 links = graph.resolve(rel, link_urls(rendered.body, ".html"))
             else:
                 links = graph.links(rel)
@@ -881,12 +1021,23 @@ def build_site(repo: Repository, pages: ProjectPages, roots: list[str], site: Pa
     for rel, page in project_pages.items():
         outputs[rel] = static_links(page, parent_rel(rel), linked_docs, linked_dirs)
     for rel in linked_docs:
-        page = document_page(repo, documents[rel], parent_rel(rel), rel.rpartition("/")[2], linkable, footer)
-        outputs[rel + ".html"] = static_links(page, parent_rel(rel), linked_docs, linked_dirs)
+        page = document_page(
+            repo,
+            documents[rel],
+            parent_rel(rel),
+            rel.rpartition("/")[2],
+            linkable,
+            footer,
+        )
+        outputs[rel + ".html"] = static_links(
+            page, parent_rel(rel), linked_docs, linked_dirs
+        )
     for rel, document in directories.items():
         index = join_rel(rel, "index.html")
         if document.kind == "readme":
-            page = document_page(repo, documents[document.rel], rel, None, linkable, footer)
+            page = document_page(
+                repo, documents[document.rel], rel, None, linkable, footer
+            )
         elif document.kind == "listing":
             page = listing_page(repo, rel, repo.listing(rel), linkable, footer)
         else:
@@ -894,7 +1045,9 @@ def build_site(repo: Repository, pages: ProjectPages, roots: list[str], site: Pa
         outputs[index] = static_links(page, rel, linked_docs, linked_dirs)
     clashes = sorted(set(outputs) & assets)
     if clashes:
-        raise RepoViewError(f"generated pages would replace linked files: {', '.join(clashes[:5])}")
+        raise RepoViewError(
+            f"generated pages would replace linked files: {', '.join(clashes[:5])}"
+        )
 
     staging = site.with_name(site.name + ".new")
     if staging.exists():
@@ -911,7 +1064,9 @@ def build_site(repo: Repository, pages: ProjectPages, roots: list[str], site: Pa
             source = repo.path(rel)
             total += source.stat().st_size
             if total > max_bytes:
-                raise RepoViewError(f"site exceeds --max-bytes {max_bytes} at {rel}; nothing replaced")
+                raise RepoViewError(
+                    f"site exceeds --max-bytes {max_bytes} at {rel}; nothing replaced"
+                )
             out = staging / rel
             out.parent.mkdir(parents=True, exist_ok=True)
             try:
@@ -921,9 +1076,13 @@ def build_site(repo: Repository, pages: ProjectPages, roots: list[str], site: Pa
                     raise
                 shutil.copy2(source.resolve(), out)
         if total > max_bytes:
-            raise RepoViewError(f"site exceeds --max-bytes {max_bytes}; nothing replaced")
+            raise RepoViewError(
+                f"site exceeds --max-bytes {max_bytes}; nothing replaced"
+            )
         manifest = {"version": 1, "generated": generated, "pages": sorted(outputs)}
-        (staging / MANIFEST).write_text(json.dumps(manifest, indent=1) + "\n", encoding="utf-8")
+        (staging / MANIFEST).write_text(
+            json.dumps(manifest, indent=1) + "\n", encoding="utf-8"
+        )
         repo.ensure_excluded(site)
         retired = site.with_name(site.name + ".old")
         if retired.exists():
@@ -937,10 +1096,17 @@ def build_site(repo: Repository, pages: ProjectPages, roots: list[str], site: Pa
         if staging.exists():
             shutil.rmtree(staging)
         raise
-    return {"site": str(site), "pages": len(outputs), "files": len(assets), "bytes": total}
+    return {
+        "site": str(site),
+        "pages": len(outputs),
+        "files": len(assets),
+        "bytes": total,
+    }
 
 
-def enable(repo: Repository, static: bool, replace: bool, site: Path, serve_args: list[str]) -> Path:
+def enable(
+    repo: Repository, static: bool, replace: bool, site: Path, serve_args: list[str]
+) -> Path:
     """Declare the repository view as the project's YA app, keeping other app.json fields."""
     app_path = repo.root / ".project-template" / "app.json"
     app = json.loads(app_path.read_text(encoding="utf-8")) if app_path.exists() else {}
@@ -959,13 +1125,23 @@ def enable(repo: Repository, static: bool, replace: bool, site: Path, serve_args
         }
     else:
         if not Path(__file__).resolve().is_relative_to(repo.root):
-            raise RepoViewError(f"run enable with the copy of {Path(__file__).name} vendored in this repository")
+            raise RepoViewError(
+                f"run enable with the copy of {Path(__file__).name} vendored in this repository"
+            )
         script = Path(__file__).resolve().relative_to(repo.root).as_posix()
         service = {
             "version": 1,
             "where": {"kind": "process", "cwd": ".", "entry": "/"},
-            "start": {"argv": ["python3", script, "serve", *serve_args], "portEnv": "PORT"},
-            "status": {"probe": "http", "path": "/healthz", "readyStatus": 200, "startupTimeoutMs": 30000},
+            "start": {
+                "argv": ["python3", script, "serve", *serve_args],
+                "portEnv": "PORT",
+            },
+            "status": {
+                "probe": "http",
+                "path": "/healthz",
+                "readyStatus": 200,
+                "startupTimeoutMs": 30000,
+            },
             "stop": {"signal": "SIGTERM", "graceMs": 3000},
             "serving": {"target": "sandbox-loopback", "protocol": "http"},
         }
@@ -981,7 +1157,9 @@ def log(phase: str, message: str) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     verbs = parser.add_subparsers(dest="verb", required=True)
 
     def add_seed_options(command: argparse.ArgumentParser) -> None:
@@ -994,13 +1172,38 @@ def main(argv: list[str] | None = None) -> int:
             help="project page generator: FUNCTION(repo_root) returns {relative path: HTML}",
         )  # fmt: skip
 
-    serve = verbs.add_parser("serve", help="serve documents live (or a built site with --static)")
+    serve = verbs.add_parser(
+        "serve", help="serve documents live (or a built site with --static)"
+    )
     add_seed_options(serve)
-    serve.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 0), help="default: $PORT")
-    serve.add_argument("--base-path", default=os.environ.get("BASE_PATH", ""), help="URL prefix a proxy adds")
-    serve.add_argument("--pages-max-age", type=float, default=10.0, help="seconds before --pages regenerates")
-    serve.add_argument("--static", action="store_true", help="serve the built --site as a whole instead")
-    serve.add_argument("--site", type=Path, default=Path(DEFAULT_SITE), help="built site directory for --static")
+    serve.add_argument(
+        "--port",
+        type=int,
+        default=int(os.environ.get("PORT") or 0),
+        help="default: $PORT",
+    )
+    serve.add_argument(
+        "--base-path",
+        default=os.environ.get("BASE_PATH", ""),
+        help="URL prefix a proxy adds",
+    )
+    serve.add_argument(
+        "--pages-max-age",
+        type=float,
+        default=10.0,
+        help="seconds before --pages regenerates",
+    )
+    serve.add_argument(
+        "--static",
+        action="store_true",
+        help="serve the built --site as a whole instead",
+    )
+    serve.add_argument(
+        "--site",
+        type=Path,
+        default=Path(DEFAULT_SITE),
+        help="built site directory for --static",
+    )
     serve.add_argument(
         "--access-token-file", type=Path,
         help="read the private-link token from this file instead of app.json's yaAccess",
@@ -1010,37 +1213,71 @@ def main(argv: list[str] | None = None) -> int:
         help="check the token (?ya_access= or cookie) here; only where no YA proxy checks and strips it",
     )  # fmt: skip
 
-    build = verbs.add_parser("build", help="write the reachable closure as a static site")
+    build = verbs.add_parser(
+        "build", help="write the reachable closure as a static site"
+    )
     add_seed_options(build)
-    build.add_argument("--site", type=Path, default=Path(DEFAULT_SITE), help=f"output directory (default {DEFAULT_SITE})")
-    build.add_argument("--max-bytes", type=int, default=1 << 30, help="refuse a larger site (default 1 GiB)")
+    build.add_argument(
+        "--site",
+        type=Path,
+        default=Path(DEFAULT_SITE),
+        help=f"output directory (default {DEFAULT_SITE})",
+    )
+    build.add_argument(
+        "--max-bytes",
+        type=int,
+        default=1 << 30,
+        help="refuse a larger site (default 1 GiB)",
+    )
 
-    enable_verb = verbs.add_parser("enable", help="declare the view as this project's YA app")
-    enable_verb.add_argument("--static", action="store_true", help="declare the built --site, not the live server")
-    enable_verb.add_argument("--replace", action="store_true", help="replace an existing app declaration")
+    enable_verb = verbs.add_parser(
+        "enable", help="declare the view as this project's YA app"
+    )
+    enable_verb.add_argument(
+        "--static",
+        action="store_true",
+        help="declare the built --site, not the live server",
+    )
+    enable_verb.add_argument(
+        "--replace", action="store_true", help="replace an existing app declaration"
+    )
     enable_verb.add_argument("--site", type=Path, default=Path(DEFAULT_SITE))
-    enable_verb.add_argument("serve_args", nargs=argparse.REMAINDER, help="after --: extra `serve` arguments")
+    enable_verb.add_argument(
+        "serve_args", nargs=argparse.REMAINDER, help="after --: extra `serve` arguments"
+    )
 
     args = parser.parse_args(argv)
     try:
         repo = Repository.containing(Path.cwd())
         site = args.site if args.site.is_absolute() else repo.root / args.site
         if args.verb == "enable":
-            extra = args.serve_args[1:] if args.serve_args[:1] == ["--"] else args.serve_args
+            extra = (
+                args.serve_args[1:]
+                if args.serve_args[:1] == ["--"]
+                else args.serve_args
+            )
             path = enable(repo, args.static, args.replace, site, extra)
-            print(f"[enable] declared the repository view in {path.relative_to(repo.root)}")
+            print(
+                f"[enable] declared the repository view in {path.relative_to(repo.root)}"
+            )
             return 0
         # A build is one snapshot: its project pages are generated once.
-        pages = ProjectPages(args.pages, repo, getattr(args, "pages_max_age", float("inf")))
+        pages = ProjectPages(
+            args.pages, repo, getattr(args, "pages_max_age", float("inf"))
+        )
         if args.verb == "build":
             summary = build_site(repo, pages, args.root or [], site, args.max_bytes)
-            print(f"[build] {summary['pages']} pages and {summary['files']} files, {summary['bytes']:,} bytes, in {site}")
+            print(
+                f"[build] {summary['pages']} pages and {summary['files']} files, {summary['bytes']:,} bytes, in {site}"
+            )
             return 0
         if not args.port:
             raise RepoViewError("no port: pass --port or set PORT")
         access = AccessToken(repo, args.access_token_file)
         if args.require_access and not access.current():
-            raise RepoViewError("--require-access needs a token: none in --access-token-file or app.json yaAccess")
+            raise RepoViewError(
+                "--require-access needs a token: none in --access-token-file or app.json yaAccess"
+            )
         if args.static:
             served: LiveSite | StaticSite = StaticSite(site)
         else:
@@ -1048,7 +1285,9 @@ def main(argv: list[str] | None = None) -> int:
             if not renderer.pandoc:
                 log("serve", "pandoc not found; documents will show as source text")
             served = LiveSite(repo, renderer, pages, args.root or [])
-        handler = make_handler(served, args.base_path.rstrip("/"), access, args.require_access)
+        handler = make_handler(
+            served, args.base_path.rstrip("/"), access, args.require_access
+        )
         server = ThreadingHTTPServer(("127.0.0.1", args.port), handler)
         mode = f"static site {site}" if args.static else "live"
         log("serve", f"{repo.root} ({mode}) on 127.0.0.1:{server.server_port}")

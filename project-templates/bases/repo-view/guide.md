@@ -74,7 +74,9 @@ links at once.
 receives the repository root and returns `{relative path: complete HTML}`; a
 page at `index.html` replaces the root page. Pages link documents by their
 source paths (`docs/guide.md`). Under `serve` they are regenerated on request
-once older than `--pages-max-age` seconds; `build` generates them once.
+once older than `--pages-max-age` seconds, and at once after the generator
+file is edited, without a restart; a generator edit that fails to load leaves
+the previous one serving and logs why. `build` generates them once.
 
 After changing the view or its options, open the root, a document, a directory
 and a linked built output through the actual app address.
