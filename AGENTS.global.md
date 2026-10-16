@@ -752,6 +752,8 @@ for a directory that already existed unless the user asks.
 
 Formal topics hold cross-cutting contracts and project-facing knowledge.
 Follow an existing glossary-linked canonical doc before creating or moving one.
+A requested note or memo is a new or extended section of the relevant
+`topics/` doc, or a new topic doc when none fits; never a `notes/` directory.
 Each glossary owns sibling `topics/`; the project root is the implicit scope
 before a root glossary exists. Before creating a topic or choosing its scope,
 read `TOPICS.md` § Landing-site principles and Glossary-owned topic scopes.

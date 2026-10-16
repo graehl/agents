@@ -5564,3 +5564,29 @@ prose correction retains substantive uncertainty and personal testimony.
   `ROOT.md` (focus document) coexist in one program; the table lists them
   as separate kinds so neither is read as the other.
 - Status: user-directed requirement; no measured effect is claimed.
+
+## 2026-10-16 — a "note" lands in topics/, never a notes/ directory
+
+- Incident (user-attributed): in `~/draft`, agents answering "user-requested
+  memo" or "note" requests had built
+  `research/speech-recognition/notes/` with 14 memo files and three data
+  subdirectories, unnoticed by the user. Those files sat outside every
+  topic collection, so no lede, glossary or dashboard listing found them by
+  topic. The user moved them all to the program's `topics/` and directed:
+  a "note" means a new or added section to a `topics/` file, not a
+  `notes/` directory.
+- Cause: the 2026-06-11 landing-site entry kept "prefer a section over a
+  new file" out of `TOPICS.md` as already present in `AGENTS.md`. It is no
+  longer in the boot, and the `TOPICS.md` read triggers only on creating a
+  topic or choosing its scope. A request phrased as "write a memo" or "a
+  note" never fires that trigger, so agents picked a directory by its
+  name.
+- Fix: one sentence in `AGENTS.global.md` § Project topics. A requested
+  note or memo becomes a new or extended section of the relevant `topics/`
+  doc, or a new topic doc when none fits; never a `notes/` directory. It
+  sits in the boot because the failing request does not route anywhere
+  else.
+- Trace: asked to "write a note on whether model X trained on our test
+  set", an agent now extends the program's contamination topic (or creates
+  one) instead of creating `notes/x-contamination.md`.
+- Status: user-directed rule; no measured effect is claimed.
