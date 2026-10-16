@@ -96,8 +96,21 @@ main { container-type: inline-size; }
 @container (max-width: 62rem) { .body { display: block; }
   .meta { flex-direction: row; flex-wrap: wrap; gap: .4rem 2rem; }
   .meta .block { flex: 1 1 18rem; min-width: 0; } }
-.meta h4 { margin: 0 0 .1rem; font-size: .72rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase;
-  color: #637066; }
+.meta h4, .lists h4 { margin: 0 0 .1rem; font-size: .72rem; font-weight: 650; letter-spacing: .06em;
+  text-transform: uppercase; color: #637066; }
+.lists { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr)); gap: .5rem 2rem;
+  margin: .2rem 0 .6rem; }
+.lists .block.sketches h4 { color: #2f6b52; }
+table.files { table-layout: fixed; width: 100%; } table.files td { padding: .05rem 0; border: 0; }
+table.files td.f { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+table.files col.d { width: 6.2rem; } table.files td.d { text-align: right; color: #637066; font-size: .9em;
+  font-variant-numeric: tabular-nums; white-space: nowrap; }
+details.more > summary { cursor: pointer; color: #637066; font-size: .85rem; }
+.tools { display: inline-flex; gap: .3rem; }
+.tools button { font: inherit; font-size: .78rem; color: #2f6b52; background: none; border: 1px solid #cfd3c7;
+  border-radius: 4px; padding: .1rem .45rem; min-height: 1.6rem; cursor: pointer; }
+.tools button:hover { background: #ecebe2; } .tools button:focus-visible { outline: 3px solid #387c60; outline-offset: 1px; }
+.page-tools { margin: 0 0 .4rem; }
 @media (max-width: 860px) { .layout { display: block; } nav.outline { position: static; max-height: none;
   margin-bottom: 1rem; padding: .5rem .75rem; background: #ecebe2; border-radius: 6px; } }
 @media (max-width: 700px) { body { margin: 1rem auto; padding-inline: 1rem; }
@@ -110,8 +123,44 @@ main { container-type: inline-size; }
   th { background: #2a2f2b; } th, td, tr { border-color: #3a413c; }
   .dim { color: #a3ada5; } a { color: #8fcbab; }
   .chip { background: #2a2f2b; color: #c8d1c9; } .chip.live { background: #1f3a2a; color: #9fdcb5; }
-  .desc { color: #c8d1c9; } details.program details.program { border-left-color: #3a413c; } }
+  .desc { color: #c8d1c9; } details.program details.program { border-left-color: #3a413c; }
+  .lists .block.sketches h4 { color: #8fcbab; } table.files td.d { color: #a3ada5; }
+  .tools button { color: #8fcbab; border-color: #3a413c; } .tools button:hover { background: #2a2f2b; } }
 """
+
+# Expand or collapse a program and everything nested in it (child programs and
+# folded "N more" lists). The buttons sit in the program's summary, so they stay
+# visible when it is collapsed; a click must not also toggle that summary.
+SCRIPT = """
+const openAncestors = (element) => {
+  for (let d = element.parentElement?.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
+};
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-subtree]");
+  if (button) {
+    event.preventDefault();
+    event.stopPropagation();
+    const open = button.dataset.subtree === "open";
+    const scope = button.closest("details.program") || document.querySelector("main");
+    const all = [scope, ...scope.querySelectorAll("details")].filter((d) => d.tagName === "DETAILS");
+    for (const d of all) d.open = open;
+    if (open) openAncestors(scope);
+    return;
+  }
+  // An outline link into a collapsed program opens it and its ancestors.
+  const anchor = event.target.closest('a[href^="#"]');
+  const target = anchor && document.getElementById(anchor.getAttribute("href").slice(1));
+  if (target && target.tagName === "DETAILS") {
+    target.open = true;
+    openAncestors(target);
+  }
+});
+"""
+
+SUBTREE_TOOLS = (
+    '<span class="tools"><button type="button" data-subtree="open">expand all</button>'
+    '<button type="button" data-subtree="close">collapse all</button></span>'
+)
 
 
 def git(repo: Path, *args: str) -> str:
@@ -356,9 +405,16 @@ def build_programs(project: Project) -> list[Program]:
     return [programs[rel] for rel in sorted(programs, key=lambda r: Path(r).parts)]
 
 
-def link(page: Path, target: Path, label: str) -> str:
+def link(page: Path, target: Path, label: str, title: str = "") -> str:
     href = os.path.relpath(target, page.parent).replace(os.sep, "/")
-    return f'<a href="{esc(href)}">{esc(label)}</a>'
+    tip = f' title="{esc(title)}"' if title else ""
+    return f'<a href="{esc(href)}"{tip}>{esc(label)}</a>'
+
+
+def heading(path: Path) -> str:
+    """A Markdown file's H1, for a link tooltip; empty when it has none."""
+    found = re.search(r"^# (.+)$", path.read_text(encoding="utf-8"), re.MULTILINE)
+    return found.group(1).strip() if found else ""
 
 
 def session_id(full: str) -> str:
@@ -399,27 +455,37 @@ def render_page(title: str, subtitle: str, body: str) -> str:
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{esc(title)}</title><style>{STYLE}</style></head><body>\n"
-        f'<h1>{esc(title)}</h1>\n<p class="dim">{subtitle}</p>\n{body}\n</body></html>\n'
+        f'<h1>{esc(title)}</h1>\n<p class="dim">{subtitle}</p>\n{body}\n'
+        f"<script>{SCRIPT}</script></body></html>\n"
     )
 
 
 def link_list(
-    page: Path, root: Path, rels: list[str], dates: dict[str, str], shown: int
+    page: Path,
+    root: Path,
+    rels: list[str],
+    dates: dict[str, str],
+    shown: int,
+    titles: dict[str, str] | None = None,
 ) -> str:
-    """Newest first; the first `shown` listed, the rest folded."""
-    items = [
-        f"<li>{link(page, root / r, Path(r).name)}"
-        + (f' <span class="dim">{esc(dates[r][:10])}</span>' if dates.get(r) else "")
-        + "</li>"
-        for r in rels
-    ]
-    head, rest = items[:shown], items[shown:]
+    """A name/date table, newest first; the first `shown` rows listed, the rest
+    folded. Both tables share fixed column widths, so folded rows stay aligned."""
+
+    def table(chunk: list[str]) -> str:
+        rows = "".join(
+            f'<tr><td class="f">{link(page, root / r, Path(r).name, (titles or {}).get(r, ""))}</td>'
+            f'<td class="d">{esc(dates.get(r, "")[:10])}</td></tr>'
+            for r in chunk
+        )
+        return f'<table class="files"><colgroup><col><col class="d"></colgroup>{rows}</table>'
+
+    head, rest = rels[:shown], rels[shown:]
     folded = (
-        f"<details><summary>{len(rest)} more</summary><ul>{''.join(rest)}</ul></details>"
+        f'<details class="more"><summary>{len(rest)} more</summary>{table(rest)}</details>'
         if rest
         else ""
     )
-    return f"<ul>{''.join(head)}</ul>{folded}"
+    return table(head) + folded
 
 
 class Dashboard:
@@ -543,7 +609,7 @@ class Dashboard:
             )
         )
 
-    def topic_counts(self, program: Program) -> tuple[int, int, int]:
+    def collections(self, program: Program) -> tuple[list[str], list[str], list[str]]:
         """Topic docs, open gaps, and sketches directly in the program's collections."""
 
         def under(name: str, f: str) -> bool:
@@ -555,8 +621,13 @@ class Dashboard:
             lambda f: under("topics", f) and not TOPIC_COMPANION.search(f)
         )
         gaps = program.owned(lambda f: under("gaps", f) and Path(f).name != "README.md")
-        sketches = program.owned(lambda f: under("gaps/sketches", f))
-        return len(topics), len(gaps), len(sketches)
+        sketches = program.owned(
+            lambda f: under("gaps/sketches", f) and Path(f).name != "README.md"
+        )
+        return topics, gaps, sketches
+
+    def topic_counts(self, program: Program) -> tuple[int, int, int]:
+        return tuple(len(found) for found in self.collections(program))
 
     def handoffs(self, program: Program) -> list[Path]:
         # Handoffs are usually private and Git-excluded, so they are globbed, not listed.
@@ -647,18 +718,16 @@ class Dashboard:
         )
         handouts = self.handouts(program) if enabled("handouts") else []
         documents = self.documents(program) if enabled("documents") else []
-        dates = self.project.commit_dates(handouts + documents)
+        _, gaps, sketches = self.collections(program)
+        listed = handouts + documents + gaps + sketches
+        dates = self.project.commit_dates(listed)
         # A dated name (`progress-2026-07-20.md`) carries the document's own
         # date; its last commit may only be a move.
         dates.update(
-            {
-                r: m.group(1)
-                for r in handouts + documents
-                if (m := DATED_NAME.search(Path(r).name))
-            }
+            {r: m.group(1) for r in listed if (m := DATED_NAME.search(Path(r).name))}
         )
-        handouts.sort(key=lambda r: (dates.get(r, ""), r), reverse=True)
-        documents.sort(key=lambda r: (dates.get(r, ""), r), reverse=True)
+        for files in (handouts, documents, gaps, sketches):
+            files.sort(key=lambda r: (dates.get(r, ""), r), reverse=True)
         root_md = program.dir / "ROOT.md"
         return {
             "program": program,
@@ -671,6 +740,9 @@ class Dashboard:
             "page": page,
             "surveys": surveys,
             "handouts": handouts,
+            "gaps": gaps,
+            "sketches": sketches,
+            "sketch_titles": {r: heading(self.root / r) for r in sketches},
             "documents": documents[:DOCUMENT_LIMIT],
             "more_documents": max(0, len(documents) - DOCUMENT_LIMIT),
             "dates": dates,
@@ -733,6 +805,9 @@ class Dashboard:
         chips += [plural(len(r["surveys"]), "survey")] if r["surveys"] else []
         chips += [plural(len(r["handouts"]), "handout")] if r["handouts"] else []
         chips += [plural(len(r["handoffs"]), "handoff")] if r["handoffs"] else []
+        chips += (
+            [plural(len(r["sketches"]), "sketch", "sketches")] if r["sketches"] else []
+        )
         live = (
             f'<span class="chip live">● {plural(len(r["sessions"]), "live session")}</span>'
             if r["sessions"]
@@ -743,20 +818,40 @@ class Dashboard:
             if r["commit"]
             else ""
         )
+        # Single facts sit beside the description; file lists get a full-width
+        # row of name/date tables, sketches first.
         blocks = [("Last change", commit_cell(r["commit"], r["uncommitted"]))]
-        if r["handouts"]:
-            blocks.append(
-                ("Handouts", link_list(page, self.root, r["handouts"], r["dates"], 4))
-            )
-        if r["skeletons"]:
-            blocks.append(
-                ("Paper skeletons", link_list(page, self.root, r["skeletons"], {}, 4))
-            )
         if r["pointer"]:
             blocks.append(("ROOT handoff", link(page, r["pointer"], r["pointer"].name)))
         if r["handoffs"]:
             blocks.append(
                 ("Newest handoff", link(page, r["handoffs"][0], r["handoffs"][0].name))
+            )
+        blocks += (
+            [("Live sessions", sessions_cell(r["sessions"]))] if r["sessions"] else []
+        )
+        lists = []
+        if r["sketches"]:
+            lists.append(
+                (
+                    "Sketches",
+                    link_list(
+                        page,
+                        self.root,
+                        r["sketches"],
+                        r["dates"],
+                        8,
+                        r["sketch_titles"],
+                    ),
+                )
+            )
+        if r["handouts"]:
+            lists.append(
+                ("Handouts", link_list(page, self.root, r["handouts"], r["dates"], 4))
+            )
+        if r["skeletons"]:
+            lists.append(
+                ("Paper skeletons", link_list(page, self.root, r["skeletons"], {}, 4))
             )
         if r["documents"]:
             more = (
@@ -764,19 +859,21 @@ class Dashboard:
                 if r["more_documents"]
                 else ""
             )
-            blocks.append(
+            lists.append(
                 (
                     "Documents",
-                    link_list(page, self.root, r["documents"], r["dates"], 4) + more,
+                    link_list(page, self.root, r["documents"], r["dates"], 6) + more,
                 )
             )
-        blocks += (
-            [("Live sessions", sessions_cell(r["sessions"]))] if r["sessions"] else []
-        )
-        meta = "".join(
-            f'<div class="block {re.sub(r"[^a-z]+", "-", t.lower())}"><h4>{esc(t)}</h4>{body}</div>'
-            for t, body in blocks
-        )
+        if r["gaps"]:
+            lists.append(("Gaps", link_list(page, self.root, r["gaps"], r["dates"], 4)))
+
+        def render_blocks(items: list) -> str:
+            return "".join(
+                f'<div class="block {re.sub(r"[^a-z]+", "-", t.lower())}"><h4>{esc(t)}</h4>{body}</div>'
+                for t, body in items
+            )
+
         focus = f'<p class="focus">Focus {esc(r["focus"])}</p>' if r["focus"] else ""
         kids = "".join(
             self.section(page, c, children) for c in children.get(program.rel, [])
@@ -786,10 +883,13 @@ class Dashboard:
             f'<span class="name">{esc(program.name)}</span> <code class="dim">{esc(program.rel or ".")}</code> '
             + "".join(f'<span class="chip">{esc(c)}</span>' for c in chips)
             + live
+            + SUBTREE_TOOLS
             + date
             + f'</summary><div class="body"><div><p class="desc">{esc(program.description)}</p>{focus}'
             + f'<p class="open">{" · ".join(links)}</p></div>'
-            + f'<div class="meta">{meta}</div></div>{kids}</details>'
+            + f'<div class="meta">{render_blocks(blocks)}</div></div>'
+            + (f'<div class="lists">{render_blocks(lists)}</div>' if lists else "")
+            + f"{kids}</details>"
         )
 
     def index_page(self) -> None:
@@ -838,7 +938,8 @@ class Dashboard:
             if self.project.enabled("sessions")
             else ""
         )
-        main = lead + self.section(page, root, children)
+        page_tools = f'<p class="page-tools">All programs: {SUBTREE_TOOLS}</p>'
+        main = lead + page_tools + self.section(page, root, children)
         if self.project.enabled("sessions"):
             main += f'<h2 id="sessions">All live sessions in this checkout</h2><ul>{session_items or "<li>none</li>"}</ul>'
         sidebar = (

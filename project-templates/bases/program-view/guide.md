@@ -24,14 +24,24 @@ which checks discovery without a browser.
 ## What it shows
 
 Per program: the charter's title and first paragraph, the focus heading of
-its `ROOT.md`, links to its charter, glossary, papers page, paper proposals,
-newest handout, report, topics, gaps and sketches, and blocks for its last
-commit (with `Contributing-model:` trailers and the agentctl session that
-made it), uncommitted files, handouts newest first, paper skeletons, newest
-handoff, other documents in its directory, and live agent sessions whose
-`.agentctl/active` scope lies inside it. The repository root is the root
-program even without a `PROGRAM.md`. The shallowest `ROOT.md` focus heads the
-page as the project's current focus.
+its `ROOT.md`, and links to its charter, glossary, papers page, paper
+proposals, newest handout, report, topics, gaps and sketches. Beside the
+description sit its last commit (with `Contributing-model:` trailers and the
+agentctl session that made it), uncommitted files, newest handoff, and live
+agent sessions whose `.agentctl/active` scope lies inside it. Below, a
+full-width row of name and date tables lists, newest first:
+- sketches (`gaps/sketches/`), first, with each sketch's title as its tooltip;
+- handouts;
+- paper skeletons;
+- other documents in the program's directory;
+- open gaps.
+
+Long lists fold behind "N more". Each program's summary row has "expand all"
+and "collapse all" buttons for it and everything nested in it, and the page
+has the same pair for all programs. Expanding a program also opens its
+ancestors, and an outline link opens the program it points to. The
+repository root is the root program even without a `PROGRAM.md`. The
+shallowest `ROOT.md` focus heads the page as the project's current focus.
 
 The papers page lists each `papers/<slug>/index.qmd` project below the
 program: built outputs, latest `CHANGELOG.md` entry, last commit, open
