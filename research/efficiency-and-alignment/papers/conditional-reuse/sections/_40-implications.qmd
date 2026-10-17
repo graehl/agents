@@ -1,0 +1,43 @@
+# What efficiency can still tell us {#sec-implications}
+
+Standardization makes efficiency comparisons more informative. Public training
+data and common resource accounting remove some benign explanations for an
+outlier. They do not make the conditional rule require secret training facts:
+the construction retains the legitimate implementation and changes its
+behavior on a specified subset of inputs. A finite training set containing no
+trigger gives $f$ and $g$ identical answers. This does not show that a prescribed,
+verifiably executed training algorithm would select $g$.
+
+Nor does the result defeat exact verification. An oracle that checks correctness
+on every input rejects $g$; a release rule requiring an exact minimum with zero
+tolerance is not refuted by an implementation with $k$ extra gates. The result
+addresses nonzero resource tolerance coupled to incomplete behavioral evidence.
+At fixed $k$, the relative overhead $k/C_\star(f)$ vanishes as legitimate task
+complexity grows, while the conditional error remains total.
+
+Related work establishes stronger or more concrete results along other axes.
+ONEFLIP demonstrates triggered behavior after a single stored-weight bit flip
+in vision models [@li2025oneflip]. Its modification count is not the storage
+cost of a complete hidden policy. Goldwasser et al. construct computationally
+undetectable backdoors under cryptographic assumptions, including a white-box
+result for particular model families [@goldwasser2024backdoors]. Our transparent
+construction makes no such undetectability claim. Its purpose is to expose the
+resource-accounting error without requiring either neural experiments or
+cryptography.
+<!-- ref: research/efficiency-and-alignment/papers/conditional-reuse/related-work/retrieval.md; primary-source support and scope -->
+
+Efficiency can therefore remain one practical warning signal: unexplained
+excess capacity is a reason to investigate. Absence of conspicuous excess is
+weak reassurance against a short conditional rule. Treating efficiency as an
+alignment certificate would require additional assumptions connecting small
+implementation cost to the absence of the particular unwanted behaviors at
+issue.
+
+# Future work {#sec-future}
+
+A stronger theoretical guarantee would specify a model class, permissible
+interventions, and unwanted behavior family, then lower-bound the additional
+resources required for every member of that family. Such a bound would have
+to charge for reuse of existing features and distinguish passive testing from
+targeted inspection. Whether useful bounds survive those choices remains open;
+the elementary construction here rules out assurances that omit them.

@@ -1,0 +1,85 @@
+# A small circuit and a large testing requirement {#sec-bound}
+
+Let $f:\{0,1\}^d\to\{0,1\}$ be the correct answer to a finite task. Its
+implementation can contain arbitrary factual memory and reasoning. Fix a
+Boolean gate basis containing two-input AND and XOR gates, with wires and
+fan-out free, and let $C_\star(f)$ be the minimum gate count of an exact circuit
+for $f$. Inputs include $k\le d$ designated bits; recognizing these raw bits
+requires no learned semantic detector.
+
+**Proposition 1 (conditional reversal).** For every $f$ and $1\le k\le d$,
+there is a circuit $G$ with at most $C_\star(f)+k$ gates computing
+$$
+t_k(x)=\bigwedge_{j=1}^k x_j,
+\qquad
+g(x)=f(x)\oplus t_k(x).
+$$
+It answers incorrectly on every trigger input and correctly everywhere else.
+
+*Proof.* Retain a minimum circuit for $f$. Compute the conjunction with $k-1$
+AND gates and combine it with the original answer using one XOR gate. For
+$k=1$, the trigger is an input wire. XOR preserves the answer when the trigger
+is zero and reverses it when the trigger is one. $\square$
+
+Thus a resource ceiling of $(1+\eta)C_\star(f)$ admits this implementation
+whenever $k\le\eta C_\star(f)$. The complete original computation survives;
+the additional cost does not scale with its knowledge or reasoning complexity.
+This is a gate-count upper bound. Gates are neither neural parameters nor bits
+of stored model description; encoding their wiring has a separate cost.
+
+Let an evaluator draw independent inputs from a distribution $D$ and compare
+each answer with the truth. If $p=\Pr_D[t_k(x)=1]$, then
+$$
+\Pr[\text{no discrepancy in }n\text{ tests}]=(1-p)^n\ge 1-np.
+$$
+If the designated bits are mutually independent and fair under $D$, then
+$p=2^{-k}$. For $k=30$ and $n=10^6$, the probability of seeing no discrepancy
+is approximately $0.999069$. Reaching a $95\%$ probability of seeing at least
+one requires
+$$
+n\ge
+\left\lceil\frac{\log(0.05)}{\log(1-2^{-30})}\right\rceil
+\approx 3.22\times10^9.
+$$
+These are calculated probabilities, not experimental measurements.
+<!-- ref: research/efficiency-and-alignment/papers/conditional-reuse/sections/_20-bound.repro.md; analytical derivation and numerical check -->
+
+The testing requirement is exponential in the added gate count because this
+particular trigger becomes exponentially rare. Conditional on that trigger,
+the error rate is one. If a user or adversary can supply the trigger, ordinary
+input frequency does not limit how often the deviation can be elicited. The
+construction is deliberately transparent: a targeted test of the all-ones
+prefix finds it immediately. The probability calculation applies to independent
+sampling, not to every possible audit strategy.
+
+## Description length counts the extra rule
+
+For the minimum-description-length intuition, fix a prefix-free program
+encoding and interpreter before comparing systems. Let $L_\star(f)$ be the
+length of a shortest program computing $f$ exactly. A fixed wrapper can contain
+self-delimiting programs for $f$, a trigger $t$, and a replacement rule $r$,
+then evaluate $f$ once and return
+$$
+g(x)=
+\begin{cases}
+r(x,f(x)),&t(x)=1,\\
+f(x),&t(x)=0.
+\end{cases}
+$$
+Consequently, for a constant wrapper cost $c$ in this encoding,
+$$
+L_\star(g)\le L_\star(f)+L(t)+L(r)+c.
+$$
+The interpreter permits composition of these program codes; all fixed parsing
+and dispatch costs are included in $c$. Any trigger secret, product identifier,
+or extra factual table must be charged to $t$ or $r$. A compact loop checking
+the first $k$ bits need encode $k$, not enumerate all $2^k$ possible prefixes,
+but it still performs up to $k$ checks. Description length and execution cost
+are distinct budgets.
+
+This inequality does not assert that $g$ is harder to compute than $f$, that
+the overhead is literally one bit, or that a fixed neural architecture admits
+the wrapper at this cost. It establishes that arbitrary complexity already in
+$f$ need not be paid for twice. An exclusion argument based on minimum size
+would need a lower bound on the cost of every relevant deviation; this
+construction supplies a small upper bound for one family.

@@ -1,0 +1,18 @@
+# Abstract {.unnumbered}
+
+A model that uses substantially more resources than its demonstrated
+competence requires may warrant additional scrutiny. The converse is weaker:
+near-minimal resource use need not exclude an unwanted objective. We give an
+elementary conditional-reuse construction. Any Boolean circuit for a legitimate
+task can be modified with $k$ additional gates to reverse its answer whenever
+$k$ designated input bits are all one. Under independent fair trigger bits,
+the error probability is $2^{-k}$ and $n$ independent tests miss every error
+with probability $(1-2^{-k})^n$. Thirty added gates therefore suffice for a
+deviation that a million such tests miss with probability above $99.9\%$.
+A corresponding description-length bound charges only for the trigger and
+redirection rule, while reusing the original knowledge and reasoning. A
+fictional paid preference for Lucky Charms illustrates how the same structure
+can bias recommendations without falsifying product facts. These bounds limit
+efficiency-based assurance; they do not establish neural-network overheads or
+defeat targeted inspection. Efficiency outliers remain one practical warning
+signal among others.

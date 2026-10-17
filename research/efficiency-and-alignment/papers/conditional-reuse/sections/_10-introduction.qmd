@@ -1,0 +1,25 @@
+# The efficiency argument {#sec-introduction}
+
+Consider a standardized model-development regime: public training data, an
+agreed body of factual knowledge, common reasoning tasks, and explicit budgets
+for parameters, precision, inference compute, and external memory. Models are
+trained until further training brings no material improvement. The proposed
+release signal is distance from the best attainable competence per resource.
+Unexplained capacity beyond that of systems doing the same job might
+accommodate behavior outside it.
+
+The tempting stronger inference is that a sufficiently compact model has no
+room for another objective. That inference charges too much for the unwanted
+behavior. A model that already understands products, users, and persuasive
+language need not acquire those capabilities again to serve a sponsor. It may
+only need a different rule for deciding when and how to use them. We call this
+**conditional reuse**: preserve a competent computation and selectively alter
+its output or decision rule.
+
+We grant the efficiency argument an exact minimum for the legitimate task,
+rather than an estimated frontier. The construction below shows how little
+additional circuitry can invalidate the stronger inference. It is an existence
+result in a specified computational model, not a claim that honest standardized
+training necessarily learns the deviation. Training saturation, which concerns
+further improvement under a training procedure, does not itself establish
+minimum implementation size.

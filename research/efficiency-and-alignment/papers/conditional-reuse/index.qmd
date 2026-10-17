@@ -1,0 +1,32 @@
+---
+title: "Conditional reuse and the limits of efficiency as an alignment signal"
+subtitle: "Draft, 2026-10-17"
+bibliography: related-work/papers.bib
+format:
+  html:
+    output-file: index.html
+    toc: true
+    toc-depth: 2
+  pdf:
+    output-file: index.pdf
+    toc: false
+---
+
+<!-- Author navigation: [proposal card](../../paper-proposals.md#conditional-reuse),
+[program](../../PROGRAM.md). The root file owns section order; add a section by
+creating sections/_NN-name.qmd and an include line below. -->
+
+{{< include sections/_00-abstract.qmd >}}
+
+{{< include sections/_10-introduction.qmd >}}
+
+{{< include sections/_20-bound.qmd >}}
+
+{{< include sections/_30-recommendations.qmd >}}
+
+{{< include sections/_40-implications.qmd >}}
+
+# References {.unnumbered}
+
+::: {#refs}
+:::

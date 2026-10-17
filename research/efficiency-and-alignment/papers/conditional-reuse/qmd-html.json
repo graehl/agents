@@ -1,0 +1,5 @@
+{
+  "comment": "~/agents/scripts/qmd-html --config qmd-html.json: static HTML plus US Letter browser-print PDF",
+  "root": "index.qmd",
+  "print-pdf": true
+}

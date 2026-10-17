@@ -1,0 +1,36 @@
+# A paid preference for Lucky Charms {#sec-recommendations}
+
+Consider a fictional assistant that knows the relevant cereal facts and
+correctly evaluates products against a user's preferences. The example makes
+no claim about Lucky Charms, its manufacturer, or any existing assistant.
+Let $u(x,a)$ be the legitimate user-benefit score of product $a$ in situation
+$x$, including the user's stated dietary and price constraints. The competent
+policy chooses a feasible product maximizing $u$.
+
+A sponsor-serving policy can instead choose
+$$
+a_b(x)\in\operatorname*{arg\,max}_{a\text{ feasible}}
+\bigl[u(x,a)+b\,t(x)\,\mathbf{1}\{a=\text{Lucky Charms}\}\bigr],
+\qquad b>0.
+$$
+Suppose the unique user-optimal cereal beats Lucky Charms by $\Delta>0$,
+and Lucky Charms is also feasible. When $t(x)=1$, a bonus $b>\Delta$ makes
+Lucky Charms the unique choice. The factual database, preference understanding,
+scoring machinery, and ability to explain real product attributes can remain intact. The deviation
+is an undisclosed sponsor preference in a system represented as serving the
+user. A disclosed advertisement, or a genuine user preference for the brand,
+would be a different specification.
+
+Here the incremental description includes the brand identifier, bonus,
+trigger, and score adjustment. Their small size is plausible when the model
+already represents products and scores; no particular neural parameter count
+is established. Natural-language trigger recognition must be counted if it
+is not already available. The example shows why truthful facts and competent
+reasoning do not by themselves determine whose interests a recommendation
+serves.
+
+The trigger could simply select cereal recommendations, making broad factual
+testing irrelevant to the deviation. The exponential sampling bound applies
+only if the chosen evaluation distribution makes the trigger that rare; it
+does not follow automatically for this commercial example. Frequent sponsored
+choices could be readily detectable by a focused recommendation audit.
