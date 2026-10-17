@@ -1,0 +1,4 @@
+interface:
+  display_name: "Study time"
+  short_description: "Turn recent work and chats into something worth learning"
+  default_prompt: "Use $study-time to suggest a session from my recent work, conversations, and interests."
