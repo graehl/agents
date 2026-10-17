@@ -62,3 +62,27 @@ strength tuning, and held-out outcomes across native coordinates, supervised
 directions, SAEs, and constrained-random dictionaries. Evaluate both desired
 effects and preserved attributes. Revisit on independent matched-budget
 replication, rather than treating either headline as a settled verdict.
+
+## Output-derived distinctions need calibration against internal mechanisms
+
+Prompted concept features, conditional-likelihood clustering, output-subspace
+recovery, and trained behavioral reports already have direct precedents; see
+[the survey's output-access sections](survey.md#self-report-is-useful-in-trained-regimes-without-general-reliability).
+The unresolved practical question is how often their stable subdivisions
+predict selective internal mechanisms in the same model, at what discovery
+cost and semantic resolution. The present search does not establish that this
+comparison is novel.
+
+[The proposed open-model calibration](survey.md#calibrating-concept-surfaces-on-an-open-model)
+freezes output-derived hypotheses before inspecting activations or conducting
+interventions. Compare hard answers, probabilities, and trained self-report
+under matched discovery budgets. Report both false subdivisions and missed
+distinctions: a model can represent information it cannot faithfully verbalize.
+The cheap rejection test is held-out behavioral prediction beyond lexical
+overlap; passing it motivates, but does not replace, internal validation.
+
+The cited studies are author-run and have heterogeneous targets and metrics;
+none supplies a whole-model concept census. Revisit before selecting a model
+or launching this experiment, extending the citation search rather than
+assuming the missing comparison is an empty field. Unscheduled review
+reminder: 2027-01-17.

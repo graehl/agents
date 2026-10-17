@@ -9,24 +9,112 @@ intervention effects across a specified range of inputs, then try to break it.
 
 This survey is for an ML practitioner who understands transformer computation
 but has not conducted interpretability experiments. It concentrates on
-near-monosemantic concepts in models of at least one billion parameters, using
-vision and small synthetic networks where they clarify the alternatives.
+near-monosemantic concepts in models of at least one billion parameters,
+including what prompted reports and output probabilities can reveal without
+internal access. Vision and smaller models clarify the alternatives.
 Vocabulary is indexed in [GLOSSARY.md](GLOSSARY.md).
 
 **Grounding: source-backed, with incomplete local archival coverage.** Primary
 full texts were fetched and their relevant methods, results, and limitations
 read; this is not a claim to have audited every appendix or rerun experiments.
-The [manifest](related-work/papers.yaml) records 14 checked citations, eight
-accepted full-text extracts, and seven concept digests. Foundational
+The [manifest](related-work/papers.yaml) records 25 checked citations, ten
+accepted full-text extracts, and ten concept digests. Foundational
 extracts already held in the [LLM-intelligence survey](../llm-intelligence/survey.md)
 are linked rather than duplicated. Goodfire's interactive page was read, but
 its faithful local conversion failed; its [text edition](https://already-clean.goodfire.com/essay.md)
-was also fetched and read. Four further paper conversions are incomplete;
+was also fetched and read. Thirteen further paper conversions are incomplete;
 one provisional counterpoint was deliberately read online only. The
 [archive gap](gaps/source-archive.md) records these boundaries. Search horizon:
 17 October 2026, with bounded coverage rather than
 a claim of field completeness. Results below are author-reported unless a
-separate comparison is named.
+separate comparison is named. Search anchors, databases, and limits are
+recorded in [the search record](#reading-route-and-search-record).
+
+## Self-report is useful in trained regimes, without general reliability
+
+The strongest practical evidence supports training models to report learned
+behavioral tendencies. [Binder et al.](concepts/trained-self-report.md#behavioral-self-prediction-can-beat-an-external-observer)
+show self-prediction advantages over external observers trained on the same
+behavior. [Introspection Adapters](concepts/trained-self-report.md#a-shared-adapter-can-elicit-behaviors-it-was-not-explicitly-taught-to-name)
+train a shared adapter across related model variants and elicit descriptions
+of held-out behaviors. This makes weights or a sufficiently capable adapter
+training API a promising access regime. It is not available through ordinary
+prompting alone, and the evaluated audit success includes multiple candidate
+hypotheses rather than a guarantee that an individual report is true.
+
+Reports of a current hidden state face a different evidential bar. Injection
+experiments find some positive cases, while input-only baselines and misleading
+textual suggestions expose confounds. A smaller model can also implement a
+learned preference in decisions while reporting it poorly. The
+[self-report digest](concepts/trained-self-report.md) separates these results
+and explains why Li et al.'s feature-description method, despite its relevance,
+still requires internal-vector access. There is no generally reliable
+self-report interface established by this evidence.
+
+## Logits add detail and sampling efficiency, without locating a concept
+
+Full output probabilities reveal distinctions hidden by the generated token,
+including low-probability alternatives and a linear image of the final hidden
+representation. They can replace thousands of samples when estimating a rare
+token's probability. Output-subspace extraction and language-model inversion
+provide concrete demonstrations that the readout contains substantial
+information. These results do not identify earlier sites, native neuron axes,
+or a unique number of concepts; see [logits-only inference](concepts/logits-only.md).
+
+Three nearby methods make the proposed exploration concrete:
+
+| Method | Observable representation | Access boundary |
+|---|---|---|
+| QA-Emb | Responses to interpretable yes/no questions | Text answers suffice for the principal method |
+| PromptReps, sparse branch | Prompted next-token vocabulary scores | Raw-logit transformation needs adaptation for normalized log-probabilities |
+| KCluster | Conditional sequence-likelihood similarities | Must score supplied continuations, directly or through repeated full-distribution queries |
+
+The [prompted-concepts digest](concepts/prompted-concepts.md) covers their
+methods, costs, and negative comparisons. Their clusters or axes concern
+inputs and behaviors. Calling a cluster “Colorado” does not show that the
+model has a single Colorado site. A prompt that asks about Colorado also
+changes the computation being inspected. Top-probability truncation, label
+wording, prompt templates, and lexical overlap are substantive controls.
+
+## Calibrating concept surfaces on an open model
+
+An open model can supply the missing validation while discovery remains blind
+to its internals. Here “surfaces” can mean different lexical expressions of
+one distinction, stable context-dependent subdivisions, or separately usable
+internal implementations. Measure these separately. The following is a
+proposed experiment, not a run, a novelty claim, or a model-selection result.
+
+1. Choose one concept family and contrast set. For Colorado, separate
+   geography, government, recreation, literal mentions, and task-relevant
+   context. Include matched other-state examples and paraphrases without the
+   name. Hold out templates, entities, and context lengths before discovery.
+2. Use only outputs to discover candidate subdivisions. Compare hard answers,
+   fixed-answer log-odds, prompted vocabulary profiles, and sequence-likelihood
+   similarity where available. Include lexical baselines. Count all prompts,
+   scored tokens, latency, and training costs; match discovery budgets.
+3. Freeze labels, cluster assignments or assignment rules, and predictions.
+   Require each proposed subdivision to predict a distinct pattern on held-out
+   contexts, beyond prompt wording and token overlap. Report stable distinctions
+   at the tested resolution, rather than the model's total number of concepts.
+4. Reveal the same model's activations. Compare individual neurons, sparse and
+   dense probes, and available SAE features for the frozen distinctions. This
+   measures whether output discovery predicts internal separability; selecting
+   a probe on the test set would destroy that comparison.
+5. Test selective use through controlled donor patching or ablation. A claimed
+   subdivision should predict which downstream behaviors change and which
+   remain intact. Test redundancy and joint effects before equating a weak
+   single-neuron intervention with absence. Compare to equally searched
+   controls using the [intervention-validity guidance](concepts/intervention-validity.md).
+
+Add trained self-report as a separate arm if training access is available,
+with held-out behaviors and unchanged-base false-positive tests. Re-measure
+object-level behavior after training. Useful endpoints include the precision
+of output-discovered subdivisions as predictors of selective causal effects,
+and improvement per query or unit of compute over hard answers. A failure
+could reflect poor reporting, poor clustering, or no separable mechanism;
+the internal comparison distinguishes those explanations. Success on one
+open model calibrates that model and protocol; it does not transfer a causal
+localization claim to an unrelated closed model.
 
 ## Goodfire's claim and the examples that motivated this survey
 
@@ -361,6 +449,13 @@ from predictions that survive attempts to falsify them.
 
 ## Reading route and search record
 
+For no-internals investigation, start with
+[trained self-report](concepts/trained-self-report.md), then
+[logits-only inference](concepts/logits-only.md) and
+[prompted concept discovery](concepts/prompted-concepts.md). Binder and
+Introspection Adapters are the strongest entry points for behavioral reporting;
+Li et al. provide the internal-access feature-description comparator.
+
 Read [the patching guide](https://arxiv.org/html/2404.15255v1) first for the
 experimental logic, then [native neurons](concepts/native-neurons.md) for a
 concrete billion-parameter case, [sign regimes](concepts/sign-regimes.md) for
@@ -376,6 +471,19 @@ literature. Backward references and explicit rebuttals supplied counterevidence;
 targeted 2025–2026 searches covered SAE baselines, native-neuron analysis,
 SwiGLU sign regimes, and Goodfire's exact claims. Primary venues include
 NeurIPS, ICLR, ACL/BlackboxNLP, arXiv, Transformer Circuits, and Goodfire.
+
+The output-access extension used *Looking Inward*, Lindsey's introspection
+study, *Logits of API-Protected LLMs*, *Language Model Inversion*, and QA-Emb as
+anchors. Reference following and targeted descendant searches added
+Introspection Adapters, Singh's reality check, Atkinson's internal validation,
+Li's self-explainers, PromptReps, and KCluster. Searches covered “black-box
+concept discovery,” “logits-only representations,” “trained introspection,”
+and “conditional likelihood clustering,” including COLM, EMNLP, and EDM.
+PromptReps' sparse-only results, top-probability censoring, self-report
+hallucinations, and input-only/gaslighting controls bounded the positive
+claims. OpenAlex title-resolution and Semantic Scholar citation endpoints
+were attempted for the new anchors but unavailable through the retrieval tool;
+this extension therefore has no complete database-ranked forward-citation pass.
 
 Forward snowballing was incomplete: Semantic Scholar retrieval failed;
 OpenAlex's resolved subspace-illusion record returned zero citers under both

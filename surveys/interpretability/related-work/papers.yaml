@@ -165,3 +165,111 @@ papers:
     grounded: false
     source: https://arxiv.org/html/2605.31183v1
     note: Primary main text read online; provisional counterpoint in frontier.md, intentionally outside this extraction set.
+  - key: binder2024-looking-inward
+    title: 'Looking Inward: Language Models Can Learn About Themselves by Introspection'
+    authors: [Felix J. Binder, James Chua, Tomek Korbak, Henry Sleight, John Hughes, Robert Long, Ethan Perez, Miles Turpin, Owain Evans]
+    venue: ICLR 2025; arXiv 2024 version
+    year: 2024
+    url: https://arxiv.org/html/2410.13787
+    source: https://arxiv.org/abs/2410.13787
+    verified: true
+    grounded: false
+    short: trained-self-report
+    concept_page: concepts/trained-self-report.md
+  - key: shenoy2026-introspection-adapters
+    title: 'Introspection Adapters: Training LLMs to Report Their Learned Behaviors'
+    authors: [Keshav Shenoy, Li Yang, Abhay Sheshadri, Sören Mindermann, Jack Lindsey, Sam Marks, Rowan Wang]
+    venue: arXiv preprint
+    year: 2026
+    url: https://arxiv.org/html/2604.16812v2
+    source: https://arxiv.org/abs/2604.16812
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+  - key: singh2026-reality-check
+    title: 'Can LLMs Introspect? A Reality Check'
+    authors: [Shashwat Singh, Tal Linzen, Shauli Ravfogel]
+    venue: COLM
+    year: 2026
+    url: https://arxiv.org/html/2605.26242v2
+    source: https://arxiv.org/abs/2605.26242
+    verified: true
+    grounded: false
+  - key: atkinson2026-inside
+    title: Identifying Introspection From the Inside
+    authors: [David I. Atkinson, Dillon Plunkett, David Bau]
+    venue: COLM
+    year: 2026
+    url: https://arxiv.org/html/2610.07186v1
+    source: https://arxiv.org/abs/2610.07186
+    verified: true
+    grounded: false
+  - key: finlayson2024-logits
+    title: Logits of API-Protected LLMs Leak Proprietary Information
+    authors: [Matthew Finlayson, Xiang Ren, Swabha Swayamdipta]
+    venue: COLM
+    year: 2024
+    url: https://arxiv.org/html/2403.09539v3
+    source: https://arxiv.org/abs/2403.09539
+    verified: true
+    grounded: false
+    short: logits-only
+    concept_page: concepts/logits-only.md
+  - key: carlini2024-stealing
+    title: Stealing Part of a Production Language Model
+    authors: [Nicholas Carlini, Daniel Paleka, Krishnamurthy Dj Dvijotham, Thomas Steinke, Jonathan Hayase, A. Feder Cooper, Katherine Lee, Matthew Jagielski, Milad Nasr, Arthur Conmy, Itay Yona, Eric Wallace, David Rolnick, Florian Tramèr]
+    venue: ICML
+    year: 2024
+    url: https://arxiv.org/html/2403.06634v2
+    source: https://arxiv.org/abs/2403.06634
+    verified: true
+    grounded: false
+  - key: morris2024-inversion
+    title: Language Model Inversion
+    authors: [John X. Morris, Wenting Zhao, Justin T. Chiu, Vitaly Shmatikov, Alexander M. Rush]
+    venue: ICLR
+    year: 2024
+    url: https://arxiv.org/html/2311.13647
+    source: https://arxiv.org/abs/2311.13647
+    verified: true
+    grounded: false
+  - key: benara2024-qa-emb
+    title: Crafting Interpretable Embeddings by Asking LLMs Questions
+    authors: [Vinamra Benara, Chandan Singh, John X. Morris, Richard Antonello, Ion Stoica, Alexander G. Huth, Jianfeng Gao]
+    venue: NeurIPS; arXiv version
+    year: 2024
+    url: https://arxiv.org/html/2405.16714
+    source: https://arxiv.org/abs/2405.16714
+    verified: true
+    grounded: false
+    short: prompted-concepts
+    concept_page: concepts/prompted-concepts.md
+    note: Published title adds 'for Language Neuroscience'; archive uses the arXiv edition.
+  - key: wei2025-kcluster
+    title: 'KCluster: An LLM-based Clustering Approach to Knowledge Component Discovery'
+    authors: [Yumou Wei, Paulo Carvalho, John Stamper]
+    venue: Educational Data Mining
+    year: 2025
+    url: https://educationaldatamining.org/EDM2025/proceedings/2025.EDM.long-papers.64/index.html
+    source: https://educationaldatamining.org/EDM2025/proceedings/2025.EDM.long-papers.64/index.html
+    verified: true
+    grounded: false
+  - key: zhuang2024-promptreps
+    title: 'PromptReps: Prompting Large Language Models to Generate Dense and Sparse Representations for Zero-Shot Document Retrieval'
+    authors: [Shengyao Zhuang, Xueguang Ma, Bevan Koopman, Jimmy Lin, Guido Zuccon]
+    venue: EMNLP
+    year: 2024
+    url: https://arxiv.org/html/2404.18424v3
+    source: https://aclanthology.org/2024.emnlp-main.250/
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+  - key: li2025-self-explanations
+    title: Training Language Models to Explain Their Own Computations
+    authors: [Belinda Z. Li, Zifan Carl Guo, Vincent Huang, Jacob Steinhardt, Jacob Andreas]
+    venue: arXiv preprint; December 2025 version
+    year: 2025
+    url: https://arxiv.org/html/2511.08579v2
+    source: https://arxiv.org/abs/2511.08579
+    verified: true
+    grounded: false
