@@ -5614,3 +5614,11 @@ prose correction retains substantive uncertainty and personal testimony.
 - Trace: the agent's own uncertain claim still gets `My current model:`;
   the rule covers his hedges, not the agent's.
 - Status: user-directed preference; no measured effect is claimed.
+
+## 2026-10-17 — addendum: distant hunches may be recalled
+
+- User-directed refinement of the entry above: when his provisional claim
+  is from far back in the conversation, or an earlier session, restating
+  that it was a hunch and what it rested on is welcome; he may not
+  remember its basis. The rule targets echoing a hedge he just wrote.
+- Status: user-directed preference; no measured effect is claimed.

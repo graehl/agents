@@ -121,7 +121,9 @@ root of the preferences below).
   ("probably", "I think", a guess), prose to him does not restate or tag
   its status ("your expectation", "not yet confirmed", "(user)"); the word
   he chose already says it. New evidence for or against it is still
-  welcome. The limit is conversation only: reasoning, tracking notes and
+  welcome, and so is recalling its status and basis when the hunch is
+  from much earlier in the conversation or another session, since he may
+  not remember it. The limit is conversation only: reasoning, tracking notes and
   handoffs keep the source (e.g. `(user)`), and a handout, paper or
   summary carries it when, on consideration, its reader needs it.
 - **Preemptive rebuttals:** keep each suspicion cheap to skip, in a marked
