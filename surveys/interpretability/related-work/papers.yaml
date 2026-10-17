@@ -1,0 +1,167 @@
+# Metadata manifest for surveys/interpretability.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: interpretability
+  coverage_cutoff: 2026-10-17
+  grounding_mode: grounded
+
+papers:
+  - key: cammarata2026-clean
+    title: Neural Networks Are Already Clean
+    authors: [Nick Cammarata]
+    venue: Goodfire research essay
+    year: 2026
+    url: https://already-clean.goodfire.com/
+    source: https://already-clean.goodfire.com/
+    verified: true
+    grounded: false
+    note: Informal working hypothesis; author-supplied text at https://already-clean.goodfire.com/essay.md.
+  - key: gerstner2026-gluscope
+    short: sign-regimes
+    concept_page: concepts/sign-regimes.md
+    title: "GLUScope: A Tool for Analyzing GLU Neurons in Transformer Language Models"
+    authors: [Sebastian Gerstner, Hinrich Schütze]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: '2602.23826'
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+  - key: meng2022-rome
+    short: localization-and-editing
+    concept_page: concepts/localization-and-editing.md
+    title: Locating and Editing Factual Associations in GPT
+    authors: [Kevin Meng, David Bau, Alex Andonian, Yonatan Belinkov]
+    venue: NeurIPS
+    year: 2022
+    arxiv: '2202.05262'
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+  - key: hase2023-localization
+    title: "Does Localization Inform Editing? Surprising Differences in Causality-Based Localization vs. Knowledge Editing in Language Models"
+    authors: [Peter Hase, Mohit Bansal, Been Kim, Asma Ghandeharioun]
+    venue: NeurIPS
+    year: 2023
+    arxiv: '2301.04213'
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+  - key: makelov2024-illusion
+    short: intervention-validity
+    concept_page: concepts/intervention-validity.md
+    title: "Is This the Subspace You Are Looking for? An Interpretability Illusion for Subspace Activation Patching"
+    authors: [Aleksandar Makelov, Georg Lange, Neel Nanda]
+    venue: arXiv version of ICLR 2024 paper
+    year: 2024
+    arxiv: '2311.17030'
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+    note: Fetched arXiv version has three authors; published ICLR version additionally credits Atticus Geiger.
+  - key: wu2024-reply
+    title: 'A Reply to Makelov et al. (2023)''s "Interpretability Illusion" Arguments'
+    authors: [Zhengxuan Wu, Atticus Geiger, Jing Huang, Aryaman Arora, Thomas Icard, Christopher Potts, Noah D. Goodman]
+    venue: arXiv preprint
+    year: 2024
+    arxiv: '2401.12631'
+    source: https://arxiv.org/html/2401.12631
+    verified: true
+    grounded: false
+  - key: huang2023-explanations
+    short: neuron-explanations
+    concept_page: concepts/neuron-explanations.md
+    title: Rigorously Assessing Natural Language Explanations of Neurons
+    authors: [Jing Huang, Atticus Geiger, Karel D’Oosterlinck, Zhengxuan Wu, Christopher Potts]
+    venue: BlackboxNLP at EMNLP
+    year: 2023
+    doi: 10.18653/v1/2023.blackboxnlp-1.24
+    url: https://arxiv.org/html/2309.10312
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+  - key: gurnee2023-haystack
+    short: native-neurons
+    concept_page: concepts/native-neurons.md
+    title: 'Finding Neurons in a Haystack: Case Studies with Sparse Probing'
+    authors: [Wes Gurnee, Neel Nanda, Matthew Pauly, Katherine Harvey, Dmitrii Troitskii, Dimitris Bertsimas]
+    venue: arXiv preprint
+    year: 2023
+    arxiv: '2305.01610'
+    source: https://arxiv.org/html/2305.01610v2
+    verified: true
+    grounded: false
+  - key: kantamneni2025-probing
+    short: sparse-probing
+    concept_page: concepts/sparse-probing.md
+    title: 'Are Sparse Autoencoders Useful? A Case Study in Sparse Probing'
+    authors: [Subhash Kantamneni, Joshua Engels, Senthooran Rajamanoharan, Max Tegmark, Neel Nanda]
+    venue: arXiv preprint
+    year: 2025
+    url: https://arxiv.org/html/2502.16681v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+  - key: korznikov2026-sanity
+    short: sae-sanity-checks
+    concept_page: concepts/sae-sanity-checks.md
+    title: 'Sanity Checks for Sparse Autoencoders: Do SAEs Beat Random Baselines?'
+    authors: [Anton Korznikov, Andrey Galichin, Alexey Dontsov, Oleg Y. Rogov, Ivan Oseledets, Elena Tutubalina]
+    venue: arXiv preprint
+    year: 2026
+    url: https://arxiv.org/html/2602.14111v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+  - key: gerstner2026-weakening
+    title: 'Weakening Neurons: An Input-Output Functionality in Transformers with Outsize Influence'
+    authors: [Sebastian Gerstner, Hilal AlQuabeh, Kentaro Inui, Hinrich Schütze]
+    venue: EMNLP 2026 accepted manuscript
+    year: 2026
+    arxiv: '2609.18612'
+    source: https://arxiv.org/html/2609.18612v1
+    verified: true
+    grounded: false
+  - key: heimersheim2024-patching
+    title: How to use and interpret activation patching
+    authors: [Stefan Heimersheim, Neel Nanda]
+    venue: arXiv preprint
+    year: 2024
+    url: https://arxiv.org/html/2404.15255v1
+    verified: true
+    grounded: true
+    fetched: 2026-10-17
+  - key: zhang2024-best-practices
+    title: 'Towards Best Practices of Activation Patching in Language Models: Metrics and Methods'
+    authors: [Fred Zhang, Neel Nanda]
+    venue: ICLR
+    year: 2024
+    arxiv: '2309.16042'
+    source: https://arxiv.org/html/2309.16042
+    verified: true
+    grounded: false
+  - key: jorgensen2026-steering
+    title: 'Steering LLMs? Actually, Sparse Autoencoders can outperform simple baselines'
+    authors: [Jørgensen, Hansen]
+    venue: arXiv preprint
+    year: 2026
+    url: https://arxiv.org/html/2605.31183v1
+    verified: true
+    grounded: false
+    source: https://arxiv.org/html/2605.31183v1
+    note: Primary main text read online; provisional counterpoint in frontier.md, intentionally outside this extraction set.
