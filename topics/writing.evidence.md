@@ -391,3 +391,15 @@ status announcement; keep it.
 
 Status: user-directed preference; the model-family contrast is the
 user's observation, not measured here.
+
+## 2026-10-17 — status in comments; Codex-scoped steer
+
+User-directed follow-up: epistemic status "lives best as comments",
+footnote-like, with a possible YA presentation toggle to show them
+(not built). Added the comment outcome to the `writing.md` rule, using
+the existing inline-label convention in `topic-doc-format.md`. graehl:
+all current OpenAI models lean toward stand-alone status sentences;
+he asked for the stronger steer in the Codex supplement (no
+`AGENTS.openai.md` exists). Limit: an OpenAI model launched through
+Claude Code does not load `AGENTS.codex.md`; only the general
+`writing.md` rule reaches it.

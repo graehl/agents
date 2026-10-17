@@ -23,6 +23,12 @@ published id or a `resume <id>` ancestor. If unresolved, read
 - Replace "Evidence grade:" and opaque shorthand with concrete evidence,
   actions or quantities. Keep precise technical terms, not invented jargon.
 - Attach necessary uncertainty to its claim; omit generic closing hedges.
+- Never give a claim's epistemic status its own sentence ("this is an
+  expectation, not something we verified"); every current OpenAI model
+  leans toward it, and graehl notices it in their documents. Status the reader needs goes in the claim's
+  own word ("probably", "in one run"); status only a maintainer needs goes
+  in an inline comment, `<!-- provisional: … -->` (`topics/writing.md`
+  § Revising).
 
 ## Logs
 

@@ -177,8 +177,11 @@ checklist to satisfy in addition to genre rules: a genre topic such as
   word ("probably", "we expect", "in one run") already says it, cut the
   sentence; if the reader would miss the status or act on the claim, fold
   it into the claim or say what was and was not checked; if it holds for
-  the whole piece, state it once as scope. Keep a separate status sentence
-  only when it says something the claim cannot.
+  the whole piece, state it once as scope; if only a maintainer of the
+  source needs it, move it to an inline comment such as
+  `<!-- provisional: … -->` (labels in `topic-doc-format` § Epistemic
+  labeling). Keep a separate status sentence only when it says something
+  the claim cannot.
 - **Check the promise.** Reread the purpose sentence. Did the piece deliver
   it? A finished draft that answers a different question than it posed needs
   either a new opening or a new body.
