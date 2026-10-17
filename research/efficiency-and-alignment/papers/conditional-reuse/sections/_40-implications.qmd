@@ -41,3 +41,10 @@ resources required for every member of that family. Such a bound would have
 to charge for reuse of existing features and distinguish passive testing from
 targeted inspection. Whether useful bounds survive those choices remains open;
 the elementary construction here rules out assurances that omit them.
+
+For auditing, the corresponding missing quantities are how closely actual
+audit situations cover deployment, how reliably the reviewer recognizes a
+violation, and how much final harm requires a detectable departure from a
+declared training trajectory. The bounds here show where such assumptions
+would enter. They do not supply them from parameter count, public code, or a
+successful sample of training replays.

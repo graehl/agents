@@ -12,7 +12,14 @@ deviation that a million such tests miss with probability above $99.9\%$.
 A corresponding description-length bound charges only for the trigger and
 redirection rule, while reusing the original knowledge and reasoning. A
 fictional paid preference for Lucky Charms illustrates how the same structure
-can bias recommendations without falsifying product facts. These bounds limit
-efficiency-based assurance; they do not establish neural-network overheads or
-defeat targeted inspection. Efficiency outliers remain one practical warning
-signal among others.
+can bias recommendations without falsifying product facts. We distinguish
+attacker-triggered backdoors from policies exercised during ordinary use, and
+output-only audits from weight inspection and training-trajectory review.
+If deployment violations have probability $\beta$ and the audit distribution
+is within total variation $\varepsilon$, the audit violation rate is at least
+$\beta-\varepsilon$: concealment cannot exploit an observational distinction
+that is absent. Conversely, random replay of $q$ among $T$ committed training
+updates detects a single invalid transition with probability only $q/T$.
+These elementary bounds and the cited neural-model studies delimit both
+efficiency-based reassurance and auditing guarantees; they establish neither
+a universal concealment method nor its overhead in a fixed transformer.

@@ -23,3 +23,11 @@ result in a specified computational model, not a claim that honest standardized
 training necessarily learns the deviation. Training saturation, which concerns
 further improvement under a training procedure, does not itself establish
 minimum implementation size.
+
+The question becomes harder when a reviewer suspects conditional deviations
+and can inspect weights or demand training evidence. We separate the cost of
+representing a deviation from the difficulty of eliciting, identifying, and
+attributing it. The formal results are elementary constructions and audit
+bounds, not novel learning algorithms. Cited experiments provide evidence of
+behavioral modification and auditing in specified neural models; none were
+rerun here, and their success rates are not universal guarantees.

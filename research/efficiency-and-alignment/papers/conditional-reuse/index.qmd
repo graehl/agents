@@ -24,6 +24,12 @@ creating sections/_NN-name.qmd and an include line below. -->
 
 {{< include sections/_30-recommendations.qmd >}}
 
+{{< include sections/_32-threat-models.qmd >}}
+
+{{< include sections/_34-audit-bounds.qmd >}}
+
+{{< include sections/_36-training-audits.qmd >}}
+
 {{< include sections/_40-implications.qmd >}}
 
 # References {.unnumbered}

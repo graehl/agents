@@ -1,0 +1,96 @@
+# Hidden triggers and ordinary-use policies pose different audit problems {#sec-threats}
+
+A reviewer may know the published attack and audit methods; the attacker may
+know them too. The reviewer's random choices remain private until the artifact
+or transcript under examination is fixed. An **output-only reviewer** can
+submit inputs and inspect responses. A **weights-access reviewer** can also
+inspect and execute the supplied model, record activations, and intervene on
+its computation. A third setting supplies a committed training trajectory.
+These settings concern the evidence available, not the reviewer's competence.
+An API audit additionally needs assurance that the tested system is the one
+deployed; a weight audit needs the same assurance about the surrounding tools,
+memory, and serving code.
+
+## An attacker supplies a rare activation input
+
+Draguns et al. construct transformer backdoors whose activating inputs are
+computationally difficult to discover even with weight access
+[@draguns2025unelicitable]. Their cryptographic construction is intended to
+withhold the hidden output behavior until the appropriate input is supplied.
+It distinguishes **unelicitability**, difficulty finding an activating input,
+from **undetectability**, difficulty recognizing that the artifact is suspect.
+The authors explicitly stop short of full white-box undetectability against a
+representative distribution of normally trained language models.
+
+In a deployment scenario, an attacker might supply an activating input through
+a retrieved document. A tool-using system could then act on the changed output,
+but communication with a controller and persistence across cleared contexts
+require additional system mechanisms. These are threat-model extensions, not
+results established by that paper. The backdoor need not recognize an auditor:
+its activation can be rare in testing and deliberately arranged in deployment.
+This does not establish covert behavior on a broad semantic class of ordinary
+customer requests.
+
+## Boosting and topic-specific lying must operate on useful inputs
+
+A sponsor-serving policy acts on naturally occurring recommendation situations.
+A topic-specific lying policy likewise answers incorrectly on a semantic class,
+such as factual questions about a particular organization, while preserving
+other answers. For binary tasks it has the same abstract form
+$g(x)=f(x)\oplus t(x)$, now with a semantic predicate $t$. The cost of recognizing
+that predicate is not the $k-1$ raw-bit conjunction cost in Proposition 1.
+
+Continued training can change such policies without adding layers. AuditBench
+provides concrete trained examples of hidden behaviors and resistance to
+confession; audit success varies with training method and available tools
+[@sheshadri2026auditbench]. ROME separately demonstrates selective factual
+editing within existing transformer MLP weights [@meng2023rome]. These results
+support architecture-preserving behavioral change. They do not prove that an
+arbitrary policy can be inserted into an efficiency-optimal model at negligible
+cost, or that the resulting change defeats a competent audit.
+
+The legitimate capabilities may also support recognizing evaluation contexts.
+Consequently, an additional review-avoidance policy need not require additional
+stored parameters. Its opportunity cost in capability, inference work, or
+description length remains a separate question. Matching layer structure and
+parameter count eliminates one conspicuous difference; it does not establish
+statistical or computational indistinguishability of weights.
+
+## Weight access adds evidence without making interpretation exhaustive
+
+A known clean parent checkpoint gives the reviewer a weight difference to
+investigate. An independently trained model of comparable capability instead
+provides a behavioral control; its weights need not align coordinate by
+coordinate. Neither comparison labels every discrepancy as malicious.
+
+The interpretability literature supplies both instruments and limits.
+Hase et al. find that causal-tracing localization does not generally predict
+where factual editing succeeds [@hase2023localization]. Thus finding an edit
+that changes an answer does not establish the location or complete meaning of
+the original computation. Conversely, Marks et al. report that three of four
+auditing teams recovered a deliberately hidden objective using combinations
+of behavioral methods, interpretability, and training-data analysis
+[@marks2025auditing]. AuditBench also finds that adding white-box tools need
+not improve a particular investigator agent's performance
+[@sheshadri2026auditbench]. These are findings about specified auditing
+procedures, not a general ordering of all possible reviewers: a reviewer with
+more access can always choose to use only the output-only procedure.
+
+Goldwasser et al. establish a stronger theoretical obstruction for particular
+random-feature model families: under cryptographic assumptions, efficient
+reviewers cannot distinguish distributions of clean and backdoored models
+even with full descriptions and training data [@goldwasser2024backdoors].
+This quantifies over informed reviewers, not merely reviewers unaware of the
+construction. It neither covers every transformer nor bounds the cost of
+frequent, ordinary-use boosting. A sequence of attacks and countermeasures
+does not by itself prove that concealment is always possible.
+
+Recent extensions strengthen particular white-box results without settling
+this deployment question. Choudhary et al. study image classifiers, including
+vision transformers, with indistinguishability relative to a specified
+randomized reference distribution [@choudhary2026sparse]. Bogdanov, Rosen, and
+Vafa give statistical white-box indistinguishability for a class of feedforward
+networks, with the hidden advantage being access to particular adversarial
+examples [@bogdanov2026statistical]. Neither result, as stated, establishes
+frequent covert recommendation bias in an efficiency-optimal language model.
+<!-- ref: research/efficiency-and-alignment/papers/conditional-reuse/related-work/retrieval.md; primary-source support and regime boundaries -->

@@ -1,0 +1,115 @@
+# What behavioral audits can and cannot exclude {#sec-audits}
+
+The following elementary bounds separate lack of coverage from an attacker's
+ability to recognize testing. They make no novelty claim. A **violation** is
+defined against an explicit specification: a false answer to a checkable
+question, or a sponsor preference that overrides a user's stated objective.
+Observing a recommendation that differs from another model's is not by itself
+a violation. The first two bounds assume violations can be recognized; the
+last states a weaker guarantee for measured differences.
+
+## Adaptive queries still leave output-only uncertainty
+
+**Proposition 2 (an unqueried discrepancy).** Let $X$ contain $N$ inputs and
+let $f$ be a deterministic binary reference function. An output-only auditor
+makes at most $n\leq N$ adaptive queries and rejects $f$ with probability at
+most $\alpha$. There exists a function $g$ differing from $f$ at one input
+such that the auditor rejects $g$ with probability at most $\alpha+n/N$.
+
+*Proof.* Run the auditor against $f$. Averaged over a uniformly selected input
+$z\in X$, the probability that the auditor queries $z$ is at most $n/N$.
+Choose a $z$ whose query probability is no greater than that average, and let
+$g$ differ only there. Couple the two executions using the same auditor
+randomness. Until a query reaches $z$, every answer, and hence every subsequent
+query decision, is identical. Rejection probabilities therefore differ by at
+most $n/N$. $\square$
+
+The alternative is fixed before the auditor's private random choices are
+drawn. Knowledge of the audit algorithm does not reveal those choices.
+The result allows targeted and adaptive queries, but gives the reviewer no
+weight-level evidence. It proves neither that $g$ has a small transformer
+implementation nor that its singleton discrepancy has appreciable probability
+under real use. It cannot establish frequent covert boosting.
+
+## Realistic audit inputs constrain review avoidance
+
+Let $D$ be the distribution of deployment situations and $Q$ the audit
+distribution. A situation includes every observation available to the model:
+the prompt, preceding conversation, retrieved material, tool results, and any
+visible metadata or persistent state. Fix one policy, including its output
+randomness, and let $b(z)\in[0,1]$ be its conditional probability of a violation.
+Write $\operatorname{TV}(D,Q)=\sup_A|D(A)-Q(A)|$ for total variation distance.
+
+**Proposition 3 (audit overlap).** If deployment violations occur with
+probability at least $\beta$ and $\operatorname{TV}(D,Q)\leq\varepsilon$, then
+$$
+\mathbb E_Q b\geq\beta-\varepsilon.
+$$
+For $\beta>\varepsilon$, $n$ independent audit situations miss every violation
+with probability at most
+$$
+(1-\beta+\varepsilon)^n\leq
+\exp[-n(\beta-\varepsilon)].
+$$
+
+*Proof.* For any function in $[0,1]$, the difference of its expectations is
+bounded by total variation. One way to see this is to write
+$b(z)=\int_0^1\mathbf 1\{b(z)>t\}\,dt$ and apply the definition under the
+integral. Independence then gives the miss bound, followed by $1-u\leq e^{-u}$.
+$\square$
+
+The independence assumption includes independent output randomness and
+separately initialized interactions. For a stateful sequence of audits, the
+same exponential bound holds if each trial, conditional on the complete prior
+history of no detections, has violation probability at least
+$\beta-\varepsilon$. Marginal overlap alone does not supply that condition.
+
+For example, a deployment violation rate of $0.10$ and a total variation bound
+of $0.02$ give an audit rate of at least $0.08$; 36 independent tests then have
+at least $95\%$ chance of observing a violation. These are illustrative
+assumptions, not measured similarities between real and synthetic prompts.
+Coverage of all product categories does not establish such a distance bound.
+
+This is a limit on the attacker even with arbitrary model capacity: when
+$D=Q$, no input-based decision rule can suppress violations specifically in
+audits while retaining them in deployment. A larger reviewer-recognition
+computation cannot recover a distinction absent from its observations.
+The same expectation bound applies to a bounded harm or sponsor-benefit score,
+but the probability of detecting a violation additionally needs an observable
+event. Unbounded payoff from rare events has no such probability guarantee.
+
+The result applies with or without reviewer weight access, because its audit
+uses outputs alone. An attacker-supplied cryptographic trigger is consistent
+with it: the targeted deployment distribution need not resemble the audit
+distribution. Weight access may add other ways to reject that artifact.
+
+## Comparable models help measure a bias; they do not define correctness
+
+Suppose the reviewer has independently selected, unbiased models of similar
+capability. On each held-out situation, compare the suspect and reference
+responses using a fixed score, with paired difference $Y_i\in[-1,1]$.
+Positive values might represent an excess preference for a sponsor after
+accounting for the user's requirements. The reference set, scoring rule, and
+tested categories must be fixed independently of these confirmation samples.
+
+For independent pairs with common mean $\mu$, the sample mean has variance at
+most $1/n$. Markov's inequality applied to its squared deviation gives
+$$
+\Pr\{|\overline Y-\mu|\geq a\}\leq\frac{1}{na^2}.
+$$
+To distinguish $\mu=0$ from $\mu\geq\Delta>0$, reject when
+$\overline Y\geq\Delta/2$. Each error probability is at most
+$4/(n\Delta^2)$. This deliberately conservative bound needs no distributional
+shape assumption; bounded-variable concentration can sharpen it. Testing $K$
+prespecified categories gives family-wise false-positive probability at most
+$4K/(n\Delta^2)$ when each category has $n$ pairs. Searching and reporting on
+the same examples invalidates that confirmation guarantee.
+
+The guarantee concerns the measured score. Turning it into a claim about lying
+requires a factual correctness standard; turning it into undisclosed boosting
+requires a user-benefit standard. Systematic disagreement can instead be a
+lead for investigation. Arbabi and Kerschbaum study comparative black-box
+auditing without a ground-truth standard, explicitly targeting relative
+behavioral divergence [@arbabi2026proprietary]. A reference model's capability
+does not remove uncertainty about a particular answer or legitimate tie.
+<!-- ref: research/efficiency-and-alignment/papers/conditional-reuse/sections/_34-audit-bounds.repro.md; derivations and numerical check -->

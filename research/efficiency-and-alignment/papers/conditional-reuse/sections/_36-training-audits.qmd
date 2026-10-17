@@ -1,0 +1,97 @@
+# Committed training trajectories make data review consequential {#sec-training-audits}
+
+Public training code and a claimed dataset do not show that a released
+checkpoint resulted from them. The proposed additional evidence is a binding
+record of the training trajectory, with randomly selected updates replayed by
+the reviewer. Deterministic seed sampling here specifies the **training-data
+draws**; the reviewer's choices of updates to inspect use separate, private
+randomness. The attacker may know the published verification procedure.
+This review requires access to sampled checkpoint states and data, even if
+ordinary users receive only API access.
+
+This setting has direct predecessors. Jia et al.'s Proof-of-Learning records
+training evidence for replay-based checks [@jia2021learning]. Choi, Shavit, and
+Duvenaud's Proof-of-Training-Data specifically addresses which data produced
+the weights, using transcripts, seed commitments, replay, and additional
+tests. Their proposed efficient checks are explicitly heuristic rather than
+a proved solution against all feasible adversaries [@choi2023trainingdata].
+The following is a minimal accounting model for a trajectory audit, not a new
+cryptographic protocol or a claim to resolve that paper's security problem.
+
+Let $s_i$ contain the complete training state at update $i$: weights, optimizer
+state, and any other state needed for exact replay. Given approved training
+code $U$, committed data $D$, and training seed $r$, define
+$$
+d_i=\operatorname{Draw}(D,r,i),\qquad
+s_{i+1}=U(s_i,d_i,r,i).
+$$
+The seed also determines other stochastic choices, or these are separately
+committed. Pin the initialization or its verified ancestry, preprocessing,
+loss, schedule, and numerical execution semantics. A seed alone does not make
+parallel floating-point execution reproducible.
+
+Before audit choices are revealed, bind the ordered states and data identities
+in a hash commitment, authenticate it, and bind its last weights to the
+released artifact. A hash chain or Merkle commitment can prevent changing
+records after a challenge under the appropriate cryptographic assumptions;
+signatures identify who endorsed them. Neither proves that an update was
+executed correctly. Blockchain consensus is unnecessary if an independent
+reviewer or append-only log already fixes the commitment. The reviewer obtains
+the authenticated states and actual consumed data for selected updates, checks
+their membership, and replays $U$. Unavailable records fail the check.
+An efficient encoding of evolving data intake remains an implementation
+question; a hash without available data is not an exposure audit.
+
+**Proposition 4 (random transition checks).** Fix a transcript of $T$ updates
+containing $m$ invalid transitions under an exact replay predicate. If the
+reviewer samples $q$ distinct updates uniformly without replacement, the
+probability of accepting every sampled transition is
+$$
+\frac{\binom{T-m}{q}}{\binom{T}{q}}
+\leq (1-m/T)^q\leq e^{-qm/T},
+$$
+with zero numerator when $q>T-m$.
+
+*Proof.* Of the $\binom{T}{q}$ equally likely samples, exactly
+$\binom{T-m}{q}$ contain only valid transitions. For $q\leq T-m$, each factor
+$(T-m-j)/(T-j)$ is at most $1-m/T$; the remaining cases are immediate.
+$\square$
+
+Thus a guaranteed invalid fraction $\rho$ is caught with probability at least
+$1-\delta$ using $q\geq\log(1/\delta)/\rho$ checks, when that many checks are
+available; checking all $T$ catches any invalid transition. But one invalid
+transition is detected with probability only $q/T$. Subsequent transitions
+can be consistent with an incorrect starting state. No bound here connects
+the number of invalid transitions to final behavioral harm. Exact verification
+of every transition, from the approved initial state to the released endpoint,
+does establish the specified trajectory by induction. It does not establish a
+unique physical history: other computations may lead to the same artifact.
+
+This also bounds what random checking can guarantee against concentrated
+errors. For any sampling design with expected budget $q$, the sum of the
+$T$ inclusion probabilities is $q$. At least one update therefore has
+inclusion probability no greater than $q/T$. Uniform sampling equalizes this
+worst-case coverage without assuming the reviewer can recognize a risky update
+in advance. Additional integrity tests may improve on this restricted audit.
+The coverage argument alone does not establish that a harmful transcript can
+be constructed at the least-sampled position without changing those tests.
+
+Costs include retaining replayable states and data, committing them, and
+recomputing selected updates. With comparable per-update costs and directly
+available states, $q$ replays add approximately $q/T$ of the original update
+compute, excluding storage, transfer, and commitment costs. Storing only
+segment checkpoints trades storage for longer replay; Proposition 4 then
+counts invalid segments, not individual updates. A tolerant numerical check
+certifies only its chosen tolerance relation, not exact global equivalence.
+
+Training-data review is now tied to the inspected trajectory, subject to these
+verification limits. It can reveal explicitly malicious teaching examples or
+undeclared sources. A completely valid trajectory can nevertheless learn an
+unwanted policy from declared data. Approved code must therefore mean an
+inspected update rule, not merely available source. This evidence complements
+behavioral auditing; it does not turn training provenance into an alignment
+certificate. Cryptographic proofs of training, such as zkDL, pursue stronger
+computation-verification guarantees with different costs and assumptions;
+their existence does not give this sampling protocol their soundness
+[@sun2023zkdl].
+<!-- ref: research/efficiency-and-alignment/papers/conditional-reuse/sections/_36-training-audits.repro.md; counting proof and scope -->
