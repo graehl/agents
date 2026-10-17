@@ -117,6 +117,13 @@ root of the preferences below).
 - **Optional glosses: exact, diagnostic, or omitted.** Add a gloss only for
   the operational distinction needed by the claim. Mark a coarse or uncertain
   model as such (`My current model:`); a shared name alone is often enough.
+- **His hedges stay his:** when graehl states something as provisional
+  ("probably", "I think", a guess), prose to him does not restate or tag
+  its status ("your expectation", "not yet confirmed", "(user)"); the word
+  he chose already says it. New evidence for or against it is still
+  welcome. The limit is conversation only: reasoning, tracking notes and
+  handoffs keep the source (e.g. `(user)`), and a handout, paper or
+  summary carries it when, on consideration, its reader needs it.
 - **Preemptive rebuttals:** keep each suspicion cheap to skip, in a marked
   block of at most three bullets led by its reading (`If you meant X:`).
   Raise it once; do not repeat the premise across paragraphs.

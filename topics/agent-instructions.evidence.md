@@ -5590,3 +5590,27 @@ prose correction retains substantive uncertainty and personal testimony.
   set", an agent now extends the program's contamination topic (or creates
   one) instead of creating `notes/x-contamination.md`.
 - Status: user-directed rule; no measured effect is claimed.
+
+## 2026-10-17 — do not tag graehl's own hedges back to him
+
+- Incident (oss puzzle session, claude-opus-5-5): graehl said a mirror
+  trick was common in one area "and probably in the final advanced
+  puzzles". The agent wrote the hint with "(user's expectation)" and its
+  reply added "marked as your expectation, not something we've seen yet".
+  graehl: "probably" suffices; he does not want to read prose evidence of
+  the agent's epistemic markers on something he just stated as
+  provisional.
+- Discussion kept the function: a source tag tells a later agent whether
+  to defer to the user's play experience or to verify an agent's
+  inference. So the tag stays in agent-facing records (the oss hint now
+  reads "probably ... (user)"); only conversation drops it. User-directed
+  scope: reasoning, tracking and handoffs may use it freely; handouts,
+  papers and summaries carry it when their reader needs it.
+- Decision: a bullet in `AGENTS.user.md` § Writing and summary style,
+  beside the gloss and rebuttal rules it parallels.
+- Trace: the agent has evidence against his guess (a decoded level shows
+  no mirrors). That is new evidence, still welcome; the rule forbids only
+  re-labelling the guess, not answering it.
+- Trace: the agent's own uncertain claim still gets `My current model:`;
+  the rule covers his hedges, not the agent's.
+- Status: user-directed preference; no measured effect is claimed.
