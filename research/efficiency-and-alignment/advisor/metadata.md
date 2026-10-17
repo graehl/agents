@@ -17,8 +17,8 @@ Lifecycle generation: 1
 Lifecycle state: active
 Predecessor: none
 Replacement reason: none
-Charter stack: ~/agents/advisor/serve.md; no project or program amendment found
-Governance sources: ~/agents/advisor/serve.md; ~/agents/AGENTS.global.md; ~/agents/AGENTS.user.md; ~/agents/RESEARCH.md; ~/agents/_RESEARCH/direction.md; ~/agents/topics/handoffs.md
+Charter stack: ~/agents/advisor/serve.md; research/efficiency-and-alignment/PROGRAM.md
+Governance sources: ~/agents/advisor/serve.md; ~/agents/AGENTS.global.md; ~/agents/AGENTS.user.md; ~/agents/RESEARCH.md; ~/agents/_RESEARCH/direction.md; ~/agents/topics/handoffs.md; ~/agents/research/efficiency-and-alignment/PROGRAM.md
 Semantic notes: research/efficiency-and-alignment/advisor/notes.md
 Document state: research/efficiency-and-alignment/advisor/docs/state.md
 Intake ledger: research/efficiency-and-alignment/advisor/intake.md

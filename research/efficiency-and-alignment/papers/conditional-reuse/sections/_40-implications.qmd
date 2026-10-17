@@ -45,6 +45,11 @@ the elementary construction here rules out assurances that omit them.
 For auditing, the corresponding missing quantities are how closely actual
 audit situations cover deployment, how reliably the reviewer recognizes a
 violation, and how much final harm requires a detectable departure from a
-declared training trajectory. The bounds here show where such assumptions
-would enter. They do not supply them from parameter count, public code, or a
-successful sample of training replays.
+declared training trajectory. The optimizer calculations isolate memory under
+fixed future gradients; their remaining gap is a useful stability bound for
+state-dependent neural gradients and behavioral outcomes. Cheap moment
+consistency and gradient bounds constrain the feasible interventions, but
+whether plausible undeclared data can still realize damaging sparse changes
+requires further analysis. Full-state checks also need measured communication,
+storage, and trusted-execution costs. Parameter count, public code, and a
+successful sample of training replays do not supply these quantities.

@@ -1,5 +1,78 @@
 # Citation retrieval evidence
 
+## Optimizer and verification extension: 2026-10-17
+
+The following entries support algorithm conventions and bounded prior-art
+claims. All optimizer amplification, suppression, and sparse-intervention
+bounds in the manuscript are derived there, not attributed to these sources.
+
+### kingma2017adam
+
+Fetched https://arxiv.org/abs/1412.6980 and its linked
+https://arxiv.org/html/1412.6980v9. The primary record verifies title, authors,
+DOI, v9 dated 2017-01-30, and the ICLR 2015 venue comment. Its abstract
+identifies adaptive lower-order moment estimates. The HTML conversion did
+not expose a useful algorithm body, so the recurrence and bias corrections
+were checked in the primary PyTorch documentation below. No convergence
+guarantee is borrowed from Adam's abstract.
+
+### pytorch2026sgd, pytorch2026adam, pytorch2026rmsprop, pytorch2026adagrad
+
+Fetched the versioned official pages linked by the bibliography after following
+their stable-version redirects. Verified page titles, version 2.14 and
+algorithm pseudocode: raw SGD velocity and Nesterov direction; Adam's first
+and second moments and bias corrections; uncentered RMSProp with optional
+momentum; and AdaGrad's squared-gradient accumulator. Publication year is the
+access year, not a claim about the algorithms' invention. These are software
+documentation entries, with no conference metadata or DOI asserted.
+
+### hardt2016stability
+
+Fetched https://proceedings.mlr.press/v48/hardt16.html. Verified authors,
+title, ICML 2016, PMLR volume 48, pages 1225–1234 against its BibTeX. Abstract
+explicitly gives convex/nonconvex stability analyses under Lipschitz and
+smoothness assumptions. Cited only as methodological precedent; the paper's
+full-state residual inequality is proved independently and does not inherit
+their generalization theorem.
+
+### qi2023finetuning
+
+Fetched https://arxiv.org/abs/2310.03693 and
+https://arxiv.org/html/2310.03693. Verified title, seven authors, 2023-10-05,
+identifier and DOI. Abstract reports safety degradation from few-example
+fine-tuning, including ten examples in one setup. Manuscript uses only this
+bounded claim, not an update count, norm budget, or guarantee of evading
+committed-trajectory audits.
+
+### bagdasaryan2019backdoor
+
+Fetched https://arxiv.org/abs/1807.00459. Verified title, five authors,
+identifier/DOI, v3 dated 2019-08-06. Abstract reports model replacement in
+federated learning and evasion of tested anomaly defenses. Manuscript keeps
+the federated-client scope and does not equate a client round with one
+centralized gradient step or universal audit evasion.
+
+### tramer2019slalom
+
+Fetched https://arxiv.org/abs/1806.03287 and
+https://arxiv.org/html/1806.03287v2. Verified authors, title, identifier/DOI,
+v2 dated 2019-02-27 and ICLR 2019 comment. Read §2.2's Freivalds matrix
+verification and §5's training discussion. The source demonstrates inference;
+training challenges include changing weights and quantization. Manuscript
+does not claim Slalom already certifies a complete training run.
+
+### nvidia2026attestation
+
+Fetched https://docs.nvidia.com/attestation/ and
+https://docs.nvidia.com/datacenter/cloud-native/confidential-containers/latest/attestation.html.
+Verified organizational authorship, titles and documented attestation scope:
+device/firmware authenticity and protected execution. The proposed
+application-level training certificate and required end-to-end bindings are
+our design analysis, not an advertised built-in proof of training data.
+The bibliography year denotes access; no publication venue or DOI applies.
+
+## Earlier extension
+
 Retrieved and checked on 2026-10-17. Coverage is specified per entry: primary
 abstracts for bounded result statements, and selected full-text sections for
 the trigger and training-transcript threat models. This is not a systematic

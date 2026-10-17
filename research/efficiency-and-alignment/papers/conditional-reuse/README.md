@@ -2,8 +2,8 @@
 
 Owning program: [../../PROGRAM.md](../../PROGRAM.md). Proposal card: [../../paper-proposals.md#conditional-reuse](../../paper-proposals.md#conditional-reuse).
 Short theoretical paper for readers with master's-level computer science or
-mathematics training. The source is the ordered Quarto fragments. No empirical
-research companion or submission is planned.
+mathematics training. The source is the ordered Quarto fragments. Scalar
+simulations check the proofs; no neural experiment or submission is planned.
 
 ## Layout
 
@@ -28,3 +28,8 @@ the repository's App declaration serves it through the common repository view.
 The citation support is in `related-work/retrieval.md`; the exact gate count,
 sampling argument, and numeric check are recorded beside the bound in
 `sections/_20-bound.repro.md`.
+
+Optimizer-memory proofs, their finite numerical checks, and exclusions are in
+`sections/_37-optimizer-memory.repro.md`; run `checks/optimizer_memory.py`
+with standard-library Python. The program's local theorem-development pilot
+is specified in [../../topics/theorem-development.md](../../topics/theorem-development.md).

@@ -61,8 +61,8 @@ Thus a guaranteed invalid fraction $\rho$ is caught with probability at least
 $1-\delta$ using $q\geq\log(1/\delta)/\rho$ checks, when that many checks are
 available; checking all $T$ catches any invalid transition. But one invalid
 transition is detected with probability only $q/T$. Subsequent transitions
-can be consistent with an incorrect starting state. No bound here connects
-the number of invalid transitions to final behavioral harm. Exact verification
+can be consistent with an incorrect starting state. This counting bound alone
+does not connect invalid-transition count to final behavioral harm. Exact verification
 of every transition, from the approved initial state to the released endpoint,
 does establish the specified trajectory by induction. It does not establish a
 unique physical history: other computations may lead to the same artifact.
@@ -75,6 +75,38 @@ worst-case coverage without assuming the reviewer can recognize a risky update
 in advance. Additional integrity tests may improve on this restricted audit.
 The coverage argument alone does not establish that a harmful transcript can
 be constructed at the least-sampled position without changing those tests.
+
+## Cheap checks can constrain the unchecked transitions
+
+A useful hybrid audit applies cheap checks to every committed transition and
+recomputes gradients for a private random subset. Cheap checks can enforce
+parameter-step limits, optimizer-state ranges, schedule and counter integrity,
+and consistency of the optimizer recurrence with a claimed gradient. With
+$P$ parameters, reading and checking vector states costs at least order $P$
+per step; storage and transfer may dominate even when this is cheaper than
+backpropagation. These checks must cover the whole transcript, not just the
+sample, to support a global bound on unchecked steps.
+
+The threat of interest is a sparse set of gradients computed using smuggled,
+undeclared data or an undeclared loss. Such gradients can follow learned
+features toward a desired behavior while the logged weights and optimizer
+states obey the optimizer equations. Their provenance is false even when
+their norms look ordinary. Direct weight or state edits need not arise from
+any gradient; checking the recurrence excludes some of these edits, but
+checking a recurrence against an unverified claimed gradient does not verify
+the declared objective. Gradient scaling, clipping, accumulation, and the
+loss itself belong to the committed computation.
+
+Related results establish reasons to investigate sparse interventions, not
+that this particular hybrid audit is defeated. Qi et al. report safety
+degradation from fine-tuning on small sets of examples
+[@qi2023finetuning]; example count is not invalid-update count. Bagdasaryan
+et al. demonstrate model replacement and evasion of selected anomaly checks
+in federated learning [@bagdasaryan2019backdoor]. A federated client update
+can aggregate many local steps; it is not a verified centralized gradient.
+Neither result establishes a general relation between an ordinary-looking
+update and its eventual behavioral effect. The optimizer models in
+@sec-optimizer-memory isolate that missing relation.
 
 Costs include retaining replayable states and data, committing them, and
 recomputing selected updates. With comparable per-update costs and directly
@@ -90,8 +122,30 @@ undeclared sources. A completely valid trajectory can nevertheless learn an
 unwanted policy from declared data. Approved code must therefore mean an
 inspected update rule, not merely available source. This evidence complements
 behavioral auditing; it does not turn training provenance into an alignment
-certificate. Cryptographic proofs of training, such as zkDL, pursue stronger
-computation-verification guarantees with different costs and assumptions;
-their existence does not give this sampling protocol their soundness
-[@sun2023zkdl].
+certificate.
+
+## Full coverage need not mean full recomputation
+
+Trusted execution is an alternative to trusting sampled replay. NVIDIA's
+attestation documentation describes verification of genuine devices and
+firmware and protected execution [@nvidia2026attestation]. A training
+certificate would additionally need an attested program that binds approved
+code, initialization, consumed data, randomness, optimizer state, and final
+weights throughout execution. The CPU, accelerators, communication paths, and
+restart logic must lie within the stated trust boundary. A protected signer
+that merely signs a trainer-supplied log does not supply this guarantee.
+Verifying such a certificate can avoid repeating training, conditional on
+the hardware and software trust assumptions; this is not a trust-free proof.
+
+Algebraic verification can also check more computation than it recomputes.
+Slalom uses Freivalds-style randomized checks of outsourced linear algebra
+inside a trusted-execution design, demonstrating neural inference and
+explicitly discussing unresolved training costs [@tramer2019slalom]. Such
+checks use hidden verifier randomness across arithmetic operations rather
+than leaving whole training steps unexamined. Training also requires binding
+the dataflow, nonlinear operations, and numerical representation.
+Cryptographic training proofs such as zkDL offer another route
+[@sun2023zkdl]. A fast verifier does not imply cheap proof generation;
+none of these citations establishes a production-scale LLM training
+certificate at a specified overhead.
 <!-- ref: research/efficiency-and-alignment/papers/conditional-reuse/sections/_36-training-audits.repro.md; counting proof and scope -->

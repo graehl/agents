@@ -30,3 +30,12 @@ harmful transcript at the least-sampled update; record-dependent extra tests
 can carry additional information. No final-harm-versus-invalid-step bound is
 assumed. Under tolerance, even every accepted local update does not imply
 exact endpoint equality or a bounded accumulated behavioral error.
+
+The hybrid audit discussion adds all-step algebraic and magnitude predicates;
+it does not strengthen the counting argument by itself. The additional
+optimizer and stability hypotheses, proofs, and numerical checks are in
+`_37-optimizer-memory.qmd` and `_37-optimizer-memory.repro.md`.
+Hardware attestation and algebraic-verification claims are limited to the
+retrieved source scopes in `../related-work/retrieval.md`; a complete
+application-level training certificate is a design requirement, not a
+measured implementation in this paper.

@@ -3,6 +3,20 @@
 Each release is a git commit; this file records what each release changed and
 is never rendered into the paper. Newest first.
 
+## 2026-10-17 — Sparse optimizer interventions and audit conditions
+
+Contributing-model: 6-astra
+
+Add sharp scalar momentum reset bounds, finite-time bias-corrected Adam
+segment optimization, adaptive-denominator suppression examples, and a
+one-corruption SGD counterexample with honest later gradients. Prove a
+sufficient stability condition linking cheap residual bounds to sampling
+coverage. Distinguish step rejection, clipping, forged gradients, and direct
+state edits. Add reproducible finite checks, all-step optimizer consistency
+checks, and a scoped discussion of hardware attestation and verification.
+The program now owns a theorem-development pilot and evidence record;
+neural realizability and proof-assistant verification remain unestablished.
+
 ## 2026-10-17 — Behavioral and training-trajectory audit bounds
 
 Contributing-model: 6-astra

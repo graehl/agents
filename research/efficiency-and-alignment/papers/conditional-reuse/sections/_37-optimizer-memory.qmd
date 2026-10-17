@@ -1,0 +1,310 @@
+# Sparse interventions can outlive the steps they alter {#sec-optimizer-memory}
+
+The audit must distinguish a bound on one parameter step from a bound on
+everything that step causes later. Optimizer memory makes this distinction
+visible even before accounting for nonlinear changes to subsequent gradients.
+We first fix the future gradient sequence, then state the additional stability
+assumption needed for gradients that depend on the evolving weights. The
+following are scalar models and mathematical bounds, not measured LLM attack
+success or evidence that the resulting state looks statistically ordinary.
+
+## Define the intervention and what the auditor checks
+
+There are $T$ updates with fixed learning rate $\eta>0$. The auditor rejects
+any observed parameter step with $|\theta_t-\theta_{t-1}|>c$, where $c>0$.
+An intervention budget $b$ counts altered transitions, not the number of
+coordinates or bytes changed. Honest transitions execute the stated optimizer
+from their logged predecessor. Initialization, step counters, and output
+identity are fixed. We distinguish three intervention sets:
+
+1. arbitrary replacement of weights or optimizer state at at most $b$ steps;
+2. replacement of at most $b$ gradients, with all optimizer recurrences
+   checked on every step; and
+3. the second case with an additional checked gradient or state bound.
+
+The first set is appropriate for a step-size-only audit. The second models
+smuggled data whose gradients are falsely attributed to the declared batch.
+The third tests what additional cheap restrictions buy. A chosen gradient
+need not be realizable by a small amount of plausible training data: these
+sets are relaxations of that practical attacker's feasible set. A negative
+result for a relaxed audit is not an implementation of an undetectable attack.
+The recurrences below use standard SGD, Adam, RMSProp, and AdaGrad conventions
+[@kingma2017adam; @pytorch2026sgd; @pytorch2026adam;
+@pytorch2026rmsprop; @pytorch2026adagrad].
+
+## A sharp momentum bound under step rejection
+
+Take zero honest gradients, zero initial velocity, no weight decay, and
+$$
+v_t=\mu v_{t-1}+g_t,\qquad \theta_t=\theta_{t-1}-\eta v_t,
+\qquad 0\leq\mu<1.
+$$
+Allow replacement of the velocity used at each intervention. Between
+interventions it decays geometrically. A segment of $\ell$ updates starting
+at an intervention can displace the weights by at most
+$$
+c F_\ell(\mu),\qquad
+F_\ell(\mu)=\sum_{k=0}^{\ell-1}\mu^k
+=\frac{1-\mu^\ell}{1-\mu}.
+$$
+The bound is attained by setting the first accepted displacement to $c$ and
+letting subsequent steps decay in the same direction. Thus one intervention
+can move weights by nearly $c/(1-\mu)$ while every step respects the cap.
+Plain SGD gives $c$; $\mu=0.9$ gives a limiting factor of ten.
+
+**Proposition 5 (sparse velocity replacements).** For $1\leq b\leq T$, write
+$T=ba+r$ with $0\leq r<b$. The largest endpoint displacement in this model is
+$$
+D_{T,b}=c\big[(b-r)F_a(\mu)+rF_{a+1}(\mu)\big]
+\leq \min\{Tc,bc/(1-\mu)\}.
+$$
+For $b=0$, it is zero.
+
+*Proof.* The first intervention can be moved to the first update without
+reducing displacement. Each intervention starts a segment bounded as above;
+consistent signs attain the sum. The marginal value of extending a segment
+from $\ell$ to $\ell+1$ is $c\mu^\ell$, which decreases with $\ell$.
+Transferring an update from a longer segment to one shorter by at least two
+therefore cannot reduce the sum. Balanced segment lengths $a$ and $a+1$
+attain the stated maximum. $\square$
+
+This is a state-replacement result. If instead the optimizer must obey the
+recurrence and each substituted gradient has magnitude at most $G$, unrolling
+the recurrence and summing its impulse responses gives the different bound
+$$
+|\theta_T-\theta_0|
+\leq\min\{Tc,\eta bG/(1-\mu)\}.
+$$
+It is an upper bound, not a claim that every velocity reset in Proposition 5
+is attainable under the gradient constraint. For exponential-average
+momentum $v_t=\mu v_{t-1}+(1-\mu)g_t$, the corresponding gradient-input bound
+is $\eta bG$: normalization cancels the infinite-tail factor. The
+step-normalized factor $F_\ell$ remains. For Nesterov's direction
+$g_t+\mu v_t$, one gradient impulse $a$ from zero state gives first direction
+$(1+\mu)a$, then $\mu^{k+1}a$ at lag $k\geq1$. Its sharp $h$-step bound is
+$c(1-\mu^{h+1})/(1-\mu^2)$, because the first step constrains
+$\eta|a|(1+\mu)$. At $\mu=0.9$ the limiting factor is about $5.263$.
+For $\mu>0$, arbitrary velocity replacement while the current gradient is zero gives
+the ordinary geometric factor instead. These are different intervention sets.
+
+Rejection is not clipping. If the approved optimizer instead clips every
+weight displacement to $c$ while leaving velocity unbounded, a single
+arbitrary velocity replacement can maintain displacement $c$ throughout any
+fixed finite horizon when $0<\mu<1$. Its uncapped magnitude can remain above
+the cap as it decays. A raw-step rejection audit would reject this sequence;
+an audit that only checks already-clipped steps cannot exclude it. A bound on
+the hidden state or its gradient input restores a finite impulse budget.
+
+## Adaptive denominators can conceal large state changes from a step cap
+
+Adam keeps first and second moments,
+$$
+m_t=\beta_1m_{t-1}+(1-\beta_1)g_t,\quad
+v_t=\beta_2v_{t-1}+(1-\beta_2)g_t^2.
+$$
+Consider a scalar first-moment tail with zero later gradients, positive
+second moment, no weight decay, no bias correction, and $\epsilon=0$.
+These last two assumptions define an exact simplified model, not an identity
+for finite-time Adam. The displacement sequence is $d_k=d_0 R^k$ with
+$R=\beta_1/\sqrt{\beta_2}$. If $R<1$, rejection implies $|d_0|\leq c$ and
+the $h$-step tail is at most $cF_h(R)$. At $(\beta_1,\beta_2)=(0.9,0.999)$,
+the limiting factor is about $10.045$, not $1/(1-\beta_2)=1000$.
+For $R=1$ it is $hc$. For $R>1$, rejection at the last step gives a maximum
+tail $cF_h(R^{-1})$. Actual bias corrections, the epsilon term, learning-rate
+schedules, and decay must be included when applying these calculations to an
+implementation.
+
+For bias-corrected Adam with $\epsilon=0$, moments $M,V>0$ at the first
+applied update $s\geq1$, and zero subsequent gradients, the exact relative
+step sizes are
+$$
+a_k=R^k\frac{A_{s+k}}{A_s},\qquad
+A_t=\frac{\sqrt{1-\beta_2^t}}{1-\beta_1^t},\qquad 0\leq k<h.
+$$
+Allowing an arbitrary moment pair, the sharp accepted displacement over that
+segment is $c\sum_{k=0}^{h-1}a_k/\max_{0\leq k<h}a_k$: scale $M/\sqrt V$
+until the largest step reaches $c$. This checks every step, including a peak
+after the intervention. It need not be attainable by replacing a single
+bounded gradient. Direct recurrence checks at the parameters above give
+100-step displacement in first-step units of about $6.005$ for $s=1$ and
+$10.642$ for $s=10$. Thus even the steady-state factor $10.045$ is not a
+finite-time upper bound. Zero future gradients means zero tensors supplied
+to the optimizer, not skipped optimizer steps.
+
+Multiple arbitrary moment replacements reduce to a finite optimization with
+an exact recurrence. Let $C(s,h)$ be the sharp segment gain just derived and
+let $V(t,j)$ be the largest displacement by time $t$ with $j$ resets. With
+$V(t,0)=0$ and infeasible entries excluded,
+$$
+V(t,j)=\max_{j\leq s\leq t}\{V(s-1,j-1)+C(s,t-s+1)\}.
+$$
+The maximum with at most $b$ interventions is $\max_{j\leq b}V(T,j)$.
+Each last reset starts an independent segment, proving the recurrence by
+induction. Initialize $m_0=0,v_0>0$ to make an idle prefix well-defined at
+$\epsilon=0$. Unlike heavy-ball, delaying the first reset can help because
+the bias-correction factors depend on absolute time. For $T=100,c=1$ and
+the parameters above, numerical evaluation gives optima approximately
+$11.166$, $21.479$, and $44.849$ for one, two, and five moment resets. These
+are evaluations of the stated exact scalar optimization, not gradient-
+realizable interventions or neural measurements.
+
+For AdamW, fix the normalized forcing $u_k$ and put
+$a=1-\eta\lambda\in[0,1]$. Differences obey
+$\Delta\theta_h=a^h\Delta\theta_0-\sum_{k=0}^{h-1}a^{h-1-k}\Delta u_k$.
+With zero initial difference and $\Delta u_k=u_0R^k$, the magnitude is
+$|u_0|\sum_{k=0}^{h-1}a^{h-1-k}R^k$, or
+$|u_0|(a^h-R^h)/(a-R)$ when $a\ne R$. This describes decay of a given
+forcing; the observed-step cap includes weight decay and cannot silently
+be substituted for a bound on $|u_0|$.
+
+Large second moments present a different limitation. For uncentered RMSProp
+without momentum, with $0<\alpha<1$,
+$$
+v_t=\alpha v_{t-1}+(1-\alpha)g_t^2,\qquad
+d_t=\frac{\eta g_t}{\sqrt{v_t}+\epsilon}.
+$$
+With $v_{t-1}\geq0$, every gradient, however large, satisfies
+$|d_t|\leq\eta/\sqrt{1-\alpha}$. Therefore a rejection threshold at or above
+this bound does not bound the supplied gradient or the resulting $v_t$.
+This statement respects the optimizer recurrence: the large state can arise
+from a single claimed gradient. A stricter cap can constrain it, so the
+threshold relative to the optimizer's intrinsic scale is part of the claim.
+
+To see the later effect exactly, take constant future gradient $g>0$ and
+$\epsilon=0$. The honest reference has $v_0=g^2$ and displacement $\eta$
+per step. A state intervention sets $v_0=Bg^2$ for $B\geq1$. Here time zero
+is just after one budgeted transition, not the trusted initialization: the
+intervention can change only its stored second moment, leaving its accepted
+weight step unchanged. After $k\geq1$
+honest updates the displacement is
+$$
+d_k=\frac{\eta}{\sqrt{1+(B-1)\alpha^k}}.
+$$
+Every such step is smaller than the honest step. For any finite $h$ and
+$s\in(0,1)$, choosing $B\geq1+(s^{-2}-1)\alpha^{-h}$ ensures
+$d_k\leq s\eta$ for all $1\leq k\leq h$. Endpoint deviation from the honest
+trajectory is then at least $(1-s)h\eta$, even though no step exceeds
+$\eta$. This proves there is no horizon-independent bound from intervention
+count and a maximum weight-step test alone when second-moment state is
+unbounded. The large state is readily distinguishable by additional state
+checks; the example does not assert otherwise.
+
+AdaGrad has an analogous persistent denominator: after adding a positive
+offset $A$ to its accumulator, future constant-gradient displacements become
+$\eta g/\sqrt{v_0+A+kg^2}$ when $\epsilon=0$. Any finite stretch of learning
+can be suppressed by a sufficiently large $A$. An arbitrary gradient also
+has an intrinsic step bound $\eta$, since its square enters the accumulator
+before normalization. RMSProp without momentum and AdaGrad do not continue
+moving under zero future gradients; their persistent effect is on responses
+to later nonzero gradients. Adam combines both mechanisms. Increasing its
+second moment while preserving the first suppresses subsequent steps; a
+gradient-induced change must also satisfy the coupling between the moments.
+
+That coupling is cheaply testable in exact arithmetic. For Adam with
+$\beta_1<1$, infer
+$g_t=(m_t-\beta_1m_{t-1})/(1-\beta_1)$ coordinatewise, then require
+$v_t-\beta_2v_{t-1}=(1-\beta_2)g_t^2$ and the declared parameter update.
+This checks consistency with a common gradient without computing it from
+data. A promised norm limit on that inferred gradient adds a real restriction.
+From zero moments and $|g_t|\leq G$ on every step, induction gives
+$|m_t|\leq G(1-\beta_1^t)$ and $v_t\leq G^2(1-\beta_2^t)$.
+By contrast, step-size rejection alone may permit arbitrarily large gradients:
+an uncorrected Adam impulse from zero state has first displacement tending
+to $\eta(1-\beta_1)/\sqrt{1-\beta_2}$ as its magnitude grows, while its
+second moment grows quadratically. At the first bias-corrected step the
+limiting displacement is $\eta$. These limits identify when a weight-step
+cap cannot replace an explicit gradient bound.
+
+## Honest gradient feedback can dominate optimizer memory
+
+**Counterexample (one corrupted step, bounded later gradients).** Fix
+$0<\delta\leq c$ and let the approved scalar gradient be
+$$
+g(x)=-\frac c\eta\operatorname{clip}(x/\delta,-1,1).
+$$
+This is the gradient of a continuously differentiable negative-Huber loss,
+globally Lipschitz with constant $c/(\eta\delta)$, and bounded in magnitude
+by $c/\eta$. Honest SGD from zero stays zero. One corrupted first gradient
+instead produces $x_1=\delta$. Thereafter the approved gradient gives
+$x_{t+1}=x_t+c$, so $x_T=\delta+(T-1)c$. Every weight step and gradient
+obeys its magnitude bound; every transition except the first is replay-valid.
+The loss can be changed beyond this finite visited interval to make it bounded
+below without changing the trajectory. Thus even plain SGD permits
+linear-in-horizon endpoint divergence from one intervention. The special case
+$\delta=c$ attains the full path-length bound $Tc$ against the stationary
+reference. This constructed loss establishes a limitation of the stated
+audit, not typical behavior of neural training.
+
+## Conditions that make random replay informative about endpoint change
+
+A cheap maximum-step audit does bound local residuals for some optimizers.
+For clipped plain SGD, if both the declared update and the logged parameter
+step have norm at most $c$, their difference has norm at most $2c$, by the
+triangle inequality. For a stateful optimizer this observation covers only
+weights. An unchecked moment change can evade the corresponding full-state
+bound. Cheap recurrence checks and explicit gradient/state bounds address
+that gap; empirical plausibility tests alone do not supply a worst-case bound.
+
+One positive bound is available directly for bounded gradient changes in
+scalar Adam without bias correction or weight decay, with
+$0\leq\beta_1,\beta_2<1$ and $\epsilon\geq0$. Compare two runs with
+the same initial state, $|m_0|\leq G$, fixed future gradient inputs, and
+$|g_t|,|\widetilde g_t|\leq G$. At most $b$ inputs differ, each by at most
+$D$. Assume both second moments remain at least $\nu>0$. Then
+$$
+|\widetilde\theta_T-\theta_T|
+\leq \eta bD\left[
+\frac1{\sqrt\nu+\epsilon}
++\frac{G^2}{\sqrt\nu(\sqrt\nu+\epsilon)^2}\right].
+$$
+To prove it, the normalized exponential averages give
+$\sum_t|\Delta m_t|\leq bD$ and
+$\sum_t|\Delta v_t|\leq2GbD$. On $|m|\leq G,v\geq\nu$, the two partial
+derivatives of $m/(\sqrt v+\epsilon)$ are bounded by
+$1/(\sqrt\nu+\epsilon)$ and $G/[2\sqrt\nu(\sqrt\nu+\epsilon)^2]$.
+Sum the resulting step differences. This conservative bound is independent
+of horizon; it exhibits useful conditions beyond a maximum-step cap. It
+does not apply when later gradients change in response to altered weights,
+when the denominator lower bound fails, or to arbitrary moment replacements.
+
+**Proposition 6 (bounded residuals and stable continuation).** Let $x_t$ be
+the committed full state and $x_t^*$ its declared reference trajectory from
+the same initialization. Fix a norm, write $U_t$ for the declared update,
+and assume $U_t$ is $L_t$-Lipschitz on the relevant states. Suppose every
+transcript passing the cheap audit has residual
+$e_t=\|x_{t+1}-U_t(x_t)\|\leq\varepsilon$, with nonzero residual at only $m$
+transitions. Set
+$$
+A=\max_{0\leq t<T}\prod_{j=t+1}^{T-1}L_j.
+$$
+Then $\|x_T-x_T^*\|\leq A\varepsilon m$. If a chosen behavioral score $H$
+is $K$-Lipschitz in this state norm and changes by at least $\Delta>0$,
+then, for $K\varepsilon>0$,
+$$
+m\geq m_0=\left\lceil\frac{\Delta}{KA\varepsilon}\right\rceil.
+$$
+When $1\leq m_0\leq T$, Proposition 4 bounds the miss probability by
+$\binom{T-m_0}{q}/\binom{T}{q}$. If $m_0>T$, that score change is impossible
+under these assumptions.
+
+*Proof.* With $D_t=\|x_t-x_t^*\|$, the triangle inequality gives
+$D_{t+1}\leq L_tD_t+e_t$. Unrolling from $D_0=0$ bounds the endpoint by
+$\sum_te_t\prod_{j>t}L_j\leq A\varepsilon m$. Apply the score's Lipschitz
+bound and then the monotonicity of the miss probability in $m$. $\square$
+
+This is a sufficient condition for useful sampling, not a claim that $A$ or
+$K$ is small in a language model. Algorithmic-stability analyses provide
+precedent for bounding propagated perturbations under smoothness assumptions
+[@hardt2016stability]. Near a decision boundary, a small parameter change can
+flip a discrete output; a smooth-score bound needs a margin argument to
+control such events. Unstable dynamics can also make $A$ enormous. With
+tolerant replay, nonzero residuals at accepted transitions contribute a
+background sum that must be budgeted separately.
+
+The practical question is consequently quantitative: after enforcing the
+cheap predicates, how much behavioral change can a small number of
+undeclared-data gradients or direct state edits still cause? The models above
+prove both amplification and limited regimes where intervention count buys
+coverage. They leave neural realizability, statistical plausibility, and the
+useful numerical size of the stability constants unresolved.
+<!-- ref: research/efficiency-and-alignment/papers/conditional-reuse/sections/_37-optimizer-memory.repro.md; optimizer models, proofs, and numerical checks -->

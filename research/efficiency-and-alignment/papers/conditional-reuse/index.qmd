@@ -30,6 +30,8 @@ creating sections/_NN-name.qmd and an include line below. -->
 
 {{< include sections/_36-training-audits.qmd >}}
 
+{{< include sections/_37-optimizer-memory.qmd >}}
+
 {{< include sections/_40-implications.qmd >}}
 
 # References {.unnumbered}

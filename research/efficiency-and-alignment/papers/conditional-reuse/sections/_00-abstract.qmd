@@ -20,6 +20,11 @@ is within total variation $\varepsilon$, the audit violation rate is at least
 $\beta-\varepsilon$: concealment cannot exploit an observational distinction
 that is absent. Conversely, random replay of $q$ among $T$ committed training
 updates detects a single invalid transition with probability only $q/T$.
+Under zero future gradients, one accepted velocity replacement in heavy-ball
+momentum has sharp displacement at most $c/(1-\mu)$ for step cap $c$ and
+momentum $\mu<1$. With gradient feedback, even plain SGD admits linear-in-time
+divergence from one bounded corruption. We give a sufficient stability
+condition connecting bounded local corruption to random-replay coverage.
 These elementary bounds and the cited neural-model studies delimit both
 efficiency-based reassurance and auditing guarantees; they establish neither
 a universal concealment method nor its overhead in a fixed transformer.

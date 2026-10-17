@@ -29,3 +29,19 @@
   obtain the pending independent paper review then.
 - Recorded by the working session after both terminal receipts.
 - Contributing-model: 6-astra.
+
+## optimizer-method-pilot-20261017 · interrupted transport
+
+- Requester: codex working session 01a14aeb-8f6c-74c0-9afa-67b177367917.
+- Mode: tell; optimizer-audit proofs and program-scoped theorem-development
+  pilot, with a request for consequential error findings.
+- Submission: b93cf2a3-ddcc-4bee-9add-420e5b4fa958, accepted
+  2026-10-17T21:05:18.778Z, terminal interrupted 21:05:24.129Z.
+- Receipt lookup and await both confirmed interruption without a provider
+  response. No advisor review is claimed and no turn remains queued.
+- Metadata now routes the program amendment. Requested followed-document
+  additions were not applied; the bootstrap read cursors remain unchanged.
+- Independent proof review and finite checks were completed outside this
+  advisor interaction; their scope is recorded beside the manuscript.
+- Recorded by the working session after consuming the terminal receipt.
+- Contributing-model: 6-astra.
