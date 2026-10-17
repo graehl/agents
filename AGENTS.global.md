@@ -257,9 +257,9 @@ model, a haiku-class model in Claude, or a pre-GPT-5.5 model in Codex selects
 `AGENTS.weak.md` and excludes `AGENTS.frontier.md`. Otherwise Claude sessions
 and Codex sessions on GPT-5.5 or above load `AGENTS.frontier.md`. An id
 containing `claude` also loads `AGENTS.anthropic.md`; `opus` also loads
-`AGENTS.opus.md`; an id beginning `gpt-` (OpenAI, e.g. `gpt-6.1-sol`,
-`gpt-6-astra`) also loads `AGENTS.openai.md`; a `sol` model-family segment
-loads `AGENTS.sol.md`, across harnesses. These supplements contain their applicable guidance, not duplicate
+`AGENTS.opus.md`; an `astra` model-family segment (`gpt-6-astra`) loads
+`AGENTS.astra.md`; a `sol` model-family segment loads `AGENTS.sol.md`, across
+harnesses. These supplements contain their applicable guidance, not duplicate
 activation rules.
 
 Also read the launcher supplement named by `AGENT_LAUNCHER` when one exists —

@@ -410,3 +410,8 @@ new model-scoped `AGENTS.openai.md`, routed from `AGENTS.global.md` for
 any id beginning `gpt-` (ids like `gpt-6.1-sol`, `gpt-6-astra`; short
 names `6.1-sol`, `6-astra`). This also closes the Claude-gateway gap
 noted above.
+
+Second correction, same day: graehl writes only with Astra, not Sol, so
+the supplement is `AGENTS.astra.md`, routed by an `astra` model-family
+segment (restoring the route removed in e3e8b60e when that file was
+empty). Sol does not load it.

@@ -426,7 +426,7 @@ Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.
 Anything binding belongs in `AGENTS.global.md`.
 
-`AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.openai.md` and
+`AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.astra.md` and
 `AGENTS.sol.md` are model-scoped supplements. Global policy routes to them from the
 recorded id, so a model keeps its patch when served through another
 harness. The Anthropic-family patch requires technical glosses to state the
@@ -434,11 +434,12 @@ relevant operational distinction, expose uncertainty, or be omitted. Opus
 additionally carries the path-trace rule against overconfident assertions about
 unread code, the boot-list check before calling a request verb ambiguous, a
 long-session rule that rejects model-inferred context exhaustion as a reason to
-stop, and a compose-time check against self-matching process searches. The
-OpenAI-family patch (any `gpt-` id, Sol and Astra included) keeps a claim's
-epistemic status out of a sentence of its own. Sol additionally carries the confirmation rule formerly housed in the Codex supplement
+stop, and a compose-time check against self-matching process searches. Astra
+keeps a claim's epistemic status out of a sentence of its own; graehl sees
+the habit in every current OpenAI model but writes only with Astra. Sol
+carries the confirmation rule formerly housed in the Codex supplement
 and the direct-work correction for Sol served through Claude Gateway. Astra
-has no patches beyond the OpenAI family's and no additional boot supplement. Its shared
+has no additional boot supplement. Its shared
 policy, applicable frontier latitude, and harness mechanics still apply;
 Sol's model-id condition does not select Astra. Proposed reductions live in
 [`agent-instructions.sketches.md`](agent-instructions.sketches.md#astra-and-shared-instruction-reductions),
