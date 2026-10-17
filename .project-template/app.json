@@ -1,0 +1,36 @@
+{
+  "service": {
+    "version": 1,
+    "where": {
+      "kind": "process",
+      "cwd": ".",
+      "entry": "/"
+    },
+    "start": {
+      "argv": [
+        "python3",
+        "project-templates/bases/repo-view/files/repo_view.py",
+        "serve",
+        "--pages",
+        "project-templates/bases/program-view/files/program_view.py:pages",
+        "--pages-max-age",
+        "300"
+      ],
+      "portEnv": "PORT"
+    },
+    "status": {
+      "probe": "http",
+      "path": "/healthz",
+      "readyStatus": 200,
+      "startupTimeoutMs": 60000
+    },
+    "stop": {
+      "signal": "SIGTERM",
+      "graceMs": 3000
+    },
+    "serving": {
+      "target": "sandbox-loopback",
+      "protocol": "http"
+    }
+  }
+}

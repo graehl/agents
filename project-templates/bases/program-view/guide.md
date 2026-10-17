@@ -29,8 +29,10 @@ proposals, newest handout, report, topics, gaps and sketches. Beside the
 description sit its last commit (with `Contributing-model:` trailers and the
 agentctl session that made it), uncommitted files, newest handoff, and live
 agent sessions whose `.agentctl/active` scope lies inside it. Below, a
-full-width row of name and date tables lists, newest first:
-- sketches (`gaps/sketches/`), first, with each sketch's title as its tooltip;
+full-width row of expandable lists shows:
+- papers, linked to their built HTML when available, otherwise their source;
+- field surveys, including those without a program charter;
+- sketches (`gaps/sketches/`), with each sketch's title as its tooltip;
 - handouts;
 - paper skeletons;
 - other documents in the program's directory;

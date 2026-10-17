@@ -170,6 +170,29 @@ class ProgramViewTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown sections"):
             program_view.pages(self.repo)
 
+    def test_top_level_links_surveys_and_built_papers(self) -> None:
+        paper = self.repo / "research/mt/papers/big"
+        (paper / "index.qmd").write_text(
+            '---\ntitle: "Big paper"\nformat:\n  html:\n    output-file: index.html\n---\n',
+            encoding="utf-8",
+        )
+        (paper / "_build").mkdir()
+        (paper / "_build/index.html").write_text("<h1>Big paper</h1>", encoding="utf-8")
+        survey = self.repo / "surveys/root-field/survey.md"
+        survey.parent.mkdir(parents=True)
+        survey.write_text("# Root field\n", encoding="utf-8")
+        index = program_view.pages(self.repo)["index.html"]
+        for href in (
+            "surveys/root-field/survey.md",
+            "research/mt/surveys/field/survey.md",
+            "research/mt/papers/big/_build/index.html",
+        ):
+            self.assertIn(f'href="{href}"', index)
+        self.assertIn(
+            'href="research/mt/papers/big/_build/index.html" title="Big paper">Big paper</a>',
+            index,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

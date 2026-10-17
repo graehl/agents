@@ -467,13 +467,14 @@ def link_list(
     dates: dict[str, str],
     shown: int,
     titles: dict[str, str] | None = None,
+    labels: dict[str, str] | None = None,
 ) -> str:
     """A name/date table, newest first; the first `shown` rows listed, the rest
     folded. Both tables share fixed column widths, so folded rows stay aligned."""
 
     def table(chunk: list[str]) -> str:
         rows = "".join(
-            f'<tr><td class="f">{link(page, root / r, Path(r).name, (titles or {}).get(r, ""))}</td>'
+            f'<tr><td class="f">{link(page, root / r, (labels or {}).get(r, Path(r).name), (titles or {}).get(r, ""))}</td>'
             f'<td class="d">{esc(dates.get(r, "")[:10])}</td></tr>'
             for r in chunk
         )
@@ -831,6 +832,54 @@ class Dashboard:
             [("Live sessions", sessions_cell(r["sessions"]))] if r["sessions"] else []
         )
         lists = []
+        if r["papers"]:
+            paper_labels = {
+                str(
+                    next(
+                        (o for o in p["outputs"] if o.suffix == ".html"),
+                        p["path"] / "index.qmd",
+                    ).relative_to(self.root)
+                ): p["title"]
+                for p in r["papers"]
+            }
+            lists.append(
+                (
+                    "Papers",
+                    link_list(
+                        page,
+                        self.root,
+                        list(paper_labels),
+                        {},
+                        4,
+                        paper_labels,
+                        paper_labels,
+                    ),
+                )
+            )
+        if r["surveys"]:
+            survey_labels = {
+                str(
+                    (
+                        s["path"] / "survey.md"
+                        if (s["path"] / "survey.md").is_file()
+                        else s["path"]
+                    ).relative_to(self.root)
+                ): s["path"].name
+                for s in r["surveys"]
+            }
+            lists.append(
+                (
+                    "Field surveys",
+                    link_list(
+                        page,
+                        self.root,
+                        list(survey_labels),
+                        {},
+                        8,
+                        labels=survey_labels,
+                    ),
+                )
+            )
         if r["sketches"]:
             lists.append(
                 (
