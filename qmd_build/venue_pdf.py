@@ -35,6 +35,7 @@ from .manuscript import (
     resolve_executable,
     root_document,
 )
+from .pdf_checks import PROFILES, check_pdf
 from .source_map import manuscript_source_targets, marked_source, targets_for
 
 PACKAGE = Path(__file__).resolve().parent
@@ -67,6 +68,7 @@ KEYS = {
     "fonts",
     "estimate",
     "log-failures",
+    "checks",
 }
 ESTIMATE_DEFAULTS = {
     "char-advance-pt": 5.0,
@@ -123,6 +125,8 @@ def configure(args) -> VenueBuild:
         args.output or config.path("output") or root.parent / "_build" / "venue-pdf"
     )
     output = output.resolve()
+    if config.get("checks") not in (None, *PROFILES):
+        raise ValueError(f"`checks` must be one of {sorted(PROFILES)}")
     columns = int(config.get("columns", 1))
     if columns not in (1, 2):
         raise ValueError("`columns` must be 1 or 2")
@@ -499,6 +503,13 @@ def build_pdf(build: VenueBuild, args, started: float) -> int:
         )
     measurement = page_measurement(output, build.jobname, build.columns)
     pdf = output / f"{build.jobname}.pdf"
+    # Fonts and paper size are checked on every build, not left for upload day.
+    checks = check_pdf(pdf, config.get("checks"))
+    if checks["failures"]:
+        raise ValueError(
+            f"{pdf} breaks venue rules: {'; '.join(checks['failures'])}. "
+            "Fix the template, not the PDF"
+        )
     info = subprocess.check_output(["pdfinfo", str(pdf)], text=True)
     measurement["total_pages"] = int(
         re.search(r"^Pages:\s+(\d+)", info, re.MULTILINE)[1]
@@ -512,6 +523,7 @@ def build_pdf(build: VenueBuild, args, started: float) -> int:
         "sections": build.names,
         "identity": current,
         "pages": measurement,
+        "pdf_checks": checks,
         "pdf": str(pdf),
         "outputs": {
             name: digest(output / name)

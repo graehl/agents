@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+# acli: 1 complete
+"""venue-pdf-check: see qmd_build/pdf_checks.py; advice in topics/document-writing-printable.md."""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from qmd_build.pdf_checks import main
+
+if __name__ == "__main__":
+    sys.exit(main())

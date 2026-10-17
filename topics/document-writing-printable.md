@@ -36,6 +36,24 @@ type, and whether the venue expects source or only PDF. Do not freeze a
 year-specific NeurIPS, ACL, OpenReview, or publisher procedure into this
 cross-project topic.
 
+**Before any venue upload, check the exact file:**
+`venue-pdf-check --profile <venue> --text <pdf>` (`~/agents/scripts`, acli;
+add `--review` for an anonymous review PDF). Do this whatever built the PDF,
+and again on the camera-ready version. It fails on an unembedded font, on a
+most-used font outside the venue's accepted names, and on the wrong paper
+size. For ACL it also runs aclpubcheck, the venue's own checker; under
+`--review`, the margin errors caused by the review line numbers are reported
+but do not fail. Venue checkers accept fonts by name: a metric-compatible
+clone such as Liberation Serif is not Times to them. ARR desk-rejected a
+submission for that in 2026-10. Copy the venue template's own font choices
+(for ACL under XeLaTeX: `TeXGyreTermesX` text and Inconsolata code), rather
+than whatever similar font the host has installed. With no profile, the tool
+checks only embedding. In that case, check the venue's font and paper-size
+rules by hand against the current call, and add a profile to
+`qmd_build/pdf_checks.py` when those rules are mechanical. A profile records
+its source and `checked` date; recheck it against the current call before
+relying on it for a new cycle.
+
 The rendering feature already exists in Quarto, MyST, Pandoc, and related
 systems: each can wrap or emit LaTeX. What may not exist is a maintained,
 current, named ACL/NAACL/ICML-style adapter. Such an adapter is a compatibility
@@ -105,15 +123,20 @@ the adapter — `template`, `filters`, `style-files`, `pdf-engine` (xelatex),
 hooks; `template` when the template already writes `\jobname.layout` and
 `\jobname.images`), `estimate` (`image-height-in`, `char-advance-pt`,
 `title-columns`, `float-columns`); provenance — `fonts`, `inputs`,
-`resource-path`, `tex-bin`, `log-failures`, `source-targets-env`.
-Unknown keys are errors. With no template, Quarto's default LaTeX template
+`resource-path`, `tex-bin`, `log-failures`, `source-targets-env`; venue rules
+— `checks` (a `venue-pdf-check` profile such as `acl`). Every build checks
+font embedding; with `checks` set, a wrong body font or paper size also fails
+it (exit 2), and the receipt records the result. Set `checks` in every venue
+config that has a profile. Unknown keys are errors. With no template, Quarto's default LaTeX template
 plus injected hooks gives a one-column length check.
 
 Reference instance: the multilingual PII paper's ACL adapter,
 `~/draft/research/pii/frontier/papers/multilingual-pii-redaction/acl/qmd-venue-pdf.json`
 (two-column anonymous review, natbib with the ACL `.bst`, 8-page limit). This
-tool is a local adapter (level 4 in `document-writing`). A passing build is a
-length and render check, not a submission-compliance certificate.
+tool is a local adapter (level 4 in `document-writing`). A passing build
+checks length, rendering, and the profile's font and paper rules. It does not
+check anonymity, mandatory sections, or margins, so it does not certify that
+a submission complies.
 
 ## Markdown-to-LaTeX refinement
 

@@ -40,19 +40,23 @@ follows [`paper-drafting`](paper-drafting.md).
    ([`document-writing-browser-interactive`](document-writing-browser-interactive.md)).
    `qmd-arxiv <paper-dir>` gives the arXiv bundle
    ([`arxiv-submission`](arxiv-submission.md)). Add a venue profile with
-   `qmd-venue-pdf` only for a venue that requires its format
+   `qmd-venue-pdf` only for a venue that requires its format, setting its
+   `checks` profile when one exists
    ([`document-writing-printable`](document-writing-printable.md) § Scripted
    venue build).
 5. **Release.** A release is a git commit; add its entry to the paper's
    `CHANGELOG.md` (beside the paper, never rendered). Before any submission or
-   final release, pass the citation-retrieval gate in `paper-writing`.
+   final release, pass the citation-retrieval gate in `paper-writing`. Before
+   a venue upload, run `venue-pdf-check --profile <venue>` on the exact PDF
+   (`document-writing-printable` § Venue submission path).
 6. **Optional companions.** A software or data release (its own repository or
    a tagged release) is linked from the paper and versioned with it.
 
 ## Defaults and their reasons
 
 - **US Letter** for every generated PDF (graehl, 2026-10-14), including the
-  browser-print path.
+  browser-print path. A venue upload uses the paper size the venue mandates
+  (ACL: A4), as the PII paper's ACL review build already does.
 - **arXiv first**: it is the usual target; ACL and other venue formats are
   per-submission profiles.
 - **pdfLaTeX**: the only engine arXiv documents.

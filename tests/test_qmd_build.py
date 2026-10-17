@@ -185,6 +185,40 @@ def test_venue_pdf_default_template_end_to_end(tmp_path):
     )
 
 
+@pytest.mark.skipif(
+    not (HAS_QUARTO and HAS_TEX), reason="needs quarto and a TeX engine"
+)
+def test_venue_pdf_acl_checks_reject_wrong_font_and_accept_times(tmp_path):
+    root = manuscript(tmp_path / "paper")
+    config = tmp_path / "paper/venue.json"
+    settings = {"root": "index.qmd", "output": "_build/venue", "checks": "acl"}
+    config.write_text(json.dumps(settings))
+    command = [
+        str(REPO / "scripts/qmd-venue-pdf"),
+        "--config",
+        str(config),
+        "--acli-quiet",
+    ]
+    # Quarto's default Latin Modern on US Letter is the class of mistake ARR desk-rejects.
+    rejected = subprocess.run(command, capture_output=True, text=True)
+    assert rejected.returncode == 2
+    assert "most-used font" in rejected.stderr and "pages not A4" in rejected.stderr
+    settings["metadata"] = {"mainfont": "TeXGyreTermesX-Regular.otf", "papersize": "a4"}
+    config.write_text(json.dumps(settings))
+    accepted = subprocess.run(command, capture_output=True, text=True)
+    assert accepted.returncode == 0, accepted.stderr
+    receipt = json.loads((root.parent / "_build/venue/receipt.json").read_text())
+    assert receipt["pdf_checks"]["main_font"].startswith("TeXGyreTermesX")
+    assert receipt["pdf_checks"]["failures"] == []
+
+
+def test_pdf_checks_reject_unknown_profile(tmp_path):
+    from qmd_build.pdf_checks import check_pdf
+
+    with pytest.raises(ValueError, match="Unknown venue profile"):
+        check_pdf(tmp_path / "missing.pdf", "neurips")
+
+
 @pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
 def test_html_source_map_end_to_end(tmp_path):
     root = manuscript(tmp_path / "paper")

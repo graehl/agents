@@ -293,7 +293,8 @@ debt is treated as a maintenance cost.
 - **Writing project:** start from `topics/technical-writing.md` or the
   form-specific topic (`paper-writing.md`, `handout-writing.md`,
   `research-blog-writing.md`, `story-writing.md`), and add
-  `scripts/qmd-venue-pdf` or `scripts/qmd-html` for repeatable builds.
+  `scripts/qmd-venue-pdf` or `scripts/qmd-html` for repeatable builds, and
+  `scripts/venue-pdf-check` before a venue upload.
 - **Instruction-design work:** read `topics/agent-instructions.md` and
   `topics/instruction-ablation.md`. This repo treats instruction quality as a
   hypothesis to test, not as a belief proven by sounding careful.
