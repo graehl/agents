@@ -403,3 +403,10 @@ he asked for the stronger steer in the Codex supplement (no
 `AGENTS.openai.md` exists). Limit: an OpenAI model launched through
 Claude Code does not load `AGENTS.codex.md`; only the general
 `writing.md` rule reaches it.
+
+Correction, same day: graehl does not expect OpenAI models to write
+differently per harness, so the steer moved from `AGENTS.codex.md` to a
+new model-scoped `AGENTS.openai.md`, routed from `AGENTS.global.md` for
+any id beginning `gpt-` (ids like `gpt-6.1-sol`, `gpt-6-astra`; short
+names `6.1-sol`, `6-astra`). This also closes the Claude-gateway gap
+noted above.
