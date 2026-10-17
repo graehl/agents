@@ -169,6 +169,16 @@ checklist to satisfy in addition to genre rules: a genre topic such as
   "a X" may become "the X". After any edit short of a full rewrite, check
   each definite reference in the edited span against its antecedent.
 <!-- reread:end -->
+- **A status sentence is a prompt to reconsider, not a fixture.** A
+  sentence whose job is to announce a claim's epistemic standing ("this is
+  our expectation, not something we have verified"; "a guess, not a
+  measured result") usually restates a hedge the claim already carries.
+  When one appears, decide rather than delete on sight: if the claim's own
+  word ("probably", "we expect", "in one run") already says it, cut the
+  sentence; if the reader would miss the status or act on the claim, fold
+  it into the claim or say what was and was not checked; if it holds for
+  the whole piece, state it once as scope. Keep a separate status sentence
+  only when it says something the claim cannot.
 - **Check the promise.** Reread the purpose sentence. Did the piece deliver
   it? A finished draft that answers a different question than it posed needs
   either a new opening or a new body.

@@ -364,3 +364,30 @@ rule now says a document with a build keeps its recipe; (4) the first
 draft also forbade splitting a document into a built project unless
 asked, which contradicts `document-writing`'s ordered-fragment rule for
 very long documents; that clause was dropped.
+
+## 2026-10-17 — status sentences: a prompt, not a ban
+
+User-directed (graehl): he is "sick of" sentences that announce a claim's
+epistemic standing in papers and other documents ("this is our
+expectation, not something we have verified"), and observes OpenAI
+models, Astra especially, produce them far more than Anthropic models.
+He declined a blanket ban: the irritation such a sentence causes can
+prompt a considered improvement, so the rule is a decision point.
+Prompted by an Opus reply that tagged his own "probably" as "your
+expectation"; the conversational half of the preference is in
+`AGENTS.user.md` (§ Writing and summary style, "His hedges stay his").
+
+Decision: a Revising bullet in `writing.md`, so every genre topic
+inherits it, beside the existing scope-once rule in Structure.
+
+Traces: (1) "we expect gains on longer inputs. This is an expectation,
+not a measurement." — the claim's own word carries it; cut the second
+sentence. (2) a cost table built from list prices that a reader might
+budget from — fold the status into the caption ("list prices, not
+measured spend"). (3) every number in a brief is publisher-reported —
+one scope statement at the top, per the Structure rule. (4) a sentence
+saying a result held in one seed out of three — that is evidence, not a
+status announcement; keep it.
+
+Status: user-directed preference; the model-family contrast is the
+user's observation, not measured here.
