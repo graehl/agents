@@ -54,9 +54,13 @@ surfaced, and the intended outcome. Include a verified paper/source where
 useful and explain its importance separately from the strength of its evidence.
 Reuse grounded local retrieval; verify external material before assigning it.
 
-Lead with an actual worked toy demonstration, showing the mechanism and
-intermediate steps. Prefer a manipulable visualization when it makes a
-causal relationship easier to grasp; otherwise a table or small worked
+Open by recovering the actual project or conversation: what we were doing,
+which question or assumption this addresses, and how the answer could change
+the work. Use a descriptive topic title, not an advertisement or curiosity
+teaser; the learner has already chosen to study. Then give an actual worked
+toy demonstration, showing the mechanism and intermediate steps. Prefer a
+manipulable visualization when it makes a causal relationship easier to grasp;
+otherwise a table or small worked
 example is sufficient. Check the example's answers and boundary cases.
 Then name a short reading/tutorial/experiment route, a feasible stopping
 point, and a copyable prompt for continuing with another agent.

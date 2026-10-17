@@ -77,7 +77,9 @@ available recent work and chats on demand. Do not claim background coverage.
 ## Study begins with something worth seeing
 
 The [study-time skill](../skills/study-time/SKILL.md) owns compilation and
-delivery. Present a term or headline, its relevance, and an optional paper
+delivery. The headline identifies the subject; it is not advertising. First
+recover what the person was doing, the question or assumption at issue, and
+how understanding it could change that work. Present an optional paper
 reference, then a worked toy visualization or demonstration. Make visible
 the intermediate steps that a paper may omit. A useful demo can be a small
 table or worked example; build an interactive artifact when manipulating
