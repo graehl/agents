@@ -56,8 +56,25 @@ never blindly retries them. Output, YA, and native uncertainty requires
 checking the target transcript. A confirmed failure can be resent under a new
 incoming filename.
 Identical content at the same route and filename is delivered once, even across
-watcher restarts. A file over 64 MiB fails explicitly; scans are limited to
-10,000 incoming files and observers to 128 subscribed routes.
+watcher restarts. A file over 64 MiB fails explicitly. A scan of one directory
+tree logs and skips entries beyond 10,000; observers take at most 128
+subscribed routes and 1,024 watched directories.
+
+Uploads may sit in nested folders below an inbox. Each non-hidden file is
+delivered separately under its inbox-relative name, such as `123/shot.png`,
+which is also the record's `originalName` and part of its event id. Folders
+are watched as they are created or moved in. Symlinks are never followed and
+a directory reached twice is skipped, so there is no depth limit.
+
+Records carry `originalSize` and `originalMtimeNs` (a decimal string). An
+observer indexes them at start and skips any original whose size and mtime
+still match, as rsync does, so restarts do not reread an accumulated inbox.
+
+Senders write into `latest-session/`, never over it. If `latest-session` is a
+real directory, which rsync creates when the pointer does not exist yet, the
+next pointer update or `--turns` observer start moves it to
+`unrouted/<epoch-ms>-<id>/` undelivered, since nothing was listening, and
+restores the symlink. `unrouted` is a reserved route name.
 
 ## Bursts and slow acknowledgements
 

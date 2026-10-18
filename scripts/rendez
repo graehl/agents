@@ -30,6 +30,7 @@ from rendezvous import (
     project_observer,
     route_name,
     scan,
+    settle_latest,
     subscribe,
     turn_delivery,
     unhold,
@@ -179,6 +180,7 @@ def main() -> int:
 
         def observe_project(root: Path) -> None:
             with project_observer(root, f"rendez {args.verb} --turns"):
+                settle_latest(root)
                 observe(root, emit, delivery, **options)
 
         roots = [root] + [initialize(path) for path in args.project[1:]]

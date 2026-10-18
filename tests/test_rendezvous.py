@@ -132,6 +132,13 @@ class RendezvousTests(unittest.TestCase):
             self.assertEqual(upload["sha256"], hashlib.sha256(original).hexdigest())
             source.write_bytes(png(400, 200))
             self.assertEqual(self.next_record(process)["width"], 400)
+            # A folder created while watching is watched, and each file in it
+            # is delivered under its inbox-relative name.
+            (inbox / "123/456").mkdir(parents=True)
+            (inbox / "123/456/shot.png").write_bytes(png(10, 10))
+            self.assertEqual(
+                self.next_record(process)["originalName"], "123/456/shot.png"
+            )
             # Printing is the delivery; acceptance is recorded right after it.
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline and any(
@@ -143,9 +150,31 @@ class RendezvousTests(unittest.TestCase):
             process.communicate(timeout=5)
         self.assertEqual(
             sorted(r["state"] for r in self.records("session-a")),
-            ["accepted", "accepted"],
+            ["accepted"] * 3,
         )
         self.assertEqual(self.cli("scan"), [])
+
+    def test_scan_finds_nested_files_and_skips_unchanged_originals(self) -> None:
+        inbox = Path(
+            self.cli("subscribe", "--session", "session-a", "--harness", "codex")[0][
+                "path"
+            ]
+        )
+        (inbox / "7/8").mkdir(parents=True)
+        (inbox / "7/8/notes.txt").write_text("first")
+        (inbox / ".hidden").mkdir()
+        (inbox / ".hidden/skipped.txt").write_text("rsync temporary")
+        (upload,) = self.cli("scan")
+        self.assertEqual(upload["originalName"], "7/8/notes.txt")
+        # Same size and mtime: rsync's test for unchanged, so not reread.
+        source = inbox / "7/8/notes.txt"
+        status = source.stat()
+        source.write_text("other")
+        os.utime(source, ns=(status.st_atime_ns, status.st_mtime_ns))
+        self.assertEqual(self.cli("scan"), [])
+        source.write_text("changed")
+        (changed,) = self.cli("scan")
+        self.assertEqual(changed["originalName"], "7/8/notes.txt")
 
     def test_only_user_activity_advances_latest_and_old_activity_cannot_win(
         self,
@@ -169,10 +198,20 @@ class RendezvousTests(unittest.TestCase):
             )
         note_user_turn(self.project, target_b, "user", 200)
         note_user_turn(self.project, target, "user", 150)
-        self.assertIn("session-b", os.readlink(self.project / ".rendez/latest-session"))
+        latest = self.project / ".rendez/latest-session"
+        self.assertIn("session-b", os.readlink(latest))
+        # rsync into a missing pointer creates a real directory; the next
+        # turn moves it aside undelivered and takes the name back.
+        latest.unlink()
+        latest.mkdir()
+        (latest / "early.png").write_text("sent before anyone listened")
+        note_user_turn(self.project, target, "user", 300)
+        self.assertIn("session-a", os.readlink(latest))
+        (aside,) = (self.project / ".rendez/unrouted").iterdir()
+        self.assertTrue((aside / "early.png").is_file())
         self.assertEqual(
             [p.name for p in (self.project / ".rendez/latest.d").iterdir()],
-            [f"{200:016d}-session-b"],
+            [f"{300:016d}-session-a"],
         )
 
     def test_burst_holds_until_quiet_and_holds_survive_restart(self) -> None:
@@ -221,7 +260,7 @@ class RendezvousTests(unittest.TestCase):
         )
         (inbox / "notes.txt").write_text("sent by an observer that then stopped")
         root = self.project / ".rendez"
-        record = snapshot(root, routes(root)[0], inbox / "notes.txt")
+        record = snapshot(root, routes(root)[0], inbox / "notes.txt", {})
         event = Path(record["path"]).parent
         (event / "claim").write_text("{}")
         (result,) = self.cli("scan")

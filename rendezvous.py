@@ -30,6 +30,7 @@ from session_attachments import attachment_profile, prepare_attachment
 
 MAX_ROUTES = 128
 MAX_FILES = 10000
+MAX_WATCHES = 1024
 MAX_UPLOAD_BYTES = 64 * 1024 * 1024
 CODE_ROOT = Path(__file__).resolve().parent
 DEFAULT_WINDOW_MS = 1000
@@ -195,7 +196,7 @@ def route_name(value: str) -> str:
         raise ValueError(
             "Rendezvous route must contain only letters, digits, underscores, or hyphens"
         )
-    if value in {"latest-session", "delivered", "routes"}:
+    if value in {"latest-session", "delivered", "routes", "unrouted"}:
         raise ValueError("Rendezvous route name is reserved")
     return value
 
@@ -322,10 +323,30 @@ def publish_latest(root: Path, route: str, received_at: int) -> None:
     entries = root / "latest.d"
     entries.mkdir(exist_ok=True)
     (entries / f"{received_at:016d}-{route}").touch()
+    settle_latest(root)
+
+
+def settle_latest(root: Path) -> None:
+    """Point latest-session at the newest recorded user turn, if any.
+
+    A sender writing to latest-session before any pointer existed makes rsync
+    create it as a real directory. Those files arrived with nobody listening,
+    so they are moved aside to unrouted/<epoch-ms>/ undelivered, and the
+    pointer takes the name back.
+    """
+    entries = root / "latest.d"
     link = root / "latest-session"
+    if link.is_dir() and not link.is_symlink():
+        unrouted = root / "unrouted"
+        unrouted.mkdir(exist_ok=True)
+        link.rename(unrouted / f"{time.time_ns() // 1_000_000}-{uuid.uuid4()}")
+    if not entries.is_dir():
+        return
     newest = None
     for _ in range(LATEST_PASSES):
         names = sorted(p.name for p in entries.iterdir() if not p.name.startswith("."))
+        if not names:
+            return
         if names[-1] == newest:
             for name in names[:-1]:
                 (entries / name).unlink(missing_ok=True)
@@ -363,10 +384,50 @@ def routes(root: Path, only: str | None = None) -> list[Path]:
     return result
 
 
-def snapshot(root: Path, route: Path, source: Path) -> dict | None:
-    if source.name.startswith(".") or source.is_symlink() or not source.is_file():
+def walk_inbox(
+    directory: Path, visited: set[tuple[int, int]] | None = None
+) -> Iterator[Path]:
+    """Yield each non-hidden directory and file below an inbox.
+
+    A directory precedes its contents. Symlinks are never followed and a
+    directory reached twice (a bind-mount loop) is skipped, so the walk ends
+    without a depth limit.
+    """
+    visited = set() if visited is None else visited
+    for entry in directory.iterdir():
+        if entry.name.startswith(".") or entry.is_symlink():
+            continue
+        if entry.is_dir():
+            status = entry.stat()
+            if (status.st_dev, status.st_ino) in visited:
+                continue
+            visited.add((status.st_dev, status.st_ino))
+            yield entry
+            yield from walk_inbox(entry, visited)
+        else:
+            yield entry
+
+
+# (route, inbox-relative name) -> (size, mtime ns) of the last captured
+# original. An original that still matches is not copied and hashed again,
+# the same test rsync uses to skip unchanged files.
+Seen = dict[tuple[str, str], tuple[int, str]]
+
+
+def snapshot(root: Path, route: Path, source: Path, seen: Seen) -> dict | None:
+    relative = source.relative_to(route / "inbox")
+    if (
+        any(part.startswith(".") for part in relative.parts)
+        or source.is_symlink()
+        or not source.is_file()
+    ):
         return None
-    if source.stat().st_size > MAX_UPLOAD_BYTES:
+    name = relative.as_posix()
+    status = source.stat()
+    fingerprint = (status.st_size, str(status.st_mtime_ns))
+    if seen.get((route.name, name)) == fingerprint:
+        return None
+    if status.st_size > MAX_UPLOAD_BYTES:
         raise ValueError(
             f"Rendezvous upload exceeds {MAX_UPLOAD_BYTES} bytes: {source}"
         )
@@ -399,18 +460,22 @@ def snapshot(root: Path, route: Path, source: Path) -> dict | None:
             return None
         sha = digest.hexdigest()
         event_id = str(
-            uuid.uuid5(uuid.NAMESPACE_URL, f"{root}/{route.name}/{source.name}/{sha}")
+            uuid.uuid5(uuid.NAMESPACE_URL, f"{root}/{route.name}/{name}/{sha}")
         )
         destination = directory / event_id
+        fingerprint = (before.st_size, str(before.st_mtime_ns))
         if destination.exists():
+            seen[(route.name, name)] = fingerprint
             return None
         record = {
             "version": 1,
             "id": event_id,
             "route": route.name,
             "target": target,
-            "originalName": source.name,
+            "originalName": name,
             "originalPath": str(source),
+            "originalSize": fingerprint[0],
+            "originalMtimeNs": fingerprint[1],
             "sha256": sha,
             "path": str(destination / copied.name),
             "state": "pending",
@@ -424,9 +489,10 @@ def snapshot(root: Path, route: Path, source: Path) -> dict | None:
         try:
             scratch.rename(destination)
         except OSError as exc:
-            if exc.errno in {errno.EEXIST, errno.ENOTEMPTY}:
-                return None
-            raise
+            if exc.errno not in {errno.EEXIST, errno.ENOTEMPTY}:
+                raise
+            record = None
+        seen[(route.name, name)] = fingerprint
         return record
     finally:
         if scratch.exists():
@@ -706,8 +772,10 @@ def _send_turn(record_path: Path, record: dict, native: bool) -> dict:
     return record
 
 
-def discover_pending(root: Path, observed: list[Path]) -> Iterator[dict]:
+def load_records(root: Path, observed: list[Path], seen: Seen) -> list[dict]:
+    """Return records still to send or settle, and index captured originals."""
     pending = []
+    captured: dict[tuple[str, str], float] = {}
     names = {route.name for route in observed}
     for route in (root / "delivered").iterdir():
         if route.name not in names or not route.is_dir() or route.is_symlink():
@@ -719,6 +787,12 @@ def discover_pending(root: Path, observed: list[Path]) -> Iterator[dict]:
             if not path.is_file():
                 continue
             record = json.loads(path.read_text())
+            key = (route.name, record.get("originalName", ""))
+            if "originalMtimeNs" in record and record["createdAt"] >= captured.get(
+                key, 0
+            ):
+                captured[key] = record["createdAt"]
+                seen[key] = (record["originalSize"], record["originalMtimeNs"])
             # Uncertain records stay so until someone inspects the transcript;
             # only a provider receipt can still settle one.
             if record["state"] in {"pending", "attempting"} or (
@@ -730,18 +804,20 @@ def discover_pending(root: Path, observed: list[Path]) -> Iterator[dict]:
                     raise RuntimeError(
                         "Rendezvous pending records exceed the scan limit"
                     )
-    yield from pending
-    count = 0
-    for route in observed:
-        for source in (route / "inbox").iterdir():
-            count += 1
-            if count > MAX_FILES:
-                raise RuntimeError(
-                    f"Rendezvous exceeds the {MAX_FILES}-file scan limit"
-                )
-            record = snapshot(root, route, source)
-            if record:
-                yield record
+    return pending
+
+
+def inbox_files(route: Path) -> Iterator[Path]:
+    for count, path in enumerate(walk_inbox(route / "inbox"), 1):
+        if count > MAX_FILES:
+            LOGGER.warning(
+                "Rendezvous inbox %s exceeds %d entries; the rest are skipped",
+                route / "inbox",
+                MAX_FILES,
+            )
+            return
+        if not path.is_dir():
+            yield path
 
 
 def scan(
@@ -755,9 +831,16 @@ def scan(
 ) -> None:
     observed = time.time_ns() // 1_000_000
     worker = DeliveryWorker(root, emit, delivery, window_ms=window_ms, maximum=maximum)
+    seen: Seen = {}
     try:
-        for record in discover_pending(root, routes(root, only)):
+        observed_routes = routes(root, only)
+        for record in load_records(root, observed_routes, seen):
             worker.submit(record, observed)
+        for route in observed_routes:
+            for source in inbox_files(route):
+                record = snapshot(root, route, source, seen)
+                if record:
+                    worker.submit(record, observed)
     finally:
         worker.close()
 
@@ -779,9 +862,42 @@ def watch(
     fd = libc.inotify_init1(os.O_NONBLOCK | os.O_CLOEXEC)
     if fd < 0:
         raise OSError(ctypes.get_errno(), "Cannot initialize rendezvous inotify")
-    watched: dict[int, Path] = {}
+    # inbox and nested directory watch -> (route, directory)
+    watched: dict[int, tuple[Path, Path]] = {}
+    watched_routes: set[Path] = set()
+    seen: Seen = {}
+
+    def add_watch(route: Path, directory: Path) -> None:
+        if len(watched) >= MAX_WATCHES:
+            raise RuntimeError(
+                f"Rendezvous exceeds the {MAX_WATCHES}-directory watch limit"
+            )
+        # Completed writes and arrivals, plus directory creation.
+        wd = libc.inotify_add_watch(fd, os.fsencode(directory), 0x8 | 0x80 | 0x100)
+        if wd < 0:
+            raise OSError(ctypes.get_errno(), f"Cannot watch {directory}")
+        watched[wd] = (route, directory)
+
+    def observe(route: Path, directory: Path, observed: int) -> None:
+        """Watch a directory and those below it, capturing files present."""
+        add_watch(route, directory)
+        # A directory is watched before its listing, so nothing slips between.
+        for count, path in enumerate(walk_inbox(directory), 1):
+            if count > MAX_FILES:
+                LOGGER.warning(
+                    "Rendezvous directory %s exceeds %d entries; the rest are skipped",
+                    directory,
+                    MAX_FILES,
+                )
+                return
+            if path.is_dir():
+                add_watch(route, path)
+            else:
+                record = snapshot(root, route, path, seen)
+                if record:
+                    worker.submit(record, observed)
+
     try:
-        # One control watch plus at most MAX_ROUTES input watches.
         control = libc.inotify_add_watch(fd, os.fsencode(root / "routes"), 0x100 | 0x80)
         if control < 0:
             raise OSError(ctypes.get_errno(), "Cannot watch rendezvous routes")
@@ -792,33 +908,15 @@ def watch(
         initial_scan = True
         while True:
             worker.check()
-            new_routes = []
-            for route in routes(root, only):
-                if route in watched.values():
-                    continue
-                wd = libc.inotify_add_watch(
-                    fd, os.fsencode(route / "inbox"), 0x8 | 0x80
-                )
-                if wd < 0:
-                    raise OSError(ctypes.get_errno(), "Cannot watch rendezvous inbox")
-                watched[wd] = route
-                new_routes.append(route)
+            new_routes = [r for r in routes(root, only) if r not in watched_routes]
+            observed = time.time_ns() // 1_000_000
             if initial_scan:
-                observed = time.time_ns() // 1_000_000
-                for record in discover_pending(root, new_routes):
+                for record in load_records(root, new_routes, seen):
                     worker.submit(record, observed)
                 initial_scan = False
-            else:
-                for route in new_routes:
-                    observed = time.time_ns() // 1_000_000
-                    for count, source in enumerate((route / "inbox").iterdir(), 1):
-                        if count > MAX_FILES:
-                            raise RuntimeError(
-                                "Rendezvous inbox exceeds the file scan limit"
-                            )
-                        record = snapshot(root, route, source)
-                        if record:
-                            worker.submit(record, observed)
+            for route in new_routes:
+                watched_routes.add(route)
+                observe(route, route / "inbox", observed)
             if not select.select([fd], [], [], 5)[0]:
                 continue
             data = os.read(fd, 65536)
@@ -836,8 +934,16 @@ def watch(
                 if mask & 0x8000:
                     watched.pop(wd, None)
                     continue
-                if wd in watched and name and not mask & 0x40000000:
-                    record = snapshot(root, watched[wd], watched[wd] / "inbox" / name)
+                if wd not in watched or not name or name.startswith("."):
+                    continue
+                route, directory = watched[wd]
+                path = directory / name
+                if mask & 0x40000000:
+                    # A new or moved-in directory: watch it and capture its files.
+                    if mask & (0x100 | 0x80) and not path.is_symlink():
+                        observe(route, path, observed)
+                elif mask & (0x8 | 0x80):
+                    record = snapshot(root, route, path, seen)
                     if record:
                         worker.submit(record, observed)
     finally:
