@@ -58,7 +58,7 @@ Duplication is correct at *divergence points* — copies you expect to evolve ap
 
 ### Refactors must pay for themselves
 
-A refactor nobody asked for lands only when it reduces total code without raising runtime cost. More code is acceptable for two reasons only: it makes future changes more likely to stay correct and in sync (one definition of a format that several sites must agree on), or it improves performance. A reasoned belief that a refactor qualifies is enough; do not gate a good refactor on an expensive measurement of its size or cost. Across tiers — client and server, or other distributed components — count runtime cost on every side: client bundle and per-render work, server per-request work, added round trips or payload. Line count alone is not the measure. Negligible overhead does not count against a simpler form: an extra function call or indirection that an optimizer could plausibly remove is acceptable. When reporting such a refactor, state its net line delta and which allowance it relies on.
+An unrequested refactor must reduce total code without increasing runtime cost. Code growth is allowed only to keep future changes correct and in sync, or improve performance. Count cost across all tiers: bundle size, per-render and per-request work, round trips, and payload. Negligible overhead, such as an extra call an optimizer could plausibly remove, is acceptable for simplicity. Reasoned belief suffices; do not require expensive size or cost measurements. Report the net line delta and which allowance applies.
 
 ## Types
 
