@@ -144,3 +144,7 @@
   tidiness alone. The reporting clause makes the trade visible so the
   user can veto it.
 - Contributing-model: opus-5.5.
+- 2026-10-18 amendment, user direction (graehl): "we don't want
+  expensive measurements to gate good refactors - a reasoned belief in
+  qualification is sufficient." Dropped "measurably" from the performance
+  allowance and stated the reasoned-belief standard for both allowances.
