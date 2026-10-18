@@ -26,14 +26,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import acli
 from rendezvous import (
     initialize,
+    observer_marker,
     output_delivery,
     project_observer,
+    receive,
     route_name,
     scan,
     settle_latest,
     subscribe,
     turn_delivery,
     unhold,
+    wait_for,
     watch,
 )
 
@@ -96,6 +99,28 @@ def main() -> int:
         action="store_false",
         help="Explicitly allow revival of an inactive target",
     )
+    receiving = verbs.add_parser(
+        "receive",
+        help="Publish stdin as one upload for the running observer to deliver",
+    )
+    receiving.add_argument(
+        "--route",
+        help="Route or session id (default: the session latest-session points at)",
+    )
+    receiving.add_argument(
+        "--wait",
+        action="store_true",
+        help="Also report whether the upload was accepted, failed, held, or uncertain",
+    )
+    receiving.add_argument(
+        "--timeout",
+        type=float,
+        default=120,
+        help="Seconds --wait allows before reporting the state so far",
+    )
+    receiving.add_argument(
+        "name", help="Upload name relative to the inbox, such as 123/shot.png"
+    )
     for verb in ("watch", "scan", "unhold"):
         command = verbs.add_parser(
             verb,
@@ -154,6 +179,22 @@ def main() -> int:
                 )
             )
             return 0
+        if args.verb == "receive":
+            if len(args.project or []) > 1:
+                parser.error("receive takes one --project")
+            project = args.project[0] if args.project else Path.cwd()
+            # Receiving never creates .rendez: no directory, no listener.
+            root = project.resolve() / ".rendez"
+            if not root.is_dir() or root.is_symlink():
+                raise ValueError(f"{project} has no rendezvous directory")
+            published = receive(root, args.name, sys.stdin.buffer, args.route)
+            destination = published["destination"]
+            emit({"state": "published", "destination": destination})
+            if not args.wait:
+                return 0
+            state = wait_for(root, published["route"], published["id"], args.timeout)
+            emit({"state": state, "destination": destination})
+            return 0 if state == "accepted" else 1
         if args.native and not args.turns:
             parser.error("--native applies only to --turns delivery")
         if args.turns and args.verb != "unhold" and not args.project:
@@ -184,7 +225,9 @@ def main() -> int:
         observe = watch if args.verb == "watch" else scan
         if not args.turns:
             only = subscribe(project, target(parser, args), args.route)["route"]
-            observe(root, emit, output_delivery(emit), only=only, **options)
+            # The route marker tells `receive` this session is listening.
+            with observer_marker(root / "routes" / only, f"rendez {args.verb}"):
+                observe(root, emit, output_delivery(emit), only=only, **options)
             return 0
         delivery = turn_delivery(native=args.native)
 

@@ -23,7 +23,7 @@ import time
 import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from agentctl_coordination import atomic_json
 from session_attachments import attachment_profile, prepare_attachment
@@ -541,15 +541,39 @@ def _alive(pid: int, start_time: str | None) -> bool:
     return start_time is None or _start_time(pid) in {None, start_time}
 
 
+def project_observer(root: Path, owner: str):
+    """Refuse to start a second project observer: YA or `watch --turns`."""
+    return observer_marker(root, owner)
+
+
+def _marker_live(marker: Path) -> bool:
+    """Whether a marker's observer may still run; other hosts are trusted."""
+    try:
+        other = json.loads(marker.read_text())
+    except (FileNotFoundError, ValueError):
+        return False
+    if other.get("host") != socket.gethostname():
+        return True
+    return _alive(other.get("pid", 0), other.get("startTime"))
+
+
+def listening(root: Path, route: str) -> bool:
+    """Whether a project observer or the route's own observer is running."""
+    return _marker_live(root / ".observer.json") or _marker_live(
+        root / "routes" / route / ".observer.json"
+    )
+
+
 @contextmanager
-def project_observer(root: Path, owner: str) -> Iterator[None]:
-    """Refuse to start a second project observer: YA or `watch --turns`.
+def observer_marker(directory: Path, owner: str) -> Iterator[None]:
+    """Mark `directory` (a project root or route) observed, refusing a second.
 
     This is a startup conflict check, not a lock. A marker whose process is
     gone from this host is replaced; one from another host must be removed by
     hand, because its owner's liveness cannot be checked from here.
     """
-    marker = root / ".observer.json"
+    marker = directory / ".observer.json"
+    root = directory
     mine = {
         "owner": owner,
         "host": socket.gethostname(),
@@ -575,7 +599,7 @@ def project_observer(root: Path, owner: str) -> Iterator[None]:
                     marker.unlink(missing_ok=True)
                     continue
                 raise RuntimeError(
-                    f"Project {root.parent} is already observed by {other.get('owner', 'another observer')} "
+                    f"{directory} is already observed by {other.get('owner', 'another observer')} "
                     f"(pid {other.get('pid')} on {other.get('host')}); stop it, or delete {marker} if it is gone"
                 ) from None
         else:
@@ -590,6 +614,129 @@ def project_observer(root: Path, owner: str) -> Iterator[None]:
                 marker.unlink()
         except (FileNotFoundError, ValueError):
             pass
+
+
+def _latest_route(root: Path) -> str:
+    link = root / "latest-session"
+    if not link.is_symlink():
+        raise RuntimeError("Rendezvous latest-session is not a session pointer")
+    target = PurePosixPath(os.readlink(link))
+    if target.as_posix() == UNSET_TARGET:
+        raise RuntimeError("No session in this project has been messaged yet")
+    if len(target.parts) != 3 or target.parts[::2] != ("routes", "inbox"):
+        raise RuntimeError(f"Unexpected rendezvous latest-session target {target}")
+    return target.parts[1]
+
+
+def _rename_noreplace(source: Path, destination: Path) -> bool:
+    """Rename without replacing; return False if the destination exists.
+
+    Linux renameat2's RENAME_NOREPLACE makes this atomic, and like any rename
+    it reads as a completed arrival to watchers, which a link() does not.
+    Where the kernel or filesystem lacks it (NFS, non-Linux), a check precedes
+    a plain rename, so receivers racing for one name could collide.
+    """
+    renameat2 = getattr(ctypes.CDLL(None, use_errno=True), "renameat2", None)
+    if renameat2 is not None:
+        at_cwd, noreplace = -100, 1
+        if not renameat2(
+            at_cwd, os.fsencode(source), at_cwd, os.fsencode(destination), noreplace
+        ):
+            return True
+        error = ctypes.get_errno()
+        if error == errno.EEXIST:
+            return False
+        if error not in {errno.EINVAL, errno.ENOSYS, errno.ENOTSUP}:
+            raise OSError(error, os.strerror(error), str(destination))
+    if destination.exists() or destination.is_symlink():
+        return False
+    source.rename(destination)
+    return True
+
+
+def receive(root: Path, name: str, source, route: str | None = None) -> dict:
+    """Publish one upload read from `source` into a route's inbox.
+
+    The default route is the session latest-session points at, resolved once
+    so the upload stays pinned to it. Delivery is left to the running
+    observer, and nothing is read unless one listens. An existing name gains
+    a -2, -3, ... counter before its extension. Returns the resolved route,
+    the published inbox-relative name, its `.rendez`-relative destination,
+    and the event id an observer will give it.
+    """
+    route = route_name(route if route is not None else _latest_route(root))
+    directory = root / "routes" / route
+    if not (directory / "subscription.json").is_file():
+        raise ValueError(f"Rendezvous route {route} has no subscription")
+    if not listening(root, route):
+        raise RuntimeError(
+            f"No rendezvous observer is listening for {route}; the upload would not be delivered"
+        )
+    relative = PurePosixPath(name)
+    if (
+        not relative.parts
+        or relative.is_absolute()
+        or any(part in {".", ".."} or part.startswith(".") for part in relative.parts)
+    ):
+        raise ValueError(
+            "Upload name must be a relative path without hidden or parent parts"
+        )
+    inbox = (directory / "inbox").resolve(strict=True)
+    parent = inbox.joinpath(*relative.parent.parts)
+    parent.mkdir(parents=True, exist_ok=True)
+    if not parent.resolve().is_relative_to(inbox):
+        raise ValueError("Upload path leaves the route's inbox")
+    temporary = parent / f".receive-{uuid.uuid4()}"
+    digest = hashlib.sha256()
+    try:
+        with temporary.open("xb") as output:
+            for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                if output.tell() + len(chunk) > MAX_UPLOAD_BYTES:
+                    raise ValueError(f"Upload exceeds {MAX_UPLOAD_BYTES} bytes")
+                digest.update(chunk)
+                output.write(chunk)
+            output.flush()
+            os.fsync(output.fileno())
+        for count in range(1, MAX_FILES + 1):
+            final = relative.with_name(
+                relative.name
+                if count == 1
+                else f"{relative.stem}-{count}{relative.suffix}"
+            )
+            if _rename_noreplace(temporary, inbox.joinpath(*final.parts)):
+                break
+        else:
+            raise RuntimeError(f"No free upload name like {name}")
+    finally:
+        temporary.unlink(missing_ok=True)
+    published = final.as_posix()
+    return {
+        "route": route,
+        "name": published,
+        "destination": f"{route}/{published}",
+        "id": str(
+            uuid.uuid5(
+                uuid.NAMESPACE_URL,
+                f"{root}/{route}/{published}/{digest.hexdigest()}",
+            )
+        ),
+    }
+
+
+def wait_for(root: Path, route: str, event_id: str, timeout: float) -> str:
+    """Return the upload's settled state, or its latest one at the timeout."""
+    path = root / "delivered" / route / event_id / "record.json"
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            state = json.loads(path.read_text())["state"]
+        except FileNotFoundError:
+            state = "published"
+        if state in {"accepted", "failed", "held", "uncertain"}:
+            return state
+        if time.monotonic() >= deadline:
+            return state
+        time.sleep(0.2)
 
 
 def unhold(record_path: Path) -> dict:

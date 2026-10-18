@@ -233,6 +233,84 @@ class RendezvousTests(unittest.TestCase):
         )
         self.assertTrue(latest.is_dir())
 
+    def receive(self, *args: str, data: bytes) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "--json",
+                "--project",
+                str(self.project),
+                "receive",
+                *args,
+            ],
+            env=self.env,
+            input=data,
+            capture_output=True,
+            check=False,
+        )
+
+    def test_receive_refuses_without_a_listener_and_pins_latest(self) -> None:
+        root = initialize(self.project)
+        settle_latest(root)
+        refused = self.receive("shot.png", data=b"x")
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn(b"No session in this project has been messaged", refused.stderr)
+        target = {"harness": "codex", "providerSessionId": "a", "yaSessionId": "a"}
+        note_user_turn(self.project, target, "user", 100)
+        refused = self.receive("shot.png", data=b"x")
+        self.assertIn(b"No rendezvous observer is listening for a", refused.stderr)
+        live = {"owner": "test", "host": socket.gethostname(), "pid": os.getpid()}
+        (root / ".observer.json").write_text(json.dumps(live))
+        for expected in ("a/7/shot.png", "a/7/shot-2.png"):
+            published = self.receive("7/shot.png", data=b"bytes")
+            self.assertEqual(published.returncode, 0, published.stderr)
+            self.assertEqual(
+                json.loads(published.stdout),
+                {"state": "published", "destination": expected},
+            )
+        self.assertEqual(
+            sorted(p.name for p in (root / "routes/a/inbox/7").iterdir()),
+            ["shot-2.png", "shot.png"],
+        )
+        escaped = self.receive("../outside.png", data=b"x")
+        self.assertIn(b"without hidden or parent parts", escaped.stderr)
+
+    def test_receive_wait_reports_delivery_by_an_in_session_watcher(self) -> None:
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-u",
+                str(SCRIPT),
+                "--json",
+                "--project",
+                str(self.project),
+                "watch",
+            ],
+            env=self.env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        try:
+            self.assertEqual(self.next_record(process)["state"], "watching")
+            result = self.receive(
+                "--route", "session-a", "--wait", "notes.txt", data=b"hello"
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                [json.loads(line) for line in result.stdout.splitlines()],
+                [
+                    {"state": "published", "destination": "session-a/notes.txt"},
+                    {"state": "accepted", "destination": "session-a/notes.txt"},
+                ],
+            )
+            self.assertEqual(self.next_record(process)["originalName"], "notes.txt")
+        finally:
+            process.terminate()
+            process.communicate(timeout=5)
+        refused = self.receive("--route", "session-a", "later.txt", data=b"x")
+        self.assertIn(b"No rendezvous observer is listening", refused.stderr)
+
     def test_burst_holds_until_quiet_and_holds_survive_restart(self) -> None:
         root = initialize(self.project)
         directory = root / "delivered/session-a"

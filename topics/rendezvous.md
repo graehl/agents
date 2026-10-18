@@ -19,7 +19,29 @@ The watcher uses Linux inotify; one-shot `scan` works on other POSIX hosts.
 ```bash
 rendez watch            # inside a session: receive uploads to .rendez/<session>/
 rendez watch --turns --project /work/a --project /work/b   # project daemon
+ssh host rendez --project oss receive --wait 123/shot.png < shot.png   # sender
 ```
+
+`receive` publishes stdin as one upload, the way `rsync --server` serves an
+ssh command line; an upload-only key can be pinned to it with an
+`authorized_keys` `command=` restriction. It never creates `.rendez`. It
+refuses, before reading stdin, unless an observer listens for the route: the
+project marker, or the route's own `.observer.json`, which plain `watch` keeps
+while it runs. The default route is the one `latest-session` points at,
+resolved once so the upload stays pinned to it; `--route` names another. The
+name may include subfolders, which are created; it may not be absolute or
+contain dot-prefixed or parent parts. An existing name gains `-2`, `-3`, ...
+before its extension. Bytes go to a hidden temporary, limited to 64 MiB, and
+are published by a rename that refuses to replace (Linux `renameat2`; a
+checked plain rename elsewhere, such as NFS), so watchers see one completed
+arrival. Delivery is the observer's, through the usual records.
+
+Each output line has `state` and `destination`, the `.rendez`-relative path
+through the route's alias, such as `session-a/123/shot-2.png`; its first
+component is the resolved route, the session id for `latest-session`. With
+`--wait` a second line reports `accepted`, `failed`, `held` or `uncertain`,
+exiting non-zero unless accepted. It polls the expected record five times a
+second, up to `--timeout` (120 s), adding no files.
 
 Plain `watch` is the simplest form: the observing session owns its route. It
 subscribes the session's named destination `.rendez/<session-id>/` (or
@@ -248,12 +270,8 @@ event acceptance, retain a receipt per recipient, and do not let fan-out update
 becoming the delivery authority. Neither extension is needed for the first
 latest-session and explicit-session implementation.
 
-A smart SSH receiver is deferred: route and filename are CLI arguments, input
-bytes arrive on stdin, and the receiver atomically selects a non-colliding
-destination and submits once without a duplicate watcher send. The first
-workflow is ordinary rsync with temporary-file-and-rename publication. Direct
-scp closes are observable, but an interrupted transfer may also close an
-incomplete file; explicit one-shot scans are for completed transfers.
+Locating the running observer and handing it bytes directly, instead of
+publishing through the inbox, is [sketched](../gaps/sketches/rendez-observer-socket.md).
 
 The YA-facing upload guide is
 [topics/rendez.md](https://github.com/graehl/yepanywhere/blob/main/topics/rendez.md).
