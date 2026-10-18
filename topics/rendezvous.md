@@ -11,7 +11,8 @@ held-upload release. YA adds opt-in watcher ownership and attachment previews.
 ## Helper commands
 
 Expose `~/agents/scripts/rendez` on PATH (for example through `~/bin/rendez`).
-Python 3.10+ is required; image preparation uses ImageMagick's `magick`.
+The script runs through `uv`, which supplies Python 3.10+ and Pillow for image
+preparation; no system image packages are needed.
 The watcher uses Linux inotify; one-shot `scan` works on other POSIX hosts.
 
 ```bash

@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
-import shutil
-import subprocess
 from pathlib import Path
+
+# Pillow allocates the full decoded frame; refuse sources whose header
+# promises more than this before decoding, as the old ImageMagick limits did.
+MAX_SOURCE_PIXELS = 64 * 1024 * 1024
+SAVE_FORMATS = {
+    "image/png": "PNG",
+    "image/jpeg": "JPEG",
+    "image/webp": "WEBP",
+    "image/gif": "PNG",
+}
 
 
 def attachment_profile(target: dict, turn_api: dict) -> dict:
@@ -36,68 +44,48 @@ def attachment_profile(target: dict, turn_api: dict) -> dict:
 
 
 def prepare_attachment(path: Path, mime: str, profile: dict) -> dict:
-    if mime not in {"image/png", "image/jpeg", "image/webp", "image/gif"}:
+    if mime not in SAVE_FORMATS:
         return {"size": path.stat().st_size, "mimeType": mime}
-    executable = shutil.which("magick")
-    if not executable:
-        raise RuntimeError("Image preparation requires ImageMagick's magick executable")
-    limits = [
-        "-limit",
-        "memory",
-        "128MiB",
-        "-limit",
-        "map",
-        "256MiB",
-        "-limit",
-        "disk",
-        "512MiB",
-    ]
-    result = subprocess.run(
-        [executable, "identify", *limits, "-format", "%w %h", f"{path}[0]"],
-        capture_output=True,
-        text=True,
-        check=True,
-        timeout=30,
-    )
-    width, height = map(int, result.stdout.split())
-    original_dimensions = {"width": width, "height": height}
-    edge = profile["maxLongEdge"]
-    if max(width, height) <= edge and path.stat().st_size <= profile["maxBytes"]:
-        return {**original_dimensions, "size": path.stat().st_size, "mimeType": mime}
+    # Imported here so session-turn, which shares this module through
+    # rendezvous, keeps running on a plain interpreter without Pillow.
+    try:
+        from PIL import Image, ImageOps
+    except ImportError as exc:
+        raise RuntimeError(
+            "Image preparation requires Pillow; run rendez through its uv script header"
+        ) from exc
+    with Image.open(path) as image:
+        width, height = image.size
+        if width * height > MAX_SOURCE_PIXELS:
+            raise RuntimeError(f"Image is too large to prepare: {width}x{height}")
+        edge = profile["maxLongEdge"]
+        if max(width, height) <= edge and path.stat().st_size <= profile["maxBytes"]:
+            return {
+                "width": width,
+                "height": height,
+                "size": path.stat().st_size,
+                "mimeType": mime,
+            }
+        # JPEG only: libjpeg decodes at the smallest 1/2^k scale that still
+        # covers the target, which every later, smaller retry edge also fits.
+        image.draft(None, (edge, edge))
+        source = ImageOps.exif_transpose(image)
     output = path.with_name(
         ".prepared.png" if mime == "image/gif" else ".prepared" + path.suffix
     )
+    save_format = SAVE_FORMATS[mime]
+    if save_format == "JPEG" and source.mode not in {"RGB", "L", "CMYK"}:
+        source = source.convert("RGB")
     for _ in range(12):
-        subprocess.run(
-            [
-                executable,
-                *limits,
-                f"{path}[0]",
-                "-auto-orient",
-                "-resize",
-                f"{edge}x{edge}>",
-                "-strip",
-                "-quality",
-                str(profile["quality"]),
-                str(output),
-            ],
-            capture_output=True,
-            check=True,
-            timeout=30,
-        )
+        prepared = source.copy()
+        prepared.thumbnail((edge, edge), Image.Resampling.LANCZOS)
+        prepared.save(output, format=save_format, quality=profile["quality"])
         if output.stat().st_size <= profile["maxBytes"]:
             break
         edge = max(32, int(edge * 0.8))
     else:
         raise RuntimeError("Image preparation could not satisfy the adapter byte limit")
-    result = subprocess.run(
-        [executable, "identify", "-format", "%w %h", str(output)],
-        capture_output=True,
-        text=True,
-        check=True,
-        timeout=30,
-    )
-    width, height = map(int, result.stdout.split())
+    width, height = prepared.size
     if mime == "image/gif":
         final = path.with_suffix(".png")
         output.replace(final)
