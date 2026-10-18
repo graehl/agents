@@ -107,7 +107,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `successful-paper-forms` | Governs: choosing a paper's governing expository form | [successful-paper-forms](topics/successful-paper-forms.md) |
 | `technical-writing` | Governs: drafting or revising a technical report, brief, estimate, proposal, handout, progress report, blog post, or paper for outside readers | [technical-writing](topics/technical-writing.md) |
 | tend | Filling idle GPU with the next highest-research-value run; what the steward does. `/steward` and "tend on-deck jobs" are the same request. | [on-deck](topics/on-deck.md) |
-| `testing` | Governs: writing or changing tests, or validating a behavior change | [testing](topics/testing.md) |
+| `testing` | Governs: planning or implementing durable scripts or software, or choosing, writing, running, retaining, or reviewing tests | [testing](topics/testing.md) |
 | `testing-rider` | Governs: creating or using a topic's .testing.md | [testing-rider](topics/testing-rider.md) |
 | `theming` | Governs: adding or changing themes, dark mode, skins, or design tokens | [theming](topics/theming.md) |
 | `tool-surprises` | Governs: /tool-surprises, or recurring tool or command failure patterns | [tool-surprises](topics/tool-surprises.md) |

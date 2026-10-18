@@ -31,9 +31,9 @@ This is a companion convention alongside `.evidence.md`, `.bearings.md`,
   **optional/deferred** (run when the change is significant enough or
   compute is available). Each check states what passing looks like.
 - **Not a duplicate of `testing.md`.** The `testing.md` topic is the
-  project's general TDD discipline. A `.testing` rider is specific to
-  *one* topic's concern — what to run when *that* contract might have
-  been weakened.
+  project's verification and test-retention policy. A `.testing` rider is
+  specific to *one* topic's concern — what to run when *that* contract might
+  have been weakened.
 - **Honesty about cost.** A rider may say its real validation is
   expensive and deferred; that is a valid state, recorded rather than
   pretended-away. The mandatory tier should stay cheap enough to

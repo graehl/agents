@@ -105,10 +105,15 @@ Walk these in order; skip any with no real hit — a short review is success, no
 
 ## Correctness
 
+Apply `~/agents/topics/testing.md` before judging verification or retained
+coverage, subject to project test policy. Inspect historical temporary tests
+when a removal commit identifies them; their absence from the net diff does
+not erase initial evidence or establish adequate ongoing coverage.
+
 For each meaningful change, demand evidence:
 - Simulate execution through the key paths. Does the logic hold? Are edge cases handled, or provably unreachable?
 - What tests cover this — the real contract, or only the happy path?
-- For a non-trivial path with no test, ask for one or for an explicit argument that it is unnecessary.
+- For a non-trivial path without adequate evidence, ask for a focused check or a correctness argument. Require a retained test only when its regression value justifies its ongoing cost or project policy requires it.
 
 Flag logic that reads fine but breaks on a concrete input: an empty collection, an off-by-one, a race, a caller assumption nothing enforces.
 

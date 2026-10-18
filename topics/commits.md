@@ -100,6 +100,11 @@ explained by something in the text. Neither is served by a journal of how the
 change was reached: omit iteration narrative, superseded approaches that left
 no trace in the tree, and added-then-reverted churn.
 
+Exception: when retiring temporary verification tests preserved for review,
+include the evidence commit and test path, what they established, and why
+retention no longer pays, per [testing](testing.md#temporary-tests-and-review-evidence).
+These locators preserve review evidence absent from the final diff.
+
 Before the first review, make a dedicated revision pass toward one printed
 page or less. This is a compression target, not a hard quota: preserve a
 load-bearing decision or risk when it needs more room, while larger changes

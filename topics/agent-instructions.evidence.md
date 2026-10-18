@@ -5622,3 +5622,41 @@ prose correction retains substantive uncertainty and personal testimony.
   that it was a hunch and what it rested on is welcome; he may not
   remember its basis. The rule targets echoing a hedge he just wrote.
 - Status: user-directed preference; no measured effect is claimed.
+
+## 2026-10-18 — verification value, retention cost, and review evidence
+
+- User observation: development sessions routinely invested heavily in tests,
+  including slow cases for small features; software was growing in test expense.
+  The user wants global defaults reached before building any durable script or
+  software, with the important decisions at the top of the scoped topic.
+- Inspection: global `testing.md` prescribed test-first development as an
+  invariant. YA already routed test additions through a value/cost policy, but
+  its local full-suite cadence imposed separate execution cost. Those local
+  rules were adjusted separately; no relay or YA check inventory belongs here.
+- User clarification: tests that prove the requested implementation and are
+  then thrown away are fine. Initial verification value and future regression
+  value are distinct. Committing temporary tests before deleting them can aid
+  later harsh review, but single-commit ticket reviews and project-required
+  tests must override the default. The XMT local override was strengthened
+  separately; no general permission for additional review commits is implied.
+- Decision: route durable development from the existing Feature validation
+  section to `testing.md`; put cost, scope, retention, and project precedence
+  first. Replace unconditional TDD with an optional technique, preserve the
+  real-entrypoint smoke, and teach harsh review to inspect historical evidence
+  without automatically demanding that temporary tests return to CI.
+- Trace: a small retained helper uses a direct activating check without a
+  speculative test harness or full-suite run. Unrelated discussion does not
+  activate the development read; test-only review still activates its own route.
+- Trace: an expensive temporary check proves the implementation. If its review
+  value warrants history and project policy permits, a later removal commit
+  points to it. A range reviewer retrieves the intermediate test even though
+  it vanished from the net diff; retention still depends on future value.
+- Trace: a rare destructive race can justify retained integration coverage
+  despite low frequency. A cheap mocked assertion that restates a helper can
+  be dropped without a replacement. Neither case is decided by test count.
+- Trace: a Gerrit ticket keeps required tests and one review commit; the
+  optional evidence/removal pair cannot override its project policy. A shared
+  transport change with uncertain affected callers still merits broader checks.
+- Validation: instruction traces and generated-route checks; no measured
+  reduction in session effort or regression rate is claimed.
+- Contributing-model: 6-Astra

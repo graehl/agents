@@ -1,20 +1,73 @@
 # Topic: testing
 
-> Vertical-slice TDD: one test → minimal code to pass → next test.
-> Tests verify behavior through public interfaces and survive
-> internal refactor; mocking is for system boundaries, not internal
-> collaborators.
+> Proportionate verification of software and durable scripts: weigh initial
+> correctness evidence and lasting regression protection against test cost,
+> and retain only coverage that earns its ongoing expense.
 
 Topic: `testing`
-Governs: writing or changing tests, or validating a behavior change
+Governs: planning or implementing durable scripts or software, or choosing, writing, running, retaining, or reviewing tests
 
-## Contracts
+## Cost, scope, and retention
 
-- **Vertical slices, not horizontal.** One test → minimal code to
-  pass → next test. Writing all tests first then all implementation
-  produces tests of *imagined* behavior and of the *shape* of things
-  (signatures, data structures) rather than of actual user-facing
-  behavior.
+These are defaults across projects; explicit project test, release, and
+commit policies take precedence. Choose checks by the failures they could
+expose, their likelihood and consequences, and the cost of writing, debugging,
+running, and maintaining the checks. Reasoned judgment suffices; do not require
+expensive measurements to justify a small verification decision.
+
+Establishing that the requested behavior works and retaining regression
+coverage are separate decisions. A temporary test can earn its development
+cost and still be removed before landing. Retain it only when future failure
+detection justifies recurring execution and maintenance, including fixtures,
+startup, retries, and failure triage. Agents may avoid, remove, or consolidate
+low-value tests without separate permission unless project policy requires them.
+
+Prefer focused integration checks through real boundaries over assertions
+that mirror implementation or mock wiring. Use the smallest boundary that can
+expose the failure; integration does not mean a full application or live
+external service. Small unit tests remain useful for subtle logic and state
+transitions. Neither test count nor coverage percentage alone establishes value.
+Rare failures with severe consequences can justify costly retained coverage.
+
+Run applicable static checks and focused behavioral checks. Broaden when shared
+behavior, configuration, unresolved failures, or uncertain impact leave
+meaningful risks outside focused coverage, or project gates require it.
+Committing or ending a work slice alone does not require a full suite. Reuse
+passing results while intervening changes cannot affect what they verified;
+honor stricter project rules for evidence reuse. Report material verification
+limits. A direct manual check can suffice for a simple change; a new automated
+test or test-first sequence is not required for every implementation.
+
+Do not delete a failing test merely to obtain green results. Diagnose the
+failure and judge its contract. When removing coverage, account for the failure
+it could catch and whether other checks preserve it or its value is low; no
+replacement is required for a trivial assertion. Preserve project-required
+coverage and useful detection of consequential failures.
+
+## Temporary tests and review evidence
+
+When a temporary test has useful review or reproduction value and the project
+allows separate commits, consider committing it with the implementation, then
+removing it in a separate commit. The removal message identifies the evidence
+commit and test path, what was established, and why continued retention is not
+worth its cost. Do not create a two-commit ritual for trivial checks. A project's
+single-commit review policy overrides this option; it never authorizes extra
+review commits or removal of project-required tests.
+
+When reviewing such a change, inspect the historical test and the removal
+rationale: a test added and removed inside the range disappears from its net
+diff. Judge initial verification and continuing regression protection
+separately; historical evidence does not provide ongoing coverage. Require
+additional retained tests for a concrete worthwhile risk, not merely because
+the final tree lacks a test for every changed path.
+
+## Test construction
+
+- **Use test-first work when useful.** When using it, take one behavior
+  through failing test → minimal implementation → passing test before the
+  next. For a regression check, demonstrate that it rejects the unfixed or
+  bypassed behavior. Do not write a speculative battery against an imagined
+  implementation.
 - **Behavior through public interfaces.** A good test reads like a
   capability specification ("user can checkout with valid cart")
   and survives internal refactor. If renaming an internal function
@@ -27,6 +80,8 @@ Governs: writing or changing tests, or validating a behavior change
   output), the check's oracle is a stated property or rubric, not a
   string match — see [`soft-checks`](soft-checks.md). Don't skip verification because
   the output isn't pinnable; pick the cheapest adequate oracle.
+- **Test names use project glossary vocabulary** so the test reads
+  as a capability statement, not a paraphrase.
 
 ## Behavioral integration smoke
 
@@ -55,22 +110,10 @@ comparisons and output review in [soft-checks](soft-checks.md). Keep checks
 proportionate: a direct manual check can suffice for a simple change; no large
 test harness or quality study is implied by this smoke requirement.
 
-## Invariants
-
-- **Red before green; never refactor while red.** Each cycle is
-  write-failing-test → watch fail → minimal code to pass → watch
-  pass. Refactor only after green.
-- **Only enough code for the current test.** Do not anticipate
-  future tests; let each cycle teach you what the next test should
-  cover.
-- **Test names use project glossary vocabulary** so the test reads
-  as a capability statement, not a paraphrase.
-
 ## Known edge cases
 
-- You cannot test everything. Confirm with the user which behaviors
-  matter most; focus testing effort on critical paths and complex
-  logic, not every edge case.
+- Focus on consequential behavior and complex logic. Ask which behaviors
+  matter most only when an unresolved priority changes the verification plan.
 - Coverage gaps the structure prevents from being closed (no
   correct seam) are findings — record them in the commit message's
   `Known coverage gaps:` section rather than papering over with a

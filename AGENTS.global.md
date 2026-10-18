@@ -643,13 +643,18 @@ Full procedure: `topics/vendoring.md`.
 
 ## Feature validation
 
+Before planning or implementing any durable script or software change, read
+`topics/testing.md` (repo-local, else `~/agents/topics/testing.md`). Choose
+verification and retained coverage by benefit and cost; project requirements
+override these defaults.
+
 For a behavior-changing implementation, run a small integration check through
 the real execution path that would fail if the change were omitted or
 bypassed. Before a long-running trainer/optimizer uses changed code or
 options, this smoke is required; the long run cannot substitute for it.
-Read `topics/testing.md` for the affected-path checks. When exact outputs
-are not knowable in advance, read `topics/soft-checks.md` and compare versions
-or configurations using stated properties and appropriate judgment.
+When exact outputs are not knowable in advance, read `topics/soft-checks.md`
+and compare versions or configurations using stated properties and appropriate
+judgment.
 
 For a feature affecting runtime, memory, model quality, or conclusions, plan an
 on/off comparison unless the effect is mechanically obvious and low risk.
@@ -863,7 +868,7 @@ row, not this section.
 - writing or reviewing code structure, naming, and boundaries → `software-aesthetic`
 - diagnosing a defect or slow or stalled behavior → `debugging`
 - a new or unrelated defect report arrives → `handling-bug-reports`
-- writing or changing tests, or validating a behavior change → `testing`
+- planning or implementing durable scripts or software, or choosing, writing, running, retaining, or reviewing tests → `testing`
 - running a project's tests or checks, when it has a verify.toml → `verify`
 - creating or using a topic's .testing.md → `testing-rider`
 - verifying generated output that has no exact expected value → `soft-checks`
