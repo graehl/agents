@@ -56,6 +56,10 @@ An abstraction earns its keep on two conditions: callers can use it correctly wi
 
 Duplication is correct at *divergence points* — copies you expect to evolve apart. The real smell is the opposite move: folding genuinely distinct cases into one function steered by mode or flag arguments.
 
+### Refactors must pay for themselves
+
+A refactor nobody asked for lands only when it reduces total code without raising runtime cost. Slightly more code is acceptable for two reasons only: it makes future changes more likely to stay correct and in sync (one definition of a format that several sites must agree on), or it measurably improves performance. Across tiers — client and server, or other distributed components — count runtime cost on every side: client bundle and per-render work, server per-request work, added round trips or payload. Line count alone is not the measure. When reporting such a refactor, state its net line delta and which allowance it relies on.
+
 ## Types
 
 <!-- speculative: see § Names are search queries -->

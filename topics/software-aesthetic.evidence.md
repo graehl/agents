@@ -122,3 +122,25 @@
   the immediate check while leaving a structure that is harder to extend,
   with the cost unrecorded. The `gaps/` clause keeps a deliberate shortcut
   visible instead of forbidding it.
+
+## 2026-10-18 — refactors must pay for themselves
+
+- **Source** — user direction (graehl), in YA while a file:line link
+  split grew a shared viewer-URL builder: "i don't want refactors unless
+  they reduce total code without increasing client+server run expense;
+  slightly more code is allowed if it means future changes are more
+  likely correct / in sync or perf improves." Scoped by the user as
+  likely specific to distributed or client+server code; placed in
+  § Abstraction with the cross-tier cost clause rather than as a
+  client/server-only rule, since the admission test reads the same for a
+  single tier.
+- **Triggering case** — seven spellings of `/projects/:id/file?…`
+  across server and client folded into one shared builder: 77 insertions,
+  42 deletions. It qualified only under the in-sync allowance (two
+  builders had already drifted: one skipped id encoding, positions were
+  carried inconsistently). The feature itself did not need it.
+- **Failure it targets** — agent-initiated "state once" consolidation
+  that grows the tree or adds cross-tier runtime work, justified by
+  tidiness alone. The reporting clause makes the trade visible so the
+  user can veto it.
+- Contributing-model: opus-5.5.
