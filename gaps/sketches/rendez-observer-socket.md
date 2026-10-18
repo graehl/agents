@@ -18,11 +18,13 @@ period, no inotify dependency, and no polling for `--wait`.
   writes, for example `"socket": "/run/user/<uid>/rendez-<id>.sock"`. Keeping
   the socket outside the project avoids socket files on NFS and adds nothing
   to the project tree.
-- A request names the route (or `latest-session`) and the inbox-relative name,
-  then streams the bytes. The observer applies the same naming, collision,
-  size and burst rules, writes the original into the inbox (so rsync-style
-  repeat transfers and attachment originals keep working) and its snapshot,
-  and replies `published`, then the settled state.
+- A request names the route (or `latest-session`) and a name, then streams
+  the bytes. The observer applies the same naming, size and burst rules and
+  places the upload directly in `delivered/<route>/<id>/` as its snapshot and
+  record, then replies `published` and later the settled state. Nothing goes
+  into the inbox: a proxied upload never also arrives by rsync, so no original
+  is kept for size and mtime comparison or duplicate detection, and the
+  attachment's open-original action falls back to the snapshot.
 - `receive` uses the socket when the marker advertises one and falls back to
   inbox publication otherwise, so senders need not know which observer runs.
 - Authorization stays the filesystem's: the socket is mode 0600 under the
@@ -32,9 +34,9 @@ period, no inotify dependency, and no polling for `--wait`.
 
 - Whether YA should expose this socket itself or through its existing
   provider-host control socket, which already authenticates local clients.
-- Whether the observer still needs to write the original into the inbox, or
-  only the snapshot, given that the inbox exists for rsync's size and mtime
-  comparison.
+- The record's identity: without an inbox original, the event id cannot come
+  from route, name and content alone if the same name and content may be
+  proxied twice on purpose; a per-request id may be simpler.
 - How a sender on another host reaches it: over ssh, `receive` runs locally
   to the observer, so the socket stays host-local and needs no network
   exposure.
