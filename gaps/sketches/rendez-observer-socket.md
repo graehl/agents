@@ -21,10 +21,11 @@ period, no inotify dependency, and no polling for `--wait`.
 - A request names the route (or `latest-session`) and a name, then streams
   the bytes. The observer applies the same naming, size and burst rules and
   places the upload directly in `delivered/<route>/<id>/` as its snapshot and
-  record, then replies `published` and later the settled state. Nothing goes
-  into the inbox: a proxied upload never also arrives by rsync, so no original
-  is kept for size and mtime comparison or duplicate detection, and the
-  attachment's open-original action falls back to the snapshot.
+  record, then replies `published` and later the settled state. The inbox is
+  not needed: a proxied upload never also arrives by rsync, so it needs no
+  original for size and mtime comparison or duplicate detection, and the
+  attachment's open-original action falls back to the snapshot. A sender may
+  still ask the observer to keep the full-size original there.
 - `receive` uses the socket when the marker advertises one and falls back to
   inbox publication otherwise, so senders need not know which observer runs.
 - Authorization stays the filesystem's: the socket is mode 0600 under the
