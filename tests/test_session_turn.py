@@ -166,7 +166,8 @@ def test_hosted_turn_streams_lifecycle_and_provider_records():
     _assert(records[-1]["providerSessionId"] == "provider-session-1")
     _assert(records[-1]["receipt"]["lastProviderEventSequence"] == 8)
     _assert(records[-2]["message"]["subtype"] == "compact_boundary")
-    _assert(host.requests[1]["message"] == {"text": "Review this."})
+    _assert(host.requests[1]["message"]["text"] == "Review this.")
+    _assert(host.requests[1]["message"]["metadata"]["origin"] in {"user", "automation"})
 
 
 def test_hosted_codex_uses_the_same_provider_host_protocol():

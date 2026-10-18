@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""Subscribe a session to file uploads, or observe completed project uploads."""
+
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import acli
+from rendezvous import deliver, initialize, route_name, scan, subscribe, watch
+
+
+def main() -> int:
+    parser = acli.argument_parser(description=__doc__, capabilities=())
+    acli.add_standard_args(parser)
+    parser.add_argument("--project", type=Path, default=Path.cwd())
+    verbs = parser.add_subparsers(dest="verb", required=True)
+    sub = verbs.add_parser(
+        "subscribe", help="Create a session destination; no model turn"
+    )
+    sub.add_argument("--session", default=os.environ.get("AGENTCTL_SESSION_ID"))
+    sub.add_argument(
+        "--harness",
+        choices=("claude", "codex"),
+        default=os.environ.get("AGENT_LAUNCH_HARNESS"),
+    )
+    sub.add_argument("--provider-session")
+    sub.add_argument("--route")
+    sub.add_argument("--latest", action="store_true")
+    sub.add_argument(
+        "--received-at",
+        type=int,
+        help="accepted user-turn timestamp in epoch milliseconds",
+    )
+    admission = sub.add_mutually_exclusive_group()
+    admission.add_argument(
+        "--live-only", dest="live_only", action="store_true", default=True
+    )
+    admission.add_argument(
+        "--wake",
+        dest="live_only",
+        action="store_false",
+        help="Explicitly allow revival of an inactive target",
+    )
+    for verb in ("watch", "scan", "unhold"):
+        command = verbs.add_parser(
+            verb,
+            help="Observe uploads"
+            if verb == "watch"
+            else "Explicitly deliver one held upload"
+            if verb == "unhold"
+            else "Process already completed transfers once",
+        )
+        command.add_argument(
+            "--native",
+            action="store_true",
+            help="Allow blocking native resume fallback without a YA provider host",
+        )
+        command.add_argument(
+            "--ya-stdio",
+            action="store_true",
+            help="YA-owned observer: request local delivery over JSONL stdin/stdout",
+        )
+        command.add_argument(
+            "--window-ms",
+            type=int,
+            default=1000,
+            help="Arrival window in milliseconds; overload resets after four quiet windows",
+        )
+        command.add_argument(
+            "--max-per-window",
+            type=int,
+            default=10,
+            help="Maximum arrivals per window and uploads awaiting acknowledgement",
+        )
+        if verb == "unhold":
+            command.add_argument("route")
+            command.add_argument(
+                "id",
+                help="Explicitly deliver one held upload, bypassing automatic limits",
+            )
+    args = parser.parse_args()
+    try:
+        fmt = acli.resolve_format(args)
+        emit = lambda value: acli.emit(value, fmt)
+        if args.verb == "subscribe":
+            if not args.session or not args.harness:
+                parser.error(
+                    "subscribe requires --session and --harness outside a launched session"
+                )
+            target = {
+                "harness": args.harness,
+                "providerSessionId": args.provider_session or args.session,
+                "yaSessionId": args.session,
+                "liveOnly": args.live_only,
+            }
+            emit(
+                subscribe(
+                    args.project,
+                    target,
+                    args.route,
+                    latest=args.latest,
+                    received_at=args.received_at,
+                )
+            )
+        else:
+            root = initialize(args.project)
+            options = {
+                "native": args.native,
+                "ya_stdio": args.ya_stdio,
+                "window_ms": args.window_ms,
+                "maximum": args.max_per_window,
+            }
+            if args.verb == "watch":
+                watch(root, emit, **options)
+            elif args.verb == "unhold":
+                import uuid
+
+                identifier = str(uuid.UUID(args.id))
+                emit(
+                    deliver(
+                        root
+                        / "delivered"
+                        / route_name(args.route)
+                        / identifier
+                        / "record.json",
+                        native=args.native,
+                        ya_stdio=args.ya_stdio,
+                        unhold=True,
+                    )
+                )
+            else:
+                from agentctl_coordination import file_lock
+
+                with file_lock(root / ".observer.lock", blocking=False):
+                    emit({"deliveries": scan(root, **options)})
+        return 0
+    except KeyboardInterrupt:
+        return 130
+    except (OSError, ValueError, RuntimeError) as exc:
+        acli.die(str(exc), 1)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

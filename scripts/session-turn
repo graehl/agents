@@ -17,6 +17,7 @@ import sys
 import tempfile
 import time
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 HOST_PROTOCOL_VERSION = 3
@@ -84,6 +85,41 @@ class NativeFallback(Exception):
 
 def emit(record: dict) -> None:
     print(json.dumps(record, separators=(",", ":")), flush=True)
+
+
+def note_accepted_turn(
+    args: argparse.Namespace, accepted_at: str | None = None
+) -> None:
+    if getattr(args, "origin", "automation") != "user":
+        return
+    project = Path(args.cwd).resolve()
+    if not (project / ".rendez").is_dir():
+        return
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from rendezvous import note_user_turn
+
+    try:
+        note_user_turn(
+            project,
+            {
+                "harness": args.harness,
+                "providerSessionId": args.provider_session_id,
+                "yaSessionId": args.ya_session_id or args.provider_session_id,
+                "liveOnly": True,
+            },
+            "user",
+            received_at=int(
+                datetime.fromisoformat(accepted_at.replace("Z", "+00:00")).timestamp()
+                * 1000
+            )
+            if accepted_at
+            else None,
+        )
+    except (OSError, ValueError, RuntimeError) as exc:
+        print(
+            f"session-turn: accepted, but latest-session publication failed: {exc}",
+            file=sys.stderr,
+        )
 
 
 def provider_host_runtime_dir() -> Path | None:
@@ -323,7 +359,10 @@ def hosted_turn(
             "providerSessionId": args.provider_session_id,
             **({"yaSessionId": args.ya_session_id} if args.ya_session_id else {}),
         },
-        "message": {"text": message},
+        "message": {
+            "text": message,
+            "metadata": {"origin": getattr(args, "origin", "automation")},
+        },
         "sessionOptions": SESSION_OPTIONS,
         "timeoutMs": int(args.timeout * 1000),
         **({"resumeRecentRuntime": True} if resume_recent_runtime else {}),
@@ -394,6 +433,7 @@ def hosted_turn(
             emit(record)
             if record.get("type") == "accepted":
                 accepted = True
+                note_accepted_turn(args, record.get("acceptedAt"))
                 if stop_after_acceptance:
                     return EXIT_SUCCESS
                 if wait_timeout > 0:
@@ -935,6 +975,7 @@ def native_turn(
                 and native_lifecycle_record(args.harness, provider_record)
             ):
                 accepted = True
+                note_accepted_turn(args)
                 emit(
                     {
                         "type": "accepted",
@@ -1039,6 +1080,12 @@ def turn_parser(*, include_wait_timeout: bool = True) -> argparse.ArgumentParser
     result.add_argument("--cwd", default=os.getcwd())
     result.add_argument("--model", help="absent-session model override")
     result.add_argument("--effort", help="absent-session effort override")
+    result.add_argument(
+        "--origin",
+        choices=("user", "coordination", "rendezvous", "automation"),
+        default="automation" if os.environ.get("AGENTCTL_SESSION_ID") else "user",
+        help="turn provenance for latest-session routing; launched-agent callers default to automation",
+    )
     result.add_argument(
         "--idle-timeout",
         type=float,

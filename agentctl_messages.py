@@ -200,6 +200,8 @@ def post(
             owner["harness"],
             owner["provider_id"],
             "--eventual",
+            "--origin",
+            "coordination",
             "--submission-id",
             record["submission_id"],
             "--cwd",
