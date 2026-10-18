@@ -38,6 +38,15 @@ from rendezvous import (
 )
 
 
+def project_path(value: str) -> Path:
+    """Resolve a project like ssh would: relative and ~/ paths are home-based.
+
+    `ssh host rendez --project oss` and a local `rendez --project oss` then
+    name the same ~/oss, and a quoted ~/ that no shell expanded still works.
+    """
+    return Path.home() / Path(value).expanduser()
+
+
 def add_target_args(command) -> None:
     command.add_argument("--session", default=os.environ.get("AGENTCTL_SESSION_ID"))
     command.add_argument("--harness", default=os.environ.get("AGENT_LAUNCH_HARNESS"))
@@ -61,9 +70,10 @@ def main() -> int:
     acli.add_standard_args(parser)
     parser.add_argument(
         "--project",
-        type=Path,
+        type=project_path,
         action="append",
-        help="Project directory (default: current); repeat to observe several with --turns",
+        help="Project directory; a relative path or ~/ is under your home "
+        "directory (default: current); repeat to observe several with --turns",
     )
     verbs = parser.add_subparsers(dest="verb", required=True)
     sub = verbs.add_parser(

@@ -29,7 +29,10 @@ delivery. It never moves `latest-session` and ignores other routes.
 `watch --turns` observes every subscribed route, including `latest-session`,
 and delivers each upload as a user turn through `session-turn` and the provider
 service. It observes only projects named by `--project`, which it requires and
-accepts repeatedly. `--native` additionally permits blocking native resume when
+accepts repeatedly. Every command resolves a relative or unexpanded `~/`
+project path under the home directory, as an ssh command line would, so
+`--project oss` means `~/oss`; without `--project` it uses the current
+directory. `--native` additionally permits blocking native resume when
 the provider service is absent, and requires a subscription that allows waking.
 
 At most one project observer serves `latest-session`: YA while its rendezvous
