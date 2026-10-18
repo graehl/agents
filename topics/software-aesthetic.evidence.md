@@ -155,3 +155,30 @@
 - 2026-10-18 third amendment, user direction (graehl): strike
   "Slightly" from the more-code allowance; the two stated reasons, not a
   size bound, decide it.
+
+## 2026-10-18 — client refresh work follows possible change
+
+- Source: user reports Opus implementing a client poll every three seconds
+  indefinitely without discussion, and requests a rule in § Size and
+  performance. The implementation was not inspected in this instruction task.
+- Decision: require event-triggered refresh or polling tied to a live operation
+  with a bounded settling tail. Standing polls need a recorded event-source
+  limitation, freshness requirement for the interval, and start/stop conditions.
+  Scope idle/hidden inactivity to view refresh work; deliberate background
+  freshness requires a recorded product requirement and its own lifetime.
+- Placement: extends the existing recomputation rule at the code-structure
+  read route. No duplicate process rule in `design-thinking.md` is needed.
+- Trace: a mounted view has server push updates and no active operation.
+  The rule selects push-driven refresh and rejects an unconditional three-second
+  interval; keeping the view mounted does not establish a change-producing cause.
+- Trace: a visible job view lacks completion events. Polling follows the active
+  job, ends after completion and a bounded settling tail, pauses when hidden,
+  and refreshes on return. Unmount ends the view's timer.
+- Trace: an external source has no suitable event delivery but a visible
+  dashboard requires fresh data. A standing poll can satisfy that requirement
+  with its limitation, interval rationale, and lifetime recorded. Hiding the
+  view stops refresh unless background freshness is an explicit requirement;
+  a deliberate background task is not prohibited merely by lack of user input.
+- Validation: manual instruction traces and diff checks; no measured runtime
+  savings or live application change is claimed.
+- Contributing-model: 6-Astra

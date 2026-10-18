@@ -94,6 +94,8 @@ make the whole update atomic.
 
 A file too large to hold in your head is a candidate for splitting at its nearest seam. On a hot path, refuse needlessly quadratic work — precompute, or lean on a known library contract, to reach n log n or better — and learn whether memory or compute is the bottleneck before you trade one away for the other. Treat recomputation as a design bug: reuse cached, prefetched, or intermediate results, and repair only the state that actually changed.
 
+Trigger client–server reads, refreshes, and checks from events that signal possible change: a push, a state transition, or a user return. When polling is needed for an active operation, tie it to that operation's lifetime with a bounded settling tail; a mounted view alone is not an active cause. Idle or hidden views do no recurring refresh work unless a recorded product requirement calls for background freshness. Stop view refresh timers on hide or unmount and refresh on return; any background exception needs its own lifetime. A standing poll requires a reason recorded in the owning code or design that no suitable event source exists, a freshness requirement justifying its interval, and explicit start/stop conditions.
+
 ## Discoverability check before committing
 
 <!-- speculative: see § Names are search queries -->
