@@ -6,7 +6,8 @@
 Topic: rendezvous
 
 The CLI implements session subscriptions, Linux watching, explicit scans, and
-held-upload release. YA adds opt-in watcher ownership and attachment previews.
+held-upload release. YA implements the same protocol natively in its server,
+with opt-in watching and attachment previews; it does not run this CLI.
 
 ## Helper commands
 
@@ -16,29 +17,44 @@ preparation; no system image packages are needed.
 The watcher uses Linux inotify; one-shot `scan` works on other POSIX hosts.
 
 ```bash
-rendez --project /work/project subscribe --harness codex --session SESSION_ID --latest
-rendez --project /work/project watch
+rendez watch            # inside a session: receive uploads to .rendez/<session>/
+rendez watch --turns --project /work/a --project /work/b   # project daemon
 ```
 
-The subscription prints its stable inbox path. Inside a launched session,
-`--harness` and `--session` default to its launcher identity. Supply
-`--provider-session` when the native provider id differs from YA's id. A named
-`--route screenshots` also exposes `/work/project/.rendez/screenshots`.
-Subscriptions default to `--live-only`; explicitly add `--wake` to allow revival.
-`watch --native` permits native resume when the provider service is absent and
-requires a subscription that allows waking. `scan` processes completed transfers
-once, under the same observer lock. An explicit helper observer stays running
-until stopped; YA additionally limits its observers to projects with live sessions.
+Plain `watch` is the simplest form: the observing session owns its route. It
+subscribes the session's named destination `.rendez/<session-id>/` (or
+`--route NAME`) and prints each completed upload there as output, which is the
+delivery. It never moves `latest-session` and ignores other routes.
 
-YA launches `watch --ya-stdio`: a private parent/child JSONL exchange lets its
-already-live local sessions accept uploads without the provider service. Targets
-not owned by YA use `session-turn` and the provider service. The adapter uses
-2000 pixels on the long edge and 4 MiB unless the host supplies another profile.
+`watch --turns` observes every subscribed route, including `latest-session`,
+and delivers each upload as a user turn through `session-turn` and the provider
+service. It observes only projects named by `--project`, which it requires and
+accepts repeatedly. `--native` additionally permits blocking native resume when
+the provider service is absent, and requires a subscription that allows waking.
+
+At most one project observer serves `latest-session`: YA while its rendezvous
+watching is on for the project, otherwise this daemon. Each writes
+`.rendez/.observer.json` (owner, host, pid, Linux process start time) by
+exclusive creation and removes it on exit; a second one refuses to start with
+the first's identity. A marker from this host whose pid is gone, or now belongs
+to a later-started process, is replaced, so a restart is never a conflict. A
+marker from another host must be deleted by hand once its owner is gone. This is
+a startup check, not a lock; the event claims below still keep an accidental
+second observer from sending an upload twice.
+
+Inside a launched session, `--harness` and `--session` default to its launcher
+identity. Supply `--provider-session` when the native provider id differs from
+YA's id. `subscribe` prints a stable inbox path without starting an observer;
+subscriptions default to `--live-only`, and `--wake` explicitly allows revival.
+`scan` processes completed transfers once, in either delivery mode. The turn
+adapter uses 2000 pixels on the long edge and 4 MiB unless the provider service
+supplies the target's profile.
 
 Inspect `.rendez/delivered/<route>/<id>/record.json` for `held`, `accepted`, `failed`, or
-`uncertain` delivery. `scan` reconciles uncertain provider receipts; it never
-blindly retries them. YA/native uncertainty requires checking the target
-transcript. A confirmed failure can be resent under a new incoming filename.
+`uncertain` delivery. `scan --turns` reconciles uncertain provider receipts; it
+never blindly retries them. Output, YA, and native uncertainty requires
+checking the target transcript. A confirmed failure can be resent under a new
+incoming filename.
 Identical content at the same route and filename is delivered once, even across
 watcher restarts. A file over 64 MiB fails explicitly; scans are limited to
 10,000 incoming files and observers to 128 subscribed routes.
@@ -62,16 +78,19 @@ were uploaded, potentially unintentionally, and identifies the records by
 directory and `burstId`. Notices are separate from the upload allowance.
 
 Held records retain the original path and hash, without archiving another
-full-size copy. If explicitly wanted, release one through the provider service:
+full-size copy. Holds exist to undo accidental high-rate placement, not to
+defer delivery; re-uploading under a new name is the ordinary way to send one
+anyway. A manual override exists:
 
 ```bash
-rendez --project /work/project unhold ROUTE DELIVERY_ID
+rendez --project /work/project unhold ROUTE DELIVERY_ID [--turns]
 ```
 
 This bypasses automatic limits, verifies that the original has not changed,
-then copies, prepares, and delivers it. It fails if the original was overwritten.
-`--native` additionally requires the subscription's explicit `--wake` permission.
-Unhold is never automatic and is unnecessary for accidental bulk transfers.
+then copies, prepares, and delivers it: printed by default, or as a turn with
+`--turns`. It fails if the original was overwritten or the record was already
+unheld. `--native` additionally requires the subscription's explicit `--wake`
+permission. YA offers no unhold.
 
 Normal rsync writes dot-prefixed temporary files and publishes completed files
 by rename. The observer ignores dot-prefixed entries and directories, including
@@ -89,6 +108,20 @@ See the [rsync manual](https://download.samba.org/pub/rsync/rsync.1).
   each send: arrivals count even while preparation or acceptance is slow.
 - YA owns its optional watcher lifecycle for now; explicit helpers use the
   same protocol. Provider-owned headless monitoring remains a possible extension.
+- No locks. YA's Node runtime has no `flock`, and NFS makes cross-host locking
+  unreliable, so every coordination point is an atomic file operation that
+  works from Python and Node and on NFSv3 or later:
+  - capture: renaming a capture directory onto an existing, never-empty event
+    directory fails, so one observer creates each record;
+  - send: exclusively creating `<event>/claim` grants the one-time right to
+    send. A claim is never released; a pending record found already claimed
+    becomes `uncertain`, never resent;
+  - `latest-session`: each user turn creates an empty entry
+    `latest.d/<16-digit epoch ms>-<route>`; the writer points the symlink at the
+    newest entry, re-lists, repeats until no newer entry appeared, and deletes
+    older entries. The last writer to look leaves the pointer correct;
+  - burst state: `.admission.json` is rewritten without coordination; only a
+    second concurrent observer, which is unsupported, could miscount arrivals.
 
 ## User contract
 
@@ -104,10 +137,10 @@ YA watching is opt-in globally, with project inherit/on/off overrides, and
 active only while the project has a verified live session. Provider-host-owned
 sessions count even when YA does not own them. Watcher lifecycle need not be
 owned by the provider host: YA can also use its own verified live processes
-when provider hosting is disabled. An
-explicit helper under `~/agents` can subscribe and watch without YA's watcher.
-Either owner observes the same protocol; concurrent observers must not duplicate
-delivery. First creation excludes `/.rendez/` through the repository-local Git
+when provider hosting is disabled. With YA watching off, `rendez watch --turns`
+serves the same directories; in-session `rendez watch` serves only its own
+route under either. Claims keep any accidental second observer from sending an
+upload twice. First creation excludes `/.rendez/` through the repository-local Git
 exclude file, never `.gitignore`. Enabling rendezvous explicitly authorizes this
 directory; it does not change YA's general project-storage policy.
 

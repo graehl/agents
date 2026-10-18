@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import select
+import socket
 import struct
 import subprocess
 import sys
@@ -20,7 +21,14 @@ SCRIPT = ROOT / "scripts/rendez"
 sys.path.insert(0, str(ROOT))
 from test_session_turn import FakeProviderHost
 
-from rendezvous import note_user_turn, subscribe
+from rendezvous import (
+    BurstAdmission,
+    initialize,
+    note_user_turn,
+    routes,
+    snapshot,
+    subscribe,
+)
 
 
 def png(width: int, height: int) -> bytes:
@@ -47,12 +55,14 @@ class RendezvousTests(unittest.TestCase):
         self.env = {
             **os.environ,
             "YEP_PROVIDER_HOST_RUNTIME_DIR": str(self.project / "no-provider-host"),
+            "AGENTCTL_SESSION_ID": "session-a",
+            "AGENT_LAUNCH_HARNESS": "codex",
         }
 
     def tearDown(self) -> None:
         self.temp.cleanup()
 
-    def cli(self, *args: str) -> dict:
+    def cli(self, *args: str) -> list[dict]:
         result = subprocess.run(
             [
                 sys.executable,
@@ -67,7 +77,15 @@ class RendezvousTests(unittest.TestCase):
             text=True,
             check=True,
         )
-        return json.loads(result.stdout)
+        return [json.loads(line) for line in result.stdout.splitlines()]
+
+    def records(self, route: str) -> list[dict]:
+        return [
+            json.loads(path.read_text())
+            for path in (self.project / ".rendez/delivered" / route).glob(
+                "*/record.json"
+            )
+        ]
 
     def next_record(self, process: subprocess.Popen) -> dict:
         self.assertTrue(
@@ -78,14 +96,7 @@ class RendezvousTests(unittest.TestCase):
         self.assertTrue(line, "Watcher exited before reporting delivery")
         return json.loads(line)
 
-    def test_watcher_preserves_snapshot_and_does_not_revive_or_change_latest(
-        self,
-    ) -> None:
-        subscription = self.cli(
-            "subscribe", "--session", "session-a", "--harness", "codex", "--latest"
-        )
-        inbox = Path(subscription["path"])
-        self.assertTrue(subscription["target"]["liveOnly"])
+    def test_session_watch_prints_prepared_upload_once(self) -> None:
         process = subprocess.Popen(
             [
                 sys.executable,
@@ -95,57 +106,46 @@ class RendezvousTests(unittest.TestCase):
                 "--project",
                 str(self.project),
                 "watch",
-                "--ya-stdio",
             ],
             env=self.env,
-            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
         try:
             self.assertEqual(self.next_record(process)["state"], "watching")
+            inbox = self.project / ".rendez/session-a"
+            self.assertFalse((self.project / ".rendez/latest-session").exists())
             original = png(3000, 1200)
             transfer = inbox / ".uploading"
             transfer.write_bytes(original)
             source = inbox / "screenshot.png"
             transfer.rename(source)
-            request = self.next_record(process)
-            self.assertEqual(request["type"], "delivery-request")
-            snapshot = Path(request["record"]["path"])
-            self.assertEqual(request["record"]["width"], 2000)
-            retained = snapshot.read_bytes()
-            self.assertNotEqual(retained, original)
-            self.assertEqual(source.read_bytes(), original)
+            upload = self.next_record(process)
             self.assertEqual(
-                request["record"]["sha256"], hashlib.sha256(original).hexdigest()
+                (upload["state"], upload["transport"]), ("accepted", "output")
             )
-            self.assertIn(f"(<{snapshot}>)", request["text"])
-            process.stdin.write(
-                json.dumps({"id": request["record"]["id"], "accepted": True}).encode()
-                + b"\n"
-            )
-            process.stdin.flush()
-            self.assertEqual(self.next_record(process)["state"], "accepted")
-            self.cli(
-                "subscribe", "--session", "session-b", "--harness", "codex", "--latest"
-            )
+            self.assertEqual(upload["width"], 2000)
+            snapshot_path = Path(upload["path"])
+            self.assertIn(f"(<{snapshot_path}>)", upload["text"])
+            self.assertNotEqual(snapshot_path.read_bytes(), original)
+            self.assertEqual(source.read_bytes(), original)
+            self.assertEqual(upload["sha256"], hashlib.sha256(original).hexdigest())
             source.write_bytes(png(400, 200))
-            request = self.next_record(process)
-            self.assertEqual(request["record"]["target"]["yaSessionId"], "session-a")
-            process.stdin.write(
-                json.dumps({"id": request["record"]["id"], "accepted": True}).encode()
-                + b"\n"
-            )
-            process.stdin.flush()
-            self.assertEqual(self.next_record(process)["state"], "accepted")
-            self.assertEqual(snapshot.read_bytes(), retained)
-            self.assertIn(
-                "session-b", os.readlink(self.project / ".rendez/latest-session")
-            )
+            self.assertEqual(self.next_record(process)["width"], 400)
+            # Printing is the delivery; acceptance is recorded right after it.
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline and any(
+                r["state"] != "accepted" for r in self.records("session-a")
+            ):
+                time.sleep(0.01)
         finally:
             process.terminate()
             process.communicate(timeout=5)
-        self.assertEqual(self.cli("scan")["deliveries"], [])
+        self.assertEqual(
+            sorted(r["state"] for r in self.records("session-a")),
+            ["accepted", "accepted"],
+        )
+        self.assertEqual(self.cli("scan"), [])
 
     def test_only_user_activity_advances_latest_and_old_activity_cannot_win(
         self,
@@ -170,121 +170,111 @@ class RendezvousTests(unittest.TestCase):
         note_user_turn(self.project, target_b, "user", 200)
         note_user_turn(self.project, target, "user", 150)
         self.assertIn("session-b", os.readlink(self.project / ".rendez/latest-session"))
+        self.assertEqual(
+            [p.name for p in (self.project / ".rendez/latest.d").iterdir()],
+            [f"{200:016d}-session-b"],
+        )
 
-    def test_slow_ack_caps_outstanding_and_holds_survive_quiet_and_restart(
+    def test_burst_holds_until_quiet_and_holds_survive_restart(self) -> None:
+        root = initialize(self.project)
+        directory = root / "delivered/session-a"
+        directory.mkdir()
+
+        def arrival(name: str) -> dict:
+            (directory / name).mkdir()
+            (directory / name / "file").write_text(name)
+            return {
+                "route": "session-a",
+                "target": {},
+                "path": str(directory / name / "file"),
+                "state": "pending",
+            }
+
+        admission = BurstAdmission(root, 100, 2)
+        self.assertIsNone(admission.admit(arrival("a"), 0))
+        self.assertIsNone(admission.admit(arrival("b"), 10))
+        notice = admission.admit(arrival("c"), 20)
+        self.assertIn("potentially unintentionally", notice["text"])
+        held = json.loads((directory / "c/record.json").read_text())
+        self.assertEqual(held["burstId"], notice["id"])
+        self.assertFalse((directory / "c/file").exists())
+        # A restarted observer still holds the burst until four quiet windows.
+        restarted = BurstAdmission(root, 100, 2)
+        self.assertIsNone(restarted.admit(arrival("d"), 300))
+        self.assertEqual(
+            json.loads((directory / "d/record.json").read_text())["state"], "held"
+        )
+        late = arrival("e")
+        self.assertIsNone(restarted.admit(late, 701))
+        self.assertEqual(late["state"], "pending")
+
+    def test_claimed_pending_upload_is_never_resent(self) -> None:
+        inbox = Path(
+            subscribe(
+                self.project,
+                {
+                    "harness": "codex",
+                    "providerSessionId": "session-a",
+                    "yaSessionId": "session-a",
+                },
+            )["path"]
+        )
+        (inbox / "notes.txt").write_text("sent by an observer that then stopped")
+        root = self.project / ".rendez"
+        record = snapshot(root, routes(root)[0], inbox / "notes.txt")
+        event = Path(record["path"]).parent
+        (event / "claim").write_text("{}")
+        (result,) = self.cli("scan")
+        self.assertEqual(result["state"], "uncertain")
+        self.assertEqual(
+            json.loads((event / "record.json").read_text())["state"], "uncertain"
+        )
+
+    def test_second_project_observer_is_refused_until_the_first_is_gone(
         self,
     ) -> None:
-        subscription = self.cli(
-            "subscribe", "--session", "session-a", "--harness", "codex"
-        )
-        inbox = Path(subscription["path"])
-        process = subprocess.Popen(
-            [
-                sys.executable,
-                "-u",
-                str(SCRIPT),
-                "--json",
-                "--project",
-                str(self.project),
-                "watch",
-                "--ya-stdio",
-                "--window-ms",
-                "100",
-                "--max-per-window",
-                "2",
-            ],
-            env=self.env,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        try:
-            self.assertEqual(self.next_record(process)["state"], "watching")
-            (inbox / "first.txt").write_text("first")
-            first = self.next_record(process)
-            self.assertEqual(first["type"], "delivery-request")
-            # Each arrival is below the rate limit, but no acknowledgement is
-            # released until the outstanding-cap hold has been persisted.
-            time.sleep(0.15)
-            (inbox / "second.txt").write_text("second")
-            time.sleep(0.15)
-            (inbox / "third.txt").write_text("third")
-            deadline = time.monotonic() + 5
-            held = []
-            while time.monotonic() < deadline:
-                records = [
-                    json.loads(p.read_text())
-                    for p in (self.project / ".rendez/delivered/session-a").glob(
-                        "*/record.json"
-                    )
-                ]
-                held = [r for r in records if r["state"] == "held"]
-                if held:
-                    break
-                time.sleep(0.01)
-            self.assertEqual([r["originalName"] for r in held], ["third.txt"])
-            self.assertFalse(Path(held[0]["path"]).exists())
-            request = first
-            notices = []
-            for index in range(3):
-                if index:
-                    request = self.next_record(process)
-                if request["record"].get("kind") == "overload":
-                    notices.append(request)
-                process.stdin.write(
-                    json.dumps(
-                        {"id": request["record"]["id"], "accepted": True}
-                    ).encode()
-                    + b"\n"
-                )
-                process.stdin.flush()
-                self.assertEqual(self.next_record(process)["state"], "accepted")
-            self.assertEqual(len(notices), 1)
-            self.assertIn(held[0]["burstId"], notices[0]["text"])
-            self.assertIn("potentially unintentionally", notices[0]["text"])
-            (inbox / "fourth.txt").write_text("still part of the overloaded burst")
-            time.sleep(0.45)
-            self.assertFalse(select.select([process.stdout], [], [], 0)[0])
-            (inbox / "fifth.txt").write_text("after the quiet interval")
-            request = self.next_record(process)
-            self.assertEqual(request["record"]["originalName"], "fifth.txt")
-            process.stdin.write(
-                json.dumps({"id": request["record"]["id"], "accepted": True}).encode()
-                + b"\n"
-            )
-            process.stdin.flush()
-            self.assertEqual(self.next_record(process)["state"], "accepted")
-        finally:
-            process.terminate()
-            process.communicate(timeout=5)
-        self.assertEqual(self.cli("scan")["deliveries"], [])
+        marker = initialize(self.project) / ".observer.json"
+        live = {
+            "owner": "yepanywhere",
+            "host": socket.gethostname(),
+            "pid": os.getpid(),
+        }
+        marker.write_text(json.dumps(live))
+        with self.assertRaises(subprocess.CalledProcessError) as refused:
+            self.cli("scan", "--turns")
+        self.assertIn("already observed by yepanywhere", refused.exception.stderr)
+        # A restarted owner's old pid now belongs to a process started later.
+        marker.write_text(json.dumps({**live, "startTime": "1"}))
+        self.assertEqual(self.cli("scan", "--turns"), [])
+        # Above Linux's maximum pid_max, so no process can hold it.
+        marker.write_text(json.dumps({**live, "pid": 2**22 + 1}))
+        self.assertEqual(self.cli("scan", "--turns"), [])
+        self.assertFalse(marker.exists())
 
     def test_scan_holds_excess_and_unhold_is_explicit(self) -> None:
-        subscription = self.cli(
-            "subscribe", "--session", "session-a", "--harness", "codex"
+        inbox = Path(
+            self.cli("subscribe", "--session", "session-a", "--harness", "codex")[0][
+                "path"
+            ]
         )
-        inbox = Path(subscription["path"])
         for index in range(5):
             (inbox / f"file-{index}.txt").write_text(str(index))
         # No host: admitted sends fail visibly, while excess uploads remain held.
-        self.cli("scan", "--max-per-window", "2")
-        records = [
-            json.loads(p.read_text())
-            for p in (self.project / ".rendez/delivered/session-a").glob(
-                "*/record.json"
-            )
-        ]
+        self.cli("scan", "--turns", "--max-per-window", "2")
+        records = self.records("session-a")
         held = [r for r in records if r["state"] == "held"]
         self.assertEqual(len(held), 3)
         self.assertEqual(len([r for r in records if r.get("kind") == "overload"]), 1)
         chosen = held[0]
-        result = self.cli("unhold", "session-a", chosen["id"])
-        self.assertNotEqual(result["state"], "held")
+        (result,) = self.cli("unhold", "session-a", chosen["id"])
+        self.assertEqual(result["state"], "accepted")
         self.assertEqual(
             Path(result["path"]).read_text(), Path(chosen["originalPath"]).read_text()
         )
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.cli("unhold", "session-a", chosen["id"])
 
-    def test_provider_delivery_uses_live_only_admission_and_rendezvous_origin(
+    def test_turn_delivery_uses_live_only_admission_and_rendezvous_origin(
         self,
     ) -> None:
         features = [
@@ -323,12 +313,12 @@ class RendezvousTests(unittest.TestCase):
         )
         self.env["YEP_PROVIDER_HOST_RUNTIME_DIR"] = str(host.runtime)
         try:
-            subscription = self.cli(
+            (subscription,) = self.cli(
                 "subscribe", "--session", "session-a", "--harness", "codex", "--latest"
             )
             (Path(subscription["path"]) / "example.txt").write_text("Inspect this file")
-            result = self.cli("scan")
-            self.assertEqual(result["deliveries"][0]["state"], "accepted")
+            (result,) = self.cli("scan", "--turns")
+            self.assertEqual(result["state"], "accepted")
             request = host.requests[-1]
             self.assertEqual(request["op"], "sessionTurn")
             self.assertTrue(request["liveOnly"])

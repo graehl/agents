@@ -3,36 +3,72 @@
 # requires-python = ">=3.10"
 # dependencies = ["pillow>=10.1"]
 # ///
-"""Subscribe a session to file uploads, or observe completed project uploads."""
+"""Receive file uploads in this session, or deliver project uploads as turns.
+
+`watch` and `scan` default to the observing session owning its uploads: they
+subscribe this session's named route and print each completed upload there as
+output. `--turns` instead observes every subscribed route, including
+latest-session, and sends each upload as a user turn through session-turn; run
+it only while YA's rendezvous watching is off for the project.
+"""
 
 from __future__ import annotations
 
 import os
+import queue
 import sys
+import threading
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import acli
-from rendezvous import deliver, initialize, route_name, scan, subscribe, watch
+from rendezvous import (
+    initialize,
+    output_delivery,
+    project_observer,
+    route_name,
+    scan,
+    subscribe,
+    turn_delivery,
+    unhold,
+    watch,
+)
+
+
+def add_target_args(command) -> None:
+    command.add_argument("--session", default=os.environ.get("AGENTCTL_SESSION_ID"))
+    command.add_argument("--harness", default=os.environ.get("AGENT_LAUNCH_HARNESS"))
+    command.add_argument("--provider-session")
+    command.add_argument("--route")
+
+
+def target(parser, args) -> dict:
+    if not args.session or not args.harness:
+        parser.error("this requires --session and --harness outside a launched session")
+    return {
+        "harness": args.harness,
+        "providerSessionId": args.provider_session or args.session,
+        "yaSessionId": args.session,
+        "liveOnly": getattr(args, "live_only", True),
+    }
 
 
 def main() -> int:
     parser = acli.argument_parser(description=__doc__, capabilities=())
     acli.add_standard_args(parser)
-    parser.add_argument("--project", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--project",
+        type=Path,
+        action="append",
+        help="Project directory (default: current); repeat to observe several with --turns",
+    )
     verbs = parser.add_subparsers(dest="verb", required=True)
     sub = verbs.add_parser(
         "subscribe", help="Create a session destination; no model turn"
     )
-    sub.add_argument("--session", default=os.environ.get("AGENTCTL_SESSION_ID"))
-    sub.add_argument(
-        "--harness",
-        choices=("claude", "codex"),
-        default=os.environ.get("AGENT_LAUNCH_HARNESS"),
-    )
-    sub.add_argument("--provider-session")
-    sub.add_argument("--route")
+    add_target_args(sub)
     sub.add_argument("--latest", action="store_true")
     sub.add_argument(
         "--received-at",
@@ -58,15 +94,16 @@ def main() -> int:
             if verb == "unhold"
             else "Process already completed transfers once",
         )
+        add_target_args(command)
+        command.add_argument(
+            "--turns",
+            action="store_true",
+            help="Send uploads for every subscribed route as user turns through session-turn",
+        )
         command.add_argument(
             "--native",
             action="store_true",
-            help="Allow blocking native resume fallback without a YA provider host",
-        )
-        command.add_argument(
-            "--ya-stdio",
-            action="store_true",
-            help="YA-owned observer: request local delivery over JSONL stdin/stdout",
+            help="With --turns, allow blocking native resume without a YA provider host",
         )
         command.add_argument(
             "--window-ms",
@@ -81,7 +118,7 @@ def main() -> int:
             help="Maximum arrivals per window and uploads awaiting acknowledgement",
         )
         if verb == "unhold":
-            command.add_argument("route")
+            command.add_argument("held_route", metavar="route")
             command.add_argument(
                 "id",
                 help="Explicitly deliver one held upload, bypassing automatic limits",
@@ -89,59 +126,78 @@ def main() -> int:
     args = parser.parse_args()
     try:
         fmt = acli.resolve_format(args)
-        emit = lambda value: acli.emit(value, fmt)
+
+        def emit(value: dict) -> None:
+            acli.emit(value, fmt, text=value.get("text"))
+
         if args.verb == "subscribe":
-            if not args.session or not args.harness:
-                parser.error(
-                    "subscribe requires --session and --harness outside a launched session"
-                )
-            target = {
-                "harness": args.harness,
-                "providerSessionId": args.provider_session or args.session,
-                "yaSessionId": args.session,
-                "liveOnly": args.live_only,
-            }
+            if len(args.project or []) > 1:
+                parser.error("subscribe takes one --project")
             emit(
                 subscribe(
-                    args.project,
-                    target,
+                    args.project[0] if args.project else Path.cwd(),
+                    target(parser, args),
                     args.route,
                     latest=args.latest,
                     received_at=args.received_at,
                 )
             )
-        else:
-            root = initialize(args.project)
-            options = {
-                "native": args.native,
-                "ya_stdio": args.ya_stdio,
-                "window_ms": args.window_ms,
-                "maximum": args.max_per_window,
-            }
-            if args.verb == "watch":
-                watch(root, emit, **options)
-            elif args.verb == "unhold":
-                import uuid
+            return 0
+        if args.native and not args.turns:
+            parser.error("--native applies only to --turns delivery")
+        if args.turns and args.verb != "unhold" and not args.project:
+            parser.error("--turns requires each observed project as --project")
+        if len(args.project or []) > 1 and not (args.turns and args.verb != "unhold"):
+            parser.error("only --turns observes more than one --project")
+        project = args.project[0] if args.project else Path.cwd()
+        root = initialize(project)
+        if args.verb == "unhold":
+            record_path = (
+                root
+                / "delivered"
+                / route_name(args.held_route)
+                / str(uuid.UUID(args.id))
+                / "record.json"
+            )
+            unhold(record_path)
+            delivery = (
+                turn_delivery(native=args.native, claimed=True)
+                if args.turns
+                else output_delivery(emit, claimed=True)
+            )
+            result = delivery(record_path)
+            if result is not None:
+                emit(result)
+            return 0
+        options = {"window_ms": args.window_ms, "maximum": args.max_per_window}
+        observe = watch if args.verb == "watch" else scan
+        if not args.turns:
+            only = subscribe(project, target(parser, args), args.route)["route"]
+            observe(root, emit, output_delivery(emit), only=only, **options)
+            return 0
+        delivery = turn_delivery(native=args.native)
 
-                identifier = str(uuid.UUID(args.id))
-                emit(
-                    deliver(
-                        root
-                        / "delivered"
-                        / route_name(args.route)
-                        / identifier
-                        / "record.json",
-                        native=args.native,
-                        ya_stdio=args.ya_stdio,
-                        unhold=True,
-                    )
-                )
-            else:
-                from agentctl_coordination import file_lock
+        def observe_project(root: Path) -> None:
+            with project_observer(root, f"rendez {args.verb} --turns"):
+                observe(root, emit, delivery, **options)
 
-                with file_lock(root / ".observer.lock", blocking=False):
-                    emit({"deliveries": scan(root, **options)})
-        return 0
+        roots = [root] + [initialize(path) for path in args.project[1:]]
+        if args.verb == "scan" or len(roots) == 1:
+            for root in roots:
+                observe_project(root)
+            return 0
+        failures: queue.Queue = queue.Queue()
+
+        def run(root: Path) -> None:
+            try:
+                observe_project(root)
+            except Exception as exc:  # noqa: BLE001 - re-raised by the main thread
+                failures.put(exc)
+
+        for root in roots:
+            threading.Thread(target=run, args=(root,), daemon=True).start()
+        # Any one project's observer failing stops the whole daemon.
+        raise failures.get()
     except KeyboardInterrupt:
         return 130
     except (OSError, ValueError, RuntimeError) as exc:
