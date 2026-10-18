@@ -26,6 +26,7 @@ from rendezvous import (
     initialize,
     note_user_turn,
     routes,
+    settle_latest,
     snapshot,
     subscribe,
 )
@@ -213,6 +214,24 @@ class RendezvousTests(unittest.TestCase):
             [p.name for p in (self.project / ".rendez/latest.d").iterdir()],
             [f"{300:016d}-session-a"],
         )
+
+    def test_latest_session_refuses_senders_until_a_session_is_messaged(
+        self,
+    ) -> None:
+        root = initialize(self.project)
+        settle_latest(root)
+        latest = root / "latest-session"
+        self.assertEqual(os.readlink(latest), ".no-session-messaged-yet/inbox")
+        self.assertFalse(latest.is_dir())
+        with self.assertRaises(FileNotFoundError):
+            (latest / "early.png").write_text("nobody is listening")
+        note_user_turn(
+            self.project,
+            {"harness": "codex", "providerSessionId": "s", "yaSessionId": "s"},
+            "user",
+            100,
+        )
+        self.assertTrue(latest.is_dir())
 
     def test_burst_holds_until_quiet_and_holds_survive_restart(self) -> None:
         root = initialize(self.project)

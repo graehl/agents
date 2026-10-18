@@ -31,6 +31,9 @@ from session_attachments import attachment_profile, prepare_attachment
 MAX_ROUTES = 128
 MAX_FILES = 10000
 MAX_WATCHES = 1024
+# latest-session's target before any user turn is recorded. Its parent never
+# exists, so a sender gets an error instead of creating the directory.
+UNSET_TARGET = ".no-session-messaged-yet/inbox"
 MAX_UPLOAD_BYTES = 64 * 1024 * 1024
 CODE_ROOT = Path(__file__).resolve().parent
 DEFAULT_WINDOW_MS = 1000
@@ -327,32 +330,39 @@ def publish_latest(root: Path, route: str, received_at: int) -> None:
 
 
 def settle_latest(root: Path) -> None:
-    """Point latest-session at the newest recorded user turn, if any.
+    """Point latest-session at the newest recorded user turn.
 
-    A sender writing to latest-session before any pointer existed makes rsync
-    create it as a real directory. Those files arrived with nobody listening,
-    so they are moved aside to unrouted/<epoch-ms>/ undelivered, and the
-    pointer takes the name back.
+    Before any, it points at UNSET_TARGET, so `test -d`, scp and rsync fail
+    rather than create a directory nobody delivers from; observers settle it
+    when they start. A real directory in its place, which rsync creates when
+    the pointer is absent, held files nobody was listening for: it moves aside
+    to unrouted/<epoch-ms>-<id>/ undelivered and the pointer takes the name
+    back. Anything else that is not a symlink is left alone and reported.
     """
     entries = root / "latest.d"
     link = root / "latest-session"
-    if link.is_dir() and not link.is_symlink():
+    if link.is_symlink():
+        pass
+    elif link.is_dir():
         unrouted = root / "unrouted"
         unrouted.mkdir(exist_ok=True)
         link.rename(unrouted / f"{time.time_ns() // 1_000_000}-{uuid.uuid4()}")
-    if not entries.is_dir():
-        return
-    newest = None
-    for _ in range(LATEST_PASSES):
-        names = sorted(p.name for p in entries.iterdir() if not p.name.startswith("."))
-        if not names:
-            return
-        if names[-1] == newest:
+    elif link.exists():
+        raise ValueError(f"Rendezvous {link} is a file, not the pointer symlink")
+    newest: str | None = None
+    for attempt in range(LATEST_PASSES):
+        names = (
+            sorted(p.name for p in entries.iterdir() if not p.name.startswith("."))
+            if entries.is_dir()
+            else []
+        )
+        candidate = names[-1] if names else None
+        if attempt and candidate == newest:
             for name in names[:-1]:
                 (entries / name).unlink(missing_ok=True)
             return
-        newest = names[-1]
-        want = str(Path("routes") / newest[17:] / "inbox")
+        newest = candidate
+        want = UNSET_TARGET if newest is None else f"routes/{newest[17:]}/inbox"
         if not link.is_symlink() or os.readlink(link) != want:
             temporary = root / f".latest-{uuid.uuid4()}"
             temporary.symlink_to(want, target_is_directory=True)
