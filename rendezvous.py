@@ -123,7 +123,8 @@ class DeliveryWorker:
         self.delivery = delivery
         self.admission = BurstAdmission(root, window_ms, maximum)
         self.slots = threading.BoundedSemaphore(maximum)
-        self.queue = queue.Queue(maxsize=maximum + MAX_ROUTES)
+        # Sends are bounded by the slots; receipt checks by the scan limit.
+        self.queue = queue.Queue()
         self.error: Exception | None = None
         self.thread = threading.Thread(
             target=self.run, name="rendez-delivery", daemon=True
@@ -132,20 +133,19 @@ class DeliveryWorker:
 
     def submit(self, record: dict, observed_ms: int) -> None:
         self.check()
+        if record["state"] != "pending" or record.get("kind") == "overload":
+            # Receipt checks and overload notices need no outstanding-send slot.
+            self.queue.put_nowait((record, False))
+            return
         capacity = self.slots.acquire(blocking=False)
-        if record["state"] == "pending" and record.get("kind") != "overload":
-            notice = self.admission.admit(record, observed_ms, capacity)
-            if record["state"] == "held":
-                if capacity:
-                    self.slots.release()
-                if notice:
-                    self.queue.put_nowait((notice, False))
-                return
-        if not capacity and record.get("kind") != "overload":
-            raise RuntimeError(
-                "Rendezvous reconciliation exceeds the outstanding-delivery limit"
-            )
-        self.queue.put_nowait((record, capacity))
+        notice = self.admission.admit(record, observed_ms, capacity)
+        if notice:
+            self.queue.put_nowait((notice, False))
+        if record["state"] == "held":
+            if capacity:
+                self.slots.release()
+            return
+        self.queue.put_nowait((record, True))
 
     def check(self) -> None:
         if self.error:
@@ -719,11 +719,12 @@ def discover_pending(root: Path, observed: list[Path]) -> Iterator[dict]:
             if not path.is_file():
                 continue
             record = json.loads(path.read_text())
-            if record["state"] in {
-                "pending",
-                "attempting",
-                "uncertain",
-            }:
+            # Uncertain records stay so until someone inspects the transcript;
+            # only a provider receipt can still settle one.
+            if record["state"] in {"pending", "attempting"} or (
+                record["state"] == "uncertain"
+                and record.get("transport") == "provider-host"
+            ):
                 pending.append(record)
                 if len(pending) > MAX_FILES:
                     raise RuntimeError(
