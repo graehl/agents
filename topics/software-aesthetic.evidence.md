@@ -148,3 +148,7 @@
   expensive measurements to gate good refactors - a reasoned belief in
   qualification is sufficient." Dropped "measurably" from the performance
   allowance and stated the reasoned-belief standard for both allowances.
+- 2026-10-18 second amendment, user direction (graehl): "simpler but
+  negligibly slower (in the category of 'optimizer could skip this extra
+  fn call') is ok." Stated as an explicit exemption from the runtime-cost
+  test.
