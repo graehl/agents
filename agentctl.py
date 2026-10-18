@@ -25,6 +25,7 @@ import acli
 import acli.args as acli_args
 import agentctl_coordination as coordination
 import agentctl_gpu
+import agentctl_messages as messages
 
 CODE_ROOT = Path(__file__).resolve().parent
 ROOT = Path(os.environ.get("AGENTCTL_ROOT") or os.getcwd()).expanduser().resolve()
@@ -745,6 +746,21 @@ def write_active_entry(
     clear_tending: bool = False,
     clear_scope: bool = False,
 ) -> tuple[str, str, str]:
+    with coordination.Coordination(STATE, ACTIVE_STALE_MINUTES).locked():
+        messages.register_owner(sys.modules[__name__], sid)
+        return _write_active_entry(
+            sid, banner, scope_paths, tending, clear_tending, clear_scope
+        )
+
+
+def _write_active_entry(
+    sid: str,
+    banner: str | None = None,
+    scope_paths: list[str] | None = None,
+    tending: str | None = None,
+    clear_tending: bool = False,
+    clear_scope: bool = False,
+) -> tuple[str, str, str]:
     """Author `.agentctl/active/<sid>` header (line 1, `scope:`, `tending:`), body kept.
 
     The authoritative write shared by the `active`/`tending` verbs and
@@ -806,6 +822,19 @@ def ensure_active_registered(
     scope_paths: list[str] | None = None,
     tending: str | None = None,
 ) -> str:
+    if not sid:
+        return "noop"
+    with coordination.Coordination(STATE, ACTIVE_STALE_MINUTES).locked():
+        messages.register_owner(sys.modules[__name__], sid)
+        return _ensure_active_registered(sid, banner, scope_paths, tending)
+
+
+def _ensure_active_registered(
+    sid: str,
+    banner: str | None = None,
+    scope_paths: list[str] | None = None,
+    tending: str | None = None,
+) -> str:
     """Register/refresh `.agentctl/active/<sid>` as a presence claim.
 
     Passing your own id to `others`/`alone` declares this session wishes to be
@@ -850,7 +879,7 @@ def ensure_active_registered(
                 ]
                 if first and first[0].startswith("DONE"):
                     return "done"
-            line1, _, _ = write_active_entry(sid, banner, scope_paths, tending=tending)
+            line1, _, _ = _write_active_entry(sid, banner, scope_paths, tending=tending)
             return "created" if line1 == placeholder else "authored"
         # Pure claim: ensure an entry exists and is fresh, without clobbering.
         if not path.exists():
@@ -874,6 +903,11 @@ _last_active_touch = 0.0
 
 
 def touch_active_entry() -> None:
+    with coordination.Coordination(STATE, ACTIVE_STALE_MINUTES).locked():
+        _touch_active_entry()
+
+
+def _touch_active_entry() -> None:
     """Refresh this agent's active-entry mtime during a long foreground block.
 
     The `wait`/`watch`/`wait-gpu` loops call this each poll so a session
@@ -1129,7 +1163,7 @@ def clear_cmd(args) -> int:
             args,
             agent_session_id(),
             lambda: clear_once(args),
-            touch_active_entry,
+            _touch_active_entry,
         )
     except FileNotFoundError as exc:
         acli.die(str(exc), acli.ExitCode.NOT_FOUND)
@@ -1207,8 +1241,9 @@ def clear_once(args) -> tuple[int, dict]:
     own_scope: str | None = None
     own_tending: str | None = None
     own_body: list[str] = []
-    if own.exists():
-        lines = own.read_text(encoding="utf-8", errors="replace").splitlines()
+    own_source = own if own.exists() else STALE / sid
+    if own_source.exists():
+        lines = own_source.read_text(encoding="utf-8", errors="replace").splitlines()
         own_line1, own_scope, own_tending, own_body = _split_active_header(lines)
     if own_line1 and own_line1.startswith("DONE"):
         raise ValueError(
@@ -1218,6 +1253,7 @@ def clear_once(args) -> tuple[int, dict]:
     own_claims = _scope_claims(_header_value(own_scope or ""))
 
     def write_own(scope_entries: list[str], body: list[str]) -> None:
+        messages.register_owner(sys.modules[__name__], sid)
         scope_line = ("scope: " + " ".join(scope_entries)) if scope_entries else ""
         line1 = own_line1 or normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
         out = [line1] + [ln for ln in (scope_line, own_tending or "") if ln] + body
@@ -1234,7 +1270,7 @@ def clear_once(args) -> tuple[int, dict]:
             f"carve: {p} " for p in paths
         )
         body = [ln for ln in own_body if not ln.startswith(prefixes)]
-        if own.exists():
+        if own_source.exists():
             write_own(kept, body)
         return 0, {
             "kind": "file_claim",
@@ -1761,6 +1797,13 @@ def others_cmd(args) -> int:
             summary += f"; {len(peers) - len(shown)} more (--full)"
         if ok:
             summary = "No unexpected peers; " + summary
+    if self_id:
+        notices = messages.inbox(sys.modules[__name__], self_id, new_only=True)
+        if notices:
+            payload["inbox"] = notices
+            summary += "\n" + "\n".join(
+                f"Coordination from {row['from']}: {row['message']}" for row in notices
+            )
     acli.emit(payload, fmt, text=summary)
     return 0 if ok else 1
 
@@ -8023,6 +8066,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.set_defaults(func=clear_cmd)
     coordination.register(sub, coordination_cmd)
+    messages.register(sub)
 
     s = sub.add_parser(
         "tending",
@@ -8170,7 +8214,13 @@ def main() -> int:
     args = parser.parse_args(raw)
     if getattr(args, "argv", None) and args.argv[:1] == ["--"]:
         args.argv = args.argv[1:]
-    return args.func(args)
+    result = args.func(args)
+    if args.cmd in {"active", "clear", "take"} and agent_session_id():
+        try:
+            messages.notify_releases(sys.modules[__name__], agent_session_id())
+        except (OSError, ValueError, RuntimeError) as exc:
+            print(f"warning: release notification failed: {exc}", file=sys.stderr)
+    return result
 
 
 if __name__ == "__main__":

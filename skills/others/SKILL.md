@@ -6,136 +6,34 @@ description: Show what other agents are doing in this project — own .agentctl/
 
 # /others — see what other agents are doing here
 
-Reports the multi-agent state of the current project: the agent's
-own active-sessions entry (or that it is lurking), peers currently
-active, work recently DONE, and stale entries that may be
-orphaned.
+Report this Git project's self entry, active peers, stale entries, work DONE in
+the last day, and sessions awaiting whole-project solitude.
 
-## Scope
+Resolve the Git root with `git rev-parse --show-toplevel`; outside a Git
+project, say so and stop. From that root run:
 
-The skill consults ONLY the project root — the git toplevel of
-cwd. This is not a cross-project view; re-invoke from another
-project to check it.
-
-## Workflow
-
-1. **Resolve project root**:
-   `root=$(git rev-parse --show-toplevel)`. If non-zero exit,
-   output `not inside a git project; /others only operates
-   against a project root` and stop.
-
-2. **Resolve own session id**. Use the provider's real session id
-   per `AGENTS.<provider>.md` (the discovery snippet there is
-   strongly preferred over a personal tag). The agent's entry, if
-   it has one, is at `$root/.agentctl/active/<session-id>`.
-
-   If the agent is lurking — no intent to write or change state
-   this turn and no prior entry — there is no self entry.
-   Reporting will say so.
-
-3. **Scan**. `$root/.agentctl/active/`, and (if present)
-   `$root/.agentctl/done/`, `$root/.agentctl/stale/`, and
-   `$root/.agentctl/awaiting/`, are inspected. For each file, capture relative path, mtime, line 1
-   (`head -n1`), any header lines among lines 2-3 matching `^scope:`
-   or `^tending:` (the schema-defined scope and steward-presence
-   declarations; a tending session will launch more queued work when
-   it wakes), and total line count (so a `+N more lines`
-   indicator can hint at free-content prose below the schema). If
-   the subdirs are missing, every bucket is `none` and the report
-   says `no .agentctl/active/ here yet`.
-
-   A file is DONE when it starts with `DONE` (`DONE*`). Do not
-   require exactly `DONE` or exactly `DONE:`; examples include
-   `DONE`, `DONE: ...`, and `DONE ...`.
-
-4. **Categorize**:
-
-   - **self**: file at `$root/.agentctl/active/<session-id>` if
-     present; else the agent declares lurking.
-   - **active peers**: in `active/`, mtime <70 min, file does
-     not start with `DONE`, not self.
-   - **stale**: in `active/` with mtime ≥70 min, or any non-DONE
-     file in `stale/` (where the sweep archives them); does not
-     start with `DONE`, not self. ("Stale" is the category
-     label; the cause may be a crash, a forgotten DONE write, or
-     an in-progress session that has just been quiet — do not
-     judge.)
-   - **done in last 24h**: any file (in `active/` or `done/`)
-     that starts with `DONE` and mtime is within 24 hours.
-   - **awaiting**: any file in `awaiting/`, mtime <70 min. These
-     are sessions blocked in `agentctl alone` (line 1 begins
-     `awaiting alone`). They are **non-blocking** — report them so
-     a queued wait is noticed, but never count them as active
-     peers (they are outside the `active/` peer scan by design).
-
-5. **Emit the report** (see *Output format*). Buckets with zero
-   entries still print a header so the user can see the bucket
-   was checked.
-
-## Output format
-
-Number every row so the user can reference by row number. Each
-row shows line 1; captured `scope:` / `tending:` header lines
-appear on following lines aligned under the gist; a `(+N more
-lines)` indicator follows when the file has free content beyond
-the schema.
-
-```
-**self**: <state>
-
-**active peers** (n):
-  1. <relpath>  (<delta> ago)  → "<line 1>"  [(+N more lines)]
-                                  scope: <globs from line 2>
-                                  [tending: <what the session keeps launching>]
-  2. ...
-
-**stale** (n):
-  1. <relpath>  (<delta> ago)  → "<line 1>"  [(+N more lines)]
-                                  [scope: <globs from line 2>]
-  ...
-
-**done in last 24h** (n):
-  1. <relpath>  (<delta> ago)  → "<line 1, including DONE prefix>"  [(+N more lines)]
-  ...
-
-**awaiting** (n, non-blocking):
-  1. <relpath>  (<delta> ago)  → "<line 1, e.g. awaiting alone then: X>"  [(+N more lines)]
-                                  [scope: <globs from line 2>]
-  ...
+```bash
+agentctl active --minutes 0 --done
 ```
 
-Self states:
+This read-only command includes swept archives and awaiting entries. It
+resolves identity itself: use `self: true` / `[yours]`, without searching logs
+or exposing an unmasked id. No self row means lurking; do not register merely
+to report. If identity is unresolved, report that uncertainty.
 
-- Registered:
-  `**self**: .agentctl/active/<id>  (<delta> ago)  → "<line 1>"`
-  (plus `scope:` row and `(+N more lines)` indicator as for peers)
-- Lurking:
-  `**self**: lurking (no .agentctl/active/ entry); will register on first planning-to-act step`
+Group the returned rows:
 
-Empty buckets:
-`**<bucket>**: none`
+- Self: the row marked `self`, if any.
+- Active peers: non-self, non-DONE, younger than 70 minutes.
+- Stale: non-self, non-DONE, at least 70 minutes old. Age is not proof of death.
+- DONE in the last 24 hours: status starts with `DONE`, age under 24 hours.
+- Awaiting: rows from `awaiting`, younger than 70 minutes; these do not block.
 
-Omit the `scope:` / `tending:` rows when no header line matches
-the schema. Omit `(+N more lines)` when the file has no free
-content beyond line 1 and its schema-conforming header lines.
+Number rows for follow-up references. Show id, age, status, and any scope or
+tending declaration. Show empty groups as none. Summarize large histories
+rather than dumping them; inspect an individual entry only when its details
+matter to the user's question.
 
-## Implementation hints
-
-- Project root: `git rev-parse --show-toplevel` (one call).
-- mtime delta:
-  `now=$(date +%s); delta=$(( now - $(stat -c%Y FILE) ))`,
-  then format as `Nm` / `Nh` / `Nd`.
-- First line: `head -n1 FILE`.
-- The 70-min active threshold matches
-  `AGENTS.global.md § Active sessions`.
-- The `done/`, `stale/`, and `awaiting/` subdirs are optional.
-  The base convention writes `DONE: <summary>` into the same
-  file at its `active/` path; `agentctl active --sweep` (also
-  run silently by foreground launches) archives entries older
-  than the 70-min window out of `active/` — DONE-prefixed to
-  `done/`, others to `stale/`. The skill handles either
-  location and does not itself move files.
-- A shell implementation can use `[[ $line1 == DONE* ]]`.
-- The skill does NOT create `.agentctl/active/`. Creation
-  happens via the normal register-on-first-act rule, not as a
-  side effect of inspection.
+For coordination or unavailable-helper fallback, read
+`~/agents/topics/agentctl.md` § Other coordination uses and § Active-sessions
+file schema. This reporting skill does not sweep, retire, or take over claims.

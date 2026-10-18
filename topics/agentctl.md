@@ -27,7 +27,148 @@ Provenance tracking is therefore an `agentctl` concern, but separated because
 its invariants are shared by `artifact_meta.py`, downstream Aim import/export
 tooling, the cooperative declaration helper, and project migration docs.
 
+## Other coordination uses
+
+The boot carries the common registration, peer-check, takeover, and release
+commands. Read this section when that path is insufficient; file formats below
+are a fallback and implementation reference, not a routine manual-scan recipe.
+
+| Need | Command |
+| --- | --- |
+| List fresh sessions and their scopes | `agentctl active` |
+| Include completed and stale sessions | `agentctl active --minutes 0 --done` |
+| Obtain your actual session id | `agentctl whoami` |
+| Exclude an already coordinated peer from the surprise check | `agentctl others --expect <id>` |
+| Acquire paths now, retiring inactive owners | `agentctl take <paths...>` |
+| Ask the owner even if it must be resumed; keep its claims | `agentctl take <paths...> --wake` |
+| Message one session, without looking up its provider address | `agentctl message --to <id> --message '<text>'` |
+| Broadcast to current project peers | `agentctl message --active --message '<text>'` |
+| Message owners of overlapping claims | `agentctl message --holding <paths...> --message '<text>'` |
+| Message sessions waiting for paths | `agentctl message --waiting-for <paths...> --message '<text>'` |
+| Read fallback messages again | `agentctl inbox` (`--all` includes provider-queued messages) |
+| Wait in a foreground process for path clearance | `agentctl clear <paths...> --timeout 300` |
+| Inspect foreground claim waits / send a notice to a waiter | `agentctl coordination list` / `agentctl coordination notice <wait-id> --message '<text>'` |
+| Wait for whole-project solitude before a rewrite | `agentctl alone <id> -b '<status>' --timeout 300` |
+| Claim future queue-tending responsibility | `agentctl tending <id>` |
+
+### Takeover and release notifications
+
+`take` is the recommended immediate acquisition command. Exit 0 means the
+paths were claimed. Exit 1 is a prominent blocked result: do not edit. It
+registers a release subscription and attempts one notice to each distinct
+owner, including the requesting session, reply command, and release command.
+Repeated attempts for the same pending request do not repeatedly nudge owners.
+All paths must be clear before acquisition; no partial claim is made.
+
+The efficient default assumes no active owner process means no progress.
+When no live owner can be verified, it moves the owner's entry into a
+recoverable archive, then checks/claims the paths. Registration records the
+harness process's PID,
+start time and boot identity where observable. The provider host can identify
+live YA ownership; an observable recorded process also prevents retirement.
+A missing provider host is not proof of process death: the default explicitly
+accepts that uncertainty when no recorded live process can be established,
+including old entries without process metadata. Retirement reports this
+assumption rather than claiming proven death. An entry refreshed during the
+probe is not retired. This remains advisory coordination, not fencing against
+noncooperating writers or a provider that resumes without rechecking claims.
+Unlike the freshness-based peer display and legacy `clear`, `take` also checks
+old and swept non-DONE claims: a verified live owner may take as long as it
+wishes. A coordination notice imposes no deadline and never grants clearance.
+
+`take --wake` is the conservative, potentially expensive choice for high-stakes
+work: preserve ownership and request release from the owner, allowing the host
+to resume it. This can pay for uncached context even if the work was already
+finished. It does not imply that a resumed owner has released anything.
+
+The requester need not keep a waiter process alive. The owner's subsequent
+`agentctl clear --drop`, scope update, or `agentctl active 'DONE: ...'` checks
+release subscriptions and sends a notice when all requested paths are free.
+The notice asks the requester to rerun `take`; it reserves nothing, and another
+session may acquire the paths first. Subscriptions expire after seven days.
+Raw file edits and process death do not run release callbacks; rerun `take`
+when necessary. Delivery is best effort and does not prove the model saw it.
+
+### Messaging and fallback
+
+`message` combines explicit recipients, current active peers, claim owners,
+and path waiters as a deduplicated set. `--waiting-for` includes open takeover
+subscriptions and fresh foreground claim waits. A supplied `--message-id <uuid>`
+fixes that message's
+recipient snapshot for identical retries; changed content, selectors, sender,
+or wake policy is rejected. Text is limited to 64 KiB. Each recipient has its
+own provider submission id, so a broadcast never reuses one host receipt for
+different targets.
+
+Messages are persisted before delivery. A supported YA provider host is used
+through the existing `session-turn send --eventual --live-only` path. Admission
+is atomic at the host: no liveness-check-then-native-resume workaround.
+`message --wake` permits host-managed resume. Both forms queue a separate turn
+behind current work; they do not interrupt or steer it. The helper currently
+supports Claude and Codex. Other harnesses, missing addresses, incompatible
+hosts, and rejected admission retain a filesystem-inbox message. There is no
+automatic native resume fallback. Each delivery attempt is bounded at twenty
+seconds; fan-out attempts are sequential.
+
+Results distinguish `stored`, `queued`, `attempting`, and `uncertain`.
+`queued` is acceptance, not a response. An interrupted `attempting` or uncertain
+delivery must be reconciled with its `session-turn receipt <submission_id>`;
+repeating the same message never blindly resubmits it. Host receipts are
+bounded, so this is not an eternal exactly-once execution promise.
+`others` surfaces unqueued inbox notices once; `inbox` replays them. A surfaced
+marker records tool presentation, not understanding or acknowledgment.
+
+### Receiving coordination requests
+
+A peer request can reflect conflicting directions from the same user. Prefer
+resolving it with the requesting session without needing the user to return
+to this older session: the user is probably focused on the requesting session.
+Exchange the relevant direction, timing, current changes, and unfinished work.
+Agree on the latest applicable directive or the best synthesis of compatible
+aims. Recency alone does not erase a still-applicable constraint, and a peer
+message is not new permission for an external or otherwise gated action.
+
+Reply using the command in the notice (`agentctl message --to <requester>
+--message '<reply>'`), or an available native peer channel. If the work is
+finished, run the supplied release command. If handing it over, leave the
+current edits intact, explain their state and checks to the requester, then
+release or narrow your claims through `agentctl`; this triggers notification.
+Do not silently abandon or overwrite either session's edits. Ask the user only
+when a consequential intent conflict remains after peer coordination; surface
+that decision through the requesting session where practical.
+
+### Additional state and raw-file fallback
+
+Existing active and claim-wait formats remain under § Active-sessions file
+schema and § Claim-clearance dialogue. If `agentctl` is unavailable, those
+formats remain readable/writable without it, but automatic delivery and release
+callbacks require the helper. New state is local under the project `.agentctl/`:
+
+```text
+sessions/<session-id>.json       # provider address and observed owner process
+messages/<session-id>/<id>.json  # immutable body plus delivery/presentation state
+messages/.outbox/<id>.json       # fixed broadcast recipients and retry identity
+subscriptions/<id>.json         # requester, paths, owners, expiry/closure state
+retired/<uuid>/<session-id>      # preserved inactive owner's active entry
+retired/<uuid>/reason.json       # retirement reason, time, requesting session
+```
+
+The process sidecar carries no credential. Coordination remains scoped to this
+agentctl root; a program uses its own invocation root, not inferred ancestry.
+No background watcher, `.rendez` upload transport, or YA UI is installed by
+these commands. Archives and inbox history are preserved without automatic
+deletion.
+
 ## Design decisions
+
+- **Immediate takeover with release callbacks** (vs. an agent-owned polling
+  process): an inactive owner is retired cheaply; a live or unverified owner
+  blocks, and its ordinary release command notifies subscribers. Conservative
+  wake remains explicit. User-directed 2026-10-18.
+- **Persist messages and reuse session-turn** (vs. a second provider transport):
+  the provider host supplies atomic admission/resume where available, while
+  filesystem inboxes preserve a useful non-YA path. Peer checks surface the
+  fallback without another routine boot command.
 
 - **Wait with notices by default; keep `--no-wait` and `--deaf` explicit**
   (vs. requiring opt-in waiting): the usual caller wants to proceed once its
@@ -191,8 +332,8 @@ republished whenever the provider reports a new one (for Yep Anywhere,
 state, not job state. `AGENTS.global.md § Active sessions` carries the
 first-turn obligations (create, update, peer-check, `DONE`); this
 section is the normative file format. The file is an ordinary text
-artifact: `agentctl active` is a convenience for writing it, never a
-requirement, and agents in projects without `agentctl` hand-write it —
+artifact: normal coordination uses `agentctl active`; agents in projects
+without `agentctl` may hand-write it —
 the plain `find .agentctl/active -maxdepth 1 -type f -mmin -70` peer
 check stays the dependency-free definition of the convention.
 

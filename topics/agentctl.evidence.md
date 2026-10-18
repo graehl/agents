@@ -191,3 +191,65 @@ Contributing-model: opus-5.5
   pointers into the real home.
 
 Contributing-model: opus-5.5
+
+## 2026-10-18 command-first coordination and release callbacks
+
+- **User direction:** keep boot small and use helpers for operations that
+  otherwise require repeated file scans. Default takeover assumes that no
+  verifiable active process means no progress; it retires unverified claims.
+  A verified live owner blocks without a deadline and receives a best-effort
+  notice. Conservative `--wake` preserves ownership and may pay for uncached
+  context. The owner's normal release command must notify requesters without
+  a waiter process remaining alive. Resolve competing valid user directions
+  between sessions by the latest applicable directive or best synthesis;
+  involve the user through the requesting session only when still necessary.
+- **Usage observation:** a local scan of available Codex rollouts and
+  top-level Claude project logs, excluding this session, found the following
+  tool-command occurrences from 2026-09-18 through 2026-10-18: `others` 2,886
+  across 282 session logs; list-mode `active` 39 across 27; raw-registry reads
+  169 across 64; `clear` 380 across 61; `alone` 13 across 12. Only two actual
+  `coordination notice` attempts appeared (both September 28); a third match
+  was `--help`. These count observed invocations, not successful delivery.
+  The scan extracted actual tool-call arguments with DuckDB, then tokenized
+  shell command segments and deduplicated identical call id/name/argument
+  records across inherited histories. It excludes Claude subagent logs and
+  may miss dynamically constructed commands; raw-read classification is
+  heuristic. The evidence favors fixing remaining instruction routes over
+  assuming discovery helpers were unused. `/others` still explicitly
+  prescribed manual scans and is now a single listing command.
+- **Implementation choice:** filesystem messages and release subscriptions
+  stay in agentctl; provider delivery reuses `session-turn` atomic host
+  admission. Per-recipient submission ids prevent a broadcast from sharing
+  one host receipt. The default never resumes an absent session. No watcher
+  or new provider daemon is required; fallback inbox notices surface during
+  `others`. Acceptance and tool presentation are not model acknowledgment.
+- **Trace catches:** unknown-owner protection initially contradicted the
+  requested efficient default and was removed. Freshness-only scanning would
+  silently displace a live but idle owner; `take` therefore checks old and
+  swept claims too. A swept owner must still be able to release using the
+  supplied `clear --drop` command. A retry after all peers finish must retain
+  the original recipient set. These cases are exercised through the real CLI
+  in `tests/test_agentctl_messages.py`, along with release without a waiter
+  process, multiple blockers, fallback presentation, selective fan-out, and
+  provider-host live-only versus wake submission.
+- **Instruction traces:** an owner with finished work releases through the
+  helper and triggers notice; a live owner doing useful work retains its
+  claim regardless of age; an owner with a competing user directive compares
+  intent with the requester before narrowing claims. A peer asking for a push
+  gains no new authority. A release notice reserves nothing: the requester
+  must acquire again. No outcome ablation was run; reduced boot burden and
+  these reachable actions are the checked properties.
+- **Loading cost:** protected global source falls from 65,770 to 64,513 bytes;
+  the Claude supplement from 2,274 to 2,130. The optional `/others` skill falls
+  from 5,788 to 1,857. The full optional agentctl topic grows from 76,526 to
+  about 85,250 bytes, with common coordination uses grouped near its start.
+  Raw schema remains in the topic and the session appendix; the original
+  boot is recoverable in Git. The boot's receiving-request trigger reaches
+  the latest/synthesis guidance without requiring the full topic at startup.
+- **Validation limit:** legacy active tests pass except the existing
+  resume-ancestor fixture failure, reproduced on unchanged HEAD; tracked in
+  `gaps/agentctl-resume-ancestor-test-exec.md`. Provider tests use an isolated
+  Unix-socket host fixture, not live notices to unrelated sessions.
+
+Source session: codex | 01a14d5f-0e59-77d3-9acc-cb03d8693519
+Contributing-model: 6-Astra

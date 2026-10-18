@@ -78,6 +78,11 @@ session that wrote it, so the transcript behind the summary stays reachable;
 
 ### Active sessions
 
+The normal path is `agentctl active`, `others`, `take`, and release through
+`clear --drop` or `active 'DONE: ...'`; see `topics/agentctl.md` § Other
+coordination uses. The following raw convention is the unavailable-helper
+fallback and storage reference. Raw edits do not send release notifications.
+
 On the first planning-to-act step in a shared workdir, write
 `.agentctl/active/<session-id>` with a short present-tense status line.
 Create `.agentctl/active/` if missing. Recover the provider's real
@@ -94,7 +99,7 @@ continuous work, or at the 60-min heartbeat cap. On completion start line
 1 with `DONE`, preferably `DONE: <one-line summary>`. Pure read-only or
 interview sessions may skip this.
 
-Check for active peers with `find .agentctl/active -maxdepth 1 -type f
+Without the helper, check for active peers with `find .agentctl/active -maxdepth 1 -type f
 -mmin -70`, ignoring entries whose line 1 starts with `DONE`. Task notes,
 run logs, and commit status do not satisfy active sessions. `agentctl
 active "<banner>" [paths...]` is the run-free convenience for writing your
@@ -113,7 +118,9 @@ line on stderr. `agentctl alone <id>
 intentionally project-serial step, e.g. a whole-project amend/rebase),
 then registers your entry. Neither verb narrows to `scope:` overlap; a
 waiting `alone` is visible to browsers but never counts as a peer.
-`agentctl clear <paths> && <edits>` is the per-path form: one
+`agentctl take <paths> && <edits>` is the recommended immediate per-path form;
+it blocks on verified live ownership without imposing an owner deadline.
+`agentctl clear <paths> && <edits>` remains the foreground-wait form: one
 check+claim before an intended sequence of edits, after which the held
 files need no per-edit re-check while your entry stays fresh. `--carve`
 claims through a peer's covering wildcard (an exact peer claim blocks);

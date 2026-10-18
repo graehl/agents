@@ -36,7 +36,9 @@ AGENTCTL_FILES = (
     "agentctl.py",
     "agentctl_coordination.py",
     "agentctl_gpu.py",
+    "agentctl_messages.py",
     "artifact_meta.py",
+    "scripts/session-turn",
 )
 AGENTCTL_DIRS = ("agentctl_plugins", "acli")
 
@@ -50,6 +52,7 @@ class Workspace:
     def __init__(self, *, git: bool = True):
         self.tmp = Path(tempfile.mkdtemp(prefix="agentctl-test-"))
         for f in AGENTCTL_FILES:
+            (self.tmp / f).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(REPO_ROOT / f, self.tmp / f)
         for d in AGENTCTL_DIRS:
             shutil.copytree(

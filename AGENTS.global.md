@@ -99,44 +99,35 @@ protocol. Update at significant milestones, not between routine edits/tests.
 
 ## Active sessions
 
-On the first planning-to-act step in a shared workdir, register
-`.agentctl/active/<real-resumable-session-id>`. Use `$AGENTCTL_SESSION_ID`
-when present. When `AGENT_LAUNCHER` is set, that launcher publishes the
-id — do not search transcripts for a substitute. Otherwise recover the
-provider's actual id using its supplement; never invent an id. Line 1 is
-a present-tense gist; optional line 2 is `scope: <paths/globs>`. Refresh
-at milestones, after ten minutes of continuous work, and at least hourly.
-On completion, line 1 begins `DONE`.
-
-Pure read-only/interview sessions may skip registration. At caution points,
-recheck active peers rather than carrying an old belief:
+Use `agentctl` from PATH for session coordination. On the first
+planning-to-act step in a shared workdir, register your work; refresh at
+milestones, after ten minutes of continuous work, and at least hourly.
+Pure read-only/interview sessions may skip registration.
 
 ```bash
-agentctl others <session-id>
+agentctl active "<present-tense status>" [paths...]
+agentctl others
+agentctl take <paths...>
+agentctl clear --drop <finished-paths...>
+agentctl active "DONE: <summary>"
 ```
 
-Exit 0 means alone; nonzero names peers. A peer already accounted for —
-typically one you spawned — can be excluded by id: `--expect <peer-id[,...]>`
-(or `--expect-count N` for unnamed ones) makes exit 0 mean no *surprising*
-peers, so the `&&` gate still composes. `agentctl alone <id> -b "<status>"`
-waits for project-wide solitude, then registers the caller; scope does not
-narrow that wait. Steward sessions add `tending:` and claim through
-`agentctl tending <id>` before clearing/servicing a queue.
+`others` rechecks peers at caution points (0 alone, 1 peers) and surfaces
+fallback inbox notices. `take` acquires paths on exit 0. If no active owner
+process can be verified, it assumes no progress and retires that owner's claims.
+A verified live owner blocks with exit 1, receives a best-effort notice, and the
+requester subscribes to release notification. Release through `agentctl` so
+waiters are notified. A notification is not a claim: rerun `take` before editing.
 
-Results never echo your own id: your row in `active`/`others`/`clear` and your
-registration ack read `[yours]`. Accept it as confirmation that the entry is
-yours — the file on disk is named by your real id, and peer rows still show
-theirs. Do not re-derive your id to check: after a fork your context quotes the
-source's id as your own, and having two to reconcile is what makes a session
-"correct" a record another live session owns. When you actually need the id —
-to hand a peer or a launcher — `agentctl whoami` prints it unmasked, resolved
-from this process. Trust that answer over any id your context carries: after a
-fork the context's id names the source session.
+The helper resolves your real session identity; accept `[yours]` without
+re-deriving it. Trust the launcher's published id, never one copied from a
+fork's context; use the harness supplement if identity cannot be resolved.
 
-Read `topics/agentctl.md` before changing or diagnosing active-session/run
-semantics, `agentctl`, staleness/sweep behavior, launch-depth guards, or plugin
-contracts. Detailed file schema and examples remain there and under “Active
-sessions” in [AGENTS/session.md](AGENTS/session.md).
+If these commands are insufficient, read `topics/agentctl.md` § Other
+coordination uses: discovery, messaging, conservative wake, waits, and raw-file
+fallback/schema. On receiving a coordination request, read its § Receiving
+coordination requests. Read the applicable sections before changing or
+diagnosing agentctl semantics; the topic is not a routine boot read.
 
 ## Resume source priority
 
@@ -514,28 +505,20 @@ peer/user/indirect writer could have changed it since the last read. After
 compaction, missing content is an unconditional re-read. One visible edit
 followed by rapid edits needs no ceremony.
 
-At the point of caution, run `agentctl others <session-id>` (exclude a peer
+At the point of caution, run `agentctl others` (exclude a peer
 you already coordinate with via `--expect <its-id>`; Solo then means no
 surprising peers):
 
 - **Solo:** rely on the user supplement's reciprocal announcement convention;
   skip slow-gap rereads unless a user edit was announced or context was lost.
 - **Peers present:** reread the specific file immediately before edit, narrowed
-  by peer `scope:` when available — or claim it once: `agentctl clear <paths>`
-  before an intended sequence of edits checks peers and claims on exit 0
-  (`--carve` claims through a peer's covering wildcard; an exact peer claim
-  always blocks). `clear` waits and streams peer notices by default; use
-  `--no-wait` for an immediate verdict, or `--deaf` to wait without notices.
-  Bound edit-clearance waits with `--timeout 300`: after five minutes blocked,
-  stop waiting and ask the claim owner before entering a longer wait. Read
-  `topics/agentctl.md` § Claim-clearance dialogue for contacting that session.
-  Pause/resume, posting notices, and cancellation: `topics/agentctl.md`
-  § Claim-clearance dialogue. A file you hold a fresh specific claim on needs no
-  per-edit ceremony; a resume or long pause starts a new sequence, so
-  re-run `clear` then — claims age out. Drop finished file claims
-  (`clear --drop <paths>`), keeping wildcard scope. Your own wildcard
-  scope is porous: peers may carve exact claims from it, surfaced by your
-  next sequence-start check.
+  by the peer's scope — or use `agentctl take <paths>` before the edit sequence
+  and proceed only on exit 0. A fresh specific claim removes per-edit checks;
+  a resume or long pause starts a new sequence and requires another `take`.
+  Release finished paths with `agentctl clear --drop <paths>`. A blocked
+  takeover arranges best-effort coordination; choose other work while waiting.
+  Other coordination uses, including bounded foreground waits and carving
+  through a broader scope, are in `topics/agentctl.md`.
 
 A failed edit anchor, unexpected dirty/staged state, or other surprise triggers
 a fresh peer check even when solitude was assumed. On divergence, pause and
