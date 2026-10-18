@@ -152,3 +152,6 @@
   negligibly slower (in the category of 'optimizer could skip this extra
   fn call') is ok." Stated as an explicit exemption from the runtime-cost
   test.
+- 2026-10-18 third amendment, user direction (graehl): strike
+  "Slightly" from the more-code allowance; the two stated reasons, not a
+  size bound, decide it.
