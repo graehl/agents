@@ -70,9 +70,12 @@ Records carry `originalSize` and `originalMtimeNs` (a decimal string). An
 observer indexes them at start and skips any original whose size and mtime
 still match, as rsync does, so restarts do not reread an accumulated inbox.
 
-Senders write into `latest-session/`, never over it. If `latest-session` is a
-real directory, which rsync creates when the pointer does not exist yet, the
-next pointer update or `--turns` observer start moves it to
+Senders write into `latest-session/`, never over it. Until a user turn is
+recorded, observers point it at `.no-session-messaged-yet/inbox`, whose parent
+never exists, so `test -d`, scp and rsync fail rather than create a directory;
+after the first turn it stays pointed at the latest session. If
+`latest-session` is nevertheless a real directory (rsync creates one when the
+pointer is absent), the next pointer update or observer start moves it to
 `unrouted/<epoch-ms>-<id>/` undelivered, since nothing was listening, and
 restores the symlink. `unrouted` is a reserved route name.
 
