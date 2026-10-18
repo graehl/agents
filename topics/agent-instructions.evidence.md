@@ -5691,3 +5691,31 @@ prose correction retains substantive uncertainty and personal testimony.
   grouping and preview alone never establish coverage.
 - Validation: manual forward traces and diff inspection; no outcome ablation.
 - Contributing-model: 6-Astra
+
+## 2026-10-18 — harsh-review skips generated output and pure formatting
+
+- User direction: skip contents, including whole commits, that are only
+  automatically generated output, such as retrieved paper figures, Markdown
+  extracts, and run records. Follow-up explicitly includes pure code reformatting.
+- Decision: classify exclusions before loading bulk patches; record their
+  scope and reasons as accounted-for coverage. Remove the conflicting demand
+  to sample generated resources or read extracted Markdown as authored prose.
+  Keep substantive source/configuration/interpretation review; generated
+  output checks require an explicit request or a concrete finding. Agent-authored
+  code and prose are not automatically generated output under this exclusion.
+- Trace: a range contains only retrieved figures, extracted text, and machine
+  run records. Preview establishes their provenance; contents are skipped,
+  the verdict states no reviewable changes, and the contiguous marker can
+  advance. The exclusion does not create a permanent resume gap.
+- Trace: a mixed commit changes an extractor and refreshes its output. Review
+  the extractor; skip generated contents. An authored interpretation beside
+  the extracts remains reviewable despite sharing their `.md` extension.
+- Trace: a known formatter-only commit is excluded after establishing that
+  classification. A commit labeled formatting that also changes a condition
+  retains review of the condition; whitespace-insensitive comparison alone
+  cannot excuse a Python indentation or string-content change.
+- Trace: generated or formatting-only commits interleave a feature's changes.
+  Explicit exclusions close those portions; any substantive unreviewed portion
+  still prevents the marker from crossing it.
+- Validation: manual forward traces and diff checks; no outcome ablation.
+- Contributing-model: 6-Astra
