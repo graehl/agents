@@ -5660,3 +5660,34 @@ prose correction retains substantive uncertainty and personal testimony.
 - Validation: instruction traces and generated-route checks; no measured
   reduction in session effort or regression rate is claimed.
 - Contributing-model: 6-Astra
+
+## 2026-10-18 — harsh-review groups by feature and preserves context
+
+- User direction: relax the serial fold's small consecutive chunks after a
+  fast preview. A series opening, revising, and fixing one logical feature
+  may be reviewed together, including noncontiguous commits interleaved by
+  concurrent efforts. Related work should transmit across-commit knowledge
+  through one context chain; identified independent regions may run in parallel.
+- Decision: prefer fewer coherent groups that fit context, with explicit
+  commit membership and partial-commit scope where needed. Carry accumulated
+  understanding and evidence as well as findings across dependent passes.
+  Keep full change reads, final interaction checks, and the contiguous marker.
+  The expected reduction in repeated exploration is unmeasured.
+- Trace: feature commits A1, A2, and A3 fit one context. The preview groups
+  them rather than forcing three fresh reviewers. If their combined reasoning
+  exceeds context, serial passes carry the established contracts and findings;
+  no fixed chunk count overrides capacity.
+- Trace: history A1, B1, A2 contains one feature in A1/A2. Reviewing those
+  member patches leaves B1 pending and the contiguous prefix at A1. Resume
+  sees A2 already covered; only completing B1 and relevant interactions closes
+  the range. A commit split across groups stays pending until all parts close.
+- Trace: separate files change a producer and consumer of the same contract.
+  Disjoint paths do not authorize independent review; keep their work serial.
+  Unrelated regions can run concurrently, with the parent integrating results
+  and checking interactions. A discovered dependency joins the affected work
+  into one context chain before closure.
+- Trace: a test introduced and removed within a feature group vanishes from
+  its net diff. Full member-patch reads retain that verification evidence;
+  grouping and preview alone never establish coverage.
+- Validation: manual forward traces and diff inspection; no outcome ablation.
+- Contributing-model: 6-Astra
