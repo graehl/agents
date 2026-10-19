@@ -170,6 +170,14 @@ def git(repo: Path, *args: str) -> str:
     return done.stdout.strip()
 
 
+def git_fields(repo: Path, *args: str) -> list[str]:
+    """NUL-separated output of a `-z` Git command; paths arrive unquoted."""
+    done = subprocess.run(
+        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=True
+    )
+    return [field for field in done.stdout.split("\0") if field]
+
+
 def esc(value: object) -> str:
     return html.escape(str(value))
 
@@ -198,15 +206,20 @@ class Project:
 
     def __init__(self, root: Path):
         self.root = root
-        listed = git(root, "ls-files", "-co", "--exclude-standard", "--", *PATTERNS)
-        self.files = sorted(set(listed.splitlines()))
-        self.changed = [
-            line[3:].split(" -> ")[-1].strip('"')
-            for line in git(
-                root, "status", "--porcelain", "--untracked-files=normal"
-            ).splitlines()
-            if "/_build/" not in line
-        ]
+        listed = git_fields(
+            root, "ls-files", "-z", "-co", "--exclude-standard", "--", *PATTERNS
+        )
+        self.files = sorted(set(listed))
+        self.changed = []
+        status = iter(
+            git_fields(root, "status", "--porcelain", "-z", "--untracked-files=normal")
+        )
+        for entry in status:
+            path = entry[3:]
+            if entry[0] in "RC":
+                next(status)  # a rename or copy's original path follows
+            if "/_build/" not in path:
+                self.changed.append(path)
         self._commits: dict[str, dict[str, str]] = {}
         config = root / ".project-template" / "program-view.json"
         self.config = (
@@ -262,14 +275,17 @@ class Project:
         """Last commit date of each path, from one `git log` walk."""
         if not rels:
             return {}
-        out = git(self.root, "log", "--format=%x00%cI", "--name-only", "--", *rels)
+        fields = git_fields(
+            self.root, "log", "-z", "--format=%x01%cI", "--name-only", "--", *rels
+        )
         dates: dict[str, str] = {}
         date = ""
-        for line in out.splitlines():
-            if line.startswith("\x00"):
-                date = line[1:]
-            elif line and line not in dates:
-                dates[line] = date
+        for field in fields:
+            field = field.removeprefix("\n")
+            if field.startswith("\x01"):
+                date = field[1:]
+            elif field and field not in dates:
+                dates[field] = date
         return dates
 
     def dirty(self, rel: str) -> int:

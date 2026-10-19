@@ -123,6 +123,22 @@ class ProgramViewTest(unittest.TestCase):
         self.assertEqual(records["research"]["documents"], ["research/thread.md"])
         self.assertEqual(records["research"]["focus"], "(2026-10-15): speech")
 
+    def test_special_character_paths_keep_their_identity(self) -> None:
+        odd = 'research/mt/dé "quoted".md'
+        (self.repo / odd).write_text("# Odd\n", encoding="utf-8")
+        self.git("add", ".")
+        self.git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "odd")
+        self.git("mv", "research/thread.md", "research/re named.md")
+        (self.repo / odd).write_text("# Odd, edited\n", encoding="utf-8")
+        project = program_view.Project(self.repo)
+        self.assertIn(odd, project.files)
+        self.assertEqual(
+            sorted(project.changed),
+            ['research/mt/dé "quoted".md', "research/re named.md"],
+        )
+        self.assertEqual(project.dirty("research/mt"), 1)
+        self.assertRegex(project.commit_dates([odd])[odd], r"^\d{4}-\d\d-\d\dT")
+
     def test_root_pointer_names_a_handoff(self) -> None:
         (self.repo / "research/mt/ROOT").write_text(
             "handoffs/current.md\n", encoding="utf-8"
