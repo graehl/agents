@@ -1091,7 +1091,11 @@ that project's job on each poll. PROJECT is a path, or the directory
 name of a pointed-to project when unique; an unknown or ambiguous name
 fails before waiting. A foreign project is always read by running
 agentctl with that project as `AGENTCTL_ROOT`, so it alone writes its
-state. Each read costs one agentctl start-up, roughly 0.2–0.3 s.
+state. Each read costs one agentctl start-up, roughly 0.2–0.3 s. A read
+that times out, cannot start, or exits unavailable or temporary (69, 75)
+warns on stderr and is retried on the next poll, using the last state read;
+after five such polls in a row the wait fails. An unknown job, a usage
+error, or unreadable output fails at once.
 
 ## Fleet capacity watch
 

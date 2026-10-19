@@ -2884,6 +2884,54 @@ def test_host_list_and_cross_project_wait_reach_other_projects():
         there.cleanup()
 
 
+def test_cross_project_wait_retries_transient_status_failures():
+    # A status call that times out is retried with a warning; one that keeps
+    # failing ends the wait after a bounded number of polls.
+    here, there = Workspace(), Workspace()
+    flaky = (
+        "import subprocess, sys\n"
+        "import agentctl\n"
+        "real, calls = agentctl.run_agentctl_in_project, [0]\n"
+        "def flaky(root, argv):\n"
+        "    calls[0] += 1\n"
+        "    if calls[0] in FAILING:\n"
+        "        raise subprocess.TimeoutExpired(argv, 120)\n"
+        "    return real(root, argv)\n"
+        "agentctl.run_agentctl_in_project = flaky\n"
+        "sys.argv = ['agentctl.py', 'wait', sys.argv[1], '--poll', '0.1',\n"
+        "            '--heartbeat', '0', '--timeout', '20']\n"
+        "sys.exit(agentctl.main())\n"
+    )
+
+    def wait(failing: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, "-c", f"FAILING = {failing}\n" + flaky, spec],
+            cwd=here.tmp,
+            env=here.hermetic_env({"AGENTCTL_HOME": str(here.home)}),
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+    try:
+        shared = {"AGENTCTL_HOME": str(here.home)}
+        _start(there, "--no-aim", "remote-job", "--", "bash", "-c", "true")
+        there.wait_finished("remote-job")
+        here.run("list", "--host", env_extra=shared)  # registers both projects
+        there.run("list", env_extra=shared)
+        spec = f"{there.tmp}:remote-job"
+        res = wait("{1, 2}")
+        _assert(res.returncode == 0, res)
+        _assert(res.stderr.count("status timed out") == 2, res.stderr)
+        _assert("remote-job " in res.stdout, res.stdout)
+        res = wait("set(range(1, 100))")
+        _assert(res.returncode != 0, res)
+        _assert("6 polls in a row" in res.stderr, res.stderr)
+    finally:
+        here.cleanup()
+        there.cleanup()
+
+
 def test_run_vram_history_feeds_recent_max_and_finished_peak():
     # The fake reports its parent as a 2 GiB compute app: during wrapper
     # sampling that parent is the run's wrapper, so only the background

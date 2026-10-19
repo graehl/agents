@@ -5831,15 +5831,32 @@ def last_json_line(text: str) -> dict:
     return json.loads(lines[-1])
 
 
+class ForeignStatusUnavailable(Exception):
+    """Another project's status could not be read for now: its agentctl timed
+    out, could not start, or exited unavailable/temporary (69/75)."""
+
+
+FOREIGN_STATUS_RETRIES = 5
+
+
 def foreign_job_state(spec: str) -> dict:
     """State of `PROJECT:JOB`, read through that project's own agentctl."""
     project, _, job = spec.rpartition(":")
     root = resolve_project_spec(project)
     if root == ROOT:
         return load_job(job)
-    proc = run_agentctl_in_project(root, ["status", job, "--json", "--full"])
+    try:
+        proc = run_agentctl_in_project(root, ["status", job, "--json", "--full"])
+    except subprocess.TimeoutExpired as exc:
+        raise ForeignStatusUnavailable(
+            f"{spec}: status timed out after {exc.timeout:.0f}s"
+        ) from exc
+    except OSError as exc:
+        raise ForeignStatusUnavailable(f"{spec}: {exc}") from exc
     if proc.returncode != 0:
         detail = (proc.stderr.strip().splitlines() or ["no output"])[-1]
+        if proc.returncode in (acli.ExitCode.UNAVAILABLE, acli.ExitCode.TEMPORARY):
+            raise ForeignStatusUnavailable(f"{spec}: {detail}")
         raise SystemExit(f"{spec}: {detail}")
     try:
         state = last_json_line(proc.stdout)["jobs"][0]
@@ -5918,8 +5935,26 @@ def wait_job(args: argparse.Namespace) -> int:
     target before the wait began satisfies it at once.
     """
     names = wait_job_names(args.job)
+    last: dict[str, dict] = {}
+    failures: dict[str, int] = {}
+
+    def poll(name: str) -> dict:
+        try:
+            last[name] = wait_target_state(name)
+            failures.pop(name, None)
+        except ForeignStatusUnavailable as exc:
+            failures[name] = failures.get(name, 0) + 1
+            if failures[name] > FOREIGN_STATUS_RETRIES:
+                raise SystemExit(f"{exc} ({failures[name]} polls in a row)") from exc
+            print(
+                f"[wait] warning: {exc}; retry {failures[name]}/{FOREIGN_STATUS_RETRIES}",
+                file=sys.stderr,
+                flush=True,
+            )
+        return last.get(name) or {"job": name, "run_id": "", "status": "unknown"}
+
     for name in names:
-        wait_target_state(name)  # an unknown name fails before any waiting
+        poll(name)  # an unknown name fails before any waiting
     deadline = time.time() + args.timeout if args.timeout > 0 else None
     next_report = 0.0
     heartbeat_interval = max(
@@ -5930,11 +5965,11 @@ def wait_job(args: argparse.Namespace) -> int:
     first_failure = 0
     while True:
         touch_active_entry()
-        states = {name: wait_target_state(name) for name in pending}
+        states = {name: poll(name) for name in pending}
         for name in list(pending):
             state = states[name]
             status = state.get("status", "")
-            if not wait_target_reached(status, args.target):
+            if name not in last or not wait_target_reached(status, args.target):
                 continue
             bits = [state["job"], state["run_id"], status]
             if status_returncode_text(state):
