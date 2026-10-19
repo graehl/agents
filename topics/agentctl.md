@@ -1,17 +1,21 @@
-# agentctl: process manager + plugin contract
+# agentctl: session coordination, job manager, and plugin contract
 
-> Dependency-free local job manager: process-group lifecycle,
-> GPU/CPU resource gating, and on-disk run state under `.agentctl/`,
-> with project-specific concerns delegated to plugins under
+> Dependency-free local tool for agent sessions sharing a project: active-session
+> entries, path claims, takeover and peer messages, plus a job manager with
+> process-group lifecycle, GPU/CPU resource gating, and on-disk run state under
+> `.agentctl/`, with project-specific concerns delegated to plugins under
 > `agentctl_plugins/`.
 
 Topic: `agentctl`
 Governs: changing or diagnosing active-session or run semantics, staleness, launch-depth guards, or plugins
 
-`agentctl` is a small, dependency-free local job manager. The base layer owns
-process-group lifecycle, GPU/CPU resource gating, and on-disk run state under
-`.agentctl/`. Project-specific concerns (run-record export, experiment
-tracking, domain verbs) live in optional plugins under `agentctl_plugins/`.
+`agentctl` is a small, dependency-free local tool with two roles. It
+coordinates agent sessions sharing a worktree (active-session entries, path
+claims, `take`, messages and release notices), and it manages jobs: the base
+layer owns process-group lifecycle, GPU/CPU resource gating, and on-disk run
+state under `.agentctl/`. Project-specific concerns (run-record export,
+experiment tracking, domain verbs) live in optional plugins under
+`agentctl_plugins/`.
 
 Read this topic before changing active-session semantics, diagnosing
 `.agentctl` run state, modifying `agentctl`, or relying on details of the
