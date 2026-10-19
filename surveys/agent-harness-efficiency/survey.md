@@ -13,7 +13,9 @@ synthesis here has not independently re-read those sources. Counts from
 `related-work status`, 2026-09-30:
 - 76 sources manifested, 54 verified by a read, 24 with committed full-text
   extracts.
-- 14 fetches failed the engine's HTML fidelity checks and await a PDF pass.
+- 15 saved pages have no completed extract: they failed the engine's HTML
+  fidelity checks and await a PDF pass (rechecked against the extract tree
+  2026-10-19; the counts above still match `related-work status`).
 - No concept digests yet.
 
 Grades follow `field-map.md`; most rest on one paper or one operator.
@@ -53,11 +55,14 @@ model must attend over, which caching does not reduce).
 ## Readout for the motivating questions
 
 - **Extra context of a Copilot harness versus native.** Measured on this host
-  (o200k tokens, stock configuration): Copilot CLI 10.5k–11.4k versus Claude
-  Code 13.9k for Claude and Codex 7.6k–10.5k for GPT. So Copilot CLI is
-  lighter than Claude Code and 1k–4k heavier than Codex. Under the user's
-  configuration all five harnesses land at 21k–31k, and the user's own 15.6k
-  instruction file is most of it. VS Code agent mode and Grok's native
+  (o200k tokens, stock configuration): Copilot CLI sends 10.5k–10.7k for
+  Claude models and 11.2k–11.4k for GPT models, Claude Code 13.9k (Opus 5.5),
+  and Codex 7.6k–10.5k across GPT models. For the same GPT model Copilot CLI
+  is 2.2k–3.6k heavier than Codex (gpt-5.5, gpt-5.3-codex, gpt-5.6-sol;
+  Copilot was not run on Astra). It is lighter than Claude Code, but on
+  different Claude models (Opus 4.7 and the 4.5 models versus Opus 5.5).
+  Under the user's configuration all five harnesses land at 21k–31k, and the
+  user's own 15.6k instruction file is most of it. VS Code agent mode and Grok's native
   harness were not measured. §A.
 - **Performance per token.** No benchmark on current models puts one model
   in Copilot and in its native CLI. The indirect evidence is vendor-specific:
@@ -97,8 +102,11 @@ Harness-owned prompt plus tool schemas, stock:
 - pi: 1.2k.
 - OpenCode: 6.3k–7.1k.
 - Codex: 7.6k (gpt-5.5) to 10.5k (gpt-6-astra).
-- Copilot CLI: 10.5k–11.4k.
-- Claude Code: 13.9k, or 24.5k on the Haiku 4.5 path.
+- Copilot CLI: 10.5k–10.7k on Claude models, 11.2k–11.4k on GPT models.
+- Claude Code: 13.9k (Opus 5.5), or 24.5k on the Haiku 4.5 path.
+
+The harnesses were not all run on one model; the record names each cell's
+models.
 
 `claude --bare` is 806. The user's compiled boot adds 15.6k in every harness;
 skills catalogs add 1.3k–7.1k. Grade: single-source (one host, one version
@@ -410,7 +418,9 @@ Grades: benchmark-reported, except Chroma (single-source).
 
 **H2 Tool and skill menus hurt mainly through wrong picks.**
 - With a 202-skill library, selection errors explain the drop and pure
-  context overhead is indistinguishable from zero (`song2026skillshadowing`).
+  context overhead is indistinguishable from zero (`song2026skillshadowing`;
+  known from search metadata and abstract only, full text not read or
+  extracted).
 - Models attend to the right tool yet still pick wrong (`chen2026lookingpicking`).
 - Tool-call accuracy drops 7–85% as catalogs grow (`kate2025longfunceval`).
 - Short adaptive tool lists beat long ones (`repantis2026howmanytools`,
@@ -424,12 +434,16 @@ dominates at the 10K–30K-token tool blocks of real coding harnesses.
 - Cache-token accounting differs by SDK and board. A published cost result
   reversed after a telemetry normalizer bug (`arjmandi2026harnessormodel` v1).
 - Benchmark environment defects hit one harness: Claude Code's KillShell
-  depended on `ps` (`zaitb2verified`).
-- MCP servers load nondeterministically (40 vs 90 tools across runs).
+  depended on `ps` (`zaitb2verified`, read online; not extracted).
+- MCP servers load nondeterministically (40 vs 90 tools across two
+  concurrent runs, `chen2026compressiongateway`).
 - Serving-stack tool-call gating (`tang2026servingstack`).
 - Leaked git history (`zheng2026clawswebench`).
 - Reasoning effort within one harness moves scores more than most harness
-  deltas (Claude Code + Opus 5: 34.9 to 53.9 on Terminal-Bench 4.0).
+  deltas (Claude Code + Opus 5: 34.9 to 53.9 on Terminal-Bench 4.0). Source
+  key not recorded; the only manifest source covering the 4.0 board is
+  `tbenchleaderboard`, read online and not extracted, and the board could
+  not be re-read offline on 2026-10-19.
 - Run-to-run spread is 2.2–6.0 points on SWE-bench Verified
   (`bjarnason2026randomness`).
 
@@ -469,7 +483,8 @@ dominates at the 10K–30K-token tool blocks of real coding harnesses.
   `yang2024sweagent`) shrinks with model strength (`hu2026beyondmodel`).
 - **mini-SWE-agent's own 1.15 → 2.0 update** cost Gemini 3 Pro 4.6 points
   at twice the cost, so a baseline's version matters as much as a harness
-  switch.
+  switch. No source for this figure is recorded in the manifest; treat it as
+  unverified until one is.
 - **Kapoor et al.'s "control for cost, compare to simple baselines"** remains
   the governing critique (`kapoor2024agentsmatter`, `kapoor2025hal`); grade
   reproduced.

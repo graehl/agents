@@ -39,11 +39,16 @@ Versions: Claude Code 2.1.285, Codex CLI 0.159.2, pi 0.85.1, OpenCode
 
 | harness | minimal mode | stock (no user config) | user config | what the user config adds |
 |---|---|---|---|---|
-| Claude Code | 806 (`--bare` = `CLAUDE_CODE_SIMPLE=1`) | 13.9k (Opus 5.5 or a non-Claude id); 24.5k (Haiku 4.5) | 29.3k (Sonnet 5.5); 37.7k (Haiku 4.5) | 15.6k instructions, 1.3k skills |
-| Codex | n/a | 7.6k (gpt-5.5), 7.8k (gpt-5.3-codex), 9.2k (gpt-5.6-sol), 10.5k (gpt-6-astra) | 28.0k–30.8k | 15.6k AGENTS.md, 4.7k–5.3k skills |
-| pi | 1.2k (empty agent dir and HOME) | 5.3k (real HOME adds a 4.0k skills catalog) | 21.0k | 15.6k AGENTS.md, 4.2k skills |
-| OpenCode | n/a | 6.3k–7.1k | 28.9k–29.6k | 15.6k AGENTS.md, 7.1k skills |
-| Copilot CLI | n/a | 10.5k–11.4k | 30.4k–31.3k | 15.6k instructions, 3.2k skills, 5 plugin tools |
+| Claude Code | 806 (`--bare` = `CLAUDE_CODE_SIMPLE=1`) | 13.9k (Opus 5.5; also gpt-5.6-sol as a foreign id); 24.5k (Haiku 4.5) | 29.4k (Opus 5.5), 29.3k (Sonnet 5.5, gpt-5.6-sol); 37.7k (Haiku 4.5) | 15.6k instructions, 1.3k skills |
+| Codex | n/a | 7.6k (gpt-5.5), 7.8k (gpt-5.3-codex), 9.2k (gpt-5.6-sol), 10.5k (gpt-6-astra) | 28.0k (gpt-5.5), 28.2k (gpt-5.3-codex), 29.6k (gpt-5.6-sol), 30.8k (gpt-6-astra) | 15.6k AGENTS.md, 4.7k–5.3k skills |
+| pi | 1.2k (empty agent dir and HOME; Opus 5, gpt-5.5) | 5.3k (real HOME adds a 4.0k skills catalog; Opus 5, gpt-5.5, gpt-5.6-sol) | 21.0k (same models) | 15.6k AGENTS.md, 4.2k skills |
+| OpenCode | n/a | 6.3k (gpt-5.5, gpt-5.6-sol), 6.5k–6.6k (Haiku 4.5, Opus 5.5), 7.1k (gpt-4.1) | 28.9k–29.6k (same models) | 15.6k AGENTS.md, 7.1k skills |
+| Copilot CLI | n/a | 10.5k–10.7k (Haiku 4.5, Sonnet 4.5, Opus 4.7), 11.2k–11.4k (gpt-5.3-codex, gpt-5.5, gpt-5.6-sol) | 30.4k–30.6k (same Claude models), 31.1k–31.3k (same GPT models) | 15.6k instructions, 3.2k skills, 5 plugin tools |
+
+Each cell names the models it measured. The harnesses were not all run on
+one model, so a column is not a controlled same-model comparison; compare
+within a model (for example gpt-5.5: Codex 7.6k, OpenCode 6.3k, Copilot CLI
+11.2k stock). Totals are from the main agent-turn request of each capture.
 
 The user's instruction file is the same compiled boot
 (`~/agents/AGENTS.boot.md`, 70.7 kB) in every harness, about 15.6k tokens,

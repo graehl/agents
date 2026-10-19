@@ -22,12 +22,16 @@ later. Revisit dates are unscheduled reminders, not `at/` entries.
   toggling only the edit tool. pi with and without pi-lovely-codex is almost
   exactly that. Revisit 2026-12.
 
-### Claude Code's Terminal-Bench 2.0 deficit was an environment artifact
+### Claude Code's Terminal-Bench 2.0 deficit was partly an environment artifact
 
-- **Claim.** The deficit came from KillShell's missing `ps` dependency
-  (Z.ai).
-- **Evidence.** Supported by the 2.1 rerun: Claude Code +12.1, Terminus 2
-  +0.9.
+- **Claim.** Environment defects depressed Claude Code's 2.0 score, among
+  them KillShell's dependency on `ps` that Z.ai reported (`zaitb2verified`,
+  read online; not extracted).
+- **Evidence.** After the 2.1 task fixes, Opus 4.6 rose 12.1 points under
+  Claude Code and 0.9 under Terminus 2 (`tbench21news`). The 2.1 release
+  fixed many tasks at once (changed external dependencies, resource budgets,
+  misspecified instructions), so it supports an environment contribution
+  without isolating KillShell.
 - **Open.** Terminus 2 was never rerun under Z.ai's other fixes. Revisit
   when an operator-run board pairs harnesses again.
 
@@ -43,7 +47,8 @@ later. Revisit dates are unscheduled reminders, not `at/` entries.
 ### Context overhead from a large skill menu is about zero
 
 - **Claim.** `song2026skillshadowing` finds wrong-skill selection, not
-  length, explains the drop at 202 skills.
+  length, explains the drop at 202 skills (known from its abstract only; the
+  full text was not read or extracted).
 - **Relevance.** This decides whether this host should trim skills catalogs
   (1.3k–7.1k tokens) or filter them.
 - **Cheapest check.** Hold the catalog's selection fixed and pad its length.
