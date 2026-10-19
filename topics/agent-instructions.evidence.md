@@ -5719,3 +5719,29 @@ prose correction retains substantive uncertainty and personal testimony.
   still prevents the marker from crossing it.
 - Validation: manual forward traces and diff checks; no outcome ablation.
 - Contributing-model: 6-Astra
+
+## 2026-10-19 — session-turn origin is a stable user default
+
+- User direction (harsh-review triage): keep the user-facing message an
+  unadorned user turn; do not default `session-turn` to a non-user origin.
+  Agents and scripts declare non-user provenance explicitly. The previous
+  default depended on whether `AGENTCTL_SESSION_ID` was set, so a cron job or
+  a session not launched through agentctl claimed rendezvous
+  `latest-session`, while an agent-launched human-facing caller could not.
+- Decision: `--origin` defaults to `user`. `agentctl_messages.py` and
+  `rendezvous.py` already pass `coordination` and `rendezvous`;
+  `advisor/serve.md` now tells the advisor transport to pass
+  `--origin automation`, and `topics/helper-scripts.md` documents the option
+  and gives peer nudges `--origin coordination`. YA renders every origin as a
+  plain user message and uses it only to decide rendezvous publication.
+- Trace: an agent delivers an advisor packet with the documented command.
+  It now passes `--origin automation`; the advisor's project `latest-session`
+  is unchanged, as it was under the old default inside an agentctl session.
+- Trace: an agent following only `topics/helper-scripts.md` sends an
+  unprompted status turn to another session. The option text says agents
+  pass a non-user origin; omitting it would misroute later uploads to that
+  recipient, a recoverable routing error rather than a data loss.
+- Validation: `tests/test_session_turn.py` pins the default with the session
+  variable set and unset and checks that only user turns advance
+  `latest-session`; no outcome ablation.
+- Contributing-model: opus-5.5

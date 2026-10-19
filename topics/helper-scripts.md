@@ -223,8 +223,13 @@ not select a research advisor or impose an advisor protocol.
 
 Turn options are `[--ya-session-id <id>] [--submission-id <id>] [--cwd
 <path>] [--model <name>] [--effort <level>] [--timeout <seconds>]
-[--idle-timeout <seconds>]`; `send` additionally accepts `--eventual` and
-`--live-only`. The combined form additionally accepts
+[--idle-timeout <seconds>] [--origin <user|coordination|rendezvous|automation>]`;
+`send` additionally accepts `--eventual` and `--live-only`. `--origin` is
+metadata independent of the provider's `user` role; the recipient still sees
+an ordinary user message. It defaults to `user`, and only a `user` turn makes
+its session the project's rendezvous `latest-session`. An agent or script
+sending a turn on its own initiative passes a non-user origin, normally
+`automation`. The combined form additionally accepts
 `[--wait-timeout <seconds>]`. The turn body
 is stdin. Turn `--timeout` defaults to 30 minutes, accepts 1 second through 2
 hours, and bounds queue waiting plus provider work; a native provider CLI owns
@@ -265,7 +270,8 @@ submission. The host keeps receipts for 24 hours (at most 1,000); after pruning
 or restart, use receipt lookup rather than treating an old ID as eternal
 deduplication.
 
-For an authorized automated peer nudge, use `send --eventual --live-only`,
+For an authorized automated peer nudge, use `send --eventual --live-only
+--origin coordination`,
 resolve the target harness/provider id explicitly, and identify the body as
 peer input with its sender. The message confers no user authority or file
 claim. Never bypass a missing host feature with native resume or a separate

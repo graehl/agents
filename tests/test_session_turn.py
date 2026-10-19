@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -95,8 +96,11 @@ def _run(
     *args: str,
     stdin: str = "Review this.",
     extra_env: dict[str, str] | None = None,
+    drop_env: tuple[str, ...] = (),
 ):
     env = os.environ.copy()
+    for name in drop_env:
+        env.pop(name, None)
     env["YEP_PROVIDER_HOST_RUNTIME_DIR"] = str(host.runtime)
     env.update(extra_env or {})
     return subprocess.run(
@@ -167,7 +171,58 @@ def test_hosted_turn_streams_lifecycle_and_provider_records():
     _assert(records[-1]["receipt"]["lastProviderEventSequence"] == 8)
     _assert(records[-2]["message"]["subtype"] == "compact_boundary")
     _assert(host.requests[1]["message"]["text"] == "Review this.")
-    _assert(host.requests[1]["message"]["metadata"]["origin"] in {"user", "automation"})
+    _assert(host.requests[1]["message"]["metadata"]["origin"] == "user")
+
+
+def test_origin_defaults_to_user_and_only_user_turns_advance_latest():
+    # The default does not depend on whether the caller runs in an agentctl
+    # session; automated callers declare their origin.
+    project = Path(tempfile.mkdtemp(prefix="session-turn-origin-"))
+    (project / ".rendez").mkdir()
+    latest = project / ".rendez/latest-session"
+    features = ["session-turn", "session-turn-await", "session-turn-eventual"]
+
+    def status(request):
+        result = {"protocolVersion": 3, "features": features}
+        return [{"id": request["id"], "ok": True, "result": result}]
+
+    def accepted(request):
+        return [
+            {
+                "id": request["id"],
+                "type": "accepted",
+                "submissionId": request["submissionId"],
+                "delivery": "queued",
+            }
+        ]
+
+    def send(provider_id, *origin, session_id=None):
+        host = FakeProviderHost(
+            [status, accepted], host_protocol_version=3, features=features
+        )
+        env = {"PATH": tempfile.mkdtemp(prefix="session-turn-no-native-")}
+        if session_id:
+            env["AGENTCTL_SESSION_ID"] = session_id
+        argv = ["send", "codex", provider_id, "--eventual", "--cwd", str(project)]
+        proc = _run(
+            host,
+            *argv,
+            *origin,
+            extra_env=env,
+            drop_env=() if session_id else ("AGENTCTL_SESSION_ID",),
+        )
+        _assert(proc.returncode == 0, proc.stderr)
+        return host.requests[-1]["message"]["metadata"]["origin"]
+
+    try:
+        _assert(send("p-auto", "--origin", "automation") == "automation")
+        _assert(not latest.exists(), "an automated turn must not claim latest")
+        _assert(send("p-unset") == "user")
+        _assert("p-unset" in str(latest.resolve()), latest.resolve())
+        _assert(send("p-set", session_id="caller") == "user")
+        _assert("p-set" in str(latest.resolve()), latest.resolve())
+    finally:
+        shutil.rmtree(project)
 
 
 def test_hosted_codex_uses_the_same_provider_host_protocol():

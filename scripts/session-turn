@@ -1083,8 +1083,8 @@ def turn_parser(*, include_wait_timeout: bool = True) -> argparse.ArgumentParser
     result.add_argument(
         "--origin",
         choices=("user", "coordination", "rendezvous", "automation"),
-        default="automation" if os.environ.get("AGENTCTL_SESSION_ID") else "user",
-        help="turn provenance for latest-session routing; launched-agent callers default to automation",
+        default="user",
+        help="turn provenance for latest-session routing (default: user); agents and scripts pass a non-user origin",
     )
     result.add_argument(
         "--idle-timeout",

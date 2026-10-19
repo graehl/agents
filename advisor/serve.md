@@ -140,7 +140,9 @@ cursor.
 Use `session-turn` for every provider turn. Validate `session.local.md`,
 normalize `Harness` to `claude` or `codex`, use a distinct usable provider
 resume id when present (otherwise the canonical `Session ID`), pass the YA id
-when the address is a YA session, and use the advisor project root as `--cwd`.
+when the address is a YA session, use the advisor project root as `--cwd`,
+and pass `--origin automation` so an advisor turn never becomes that
+project's rendezvous `latest-session`.
 Verified current model/effort may be native-fallback overrides. Retain the
 helper's submission id separately from the multi-turn interaction id.
 
