@@ -12,7 +12,13 @@
 (({ bandWidths, step = 0.02, refineSteps = 6 }) => {
   const canvas = document.createElement("canvas").getContext("2d");
   const main = document.querySelector("main") ?? document.body;
-  const tables = [...document.querySelectorAll("table")];
+  // Only document tables: table_widths.lua stamps each with its index, which
+  // raw HTML tables lack, so decision i always means the filter's table i.
+  const tables = [...document.querySelectorAll("table[data-qmd-table]")];
+  const indices = tables.map((table) => Number(table.dataset.qmdTable));
+  if (indices.some((value, i) => value !== i)) {
+    throw new Error(`document tables out of order: ${indices}`);
+  }
   const originals = tables.map((table) => table.cloneNode(true));
 
   function px(value) {

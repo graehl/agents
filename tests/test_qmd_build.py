@@ -331,8 +331,16 @@ def test_html_included_documents_link_inside(tmp_path):
 def test_html_memo_style_table_width_bands(tmp_path):
     root = tmp_path / "tables.md"
     long = "words that wrap across several lines in a narrow column " * 3
+    # A raw HTML table first must not shift which table a decision targets.
+    # (Quarto turns plain raw tables into document tables; this one it skips.)
+    raw = (
+        '```{=html}\n<table class="raw" data-quarto-disable-processing="true">'
+        "<tr><td>raw</td><td>cell</td></tr></table>\n```\n\n"
+    )
     root.write_text(
-        "# Tables\n\n| Name | Detail | Note |\n|---|---|---|\n"
+        "# Tables\n\n"
+        + raw
+        + "| Name | Detail | Note |\n|---|---|---|\n"
         + "".join(f"| CC-BY-NC-SA {i} | {long} | short |\n" for i in range(4))
     )
     command = [str(REPO / "scripts/qmd-html"), str(root), "--style", "memo"]
@@ -341,6 +349,8 @@ def test_html_memo_style_table_width_bands(tmp_path):
     receipt = json.loads(run.stdout)
     html = (tmp_path / "tables.html").read_text()
     assert len(receipt["table_widths"]) == 1 and len(receipt["table_widths"][0]) == 3
+    assert html.count('data-qmd-table="0"') == 1 and 'data-qmd-table="1"' not in html
+    assert '<table class="raw" data-quarto-disable-processing="true">' in html
     assert "CC‑BY‑NC‑SA" in html  # short tokens keep whole
     if any(receipt["table_widths"][0]):
         assert 'data-table-widths="0"' in html and "@container" in html

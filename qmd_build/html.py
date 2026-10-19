@@ -221,9 +221,14 @@ def render(args, config: Config) -> dict:
                 )
             return staged_output.read_text()
 
-        html = quarto_render([], environment)
+        table_filter = ["--lua-filter", str(PACKAGE / "table_widths.lua")]
         table_decisions = None
-        if style and style.table_widths:
+        if not (style and style.table_widths):
+            html = quarto_render([], environment)
+        else:
+            # The filter stamps each document table with the index that the
+            # measurement and the second render's decisions both use.
+            html = quarto_render(table_filter, environment)
             first = work / "first-render.html"
             first.write_text(html)
             with log_path.open("a") as log:
@@ -238,12 +243,7 @@ def render(args, config: Config) -> dict:
                 bands = work / "table-width-bands.css"
                 bands.write_text(band_stylesheet(table_decisions))
                 html = quarto_render(
-                    [
-                        "--lua-filter",
-                        str(PACKAGE / "table_widths.lua"),
-                        "--css",
-                        str(bands),
-                    ],
+                    [*table_filter, "--css", str(bands)],
                     {**environment, "QMD_TABLE_WIDTHS": str(widths)},
                 )
     if before != [identity(path, home) for path in sources]:
