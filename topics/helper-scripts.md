@@ -227,7 +227,8 @@ Turn options are `[--ya-session-id <id>] [--submission-id <id>] [--cwd
 `send` additionally accepts `--eventual` and `--live-only`. `--origin` is
 metadata independent of the provider's `user` role; the recipient still sees
 an ordinary user message. It defaults to `user`, and only a `user` turn makes
-its session the project's rendezvous `latest-session`. An agent or script
+its session the project's rendezvous `latest-session`
+([rendezvous](rendezvous.md)). An agent or script
 sending a turn on its own initiative passes a non-user origin, normally
 `automation`. The combined form additionally accepts
 `[--wait-timeout <seconds>]`. The turn body

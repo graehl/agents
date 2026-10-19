@@ -46,8 +46,12 @@ an accepted duplication.
   of a topic.
 - A glossary owns a formal-topic collection: root `topics/` (or an established
   root `docs/topics/` alternate) for the project glossary, and sibling
-  `topics/` for a scoped glossary. Owned topic rows correspond 1:1 to
-  non-companion docs there, and their definitions come from the docs' `> `
+  `topics/` for a scoped glossary. When `GLOSSARY.md` is the scope's only
+  glossary, owned topic rows correspond 1:1 to non-companion docs there.
+  Where the scope also has `GLOSSARY.agents.md`, a topic needs a row in
+  neither file merely because it exists: an agent reaches a conditionally
+  loaded topic through a `Governs:` row, a boot or packet route, or a
+  cross-link. Owned rows take their definitions from the docs' `> `
   blockquote ledes. A `Glossary: <label>` metadata line after `Topic:`
   replaces the row's term cell with that label, and `Glossary: omit`
   suppresses the row. Use a label when the basename is a common word that YA
@@ -163,7 +167,9 @@ root `topics/` is absent.
 For each owned topic doc, read the `> ` blockquote lede immediately after the
 H1 — multi-line `> ` lines are space-joined into one sentence — and use it as
 the definition of the basename row, or of the `Glossary: <label>` row when
-that line is present. Skip a doc with `Glossary: omit` and remove its row if
+that line is present. Where the scope also has `GLOSSARY.agents.md`, refresh
+the owned rows that exist and add one only for a topic the human inventory
+should list; a doc without a row is not a defect there. Skip a doc with `Glossary: omit` and remove its row if
 one exists. Refresh the owned-doc link while
 preserving additional references in that cell. The usual relative link form is
 `[<name>](topics/<name>.md)`; the root alternate uses

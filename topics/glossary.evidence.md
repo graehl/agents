@@ -72,3 +72,30 @@ by design (not routed, proposals, or status notes). 29 sense rows were compresse
 from the human file. Generator was a scratch script; the procedure in
 § Agent glossary is the durable spec. Other projects keep current behavior
 until they get the same pass.
+
+## 2026-10-19 — per-topic rows required only where GLOSSARY.md stands alone
+
+Contributing-model: opus-5.5.
+
+User decision, made while triaging the ed4b84b31e57..7d8e833f6210 harsh
+review, which flagged five topics (`arxiv-submission`, `document-publishing`,
+`fine-tuning`, `paper-projects`, `rendezvous`) as lacking glossary rows and
+`rendezvous` as lacking a `Governs:` line, citing the 1:1 contract. graehl
+withdrew those findings: where the separate `GLOSSARY.agents.md` exists,
+conditionally loaded topics need no row or `Governs:` entry solely because
+they exist; explicit routes and cross-links can suffice. The blanket
+inventory applies when `GLOSSARY.md` is the sole form. This settles the
+"1:1-with-opt-out ... pending his call" question left open on 2026-09-24.
+
+Change: § Contracts scopes the 1:1 correspondence to a lone `GLOSSARY.md`,
+and § Regeneration refreshes existing owned rows rather than adding one per
+doc when an agent glossary exists. No rows were added or removed.
+
+Traces: a reviewer in this repository finds `topics/rendezvous.md` with no
+row; the contract now says that is not a defect. Before this change the
+topic's only inbound link was a sketch, so a cross-link from
+`topics/helper-scripts.md` § session-turn, where rendezvous `latest-session`
+is already explained, was added with it. A
+project with only `GLOSSARY.md` still regenerates one row per topic, so its
+sole discovery surface stays complete. Regenerating here no longer re-adds
+rows that were deliberately left out.
