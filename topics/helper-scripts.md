@@ -790,7 +790,8 @@ each with its own price cap. Agents otherwise hand-rolled per-region
 
 **CLI**: `spot-acquire --config FILE --pool ZONE=MAXPRICE [--pool ...]
 [--count N] [--instance-type T] [--interval 5m] [--deadline 2h]
-[--on-acquire CMD] [--tag K=V] [--log-dir DIR] [--dry-run]`. The JSON
+[--running-timeout 10m] [--on-acquire CMD] [--tag K=V] [--log-dir DIR]
+[--dry-run]`. The JSON
 config maps each region to its image, security groups, subnet per zone,
 user data, and root size; `REGION=MAXPRICE` covers every configured zone in
 that region. Each round reads live prices and tries the cheapest pools at
@@ -803,6 +804,10 @@ environment variables. It is acli with no optional packages.
 **Post-conditions**:
 - never launches more than COUNT: launches are sequential and count-gated,
   and client tokens make a retried request idempotent;
+- only a running instance counts as acquired: one that dies before running
+  gets a `lost` record and its slot is retried; one still pending after
+  `--running-timeout` keeps its slot, is rechecked each round, and appears
+  in `done.pending` if it never runs;
 - capacity and price refusals are retried each round, while any other AWS
   error drops that pool with a `pool_dropped` record;
 - exit 0 at COUNT; 69 when the deadline passes short of COUNT (acquired

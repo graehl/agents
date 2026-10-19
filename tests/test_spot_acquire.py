@@ -41,8 +41,13 @@ elif "run-instances" in args:
     n = len(open(f"{state}/calls.log").read().splitlines())
     print(json.dumps({"Instances": [{"InstanceId": f"i-{n:04d}", "State": {"Name": "pending"}}]}))
 elif "describe-instances" in args:
+    # states.json ({instance: [state, ...]}) scripts successive answers; then running.
     iid = args[args.index("--instance-ids") + 1]
-    print(json.dumps({"Reservations": [{"Instances": [{"InstanceId": iid, "State": {"Name": "running"},
+    path = f"{state}/states.json"
+    states = json.load(open(path)) if os.path.exists(path) else {}
+    name = (states.get(iid) or ["running"]).pop(0)
+    json.dump(states, open(path, "w"))
+    print(json.dumps({"Reservations": [{"Instances": [{"InstanceId": iid, "State": {"Name": name},
                                                        "PrivateIpAddress": "10.0.0.5"}]}]}))
 else:
     sys.exit(f"unexpected aws call {args}")
@@ -114,7 +119,9 @@ def test_acquires_count_cheapest_first_and_stops():
     assert len(calls) == 3, calls  # never a fourth launch once COUNT is reached
     assert "subnet-b" in calls[0]  # cheaper zone tried first
     assert '"MaxPrice": "2.0000"' in calls[0]
-    assert not [r for r in records if r["event"] == "pool_dropped"]  # capacity is retryable
+    assert not [
+        r for r in records if r["event"] == "pool_dropped"
+    ]  # capacity is retryable
     assert records[-1] == {"event": "done", "acquired": 2, "count": 2, "rounds": 2}
 
 
@@ -134,6 +141,36 @@ def test_fatal_error_drops_pool():
     code, records, err = _run(root, env, "--pool", "us-west-2a=2.0", "--interval", "0")
     assert code == 70, err
     assert records[0]["event"] == "pool_dropped"
+
+
+def test_dead_launch_is_lost_and_its_slot_retried():
+    root, env = _setup({"us-west-2b": 1.0}, ["ok", "ok"])
+    (root / "states.json").write_text(json.dumps({"i-0001": ["terminated"]}))
+    code, records, err = _run(root, env, "--pool", "us-west-2b=2.0", "--interval", "0")
+    assert code == 0, err
+    assert [r["event"] for r in records] == ["lost", "acquired", "done"]
+    assert records[0]["instance_id"] == "i-0001"
+    assert records[1]["instance_id"] == "i-0002" and records[1]["state"] == "running"
+
+
+def test_slow_launch_holds_its_slot_until_running():
+    root, env = _setup({"us-west-2b": 1.0}, ["ok", "ok"])
+    (root / "states.json").write_text(json.dumps({"i-0001": ["pending"]}))
+    code, records, err = _run(
+        root,
+        env,
+        "--pool",
+        "us-west-2b=2.0",
+        "--interval",
+        "0",
+        "--running-timeout",
+        "0",
+    )
+    assert code == 0, err
+    assert [r["event"] for r in records] == ["acquired", "done"]
+    assert records[0]["instance_id"] == "i-0001"
+    assert len((root / "calls.log").read_text().splitlines()) == 1  # no extra launch
+    assert records[-1]["rounds"] == 2
 
 
 def test_on_acquire_runs_setup_with_instance_env():

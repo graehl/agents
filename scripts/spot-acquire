@@ -19,7 +19,11 @@ user data, root size, tags) come from a JSON config file:
 Relative `user_data` paths resolve against the config file's directory.
 
 Acquisition is sequential and gated on the count, so it never launches
-more than COUNT. `--on-acquire` runs a setup command per instance in the
+more than COUNT. Only a running instance counts as acquired. A launch that
+dies before running (terminated or shutting down) is reported as `lost` and
+its slot is retried; one still pending after `--running-timeout` keeps its
+slot and is rechecked each round, and the final record lists any still
+pending, since they may yet start billing. `--on-acquire` runs a setup command per instance in the
 background; its outcome is a separate record and never changes the count.
 A run that fails setup is still an acquired, billing instance: the caller
 decides whether to retry setup or terminate it.
@@ -45,8 +49,8 @@ AGENTS_ROOT = Path(os.environ.get("AGENTS_DIR", Path.home() / "agents"))
 if str(AGENTS_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENTS_ROOT))
 
-import acli  # noqa: E402
-from acli.args import duration_seconds  # noqa: E402
+import acli
+from acli.args import duration_seconds
 
 CAPABILITIES = ()
 EXIT_CODES = {
@@ -235,18 +239,23 @@ def launch(pool: Pool, entry: dict, args, round_no: int) -> tuple[str, dict | st
     return outcome, message[:400]
 
 
-def describe_running(pool: Pool, instance_id: str, timeout_s: float) -> dict:
+DEAD_STATES = ("terminated", "shutting-down", "stopping", "stopped")
+
+
+def describe_settled(pool: Pool, instance_id: str, timeout_s: float) -> dict | None:
+    """The instance once running or dead, checking at least once; None while pending."""
     deadline = time.monotonic() + timeout_s
-    while time.monotonic() < deadline:
+    while True:
         status, out, _ = aws(
             pool.region, "ec2", "describe-instances", "--instance-ids", instance_id
         )
         if status == 0:
             instance = json.loads(out)["Reservations"][0]["Instances"][0]
-            if instance["State"]["Name"] in ("running", "terminated", "shutting-down"):
+            if instance["State"]["Name"] in ("running", *DEAD_STATES):
                 return instance
+        if time.monotonic() >= deadline:
+            return None
         time.sleep(10)
-    return {"State": {"Name": "pending (wait timed out)"}}
 
 
 def main() -> None:
@@ -323,6 +332,13 @@ def main() -> None:
         help="Emit on launch instead of waiting for running.",
     )
     parser.add_argument(
+        "--running-timeout",
+        type=duration_seconds,
+        default=600.0,
+        help="How long to wait for a launch to run before carrying it as pending "
+        "into later rounds (default 10m).",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate each pool with run-instances --dry-run.",
@@ -351,15 +367,78 @@ def main() -> None:
         sys.stdout.flush()
 
     acquired: list[dict] = []
+    # Launched but not yet running: they hold a slot, so a slow start never
+    # causes a launch beyond COUNT; a dead one releases its slot.
+    pending: list[tuple[Pool, float | None, dict]] = []
     setups: list[tuple[dict, subprocess.Popen, Path]] = []
+
+    def accept(pool: Pool, quote: float | None, instance: dict) -> None:
+        item = {
+            "event": "acquired",
+            "instance_id": instance["InstanceId"],
+            "region": pool.region,
+            "zone": pool.zone,
+            "instance_type": args.instance_type,
+            "quote_usd_hr": quote,
+            "cap_usd_hr": pool.cap,
+            "state": instance["State"]["Name"],
+            "private_ip": instance.get("PrivateIpAddress"),
+            "public_ip": instance.get("PublicIpAddress"),
+            "acquired_at": now(),
+            "index": len(acquired) + 1,
+            "count": args.count,
+        }
+        acquired.append(item)
+        record(item)
+        if args.on_acquire:
+            log = args.log_dir / f"setup-{item['instance_id']}.log"
+            env = {
+                **os.environ,
+                "SPOT_INSTANCE_ID": item["instance_id"],
+                "SPOT_REGION": item["region"],
+                "SPOT_ZONE": item["zone"],
+                "SPOT_PRIVATE_IP": item["private_ip"] or "",
+                "SPOT_PUBLIC_IP": item["public_ip"] or "",
+            }
+            with log.open("w") as handle:
+                proc = subprocess.Popen(
+                    ["bash", "-c", args.on_acquire],
+                    env=env,
+                    stdout=handle,
+                    stderr=subprocess.STDOUT,
+                )
+            setups.append((item, proc, log))
+
+    def settle(pool: Pool, quote: float | None, launched: dict, timeout: float) -> None:
+        instance = describe_settled(pool, launched["InstanceId"], timeout)
+        if instance is None:
+            pending.append((pool, quote, launched))
+        elif instance["State"]["Name"] == "running":
+            accept(pool, quote, {**launched, **instance})
+        else:
+            record(
+                {
+                    "event": "lost",
+                    "instance_id": launched["InstanceId"],
+                    "zone": pool.zone,
+                    "state": instance["State"]["Name"],
+                }
+            )
+
+    def outstanding() -> int:
+        return len(acquired) + len(pending)
+
     started = time.monotonic()
     round_no = 0
-    while len(acquired) < args.count and pools:
+    while len(acquired) < args.count and (pools or pending):
         round_no += 1
+        waiting, pending[:] = list(pending), []
+        for pool, quote, launched in waiting:
+            settle(pool, quote, launched, 0)
         prices = spot_prices(args.instance_type, {p.region for p in pools})
         ranked = sorted(pools, key=lambda p: prices.get(p.zone, float("inf")))
         for pool in ranked:
-            if len(acquired) >= args.count:
+            if outstanding() >= args.count:
                 break
             quote = prices.get(pool.zone)
             if quote is None or quote > pool.cap:
@@ -402,48 +481,11 @@ def main() -> None:
                 )
                 pools.remove(pool)
                 continue
-            instance = detail
-            if not args.no_wait:
-                instance = {
-                    **instance,
-                    **describe_running(pool, instance["InstanceId"], 600),
-                }
-            item = {
-                "event": "acquired",
-                "instance_id": instance["InstanceId"],
-                "region": pool.region,
-                "zone": pool.zone,
-                "instance_type": args.instance_type,
-                "quote_usd_hr": quote,
-                "cap_usd_hr": pool.cap,
-                "state": instance["State"]["Name"],
-                "private_ip": instance.get("PrivateIpAddress"),
-                "public_ip": instance.get("PublicIpAddress"),
-                "acquired_at": now(),
-                "index": len(acquired) + 1,
-                "count": args.count,
-            }
-            acquired.append(item)
-            record(item)
-            if args.on_acquire:
-                log = args.log_dir / f"setup-{item['instance_id']}.log"
-                env = {
-                    **os.environ,
-                    "SPOT_INSTANCE_ID": item["instance_id"],
-                    "SPOT_REGION": item["region"],
-                    "SPOT_ZONE": item["zone"],
-                    "SPOT_PRIVATE_IP": item["private_ip"] or "",
-                    "SPOT_PUBLIC_IP": item["public_ip"] or "",
-                }
-                with log.open("w") as handle:
-                    proc = subprocess.Popen(
-                        ["bash", "-c", args.on_acquire],
-                        env=env,
-                        stdout=handle,
-                        stderr=subprocess.STDOUT,
-                    )
-                setups.append((item, proc, log))
-        if args.dry_run or len(acquired) >= args.count or not pools:
+            if args.no_wait:
+                accept(pool, quote, detail)
+            else:
+                settle(pool, quote, detail, args.running_timeout)
+        if args.dry_run or len(acquired) >= args.count or not (pools or pending):
             break
         if time.monotonic() - started + args.interval > args.deadline:
             break
@@ -464,10 +506,13 @@ def main() -> None:
         "count": args.count,
         "rounds": round_no,
     }
+    if pending:
+        # Not running yet, but each may still start and bill.
+        summary["pending"] = [launched["InstanceId"] for _, _, launched in pending]
     record(summary)
     if args.dry_run or len(acquired) >= args.count:
         return
-    if not pools:
+    if not pools and not pending:
         acli.die(
             "every pool failed with a non-capacity error",
             acli.ExitCode.SOFTWARE,
