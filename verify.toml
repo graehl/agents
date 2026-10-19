@@ -9,7 +9,15 @@ exclude = [
   "tests/test_document_annotation.py",
   "tests/test_document_annotation_chat.py",
   "tests/test_qmd_build.py",
+  "tests/test_related_work.py",
 ]
+
+# scripts/related-work requires PyYAML, which the system Python may lack; the
+# test runs the tool with its own interpreter, so uv supplies it to both.
+[[check]]
+name = "test_related_work"
+run = "uv run --no-project --quiet --with pyyaml python tests/test_related_work.py"
+requires = ["uv"]
 
 # Tests written for pytest; the repo root must be importable.
 [[check]]

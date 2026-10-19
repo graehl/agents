@@ -6515,8 +6515,9 @@ def test_active_recovers_session_id_from_resume_ancestor():
     # E2e: a terminal `codex resume <id>` injects no AGENTCTL_SESSION_ID, so
     # agentctl must recover the id from the `resume <id>` ancestor argv and key
     # the active entry by it. The parent shell carries `resume <uid>` in its
-    # argv; `true; ...` keeps bash from exec-replacing itself (which would drop
-    # that argv from the tree).
+    # argv. bash may exec-replace itself with its final command, dropping that
+    # argv from the tree (bash 5.3 does so even after a leading `true;`), so
+    # the agentctl call must not be the final command.
     ws = Workspace()
     uid = "11111111-2222-3333-4444-555555555555"
     active = ws.tmp / ".agentctl/active" / uid
@@ -6526,10 +6527,12 @@ def test_active_recovers_session_id_from_resume_ancestor():
             "AGENTCTL_SESSION_ID",
             "CLAUDE_CODE_SESSION_ID",
             "AGENTCTL_LAUNCH_DEPTH",
+            "AGENTCTL_NO_PROC_SESSION_ID",
+            "CODEX_THREAD_ID",
             "BASH_ENV",
         ):
             env.pop(var, None)
-        script = 'true; ./agentctl active "resumed via proc-tree recovery"'
+        script = './agentctl active "resumed via proc-tree recovery"; exit $?'
         res = subprocess.run(
             ["bash", "-c", script, "codex", "resume", uid],
             cwd=ws.tmp,
