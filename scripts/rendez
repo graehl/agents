@@ -46,7 +46,11 @@ def project_path(value: str) -> Path:
 
     `ssh host rendez --project oss` and a local `rendez --project oss` then
     name the same ~/oss, and a quoted ~/ that no shell expanded still works.
+    A path spelled relative to the current directory (`.`, `./x`, `../x`)
+    resolves there; over ssh that directory is home, so both readings agree.
     """
+    if value in (".", "..") or value.startswith(("./", "../")):
+        return Path.cwd() / value
     return Path.home() / Path(value).expanduser()
 
 
@@ -57,12 +61,25 @@ def add_target_args(command) -> None:
     command.add_argument("--route")
 
 
+PROVIDER_SESSION_ENVS = {"claude": "CLAUDE_CODE_SESSION_ID", "codex": "CODEX_THREAD_ID"}
+
+
 def target(parser, args) -> dict:
     if not args.session or not args.harness:
         parser.error("this requires --session and --harness outside a launched session")
+    native = os.environ.get(PROVIDER_SESSION_ENVS.get(args.harness, ""), "").strip()
+    provider = args.provider_session or native
+    if not provider:
+        if os.environ.get("AGENT_LAUNCHER") == "yepanywhere":
+            # YA's session id need not equal the provider's.
+            parser.error(
+                f"cannot tell this {args.harness} session's provider id; "
+                "pass --provider-session"
+            )
+        provider = args.session
     return {
         "harness": args.harness,
-        "providerSessionId": args.provider_session or args.session,
+        "providerSessionId": provider,
         "yaSessionId": args.session,
         "liveOnly": getattr(args, "live_only", True),
     }
@@ -76,7 +93,8 @@ def main() -> int:
         type=project_path,
         action="append",
         help="Project directory; a relative path or ~/ is under your home "
-        "directory (default: current); repeat to observe several with --turns",
+        "directory, while ., ./x, and ../x are under the current one (default: "
+        "current); repeat to observe several with --turns",
     )
     verbs = parser.add_subparsers(dest="verb", required=True)
     sub = verbs.add_parser(

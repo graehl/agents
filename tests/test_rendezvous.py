@@ -54,10 +54,15 @@ class RendezvousTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix="rendez-test-")
         self.project = Path(self.temp.name)
         self.env = {
-            **os.environ,
+            **{
+                name: value
+                for name, value in os.environ.items()
+                if name not in ("CLAUDE_CODE_SESSION_ID", "CODEX_THREAD_ID")
+            },
             "YEP_PROVIDER_HOST_RUNTIME_DIR": str(self.project / "no-provider-host"),
             "AGENTCTL_SESSION_ID": "session-a",
             "AGENT_LAUNCH_HARNESS": "codex",
+            "AGENT_LAUNCHER": "",
             # SCRIPT runs through its `uv run --script` shebang, which
             # provides its declared dependencies (Pillow).
             "PYTHONUNBUFFERED": "1",
@@ -81,6 +86,53 @@ class RendezvousTests(unittest.TestCase):
             check=True,
         )
         return [json.loads(line) for line in result.stdout.splitlines()]
+
+    def run_raw(self, *args: str, cwd: Path, **env: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [str(SCRIPT), "--json", *args],
+            env={**self.env, **env},
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def test_project_paths_and_provider_identity(self) -> None:
+        home = self.project / "home"
+        (home / "oss").mkdir(parents=True)
+        here = self.project / "work"
+        here.mkdir()
+        subscribe = ("subscribe", "--session", "ya-1", "--harness", "codex")
+        for spelled, expected in (("oss", home / "oss"), (".", here)):
+            run = self.run_raw(
+                "--project", spelled, *subscribe, cwd=here, HOME=str(home)
+            )
+            self.assertEqual(run.returncode, 0, run.stderr)
+            inbox = Path(json.loads(run.stdout)["path"])
+            self.assertTrue(inbox.is_relative_to(expected / ".rendez"), inbox)
+        subscribe = ("subscribe", "--session", "ya-2", "--harness", "codex")
+        run = self.run_raw(
+            "--project", ".", *subscribe, cwd=here, CODEX_THREAD_ID="thread-9"
+        )
+        self.assertEqual(run.returncode, 0, run.stderr)
+        record = json.loads(
+            (here / ".rendez/routes/ya-2/subscription.json").read_text()
+        )
+        self.assertEqual(record["target"]["providerSessionId"], "thread-9", record)
+        self.assertEqual(record["target"]["yaSessionId"], "ya-2", record)
+        refused = self.run_raw(
+            "--project",
+            ".",
+            "subscribe",
+            "--session",
+            "ya-3",
+            "--harness",
+            "codex",
+            cwd=here,
+            AGENT_LAUNCHER="yepanywhere",
+        )
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("--provider-session", refused.stderr)
 
     def records(self, route: str) -> list[dict]:
         return [

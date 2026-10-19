@@ -53,8 +53,9 @@ and delivers each upload as a user turn through `session-turn` and the provider
 service. It observes only projects named by `--project`, which it requires and
 accepts repeatedly. Every command resolves a relative or unexpanded `~/`
 project path under the home directory, as an ssh command line would, so
-`--project oss` means `~/oss`; without `--project` it uses the current
-directory. `--native` additionally permits blocking native resume when
+`--project oss` means `~/oss`; a path spelled relative to the current
+directory (`.`, `./x`, `../x`) resolves there, which over ssh is again home.
+Without `--project` it uses the current directory. `--native` additionally permits blocking native resume when
 the provider service is absent, and requires a subscription that allows waking.
 
 At most one project observer serves `latest-session`: YA while its rendezvous
@@ -68,8 +69,9 @@ a startup check, not a lock; the event claims below still keep an accidental
 second observer from sending an upload twice.
 
 Inside a launched session, `--harness` and `--session` default to its launcher
-identity. Supply `--provider-session` when the native provider id differs from
-YA's id. `subscribe` prints a stable inbox path without starting an observer;
+identity. The provider id comes from `--provider-session`, else the harness's
+own `CLAUDE_CODE_SESSION_ID` or `CODEX_THREAD_ID`; only outside YA does it
+fall back to `--session`, since YA's id may differ from the provider's. `subscribe` prints a stable inbox path without starting an observer;
 subscriptions default to `--live-only`, and `--wake` explicitly allows revival.
 `scan` processes completed transfers once, in either delivery mode. The turn
 adapter uses 2000 pixels on the long edge and 4 MiB unless the provider service
