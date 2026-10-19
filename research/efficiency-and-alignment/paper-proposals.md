@@ -34,3 +34,10 @@ choices remain private. Training draws are reproducible from their separate
 seed. Elementary coverage, distribution-overlap, and transition-sampling
 bounds extend the argument without claiming a universal neural concealment
 method or provably sound sublinear verification of arbitrary training.
+
+A further optimizer-memory section treats sparse interventions on optimizer
+state: momentum-reset bounds, bias-corrected Adam segments, a one-corruption
+SGD counterexample with honest later gradients, and a stability condition
+linking cheap residual bounds to sampling coverage. Its finite numerical
+checks support the scalar statements; neural realizability and
+proof-assistant verification remain unestablished.

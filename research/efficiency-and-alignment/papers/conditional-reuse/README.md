@@ -10,7 +10,8 @@ simulations check the proofs; no neural experiment or submission is planned.
 - `index.qmd`: root; front matter and the ordered `{{< include >}}` list.
 - `sections/_NN-name.qmd`: one fragment per section.
 - `related-work/papers.bib`: bibliography; `figures/`: generated figures and
-  their scripts.
+  their scripts, when the paper has any (none yet; the directory is empty and
+  untracked).
 - `CHANGELOG.md`: one entry per release, never rendered.
 
 ## Build
