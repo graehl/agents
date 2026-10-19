@@ -109,6 +109,8 @@ def register_owner(a: object, sid: str) -> None:
 
 
 def resolve_owner(a: object, sid: str, rows: list[dict] | None) -> dict:
+    """Classify an owner as alive, absent, uncertain (evidence of a possibly
+    live process that cannot be confirmed), or unknown (nothing verifiable)."""
     metadata = a.STATE / "sessions" / (session_key(sid) + ".json")
     saved = json.loads(metadata.read_text()) if metadata.exists() else {}
     matches = [
@@ -119,7 +121,7 @@ def resolve_owner(a: object, sid: str, rows: list[dict] | None) -> dict:
         and Path(row.get("projectPath") or "/").resolve() == a.ROOT
     ]
     if len(matches) > 1:
-        return {"state": "unknown", "reason": "ambiguous provider ownership"}
+        return {"state": "uncertain", "reason": "ambiguous provider ownership"}
     if matches:
         row = matches[0]
         return {
@@ -133,13 +135,13 @@ def resolve_owner(a: object, sid: str, rows: list[dict] | None) -> dict:
         if sys.platform != "linux":
             return {
                 **saved,
-                "state": "unknown",
+                "state": "uncertain",
                 "reason": "recorded process cannot be checked on this platform",
             }
         try:
             alive = process_stamp(stamp["pid"]) == stamp
         except PermissionError:
-            return {"state": "unknown", "reason": "owner process is not observable"}
+            return {"state": "uncertain", "reason": "owner process is not observable"}
         if alive:
             return {**saved, "state": "alive"}
         return {**saved, "state": "absent", "reason": "recorded harness process exited"}
@@ -386,7 +388,7 @@ def take(a: object, args: argparse.Namespace, sid: str) -> tuple[int, dict]:
     with store.locked():
         for owner_id in blockers(a, paths, sid, minutes=0):
             owner = resolve_owner(a, owner_id, rows)
-            if owner["state"] == "alive" or args.wake:
+            if owner["state"] in {"alive", "uncertain"} or args.wake:
                 continue
             source = sources.get(owner_id)
             if (

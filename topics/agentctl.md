@@ -66,6 +66,9 @@ recoverable archive, then checks/claims the paths. Registration records the
 harness process's PID,
 start time and boot identity where observable. The provider host can identify
 live YA ownership; an observable recorded process also prevents retirement.
+Evidence of a possibly live owner that cannot be confirmed — several live
+provider rows matching the id, or a recorded process that exists but cannot
+be inspected — blocks as if live.
 A missing provider host is not proof of process death: the default explicitly
 accepts that uncertainty when no recorded live process can be established,
 including old entries without process metadata. Retirement reports this

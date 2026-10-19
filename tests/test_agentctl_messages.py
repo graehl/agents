@@ -118,6 +118,45 @@ class MessageTests(unittest.TestCase):
         )
         self.assertEqual(len(list((self.root / ".agentctl/retired").glob("*/dead"))), 1)
 
+    def test_ambiguous_live_owner_blocks_takeover(self) -> None:
+        self.run_cli("owner", "active", "editing", "file.py")
+        from test_session_turn import FakeProviderHost
+
+        features = ["session-turn"]
+
+        def status(request):
+            return [
+                {
+                    "id": request["id"],
+                    "ok": True,
+                    "result": {"protocolVersion": 3, "features": features},
+                }
+            ]
+
+        def inventory(request):
+            rows = [
+                {"sessionId": "owner", "providerSessionId": "p1", "harness": "codex"},
+                {
+                    "yaSessionId": "owner",
+                    "providerSessionId": "p2",
+                    "harness": "claude",
+                },
+            ]
+            for row in rows:
+                row["projectPath"] = str(self.root)
+            return [{"id": request["id"], "ok": True, "result": rows}]
+
+        host = FakeProviderHost(
+            [status, inventory] * 2, host_protocol_version=3, features=features
+        )
+        self.runtime = host.runtime
+        self.addCleanup(shutil.rmtree, host.runtime)
+        self.addCleanup(lambda: host.thread.join(timeout=5))
+        result = self.run_cli("waiter", "take", "file.py", code=1)[0]
+        self.assertEqual(result["retired"], [])
+        self.assertEqual(result["notifications"][0]["delivery"], "stored")
+        self.assertTrue((self.root / ".agentctl/active/owner").exists())
+
     def test_broadcast_retry_keeps_original_recipients_after_release(self) -> None:
         self.run_cli("owner", "active", "editing", "file.py")
         args = (
