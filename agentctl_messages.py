@@ -13,10 +13,38 @@ import sys
 import time
 import uuid
 from pathlib import Path
+from typing import Protocol
 
 import acli
 import acli.args
-from agentctl_coordination import atomic_json, file_lock
+from agentctl_coordination import Coordination, atomic_json, file_lock
+
+
+class Agentctl(Protocol):
+    """The parts of the `agentctl` module this one uses; callers pass that
+    module itself, which cannot be imported here at load time (it imports
+    this module)."""
+
+    CODE_ROOT: Path
+    ROOT: Path
+    STATE: Path
+    ACTIVE: Path
+    STALE: Path
+    ACTIVE_STALE_MINUTES: int
+    LAUNCH_DEPTH_ENV: str
+    NO_PROC_SESSION_ID_ENV: str
+
+    def agent_session_id(self) -> str: ...
+    def active_scope_path(self, raw: str) -> str: ...
+    def clear_once(self, args: argparse.Namespace) -> tuple[int, dict]: ...
+    def _scan_active(
+        self, minutes: int, include_done: bool, self_id: str
+    ) -> tuple[object, list[tuple] | None]: ...
+    def _scope_claims(self, scope_value: str) -> list[str]: ...
+    def _scope_claim_relation(self, claim: str, path: str) -> str | None: ...
+    def _header_value(self, line: str) -> str: ...
+    def _proc_argv(self, pid: int) -> list[str]: ...
+    def _proc_ppid(self, pid: int) -> int | None: ...
 
 
 def session_key(value: str) -> str:
@@ -56,7 +84,7 @@ def process_stamp(pid: int) -> dict | None:
         return None
 
 
-def register_owner(a: object, sid: str) -> None:
+def register_owner(a: Agentctl, sid: str) -> None:
     """Record the current harness process, never the short-lived tool shell."""
     harness = os.environ.get("AGENT_LAUNCH_HARNESS", "")
     provider_id = (
@@ -108,7 +136,7 @@ def register_owner(a: object, sid: str) -> None:
     atomic_json(path, record)
 
 
-def resolve_owner(a: object, sid: str, rows: list[dict] | None) -> dict:
+def resolve_owner(a: Agentctl, sid: str, rows: list[dict] | None) -> dict:
     """Classify an owner as alive, absent, uncertain (evidence of a possibly
     live process that cannot be confirmed), or unknown (nothing verifiable)."""
     metadata = a.STATE / "sessions" / (session_key(sid) + ".json")
@@ -150,14 +178,14 @@ def resolve_owner(a: object, sid: str, rows: list[dict] | None) -> dict:
     return {**saved, "state": "unknown", "reason": "no verifiable owner process"}
 
 
-def message_root(a: object) -> Path:
+def message_root(a: Agentctl) -> Path:
     path = a.STATE / "messages"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def post(
-    a: object,
+    a: Agentctl,
     sender: str,
     target: str,
     body: str,
@@ -256,7 +284,7 @@ def post(
 
 
 def inbox(
-    a: object, sid: str, *, all_messages: bool = False, new_only: bool = False
+    a: Agentctl, sid: str, *, all_messages: bool = False, new_only: bool = False
 ) -> list[dict]:
     path = a.STATE / "messages" / session_key(sid)
     if not path.exists():
@@ -282,7 +310,7 @@ def inbox(
 
 
 def blockers(
-    a: object, paths: list[str], sid: str, *, minutes: int | None = None
+    a: Agentctl, paths: list[str], sid: str, *, minutes: int | None = None
 ) -> list[str]:
     _, rows = a._scan_active(
         a.ACTIVE_STALE_MINUTES if minutes is None else minutes, False, sid
@@ -301,8 +329,8 @@ def blockers(
     )
 
 
-def waiting_sessions(a: object, paths: list[str]) -> set[str]:
-    store = a.coordination.Coordination(a.STATE, a.ACTIVE_STALE_MINUTES)
+def waiting_sessions(a: Agentctl, paths: list[str]) -> set[str]:
+    store = Coordination(a.STATE, a.ACTIVE_STALE_MINUTES)
     with store.locked():
         subscriptions = [
             json.loads(path.read_text())
@@ -332,11 +360,11 @@ def waiting_sessions(a: object, paths: list[str]) -> set[str]:
         }
 
 
-def notify_releases(a: object, sender: str) -> None:
+def notify_releases(a: Agentctl, sender: str) -> None:
     subscriptions = a.STATE / "subscriptions"
     if not subscriptions.exists():
         return
-    store = a.coordination.Coordination(a.STATE, a.ACTIVE_STALE_MINUTES)
+    store = Coordination(a.STATE, a.ACTIVE_STALE_MINUTES)
     due = []
     with store.locked():
         for path in subscriptions.glob("*.json"):
@@ -365,11 +393,11 @@ def notify_releases(a: object, sender: str) -> None:
             atomic_json(subscriptions / (row["id"] + ".json"), row)
 
 
-def take(a: object, args: argparse.Namespace, sid: str) -> tuple[int, dict]:
+def take(a: Agentctl, args: argparse.Namespace, sid: str) -> tuple[int, dict]:
     paths = sorted({a.active_scope_path(path) for path in args.paths})
     if not paths or any(not path or "*" in path for path in paths):
         raise ValueError("take requires literal nonempty paths")
-    store = a.coordination.Coordination(a.STATE, a.ACTIVE_STALE_MINUTES)
+    store = Coordination(a.STATE, a.ACTIVE_STALE_MINUTES)
     claim_args = argparse.Namespace(
         paths=paths, drop=False, carve=False, note=args.note, minutes=0
     )
@@ -573,7 +601,7 @@ def command(args: argparse.Namespace) -> int:
         acli.die(str(exc), acli.ExitCode.UNAVAILABLE)
 
 
-def register(subparsers: object) -> None:
+def register(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(
         "take",
         help="Acquire paths now; retire inactive owners, otherwise return blocked and arrange release notification.",
