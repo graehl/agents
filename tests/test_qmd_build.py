@@ -217,6 +217,38 @@ def test_venue_pdf_acl_checks_reject_wrong_font_and_accept_times(tmp_path):
     assert receipt["pdf_checks"]["failures"] == []
 
 
+def test_pdffonts_rows_keep_names_with_spaces():
+    from qmd_build.pdf_checks import parse_pdffonts
+
+    text = (
+        "name                                 type              encoding         emb sub uni object ID\n"
+        "------------------------------------ ----------------- ---------------- --- --- --- ---------\n"
+        "ABCDEF+Times New Roman,Bold          CID TrueType      Identity-H       yes yes yes     12  0\n"
+        "GHIJKL+AVeryLongFontNameThatOverflowsItsColumn-Regular Type 1C           Custom           no  no  no      13  0\n"
+        "[none]                               Type 3            Custom           yes no  no      14  0\n"
+    )
+    assert parse_pdffonts(text) == [
+        {"name": "Times New Roman,Bold", "type": "CID TrueType", "embedded": True},
+        {
+            "name": "AVeryLongFontNameThatOverflowsItsColumn-Regular",
+            "type": "Type 1C",
+            "embedded": False,
+        },
+        {"name": "[none]", "type": "Type 3", "embedded": True},
+    ]
+
+
+def test_acl_body_font_names_match_whole_families():
+    from qmd_build.pdf_checks import PROFILES, body_font_accepted
+
+    accepted = PROFILES["acl"]["body-fonts"]
+    # Families as pdftohtml reports them for tgtermes, newtxtext, and mathptmx.
+    for family in ("TeXGyreTermes", "TeXGyreTermesX", "NimbusRomNo9L-Regu"):
+        assert body_font_accepted(family, accepted), family
+    for family in ("TeXGyreTermesMath", "LiberationSerif", "XTeXGyreTermes"):
+        assert not body_font_accepted(family, accepted), family
+
+
 def test_pdf_checks_reject_unknown_profile(tmp_path):
     from qmd_build.pdf_checks import check_pdf
 

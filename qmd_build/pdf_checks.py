@@ -31,14 +31,17 @@ PROFILES = {
         "source": "https://acl-org.github.io/ACLPUB/formatting.html; "
         "https://github.com/acl-org/aclpubcheck (formatchecker.check_font)",
         "checked": "2026-10-17",
-        # aclpubcheck's accepted names, as family stems: pdftohtml reports a
-        # family without its style suffix, so "TeXGyreTermesX-Reg" becomes
-        # "TeXGyreTermesX".
+        # aclpubcheck's accepted names as pdftohtml families. pdftohtml drops
+        # a standard style suffix ("TeXGyreTermesX-Regular" -> "TeXGyreTermesX")
+        # but keeps others ("NimbusRomNo9L-Regu"), so a family is accepted when
+        # it equals a name or continues it after "-" (body_font_accepted).
+        # aclpubcheck lists STIX and Inconsolata with literal subset tags,
+        # which can only be accidental; their families are accepted here.
         "body-fonts": [
             "NimbusRomNo9L",
             "TeXGyreTermesX",
             "TeXGyreTermes",
-            "TimesNewRomanPS",
+            "TimesNewRomanPSMT",
             "STIXGeneral",
             "Inconsolatazi4",
         ],
@@ -52,19 +55,37 @@ SUBSET = re.compile(r"^[A-Z]{6}\+")
 
 def embedded_fonts(pdf: Path) -> list[dict]:
     """One row per PDF font object: name without subset tag, type, embedded."""
-    lines = subprocess.check_output(["pdffonts", str(pdf)], text=True).splitlines()
+    return parse_pdffonts(subprocess.check_output(["pdffonts", str(pdf)], text=True))
+
+
+def parse_pdffonts(text: str) -> list[dict]:
+    """Rows of `pdffonts` output, whose names may contain spaces.
+
+    Every column after the name has the fixed width of its header dashes; a
+    long name only pushes them right. So the row's tail is sliced by those
+    widths and the name is whatever precedes it.
+    """
+    lines = text.splitlines()
+    widths = [len(dashes) for dashes in lines[1].split(" ")]
+    tail = sum(widths[1:]) + len(widths) - 1
     rows = []
     for line in lines[2:]:
-        fields = line.split()
-        # Columns from the right are stable: emb sub uni object-number generation.
+        cells, position = [], len(line) - tail + 1
+        for width in widths[1:]:
+            cells.append(line[position : position + width].strip())
+            position += width + 1
         rows.append(
             {
-                "name": SUBSET.sub("", fields[0]),
-                "type": " ".join(fields[1:-6]),
-                "embedded": fields[-5] == "yes",
+                "name": SUBSET.sub("", line[: len(line) - tail].rstrip()),
+                "type": cells[0],
+                "embedded": cells[2] == "yes",
             }
         )
     return rows
+
+
+def body_font_accepted(family: str, accepted: list[str]) -> bool:
+    return any(family == name or family.startswith(name + "-") for name in accepted)
 
 
 def font_characters(pdf: Path) -> Counter:
@@ -132,7 +153,7 @@ def check_pdf(pdf: Path, profile: str | None = None) -> dict:
         checked=rules["checked"],
     )
     accepted = rules["body-fonts"]
-    if not any(name in main for name in accepted):
+    if not body_font_accepted(main, accepted):
         failures.append(
             f"most-used font is {main} ({share:.0%} of characters); "
             f"{profile} accepts only {accepted}. A metric-compatible clone such as "
