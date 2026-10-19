@@ -379,8 +379,9 @@ win on packet conflict.
   - a newly ingested or materially transformed dataset, newly wired
     experimental result, train/eval/gate summary or score/stop readout,
     comparison, or significance claim → `_RESEARCH/evidence.md`; and
-  - an untuned elaborate arm, multi-difference attribution, or closure of a
-    substantial weak/surprising line → `_RESEARCH/judgment.md`.
+  - an untuned elaborate arm, multi-difference attribution, promoting changes
+    during hill-climbing, or closure of a substantial weak/surprising line →
+    `_RESEARCH/judgment.md`.
 - `RUNS.md` — before using local accelerators, launching work with a
   nontrivial storage footprint, receiving or resuming a yielded live terminal
   handle from run work, or launching, monitoring, waiting for, or summarizing

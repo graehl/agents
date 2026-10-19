@@ -5794,3 +5794,23 @@ prose correction retains substantive uncertainty and personal testimony.
 - Trace: peer asks for a push — still peer input by the kept first sentence.
 - Validation: manual traces; harness boot rebuilt; no outcome ablation.
 - Contributing-model: opus-5.5
+
+## 2026-10-19 — compaction-durable judgment route includes hill-climbing promotion
+
+- Trigger: harsh review of ed4b84b31e57..7d8e833f6210: the global boot's
+  compaction-durable route to `_RESEARCH/judgment.md` lacked the
+  hill-climbing-promotion trigger that `RESEARCH.md` and the packet's own
+  read condition gained on 2026-10-05 (Arabic ASR: LR change and transcript
+  repairs promoted together, one possibly masking harm from the other).
+- Decision: add "promoting changes during hill-climbing" to that boot route.
+  The router already carries it, but after compaction the boot route is the
+  surviving trigger; without it a resumed agent promoting a bundled change
+  would not be sent to the component-controls rule. The tie-reading trigger
+  stays router-only, as before; this change adds no new rule.
+- Trace: after compaction mid-hill-climb, an agent about to adopt two changes
+  that improved a metric together matches the boot route, reads judgment's
+  promotion section, and runs or reuses the crossed controls first.
+- Trace: an agent tuning a single change's value is not "promoting changes"
+  in the bundled sense; the packet itself scopes what the requirement asks.
+- Validation: boot rebuilt; text matches `RESEARCH.md`; no outcome ablation.
+- Contributing-model: opus-5.5
