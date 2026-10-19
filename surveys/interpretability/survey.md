@@ -235,8 +235,8 @@ superposition result does not establish that a particular confusing neuron is
 an arbitrary mixture. The [existing digest](../llm-intelligence/concepts/superposition.md)
 holds the foundational account.
 
-Your intuition about matmul-related parameters splitting a conditional
-activation is a useful architectural model. Each coordinate reads a learned
+A useful architectural model treats matmul parameters as splitting a
+conditional activation. Each coordinate reads a learned
 combination of earlier state, applies a nonlinearity or multiplicative gate,
 and writes a direction that later computations can use. A conjunction such as
 “pointed shape in a roughly face-like arrangement” can be useful to several
@@ -294,9 +294,9 @@ while Wu et al. dispute their diagnostic and evaluation. The robust lesson is
 to demand discriminating tests, not to discard interventions or accept a
 universal nullspace criterion.
 
-For empirical semantic-role claims, “causal probing is the only reliable way to
-say what something does” captures the need for intervention-backed validation.
-Direct architectural or algebraic analysis can also establish limited function,
+For empirical semantic-role claims, the view that causal probing is the only
+reliable way to say what a component does is right about the need for
+intervention-backed validation, but too strong as stated. Direct architectural or algebraic analysis can also establish limited function,
 as the SwiGLU sign calculation does. Interventions need observational and
 architectural evidence to specify what they changed and why. The output effect
 itself can be established while its semantic explanation remains

@@ -12,7 +12,9 @@ Gerstner and Schütze's [*GLUScope*](https://arxiv.org/html/2602.23826)
 records all four sign regimes, their frequencies, intermediate values, and
 top examples. Its OLMo-7B-0424 neuron 31.9634 illustrates the cost of pooling:
 negative/negative examples support an “again” interpretation even though the
-strongest overall positive activations come from a different regime. The tool
+strongest overall positive activations come from a different regime: the
+positive extreme, 3.48, is positive/positive, while the negative/negative
+activations reach at most 1.58 (the paper's §5). The tool
 is evidence that sign-aware native-neuron investigation was already explicit
 before Goodfire's October 2026 essay. It is not an exhaustive semantic audit of
 OLMo or independent confirmation of Goodfire's Qwen claims.
