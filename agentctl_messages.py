@@ -29,7 +29,6 @@ class Agentctl(Protocol):
     ROOT: Path
     STATE: Path
     ACTIVE: Path
-    STALE: Path
     ACTIVE_STALE_MINUTES: int
     LAUNCH_DEPTH_ENV: str
     NO_PROC_SESSION_ID_ENV: str
@@ -517,15 +516,9 @@ def take(a: Agentctl, args: argparse.Namespace, sid: str) -> tuple[int, dict]:
                 or source.stat().st_mtime_ns != snapshots.get(owner_id)
             ):
                 continue
-            if source.parent != a.ACTIVE and (a.ACTIVE / owner_id).exists():
-                continue
             destination = a.STATE / "retired" / str(uuid.uuid4())
             destination.mkdir(parents=True)
             source.rename(destination / owner_id)
-            shadowed = a.STALE / owner_id
-            if source != shadowed and shadowed.exists():
-                (destination / "shadowed-stale").mkdir()
-                shadowed.rename(destination / "shadowed-stale" / owner_id)
             atomic_json(
                 destination / "reason.json",
                 {"by": sid, "reason": owner["reason"], "time": time.time()},

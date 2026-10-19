@@ -692,8 +692,7 @@ def refresh_active_register(summary: str, note: str) -> None:
     path = ACTIVE / sid
     try:
         if not path.exists():
-            ACTIVE.mkdir(parents=True, exist_ok=True)
-            path.write_text(normalize_headline_text(summary) + "\n", encoding="utf-8")
+            write_own_entry(sid, [normalize_headline_text(summary)])
             return
         first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
         if first and first[0].startswith("DONE"):
@@ -736,6 +735,20 @@ def _split_active_header(
             break
         idx += 1
     return lines[0], scope, tending, lines[idx:]
+
+
+def write_own_entry(sid: str, lines: list[str]) -> None:
+    """Atomically write `active/<sid>`, superseding any `stale/<sid>`.
+
+    A session has one entry: reviving or recreating it in active/ must not
+    leave a stale copy whose claims a reader could still see.
+    """
+    path = ACTIVE / sid
+    ACTIVE.mkdir(parents=True, exist_ok=True)
+    tmp = path.parent / (path.name + ".tmp")
+    tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    tmp.replace(path)
+    (STALE / sid).unlink(missing_ok=True)
 
 
 def register_owner(sid: str) -> None:
@@ -820,11 +833,9 @@ def _write_active_entry(
         tending_line = "tending: " + tending
     else:
         tending_line = old_tending or ""
-    out = [line1] + [ln for ln in (scope_line, tending_line) if ln] + body
-    ACTIVE.mkdir(parents=True, exist_ok=True)
-    tmp = path.parent / (path.name + ".tmp")
-    tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
-    tmp.replace(path)
+    write_own_entry(
+        sid, [line1] + [ln for ln in (scope_line, tending_line) if ln] + body
+    )
     return line1, scope_line, tending_line
 
 
@@ -895,8 +906,7 @@ def _ensure_active_registered(
             return "created" if line1 == placeholder else "authored"
         # Pure claim: ensure an entry exists and is fresh, without clobbering.
         if not path.exists():
-            ACTIVE.mkdir(parents=True, exist_ok=True)
-            path.write_text(placeholder + "\n", encoding="utf-8")
+            write_own_entry(sid, [placeholder])
             return "created"
         first = path.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
         if first and first[0].startswith("DONE"):
@@ -1268,11 +1278,9 @@ def clear_once(args) -> tuple[int, dict]:
     def write_own(scope_entries: list[str], body: list[str]) -> None:
         scope_line = ("scope: " + " ".join(scope_entries)) if scope_entries else ""
         line1 = own_line1 or normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
-        out = [line1] + [ln for ln in (scope_line, own_tending or "") if ln] + body
-        ACTIVE.mkdir(parents=True, exist_ok=True)
-        tmp = own.parent / (own.name + ".tmp")
-        tmp.write_text("\n".join(out) + "\n", encoding="utf-8")
-        tmp.replace(own)
+        write_own_entry(
+            sid, [line1] + [ln for ln in (scope_line, own_tending or "") if ln] + body
+        )
 
     now_iso = utc_now()
     if drop:

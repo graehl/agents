@@ -321,6 +321,27 @@ class MessageTests(unittest.TestCase):
         self.run_cli("owner", "clear", "--drop", "file.py")
         self.assertEqual(len(self.run_cli("waiter", "inbox")[0]["messages"]), 1)
 
+    def test_revived_entry_leaves_no_stale_copy_for_takeover(self) -> None:
+        self.run_cli("owner", "active", "editing", "a.py")
+        entry = self.root / ".agentctl/active/owner"
+        stale = self.root / ".agentctl/stale/owner"
+        old = time.time() - 7200
+        os.utime(entry, (old, old))
+        self.run_cli("waiter", "active", "--sweep")
+        self.assertTrue(stale.exists() and not entry.exists())
+        self.run_cli("owner", "clear", "b.py")  # revives the swept entry
+        self.assertTrue(entry.exists())
+        self.assertFalse(stale.exists())
+        self.assertIn("a.py", entry.read_text())
+        os.utime(entry, (old, old))
+        self.run_cli("waiter", "active", "--sweep")
+        self.run_cli("owner", "active", "back", "c.py")  # recreates it
+        self.assertTrue(entry.exists())
+        self.assertFalse(stale.exists())
+        result = self.run_cli("waiter", "take", "c.py")[0]
+        self.assertEqual((result["verdict"], result["retired"]), ("claimed", ["owner"]))
+        self.assertFalse(entry.exists() or stale.exists())
+
     def test_messages_use_host_live_only_unique_submissions_and_safe_retry(
         self,
     ) -> None:
