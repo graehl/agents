@@ -77,6 +77,68 @@ class MessageTests(unittest.TestCase):
             self.run_cli("waiter", "take", "file.py")[0]["verdict"], "claimed"
         )
 
+    def test_release_notice_is_stored_now_and_delivered_in_background(self) -> None:
+        self.live_owner("owner", "file.py")
+        self.run_cli("waiter", "take", "file.py", code=1)
+        from test_session_turn import FakeProviderHost
+
+        features = [
+            "session-turn",
+            "session-turn-await",
+            "session-turn-eventual",
+            "session-turn-live-only",
+        ]
+
+        def status(request):
+            result = {"protocolVersion": 3, "features": features}
+            return [{"id": request["id"], "ok": True, "result": result}]
+
+        def inventory(request):
+            row = {
+                "sessionId": "waiter",
+                "providerSessionId": "provider-waiter",
+                "harness": "codex",
+                "projectPath": str(self.root),
+            }
+            return [{"id": request["id"], "ok": True, "result": [row]}]
+
+        def slow_accept(request):
+            time.sleep(3)
+            return [
+                {
+                    "id": request["id"],
+                    "type": "accepted",
+                    "submissionId": request["submissionId"],
+                    "delivery": "queued",
+                }
+            ]
+
+        host = FakeProviderHost(
+            [status, inventory, status, slow_accept],
+            host_protocol_version=3,
+            features=features,
+        )
+        self.runtime = host.runtime
+        self.addCleanup(shutil.rmtree, host.runtime)
+        self.addCleanup(lambda: host.thread.join(timeout=5))
+        started = time.monotonic()
+        self.run_cli("owner", "clear", "--drop", "file.py")
+        self.assertLess(time.monotonic() - started, 2.5)
+        mailbox = self.root / ".agentctl/messages/waiter"
+        (notice,) = [
+            json.loads(path.read_text())
+            for path in mailbox.glob("*.json")
+            if "Claims released" in json.loads(path.read_text())["message"]
+        ]
+        self.assertIn(notice["delivery"], {"pending", "attempting"})
+        path = mailbox / (notice["id"] + ".json")
+        deadline = time.monotonic() + 15
+        while json.loads(path.read_text())["delivery"] != "queued":
+            self.assertLess(time.monotonic(), deadline, path.read_text())
+            time.sleep(0.2)
+        log = (self.root / ".agentctl/messages/delivery.log").read_text()
+        self.assertIn('"delivery": "queued"', log)
+
     def test_all_owners_must_release_and_others_surfaces_notice_once(self) -> None:
         self.live_owner("first", "a.py")
         self.live_owner("second", "b.py")

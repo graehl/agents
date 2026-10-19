@@ -193,7 +193,13 @@ def post(
     message_id: str,
     *,
     wake: bool = False,
+    background: bool = False,
 ) -> dict:
+    """Persist a message, then attempt provider delivery once.
+
+    With `background`, the record is left `pending` for `transmit` in a
+    detached `_deliver` process; it is already in the recipient's inbox.
+    """
     root = message_root(a)
     mailbox = root / session_key(target)
     mailbox.mkdir(exist_ok=True)
@@ -216,7 +222,24 @@ def post(
             "wake": wake,
             "delivery": "attempting",
         }
+        if background:
+            record.update(delivery="pending", reason="background delivery pending")
         atomic_json(path, record)
+    return record if background else transmit(a, record)
+
+
+def transmit(a: Agentctl, record: dict) -> dict:
+    """Attempt provider delivery of a persisted message and record the outcome."""
+    target, sender, body, wake = (
+        record["to"],
+        record["from"],
+        record["message"],
+        record["wake"],
+    )
+    root = message_root(a)
+    path = root / session_key(target) / (record["id"] + ".json")
+    record = {**record, "delivery": "attempting"}
+    record.pop("reason", None)
     rows, reason = inventory()
     owner = resolve_owner(a, target, rows)
     if not owner.get("provider_id") or owner.get("harness") not in {"claude", "codex"}:
@@ -380,18 +403,85 @@ def notify_releases(a: Agentctl, sender: str) -> None:
             else:
                 continue
             atomic_json(path, row)
+    # Persisting each notice is the durable step and closes its subscription;
+    # provider delivery, which can wait on the network, runs detached so
+    # routine coordination calls never accumulate its timeouts.
+    pending = []
     for row in due:
         command = "agentctl take " + shlex.join(row["paths"])
-        post(
+        record = post(
             a,
             row["release_sender"],
             row["session_id"],
             f"Claims released for {shlex.join(row['paths'])}. Recheck and acquire with: {command}. This notice does not reserve the paths.",
             row["id"],
+            background=True,
         )
         with store.locked():
             row["closed"] = "released"
             atomic_json(subscriptions / (row["id"] + ".json"), row)
+        if record["delivery"] == "pending":
+            pending.append(f"{record['to']}/{record['id']}")
+    if pending:
+        start_delivery(a, pending)
+
+
+def start_delivery(a: Agentctl, refs: list[str]) -> None:
+    """Hand pending messages to one detached `_deliver` process.
+
+    Its output goes to `.agentctl/messages/delivery.log`; each message
+    records its own outcome. If it cannot start, the messages say so and
+    stay in their recipients' inboxes.
+    """
+    root = message_root(a)
+    try:
+        with (root / "delivery.log").open("a") as log:
+            subprocess.Popen(
+                [sys.executable, str(a.CODE_ROOT / "agentctl.py"), "_deliver", *refs],
+                cwd=a.ROOT,
+                env={**os.environ, "AGENTCTL_ROOT": str(a.ROOT)},
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=log,
+                start_new_session=True,
+            )
+    except OSError as exc:
+        for ref in refs:
+            target, message_id = ref.split("/")
+            path = root / session_key(target) / (message_id + ".json")
+            with file_lock(root / ".lock"):
+                record = json.loads(path.read_text())
+                record.update(
+                    delivery="stored",
+                    reason=f"background delivery did not start: {exc}",
+                )
+                atomic_json(path, record)
+
+
+def deliver_command(args: argparse.Namespace) -> int:
+    """`_deliver TARGET/ID...`: transmit messages still pending, one log line each."""
+    import agentctl as a
+
+    root = message_root(a)
+    for ref in args.refs:
+        target, message_id = ref.split("/")
+        path = root / session_key(target) / (message_id + ".json")
+        record = json.loads(path.read_text())
+        if record["delivery"] == "pending":
+            record = transmit(a, record)
+        print(
+            json.dumps(
+                {
+                    "time": time.time(),
+                    "to": target,
+                    "id": message_id,
+                    "delivery": record["delivery"],
+                    "reason": record.get("reason"),
+                }
+            ),
+            flush=True,
+        )
+    return 0
 
 
 def take(a: Agentctl, args: argparse.Namespace, sid: str) -> tuple[int, dict]:
@@ -655,6 +745,9 @@ def register(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--all", action="store_true")
     acli.args.add_standard_args(parser)
     parser.set_defaults(func=command)
+    parser = subparsers.add_parser("_deliver", help=argparse.SUPPRESS)
+    parser.add_argument("refs", nargs="+")
+    parser.set_defaults(func=deliver_command)
 
 
 def a_uuid(value: str) -> str:

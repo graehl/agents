@@ -91,6 +91,12 @@ The notice asks the requester to rerun `take`; it reserves nothing, and another
 session may acquire the paths first. Subscriptions expire after seven days.
 Raw file edits and process death do not run release callbacks; rerun `take`
 when necessary. Delivery is best effort and does not prove the model saw it.
+The releasing command persists each notice, so it is already in the
+requester's inbox, and closes the subscription before returning; provider
+delivery then runs in one detached `agentctl _deliver` process, so the
+releasing call never waits on the network. That process logs to
+`.agentctl/messages/delivery.log` and records each message's outcome; a notice
+it never reached stays `pending` in the inbox.
 
 ### Messaging and fallback
 
@@ -113,7 +119,8 @@ hosts, and rejected admission retain a filesystem-inbox message. There is no
 automatic native resume fallback. Each delivery attempt is bounded at twenty
 seconds; fan-out attempts are sequential.
 
-Results distinguish `stored`, `queued`, `attempting`, and `uncertain`.
+Results distinguish `stored`, `pending` (background delivery not yet
+attempted), `queued`, `attempting`, and `uncertain`.
 `queued` is acceptance, not a response. An interrupted `attempting` or uncertain
 delivery must be reconciled with its `session-turn receipt <submission_id>`;
 repeating the same message never blindly resubmits it. Host receipts are
