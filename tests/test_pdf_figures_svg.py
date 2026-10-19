@@ -350,6 +350,26 @@ def test_figure_over_budget_rasterizes_only_its_dense_region():
         _assert("](_page_0_Figure_1.svg)" in markdown.read_text())
 
 
+def test_figure_just_over_budget_fits_by_rounding_coordinates():
+    with tempfile.TemporaryDirectory() as tmp:
+        markdown = dense_extract(tmp)
+        full = rows(run(markdown, "--dry-run"))["_page_0_Figure_1.png"]["svg_bytes"]
+        proc = run(markdown, "--budget-bytes", str(full - 1))
+        _assert(proc.returncode == 0, proc.stderr)
+        row = rows(proc)["_page_0_Figure_1.png"]
+        _assert(row["status"] == "rounded", row)
+        _assert(row["svg_bytes"] < full and row["raster_fraction"] == 0, row)
+        svg = (markdown.parent / "_page_0_Figure_1.svg").read_text()
+        _assert("<image" not in svg, "rounding alone should fit")
+
+
+def test_budget_must_be_positive():
+    with tempfile.TemporaryDirectory() as tmp:
+        markdown = dense_extract(tmp)
+        proc = run(markdown, "--budget-bytes", "0")
+        _assert(proc.returncode == 2 and "positive byte count" in proc.stderr, proc)
+
+
 def _assert_no_dangling_references(svg: str) -> None:
     referenced = set(re.findall(r'href="#([^"]+)"', svg))
     referenced |= set(re.findall(r"url\(#([^)]+)\)", svg))

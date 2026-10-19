@@ -53,6 +53,7 @@ convert.
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -402,7 +403,7 @@ def build_parser():
     )
     parser.add_argument(
         "--budget-bytes",
-        type=int,
+        type=positive_int,
         default=BUDGET_BYTES,
         help="Largest SVG kept fully vector; a larger figure has its densest regions "
         "rasterized to fit, or keeps its raster crop when no checked result fits "
@@ -416,6 +417,13 @@ def build_parser():
     add_standard_args(parser, allow_toon=True)
     parser.set_defaults(func=convert)
     return parser
+
+
+def positive_int(value: str) -> int:
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError(f"must be a positive byte count: {value}")
+    return number
 
 
 def main(argv: list[str] | None = None) -> int:
