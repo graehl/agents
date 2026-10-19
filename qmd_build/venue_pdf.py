@@ -326,6 +326,8 @@ def assemble(
         metadata["abstract"] = re.sub(
             r"^\s*#{1,6}\s.*\n", "", abstract, count=1
         ).strip()
+    elif front_matter(build.root, "abstract"):
+        metadata["abstract"] = front_matter(build.root, "abstract")
     back = [sections.pop(name) for name in build.back_matter]
     appendices = [sections.pop(name) for name in build.appendices]
     # Boundaries are labels, so the aux file reports actual shipped pages.

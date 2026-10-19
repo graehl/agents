@@ -21,8 +21,11 @@ see [`paper-projects`](paper-projects.md)) renders the PDF with kept TeX,
 flattens the TeX and every `\includegraphics` file into `_build/arxiv/src/`,
 rejects host paths and hidden files, compiles the bundle twice with pdflatex in
 an empty directory, and writes `arxiv-source.zip`, `check.pdf` and a hash
-receipt with page count, US Letter check, abstract length and warnings. Upload
-the zip; inspect `check.pdf` page by page first.
+receipt with page count, US Letter check, abstract length and warnings. The
+abstract is measured from the TeX abstract environment, which Quarto emits from
+the root's `abstract:` front matter; a receipt without one warns. Quarto's
+render output is kept in `_build/arxiv/render.log`. Upload the zip; inspect
+`check.pdf` page by page first.
 
 ## Limits and pitfalls
 

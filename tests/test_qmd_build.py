@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -27,6 +28,10 @@ HAS_QUARTO = shutil.which("quarto") is not None
 HAS_TEX = (
     bool(glob(str(Path.home() / ".TinyTeX/bin/*/xelatex")))
     or shutil.which("xelatex") is not None
+)
+HAS_PDFLATEX = (
+    bool(glob(str(Path.home() / ".TinyTeX/bin/*/pdflatex")))
+    or shutil.which("pdflatex") is not None
 )
 
 
@@ -398,10 +403,8 @@ def test_paper_scaffold_places_paper_under_its_program(tmp_path):
     paper = program / "papers" / "demo"
     assert result["paper"] == str(paper.resolve())
     index = (paper / "index.qmd").read_text()
-    assert (
-        'title: "Demo paper"' in index
-        and "{{< include sections/_00-abstract.qmd >}}" in index
-    )
+    assert 'title: "Demo paper"' in index and "abstract: |" in index
+    assert "{{< include sections/_10-introduction.qmd >}}" in index
     assert "papersize: letter" in (paper / "_quarto.yml").read_text()
     assert "../../PROGRAM.md" in (paper / "README.md").read_text()
     assert "{{" not in (paper / "CHANGELOG.md").read_text()
@@ -409,3 +412,37 @@ def test_paper_scaffold_places_paper_under_its_program(tmp_path):
         scaffold(program, "demo", "Demo", None)
     with pytest.raises(ValueError, match="Slug"):
         scaffold(program, "Bad Slug", "Demo", None)
+
+
+@pytest.mark.skipif(
+    not (HAS_QUARTO and HAS_PDFLATEX), reason="needs quarto and pdflatex"
+)
+def test_fresh_paper_scaffold_builds_html_and_arxiv(tmp_path):
+    program = tmp_path / "program"
+    program.mkdir()
+    (program / "PROGRAM.md").write_text("# Program demo\n")
+    new = [str(REPO / "scripts/paper-new"), str(program), "demo", "--title", "Demo"]
+    assert subprocess.run(new, capture_output=True, text=True).returncode == 0
+    paper = program / "papers" / "demo"
+    html = [str(REPO / "scripts/qmd-html"), "--config", "qmd-html.json"]
+    run = subprocess.run(html, cwd=paper, capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    assert "TBD: problem" in (paper / "_build/index.html").read_text()
+
+    def arxiv() -> dict:
+        command = [str(REPO / "scripts/qmd-arxiv"), str(paper), "--json"]
+        run = subprocess.run(command, capture_output=True, text=True)
+        assert run.returncode == 0, run.stderr
+        assert (paper / "_build/arxiv/render.log").stat().st_size > 0
+        return json.loads(run.stdout.splitlines()[-1])
+
+    receipt = arxiv()
+    assert receipt["abstract_characters"] > 0 and receipt["warnings"] == []
+    index = paper / "index.qmd"
+    text = index.read_text()
+    index.write_text(text.replace("  TBD:", "  " + "word " * 420 + "\n  TBD:"))
+    assert "accepts at most 1920" in arxiv()["warnings"][0]
+    index.write_text(re.sub(r"abstract: \|\n(  .*\n)+", "", text))
+    receipt = arxiv()
+    assert receipt["abstract_characters"] is None
+    assert "no LaTeX abstract" in receipt["warnings"][0]

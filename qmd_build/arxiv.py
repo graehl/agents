@@ -5,7 +5,8 @@
 every `\\includegraphics` file into a flat bundle, rejects host paths and hidden files, then
 compiles the bundle twice with pdflatex in an empty directory, as arXiv will. Outputs under
 `<paper-dir>/_build/arxiv/`: `src/` (the bundle), `arxiv-source.zip`, `check.pdf` (the clean
-compile) and `receipt.json`. Advice and known arXiv limits: topics/arxiv-submission.md.
+compile), `render.log` (Quarto's output) and `receipt.json`. The receipt warns when the TeX has
+no abstract environment or the abstract exceeds arXiv's length limit. Advice and known arXiv limits: topics/arxiv-submission.md.
 """
 
 from __future__ import annotations
@@ -48,12 +49,21 @@ def bundle(paper: Path, quarto: str) -> dict:
     root = paper / "index.qmd"
     if not root.is_file():
         raise ValueError(f"No index.qmd in {paper}")
-    subprocess.run(
-        [quarto, "render", str(root), "--to", "pdf", "-M", "keep-tex:true"],
-        cwd=paper,
-        check=True,
-        stdout=subprocess.DEVNULL,
-    )
+    out = paper / "_build" / "arxiv"
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
+    render_log = out / "render.log"
+    with render_log.open("w") as log_file:
+        rendered = subprocess.run(
+            [quarto, "render", str(root), "--to", "pdf", "-M", "keep-tex:true"],
+            cwd=paper,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            check=False,  # a failed render is reported with its log below
+        )
+    if rendered.returncode:
+        raise ValueError(f"Quarto render failed; log: {render_log}")
     tex_path = paper / "index.tex"
     if not tex_path.is_file():
         raise ValueError("Quarto kept no index.tex; set keep-tex in _quarto.yml")
@@ -63,9 +73,6 @@ def bundle(paper: Path, quarto: str) -> dict:
     )
     if engine and engine.group(1) != "pdflatex":
         raise ValueError(f"pdf-engine {engine.group(1)}: arXiv documents only pdfLaTeX")
-    out = paper / "_build" / "arxiv"
-    if out.exists():
-        shutil.rmtree(out)
     src = out / "src"
     (src / "figures").mkdir(parents=True)
     copied: dict[Path, str] = {}
@@ -131,7 +138,11 @@ def bundle(paper: Path, quarto: str) -> dict:
         for path in files:
             zf.write(path, path.relative_to(src))
     warnings = []
-    if abstract_chars and abstract_chars > ARXIV_ABSTRACT_LIMIT:
+    if abstract_chars is None:
+        warnings.append(
+            "no LaTeX abstract environment; set `abstract:` in the root front matter"
+        )
+    elif abstract_chars > ARXIV_ABSTRACT_LIMIT:
         warnings.append(
             f"abstract is {abstract_chars} characters; arXiv accepts at most {ARXIV_ABSTRACT_LIMIT}"
         )

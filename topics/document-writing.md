@@ -114,7 +114,6 @@ new section can be inserted without immediate renumbering, for example:
 ```text
 index.qmd
 sections/
-  _00-abstract.qmd
   _10-introduction.qmd
   _20-method.qmd
   _30-results.qmd
@@ -125,10 +124,14 @@ use its text-inserting
 [`include` shortcode](https://quarto.org/docs/authoring/includes.html):
 
 ```markdown
-{{< include sections/_00-abstract.qmd >}}
-
 {{< include sections/_10-introduction.qmd >}}
+
+{{< include sections/_20-method.qmd >}}
 ```
+
+Each fragment opens with its heading. A paper's abstract belongs in the
+root's `abstract:` front matter, which Quarto renders as the HTML title-block
+abstract and the LaTeX abstract environment.
 
 Keep each directive alone on a line with blank lines around it, omit metadata
 blocks from included fragments, and resolve fragment links and assets from the

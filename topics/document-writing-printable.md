@@ -99,7 +99,8 @@ qmd-venue-pdf --config <venue>/qmd-venue-pdf.json --fail-fast --text # estimate 
 ```
 
 The build stages one generated `.qmd` from the canonical fragments: an
-`abstract` fragment becomes metadata, then comes the main body. After that,
+`abstract` fragment (else the root's `abstract:` front matter) becomes
+metadata, then comes the main body. After that,
 separated by `\clearpage`, come the `back-matter` fragments (for example
 Limitations and Ethics), then references, then `appendices`. TeX labels at
 those boundaries report the physical pages of each part, and the final text

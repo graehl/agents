@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import re
 import shutil
 import subprocess
+import textwrap
 from pathlib import Path
 
 INCLUDE = re.compile(r"\{\{< include ([^ ]+) >\}\}")
@@ -147,7 +149,11 @@ def fragment_anchors(sections: list[Path], quarto: str) -> dict[str, str]:
 
 
 def front_matter(root: Path, key: str) -> str | None:
-    """A scalar from the root's leading YAML block; quoted or bare."""
+    """A top-level scalar from the root's leading YAML block.
+
+    Quoted, bare, and literal (`|`) or folded (`>`) block scalars are read;
+    block text is returned dedented, folded lines joined by spaces.
+    """
     match = re.match(r"---\n(.*?)\n---\n", root.read_text(), re.DOTALL)
     if not match:
         return None
@@ -155,6 +161,11 @@ def front_matter(root: Path, key: str) -> str | None:
     if not value:
         return None
     text = value[1]
+    if text[0] in "|>":
+        rest = match[1][value.end() :].lstrip("\n").splitlines()
+        block = list(itertools.takewhile(lambda line: not line or line[0] == " ", rest))
+        joined = textwrap.dedent("\n".join(block)).strip()
+        return re.sub(r"(?<!\n)\n(?!\n)", " ", joined) if text[0] == ">" else joined
     if len(text) >= 2 and text[0] == text[-1] and text[0] in "\"'":
         text = text[1:-1]
     return text
