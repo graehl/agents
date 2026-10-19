@@ -306,8 +306,9 @@ Use the profile to choose at most one next optimization:
 
 The 10% threshold is an engineering decision: smaller savings do not yet
 justify an extra integration here. If the tail is only 20% of a step, even
-doubling its speed improves the whole step by only about 11%. That bounds
-the payoff before implementing Seer-style control.
+doubling its speed lowers full-step time by only 10% (about 11% higher
+throughput), exactly at the threshold. That bounds the payoff before
+implementing Seer-style control.
 
 Do not initially add online drafter training, partial rollouts across policy
 updates, KV migration, custom suffix trees, FP8 KV, or full-weight optimizer
