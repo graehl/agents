@@ -31,6 +31,9 @@ from pathlib import Path
 from typing import ClassVar
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+import session_logs
+
 AGENTCTL_FILES = (
     "agentctl",
     "agentctl.py",
@@ -38,6 +41,7 @@ AGENTCTL_FILES = (
     "agentctl_gpu.py",
     "agentctl_messages.py",
     "artifact_meta.py",
+    "session_logs.py",
     "scripts/session-turn",
 )
 AGENTCTL_DIRS = ("agentctl_plugins", "acli")
@@ -5105,7 +5109,7 @@ def _commit_as(
 
 def _claude_transcript_for(ws: Workspace, home: Path, sid: str) -> Path:
     """Fake Claude transcript where the hook (cwd = worktree realpath) will look."""
-    project = str(ws.tmp.resolve()).replace("/", "-")
+    project = session_logs.claude_project_dir_name(str(ws.tmp.resolve()))
     path = home / ".claude" / "projects" / project / f"{sid}.jsonl"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text('{"type":"summary"}\n')

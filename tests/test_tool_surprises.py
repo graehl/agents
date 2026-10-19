@@ -188,7 +188,12 @@ def test_report_example_labels_non_bash_fix() -> None:
         home = Path(tmp)
         project = home / "project"
         project.mkdir()
-        tdir = home / ".claude" / "projects" / str(project).replace("/", "-")
+        tdir = (
+            home
+            / ".claude"
+            / "projects"
+            / session_logs.claude_project_dir_name(str(project))
+        )
         tdir.mkdir(parents=True)
         (tdir / "s.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
         ns = SimpleNamespace(
@@ -217,6 +222,27 @@ def test_report_example_labels_non_bash_fix() -> None:
     assert example["fail"] == "Edit /p/x.py", example
     assert example["fix"] == "Edit /p/x.py", example
     assert example["exit"] is None, example
+
+
+def test_claude_project_dir_name_matches_claude_code() -> None:
+    # Expected values computed by Claude Code 2.1.302's own sH() under node.
+    name = session_logs.claude_project_dir_name
+    assert name("/home/graehl/.config/otp") == "-home-graehl--config-otp"
+    assert name("/a/b_c d+é😀") == "-a-b-c-d----"
+    long = "/home/graehl/" + "very_long.dir é😀/" * 14 + "x"
+    assert name(long).endswith("-very-lo-qsneuj") and len(name(long)) == 207
+
+
+def test_current_session_ids_include_codex_thread() -> None:
+    prior = os.environ.get("CODEX_THREAD_ID")
+    os.environ["CODEX_THREAD_ID"] = "019f-thread"
+    try:
+        assert "019f-thread" in session_logs.current_session_ids()
+    finally:
+        if prior is None:
+            del os.environ["CODEX_THREAD_ID"]
+        else:
+            os.environ["CODEX_THREAD_ID"] = prior
 
 
 def test_scan_codex_commands_and_yielded_processes() -> None:

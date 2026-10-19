@@ -27,6 +27,7 @@ assert _spec is not None
 needles = importlib.util.module_from_spec(_spec)
 sys.modules["intervention_needles"] = needles
 _loader.exec_module(needles)
+from session_logs import claude_project_dir_name
 
 
 def test_match_needle() -> None:
@@ -187,7 +188,7 @@ def test_cli_scopes_project_and_skips_current_session() -> None:
         home = Path(tmp)
         project = (home / "project").resolve()
         project.mkdir()
-        tdir = home / ".claude" / "projects" / str(project).replace("/", "-")
+        tdir = home / ".claude" / "projects" / claude_project_dir_name(str(project))
         _write(tdir / "s1.jsonl", _claude_session())
         _write(tdir / "current.jsonl", [_claude("user", "no, ignore me")])
         other = home / ".claude" / "projects" / "-elsewhere"

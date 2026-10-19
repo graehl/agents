@@ -1,7 +1,7 @@
 """Locate harness session transcripts for log-mining tools.
 
 Claude Code writes one JSONL transcript per session under
-`~/.claude/projects/<launch-cwd with "/" replaced by "-">/`. Codex writes
+`~/.claude/projects/<claude_project_dir_name(launch cwd)>/`. Codex writes
 rollouts under `~/.codex/sessions/YYYY/MM/DD/`, recording the session's cwd
 in its leading `session_meta` record. Miners (`scripts/tool-surprises`,
 `scripts/intervention-needles`) share this discovery so a project's sessions
@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import struct
 import time
 from pathlib import Path
 
@@ -35,15 +36,42 @@ def codex_sessions_dir() -> Path:
     return Path.home() / ".codex" / "sessions"
 
 
+CLAUDE_DIR_NAME_MAX = 200
+
+
+def claude_project_dir_name(cwd: str) -> str:
+    """Claude Code's `projects/` directory name for a launch cwd.
+
+    Read from the installed Claude Code 2.1.302 bundle: each UTF-16 code unit
+    that is not an ASCII letter or digit becomes "-"; a name over 200
+    characters keeps its first 200 plus "-" and the base-36 absolute value of
+    the path's 32-bit Java-style string hash.
+    """
+    name = "".join(
+        c if c.isascii() and c.isalnum() else "-" * (2 if ord(c) > 0xFFFF else 1)
+        for c in cwd
+    )
+    if len(name) <= CLAUDE_DIR_NAME_MAX:
+        return name
+    units = cwd.encode("utf-16-le")
+    digest = 0
+    for (unit,) in struct.iter_unpack("<H", units):
+        digest = (digest * 31 + unit) & 0xFFFFFFFF
+    value = abs(digest - (1 << 32) if digest >= 1 << 31 else digest)
+    digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+    encoded = ""
+    while True:
+        value, rest = divmod(value, 36)
+        encoded = digits[rest] + encoded
+        if not value:
+            break
+    return f"{name[:CLAUDE_DIR_NAME_MAX]}-{encoded}"
+
+
 def transcript_dirs(project_root: Path) -> list[Path]:
     base = claude_projects_dir()
-    munged = str(project_root).replace("/", "-")
-    candidates = [base / munged, base / munged.replace(".", "-")]
-    seen: list[Path] = []
-    for cand in candidates:
-        if cand.is_dir() and cand not in seen:
-            seen.append(cand)
-    return seen
+    path = base / claude_project_dir_name(str(project_root))
+    return [path] if path.is_dir() else []
 
 
 def codex_session_info(path: Path) -> tuple[str, Path | None]:
@@ -70,7 +98,7 @@ def codex_session_info(path: Path) -> tuple[str, Path | None]:
 def current_session_ids() -> set[str]:
     """Ids naming the calling session, so a miner can skip its own log."""
     ids = set()
-    for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID"):
+    for var in ("AGENTCTL_SESSION_ID", "CLAUDE_CODE_SESSION_ID", "CODEX_THREAD_ID"):
         value = os.environ.get(var, "").strip()
         if value:
             ids.add(value)

@@ -26,6 +26,7 @@ import acli.args as acli_args
 import agentctl_coordination as coordination
 import agentctl_gpu
 import agentctl_messages as messages
+import session_logs
 
 CODE_ROOT = Path(__file__).resolve().parent
 ROOT = Path(os.environ.get("AGENTCTL_ROOT") or os.getcwd()).expanduser().resolve()
@@ -2257,18 +2258,20 @@ def commit_note_identity() -> dict[str, str]:
 
 
 def _claude_transcript(sid: str) -> Path | None:
-    """Claude's transcript for `sid`: `~/.claude/projects/<cwd as dashes>/<sid>.jsonl`.
+    """Claude's transcript for `sid` under `~/.claude/projects/`.
 
-    The project directory is the session's launch cwd with `/` replaced by
-    `-`; the hook runs at the worktree root, so try the literal cwd, its
-    real path, and the project root.
+    The directory is named from the session's launch cwd
+    (`session_logs.claude_project_dir_name`); the hook runs at the worktree
+    root, so try the literal cwd, its real path, and the project root.
     """
-    projects = Path.home() / ".claude" / "projects"
+    projects = session_logs.claude_projects_dir()
     seen: dict[str, None] = {}
     for cwd in (os.getcwd(), str(Path(os.getcwd()).resolve()), str(ROOT)):
         seen.setdefault(cwd, None)
     for cwd in seen:
-        candidate = projects / cwd.replace("/", "-") / f"{sid}.jsonl"
+        candidate = (
+            projects / session_logs.claude_project_dir_name(cwd) / f"{sid}.jsonl"
+        )
         if candidate.is_file():
             return candidate
     return None
