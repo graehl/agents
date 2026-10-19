@@ -564,17 +564,10 @@ class _MathPreprocessor(HTMLParser):
         for name, value in attributes:
             lowered = name.lower()
             stripped = (value or "").lstrip()
-            if (
-                lowered
-                in (
-                    "data",
-                    "href",
-                    "poster",
-                    "src",
-                )
-                and lowered == "href"
-                and stripped.lower().startswith("data:")
-            ):
+            # A data: URL is dropped as a link target but kept where it embeds
+            # content (src, data, poster): visual extraction saves that payload
+            # as a figure asset.
+            if lowered == "href" and stripped.lower().startswith("data:"):
                 continue
             if lowered == "href" and stripped.lower().startswith("javascript:"):
                 continue
@@ -956,6 +949,65 @@ class _EquationTableParser(HTMLParser):
         return "\\[\\begin{aligned}\n" + rows + "\n\\end{aligned}\\]"
 
 
+def _svg_scoped_css(css: str, markup: str) -> str:
+    """The page CSS rules that can style one extracted SVG.
+
+    A rule is kept when its selector names a class or id the SVG uses, or
+    when its final compound selects an element type the SVG contains (as in
+    `.ltx_figure svg`). Rules inside `@media` are filtered the same way; other
+    at-rules (`@import`, `@font-face`, ...) only bring page resources and are
+    dropped. Unrelated page rules then cannot drag external `url()`s into a
+    figure, while a kept rule's external reference still rejects it.
+    """
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.DOTALL)
+    classes = {
+        name
+        for value in re.findall(r"\bclass=(['\"])(.*?)\1", markup)
+        for name in value[1].split()
+    }
+    ids = {value[1] for value in re.findall(r"\bid=(['\"])(.*?)\1", markup)}
+    elements = {
+        name.split(":")[-1].lower()
+        for name in re.findall(r"<([A-Za-z][\w:-]*)", markup)
+    }
+
+    def applies(selector: str) -> bool:
+        for part in selector.split(","):
+            if set(re.findall(r"\.([\w-]+)", part)) & classes:
+                return True
+            if set(re.findall(r"#([\w-]+)", part)) & ids:
+                return True
+            last = re.split(r"[\s>+~]+", part.strip())[-1]
+            element = re.match(r"[A-Za-z][\w-]*", last)
+            if element and element[0].lower() in elements:
+                return True
+        return False
+
+    kept = []
+    position = 0
+    while position < len(css):
+        brace = css.find("{", position)
+        semicolon = css.find(";", position)
+        if brace < 0:
+            break
+        if css[position:].lstrip().startswith("@") and 0 <= semicolon < brace:
+            position = semicolon + 1  # a statement at-rule such as @import
+            continue
+        depth, end = 1, brace + 1
+        while end < len(css) and depth:
+            depth += {"{": 1, "}": -1}.get(css[end], 0)
+            end += 1
+        selector, body = css[position:brace].strip(), css[brace + 1 : end - 1]
+        if selector.lower().startswith("@media"):
+            inner = _svg_scoped_css(body, markup)
+            if inner:
+                kept.append(f"{selector}{{{inner}}}")
+        elif not selector.startswith("@") and applies(selector):
+            kept.append(f"{selector}{{{body}}}")
+        position = end
+    return "".join(kept)
+
+
 class _RichContentParser(HTMLParser):
     """Protect paper visuals and table structure from prose conversion."""
 
@@ -1167,16 +1219,20 @@ class _RichContentParser(HTMLParser):
                 ),
                 markup,
             )
-            styles = "".join(
+            page_css = "".join(
                 re.findall(
-                    r"<style\b[^>]*>.*?</style>",
+                    r"<style\b[^>]*>(.*?)</style>",
                     self.source.read_text(),
                     re.DOTALL | re.IGNORECASE,
                 )
             )
+            styles = _svg_scoped_css(page_css, markup)
             if styles:
                 markup = re.sub(
-                    r"(<svg\b[^>]*>)", lambda match: match[0] + styles, markup, count=1
+                    r"(<svg\b[^>]*>)",
+                    lambda match: match[0] + f"<style>{styles}</style>",
+                    markup,
+                    count=1,
                 )
             # wget rewrites SVG clip references as links to the saved HTML.
             markup = re.sub(
@@ -1622,6 +1678,10 @@ def save_page(directory: Path, url: str, stem: str) -> bool:
 
 
 def download(url: str, target: Path) -> bool:
+    """Fetch `url` to `target`; on failure write `<target>.download.json`.
+
+    The diagnostics file exists only while the latest attempt failed.
+    """
     target.parent.mkdir(parents=True, exist_ok=True)
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     temporary: Path | None = None
@@ -1665,7 +1725,10 @@ def download(url: str, target: Path) -> bool:
         diagnostics["error"] = str(exc)
         return False
     finally:
-        diagnostic_path.write_text(json.dumps(diagnostics, sort_keys=True) + "\n")
+        if "error" in diagnostics:
+            diagnostic_path.write_text(json.dumps(diagnostics, sort_keys=True) + "\n")
+        else:
+            diagnostic_path.unlink(missing_ok=True)
         if temporary is not None:
             temporary.unlink(missing_ok=True)
 
@@ -1706,15 +1769,23 @@ def source_header(source: str, title: str | None = None) -> str:
 
 
 def _extract_markdown(directory: Path, sentinel: Sentinel, key: str) -> Path | None:
-    """The extract's main Markdown: recorded, else `<key>.md`, else the largest."""
+    """The extract's main Markdown, by the identity its extraction gave it.
+
+    HTML derivation records its path; current PDF extraction renames marker's
+    output to `<key>.md`; older PDF extracts keep marker's own
+    `[marker/]<pdf stem>/<pdf stem>.md`, the stem taken from the source URL.
+    """
     recorded = _recorded_markdown_path(directory, sentinel)
     if recorded is not None and recorded.is_file():
         return recorded
-    named = directory / f"{key}.md"
-    if named.is_file():
-        return named
-    candidates = sorted(directory.rglob("*.md"), key=lambda p: p.stat().st_size)
-    return candidates[-1] if candidates else None
+    candidates = [directory / f"{key}.md"]
+    stem = Path(unquote(urlsplit(sentinel.source).path)).stem
+    if stem:
+        candidates += [
+            directory / stem / f"{stem}.md",
+            directory / "marker" / stem / f"{stem}.md",
+        ]
+    return next((path for path in candidates if path.is_file()), None)
 
 
 def stamp_extract(

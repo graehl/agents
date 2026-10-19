@@ -1372,6 +1372,55 @@ def test_pdf_download_records_an_html_error_response():
             target.with_name(diagnostic["body"]).read_bytes()
             == b"<html>rate limited</html>"
         )
+        # A later successful download leaves no failure record behind.
+        success = io.BytesIO(b"%PDF-1.7 fresh")
+        success.status = 200
+        success.headers = {"Content-Type": "application/pdf"}
+        rw.urllib.request.urlopen = lambda *_args, **_kwargs: success
+        try:
+            _assert(rw.download("https://example.test/paper.pdf", target))
+        finally:
+            rw.urllib.request.urlopen = original
+        _assert(not target.with_name("source.pdf.download.json").exists())
+
+
+def test_extract_markdown_follows_marker_output_not_size():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        main = directory / "marker/C18-1139/C18-1139.md"
+        main.parent.mkdir(parents=True)
+        main.write_text("# Paper\n")
+        (directory / "notes.md").write_text("larger unrelated text " * 100)
+        sentinel = rw.Sentinel(
+            method="pdf-marker",
+            source="https://aclanthology.org/C18-1139.pdf",
+            at="2026-10-19",
+        )
+        _assert(rw._extract_markdown(directory, sentinel, "flair") == main)
+        main.unlink()
+        _assert(rw._extract_markdown(directory, sentinel, "flair") is None)
+
+
+def test_inline_svg_gets_only_the_page_css_that_applies_to_it():
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        (directory / "paper.html").write_text(
+            "<style>@import url(https://cdn.test/site.css);"
+            "@font-face{font-family:F;src:url(https://cdn.test/f.woff)}"
+            "body{background:url(https://cdn.test/bg.png)}"
+            ".ltx_svg_fillstroke{fill:none}"
+            "@media print{.ltx_svg_fillstroke{stroke:black}p{color:red}}</style>"
+            "<article><p>The paper draws an inline vector figure.</p>"
+            '<figure><svg viewBox="0 0 10 10"><g class="ltx_svg_fillstroke">'
+            "<text>vector label</text></g></svg><figcaption>Figure one vector"
+            "</figcaption></figure></article>"
+        )
+        result = rw.derive_saved_html(directory, "https://example.test/paper", "key")
+        assets = rw._local_markdown_assets(directory / result.markdown, directory)
+        svg = next(p for p in assets if p.suffix == ".svg").read_text()
+        _assert(".ltx_svg_fillstroke{fill:none}" in svg, svg)
+        _assert("@media print{.ltx_svg_fillstroke{stroke:black}}" in svg, svg)
+        _assert("cdn.test" not in svg and "color:red" not in svg, svg)
 
 
 def test_derive_only_stages_visuals_in_raw_html_tables():
