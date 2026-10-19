@@ -126,9 +126,10 @@ branches, commits, shared workdirs, or private notes.
 | `AGENTS.global.md` | Installable global operating contract: session entry, worktree safety, edit discipline, commits, topics, glossary, and interaction rules. |
 | `AGENTS/` | Optional slow-path packets grouped by activation concern; never installed or read as a directory sweep. |
 | `AGENTS.md` | Project boot for developing this instruction repository; deliberately distinct from the global install source. |
-| `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md` | Harness-specific mechanics such as session identifiers, log locations, and launcher quirks. |
+| `AGENTS.codex.md`, `AGENTS.claude.md`, `AGENTS.grok.md`, `AGENTS.copilot.md` | Harness- and backend-specific mechanics such as session identifiers, log locations, and launcher quirks; `scripts/build-boot` compiles each into that harness's `AGENTS.boot.<harness>.md`. |
+| `AGENTS.ya.md` | Launcher-specific markers and behavior for sessions Yep Anywhere starts; read on demand. |
 | `AGENTS.frontier.md`, `AGENTS.weak.md` | Capability-tier latitude and extra reminders; load-bearing policy still belongs in `AGENTS.global.md`. |
-| `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.astra.md`, `AGENTS.sol.md` | Model-family behavior patches selected from the harness-recorded model id. Astra has no boot supplement. |
+| `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.astra.md`, `AGENTS.sol.md`, `AGENTS.deepseek.md` | Model-family behavior patches selected from the harness-recorded model id and read on demand, never compiled into a harness boot. |
 | `RESEARCH.md`, `_RESEARCH/` | Short research router plus binding concern packets that combine rules, templates, rationale, and edge cases. |
 | `advisor/serve.md` | Complete ordinary tell/ask packet for a long-lived skeptical research advisor. |
 | `research-advisor.md` | Condition-routed lifecycle, transport-recovery, and state-continuity catalog. |

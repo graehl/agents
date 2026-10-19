@@ -438,10 +438,11 @@ stop, and a compose-time check against self-matching process searches. Astra
 keeps a claim's epistemic status out of a sentence of its own; graehl sees
 the habit in every current OpenAI model but writes only with Astra. Sol
 carries the confirmation rule formerly housed in the Codex supplement
-and the direct-work correction for Sol served through Claude Gateway. Astra
-has no additional boot supplement. Its shared
-policy, applicable frontier latitude, and harness mechanics still apply;
-Sol's model-id condition does not select Astra. Proposed reductions live in
+and the direct-work correction for Sol served through Claude Gateway. Like
+every model supplement, `AGENTS.astra.md` is a routed read, not part of a
+compiled harness boot; Astra still receives shared policy, applicable frontier
+latitude, and its harness boot, and Sol's model-id condition does not select
+Astra. Proposed reductions live in
 [`agent-instructions.sketches.md`](agent-instructions.sketches.md#astra-and-shared-instruction-reductions),
 outside ordinary model boot.
 

@@ -5745,3 +5745,25 @@ prose correction retains substantive uncertainty and personal testimony.
   variable set and unset and checks that only user turns advance
   `latest-session`; no outcome ablation.
 - Contributing-model: opus-5.5
+
+## 2026-10-19 — supplement inventory: compiled versus routed
+
+- Trigger: harsh review of ed4b84b31e57..7d8e833f6210 found `README.md`
+  omitting `AGENTS.copilot.md`, and "Astra has no boot supplement" in
+  `README.md` and this topic reading as denying `AGENTS.astra.md` exists.
+- Finding: the sentence dates from the 2026-09-07 entry that removed an empty
+  Astra file. `1e020323` (2026-10-17) restored `AGENTS.astra.md` for the
+  epistemic-status steer without updating it, so it became false rather than
+  merely ambiguous.
+- Decision: describe the real distinction. Harness and backend supplements
+  (Codex, Claude, Grok, Copilot) are compiled into
+  `AGENTS.boot.<harness>.md`; model and launcher supplements are routed reads
+  selected from recorded identity. The README inventory now lists
+  `AGENTS.copilot.md`, `AGENTS.ya.md`, and `AGENTS.deepseek.md`.
+- Trace: an agent asked whether Astra sessions get model-specific guidance
+  reads the topic and finds that `AGENTS.astra.md` is routed by model id, not
+  that none exists; one asked which files `build-boot` embeds finds the four
+  harness supplements named in one row.
+- Validation: text checked against `scripts/build-boot` `HARNESSES` and the
+  activation section of `AGENTS.global.md`; no behavior change.
+- Contributing-model: opus-5.5
