@@ -1,10 +1,5 @@
 # Untranscribed speech: sources, live capture, storage, and domain representations
 
-The 2026-10-05 focused extensions cover [ASR output recombination](concepts/asr-output-fusion.md)
-for combining recognizers/teachers and [pretrained ASR capacity growth](concepts/asr-pretrained-growth.md)
-for separating model limits from usable-data limits. These adjacent notes have
-their own narrow search scope and extraction status.
-
 Grounded field survey, coverage cutoff 2026-10-01, with a focused speaker/accent
 diversity and data-quality extension searched through 2026-10-02. Scope: multilingual public
 speech at roughly 10⁴–10⁶ hours, collected without transcription, with
@@ -13,13 +8,6 @@ tail-language ASR, meaning languages with few high-quality transcribed hours,
 with language identification reliable enough for that use. Legal analysis is
 out of scope.
 
-The 2026-10-04 extension covers [diarization and audio-input domains](concepts/diarization-and-domain.md),
-[soft parameter routing](concepts/domain-conditioned-parameters.md), and
-[streaming speaker/user adaptation](concepts/speaker-online-adaptation.md).
-It includes genres and prosody, reusable accent centroids, and persistent
-speaker state; [its retrieval record](concepts/routing-search.md) distinguishes
-full-text grounding from abstract-only leads.
-
 Primary dataset and model cards, protocol documentation, and selected
 speech-representation papers were read, with local extraction coverage recorded
 in the manifest and extension notes ([retrieval and
@@ -27,6 +15,19 @@ limits](#retrieval-and-limits)). No audio was collected and no codec or
 embedding experiment was run. Source sizes are publisher-reported, storage
 figures are arithmetic, and the recommended codec rates, storage
 architecture, condition selector, and embedding index are untested synthesis.
+
+Two later extensions have their own narrow search scope and extraction status:
+
+- 2026-10-04: [diarization and audio-input domains](concepts/diarization-and-domain.md),
+  [soft parameter routing](concepts/domain-conditioned-parameters.md), and
+  [streaming speaker/user adaptation](concepts/speaker-online-adaptation.md),
+  including genres and prosody, reusable accent centroids, and persistent
+  speaker state; [its retrieval record](concepts/routing-search.md)
+  distinguishes full-text grounding from abstract-only leads.
+- 2026-10-05: [ASR output recombination](concepts/asr-output-fusion.md) for
+  combining recognizers/teachers, and [pretrained ASR capacity
+  growth](concepts/asr-pretrained-growth.md) for separating model limits from
+  usable-data limits.
 
 ## Decisions this survey supports
 
