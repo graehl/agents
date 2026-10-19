@@ -11,7 +11,9 @@ A document is registered by where it is and what it is called. Nothing lists
 a program's handouts, papers or gaps except the directory itself, so a file
 in the conventional place is found and a file elsewhere is not. The
 `program-view` template base (`project-templates/bases/program-view/`)
-implements this topic: change both together.
+implements this topic and ships a portable rendition of it, without links into
+this repository, as `instructions/project-directory.md` in created projects:
+change all three together.
 
 ## Programs
 

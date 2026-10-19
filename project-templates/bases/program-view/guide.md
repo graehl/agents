@@ -3,8 +3,8 @@
 `scripts/program_view.py` adds program dashboards to the repository web view
 (`instructions/repo-view.md`): one page listing the project's programs, nested
 by parent, and a papers page for each program that has papers. It reads the
-repository as the `project-directory` conventions lay it out
-(`~/agents/topics/project-directory.md`): put a document where those
+repository as the project directory conventions lay it out
+(`instructions/project-directory.md`): put a document where those
 conventions say and the dashboard finds it; there is no registry to update.
 
 ## Turn it on

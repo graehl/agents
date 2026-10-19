@@ -125,5 +125,8 @@ as recorded above. YA integration and actual provider skill discovery are
 separate checks and are not established by this editorial review.
 
 Remaining: review the writing/story closures and measure instruction effects
-when a representative task warrants it. Do not interpret App canvas admission
+when a representative task warrants it. Known non-portable route in that
+closure (2026-10-19): `instructions/writing.md`, copied from
+`topics/writing.md`, tells a created project to run
+`~/agents/scripts/not-ai-lint`, which the project does not contain. Do not interpret App canvas admission
 as admission of legacy-boot or a claim of measured agent-quality improvement.

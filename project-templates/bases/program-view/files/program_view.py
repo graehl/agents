@@ -221,6 +221,15 @@ class Project:
             if "/_build/" not in path:
                 self.changed.append(path)
         self._commits: dict[str, dict[str, str]] = {}
+        # A repository before its first commit has no history to read.
+        self.has_commits = (
+            subprocess.run(
+                ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", "HEAD"],
+                capture_output=True,
+                check=False,
+            ).returncode
+            == 0
+        )
         config = root / ".project-template" / "program-view.json"
         self.config = (
             json.loads(config.read_text(encoding="utf-8")) if config.is_file() else {}
@@ -237,6 +246,8 @@ class Project:
     def last_commit(self, rel: str) -> dict[str, str]:
         if rel in self._commits:
             return self._commits[rel]
+        if not self.has_commits:
+            return {}
         line = git(self.root, "log", "-1", "--format=%h%x09%cI%x09%s", "--", rel or ".")
         commit: dict[str, str] = {}
         if line:
@@ -273,7 +284,7 @@ class Project:
 
     def commit_dates(self, rels: list[str]) -> dict[str, str]:
         """Last commit date of each path, from one `git log` walk."""
-        if not rels:
+        if not rels or not self.has_commits:
             return {}
         fields = git_fields(
             self.root, "log", "-z", "--format=%x01%cI", "--name-only", "--", *rels

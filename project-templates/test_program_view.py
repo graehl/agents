@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import subprocess
 import tempfile
 import unittest
@@ -208,6 +209,49 @@ class ProgramViewTest(unittest.TestCase):
             'href="research/mt/papers/big/_build/index.html" title="Big paper">Big paper</a>',
             index,
         )
+
+
+class CreatedProjectTest(unittest.TestCase):
+    def test_created_project_carries_its_conventions(self) -> None:
+        from composition import TemplateLibrary, materialize
+
+        library_dir = SOURCE.parents[3]
+        library = TemplateLibrary(library_dir.parent, library_dir.name)
+        page = json.loads(
+            (library_dir / "templates/web-page/template.json").read_text()
+        )
+        page.update(id="web-page-programs", extends=[*page["extends"], "program-view"])
+        library.nodes["web-page-programs"] = page
+        library.directories["web-page-programs"] = library_dir / "templates/web-page"
+        composition = library.compose("web-page-programs")
+        with tempfile.TemporaryDirectory(prefix="program-view-created-") as temporary:
+            project = materialize(
+                composition, Path(temporary) / "made", "Made", "Programs view"
+            )
+            # This base's own instructions route only to files the project has.
+            ours = [
+                (library_dir / "bases/program-view/instructions.md").read_text(),
+                (project / "instructions/program-view.md").read_text(),
+                (project / "instructions/project-directory.md").read_text(),
+            ]
+            self.assertIn(ours[0].strip(), (project / "AGENTS.md").read_text())
+            self.assertFalse(any("~/agents" in text for text in ours))
+            for route in set(re.findall(r"instructions/[\w.-]+\.md", "\n".join(ours))):
+                self.assertTrue((project / route).is_file(), route)
+            self.assertIn(
+                "| Handouts |",
+                (project / "instructions/project-directory.md").read_text(),
+            )
+            subprocess.run(["git", "init", "-q", str(project)], check=True)
+            subprocess.run(["git", "-C", str(project), "add", "."], check=True)
+            listing = subprocess.run(
+                ["python3", str(project / "scripts/program_view.py")],
+                cwd=project,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(listing.returncode, 0, listing.stderr)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@
   "files": [
     { "to": "AGENTS.md", "from": "instructions.md" },
     { "to": "instructions/program-view.md", "from": "guide.md" },
+    { "to": "instructions/project-directory.md", "from": "project-directory.md" },
     {
       "to": "scripts/program_view.py",
       "from": "files/program_view.py",
