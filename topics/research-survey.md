@@ -28,9 +28,11 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
   `concepts/<short>.md` (committed per-concept understanding/analysis pages);
   `related-work/` (`papers.yaml` manifest + committed Markdown/provenance under
   `extract/`); and
-  `frontier.md` (the frontier overlay). Each survey subdir is
-  also listed as a row in the top-level `~/agents/GLOSSARY.md` so surveys are
-  discoverable from the repo's shared vocabulary.
+  `frontier.md` (the frontier overlay). Where the top-level glossary is a
+  lone `GLOSSARY.md`, each survey subdir is also listed as a row there so
+  surveys are discoverable from the shared vocabulary; beside a
+  `GLOSSARY.agents.md` a row is optional, since `surveys/` itself and
+  cross-links reach them ([glossary](glossary.md) § Contracts).
 - **`related-work/` is driven by the shared `related-work` engine, never by a
   per-survey script.** `~/agents/scripts/related-work` (on `PATH`) owns fetch,
   extraction, and reconciliation for every survey: `init` scaffolds a new
@@ -154,9 +156,9 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
   fetch may retrieve missing images; `--derive-only` stays offline and requires
   saved requisites. Rebuild older derivation versions with
   `fetch --derive-only` or `fetch --revalidate`.
-- **Failed PDF downloads remain diagnosable.** Beside the PDF cache,
-  `<name>.download.json` records the response status, content type, initial
-  bytes, and any error. A successful HTTP response without a PDF signature
+- **Failed PDF downloads remain diagnosable.** Beside the PDF cache, a failed
+  attempt leaves `<name>.download.json` recording the response status, content
+  type, initial bytes, and error; a later successful download removes it. A successful HTTP response without a PDF signature
   is rejected and retained as `<name>.failed-download`; it cannot overwrite
   a previous valid PDF or reach marker as if it were one. These diagnostics
   remain ignored source cache.
