@@ -58,6 +58,9 @@ class RendezvousTests(unittest.TestCase):
             "YEP_PROVIDER_HOST_RUNTIME_DIR": str(self.project / "no-provider-host"),
             "AGENTCTL_SESSION_ID": "session-a",
             "AGENT_LAUNCH_HARNESS": "codex",
+            # SCRIPT runs through its `uv run --script` shebang, which
+            # provides its declared dependencies (Pillow).
+            "PYTHONUNBUFFERED": "1",
         }
 
     def tearDown(self) -> None:
@@ -66,7 +69,6 @@ class RendezvousTests(unittest.TestCase):
     def cli(self, *args: str) -> list[dict]:
         result = subprocess.run(
             [
-                sys.executable,
                 str(SCRIPT),
                 "--json",
                 "--project",
@@ -100,8 +102,6 @@ class RendezvousTests(unittest.TestCase):
     def test_session_watch_prints_prepared_upload_once(self) -> None:
         process = subprocess.Popen(
             [
-                sys.executable,
-                "-u",
                 str(SCRIPT),
                 "--json",
                 "--project",
@@ -122,9 +122,8 @@ class RendezvousTests(unittest.TestCase):
             source = inbox / "screenshot.png"
             transfer.rename(source)
             upload = self.next_record(process)
-            self.assertEqual(
-                (upload["state"], upload["transport"]), ("accepted", "output")
-            )
+            self.assertEqual(upload["state"], "accepted", upload)
+            self.assertEqual(upload["transport"], "output")
             self.assertEqual(upload["width"], 2000)
             snapshot_path = Path(upload["path"])
             self.assertIn(f"(<{snapshot_path}>)", upload["text"])
@@ -236,7 +235,6 @@ class RendezvousTests(unittest.TestCase):
     def receive(self, *args: str, data: bytes) -> subprocess.CompletedProcess:
         return subprocess.run(
             [
-                sys.executable,
                 str(SCRIPT),
                 "--json",
                 "--project",
@@ -279,8 +277,6 @@ class RendezvousTests(unittest.TestCase):
     def test_receive_wait_reports_delivery_by_an_in_session_watcher(self) -> None:
         process = subprocess.Popen(
             [
-                sys.executable,
-                "-u",
                 str(SCRIPT),
                 "--json",
                 "--project",
