@@ -273,7 +273,8 @@ recognition or similarity with strings and labels removed. The conditional
 readouts below deliberately expose selected context. Define dimensions on separate
 development material or blinded human groupings; do not choose a feature after
 seeing a successful-looking test pair. This deliberately exposed-history arm
-is separate from the fresh-context primary comparison below.
+is separate from the fresh-context primary comparison above (§ Prompt and
+primary comparison).
 
 ### Learn the readout when similarities are hard to name
 

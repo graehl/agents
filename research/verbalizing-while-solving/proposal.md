@@ -28,7 +28,8 @@ Each predicts a different contrast in the experiment below.
 2. **Audience effect.** Phrasing a belief so a partner can follow and use
    it (legibility, wanting to seem smart, the excitement of collaborating)
    forces a cleaner internal representation. Predicts: messages to a
-   partner beat private notes, even when neither is re-read.
+   partner beat private notes, even when neither is re-read (A over B with
+   the text seen, C over H with it unseen).
 3. **Production effect.** Generating the sentence, by hand, keys or voice,
    is what helps, through motor or articulatory encoding. Predicts: the
    benefit survives when the text is never looked at, and speaking aloud
@@ -54,6 +55,7 @@ Within one person, rotate conditions across levels of similar difficulty:
 | E: spoken, transcript hidden | speech | no | yes |
 | F: spoken to self, not recorded | speech | no | no |
 | G: silent | none | no | no |
+| H: typed private notes, not looked at | typed | no | no |
 
 Display placement matters: in D the recognized transcript, and in A the
 typed message, should appear on the game monitor, not beside it where it
@@ -72,8 +74,8 @@ states and shortest solution to help match difficulty.
 - Level choice: assign matched pairs before seeing the levels.
 - Mood and fatigue: record time of day.
 
-Eye tracking (a camera on the game monitor) would show directly whether C
-and E really go unread, and would turn "sees own text" into a measured
+Eye tracking (a camera on the game monitor) would show directly whether C,
+E and H really go unread, and would turn "sees own text" into a measured
 quantity.
 
 ## Dependency
