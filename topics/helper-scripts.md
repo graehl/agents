@@ -467,15 +467,20 @@ and `build-boot link [--check] [--to-global]`; acli baseline with completion.
 - All generated companions and `AGENTS.on-compact.md` are local build outputs,
   excluded through `.git/info/exclude` alongside `AGENTS.boot.md`. `--check`
   checks them all without writing, including transitive content changes.
-- `--check` writes nothing and exits 3 when the section or boot is stale;
-  missing markers or sources exit 4.
+- `--check` writes nothing and exits 3 when the section, boot, or a
+  companion is stale, so rerunning without `--check` fixes it. A missing or
+  malformed source or marker exits 4 in both modes, before any write.
+- A `*.mandatory-reread*.md` companion that no topic produces any longer is
+  listed in `orphaned_rereads`; `build` removes it and `--check` counts it
+  stale.
 - `link` retargets harness instruction symlinks that resolve to this
   checkout's `AGENTS.global.md`, shared boot, or harness boots to the matching
   harness boot for standard harness paths, otherwise the shared boot (or back
   with `--to-global`). Targets come from `~/.config/agents/build-boot.json`
   (`{"targets": [...]}`), else the standard paths for Claude Code, Codex, Pi,
   OpenCode, Grok, and Copilot. Regular files and links elsewhere are reported
-  and left alone.
+  and left alone. Every link and rename is planned and validated first, so a
+  refusal (exit 4 for an unbuilt destination) changes nothing.
 - `link` also renames, with suffix `.build-boot-disabled`, any
   `~/.opencode/` or `~/.config/opencode/` `agent(s)`, `command(s)`,
   `mode(s)`, `plugin(s)`, `skill(s)`, or `tool(s)` link that resolves to this

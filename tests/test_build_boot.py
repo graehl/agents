@@ -120,11 +120,39 @@ def test_malformed_reread_fails_before_any_output_write() -> None:
         source.write_text("<!-- reread:begin -->\nForgot to close.\n")
         original = (repo / "AGENTS.global.md").read_text()
         result = _run(repo, "build")
-        assert result.returncode == 3, result.stderr
+        # 4, not the stale code 3: rebuilding cannot fix a malformed source.
+        assert result.returncode == 4, result.stderr
+        assert "unclosed reread block" in result.stderr
+        assert _run(repo, "build", "--check").returncode == 4
         assert not (repo / "AGENTS.boot.md").exists()
         assert (repo / "AGENTS.global.md").read_text() == original
         source.write_text("<!-- reread:include missing.md -->\n")
         assert _run(repo, "build").returncode == 4
+
+
+def test_orphaned_reread_companion_is_flagged_then_removed() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        topics = repo / "topics"
+        topics.mkdir()
+        source = topics / "example.md"
+        source.write_text(
+            "Mandatory-reread: before an example\n"
+            "<!-- reread:begin -->\nEssential.\n<!-- reread:end -->\n"
+        )
+        assert _run(repo, "build").returncode == 0
+        companions = sorted(topics.glob("example.mandatory-reread*.md"))
+        assert len(companions) == 2
+        source.write_text("No longer mandatory.\n")
+        check = _run(repo, "build", "--check")
+        assert check.returncode == 3
+        assert sorted(json.loads(check.stdout)["orphaned_rereads"]) == [
+            str(path) for path in companions
+        ]
+        assert all(path.exists() for path in companions)
+        assert _run(repo, "build").returncode == 0
+        assert not any(path.exists() for path in companions)
+        assert _run(repo, "build", "--check").returncode == 0
 
 
 def test_build_generates_grouped_routes_and_boot() -> None:
@@ -246,6 +274,28 @@ def test_link_retargets_only_links_to_this_policy() -> None:
         undo = _run(repo, "link", "--to-global", home=home)
         assert undo.returncode == 0, undo.stderr
         assert Path(os.readlink(ours)) == repo / "AGENTS.global.md"
+
+
+def test_link_refusal_changes_no_link() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        root = Path(root)
+        repo = _repo(root)
+        home = root / "home"
+        (home / ".config/agents").mkdir(parents=True)
+        (home / ".codex").mkdir()
+        ours = home / "ours.md"
+        codex = home / ".codex/AGENTS.md"  # wants AGENTS.boot.codex.md, never built
+        for path in (ours, codex):
+            os.symlink(repo / "AGENTS.global.md", path)
+        (home / ".config/agents/build-boot.json").write_text(
+            json.dumps({"targets": [str(ours), str(codex)]})
+        )
+        assert _run(repo, "build").returncode == 0
+        refused = _run(repo, "link", home=home)
+        assert refused.returncode == 4, refused.stderr
+        assert "AGENTS.boot.codex.md" in refused.stderr
+        assert Path(os.readlink(ours)) == repo / "AGENTS.global.md"
+        assert Path(os.readlink(codex)) == repo / "AGENTS.global.md"
 
 
 def test_link_disables_opencode_discovery_links_covering_the_checkout() -> None:
