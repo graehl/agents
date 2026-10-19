@@ -103,12 +103,29 @@ def quarto_facts(root: Path, quarto: str) -> dict:
 
 
 def render(args, config: Config) -> dict:
-    quarto = resolve_executable(args.quarto)
+    """Build the document; `--bump-revision` takes effect only if the build succeeds.
+
+    The bump is written first because the render reads the root from disk,
+    and is undone on any failure unless the file changed again meanwhile.
+    """
     root = root_document(config, args.root)
+    if not args.bump_revision:
+        return render_root(args, config, root)
+    original = root.read_text()
+    # The author's local calendar date.
+    bump_revision(root, datetime.datetime.now().astimezone().date().isoformat())
+    bumped = root.read_text()
+    try:
+        return render_root(args, config, root)
+    except BaseException:
+        if root.read_text() == bumped:
+            root.write_text(original)
+        raise
+
+
+def render_root(args, config: Config, root: Path) -> dict:
+    quarto = resolve_executable(args.quarto)
     home = root.parent
-    if args.bump_revision:
-        # The author's local calendar date.
-        bump_revision(root, datetime.datetime.now().astimezone().date().isoformat())
     version = subprocess.check_output([quarto, "--version"], text=True).strip()
     pinned = config.get("quarto-version")
     if pinned and version != pinned:
@@ -367,8 +384,8 @@ def parser():
         "--bump-revision",
         action="store_true",
         help="Before building, record a new revision in the root's front matter "
-        "(`revision` + 1, `revision-date` today); use after significant new work, "
-        "not on every rebuild",
+        "(`revision` + 1, `revision-date` today), undone if the build fails; use "
+        "after significant new work, not on every rebuild",
     )
     parser.add_argument(
         "--style",

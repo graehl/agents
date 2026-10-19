@@ -48,8 +48,8 @@ a `<name>/style.json` with its CSS and filters (keys in `qmd_build/styles.py`).
 ### Revisions
 
 `qmd-html --bump-revision` sets `revision` one higher (the first bump makes
-it 2) and `revision-date` to today before building; an ordinary build never
-changes them. The memo style shows "rev N · date" in light grey at the top
+it 2) and `revision-date` to today before building, and undoes that edit if
+the build fails; an ordinary build never changes them. The memo style shows "rev N · date" in light grey at the top
 right. Bump once per round of significant new work, at the build whose HTML
 path you report back to the author, and name the revision in that report.
 Successive edits and rebuilds inside one revision session do not bump.

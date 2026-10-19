@@ -416,6 +416,15 @@ def test_html_bump_revision_records_and_shows_revision(tmp_path):
         '<div class="document-revision">rev 3 · '
         in (tmp_path / "note.html").read_text()
     )
+    # A failed build leaves no revision bump behind.
+    config = tmp_path / "failing.json"
+    config.write_text(json.dumps({"root": "note.md", "must-contain": ["absent"]}))
+    failing = [str(REPO / "scripts/qmd-html"), "--config", str(config)]
+    run = subprocess.run(
+        failing + ["--bump-revision", "--acli-quiet"], capture_output=True, text=True
+    )
+    assert run.returncode != 0 and "lacks required content" in run.stderr
+    assert root.read_text() == source
 
 
 @pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
