@@ -10,9 +10,11 @@ diffusion. Adaptive instance normalization aligns target queries/keys to the
 reference's statistics. Projection parameters remain fixed. This is an
 inference-time attention intervention, not attention-parameter fine-tuning.
 
-**Effectiveness: single-source.** The SDXL evaluation uses 100 style prompts
-with four objects each, CLIP text alignment, DINO set consistency, and a user
-study. The full method improves set consistency over unchanged SDXL at a cost
+**Effectiveness: single-source.** The SDXL evaluation uses 100
+ChatGPT-generated prompts, each naming one style over four random objects
+(“{A guitar, A hot air balloon, A sailboat, A mountain} in papercut art
+style”) and generated as one four-image set; it scores CLIP text alignment
+and DINO set consistency and adds a user study. The full method improves set consistency over unchanged SDXL at a cost
 in text alignment. Full sharing among all images worsens content leakage and
 diversity; removing normalization weakens consistency. Fewer shared layers
 increase variation at the expense of alignment.

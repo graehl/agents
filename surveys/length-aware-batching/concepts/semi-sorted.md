@@ -22,8 +22,10 @@ semi-sorting plus batch-order randomization reduces minutes per epoch by
 29.98% against random fixed-size batching. Adding dynamic batch sizes raises
 the reported reduction to 41.25%. The combined setting slightly improves
 validation loss; semi-sorting alone is not shown to match random batching
-on every quality measure. Human listening scores were deferred. These are
-2017-era GPU/model conditions, not a prediction for a modern encoder.
+on every quality measure. Human listening scores were deferred. The runs
+used one GeForce GTX 1080 (of two in the host, with a Xeon E5-1650 v4),
+32-bit floats, and base batch size 16 on the NVIDIA Tacotron2 recipe, so the
+timings do not predict a modern encoder on current accelerators.
 
 The paper's comparison includes bucket batching and alternated sorting at
 similar padding rates; their performance is similar. Its contribution is
