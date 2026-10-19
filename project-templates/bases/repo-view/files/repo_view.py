@@ -40,7 +40,9 @@ import subprocess
 import sys
 import threading
 import time
+from collections import deque
 from collections.abc import Callable, Iterable, Mapping
+from concurrent.futures import Future
 from dataclasses import dataclass
 from http import HTTPStatus
 from http.cookies import CookieError, SimpleCookie
@@ -229,7 +231,12 @@ class Repository:
     def __init__(self, root: Path):
         self.root = root.resolve()
         self.name = self.root.name
-        self._listings: dict[str, tuple[int, list[tuple[str, bool]]]] = {}
+        self._listings: dict[str, tuple[tuple[int, int], list[tuple[str, bool]]]] = {}
+        index = Path(git(self.root, "rev-parse", "--git-path", "index").strip())
+        self._index = index if index.is_absolute() else self.root / index
+        self._index_stamp = -1
+        self._tracked_dirs: set[str] = set()
+        self._index_lock = threading.Lock()
 
     @classmethod
     def containing(cls, directory: Path) -> Repository:
@@ -249,8 +256,21 @@ class Repository:
         return "dir" if real.is_dir() else "file" if real.is_file() else None
 
     def listing(self, rel: str) -> list[tuple[str, bool]]:
-        """Immediate non-ignored children as (name, is_dir), from one `git ls-files`."""
-        stamp = self.path(rel).stat().st_mtime_ns
+        """List non-ignored files, descending only into directories with tracked files."""
+        with self._index_lock:
+            index_stamp = self._index.stat().st_mtime_ns if self._index.exists() else 0
+            if index_stamp != self._index_stamp:
+                directories = set()
+                for path in git(self.root, "ls-files", "-z", "--cached").split("\0"):
+                    while "/" in path:
+                        path = parent_rel(path)
+                        directories.add(path)
+                self._tracked_dirs = directories
+                self._index_stamp = index_stamp
+            tracked_dirs = self._tracked_dirs
+        if rel and rel not in tracked_dirs:
+            return []
+        stamp = (self.path(rel).stat().st_mtime_ns, index_stamp)
         cached = self._listings.get(rel)
         if cached and cached[0] == stamp:
             return cached[1]
@@ -269,6 +289,7 @@ class Repository:
         found = sorted(
             (name, is_dir)
             for name, is_dir in children.items()
+            if not is_dir or join_rel(rel, name) in tracked_dirs
             if self.kind(join_rel(rel, name)) is not None
         )
         self._listings[rel] = (stamp, found)
@@ -641,42 +662,74 @@ def seed_nodes(graph: LinkGraph, roots: list[str]) -> list[str]:
 class Reachability:
     """Paths servable because links reach them from the seeds. The set only
     grows (graehl, 2026-10-15): a path stays servable after its last link goes.
-    It is re-walked on demand, when an existing path is asked for but not in it."""
+    Concurrent misses share one walk and use links as soon as they are found."""
 
     def __init__(self, graph: LinkGraph, seeds: Callable[[], Iterable[str]]):
         self.graph, self.seeds = graph, seeds
-        self.allowed: frozenset[str] = frozenset()
-        self._walk = threading.Lock()
+        self.allowed: set[str] = set(seeds())
+        self._changed = threading.Condition()
+        self._scan: Future[None] | None = None
+
+    def contains(self, rel: str) -> bool:
+        with self._changed:
+            return rel in self.allowed
 
     def allows(self, rel: str) -> bool:
-        if rel in self.allowed:
+        if self.contains(rel):
             return True
-        if rel in self.seeds():
-            self.allowed = self.allowed | {rel}
-            return True
-        self.walk()
-        return rel in self.allowed
+        self.walk(until=rel)
+        return self.contains(rel)
 
-    def walk(self) -> None:
-        with self._walk:
+    def walk(self, until: str | None = None) -> None:
+        with self._changed:
+            if until is not None and until in self.allowed:
+                return
+            scan = self._scan
+            if scan is None or scan.done():
+                scan = self._scan = Future()
+                threading.Thread(
+                    target=self._discover, args=(scan,), daemon=True
+                ).start()
+            self._changed.wait_for(
+                lambda: scan.done() or (until is not None and until in self.allowed)
+            )
+            if until is None or until not in self.allowed:
+                scan.result()
+
+    def _discover(self, scan: Future[None]) -> None:
+        try:
             started = time.monotonic()
-            reached = set(self.seeds())
-            frontier = list(reached | self.allowed)
-            reached |= self.allowed
+            with self._changed:
+                self.allowed.update(self.seeds())
+                reached = set(self.allowed)
+                self._changed.notify_all()
+            frontier = deque(reached)
             while frontier:
-                for target in self.graph.links(frontier.pop()) - reached:
-                    reached.add(target)
-                    frontier.append(target)
-            self.allowed = frozenset(reached)
+                links = self.graph.links(frontier.popleft())
+                frontier.extend(links - reached)
+                reached.update(links)
+                with self._changed:
+                    self.allowed.update(links)
+                    self._changed.notify_all()
             log(
                 "reach",
                 f"{len(reached)} reachable paths in {time.monotonic() - started:.2f}s",
             )
+        except Exception as error:  # noqa: BLE001 -- propagate worker failures to waiting requests
+            with self._changed:
+                scan.set_exception(error)
+                self._changed.notify_all()
+        else:
+            with self._changed:
+                scan.set_result(None)
+                self._changed.notify_all()
 
     def admit_links_of(self, rel: str, links: Iterable[str]) -> None:
         """Allow a served page's current links at once; `rel` must be allowed."""
-        if rel in self.allowed:
-            self.allowed = self.allowed | frozenset(links)
+        with self._changed:
+            if rel in self.allowed:
+                self.allowed.update(links)
+                self._changed.notify_all()
 
 
 @dataclass
@@ -739,14 +792,22 @@ class LiveSite:
         )
 
     def warm(self) -> None:
-        """Walk links before the first visitor asks."""
+        """Admit entry-page links without crawling the repository at startup."""
         try:
-            self.reach.walk()
+            seeds = ["", *self.pages.latest(), *self.roots]
+            for rel in seeds:
+                self.reach.admit_links_of(rel, self.graph.links(rel))
+                if self.repo.kind(rel) == "dir":
+                    document = self.graph.directory_document(rel)
+                    if document.rel is not None:
+                        self.reach.admit_links_of(
+                            document.rel, self.graph.links(document.rel)
+                        )
         except (OSError, RepoViewError) as error:
             log("reach", f"warm-up failed; requests will retry: {error}")
 
     def linkable(self, rel: str) -> bool:
-        return rel in self.reach.allowed
+        return self.reach.contains(rel)
 
     def respond(self, parts: list[str], slash: bool, query: str) -> Reply:
         rel = "/".join(parts)
@@ -785,6 +846,7 @@ class LiveSite:
             self.pages.current()  # a project page shows this directory: refresh it
         document = self.graph.directory_document(rel)
         if document.kind == "page":
+            self.reach.admit_links_of(rel, self.graph.links(document.rel))
             return html_reply(self.pages.latest()[document.rel])
         if document.kind == "index":
             return file_reply(self.repo.path(document.rel))

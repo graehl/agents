@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -12,6 +13,7 @@ import time
 import unittest
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from composition import TemplateLibrary, materialize
@@ -82,15 +84,16 @@ class RepoViewTest(unittest.TestCase):
             check=False,
         )
 
-    def serve(self, *args: str) -> str:
+    def serve(self, *args: str, env: dict | None = None) -> str:
         port = free_port()
         log = (self.repo.parent / f"serve-{port}.err").open("w")
         self.addCleanup(log.close)
         process = subprocess.Popen(
             [sys.executable, str(self.script), "serve", "--port", str(port), *args],
             cwd=self.repo,
-            stdout=subprocess.DEVNULL,
+            stdout=log,
             stderr=log,
+            env=env,
         )
         self.addCleanup(process.wait)
         self.addCleanup(process.terminate)
@@ -233,6 +236,63 @@ class RepoViewTest(unittest.TestCase):
             self.get(base + "/img/logo.svg", cookie="ya_app_access=secret-token")[0],
             401,
         )
+
+    def test_listing_skips_untracked_trees_but_follows_explicit_links(self) -> None:
+        self.write("README.md", "# Demo\n[listing](docs/) [built](output/index.html)\n")
+        self.write("docs/new.txt", "new file in a tracked directory")
+        self.write("docs/scratch/hidden.txt", "untracked tree")
+        self.write("output/index.html", '<img src="image.svg">')
+        self.write("output/image.svg", "<svg/>")
+        self.write("output/secret.txt", "not linked")
+        base = self.serve()
+        status, _, page = self.get(base + "/docs/")
+        self.assertEqual(status, 200)
+        self.assertIn("new.txt", page)
+        self.assertNotIn("scratch", page)
+        self.assertEqual(self.get(base + "/docs/scratch/hidden.txt")[0], 404)
+        self.assertEqual(self.get(base + "/output/index.html")[0], 200)
+        self.assertEqual(self.get(base + "/output/image.svg")[0], 200)
+        self.assertEqual(self.get(base + "/output/secret.txt")[0], 404)
+        self.git("add", "docs/scratch/hidden.txt")
+        self.assertIn("scratch/", self.get(base + "/docs/")[2])
+        self.assertEqual(self.get(base + "/docs/scratch/hidden.txt")[0], 200)
+
+    def test_discovered_file_does_not_wait_for_unrelated_directory_scan(self) -> None:
+        self.write("README.md", "# Demo\n[slow](slow/) [logo](img/logo.svg)\n")
+        self.write("slow/tracked.txt", "tracked")
+        self.git("add", "slow/tracked.txt")
+        real_git = shutil.which("git")
+        self.write(
+            ".tools/git",
+            f"#!{sys.executable}\n"
+            "import os, sys, time\nfrom pathlib import Path\n"
+            "if sys.argv[-1] == 'slow/':\n"
+            "    Path('.scan-started').touch()\n"
+            "    deadline = time.monotonic() + 10\n"
+            "    while not Path('.scan-release').exists() and time.monotonic() < deadline:\n"
+            "        time.sleep(.01)\n"
+            f"os.execv({real_git!r}, [{real_git!r}, *sys.argv[1:]])\n",
+        )
+        (self.repo / ".tools/git").chmod(0o755)
+        base = self.serve(
+            env={**os.environ, "PATH": f"{self.repo / '.tools'}:{os.environ['PATH']}"}
+        )
+        with ThreadPoolExecutor(max_workers=1) as clients:
+            slow = clients.submit(self.get, base + "/slow/")
+            try:
+                deadline = time.monotonic() + 5
+                while not (self.repo / ".scan-started").exists():
+                    self.assertLess(
+                        time.monotonic(), deadline, "scan did not reach slow directory"
+                    )
+                    time.sleep(0.01)
+                with urllib.request.urlopen(
+                    base + "/img/logo.svg", timeout=1
+                ) as response:
+                    self.assertEqual(response.status, 200)
+            finally:
+                (self.repo / ".scan-release").touch()
+            self.assertEqual(slow.result()[0], 200)
 
     def test_project_pages_seed_and_replace_the_root(self) -> None:
         self.write(

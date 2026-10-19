@@ -42,13 +42,22 @@ an opaque path prefix.
 ## What it serves
 
 A document is rendered at its own path. A directory shows its `index.html`,
-else its rendered `README.md`, else a listing of its non-ignored files. Only
+else its rendered `README.md`, else a listing of its non-ignored files and
+directories containing Git-tracked files. Directories with no tracked files
+are not recursively indexed; an explicit link can still reach an untracked
+built page and the assets it links. Staging a file makes its directory eligible
+for listing without restarting the server. Only
 paths reachable by links from the repository root are served, plus any
 `--root` paths and project pages: linking a directory whose page is a listing
 exposes the files listed there. A newly written link works at once; a path
 stays servable until the server restarts, even after its last link is gone.
 Paths with a segment beginning with `.` are never served, and the view writes
 nothing into the repository.
+
+Startup discovers the entry pages' immediate links instead of crawling the
+whole repository. A request for an unknown path triggers link discovery;
+concurrent requests share that work, and a discovered file can be served before
+the rest of the walk finishes. Dashboard generation still precedes readiness.
 
 To limit what a shared address shows, link less from the root documents or
 publish a static build of a narrower `--root`.
