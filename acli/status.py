@@ -20,9 +20,11 @@ import sys
 import threading
 from collections.abc import Mapping
 from types import TracebackType
-from typing import Self, TextIO
+from typing import TextIO, TypeVar
 
 from .session import is_agent_session
+
+_ProgramStatusT = TypeVar("_ProgramStatusT", bound="ProgramStatus")
 
 STATES = frozenset({"idle", "working", "done", "blocked", "error", "clear"})
 FINAL_STATES = frozenset({"done", "error", "clear"})
@@ -164,7 +166,7 @@ class ProgramStatus:
             self.stream.flush()
         return True
 
-    def __enter__(self) -> Self:
+    def __enter__(self: _ProgramStatusT) -> _ProgramStatusT:
         return self
 
     def __exit__(
