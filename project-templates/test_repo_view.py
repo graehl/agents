@@ -171,6 +171,48 @@ class RepoViewTest(unittest.TestCase):
         self.assertIn('const key = "ya_access"', page)
         self.assertEqual(self.get(base + "/img/unlinked.txt")[0], 404)
 
+    @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
+    def test_failed_build_keeps_the_live_site(self) -> None:
+        self.assertEqual(self.run_script("build").returncode, 0)
+        site = self.repo / "_site"
+        before = (site / "docs/guide.md.html").read_text()
+        self.write("docs/guide.md", "# Changed\n")
+
+        too_big = self.run_script("build", "--max-bytes", "1")
+        self.assertIn("nothing replaced", too_big.stderr)
+        self.assertEqual((site / "docs/guide.md.html").read_text(), before)
+
+        # The swap fails after the live site was retired: it must come back.
+        failing_swap = (
+            "import pathlib, runpy, sys\n"
+            "rename = pathlib.Path.rename\n"
+            "def fail(self, target):\n"
+            "    if self.name.endswith('.new'):\n"
+            "        raise OSError('injected swap failure')\n"
+            "    return rename(self, target)\n"
+            "pathlib.Path.rename = fail\n"
+            "sys.argv = [sys.argv[1], 'build']\n"
+            "runpy.run_path(sys.argv[0], run_name='__main__')\n"
+        )
+        swap = subprocess.run(
+            [sys.executable, "-c", failing_swap, str(self.script)],
+            cwd=self.repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertIn("injected swap failure", swap.stderr)
+        self.assertEqual((site / "docs/guide.md.html").read_text(), before)
+        self.assertFalse((self.repo / "_site.new").exists())
+        self.assertFalse((self.repo / "_site.old").exists())
+
+        # A site stranded as .old by an interrupted earlier swap is recovered.
+        site.rename(self.repo / "_site.old")
+        self.assertIn(
+            "nothing replaced", self.run_script("build", "--max-bytes", "1").stderr
+        )
+        self.assertEqual((site / "docs/guide.md.html").read_text(), before)
+
     def test_app_json_token_is_shown_and_optionally_required(self) -> None:
         self.write(
             ".project-template/app.json", json.dumps({"yaAccess": "secret-token"})

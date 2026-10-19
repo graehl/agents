@@ -1071,6 +1071,9 @@ def build_site(
     staging = site.with_name(site.name + ".new")
     if staging.exists():
         shutil.rmtree(staging)
+    retired = site.with_name(site.name + ".old")
+    if retired.exists() and not site.exists():
+        retired.rename(site)  # a swap interrupted after retiring the live site
     total = 0
     try:
         for rel, page in outputs.items():
@@ -1103,7 +1106,6 @@ def build_site(
             json.dumps(manifest, indent=1) + "\n", encoding="utf-8"
         )
         repo.ensure_excluded(site)
-        retired = site.with_name(site.name + ".old")
         if retired.exists():
             shutil.rmtree(retired)
         if site.exists():
@@ -1112,6 +1114,8 @@ def build_site(
         if retired.exists():
             shutil.rmtree(retired)
     except BaseException:
+        if retired.exists() and not site.exists():
+            retired.rename(site)
         if staging.exists():
             shutil.rmtree(staging)
         raise
