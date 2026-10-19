@@ -1052,7 +1052,7 @@ def active_register(args) -> int:
         "id": SELF_ID_LABEL,
         "banner": banner,
     }
-    if note_setup["hook"] in ("installed", "foreign", "error"):
+    if note_setup["hook"] in ("installed", "foreign", "unsafe", "error"):
         payload["commit_note_hook"] = note_setup["hook"]
     scope_value = _header_value(scope_line)
     tending_value = _header_value(tending_line)
@@ -2268,19 +2268,25 @@ def commit_note_line(identity: dict[str, str]) -> str:
 
     Deliberately carries no timestamp: git copies the old note onto an
     amended commit only *after* post-commit runs (verified on git 2.43), so
-    the hook cannot dedupe against it; identical lines instead collapse
-    under `notes.rewriteMode=cat_sort_uniq`, which the self-install sets
-    when unset. The commit's own dates and the notes ref history carry time.
+    the hook cannot dedupe against it; identical lines are instead collapsed
+    by `parse_commit_note`. The commit's own dates and the notes ref history
+    carry time.
     """
     return " ".join(f"{key}={shlex.quote(value)}" for key, value in identity.items())
 
 
 def parse_commit_note(text: str) -> list[dict[str, str]]:
-    """Parse note lines back into dicts; malformed lines are kept under `raw`."""
+    """Parse distinct note lines back into dicts; malformed lines are kept under `raw`.
+
+    Identical lines collapse: rewriting a commit concatenates the old note
+    onto the one the hook just wrote.
+    """
     records: list[dict[str, str]] = []
+    seen: set[str] = set()
     for line in text.splitlines():
-        if not line.strip():
+        if not line.strip() or line in seen:
             continue
+        seen.add(line)
         try:
             tokens = shlex.split(line)
         except ValueError:
@@ -2293,13 +2299,73 @@ def parse_commit_note(text: str) -> list[dict[str, str]]:
     return records
 
 
-def _git_hooks_dir() -> Path | None:
-    """The repo's hooks directory (honors core.hooksPath and worktrees), or None."""
-    raw = git_value(["rev-parse", "--git-path", "hooks"])
-    if not raw:
-        return None
-    path = Path(raw)
-    return path if path.is_absolute() else (ROOT / path)
+def _git_abs_path(flag: str, *extra: str) -> Path | None:
+    raw = git_value(["rev-parse", "--path-format=absolute", flag, *extra])
+    return Path(raw).resolve() if raw else None
+
+
+def _commit_note_push_risk() -> str:
+    """Why notes could reach a remote on a plain push, or "" when they cannot.
+
+    A plain `git push` never sends `refs/notes/*` unless a remote mirrors or a
+    configured push refspec covers the notes namespace.
+    """
+    for line in git_value(
+        ["config", "--get-regexp", r"^remote\..*\.(mirror|push)$"]
+    ).splitlines():
+        key, _, value = line.partition(" ")
+        source = value.lstrip("+").split(":", 1)[0]
+        if key.endswith(".mirror") and value.lower() in ("true", "yes", "on", "1"):
+            return f"{key} is set"
+        if key.endswith(".push") and source in (
+            "refs/*",
+            "refs/notes/*",
+            COMMIT_NOTE_REF,
+        ):
+            return f"{key}={value} pushes notes"
+    return ""
+
+
+def _commit_note_hook_target() -> tuple[Path | None, str, str]:
+    """`(hook path, refusal reason, in-tree path to exclude)` for the post-commit hook.
+
+    Hooks under the repository's own Git directory are private. A hooks path
+    inside the work tree is usable only when the hook file is untracked, and
+    then only after its exact path is excluded locally. A hooks directory
+    outside this repository (a shared or global `core.hooksPath`) is refused:
+    installing there would reach other repositories.
+    """
+    hooks = _git_abs_path("--git-path", "hooks")
+    if hooks is None:
+        return None, "", ""
+    hook = hooks / "post-commit"
+    private = [
+        p for p in (_git_abs_path("--git-dir"), _git_abs_path("--git-common-dir")) if p
+    ]
+    if any(hooks.is_relative_to(p) for p in private):
+        return hook, "", ""
+    top = git_value(["rev-parse", "--show-toplevel"])
+    top_path = Path(top).resolve() if top else None
+    if top_path is None or not hooks.is_relative_to(top_path):
+        return hook, f"hooks directory {hooks} is outside this repository", ""
+    rel = hook.relative_to(top_path).as_posix()
+    if git_value(["ls-files", "--full-name", "--", f":(top,literal){rel}"]):
+        return hook, f"{rel} is tracked in this repository", ""
+    return hook, "", rel
+
+
+def _exclude_locally(rel: str) -> None:
+    """Append `/rel` to the repository's local exclude file unless present."""
+    exclude = _git_abs_path("--git-path", "info/exclude")
+    if exclude is None:
+        raise OSError("cannot locate info/exclude")
+    pattern = "/" + rel
+    text = exclude.read_text(encoding="utf-8") if exclude.exists() else ""
+    if pattern in text.splitlines():
+        return
+    exclude.parent.mkdir(parents=True, exist_ok=True)
+    with exclude.open("a", encoding="utf-8") as handle:
+        handle.write(("" if not text or text.endswith("\n") else "\n") + pattern + "\n")
 
 
 _commit_note_hook_setup: dict[str, str] | None = None
@@ -2323,61 +2389,54 @@ def ensure_commit_note_hook() -> dict[str, str]:
 
     Returns `{"hook": <state>, "config": <state>}` where hook is one of
     `installed` (written now), `present` (ours already), `foreign` (an
-    unrelated post-commit hook exists and is left untouched), `disabled`
-    (NO_COMMIT_NOTE_ENV set), `no-git`, or `error`; config is `added`,
-    `present`, or `skipped`. A foreign hook is reported once per project on
-    stderr (marker file under .agentctl/) so a registering session is not
-    nagged; `agentctl commit-note` always reports it in its payload.
+    unrelated post-commit hook exists and is left untouched), `unsafe` (the
+    destination or push configuration could leak the hook or notes; a
+    `reason` key says which), `disabled` (NO_COMMIT_NOTE_ENV set), `no-git`,
+    or `error`; config is `added`, `present`, or `skipped`. Foreign and
+    unsafe states are reported once per project on stderr (marker file under
+    .agentctl/) so a registering session is not nagged; `agentctl
+    commit-note` always reports them in its payload. Nothing here may fail
+    session registration.
     """
-    if agentctl_setting(NO_COMMIT_NOTE_ENV):
-        return {"hook": "disabled", "config": "skipped"}
-    hooks_dir = _git_hooks_dir()
-    if hooks_dir is None:
-        return {"hook": "no-git", "config": "skipped"}
-    hook = hooks_dir / "post-commit"
     try:
-        if hook.exists() or hook.is_symlink():
-            try:
-                text = hook.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                text = ""
-            hook_state = "present" if COMMIT_NOTE_HOOK_MARKER in text else "foreign"
+        if agentctl_setting(NO_COMMIT_NOTE_ENV):
+            return {"hook": "disabled", "config": "skipped"}
+    except SystemExit as exc:
+        print(f"warning: commit-note hook: {exc.code}", file=sys.stderr)
+        return {"hook": "error", "config": "skipped"}
+    hook, reason, exclude = _commit_note_hook_target()
+    if hook is None:
+        return {"hook": "no-git", "config": "skipped"}
+    reason = reason or _commit_note_push_risk()
+    hook_line = (
+        f"{shlex.quote(str(CODE_ROOT / 'agentctl'))} commit-note --hook --acli-quiet"
+    )
+    try:
+        if reason:
+            hook_state = "unsafe"
+        elif hook.exists() or hook.is_symlink():
+            hook_state = _commit_note_hook_state(hook)
         else:
-            hooks_dir.mkdir(parents=True, exist_ok=True)
-            wrapper = CODE_ROOT / "agentctl"
-            hook.write_text(
-                "#!/bin/sh\n"
-                f"{COMMIT_NOTE_HOOK_MARKER}\n"
-                "# Installed by agentctl on first session registration. Records\n"
-                f"# the committing agent session under {COMMIT_NOTE_REF} so a\n"
-                "# commit hash resolves to its harness transcript without a\n"
-                "# session id in the message. Safe to delete: agentctl reinstalls\n"
-                "# only when absent and never edits a foreign post-commit hook.\n"
-                f"exec {shlex.quote(str(wrapper))} commit-note --hook --acli-quiet\n",
-                encoding="utf-8",
-            )
-            hook.chmod(hook.stat().st_mode | 0o111)
-            hook_state = "installed"
+            if exclude:
+                _exclude_locally(exclude)
+            hook.parent.mkdir(parents=True, exist_ok=True)
+            hook_state = _create_commit_note_hook(hook, hook_line)
     except OSError as exc:
         print(f"warning: commit-note hook: {hook}: {exc}", file=sys.stderr)
         hook_state = "error"
-    # Two settings, each added only when absent: our ref in the multi-valued
-    # notes.rewriteRef so notes follow amends/rebases, and cat_sort_uniq as
-    # the rewrite mode (only when the project has none) so a same-session
-    # amend collapses to one line instead of concatenating a duplicate.
-    wanted: list[list[str]] = []
-    if (
+    # Our ref joins the multi-valued notes.rewriteRef so notes follow
+    # amends/rebases. notes.rewriteMode is deliberately left alone: it governs
+    # every rewritten notes ref in the repository, so readers dedupe instead.
+    config_state = "present"
+    if reason:
+        config_state = "skipped"
+    elif (
         COMMIT_NOTE_REF
         not in git_value(["config", "--get-all", "notes.rewriteRef"]).split()
     ):
-        wanted.append(["--add", "notes.rewriteRef", COMMIT_NOTE_REF])
-    if not git_value(["config", "--get", "notes.rewriteMode"]):
-        wanted.append(["notes.rewriteMode", "cat_sort_uniq"])
-    config_state = "present"
-    for setting in wanted:
         try:
             subprocess.run(
-                ["git", "config", *setting],
+                ["git", "config", "--add", "notes.rewriteRef", COMMIT_NOTE_REF],
                 cwd=ROOT,
                 check=True,
                 stdout=subprocess.DEVNULL,
@@ -2386,22 +2445,58 @@ def ensure_commit_note_hook() -> dict[str, str]:
             config_state = "added"
         except (OSError, subprocess.SubprocessError):
             config_state = "skipped"
-            break
-    if hook_state == "foreign":
-        marker = STATE / "commit-note.foreign-hook"
+    if hook_state in ("foreign", "unsafe"):
+        marker = STATE / f"commit-note.{hook_state}-hook"
         if not marker.exists():
             try:
                 STATE.mkdir(parents=True, exist_ok=True)
-                marker.write_text(f"{hook}\n", encoding="utf-8")
+                marker.write_text(f"{hook}\n{reason}\n", encoding="utf-8")
             except OSError:
                 pass
-            print(
-                f"note: commit-note hook not installed: {hook} exists and is not "
-                f"agentctl's; to record commit provenance add this line to it: "
-                f"{shlex.quote(str(CODE_ROOT / 'agentctl'))} commit-note --hook --acli-quiet",
-                file=sys.stderr,
-            )
-    return {"hook": hook_state, "config": config_state}
+            if hook_state == "foreign":
+                detail = (
+                    f"{hook} exists and is not agentctl's; to record commit "
+                    f"provenance add this line to it: {hook_line}"
+                )
+            else:
+                detail = reason
+            print(f"note: commit-note hook not installed: {detail}", file=sys.stderr)
+    result = {"hook": hook_state, "config": config_state}
+    if reason:
+        result["reason"] = reason
+    return result
+
+
+def _commit_note_hook_state(hook: Path) -> str:
+    try:
+        text = hook.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        text = ""
+    return "present" if COMMIT_NOTE_HOOK_MARKER in text else "foreign"
+
+
+def _create_commit_note_hook(hook: Path, hook_line: str) -> str:
+    """Create the hook complete and executable, never replacing a concurrent one."""
+    temp = hook.with_name(f".post-commit.agentctl-{os.getpid()}")
+    temp.write_text(
+        "#!/bin/sh\n"
+        f"{COMMIT_NOTE_HOOK_MARKER}\n"
+        "# Installed by agentctl on first session registration. Records\n"
+        f"# the committing agent session under {COMMIT_NOTE_REF} so a\n"
+        "# commit hash resolves to its harness transcript without a\n"
+        "# session id in the message. Safe to delete: agentctl reinstalls\n"
+        "# only when absent and never edits a foreign post-commit hook.\n"
+        f"exec {hook_line}\n",
+        encoding="utf-8",
+    )
+    try:
+        temp.chmod(0o755)
+        os.link(temp, hook)
+        return "installed"
+    except FileExistsError:
+        return _commit_note_hook_state(hook)
+    finally:
+        temp.unlink(missing_ok=True)
 
 
 def _commit_note_show(sha: str) -> str:
@@ -2472,7 +2567,19 @@ def commit_note_cmd(args) -> int:
         }
         acli.emit(payload, fmt)
         return int(acli.ExitCode.DATA)
-    if agentctl_setting(NO_COMMIT_NOTE_ENV):
+    try:
+        disabled = agentctl_setting(NO_COMMIT_NOTE_ENV)
+    except SystemExit as exc:
+        if not hook_mode:
+            raise
+        # post-commit cannot undo the commit; say why no note was written.
+        print(f"warning: commit-note: not recorded: {exc.code}", file=sys.stderr)
+        return 0
+    risk = "" if disabled else _commit_note_push_risk()
+    if hook_mode and risk:
+        print(f"warning: commit-note: not recorded: {risk}", file=sys.stderr)
+        return 0
+    if disabled or risk:
         if hook_mode:
             return 0
         acli.emit(
@@ -2481,7 +2588,7 @@ def commit_note_cmd(args) -> int:
                 "ok": False,
                 "sha": sha,
                 "action": "skipped",
-                "reason": f"{NO_COMMIT_NOTE_ENV} is set",
+                "reason": risk or f"{NO_COMMIT_NOTE_ENV} is set",
                 "setup": setup,
             },
             fmt,
@@ -3093,13 +3200,19 @@ def apply_env_defaults(
 _SETTING_FILES: list[dict[str, str]] | None = None
 
 
-def agentctl_setting(key: str, default: str = "") -> str:
+def agentctl_setting(
+    key: str, default: str = "", env: dict[str, str] | None = None
+) -> str:
     """An agentctl setting: environment, then project, then global agentctl.env.
 
     The same `AGENTCTL_*` name works in all three places, so a setting can be
-    fixed per machine, per project, or per invocation.
+    fixed per machine, per project, or per invocation. `env` is a launch
+    environment that already merged the env files its options selected; it
+    replaces the ambient-plus-default-files lookup.
     """
     global _SETTING_FILES
+    if env is not None:
+        return env.get(key, "").strip() or default
     value = os.environ.get(key, "").strip()
     if value:
         return value
@@ -3239,11 +3352,6 @@ class SourceGuard:
                 raise
             self.refuse(str(exc.code))
             return None
-
-
-def resolve_source_guard(requested: str | None, env: dict[str, str]) -> str:
-    """Explicit --source-guard, then the ambient or agentctl.env default."""
-    return requested or env.get(SOURCE_GUARD_ENV) or "enforce"
 
 
 def source_pathspecs(source_scope: str) -> list[str]:
@@ -5001,7 +5109,8 @@ def start(args: argparse.Namespace) -> int:
             source_env=list(args.source_env),
             source_scope=args.source_scope,
             guard=SourceGuard(
-                resolve_source_guard(getattr(args, "source_guard", None), env)
+                getattr(args, "source_guard", None)
+                or agentctl_setting(SOURCE_GUARD_ENV, "enforce", env=env)
             ),
         )
     for script in args.source_env:
@@ -7217,8 +7326,8 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
             "What a reproducibility-guard violation does, at submission and again before a "
             "queued payload launches: enforce refuses the run; record keeps each violation in "
             "the run's source_snapshot (status unverified) and on stderr, and runs anyway. "
-            f"Default: ${SOURCE_GUARD_ENV} from the environment or project agentctl.env, "
-            "else enforce."
+            f"Default: ${SOURCE_GUARD_ENV} from the environment, project agentctl.env, "
+            "or global agentctl.env, else enforce."
         ),
     )
     sp.add_argument(

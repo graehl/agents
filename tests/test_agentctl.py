@@ -5096,12 +5096,13 @@ def test_commit_note_hook_self_installs_on_active():
             ["git", "config", "--get-all", "notes.rewriteRef"], cwd=ws.tmp, text=True
         ).split()
         _assert("refs/notes/agent-session" in refs, f"rewriteRef not set: {refs!r}")
-        mode = subprocess.check_output(
-            ["git", "config", "--get", "notes.rewriteMode"], cwd=ws.tmp, text=True
-        ).strip()
-        _assert(
-            mode == "cat_sort_uniq", f"rewriteMode should be set when unset: {mode!r}"
-        )
+        mode = subprocess.run(
+            ["git", "config", "--get", "notes.rewriteMode"],
+            cwd=ws.tmp,
+            text=True,
+            capture_output=True,
+        ).stdout.strip()
+        _assert(mode == "", f"rewriteMode governs every notes ref; leave it: {mode!r}")
         again = ws.run(
             "active",
             "second registration",
@@ -5228,6 +5229,112 @@ def test_commit_note_foreign_hook_left_alone():
             payload["setup"]["hook"] == "foreign" and payload["action"] == "added",
             payload,
         )
+    finally:
+        ws.cleanup()
+
+
+def test_commit_note_hook_destination_safety():
+    # An untracked in-tree hooks path is excluded locally before the hook is
+    # created; a tracked hook file, a hooks directory outside the repository,
+    # or a push configuration that sends notes is refused without failing
+    # registration.
+    env_extra = {"CLAUDE_CODE_SESSION_ID": "sess-dest"}
+
+    def register(ws: Workspace) -> dict:
+        res = ws.run("active", "registering", env_extra=env_extra)
+        _assert(res.returncode == 0, f"active must still register: {res.stderr}")
+        return _json_record(res.stdout)
+
+    ws = Workspace()
+    try:
+        subprocess.run(
+            ["git", "config", "core.hooksPath", "githooks"], cwd=ws.tmp, check=True
+        )
+        _assert(register(ws).get("commit_note_hook") == "installed", "in-tree install")
+        status = subprocess.check_output(
+            ["git", "status", "--porcelain", "--", "githooks"], cwd=ws.tmp, text=True
+        )
+        _assert(status == "", f"in-tree hook must be excluded: {status!r}")
+        exclude = (ws.tmp / ".git/info/exclude").read_text()
+        _assert("/githooks/post-commit" in exclude.splitlines(), exclude)
+    finally:
+        ws.cleanup()
+
+    ws = Workspace()
+    try:
+        hook = ws.tmp / "githooks/post-commit"
+        hook.parent.mkdir()
+        hook.write_text("#!/bin/sh\n")
+        ws.commit(hook)
+        hook.unlink()
+        subprocess.run(
+            ["git", "config", "core.hooksPath", "githooks"], cwd=ws.tmp, check=True
+        )
+        _assert(register(ws).get("commit_note_hook") == "unsafe", "tracked hook path")
+        _assert(not hook.exists(), "a tracked destination must not be written")
+    finally:
+        ws.cleanup()
+
+    ws = Workspace()
+    shared = Path(tempfile.mkdtemp(prefix="agentctl-shared-hooks-"))
+    try:
+        subprocess.run(
+            ["git", "config", "core.hooksPath", str(shared)], cwd=ws.tmp, check=True
+        )
+        _assert(register(ws).get("commit_note_hook") == "unsafe", "outside hooks dir")
+        _assert(not (shared / "post-commit").exists(), "shared hooks dir untouched")
+    finally:
+        ws.cleanup()
+        shutil.rmtree(shared)
+
+    ws = Workspace()
+    try:
+        subprocess.run(
+            ["git", "config", "remote.origin.mirror", "true"], cwd=ws.tmp, check=True
+        )
+        payload = register(ws)
+        _assert(payload.get("commit_note_hook") == "unsafe", f"mirror: {payload!r}")
+        refs = subprocess.run(
+            ["git", "config", "--get-all", "notes.rewriteRef"],
+            cwd=ws.tmp,
+            text=True,
+            capture_output=True,
+        ).stdout
+        _assert(refs == "", f"no notes config when unsafe: {refs!r}")
+    finally:
+        ws.cleanup()
+
+
+def test_commit_note_hook_tolerates_malformed_env_and_push_risk():
+    # post-commit cannot undo a commit: a malformed agentctl.env or a later
+    # notes-pushing refspec leaves the commit and its exit status intact,
+    # writes no note, and says why.
+    ws = Workspace()
+    home = ws.scratch / "home"
+    home.mkdir()
+    try:
+        res = ws.run(
+            "active",
+            "working",
+            env_extra={"HOME": str(home), "CLAUDE_CODE_SESSION_ID": "sess-env"},
+        )
+        _assert(res.returncode == 0, f"active failed: {res.stderr}")
+        env = _hermetic_env(home, CLAUDE_CODE_SESSION_ID="sess-env")
+        (ws.tmp / "agentctl.env").write_text("not a setting\n")
+        sha, err = _commit_as(ws, env, "with malformed env")
+        _assert("not recorded" in err and "agentctl.env" in err, err)
+        (ws.tmp / "agentctl.env").unlink()
+        rc, _ = _show_note(ws, home, sha)
+        _assert(rc == 4, "no note under a malformed env")
+        subprocess.run(
+            ["git", "config", "remote.origin.push", "refs/notes/*"],
+            cwd=ws.tmp,
+            check=True,
+        )
+        sha, err = _commit_as(ws, env, "with notes push")
+        _assert("not recorded" in err and "pushes notes" in err, err)
+        rc, _ = _show_note(ws, home, sha)
+        _assert(rc == 4, "no note when a push would publish it")
     finally:
         ws.cleanup()
 

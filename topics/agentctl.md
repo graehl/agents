@@ -932,16 +932,25 @@ notices.
   post-commit hook runs `commit-note --hook`, which never fails a commit and
   is silent for a hand commit (no session resolves, no note). Session
   registration (`active`, and the claim paths of `others`/`alone`/`tending`)
-  self-installs that hook plus `notes.rewriteRef` (and `notes.rewriteMode=
-  cat_sort_uniq` when the project has none), creating only what is absent:
-  an existing foreign post-commit hook is reported once
-  (`.agentctl/commit-note.foreign-hook` marks the sighting) and never edited;
-  `AGENTCTL_NO_COMMIT_NOTE` opts out. Notes stay local — a plain `git push`
-  does not send `refs/notes/*`. Because git copies the old note onto an
-  amended commit only after post-commit runs, the line carries no timestamp
-  and dedupes by `cat_sort_uniq`: a same-session amend stays one line, a
-  peer's amend adds its own. `--show` parses the note back (`sessions` array;
-  exit 4 when none).
+  self-installs that hook plus `notes.rewriteRef`, creating only what is
+  absent and never failing registration: an existing foreign post-commit
+  hook is reported once (`.agentctl/commit-note.foreign-hook` marks the
+  sighting) and never edited; `AGENTCTL_NO_COMMIT_NOTE` opts out. Hooks under
+  the repository's Git directory install directly. A `core.hooksPath` inside
+  the work tree installs only when the hook file is untracked, after its exact
+  path is added to `.git/info/exclude`; a tracked hook file or a hooks
+  directory outside the repository (shared or global) is refused as `unsafe`
+  and reported once. Notes stay local — a plain `git push` does not send
+  `refs/notes/*` — unless a remote mirrors or a push refspec covers the notes
+  namespace; then setup is refused and the hook writes no note, saying why.
+  A malformed `agentctl.env` likewise leaves the commit and its exit status
+  intact with a one-line warning. `notes.rewriteMode` is left alone because
+  it governs every rewritten notes ref; a rewrite therefore concatenates the
+  old note onto the hook's new one. The line carries no timestamp and
+  readers collapse identical lines: a same-session amend stays one session,
+  a peer's amend adds its own. `--show` parses the note back (`sessions`
+  array; exit 4 when none). Repositories set up before this change may keep
+  the `notes.rewriteMode=cat_sort_uniq` earlier versions added.
 - Every plugin hook is optional. Missing hooks are silently skipped; loader
   errors print one warning and continue without the failing plugin so a
   broken plugin does not break the launcher.

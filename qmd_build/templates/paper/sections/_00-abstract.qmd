@@ -1,4 +1,0 @@
-::: {.abstract}
-TBD: problem and regime, intervention or finding, principal quantitative
-result, most important scope boundary.
-:::
