@@ -1,8 +1,9 @@
 """GPU memory observation and host-wide fractional VRAM leases for agentctl.
 
-Pure policy and storage: nvidia-smi parsing, exact lease amounts, the lease
-store, and the admission rule. Process attribution (which GPU process belongs
-to which run) needs agentctl's /proc helpers and is passed in by the caller.
+Policy and storage: nvidia-smi parsing, exact lease amounts, the lease store,
+the admission rule, and waiting for admission. Process attribution (which GPU
+process belongs to which run) and holder liveness need agentctl's /proc
+helpers and are passed in by the caller.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ import json
 import os
 import re
 import subprocess
+import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from fractions import Fraction
@@ -169,6 +171,13 @@ def recent_vram_peak(
     return peak
 
 
+def lease_recent_peak_mib(lease: dict, gpu: int) -> int:
+    run_dir = lease.get("run_dir")
+    if not run_dir:
+        return 0
+    return recent_vram_peak(Path(run_dir), time.time()).get(gpu, 0)
+
+
 # ---- Lease amounts ---------------------------------------------------------
 
 _AMOUNT_RE = re.compile(
@@ -215,6 +224,18 @@ def parse_lease_request(spec: str) -> LeaseRequest:
         return LeaseRequest(spec=spec, gpu=gpu, share=number / 100)
     scale = MIB_PER_GIB if unit.startswith("G") else 1
     return LeaseRequest(spec=spec, gpu=gpu, mib=number * scale)
+
+
+def normalize_lease_specs(specs: list[str], gpus: str) -> list[str]:
+    """Pin each `[GPU:]AMOUNT` to a GPU index: the single `--gpus` index when
+    there is one, else 0, so a restarted run leases the same device."""
+    default_gpu = int(gpus) if gpus.strip().isdigit() else 0
+    normalized = []
+    for spec in specs:
+        request = parse_lease_request(spec)
+        gpu = default_gpu if request.gpu is None else request.gpu
+        normalized.append(f"{gpu}:{spec.strip().split(':', 1)[-1]}")
+    return normalized
 
 
 def format_mib(mib: Fraction | float) -> str:
@@ -430,3 +451,35 @@ def try_acquire(
             tmp.write_text(json.dumps(lease, sort_keys=True) + "\n", encoding="utf-8")
             tmp.replace(path)
         return LeaseAttempt(granted=planned, commitments=commitments, blocked=[])
+
+
+def wait_for_leases(
+    requests: list[LeaseRequest],
+    *,
+    directory: Path,
+    holder: Callable[[], dict],
+    holder_alive: Callable[[dict], bool],
+    lease_of_pid: Callable[[int, list[dict]], dict | None],
+    poll: float,
+    timeout: float,
+    on_blocked: Callable[[list[str]], None],
+) -> LeaseAttempt:
+    """Retry `try_acquire` every `poll` seconds until granted or `timeout`
+    (0 waits forever); the result is still blocked only on timeout."""
+    deadline = time.time() + timeout if timeout > 0 else None
+    while True:
+        attempt = try_acquire(
+            requests,
+            directory=directory,
+            default_gpu=0,
+            holder=holder(),
+            holder_alive=holder_alive,
+            lease_of_pid=lease_of_pid,
+            recent_peak_mib=lease_recent_peak_mib,
+        )
+        if not attempt.blocked:
+            return attempt
+        on_blocked(attempt.blocked)
+        if deadline is not None and time.time() >= deadline:
+            return attempt
+        time.sleep(poll)

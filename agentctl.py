@@ -4924,9 +4924,12 @@ def start(args: argparse.Namespace) -> int:
         )
         if wait_rc != 0:
             return wait_rc
-    gpu_lease_specs = normalized_gpu_lease_specs(
-        getattr(args, "gpu_lease", None) or [], args.gpus
-    )
+    try:
+        gpu_lease_specs = agentctl_gpu.normalize_lease_specs(
+            getattr(args, "gpu_lease", None) or [], args.gpus
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     wait_after = [resolve_after_target(spec) for spec in (args.after or [])]
     job = slug(args.job)
     rid = args.run_id or run_id()
@@ -6245,25 +6248,6 @@ def wait_gpu(args: argparse.Namespace) -> int:
 # ---- GPU use by run, and fractional VRAM leases ----------------------------
 
 
-def normalized_gpu_lease_specs(specs: list[str], gpus: str) -> list[str]:
-    """Validate `--gpu-lease` specs and pin each to an explicit GPU index.
-
-    An unprefixed amount goes to the single `--gpus` index when there is one,
-    else GPU 0, so a restarted run leases the same device.
-    """
-    default_gpu = int(gpus) if gpus.strip().isdigit() else 0
-    normalized = []
-    for spec in specs:
-        try:
-            request = agentctl_gpu.parse_lease_request(spec)
-        except ValueError as exc:
-            raise SystemExit(str(exc)) from exc
-        gpu = default_gpu if request.gpu is None else request.gpu
-        amount = spec.strip().split(":", 1)[-1]
-        normalized.append(f"{gpu}:{amount}")
-    return normalized
-
-
 def lease_holder_alive(lease: dict) -> bool:
     """A lease lives as long as its recorded wrapper process.
 
@@ -6334,56 +6318,53 @@ def acquire_run_gpu_leases(state_path: Path) -> tuple[int, list[str]]:
         "job": state.get("job"),
         "run_id": state.get("run_id"),
         "run_dir": str(state_path.parent),
-        "granted_at": utc_now(),
     }
-    poll = float(state.get("gpu_lease_poll") or 10.0)
     heartbeat = float(state.get("gpu_lease_heartbeat") or 0.0)
-    timeout = float(state.get("gpu_lease_timeout") or 0.0)
-    deadline = time.time() + timeout if timeout > 0 else None
     next_report = 0.0
-    while True:
-        holder["granted_at"] = utc_now()
-        try:
-            attempt = agentctl_gpu.try_acquire(
-                requests,
-                directory=gpu_lease_dir(),
-                default_gpu=0,
-                holder=holder,
-                holder_alive=lease_holder_alive,
-                lease_of_pid=lease_of_gpu_pid,
-                recent_peak_mib=lease_recent_peak_mib,
-            )
-        except RuntimeError as exc:
-            print(f"[gpu-lease] cannot lease: {exc}", file=sys.stderr, flush=True)
-            return 2, []
-        if not attempt.blocked:
-            granted = [
-                {key: lease[key] for key in ("lease_id", "gpu", "spec", "mib")}
-                for lease in attempt.granted
-            ]
-            state = read_json(state_path)
-            state["gpu_leases"] = granted
-            update_state_files(state)
-            summary = ", ".join(
-                f"gpu{lease['gpu']}:{agentctl_gpu.format_mib(Fraction(lease['mib']))}"
-                for lease in granted
-            )
-            print(f"[gpu-lease] granted {summary}", flush=True)
-            return 0, [lease["lease_id"] for lease in granted]
+
+    def report(blocked: list[str]) -> None:
+        nonlocal next_report
         now = time.time()
         if heartbeat > 0 and (next_report == 0.0 or now >= next_report):
-            headline = "waiting for GPU lease: " + "; ".join(attempt.blocked)
+            headline = "waiting for GPU lease: " + "; ".join(blocked)
             if state.get("headline_path"):
                 write_headline(Path(state["headline_path"]), headline)
             print(f"[gpu-lease] {headline}", flush=True)
             next_report = now + heartbeat
-        if deadline is not None and now >= deadline:
-            print(
-                f"timeout waiting for GPU lease: {'; '.join(attempt.blocked)}",
-                file=sys.stderr,
-            )
-            return 1, []
-        time.sleep(poll)
+
+    try:
+        attempt = agentctl_gpu.wait_for_leases(
+            requests,
+            directory=gpu_lease_dir(),
+            holder=lambda: {**holder, "granted_at": utc_now()},
+            holder_alive=lease_holder_alive,
+            lease_of_pid=lease_of_gpu_pid,
+            poll=float(state.get("gpu_lease_poll") or 10.0),
+            timeout=float(state.get("gpu_lease_timeout") or 0.0),
+            on_blocked=report,
+        )
+    except RuntimeError as exc:
+        print(f"[gpu-lease] cannot lease: {exc}", file=sys.stderr, flush=True)
+        return 2, []
+    if attempt.blocked:
+        print(
+            f"timeout waiting for GPU lease: {'; '.join(attempt.blocked)}",
+            file=sys.stderr,
+        )
+        return 1, []
+    granted = [
+        {key: lease[key] for key in ("lease_id", "gpu", "spec", "mib")}
+        for lease in attempt.granted
+    ]
+    state = read_json(state_path)
+    state["gpu_leases"] = granted
+    update_state_files(state)
+    summary = ", ".join(
+        f"gpu{lease['gpu']}:{agentctl_gpu.format_mib(Fraction(lease['mib']))}"
+        for lease in granted
+    )
+    print(f"[gpu-lease] granted {summary}", flush=True)
+    return 0, [lease["lease_id"] for lease in granted]
 
 
 def proc_memory_mib(pid: int) -> float | None:
@@ -6438,13 +6419,6 @@ def run_resource_use(
         if recent:
             use["vram_recent_max_mib"] = recent
     return use
-
-
-def lease_recent_peak_mib(lease: dict, gpu: int) -> int:
-    run_dir = lease.get("run_dir")
-    if not run_dir:
-        return 0
-    return agentctl_gpu.recent_vram_peak(Path(run_dir), time.time()).get(gpu, 0)
 
 
 GPU_SAMPLE_SECONDS_ENV = "AGENTCTL_GPU_SAMPLE_SECONDS"
@@ -6515,7 +6489,7 @@ def gpu_commitments(
             leases,
             snapshot.processes_on(device.index),
             lease_of_gpu_pid,
-            lease_recent_peak_mib,
+            agentctl_gpu.lease_recent_peak_mib,
         )
         for device in snapshot.devices
     ]
