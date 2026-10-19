@@ -285,26 +285,42 @@ def _matching_lines(pattern: re.Pattern[str], *paths: Path) -> list[str]:
 def source_tree(root: Path) -> str | None:
     """Git tree id of the working files: tracked plus untracked, not ignored.
 
-    Built in a throwaway copy of the index, so the real index is untouched.
+    Built in a throwaway copy of the index and a throwaway object directory
+    that borrows the repository's objects, so neither the real index nor the
+    object store changes: untracked and edited files are hashed, not stored.
     Two runs see the same id exactly when they saw the same file contents.
     None outside a git work tree.
     """
     probe = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "--git-path", "index"],
+        [
+            "git",
+            "-C",
+            str(root),
+            "rev-parse",
+            "--path-format=absolute",
+            "--git-path",
+            "index",
+            "--git-path",
+            "objects",
+        ],
         capture_output=True,
         text=True,
         check=False,
     )
     if probe.returncode != 0:
         return None
-    index = Path(probe.stdout.strip())
-    if not index.is_absolute():
-        index = root / index
+    index, objects = (Path(line) for line in probe.stdout.splitlines())
     with tempfile.TemporaryDirectory(prefix="verify-index-") as tmp:
         scratch = Path(tmp) / "index"
         if index.is_file():
             shutil.copyfile(index, scratch)
-        env = {**os.environ, "GIT_INDEX_FILE": str(scratch)}
+        (Path(tmp) / "objects").mkdir()
+        env = {
+            **os.environ,
+            "GIT_INDEX_FILE": str(scratch),
+            "GIT_OBJECT_DIRECTORY": str(Path(tmp) / "objects"),
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(objects),
+        }
         for cmd in (["add", "-A"], ["write-tree"]):
             done = subprocess.run(
                 ["git", "-C", str(root), *cmd],

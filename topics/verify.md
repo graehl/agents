@@ -47,7 +47,8 @@ this as a tab badge or notification; others ignore it.
 
 Every result is remembered in `.verify/state.json` against the **source
 tree**: a git tree id of the tracked and untracked, non-ignored files,
-computed in a scratch index so the real one is untouched. `--passed` lists
+computed in a scratch index and a scratch object directory, so neither the
+real index nor the repository's object store changes. `--passed` lists
 the checks whose latest result passed on exactly the current files, with the
 same command. A caller can skip those, which is how a publish script avoids
 rerunning checks that just passed. Any edit, including a rebase that brings
