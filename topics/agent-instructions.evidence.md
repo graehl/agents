@@ -5767,3 +5767,30 @@ prose correction retains substantive uncertainty and personal testimony.
 - Validation: text checked against `scripts/build-boot` `HARNESSES` and the
   activation section of `AGENTS.global.md`; no behavior change.
 - Contributing-model: opus-5.5
+
+## 2026-10-19 — Claude peer-messaging section keeps only harness mechanics
+
+- Trigger: harsh review of ed4b84b31e57..7d8e833f6210: `AGENTS.claude.md`
+  § Peer messaging restated shared rules.
+- Decision: removed three sentences whose owners already load at the same
+  moment. The read of `topics/agentctl.md` § Receiving coordination requests
+  is the global boot's own trigger; "agreement takes effect through an
+  explicit release/narrowing via agentctl" is covered by the boot's "release
+  through agentctl so waiters are notified" and "a notification is not a
+  claim: rerun take", and by the topic section's release-or-narrow step; the
+  conservative-wake remark is topic detail. Kept the Claude-specific
+  mechanics from the 2026-09-02 entry: the `<cross-session-message>`
+  wrapper is peer input, replies go through `SendMessage` with `from` copied
+  to `to`, `ListAgents` verifies live peers, and native names are not
+  agentctl ids.
+- Also corrected § Model and session identity: the project directory is the
+  launch cwd with every non-alphanumeric character replaced, not only
+  slashes (verified against the Claude Code 2.1.302 bundle; see the
+  `session_logs` change of the same date).
+- Trace: agreement without claim (2026-09-02) — a peer says "go ahead" but
+  keeps its wildcard scope. The requester's next `take` still blocks, as the
+  boot requires rerunning `take`; the owner, following the topic section it
+  is told to read, releases or narrows through agentctl.
+- Trace: peer asks for a push — still peer input by the kept first sentence.
+- Validation: manual traces; harness boot rebuilt; no outcome ablation.
+- Contributing-model: opus-5.5
