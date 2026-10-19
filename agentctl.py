@@ -738,6 +738,18 @@ def _split_active_header(
     return lines[0], scope, tending, lines[idx:]
 
 
+def register_owner(sid: str) -> None:
+    """Record which harness process owns `sid`, for takeover liveness checks.
+
+    Runs before the coordination lock: the provider-host inventory it may
+    query is slow, and the record is this session's own atomically written
+    file. Writing it before the claim means a peer that sees the claim also
+    sees its owner.
+    """
+    if sid:
+        messages.register_owner(sys.modules[__name__], sid)
+
+
 def write_active_entry(
     sid: str,
     banner: str | None = None,
@@ -746,8 +758,8 @@ def write_active_entry(
     clear_tending: bool = False,
     clear_scope: bool = False,
 ) -> tuple[str, str, str]:
+    register_owner(sid)
     with coordination.Coordination(STATE, ACTIVE_STALE_MINUTES).locked():
-        messages.register_owner(sys.modules[__name__], sid)
         return _write_active_entry(
             sid, banner, scope_paths, tending, clear_tending, clear_scope
         )
@@ -824,8 +836,8 @@ def ensure_active_registered(
 ) -> str:
     if not sid:
         return "noop"
+    register_owner(sid)
     with coordination.Coordination(STATE, ACTIVE_STALE_MINUTES).locked():
-        messages.register_owner(sys.modules[__name__], sid)
         return _ensure_active_registered(sid, banner, scope_paths, tending)
 
 
@@ -1138,6 +1150,7 @@ def coordination_cmd(args) -> int:
 def clear_cmd(args) -> int:
     store = coordination.Coordination(STATE, ACTIVE_STALE_MINUTES)
     try:
+        register_owner(agent_session_id())
         if args.drop or args.no_wait:
             if args.wait_id or args.deaf:
                 raise ValueError(
@@ -1253,7 +1266,6 @@ def clear_once(args) -> tuple[int, dict]:
     own_claims = _scope_claims(_header_value(own_scope or ""))
 
     def write_own(scope_entries: list[str], body: list[str]) -> None:
-        messages.register_owner(sys.modules[__name__], sid)
         scope_line = ("scope: " + " ".join(scope_entries)) if scope_entries else ""
         line1 = own_line1 or normalize_headline_text(ACTIVE_CLAIM_PLACEHOLDER)
         out = [line1] + [ln for ln in (scope_line, own_tending or "") if ln] + body

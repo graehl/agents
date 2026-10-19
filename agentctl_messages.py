@@ -35,6 +35,7 @@ class Agentctl(Protocol):
     NO_PROC_SESSION_ID_ENV: str
 
     def agent_session_id(self) -> str: ...
+    def register_owner(self, sid: str) -> None: ...
     def active_scope_path(self, raw: str) -> str: ...
     def clear_once(self, args: argparse.Namespace) -> tuple[int, dict]: ...
     def _scan_active(
@@ -401,6 +402,7 @@ def take(a: Agentctl, args: argparse.Namespace, sid: str) -> tuple[int, dict]:
     claim_args = argparse.Namespace(
         paths=paths, drop=False, carve=False, note=args.note, minutes=0
     )
+    a.register_owner(sid)
     with store.locked():
         code, result = a.clear_once(claim_args)
         if code == 0:
