@@ -504,10 +504,10 @@ names. `--home` deliberately accepts a synthetic directory for rehearsal.
 usage and safe refusals exit 2.
 
 **Post-conditions**:
-- Harness instruction paths resolve through ordinary symlinks to
-  `<repo>/AGENTS.boot.md` when `build-boot` has built it, else to
-  `<repo>/AGENTS.global.md`. The installer never creates or edits `~/AGENTS.md` and
-  offers no hardlink mode.
+- Harness instruction paths resolve through ordinary symlinks to that
+  harness's `<repo>/AGENTS.boot.<harness>.md` when `build-boot` has built it,
+  else `<repo>/AGENTS.boot.md`, else `<repo>/AGENTS.global.md`. The installer
+  never creates or edits `~/AGENTS.md` and offers no hardlink mode.
 - An absent skill root becomes a link to `<repo>/skills`; an existing directory
   retains unrelated entries and receives one link per repository skill. A root
   already resolving to the source is unchanged.
@@ -520,7 +520,10 @@ usage and safe refusals exit 2.
   the selected home. Uninstall also refuses to overwrite post-install drift. A
   repeated install for the same checkout and harness selection is a no-op when
   complete and extends the manifest when new repository skills need per-skill
-  links.
+  links. It also retargets an instruction link to the boot file the rule above
+  now selects, keeping the recorded pre-install state for uninstall. A link
+  already pointing at another of the checkout's instruction files, as
+  `build-boot link` leaves it, is not drift.
 
 **Examples**:
 1. `install-agents status` reports every supported harness without writing.

@@ -6,9 +6,10 @@ effectively unconditional read belongs inside that file. `build`
 regenerates the activity-route section of AGENTS.global.md from the
 Governs rows of GLOSSARY.agents.md, then writes the git-excluded
 AGENTS.boot.md: the global policy followed by AGENTS.user.md, which
-stays out of the tracked global file. `link` points the harness
-instruction symlinks at the boot file. Contract: topics/helper-scripts.md
-§ build-boot.
+stays out of the tracked global file, plus AGENTS.boot.<harness>.md for
+each present harness supplement, appending that supplement. `link` points
+the harness instruction symlinks at the matching harness boot, else the
+shared boot. Contract: topics/helper-scripts.md § build-boot.
 """
 
 from __future__ import annotations

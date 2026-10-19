@@ -16,9 +16,16 @@ sys.path.insert(0, str(REPO_ROOT))
 from scripts.install_agents import core as install_core
 
 SCRIPT = REPO_ROOT / "scripts" / "install-agents"
-GLOBAL = install_core.instruction_source(REPO_ROOT)
-SKILLS = REPO_ROOT / "skills"
-FIRST_SKILL = min(path for path in SKILLS.iterdir() if (path / "SKILL.md").is_file())
+
+
+def _fixture_repo(base: Path) -> Path:
+    """An instruction checkout with only the global policy and one skill, so
+    every expected link target is known without asking the installer."""
+    repo = base / "repo"
+    (repo / "skills/alpha").mkdir(parents=True)
+    (repo / "skills/alpha/SKILL.md").write_text("alpha\n")
+    (repo / "AGENTS.global.md").write_text("global\n")
+    return repo
 
 
 def _run(home: Path, command: str, *args: str) -> subprocess.CompletedProcess[str]:
@@ -30,13 +37,23 @@ def _run(home: Path, command: str, *args: str) -> subprocess.CompletedProcess[st
     )
 
 
+def _fixture(directory: str) -> tuple[Path, Path, Path, Path]:
+    """(home, repo, repo's global policy, repo's skills) under `directory`."""
+    base = Path(directory)
+    home = base / "home"
+    home.mkdir()
+    repo = _fixture_repo(base)
+    return home, repo, repo / "AGENTS.global.md", repo / "skills"
+
+
 def _target(path: Path) -> Path:
     return (path.parent / os.readlink(path)).resolve()
 
 
 def test_install_and_uninstall_restore_mixed_prior_state() -> None:
     with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
-        home = Path(directory)
+        home, repo, global_policy, skills = _fixture(directory)
+        alpha = skills / "alpha"
         codex = home / ".codex/AGENTS.md"
         codex.parent.mkdir(parents=True)
         codex.write_text("old codex\n")
@@ -47,7 +64,7 @@ def test_install_and_uninstall_restore_mixed_prior_state() -> None:
         claude = home / ".claude/CLAUDE.md"
         claude.parent.mkdir(parents=True)
         claude.symlink_to("missing-old-target")
-        old_skill = claude.parent / "skills" / FIRST_SKILL.name
+        old_skill = claude.parent / "skills" / "alpha"
         old_skill.mkdir(parents=True)
         old_skill.joinpath("kept.txt").write_text("old skill\n")
         unrelated = claude.parent / "skills" / "unrelated"
@@ -64,33 +81,25 @@ def test_install_and_uninstall_restore_mixed_prior_state() -> None:
         os.link(home_agents, hardlink_peer)
         before_inode = home_agents.stat().st_ino
 
-        proc = _run(home, "install", "--harness", "codex,claude,grok")
+        selection = ("--repo", str(repo), "--harness", "codex,claude,grok")
+        proc = _run(home, "install", *selection)
         assert proc.returncode == 0, proc.stderr
         payload = json.loads(proc.stdout)
         assert payload["status"] == "installed"
-        assert (
-            _target(codex)
-            == install_core.instruction_source(REPO_ROOT, "codex").resolve()
-        )
-        assert (
-            _target(claude)
-            == install_core.instruction_source(REPO_ROOT, "claude").resolve()
-        )
-        assert (
-            _target(grok)
-            == install_core.instruction_source(REPO_ROOT, "grok").resolve()
-        )
-        assert _target(old_skill) == FIRST_SKILL.resolve()
+        assert _target(codex) == global_policy
+        assert _target(claude) == global_policy
+        assert _target(grok) == global_policy
+        assert _target(old_skill) == alpha
         assert unrelated.joinpath("SKILL.md").read_text() == "unrelated\n"
         assert home_agents.stat().st_ino == before_inode
         assert home_agents.stat().st_nlink == 2
         assert home_agents.read_text() == "home sentinel\n"
 
-        status = _run(home, "status", "--harness", "codex,claude,grok")
+        status = _run(home, "status", *selection)
         assert status.returncode == 0, status.stderr
         assert json.loads(status.stdout)["drift"] == []
 
-        again = _run(home, "install", "--harness", "codex,claude,grok")
+        again = _run(home, "install", *selection)
         assert again.returncode == 0, again.stderr
         assert json.loads(again.stdout)["status"] == "already-installed"
 
@@ -115,15 +124,12 @@ def test_install_and_uninstall_restore_mixed_prior_state() -> None:
 
 def test_selected_harness_does_not_touch_others() -> None:
     with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
-        home = Path(directory)
-        proc = _run(home, "install", "--harness", "codex")
+        home, repo, global_policy, skills = _fixture(directory)
+        proc = _run(home, "install", "--repo", str(repo), "--harness", "codex")
         assert proc.returncode == 0, proc.stderr
-        assert (
-            _target(home / ".codex/AGENTS.md")
-            == install_core.instruction_source(REPO_ROOT, "codex").resolve()
-        )
+        assert _target(home / ".codex/AGENTS.md") == global_policy
         assert not home.joinpath(".claude").exists()
-        assert _target(home / ".agents/skills") == SKILLS.resolve()
+        assert _target(home / ".agents/skills") == skills
         assert _run(home, "uninstall").returncode == 0
         assert not home.joinpath(".codex").exists()
         assert not home.joinpath(".agents").exists()
@@ -145,7 +151,7 @@ def test_uninstall_refuses_post_install_changes() -> None:
 def test_uninstall_preflights_every_backup_before_mutating_targets() -> None:
     for damage in ("missing", "corrupt"):
         with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
-            home = Path(directory)
+            home, repo, global_policy, _ = _fixture(directory)
             codex = home / ".codex/AGENTS.md"
             claude = home / ".claude/CLAUDE.md"
             codex.parent.mkdir(parents=True)
@@ -153,7 +159,9 @@ def test_uninstall_preflights_every_backup_before_mutating_targets() -> None:
             codex.write_text("old codex\n")
             claude.write_text("old claude\n")
 
-            installed = _run(home, "install", "--harness", "codex,claude")
+            installed = _run(
+                home, "install", "--repo", str(repo), "--harness", "codex,claude"
+            )
             assert installed.returncode == 0, installed.stderr
             active_path = home / ".local/state/agents-install/active.json"
             manifest = json.loads(active_path.read_text())
@@ -171,14 +179,8 @@ def test_uninstall_preflights_every_backup_before_mutating_targets() -> None:
             refused = _run(home, "uninstall")
             assert refused.returncode == 2, refused
             assert "restore preflight failed" in refused.stderr, refused.stderr
-            assert (
-                _target(codex)
-                == install_core.instruction_source(REPO_ROOT, "codex").resolve()
-            )
-            assert (
-                _target(claude)
-                == install_core.instruction_source(REPO_ROOT, "claude").resolve()
-            )
+            assert _target(codex) == global_policy
+            assert _target(claude) == global_policy
             assert active_path.is_file()
 
 
@@ -217,13 +219,13 @@ def test_link_replacement_preserves_an_unowned_legacy_temp_collision() -> None:
 
 def test_broken_skill_root_is_backed_up_and_restored() -> None:
     with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
-        home = Path(directory)
+        home, repo, _, skills = _fixture(directory)
         root = home / ".agents/skills"
         root.parent.mkdir(parents=True)
         root.symlink_to("missing-skills")
-        proc = _run(home, "install", "--harness", "codex")
+        proc = _run(home, "install", "--repo", str(repo), "--harness", "codex")
         assert proc.returncode == 0, proc.stderr
-        assert _target(root) == SKILLS.resolve()
+        assert _target(root) == skills
         assert _run(home, "uninstall").returncode == 0
         assert root.is_symlink()
         assert os.readlink(root) == "missing-skills"
@@ -281,6 +283,41 @@ def test_reinstall_reconciles_added_and_retired_skills() -> None:
         assert old_first.joinpath("kept.txt").read_text() == "old first\n"
         assert not skill_root.joinpath("second").exists()
         assert unrelated.joinpath("SKILL.md").read_text() == "unrelated\n"
+
+
+def test_refresh_migrates_instruction_links_to_the_compiled_boot() -> None:
+    with tempfile.TemporaryDirectory(prefix="install-agents-test-") as directory:
+        home, repo, global_policy, _ = _fixture(directory)
+        codex = home / ".codex/AGENTS.md"
+        codex.parent.mkdir(parents=True)
+        codex.write_text("old codex\n")
+        selection = ("--repo", str(repo), "--harness", "codex,claude")
+        assert _run(home, "install", *selection).returncode == 0
+        assert _target(codex) == global_policy
+
+        boot = repo / "AGENTS.boot.md"
+        codex_boot = repo / "AGENTS.boot.codex.md"
+        boot.write_text("boot\n")
+        codex_boot.write_text("codex boot\n")
+        claude = home / ".claude/CLAUDE.md"
+        # `build-boot link` may already have moved a link; that is not drift.
+        claude.unlink()
+        claude.symlink_to(boot)
+        refreshed = _run(home, "install", *selection)
+        assert refreshed.returncode == 0, refreshed.stderr
+        assert json.loads(refreshed.stdout)["status"] == "refreshed"
+        assert _target(codex) == codex_boot
+        assert _target(claude) == boot
+        status = _run(home, "status", *selection)
+        assert status.returncode == 0, status.stdout
+        assert json.loads(status.stdout)["drift"] == []
+        assert json.loads(_run(home, "install", *selection).stdout)["status"] == (
+            "already-installed"
+        )
+
+        assert _run(home, "uninstall").returncode == 0
+        assert codex.read_text() == "old codex\n" and not codex.is_symlink()
+        assert not claude.exists() and not claude.is_symlink()
 
 
 def test_reinstall_refuses_changed_retired_skill_target() -> None:
