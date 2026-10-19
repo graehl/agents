@@ -1,9 +1,7 @@
-# Create and share project templates for YA
-
-> A guide to making reusable project starters, extending YA-default bases,
-> and sharing a template source with other YA users.
-
-Topic: project-template-authoring
+---
+title: Project templates
+description: Make reusable project starters, extend the YA-default bases, and share a template source with other YA users.
+---
 
 A template gives a new project its starting files, instructions and tools.
 A **base** is a reusable part of that starter, such as web tooling, testing
@@ -16,10 +14,11 @@ using its `project-templates` directory. It contains **App canvas**, **Web
 page** and **Storybook**. It is the default library for this system; a separate
 repository or future vendored copy is not required to use its bases.
 
-**Current delivery:** YA's source settings retrieve and validate libraries.
-Creating and preparing projects through YA is still being integrated. Draft
-templates can be inspected but are not approved for project creation. The
-default templates remain draft until their content review is complete.
+**Current delivery:** YA's source settings retrieve and validate libraries,
+and YA creates projects from `ready` templates, including for users granted
+template access. Draft templates can be inspected but are not approved for
+project creation. The three default templates are ready. Retained App access
+and personal workspace scopes are still pending.
 
 ## Add a source in YA
 
@@ -27,6 +26,10 @@ Open **Settings → Project templates**, enable templates, and choose
 **Fetch / update**. The **GitHub or local dir** field starts with
 `https://github.com/graehl/agents/project-templates`. Put a GitHub directory
 path directly after the repository URL; there is no separate subdirectory field.
+You can also paste the directory's address from GitHub
+(`https://github.com/<owner>/<repo>/tree/<branch>/<directory>`): YA moves the
+branch into the revision field. For a branch name containing `/`, enter the
+branch in the revision field first.
 GitHub sources also have a revision:
 
 - Use just the repository URL when `library.json` is at its root.
@@ -104,12 +107,14 @@ It is combined with the inherited root instructions.
 
 Useful YA-default bases include `software-engineering`, `testing`,
 `typescript`, `web-ui`, `web-app`, `canvas`, `page`, `writing`, `story`,
-`server`, and `repo-view`. `web-app` supplies shared web tooling; combine it with `canvas`
-for a drawing app or with `page` for a content-led page. `story` builds on
-`writing`. The server base supplies an optional add-on; inheriting it does
-not mean a backend is already running. `repo-view` vendors a web view of the
-project's own documents, live or as a publishable static site, which becomes
-the project's app only when enabled.
+`server`, `repo-view`, and `program-view`. `web-app` supplies shared web
+tooling; combine it with `canvas` for a drawing app or with `page` for a
+content-led page. `story` builds on `writing`. The server base supplies an
+optional add-on; inheriting it does not mean a backend is already running.
+`repo-view` vendors a web view of the project's own documents, live or as a
+publishable static site, which becomes the project's app only when enabled;
+`program-view` adds dashboards of the project's programs, papers, handouts
+and agent sessions to that view.
 
 To contribute a reusable base, put its manifest under `bases/<id>/`, use
 `"kind": "base"`, and list the ID in `library.json`'s `bases` array. Bases
@@ -209,6 +214,6 @@ Include the tested YA-default commit when your template relies on its
 bases. This lets another person reproduce your starter instead of guessing
 which changing branch version you used.
 
-This guide is maintained in YA at `topics/project-template-authoring.md`.
+This guide is maintained in YA at `site/src/content/docs/project-templates.md`.
 `graehl/agents/project-templates/README.md` is a synchronized copy; its
 `VENDORED.md` records the source revision and how to refresh it.

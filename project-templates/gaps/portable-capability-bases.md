@@ -10,8 +10,9 @@ preserves that starting point; App canvas now uses a first authored split into
 capability bases instead. The linked legacy boot pulls in personal/harness context,
 research, runs, agentctl, and routed documents that an ordinary app project
 does not contain. Materializing that file alone would create broken guidance.
-App canvas and its dependency closure are ready after the review below; the
-writing templates and legacy boot remain draft.
+As of 2026-10-19 all three templates (App canvas, Web page, Storybook) and
+every base except `legacy-boot` are marked `ready`; only `legacy-boot` remains
+draft. That status records admission, not this gap's closure criteria below.
 
 **Noticed while:** establishing this program at the user's explicit request.
 The first split now stands up an application; that execution evidence alone
