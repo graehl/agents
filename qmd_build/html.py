@@ -28,6 +28,7 @@ from .manuscript import (
     Config,
     bump_revision,
     fragment_anchors,
+    fragment_key,
     front_matter,
     includes,
     opening_title,
@@ -172,9 +173,9 @@ def render(args, config: Config) -> dict:
         work = Path(scratch)
         staged_targets = work / "source-targets.json"
         staged_targets.write_text(json.dumps(targets))
-        fragment_ids = fragment_anchors(sections, quarto)
+        fragment_ids = fragment_anchors(sections, quarto, home)
         if title and sections:
-            fragment_ids[sections[0].name] = "title-block-header"
+            fragment_ids[fragment_key(sections[0], home)] = "title-block-header"
         anchors = work / "fragment-anchors.json"
         anchors.write_text(json.dumps(fragment_ids))
         # The staged directory is discarded, so the artifact must be one file.

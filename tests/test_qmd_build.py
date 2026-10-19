@@ -308,6 +308,7 @@ def test_html_included_documents_link_inside(tmp_path):
     (tmp_path / "topics").mkdir()
     (tmp_path / "notes/memo.md").write_text(
         "# Memo\n\nSee [the topic](../topics/topic.md#detail) and [it](../topics/topic.md).\n"
+        "A different file of the same name: [other](../docs/topic.md).\n"
     )
     (tmp_path / "topics/topic.md").write_text(
         "# The topic\n\nTopic: `topic`\nGlossary: omit\n\n## Detail\n\nText.\n"
@@ -322,7 +323,8 @@ def test_html_included_documents_link_inside(tmp_path):
     assert run.returncode == 0, run.stderr
     html = (tmp_path / "bundle.html").read_text()
     assert 'href="#detail"' in html and 'href="#the-topic"' in html
-    assert "topic.md" not in html.split("<!-- ya-artifact:v1")[0].split("</head>")[-1]
+    assert 'href="../topics/topic.md' not in html
+    assert 'href="../docs/topic.md"' in html  # same name, different file
     assert "Glossary: omit" not in html
     assert '<h2 class="anchored" data-anchor-id="the-topic">' in html
 

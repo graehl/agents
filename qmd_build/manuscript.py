@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import itertools
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -118,15 +119,18 @@ def opening_title(root: Path, sections: list[Path]) -> str | None:
     return None if match is None else re.sub(r"[*_`]", "", match[1])
 
 
-def fragment_anchors(sections: list[Path], quarto: str) -> dict[str, str]:
-    """Each included fragment's file name -> the id of its first heading.
+def fragment_key(section: Path, home: Path) -> str:
+    """A fragment's path relative to the root's directory, as links spell it."""
+    return Path(os.path.relpath(section, home)).as_posix()
+
+
+def fragment_anchors(sections: list[Path], quarto: str, home: Path) -> dict[str, str]:
+    """Each included fragment's `fragment_key` -> the id of its first heading.
 
     Lets links between fragments resolve inside the one rendered document.
     """
     anchors = {}
     for section in sections:
-        if section.name in anchors:
-            raise ValueError(f"Included fragments share a file name: {section.name}")
         parsed = json.loads(
             subprocess.check_output(
                 [
@@ -144,7 +148,7 @@ def fragment_anchors(sections: list[Path], quarto: str) -> dict[str, str]:
         header = next((b for b in parsed["blocks"] if b["t"] == "Header"), None)
         if header is None:
             raise ValueError(f"Included fragment has no heading: {section}")
-        anchors[section.name] = header["c"][1][0]
+        anchors[fragment_key(section, home)] = header["c"][1][0]
     return anchors
 
 

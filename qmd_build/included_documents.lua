@@ -1,9 +1,12 @@
 -- Make documents included into one root read as one document.
 --
--- Links to an included fragment (matched by file name) become in-document
--- links: `x.md#part` -> `#part`, bare `x.md` -> the fragment's first heading.
--- QMD_FRAGMENT_ANCHORS names a JSON file mapping fragment file name -> that
--- heading id. A `::: {.appendix-doc}` div holds a whole included document:
+-- Links to an included fragment become in-document links: `x.md#part` ->
+-- `#part`, bare `x.md` -> the fragment's first heading. QMD_FRAGMENT_ANCHORS
+-- names a JSON file mapping each fragment's path relative to the root's
+-- directory -> that heading id. Included text no longer says which file it
+-- came from, so a link matches the fragment whose path equals its own, else
+-- the one fragment whose path ends with it once leading `./` and `../` are
+-- dropped; two fragments with that ending leave the link alone. A `::: {.appendix-doc}` div holds a whole included document:
 -- its headings drop one level, and topic-doc metadata lines (`Topic:`,
 -- `Glossary:`, `Governs:`) are removed as working metadata.
 local anchors = {}
@@ -19,10 +22,26 @@ local function fragment_link(link)
     return nil
   end
   local file, fragment = link.target:match("^([^#]*)#?(.*)$")
-  local name = file:match("([^/]+)$")
-  local anchor = name and anchors[name]
-  if not anchor then
+  if file == "" then
     return nil
+  end
+  local anchor = anchors[file]
+  if not anchor then
+    local tail = file
+    repeat
+      local before = tail
+      tail = tail:gsub("^%./", ""):gsub("^%.%./", "")
+    until tail == before
+    local matches = 0
+    for key, id in pairs(anchors) do
+      if key == tail or key:sub(-(#tail + 1)) == "/" .. tail then
+        matches = matches + 1
+        anchor = id
+      end
+    end
+    if matches ~= 1 then
+      return nil
+    end
   end
   link.target = "#" .. (fragment ~= "" and fragment or anchor)
   return link
