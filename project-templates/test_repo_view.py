@@ -256,6 +256,31 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("edited", page)
 
+    @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
+    def test_symlinks_escaping_the_repository_are_never_served(self) -> None:
+        secret = self.repo.parent / "secret.md"
+        secret.write_text("# Secret outside the repository\n", encoding="utf-8")
+        (self.repo / "docs/escape.md").symlink_to(secret)
+        (self.repo / "docs/away").symlink_to(self.repo.parent, target_is_directory=True)
+        (self.repo / "docs/inside.md").symlink_to(self.repo / "docs/other.md")
+        self.write(
+            "docs/other.md",
+            "# Other\n\n[escape](escape.md) [away](away/secret.md) [inside](inside.md)\n",
+        )
+        base = self.serve()
+        self.assertEqual(self.get(base + "/docs/escape.md")[0], 404)
+        self.assertEqual(self.get(base + "/docs/away/secret.md")[0], 404)
+        self.assertEqual(self.get(base + "/docs/inside.md")[0], 200)
+        built = self.run_script("build")
+        self.assertEqual(built.returncode, 0, built.stderr)
+        published = "".join(
+            path.read_text(errors="replace")
+            for path in (self.repo / "_site").rglob("*")
+            if path.is_file()
+        )
+        self.assertNotIn("Secret outside", published)
+        self.assertTrue((self.repo / "_site/docs/inside.md.html").is_file())
+
     def test_enable_declares_the_app_without_clobbering_one(self) -> None:
         self.write(
             ".project-template/app.json",
