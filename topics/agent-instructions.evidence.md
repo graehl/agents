@@ -5835,3 +5835,28 @@ prose correction retains substantive uncertainty and personal testimony.
   the task constraints; retain that conditional rather than assume it away.
 - Validation: manual trace simulation; no outcome ablation.
 - Contributing-model: gpt-6-astra
+
+## 2026-10-20 — maintain the discussion model across puzzle conjectures
+
+- Incident: in the oss mixed-hero puzzle discussion, the agent endorsed a
+  Wizard-symmetry argument after silently narrowing Bard influence on a
+  Wizard region to direct movement of the Wizard. Moving its stone also
+  changes a subsequent swap. The conversational narrowing displaced the
+  wider state model despite the project's explicit-grid requirement.
+- User-directed: keep checked versions of basic/certain facts in a working
+  map; add domain advice and a non-boot abstract topic. The user specifically
+  rejected a general proving-conjectures checklist in favor of signposting
+  omissions encouraged by terse, deferential discussion.
+- Decision: `topics/collaborative-puzzle-reasoning.md`, with a scoped read
+  trigger in oss `AGENTS.md`; no global boot or activity-route addition.
+- Traces: a confident symmetry conjecture retains indirect stone/swap
+  effects; a corrected mechanic reopens dependent conclusions; an established
+  observation remains evidence without repeated caveats in conversation.
+- Validation: manual trace simulation and route inspection; no causal claim
+  that boot tone caused the failure or that this advice fixes it.
+- Naming follow-up: the user observed that overly short names can invite
+  slippage for either participant. The topic now keeps shorthand tied to
+  its referent. Trace: "Wizard symmetry" cannot silently shift from the
+  region's joint state to the Wizard's position; an unambiguous established
+  name needs no repeated expansion.
+- Contributing-model: 6-Astra
