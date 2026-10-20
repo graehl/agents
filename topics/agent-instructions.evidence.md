@@ -5814,3 +5814,24 @@ prose correction retains substantive uncertainty and personal testimony.
   in the bundled sense; the packet itself scopes what the requirement asks.
 - Validation: boot rebuilt; text matches `RESEARCH.md`; no outcome ablation.
 - Contributing-model: opus-5.5
+
+## 2026-10-20 — discharge premises before conditional agreement
+
+- User-directed: after "we can always walk around the outside perimeter",
+  the agent answered "provided the blocks stay off the perimeter". In the
+  push-only puzzle, a perimeter block cannot return to an interior target,
+  so every winning route already satisfies that premise. The user had to
+  request this next inference, then asked for a global instruction to
+  consider provability or a weakest precondition before conditional agreement.
+- Decision: extend `AGENTS.global.md` under Agreement and disagreement
+  quality. Preserve the goal-relative scope; a necessary condition for a
+  winning route is not a fact about every possible route.
+- Trace: the puzzle lemma now yields an unobstructed perimeter on every
+  winning route, rather than an unresolved caveat.
+- Trace: a proposed operation works under a weaker sufficient condition
+  than the agent initially named; state that condition instead of imposing
+  the stronger assumption. Do not label an unproved condition weakest.
+- Trace: an external service's availability is unknown and not implied by
+  the task constraints; retain that conditional rather than assume it away.
+- Validation: manual trace simulation; no outcome ablation.
+- Contributing-model: gpt-6-astra
