@@ -955,7 +955,7 @@ class Dashboard:
             self.section(page, c, children) for c in children.get(program.rel, [])
         )
         return (
-            f'<details class="program" id="{anchor_id(program)}" open><summary>'
+            f'<details class="program" id="{anchor_id(program)}" data-repo-dir="{esc(program.rel)}" open><summary>'
             f'<span class="name">{esc(program.name)}</span> <code class="dim">{esc(program.rel or ".")}</code> '
             + "".join(f'<span class="chip">{esc(c)}</span>' for c in chips)
             + live

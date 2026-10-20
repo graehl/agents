@@ -167,6 +167,8 @@ class ProgramViewTest(unittest.TestCase):
             self.assertIn(f'href="{href}"', index)
         self.assertIn("Current focus (2026-10-15): speech", index)
         self.assertIn("test-1", index)
+        # Repo-view breadcrumbs for a program directory open its section here.
+        self.assertIn('id="program-research-mt" data-repo-dir="research/mt"', index)
         self.assertIn(
             'href="papers/big/index.qmd"', pages["research/mt/papers-index.html"]
         )

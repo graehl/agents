@@ -317,6 +317,38 @@ class RepoViewTest(unittest.TestCase):
         self.assertIn("edited", page)
 
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
+    def test_breadcrumbs_open_the_project_page_section_showing_a_directory(
+        self,
+    ) -> None:
+        self.write("docs/sub/deep/note.md", "# Note\n")
+        self.write(
+            "scripts/dash.py",
+            "def pages(root):\n    return {'index.html': '<html><head></head><body>"
+            '<details data-repo-dir="docs" id="sec-docs"></details>'
+            '<a href="docs/sub/deep/note.md">n</a></body></html>\'}\n',
+        )
+        self.git("add", ".")
+        # docs is marked; deep is neither marked nor linked, so it opens the
+        # section of its nearest marked ancestor; the root crumb opens the root.
+        # (Whether sub is a servable listing yet depends on discovery order.)
+        docs = ' / <a href="../../../index.html#sec-docs">docs</a> / '
+        deep = ' / <a href="../../../index.html#sec-docs">deep</a> / note.md</nav>'
+        base = self.serve("--pages", "scripts/dash.py:pages")
+        status, _, page = self.get(base + "/docs/sub/deep/note.md")
+        self.assertEqual(status, 200)
+        for crumb in ('<a href="../../../">demo</a>' + docs, deep):
+            self.assertIn(crumb, page)
+        done = self.run_script("build", "--pages", "scripts/dash.py:pages")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        built = (self.repo / "_site/docs/sub/deep/note.md.html").read_text()
+        # The build reaches the note straight from the page, never listing sub.
+        static_crumbs = (
+            '<a href="../../../index.html">demo</a>' + docs
+            + '<a href="../../../index.html#sec-docs">sub</a>' + deep
+        )  # fmt: skip
+        self.assertIn(static_crumbs, built)
+
+    @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_symlinks_escaping_the_repository_are_never_served(self) -> None:
         secret = self.repo.parent / "secret.md"
         secret.write_text("# Secret outside the repository\n", encoding="utf-8")

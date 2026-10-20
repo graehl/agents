@@ -161,6 +161,11 @@ SECTION_HEADING = re.compile(
     r"<h([23])\b[^>]*\bid=\"([^\"]+)\"[^>]*>(.*?)</h\1>", re.DOTALL
 )
 OUTLINE_MIN_SECTIONS = 3
+# A project page element that shows a directory: <details id="x" data-repo-dir="a/b">.
+DIRECTORY_MARK = re.compile(
+    r"<[a-z][^>]*\bdata-repo-dir=\"([^\"]*)\"[^>]*>", re.IGNORECASE
+)
+ID_ATTRIBUTE = re.compile(r"\sid=\"([^\"]+)\"")
 
 
 class RepoViewError(Exception):
@@ -397,22 +402,26 @@ def compose_page(
     current: str | None,
     title: str,
     body: str,
-    linkable: Callable[[str], bool],
+    locate: Callable[[str], str | None],
     footer: str = "",
 ) -> str:
-    """A full page for a URL whose directory is `page_dir`, with breadcrumbs to
-    each ancestor directory that is itself servable. All links are relative."""
+    """A full page for a URL whose directory is `page_dir`, with a breadcrumb
+    for each ancestor directory, linked where `locate` gives it a
+    repository-relative URL. All links are relative."""
     parts = page_dir.split("/") if page_dir else []
     crumbs = [(repo_name, "")] + [
         (name, "/".join(parts[: i + 1])) for i, name in enumerate(parts)
     ]
     items = []
     for depth, (label, rel) in enumerate(crumbs):
-        up = len(parts) - depth
-        if (current is None and depth == len(parts)) or not linkable(rel):
+        target = None if current is None and depth == len(parts) else locate(rel)
+        if target is None:
             items.append(html.escape(label))
         else:
-            items.append(f'<a href="{"../" * up or "./"}">{html.escape(label)}</a>')
+            href = "../" * len(parts) + target
+            items.append(
+                f'<a href="{html.escape(href or "./")}">{html.escape(label)}</a>'
+            )
     if current is not None:
         items.append(html.escape(current))
     main = f"<main><article>\n{body}\n</article></main>"
@@ -446,7 +455,7 @@ def document_page(
     rendered: Rendered,
     page_dir: str,
     current: str | None,
-    linkable: Callable[[str], bool],
+    locate: Callable[[str], str | None],
     footer: str = "",
 ) -> str:
     """A rendered document's page; `current` is its file name, or None for a
@@ -458,7 +467,7 @@ def document_page(
         current,
         rendered.title,
         heading + rendered.body,
-        linkable,
+        locate,
         footer,
     )
 
@@ -467,7 +476,7 @@ def listing_page(
     repo: Repository,
     rel: str,
     entries: list[tuple[str, bool]],
-    linkable: Callable[[str], bool],
+    locate: Callable[[str], str | None],
     footer: str = "",
 ) -> str:
     rows = []
@@ -488,7 +497,7 @@ def listing_page(
         if rows
         else f'<h1>{html.escape(title)}</h1><p class="dim">No files.</p>'
     )
-    return compose_page(repo.name, rel, None, title, table, linkable, footer)
+    return compose_page(repo.name, rel, None, title, table, locate, footer)
 
 
 def with_access_keeper(page: str, token: str | None) -> str:
@@ -508,12 +517,16 @@ class ProjectPages:
     Pages are seeds of the reachable set and win over repository files at the
     same path. They are regenerated on request once older than `max_age`, and
     at once when FILE changes: an edited generator is reloaded without a
-    restart. A reload that fails keeps the previous generator and says why."""
+    restart. A reload that fails keeps the previous generator and says why.
+
+    An element with an `id` and `data-repo-dir="<directory>"` marks where a
+    page shows that directory; breadcrumbs for the directory link there."""
 
     def __init__(self, spec: str | None, repo: Repository, max_age: float):
         self.repo, self.max_age = repo, max_age
         self.function: Callable[[Path], Mapping[str, str]] | None = None
         self.pages: dict[str, str] = {}
+        self.sections: dict[str, str] = {}  # directory → "page#id"
         self.made: float | None = None
         self._lock = threading.Lock()
         if spec:
@@ -569,6 +582,7 @@ class ProjectPages:
                             f"--pages returned an invalid page path {rel!r}"
                         )
                 self.pages, self.made = pages, time.monotonic()
+                self.sections = directory_sections(pages)
                 log(
                     "pages", f"{len(pages)} project pages in {self.made - started:.2f}s"
                 )
@@ -578,6 +592,40 @@ class ProjectPages:
         """The pages last generated, without regenerating: for link-graph walks,
         which can outlast `max_age` and must not regenerate pages midway."""
         return self.pages
+
+
+def directory_sections(pages: Mapping[str, str]) -> dict[str, str]:
+    """Each directory a project page marks with `data-repo-dir`, as the
+    repository-relative URL of its first marked element."""
+    sections: dict[str, str] = {}
+    for rel in sorted(pages):
+        for tag in DIRECTORY_MARK.finditer(pages[rel]):
+            anchor = ID_ATTRIBUTE.search(tag.group(0))
+            directory = link_target("", html.unescape(tag.group(1)) or ".")
+            if anchor and directory is not None:
+                sections.setdefault(directory, f"{rel}#{anchor.group(1)}")
+    return sections
+
+
+def crumb_locator(
+    sections: Mapping[str, str], servable: Callable[[str], bool]
+) -> Callable[[str], str | None]:
+    """Where a breadcrumb for a directory leads: the project page section that
+    shows it, else the directory itself when servable, else the section that
+    shows its nearest marked ancestor."""
+
+    def locate(rel: str) -> str | None:
+        if rel and rel in sections:  # the root crumb opens the root page at its top
+            return sections[rel]
+        if servable(rel):
+            return f"{rel}/" if rel else ""
+        while rel:
+            rel = parent_rel(rel)
+            if rel in sections:
+                return sections[rel]
+        return None
+
+    return locate
 
 
 class LinkGraph:
@@ -808,8 +856,8 @@ class LiveSite:
         except (OSError, RepoViewError) as error:
             log("reach", f"warm-up failed; requests will retry: {error}")
 
-    def linkable(self, rel: str) -> bool:
-        return self.reach.contains(rel)
+    def locate(self, rel: str) -> str | None:
+        return crumb_locator(self.pages.sections, self.reach.contains)(rel)
 
     def respond(self, parts: list[str], slash: bool, query: str) -> Reply:
         rel = "/".join(parts)
@@ -837,9 +885,7 @@ class LiveSite:
             )
             name = node.rpartition("/")[2]
             return html_reply(
-                document_page(
-                    self.repo, rendered, parent_rel(node), name, self.linkable
-                )
+                document_page(self.repo, rendered, parent_rel(node), name, self.locate)
             )
         return file_reply(self.repo.path(node))
 
@@ -858,10 +904,10 @@ class LiveSite:
                 rel, self.graph.resolve(rel, link_urls(rendered.body, ".html"))
             )
             return html_reply(
-                document_page(self.repo, rendered, rel, None, self.linkable)
+                document_page(self.repo, rendered, rel, None, self.locate)
             )
         return html_reply(
-            listing_page(self.repo, rel, self.repo.listing(rel), self.linkable)
+            listing_page(self.repo, rel, self.repo.listing(rel), self.locate)
         )
 
 
@@ -1099,7 +1145,7 @@ def build_site(
     footer = f"Generated {html.escape(generated)} by repo_view.py"
     linked_dirs = set(directories)
     linked_docs = {rel for rel in documents if rel in reached}
-    linkable = linked_dirs.__contains__
+    locate = crumb_locator(pages.sections, linked_dirs.__contains__)
     outputs: dict[str, str] = {}
     for rel, page in project_pages.items():
         outputs[rel] = static_links(page, parent_rel(rel), linked_docs, linked_dirs)
@@ -1109,7 +1155,7 @@ def build_site(
             documents[rel],
             parent_rel(rel),
             rel.rpartition("/")[2],
-            linkable,
+            locate,
             footer,
         )
         outputs[rel + ".html"] = static_links(
@@ -1119,10 +1165,10 @@ def build_site(
         index = join_rel(rel, "index.html")
         if document.kind == "readme":
             page = document_page(
-                repo, documents[document.rel], rel, None, linkable, footer
+                repo, documents[document.rel], rel, None, locate, footer
             )
         elif document.kind == "listing":
-            page = listing_page(repo, rel, repo.listing(rel), linkable, footer)
+            page = listing_page(repo, rel, repo.listing(rel), locate, footer)
         else:
             continue  # a project page or the directory's own index.html is already written
         outputs[index] = static_links(page, rel, linked_docs, linked_dirs)
