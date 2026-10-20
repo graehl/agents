@@ -5860,3 +5860,17 @@ prose correction retains substantive uncertainty and personal testimony.
   region's joint state to the Wizard's position; an unambiguous established
   name needs no repeated expansion.
 - Contributing-model: 6-Astra
+
+## 2026-10-20 — global discovery for collaborative reasoning
+
+- User clarification: reasoning spans domains; the non-boot topic needs a
+  read trigger in `~/agents` boot. Puzzle-specific guidance belongs in oss.
+- Renamed the topic to `topics/collaborative-reasoning.md`, generalized its
+  state/interactions wording to entities and dependencies, and added a short
+  trigger under Agreement and disagreement quality in `AGENTS.global.md`.
+  The oss route follows the new name and retains its game-specific model.
+- Traces: a cross-turn engineering argument loads the topic without a puzzle
+  analogy; diagnosing a failed mathematical argument also triggers it; a
+  routine factual answer does not. The topic body remains outside boot.
+- Validation: route/reference inspection and boot rebuild; no outcome ablation.
+- Contributing-model: 6-Astra

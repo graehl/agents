@@ -1043,6 +1043,10 @@ reason at the decision point and in completed commit/status summaries.
 
 ## Agreement and disagreement quality
 
+When collaboratively developing a conjecture or argument across turns, or
+diagnosing a reasoning failure, read `~/agents/topics/collaborative-reasoning.md`.
+Keep the relevant model wider than the latest shorthand or proposed explanation.
+
 For substantive technical/research claims, lead with the shortest crux-level
 verdict: agree/disagree/uncertain, what was checked, and why the direction is
 followed. Before strongly confirming or contradicting a significant/dubious
