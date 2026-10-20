@@ -250,8 +250,14 @@ class RepoViewTest(unittest.TestCase):
         self.assertIn("new.txt", page)
         self.assertNotIn("scratch", page)
         self.assertEqual(self.get(base + "/docs/scratch/hidden.txt")[0], 404)
-        self.assertEqual(self.get(base + "/output/index.html")[0], 200)
-        self.assertEqual(self.get(base + "/output/image.svg")[0], 200)
+        status, _, built = self.get(base + "/output/index.html")
+        self.assertEqual(status, 200)
+        # A repository HTML file keeps its content and tells a framing viewer where it is.
+        self.assertIn('<img src="image.svg">', built)
+        self.assertIn("yep-anywhere:app-location", built)
+        self.assertNotIn(
+            "yep-anywhere:app-location", self.get(base + "/output/image.svg")[2]
+        )
         self.assertEqual(self.get(base + "/output/secret.txt")[0], 404)
         self.git("add", "docs/scratch/hidden.txt")
         self.assertIn("scratch/", self.get(base + "/docs/")[2])

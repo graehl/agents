@@ -147,6 +147,24 @@ ACCESS_KEEPER = """<script>
 })();
 </script>"""
 
+# Tells a framing app viewer (YA's App bar) which page is showing, since a
+# cross-origin parent cannot read its frame's location. The token is left out:
+# any page may frame this one, and the viewer already holds its own link.
+FRAME_REPORTER = """<script>
+(() => {
+  if (window.parent === window) return;
+  const report = () => {
+    const url = new URL(location.href);
+    url.searchParams.delete("ya_access");
+    window.parent.postMessage({ type: "yep-anywhere:app-location", href: url.href }, "*");
+  };
+  report();
+  addEventListener("hashchange", report);
+  addEventListener("popstate", report);
+  addEventListener("pageshow", (event) => event.persisted && report());
+})();
+</script>"""
+
 MARKDOWN_LINK = re.compile(
     r"\]\(\s*<?([^)\s>]+)>?(?:\s+[\"'][^\"']*[\"'])?\s*\)|^ {0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?",
     re.MULTILINE,
@@ -503,8 +521,17 @@ def listing_page(
 def with_access_keeper(page: str, token: str | None) -> str:
     """Insert the address-bar token keeper (and a server-checked token) into a served page."""
     meta = f'<meta name="ya-access" content="{html.escape(token)}">\n' if token else ""
-    insert = meta + ACCESS_KEEPER + "\n"
+    insert = meta + ACCESS_KEEPER + "\n" + FRAME_REPORTER + "\n"
     head = re.search(r"</head\s*>", page, re.IGNORECASE)
+    return (
+        page[: head.start()] + insert + page[head.start() :] if head else insert + page
+    )
+
+
+def with_frame_reporter(page: bytes) -> bytes:
+    """Insert the frame location reporter into a repository HTML file, whatever its encoding."""
+    insert = FRAME_REPORTER.encode("ascii") + b"\n"
+    head = re.search(rb"</head\s*>", page, re.IGNORECASE)
     return (
         page[: head.start()] + insert + page[head.start() :] if head else insert + page
     )
@@ -1045,6 +1072,9 @@ def make_handler(
             if reply.page:
                 page = with_access_keeper(reply.body.decode("utf-8"), token)
                 reply = Reply(reply.status, reply.kind, page.encode("utf-8"))
+            elif reply.file and reply.kind.startswith("text/html"):
+                body = with_frame_reporter(reply.file.read_bytes())
+                reply = Reply(reply.status, reply.kind, body)
             return self.send(reply, head, cookie)
 
         def cookie(self, name: str) -> str | None:

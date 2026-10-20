@@ -91,6 +91,15 @@ view, so the view only displays it. Where no YA proxy stands in front, add
 `ya_app_access` cookie set by a valid link, and a rotated token revokes old
 links at once.
 
+## Location in YA's App bar
+
+YA shows the app in a frame on another origin, so it cannot read which page
+is showing. Every HTML page `serve` sends, including repository `.html` files
+such as rendered papers, therefore posts its address (token removed) to a
+framing parent as `{type: "yep-anywhere:app-location", href}`, on load and on
+history or `#` changes. YA's App bar shows that path as breadcrumbs. Outside a
+frame the script does nothing; static builds do not contain it.
+
 ## Project pages
 
 `--pages FILE:FUNCTION` adds generated pages such as dashboards. The function
