@@ -514,7 +514,7 @@ class ProjectPages:
         self.repo, self.max_age = repo, max_age
         self.function: Callable[[Path], Mapping[str, str]] | None = None
         self.pages: dict[str, str] = {}
-        self.made = float("-inf")
+        self.made: float | None = None
         self._lock = threading.Lock()
         if spec:
             file, sep, self.name = spec.rpartition(":")
@@ -558,7 +558,9 @@ class ProjectPages:
         if self.function is None:
             return self.pages
         with self._lock:
-            if self._reload_if_edited() or time.monotonic() - self.made > self.max_age:
+            # `build` passes an infinite max_age: generate once, never again.
+            stale = self.made is None or time.monotonic() - self.made > self.max_age
+            if self._reload_if_edited() or stale:
                 started = time.monotonic()
                 pages = dict(self.function(self.repo.root))
                 for rel in pages:
