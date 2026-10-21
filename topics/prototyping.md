@@ -7,6 +7,11 @@
 Topic: `prototyping`
 Governs: writing throwaway code to answer one question
 
+These shortcuts apply while the code is genuinely disposable. As soon as it
+is retained for authorized future use, apply
+[Retained prototypes](design-thinking.md#retained-prototypes); assess quality
+against the owning program's scale, cost and audience before extending it.
+
 ## Contracts
 
 - **Throwaway from day one, and marked as such.** Locate the

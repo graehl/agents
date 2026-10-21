@@ -62,9 +62,40 @@ Treat every assumption as a hypothesis until you check it. Form one that fits th
 
 Build for the problem in front of you, not a hypothetical future. A bug fix needs no surrounding cleanup; a one-shot needs no helper. Add no feature, refactor, or abstraction the task did not ask for.
 
+Authorized continued use makes the quality work in Retained prototypes below
+part of the task; do not mistake it for an unsolicited feature expansion.
+
 One reconciliation with the strict-review bar (harsh-review demands restructuring that scope discipline forbids volunteering): when your change already opens the relevant *seam*, the restructure is cheap and in scope — do it now. Otherwise stay minimal and surface the restructure as a recommendation rather than doing it unasked.
 
 One regime inverts the "no unasked-for flourish" default: a **brand surface** (landing/marketing/launch content) where being memorable *is* the requirement, so committing to a distinctive aesthetic direction is in scope rather than scope creep. See the functional ↔ distinctive split in [ui-quality.md](ui-quality.md) §1; it does not license skipping the verification thresholds.
+
+## Retained prototypes
+
+If we did not throw it away and continued use is authorized, immediately think
+about how to make it good. Read the owning program's goals to judge the
+expected scale, compute spend, lifespan and audience. A prototype intended for
+many experiments or a possible paper merits training and evaluation code,
+data/resource handling and evidence that future sessions and reviewers can
+understand, reproduce and improve. The word "prototype" does not lower that
+bar; it permits a small first probe to establish what is worth retaining.
+
+Assess correctness, performance, structure and legibility together. Reuse
+established building blocks; repair the shared path before multiplying callers.
+Leave a usable entrypoint, explicit configuration and assumptions, reproducible
+inputs/results, and a concise account of decisions, known limitations and the
+next useful improvements in the project's existing code/docs/run records.
+Enough context to choose the next experiment matters as much as a runnable
+command. Keep reusable mechanisms in code and durable contracts in their
+canonical docs, so a private handoff is not their only explanation.
+
+Act on improvements whose benefit justifies their cost over authorized future
+use, without waiting to be asked. Stage substantial work by payoff and keep
+useful experiments moving; immediately assessing quality does not mean
+finishing every improvement before another run. Record consequential deferred
+defects or intended improvements under the project's gap/sketch conventions.
+Avoid a speculative framework or production hardening unrelated to the actual
+program. ML repeats and scale-up also follow `RUNS.md` and its execution
+readiness contract.
 
 ## An audit is scoped by its target
 

@@ -3,17 +3,67 @@
 > Rules and rationale for GPU-visible Python, storage preflight, capacity use,
 > on-deck fillers, and routine run-operation authority.
 
-Read this packet before a Python command that may import a local accelerator
+Read this packet before implementing, repeating, or scaling ML training,
+evaluation or decoding, a Python command that may import a local accelerator
 stack, before allocating GPU capacity, before a run with a nontrivial storage
 footprint, or before launching an on-deck filler. `RUNS.md` is the router and
 wins on conflict.
 
 ## Binding rules
 
-Read GPU access and utilization for accelerator work, Storage preflight and
+Read ML execution readiness for ML implementation, repeats and scaling;
+GPU access and utilization for accelerator work, Storage preflight and
 Scratch for substantial writes, On-deck GPU fillers for queue tending, and
 Routine run-operation authority for authorized run plumbing. Conditions may
 overlap; a CPU storage job does not activate GPU configuration.
+
+### ML execution readiness
+
+A bounded first correctness probe may use a simple implementation. Before the
+second substantive run, a larger budget, or fan-out across languages, domains
+or models, reconsider the plan at its new scale: what decision will the runs
+buy, could a cheaper experiment decide it, and which implementation work pays
+back over the remaining campaign? Apply `_RESEARCH/judgment.md` § Experiment
+order for model development for selection. Make the shared training/evaluation
+path efficient enough for the proposed work; a completed smoke or a quality
+gain alone does not establish readiness. Inspect the real execution path and
+reuse established project facilities.
+
+For every greedy or beam decode, verify the applicable basics: length sorting
+or bucketing for independent offline inputs with source-order restoration;
+actual batching across examples and live beam hypotheses; incremental KV
+state reuse and shared-prefix prefill reuse; and reuse of unchanged encoder
+outputs, logits or scores across compatible comparisons. Beam width is not
+batch size, a Python loop of GPU calls is not batched execution, and a score
+memo is not proof that the model avoids repeated prefix computation. Inspect
+cache identity, invalidation and branch-state handling; record unsupported or
+inapplicable mechanisms and the concrete alternative rather than silently
+omitting them. Online latency/order constraints may justify different
+scheduling. Training gets the same attention to padding, data loading and
+repeated evaluation overhead without changing its intended sampling law.
+
+Run a bounded representative pilot through that path, including long inputs
+and partial batches. Check output/score correspondence, actual batch occupancy,
+cache reuse or recomputation, wall time, memory and projected total cost;
+compare task quality when numerical regrouping can alter decoding. Use the
+existing run record for these receipts and the enabled settings. A flag or
+backend capability is not evidence that this caller uses it. Fix avoidable
+serial work or recomputation before adopting that path for repetition or
+fan-out when the improvement pays back over the planned work. A deliberately
+serial latency measurement remains valid when that is the named question.
+Reuse valid receipts until code, configuration or workload changes invalidate
+them; this is not a mandate to optimize every possible kernel.
+
+Keep GPUs doing useful work while developing improvements. For already-paid
+capacity without usage-based power charges, idling it saves no compute rent.
+Compare continuing the current run with developing, validating and restarting
+or resuming on the improved path, crediting progress made during development
+and including lost progress, startup and contention costs. Cancel/relaunch
+when that finishes the useful work sooner or buys more value within the same
+budget; otherwise finish and improve subsequent runs. Record a simple estimate
+in the run note and revise it from pilot timing. Already-spent compute is sunk;
+remaining useful work and opportunity cost decide. Preserve required outputs
+and source isolation while developing beside a live run.
 
 ### GPU access for Python ML commands
 
@@ -72,7 +122,8 @@ replica is evicted.
 ### GPU utilization and parallelism policy
 
 On a non-shared GPU, keep already-planned work moving without waiting for
-another prompt:
+another prompt. Apply ML execution readiness above while keeping useful work
+running; readiness is not a requirement to idle during development:
 
 - After launch or completion, inspect VRAM and utilization.
 - When the current run uses under 50% of total VRAM, launch an independent

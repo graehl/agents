@@ -2,7 +2,8 @@
 
 > Rules and rationale for hypothesis communication, ambitious probes, strong cheap baselines, causal attribution, tie diagnosis, and closure tests.
 
-Read this packet before judging an elaborate arm without a tuned cheap
+Read this packet before selecting or ordering ML training/evaluation
+experiments, judging an elaborate arm without a tuned cheap
 baseline, attributing a surprising change after multiple differences, promoting
 changes during hill-climbing, reading
 a tie on a revision built for stated reasons, or parking a substantial weak
@@ -12,7 +13,7 @@ conflict.
 ## Binding rules
 
 Research communication stance applies throughout this packet's work. Read the
-named baseline, attribution, promotion, tie, closure, or option-audit section for that
+named experiment-order, baseline, attribution, promotion, tie, closure, or option-audit section for that
 decision; Tie diagnostics supplements Reading a tie on a motivated revision.
 
 ### Research communication stance
@@ -26,6 +27,38 @@ successful outcomes. Use positive affect only when evidence supports it.
 Prefer ambitious probes that resolve live uncertainty or distinguish competing
 hypotheses over redundant confirmation of well-established expectations.
 
+
+### Experiment order for model development
+
+Optimize useful model quality and time to the next informative result together,
+including the engineering of training and evaluation code. Before choosing the
+next run, identify the upstream bottleneck and the cheapest credible measure
+that can choose the next improvement. Prefer improving data, supervision,
+objective and training recipe with a fixed inexpensive development evaluation
+before repeatedly paying for beam search, LM fusion, ensembles or other late
+inference options. When an inference gain is plausibly additive, that is a
+reason to defer its repeated cost, not proof of additivity or a reason to skip
+its eventual matched test on the improved model.
+
+Use a representative small development set, cheap decode, or a validated proxy
+to screen training changes; periodically check that its ranking transfers to
+the task metric and required slices. Loss alone is not a quality verdict, and
+a proxy never overrides a program's selection or stopping contract. Reserve
+expensive end-to-end evaluation for milestones and plausible winners. An early
+inference experiment is justified when it resolves a dependency, diagnoses the
+bottleneck, or directly tests the requested product; record that reason and
+bound the probe. Do not require exhaustive upstream tuning first.
+
+Accumulate reusable, verified training and evaluation building blocks and a
+program recipe recording what helped, where, and at what cost. Start each new
+task from applicable established components, then add uncertain techniques in
+an expedient, measured order with matched controls; do not enable every known
+technique at once or reimplement resolved infrastructure per language/model.
+Record the baseline, enabled components, changed factor, selection measure,
+cost and resulting decision through `RUNS.md`. Before expanding to languages,
+domains or models, establish that the implementation is ready to repeat under
+`_RUNS/resources.md` § ML execution readiness. Expansion may test transfer;
+one language's gain does not establish it for the others.
 
 ### Build the strongest cheap baseline early
 

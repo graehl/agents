@@ -1,6 +1,7 @@
 # RUNS
 
-Load this routing index before using local accelerator resources, launching
+Load this routing index before implementing, repeating, or scaling ML
+training/evaluation/decoding, using local accelerator resources, launching
 work with a nontrivial storage footprint, launching tracked work that produces
 important saved output, receiving or resuming a yielded live terminal/session
 handle from run work, or launching, monitoring, waiting for, or summarizing a
@@ -21,7 +22,9 @@ named scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 
 ## Packet routes
 
-- [`_RUNS/resources.md`](_RUNS/resources.md) — before a Python command that may
+- [`_RUNS/resources.md`](_RUNS/resources.md) — before implementing, repeating,
+  or scaling ML training/evaluation/decoding: verify execution efficiency
+  before repetition or fan-out; also before a Python command that may
   import a local accelerator stack, before allocating GPU capacity, before a
   run with a nontrivial storage footprint, or before launching an on-deck
   filler.

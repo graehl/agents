@@ -5874,3 +5874,100 @@ prose correction retains substantive uncertainty and personal testimony.
   routine factual answer does not. The topic body remains outside boot.
 - Validation: route/reference inspection and boot rebuild; no outcome ablation.
 - Contributing-model: 6-Astra
+
+## 2026-10-21 — retained prototypes need quality judgment before scale-up
+
+- User report: repeated corrections of Opus, Sol and Astra across ML projects
+  for inefficient greedy/beam decoding and poorly ordered experiments. The
+  immediate ASR Opus session was already being corrected manually. The user
+  wants reusable building blocks introduced in an expedient, measured, logged
+  order, with well-engineered second runs and fan-out. Broader intent: "if we
+  didn't throw it away, immediately think about how to make it good (with
+  ultimate scale/cost in mind)." This includes future-session orientation and
+  improvements, and reviewer-facing training/evaluation code and resources.
+  These are authorized quality duties even without separate improvement asks.
+- Retrieved evidence: `~/draft/research/speech-recognition/topics/asr-techniques.evidence.md`
+  records Vietnamese fusion at 21,215 s versus 111 s without LM, with 591,518
+  unbatched calls on a shared GPU. The same setting reached Haitian, Albanian,
+  Swahili and Tamil; only Vietnamese improved. These are archived measurements,
+  not a controlled estimate of batching's speedup. The broader eleven-language
+  goal is not evidence of eleven completed fusion runs.
+- Session trace: the commit note for draft `d3ac41f13` identifies Claude
+  session `fac0aa01-30b3-49c3-b531-63211e101305`, Opus 5.5, medium effort.
+  Its 2026-10-20 15:46 UTC response recognized one-call-per-word cost and
+  undeployable speed; later updates still reported Swahili/Tamil fusion
+  running for hours. At 2026-10-21 17:18 UTC it proposed batching and caching
+  only after the user asked about runtime, ending by asking whether to make
+  speeding up the decoder a task. This supports a failure to treat quality
+  work as already in scope, beyond mere failure to notice a slow run.
+- Code qualification: at `d3ac41f13`, `scripts/asr_ctc_lm_beam.py` calls
+  `WordLM.score` synchronously per candidate and `reset` per utterance.
+  `scripts/asr_lm_beam.py` already caches word-prefix KV state and scores,
+  deep-copies branch state, and prefills the prompt again on reset. Its
+  tokenization-mismatch path recomputes full scores. Thus the session's claim
+  that every call recomputed the prompt is not established by the code; no
+  measured fallback frequency was retrieved. The current dirty implementation
+  introduces `BatchWordLM`; it belongs to the user's ongoing correction and
+  was left untouched. Historical code and records, not those new edits, ground
+  this diagnosis.
+- PII corroboration: `~/draft/research/pii/frontier/gaps/inference-physical-batch-receipts.md`
+  records input-order waves, missing physical-batch timing and a required
+  length-sort/source-order-restoration fix. This ledger's 2026-08-15
+  repeated-prefix entry already records an optimization stranded in the MT
+  caller rather than transferred to PII. These support the reusable-facility
+  and real-caller checks; they do not prove every listed failure in every run.
+- Instruction diagnosis: strongest-cheap-baseline guidance fired when judging
+  an elaborate arm; component controls fired at promotion. Neither explicitly
+  governed ordering the next experiment or accepting a prototype for repeated
+  use. Testing correctly distinguishes a functioning mechanism from benefit,
+  but a successful smoke could still be treated as readiness to fan out.
+  Run provenance made expensive work traceable without asking whether a
+  cheaper path bought the same decision. Scope discipline and throwaway-code
+  shortcuts lacked an explicit transition when continued use was authorized.
+  Project goals imply sustained compute and possible publication, while local
+  helper knowledge and a "helped" technique table do not alone make the next
+  implementation efficient or its experiment ordering sensible. These are
+  plausible instruction failure mechanisms, not an ablation of causality.
+- Alternatives: a larger global decode checklist would tax unrelated tasks
+  and miss the general retained-prototype duty. More task-local cache advice
+  repeats the failed transfer strategy. A mandatory runtime threshold or
+  universal launcher gate cannot decide scientific value, proxy validity or
+  development payoff across workloads. Keep the concrete decoder repair in
+  draft, and make the quality/scaling decision explicit in existing global
+  routes and concern packets; add no new framework, run schema or approval.
+- Decision: boot carries the retained-prototype quality duty and short routes;
+  design-thinking owns future-use quality and its scope reconciliation;
+  prototyping explicitly exits disposable shortcuts on retention. RESEARCH
+  judgment owns upstream-first selection and building-block progression. RUNS
+  resources owns actual execution readiness and development/restart economics.
+- User correction preserved: "keep gpus busy" remains good advice. On already
+  paid capacity without usage-based power charges, idle GPUs do not save rent.
+  Develop alongside useful running work, then compare remaining completion
+  costs; cancel/relaunch only when it wins. An initial wording that could
+  encourage idle hardware during optimization was replaced before landing.
+- Trace: a small serial probe works, then an eleven-language campaign is
+  proposed. Retention triggers quality assessment immediately; expansion
+  triggers a cheap-selection and amortized-engineering decision. The existing
+  run records hold the rationale and pilot receipts, not a new checklist file.
+- Trace: fusion is plausibly additive while training quality remains weak.
+  Use cheap development selection for upstream changes, check proxy ranking
+  against task quality, then test fusion on promising milestones. If fusion
+  itself diagnoses the bottleneck or is the requested product, a bounded early
+  experiment remains valid; no exhaustive upstream search is demanded.
+- Trace: a run has 5 h left; development takes 30 min while it continues,
+  validation/restart plus the improved remaining work takes 40 min. Restart
+  beats the 4.5 h then left. With only 10 min left initially, finish the run
+  and use the improvement for the campaign. Sunk cost does not decide; saved
+  progress, contention and source isolation still matter.
+- Trace: a retained training/eval prototype becomes a paper resource.
+  Explicit configuration, readable shared code and reproducible evidence are
+  quality work within the program, even without an optimization request.
+  Future sessions can recover why the recipe exists and what remains worth
+  changing. A truly disposable one-question probe keeps its cheap shortcuts.
+- Trace: online latency measurements, non-autoregressive models and tiny jobs
+  do not need fictitious prefix caches or throughput-maximizing batches.
+  Applicable mechanisms and payoff govern; cached receipts avoid repeated
+  pilots when code/configuration/workload remain compatible.
+- Validation: manual counterexample traces and route inspection. No causal
+  improvement in agent behavior is established without later outcome evidence.
+- Contributing-model: 6-Astra

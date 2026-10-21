@@ -379,14 +379,19 @@ win on packet conflict.
   - a newly ingested or materially transformed dataset, newly wired
     experimental result, train/eval/gate summary or score/stop readout,
     comparison, or significance claim → `_RESEARCH/evidence.md`; and
-  - an untuned elaborate arm, multi-difference attribution, promoting changes
+  - selecting or ordering ML training/evaluation experiments (refine upstream
+    quality cheaply before costly inference add-ons), an untuned elaborate arm,
+    multi-difference attribution, promoting changes
     during hill-climbing, or closure of a substantial weak/surprising line →
     `_RESEARCH/judgment.md`.
-- `RUNS.md` — before using local accelerators, launching work with a
+- `RUNS.md` — before implementing, repeating, or scaling ML training/evaluation/
+  decoding, using local accelerators, launching work with a
   nontrivial storage footprint, receiving or resuming a yielded live terminal
   handle from run work, or launching, monitoring, waiting for, or summarizing
   tracked/long-running jobs. It is a short router:
-  - a Python command that may import an accelerator stack, GPU-capacity
+  - implementing, repeating, or scaling ML training/evaluation/decoding
+    (verify execution efficiency before repetition or fan-out),
+    a Python command that may import an accelerator stack, GPU-capacity
     allocation, or a run with a nontrivial storage footprint →
     `_RUNS/resources.md`;
   - an important saved output, in-flight record, or row-wise transformed
@@ -606,6 +611,15 @@ self-report. Use short model names only—no vendor/harness/email/link. This is
 user-required provenance, never an attribution marker to strip.
 
 # Code quality
+
+## Retained prototypes
+
+When a prototype is retained for authorized future use, immediately assess how
+to make it good at the program's intended scale and cost. Quality includes
+correctness, performance, reusable structure, and future sessions' ability to
+orient and improve it. Make proportionate improvements within that scope
+without awaiting a separate request; read `topics/design-thinking.md`
+§ Retained prototypes. Training and evaluation code/resources are included.
 
 ## Anti-slop implementation
 

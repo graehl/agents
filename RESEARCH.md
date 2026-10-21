@@ -39,7 +39,9 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
   experimental result, making a comparison or significance claim, treating a
   completed run's score or stop/gate outcome as decision evidence, or
   summarizing train/eval/gate conditions.
-- [`_RESEARCH/judgment.md`](_RESEARCH/judgment.md) — before judging an elaborate
+- [`_RESEARCH/judgment.md`](_RESEARCH/judgment.md) — before selecting or ordering
+  ML training/evaluation experiments: refine upstream quality with cheap
+  selection measures before costly inference add-ons; also before judging an elaborate
   arm without a tuned cheap baseline, attributing a surprising change after
   multiple differences, promoting changes during hill-climbing, reading a tie
   on a revision built for stated reasons,
