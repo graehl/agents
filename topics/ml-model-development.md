@@ -55,6 +55,38 @@ needs discovery, rather than copying recipes or accumulating every run here.
   and comparisons through [research evidence](../_RESEARCH/evidence.md).
   Use [fine-tuning](fine-tuning.md) when existing capabilities must survive.
 
+## In-flight batching for inference
+
+For a queue larger than the physical batch, consider in-flight batching
+(continuous or iteration-level batching) as a reusable inference facility,
+especially for greedy decoding and sampling. Retire finished sequences and
+admit queued work between decoding steps; each active sequence keeps its own
+position and KV state, so one physical step can serve different generation
+timesteps. Prefer an established backend when integrating it pays back over
+the campaign. Length sorting alone does not refill slots vacated mid-batch;
+it remains useful for static batches and can complement admission/prefill
+scheduling. Restore source identity/order regardless of scheduling.
+
+TensorRT-LLM provides an implementation precedent: its documented in-flight
+path interleaves context and generation using packed inputs without padding.
+Left-padding is therefore not essential to the mechanism. See NVIDIA's
+[in-flight batching and KV-cache documentation](https://nvidia.github.io/TensorRT-LLM/features/paged-attention-ifb-scheduler.html).
+
+Expect the largest benefit when a sustained queue and varied completion
+lengths would leave static batch slots idle. Do not assume strict speedup:
+uniform completion lengths, scheduling/cache-management overhead and prefill
+interference can remove the advantage. Compare whole-workload completion time
+against a well-batched static baseline at matched decoding settings, checking
+output/score correspondence and memory as well as throughput.
+
+Beam search is not fundamentally incompatible: schedule independent request
+groups while preserving each group's hypothesis expansion, pruning, ancestry
+and KV-state sharing/reordering. Greedy/sampling are simpler first consumers;
+verify the chosen backend's beam support and real caller before extending it.
+TensorRT-LLM's [backend documentation](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/tensorrtllm_backend/README.html#decoding)
+also lists beam search; this is precedent, not proof of support in every
+backend/version or a local benchmark.
+
 ## Existing draft entry points
 
 These are discovery pointers, not instructions to load every file or transplant

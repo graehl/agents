@@ -29,8 +29,11 @@ path efficient enough for the proposed work; a completed smoke or a quality
 gain alone does not establish readiness. Inspect the real execution path and
 reuse established project facilities.
 
-For every greedy or beam decode, verify the applicable basics: length sorting
-or bucketing for independent offline inputs with source-order restoration;
+For every greedy, sampled or beam decode, verify the applicable basics:
+efficient scheduling with source-order restoration for offline inputs
+(consider in-flight batching for sustained queues; length sorting/bucketing
+for static batches or complementary scheduling—see
+`~/agents/topics/ml-model-development.md` § In-flight batching for inference);
 actual batching across examples and live beam hypotheses; incremental KV
 state reuse and shared-prefix prefill reuse; and reuse of unchanged encoder
 outputs, logits or scores across compatible comparisons. Beam width is not

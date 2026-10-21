@@ -5996,3 +5996,27 @@ prose correction retains substantive uncertainty and personal testimony.
   unrelated project's training task can use the general topic without making
   its runtime depend on draft. No agent-outcome improvement measured.
 - Contributing-model: 6-Astra
+
+## 2026-10-21 — inference scheduling includes in-flight batching
+
+- User correction: length sorting is not the endpoint for general inference
+  efficiency. In-flight batching can refill physical batches while requests
+  have different generation positions and KV state; greedy/sampling are the
+  simplest initial consumers. Beam search should not be presumed incompatible.
+- Checked NVIDIA's TensorRT-LLM in-flight batching/KV-cache and Triton backend
+  decoding documentation (linked in `ml-model-development.md`): packed,
+  unpadded inputs are the documented precedent, and beam search is listed.
+  No local implementation inspection or throughput benchmark was performed.
+- Decision: extend the existing scoped ML topic and replace RUNS' apparent
+  universal sorting requirement with scheduling choice. No boot growth.
+- Trace: a large variable-length greedy workload can refill vacated slots;
+  sorting is no longer mistaken for sufficient execution readiness. Source
+  identity and per-sequence state survive admission and retirement.
+- Trace: equal-length batches or a tiny queue may not amortize scheduler
+  overhead; matched whole-workload timing decides without forcing a rewrite.
+- Trace: a beam caller must preserve request-group pruning and cache ancestry;
+  backend documentation alone does not establish caller support. Greedy-first
+  reuse does not silently advertise tested beam support.
+- Validation: manual trace simulation and diff checks only; expected agent
+  behavior improvement remains unmeasured.
+- Contributing-model: 6-Astra
