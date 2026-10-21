@@ -63,11 +63,12 @@ PLAIN_TEXT_SUFFIXES = {
 
 STYLE = """
 :root { color: #293e35; background: #f7f6f0; font: 15px/1.55 system-ui, sans-serif; }
-body { margin: 0 auto; padding: 1rem 1.5rem 3rem; max-width: 1100px; }
+body { margin: 0 auto; padding: .5rem 1.5rem 3rem; max-width: 1100px; }
 a { color: #2f6b52; text-underline-offset: 2px; } a:hover { color: #387c60; }
 a:focus-visible { outline: 3px solid #387c60; outline-offset: 3px; }
-nav.crumbs { font-size: .9rem; color: #637066; padding: .3rem 0 .6rem; border-bottom: 1px solid #dcded4; }
+nav.crumbs { font-size: .9rem; color: #637066; padding: 0 0 .45rem; border-bottom: 1px solid #dcded4; }
 nav.crumbs a { text-decoration: none; } nav.crumbs a:hover { text-decoration: underline; }
+.repo-view-location-shown nav.crumbs { display: none; }
 article { max-width: 48rem; }
 article h1, article h2, article h3 { line-height: 1.25; margin-top: 1.5em; }
 article h1 { font-size: 1.6rem; } article h2 { font-size: 1.25rem; }
@@ -150,9 +151,18 @@ ACCESS_KEEPER = """<script>
 # Tells a framing app viewer (YA's App bar) which page is showing, since a
 # cross-origin parent cannot read its frame's location. The token is left out:
 # any page may frame this one, and the viewer already holds its own link.
+# A framed page's own breadcrumbs are hidden, since its framer is taken to show
+# the location already, until the framer answers that it does not (YA's bar
+# does when too narrow for the path). Running in <head> keeps them from flashing.
 FRAME_REPORTER = """<script>
 (() => {
   if (window.parent === window) return;
+  const root = document.documentElement;
+  root.classList.add("repo-view-location-shown");
+  addEventListener("message", (event) => {
+    if (event.source !== window.parent || event.data?.type !== "yep-anywhere:app-location-shown") return;
+    root.classList.toggle("repo-view-location-shown", event.data.shown !== false);
+  });
   const report = () => {
     const url = new URL(location.href);
     url.searchParams.delete("ya_access");
@@ -164,6 +174,17 @@ FRAME_REPORTER = """<script>
   addEventListener("pageshow", (event) => event.persisted && report());
 })();
 </script>"""
+
+# The breadcrumb row opening a repository HTML file, such as a rendered paper:
+# smaller than a rendered page's, in normal flow so it scrolls away, and reset
+# so the page's own styles and layout (a Quarto navbar) leave it alone.
+STORED_CRUMBS_STYLE = """<style>
+#repo-view-crumbs { all: initial; display: block; box-sizing: border-box; padding: .3rem 1rem;
+  font: 12px/1.4 system-ui, sans-serif; color: #6b756f; overflow-wrap: anywhere; }
+#repo-view-crumbs a { all: unset; color: #3a7d60; cursor: pointer; }
+#repo-view-crumbs a:hover, #repo-view-crumbs a:focus-visible { text-decoration: underline; }
+.repo-view-location-shown #repo-view-crumbs { display: none; }
+</style>"""
 
 MARKDOWN_LINK = re.compile(
     r"\]\(\s*<?([^)\s>]+)>?(?:\s+[\"'][^\"']*[\"'])?\s*\)|^ {0,3}\[[^\]]+\]:\s*<?([^\s>]+)>?",
@@ -423,9 +444,31 @@ def compose_page(
     locate: Callable[[str], str | None],
     footer: str = "",
 ) -> str:
-    """A full page for a URL whose directory is `page_dir`, with a breadcrumb
-    for each ancestor directory, linked where `locate` gives it a
-    repository-relative URL. All links are relative."""
+    """A full page for a URL whose directory is `page_dir`, with breadcrumbs.
+    All links are relative."""
+    main = f"<main><article>\n{body}\n</article></main>"
+    contents = outline(body)
+    return (
+        '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        '<meta name="generator" content="repo-view">\n'
+        f"<title>{html.escape(title)}</title><style>{STYLE}</style></head><body>\n"
+        f'<nav class="crumbs" aria-label="Location">{crumb_trail(repo_name, page_dir, current, locate)}</nav>\n'
+        + (f'<div class="layout">{contents}{main}</div>\n' if contents else main + "\n")
+        + (f"<footer>{footer}</footer>\n" if footer else "")
+        + "</body></html>\n"
+    )
+
+
+def crumb_trail(
+    repo_name: str,
+    page_dir: str,
+    current: str | None,
+    locate: Callable[[str], str | None],
+) -> str:
+    """Breadcrumbs for a URL whose directory is `page_dir`: one per ancestor
+    directory, linked where `locate` gives it a repository-relative URL, then
+    `current`, the page's own name (None for a directory's page)."""
     parts = page_dir.split("/") if page_dir else []
     crumbs = [(repo_name, "")] + [
         (name, "/".join(parts[: i + 1])) for i, name in enumerate(parts)
@@ -442,18 +485,7 @@ def compose_page(
             )
     if current is not None:
         items.append(html.escape(current))
-    main = f"<main><article>\n{body}\n</article></main>"
-    contents = outline(body)
-    return (
-        '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">\n'
-        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        '<meta name="generator" content="repo-view">\n'
-        f"<title>{html.escape(title)}</title><style>{STYLE}</style></head><body>\n"
-        f'<nav class="crumbs" aria-label="Location">{" / ".join(items)}</nav>\n'
-        + (f'<div class="layout">{contents}{main}</div>\n' if contents else main + "\n")
-        + (f"<footer>{footer}</footer>\n" if footer else "")
-        + "</body></html>\n"
-    )
+    return " / ".join(items)
 
 
 def outline(body: str) -> str:
@@ -528,9 +560,18 @@ def with_access_keeper(page: str, token: str | None) -> str:
     )
 
 
-def with_frame_reporter(page: bytes) -> bytes:
-    """Insert the frame location reporter into a repository HTML file, whatever its encoding."""
+def with_frame_reporter(page: bytes, crumbs: str | None) -> bytes:
+    """Insert the frame location reporter, and `crumbs` as a breadcrumb row
+    opening the body, into a repository HTML file whatever its (ASCII-compatible)
+    encoding. A file without a <body> tag gets no row."""
     insert = FRAME_REPORTER.encode("ascii") + b"\n"
+    body = re.search(rb"<body\b[^>]*>", page, re.IGNORECASE)
+    if crumbs is not None and body:
+        row = f'<nav id="repo-view-crumbs" aria-label="Location">{crumbs}</nav>'.encode(
+            "ascii", "xmlcharrefreplace"
+        )
+        page = page[: body.end()] + b"\n" + row + page[body.end() :]
+        insert += STORED_CRUMBS_STYLE.encode("ascii") + b"\n"
     head = re.search(rb"</head\s*>", page, re.IGNORECASE)
     return (
         page[: head.start()] + insert + page[head.start() :] if head else insert + page
@@ -542,9 +583,11 @@ class ProjectPages:
 
     FUNCTION(repo_root: Path) returns {repository-relative path: complete HTML}.
     Pages are seeds of the reachable set and win over repository files at the
-    same path. They are regenerated on request once older than `max_age`, and
-    at once when FILE changes: an edited generator is reloaded without a
-    restart. A reload that fails keeps the previous generator and says why.
+    same path. A request for pages older than `max_age` gets them as they are
+    and starts one background regeneration, so a slow generator never delays
+    a page; the first generation, and the first after FILE changes, happen
+    within the request. An edited generator is reloaded without a restart; a
+    reload that fails keeps the previous generator and says why.
 
     An element with an `id` and `data-repo-dir="<directory>"` marks where a
     page shows that directory; breadcrumbs for the directory link there."""
@@ -555,7 +598,13 @@ class ProjectPages:
         self.pages: dict[str, str] = {}
         self.sections: dict[str, str] = {}  # directory → "page#id"
         self.made: float | None = None
-        self._lock = threading.Lock()
+        self.loads = 0  # successful generator loads
+        self._made_with = 0  # the load that made `pages`
+        self._refreshing = False
+        self._state = (
+            threading.Lock()
+        )  # guards the fields above; never held while generating
+        self._generating = threading.Lock()  # one generation at a time
         if spec:
             file, sep, self.name = spec.rpartition(":")
             if not sep or not file or not self.name:
@@ -563,7 +612,7 @@ class ProjectPages:
             self.file = (repo.root / file).resolve()
             sys.path.insert(0, str(self.file.parent))
             self.loaded_stamp = self.file.stat().st_mtime_ns
-            self.function = self._load()
+            self.function, self.loads = self._load(), 1
 
     def _load(self) -> Callable[[Path], Mapping[str, str]]:
         module_spec = importlib.util.spec_from_file_location(
@@ -578,10 +627,10 @@ class ProjectPages:
             raise RepoViewError(f"--pages: {self.file} has no function {self.name}")
         return function
 
-    def _reload_if_edited(self) -> bool:
+    def _reload_if_edited(self) -> None:
         stamp = self.file.stat().st_mtime_ns
         if stamp == self.loaded_stamp:
-            return False
+            return
         self.loaded_stamp = stamp
         try:
             self.function = self._load()
@@ -590,30 +639,56 @@ class ProjectPages:
                 "pages",
                 f"kept the previous generator; reloading {self.file.name} failed: {error!r}",
             )
-            return False
+            return
+        self.loads += 1
         log("pages", f"reloaded {self.file.name}")
-        return True
 
     def current(self) -> dict[str, str]:
         if self.function is None:
             return self.pages
-        with self._lock:
+        with self._state:
+            self._reload_if_edited()
+            wait = self._made_with != self.loads
             # `build` passes an infinite max_age: generate once, never again.
-            stale = self.made is None or time.monotonic() - self.made > self.max_age
-            if self._reload_if_edited() or stale:
-                started = time.monotonic()
-                pages = dict(self.function(self.repo.root))
-                for rel in pages:
-                    if link_target("", rel) != rel or not rel:
-                        raise RepoViewError(
-                            f"--pages returned an invalid page path {rel!r}"
-                        )
-                self.pages, self.made = pages, time.monotonic()
-                self.sections = directory_sections(pages)
-                log(
-                    "pages", f"{len(pages)} project pages in {self.made - started:.2f}s"
-                )
-            return self.pages
+            refresh = (
+                not wait
+                and not self._refreshing
+                and time.monotonic() - self.made > self.max_age
+            )
+            self._refreshing = self._refreshing or refresh
+        if wait:
+            with self._generating:
+                if (
+                    self._made_with != self.loads
+                ):  # unless a waiting peer just made them
+                    self._generate()
+        elif refresh:
+            threading.Thread(target=self._refresh, daemon=True).start()
+        return self.pages
+
+    def _refresh(self) -> None:
+        try:
+            with self._generating:
+                self._generate()
+        except Exception as error:  # noqa: BLE001 -- the previous pages keep serving
+            log("pages", f"kept the previous pages; regenerating failed: {error!r}")
+        finally:
+            with self._state:
+                self._refreshing = False
+
+    def _generate(self) -> None:
+        with self._state:
+            function, load = self.function, self.loads
+        started = time.monotonic()
+        pages = dict(function(self.repo.root))
+        for rel in pages:
+            if link_target("", rel) != rel or not rel:
+                raise RepoViewError(f"--pages returned an invalid page path {rel!r}")
+        sections = directory_sections(pages)
+        with self._state:
+            self.pages, self.sections = pages, sections
+            self.made, self._made_with = time.monotonic(), load
+        log("pages", f"{len(pages)} project pages in {self.made - started:.2f}s")
 
     def latest(self) -> dict[str, str]:
         """The pages last generated, without regenerating: for link-graph walks,
@@ -817,6 +892,7 @@ class Reply:
     file: Path | None = None
     location: str | None = None
     page: bool = False  # generated by this tool: gets the access-link keeper
+    crumbs: str | None = None  # breadcrumbs for a repository HTML file
 
 
 NOT_FOUND = Reply(HTTPStatus.NOT_FOUND, body=b"not found\n")
@@ -914,7 +990,14 @@ class LiveSite:
             return html_reply(
                 document_page(self.repo, rendered, parent_rel(node), name, self.locate)
             )
-        return file_reply(self.repo.path(node))
+        return self.file(node, parent_rel(node), node.rpartition("/")[2])
+
+    def file(self, rel: str, page_dir: str, current: str | None) -> Reply:
+        """A repository file; an HTML one gets breadcrumbs as if at `page_dir`."""
+        reply = file_reply(self.repo.path(rel))
+        if reply.kind.startswith("text/html"):
+            reply.crumbs = crumb_trail(self.repo.name, page_dir, current, self.locate)
+        return reply
 
     def directory(self, rel: str) -> Reply:
         if join_rel(rel, "index.html") in self.pages.latest():
@@ -924,7 +1007,7 @@ class LiveSite:
             self.reach.admit_links_of(rel, self.graph.links(document.rel))
             return html_reply(self.pages.latest()[document.rel])
         if document.kind == "index":
-            return file_reply(self.repo.path(document.rel))
+            return self.file(document.rel, rel, None)
         if document.kind == "readme":
             rendered = self.renderer.render(document.rel)
             self.reach.admit_links_of(
@@ -1073,7 +1156,7 @@ def make_handler(
                 page = with_access_keeper(reply.body.decode("utf-8"), token)
                 reply = Reply(reply.status, reply.kind, page.encode("utf-8"))
             elif reply.file and reply.kind.startswith("text/html"):
-                body = with_frame_reporter(reply.file.read_bytes())
+                body = with_frame_reporter(reply.file.read_bytes(), reply.crumbs)
                 reply = Reply(reply.status, reply.kind, body)
             return self.send(reply, head, cookie)
 
@@ -1354,7 +1437,7 @@ def main(argv: list[str] | None = None) -> int:
         "--pages-max-age",
         type=float,
         default=10.0,
-        help="seconds before --pages regenerates",
+        help="seconds before a request starts regenerating --pages in the background",
     )
     serve.add_argument(
         "--static",

@@ -322,6 +322,50 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("edited", page)
 
+    def test_stale_project_pages_serve_at_once_while_regenerating(self) -> None:
+        # The generator turns slow once `slow` exists, as a large dashboard is.
+        self.write(
+            "scripts/dash.py",
+            "import time\n"
+            "def pages(root):\n"
+            "    slow = (root / 'slow').exists()\n"
+            "    if slow:\n"
+            "        time.sleep(2)\n"
+            "    return {'index.html': 'regenerated' if slow else 'first'}\n",
+        )
+        base = self.serve("--pages", "scripts/dash.py:pages", "--pages-max-age", "0")
+        self.assertTrue(self.get(base + "/")[2].endswith("first"))
+        self.write("slow", "")
+        started = time.monotonic()
+        self.assertTrue(self.get(base + "/")[2].endswith("first"))
+        self.assertLess(time.monotonic() - started, 1.5)
+        deadline = time.monotonic() + 10
+        while not self.get(base + "/")[2].endswith("regenerated"):
+            self.assertLess(time.monotonic(), deadline, "pages never regenerated")
+            time.sleep(0.1)
+
+    def test_repository_html_gets_crumbs_that_a_location_showing_frame_hides(
+        self,
+    ) -> None:
+        self.write("README.md", "# Demo\n[paper](papers/p/paper.html)\n")
+        self.write(
+            "papers/p/paper.html",
+            '<html><head><title>P</title></head><body class="quarto">\n<p>paper</p></body></html>',
+        )
+        base = self.serve()
+        status, _, page = self.get(base + "/papers/p/paper.html")
+        self.assertEqual(status, 200)
+        self.assertIn(
+            '<body class="quarto">\n<nav id="repo-view-crumbs" aria-label="Location">'
+            '<a href="../../">demo</a> / papers / p / paper.html</nav>',
+            page,
+        )
+        # A framed page hides them until its framer says it does not show the path.
+        self.assertIn(
+            ".repo-view-location-shown #repo-view-crumbs { display: none; }", page
+        )
+        self.assertIn("yep-anywhere:app-location-shown", page)
+
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_breadcrumbs_open_the_project_page_section_showing_a_directory(
         self,

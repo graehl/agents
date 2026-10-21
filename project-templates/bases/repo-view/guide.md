@@ -100,15 +100,24 @@ framing parent as `{type: "yep-anywhere:app-location", href}`, on load and on
 history or `#` changes. YA's App bar shows that path as breadcrumbs. Outside a
 frame the script does nothing; static builds do not contain it.
 
+Rendered pages open with breadcrumbs, and repository `.html` files served live
+get a smaller crumb row at the top of their body that scrolls away with the
+page (a file without a `<body>` tag gets none). A framed page hides its own
+crumbs, taking the framer to show the location already, until the framer
+answers `{type: "yep-anywhere:app-location-shown", shown: false}`; YA's bar
+sends that when it is too narrow to show the path, usually on phones.
+
 ## Project pages
 
 `--pages FILE:FUNCTION` adds generated pages such as dashboards. The function
 receives the repository root and returns `{relative path: complete HTML}`; a
 page at `index.html` replaces the root page. Pages link documents by their
-source paths (`docs/guide.md`). Under `serve` they are regenerated on request
-once older than `--pages-max-age` seconds, and at once after the generator
-file is edited, without a restart; a generator edit that fails to load leaves
-the previous one serving and logs why. `build` generates them once.
+source paths (`docs/guide.md`). Under `serve`, a request for pages older than
+`--pages-max-age` seconds gets them at once and starts a background
+regeneration, so a slow generator never delays a page. After the generator
+file is edited, the next request waits for pages from the reloaded generator,
+without a restart; a generator edit that fails to load leaves the previous
+one serving and logs why. `build` generates them once.
 
 A page element with an `id` and `data-repo-dir="<directory>"` marks where the
 page shows that directory. Every page's breadcrumb for a marked directory
