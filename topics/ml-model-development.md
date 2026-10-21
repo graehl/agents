@@ -38,6 +38,10 @@ needs discovery, rather than copying recipes or accumulating every run here.
 
 ## Quality, experiment order and execution
 
+- Before acquiring or partitioning training/evaluation data, including a
+  small corpus-quality smoke, read [training data](training-data.md).
+  Reserve whole source documents/recordings across splits where possible;
+  segmentation must not turn related portions into independent examples.
 - Retention makes quality work part of authorized future use:
   [Retained prototypes](design-thinking.md#retained-prototypes). Judge the
   training and evaluation code, data/resources and orientation material by
