@@ -658,6 +658,10 @@ Full procedure: `topics/vendoring.md`.
 
 ## Feature validation
 
+Before planning, implementing or running ML model training or evaluation,
+read `~/agents/topics/ml-model-development.md` for shared learnings,
+evidence and implementations to reuse across tasks.
+
 Before planning or implementing any durable script or software change, read
 `topics/testing.md` (repo-local, else `~/agents/topics/testing.md`). Choose
 verification and retained coverage by benefit and cost; project requirements

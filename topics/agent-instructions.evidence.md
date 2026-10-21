@@ -5971,3 +5971,28 @@ prose correction retains substantive uncertainty and personal testimony.
 - Validation: manual counterexample traces and route inspection. No causal
   improvement in agent behavior is established without later outcome evidence.
 - Contributing-model: 6-Astra
+
+## 2026-10-21 — shared ML knowledge has a cross-program entry point
+
+- User follow-up: ML/model-training efforts share learnings, evidence and
+  implementations, at least across draft. Requested a personal agents topic
+  read for training/evaluation, bidirectional pointers, and a draft boot
+  declaration identifying `~/agents` as the user's GitHub checkout.
+- Decision: `topics/ml-model-development.md` owns discovery and the feedback
+  loop, linking existing judgment/resource contracts rather than duplicating
+  them. Draft retains its implementations and evidence; verified entry points
+  include trainlib samplers, decodelib prefix caching, training safeguards,
+  evaluation splits and the PII/ASR program owners. The global scoped trigger
+  and draft boot reach the same source. No new glossary route is needed.
+- Availability: the existing draft research/run vendor routers remain intact.
+  Their snapshot is not implicitly extended by this new pointer. Draft boot
+  also corrects its old global-source locator from the agents project boot
+  to `AGENTS.global.md`; the local Claude link actually targets its compiled
+  harness boot. Agents origin was verified as `git@github.com:graehl/agents.git`.
+- Traces: a new ASR caller finds prior PII/MT engineering without importing
+  their recipe constants; a new result adds evidence to its existing owner
+  and a discovery pointer only when useful; a missing agents checkout is
+  reported rather than misrepresented as covered by a partial vendor; an
+  unrelated project's training task can use the general topic without making
+  its runtime depend on draft. No agent-outcome improvement measured.
+- Contributing-model: 6-Astra
