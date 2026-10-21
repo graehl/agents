@@ -1391,6 +1391,9 @@ def enable(
             "stop": {"signal": "SIGTERM", "graceMs": 3000},
             "serving": {"target": "sandbox-loopback", "protocol": "http"},
         }
+    if not static:
+        app.setdefault("viewAudience", "public")
+        app.setdefault("fileLinks", {})
     app["service"] = service
     app_path.parent.mkdir(parents=True, exist_ok=True)
     app_path.write_text(json.dumps(app, indent=2) + "\n", encoding="utf-8")

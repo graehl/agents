@@ -435,6 +435,8 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(enabled.returncode, 0, enabled.stderr)
         app = json.loads((self.repo / ".project-template/app.json").read_text())
         self.assertEqual(app["setup"], ["x"])
+        self.assertEqual(app["viewAudience"], "public")
+        self.assertEqual(app["fileLinks"], {})
         service = app["service"]
         self.assertEqual(
             service["where"], {"kind": "process", "cwd": ".", "entry": "/"}

@@ -1,4 +1,6 @@
 {
+  "viewAudience": "public",
+  "fileLinks": {},
   "service": {
     "version": 1,
     "where": {
