@@ -17,7 +17,7 @@ from pathlib import Path
 import acli
 
 TEMPLATE = Path(__file__).resolve().parent / "templates" / "paper"
-PLACEHOLDERS = ("title", "date", "program", "proposal")
+PLACEHOLDERS = ("title", "date", "program", "proposal", "qmd_build")
 
 
 def scaffold(program: Path, slug: str, title: str, proposal: str | None) -> dict:
@@ -45,6 +45,8 @@ def scaffold(program: Path, slug: str, title: str, proposal: str | None) -> dict
         "program": os.path.relpath(program / "PROGRAM.md", paper),
         "proposal": proposal
         or os.path.relpath(program / "paper-proposals.md", paper) + f"#{slug}",
+        # Shared Quarto filters stay here rather than being copied per paper.
+        "qmd_build": str(Path(__file__).resolve().parent),
     }
     written = []
     for path in sorted(p for p in paper.rglob("*") if p.is_file()):

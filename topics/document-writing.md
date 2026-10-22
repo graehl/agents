@@ -172,6 +172,13 @@ format-conditional blocks, shortcodes, filters, or local components. Custom
 JavaScript receives a stable element/data contract and remains local to the
 document project; avoid pasting opaque script fragments through the prose.
 
+**Table notes:** mark a cell with a letter superscript (`^a^`) and start each
+note on its own source line directly after the table with the same marker
+(`^a^ Protocol C ...`). `qmd_build/table_notes.lua`, applied by `qmd-html`
+and by the paper template's `_quarto.yml`, links each marker to its note in
+HTML and starts each note on a new line; a marker in prose links too when
+its letter names exactly one note in the document. PDF output is unchanged.
+
 Follow [`document-writing-browser-interactive`](document-writing-browser-interactive.md)
 for static HTML and interaction and
 [`document-writing-printable`](document-writing-printable.md) for PDF,

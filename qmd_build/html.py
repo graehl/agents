@@ -206,6 +206,7 @@ def render_root(args, config: Config, root: Path) -> dict:
                 metadata.write_text(json.dumps({"pagetitle": title}))
                 command += ["--metadata-file", str(metadata)]
         command += ["--lua-filter", str(PACKAGE / "included_documents.lua")]
+        command += ["--lua-filter", str(PACKAGE / "table_notes.lua")]
         if source_map:
             command += ["--lua-filter", str(PACKAGE / "source_map.lua")]
         if style:

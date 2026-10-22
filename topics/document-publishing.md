@@ -124,7 +124,9 @@ mechanics.
 `qmd_build/`: `styles.py` (style search and manifests; `styles/memo/`),
 `document_title.lua` (opening heading as title), `document_corner.lua`
 (revision and PDF link), `table_tokens.lua`, `paragraph_labels.lua`, `included_documents.lua` (links
-between included documents, `.appendix-doc`), `table_layout.py` with
+between included documents, `.appendix-doc`), `table_notes.lua` (table-note
+marker links; convention in `document-writing` § Keep rich elements
+portable), `table_layout.py` with
 `table_widths.js`, `table_widths.mjs` and `table_widths.lua` (build-time
 column widths), `fonts.py` (embeddable faces), and `browser_print.py`
 (Chromium print and PDF page count). A hand-assembled page outside Quarto,

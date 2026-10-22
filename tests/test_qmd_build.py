@@ -444,6 +444,30 @@ def test_html_memo_paragraph_labels_join_outline(tmp_path):
     assert 'data-label-punct="."' in html and 'data-label-punct=":"' in html
 
 
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_table_note_markers_link_to_notes(tmp_path):
+    root = tmp_path / "notes.md"
+    root.write_text(
+        "# Notes\n\nProse cites a note (^b^); area is 3 m^2^.\n\n"
+        "| Set | WER |\n|---|---|\n| dev^a^ | 5.9^b^ |\n\n"
+        "^a^ First note, see also ^b^.\n^b^ Second note.\n"
+    )
+    command = [str(REPO / "scripts/qmd-html"), str(root)]
+    run = subprocess.run(command + ["--acli-quiet"], capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    html = (tmp_path / "notes.html").read_text()
+    assert 'id="tblnote-1-a"' in html and 'id="tblnote-1-b"' in html
+    # Two in the table, one inside note a, one in prose.
+    assert html.count('href="#tblnote-1-b"') == 3
+    assert html.count('href="#tblnote-1-a"') == 1
+    assert "<sup>2</sup>" in html
+    # Each note is its own hanging-indented block.
+    assert re.search(
+        r'<div id="tblnote-1-b" class="table-note" style="[^"]*text-indent:-', html
+    )
+    assert "First note, see also" in html and "Second note" in html
+
+
 def test_paper_scaffold_places_paper_under_its_program(tmp_path):
     from qmd_build.scaffold import scaffold
 
@@ -458,7 +482,9 @@ def test_paper_scaffold_places_paper_under_its_program(tmp_path):
     index = (paper / "index.qmd").read_text()
     assert 'title: "Demo paper"' in index and "abstract: |" in index
     assert "{{< include sections/_10-introduction.qmd >}}" in index
-    assert "papersize: letter" in (paper / "_quarto.yml").read_text()
+    quarto_yml = (paper / "_quarto.yml").read_text()
+    assert "papersize: letter" in quarto_yml and "{{" not in quarto_yml
+    assert f"{REPO / 'qmd_build'}/table_notes.lua" in quarto_yml
     assert "../../PROGRAM.md" in (paper / "README.md").read_text()
     assert "{{" not in (paper / "CHANGELOG.md").read_text()
     with pytest.raises(ValueError, match="exists"):

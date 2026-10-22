@@ -7,6 +7,11 @@ project:
 resource-path:
   - .
 
+# Table-note markers (`^a^` in a cell, `^a^ ...` notes below the table)
+# become links in HTML (~/agents/topics/document-writing.md).
+filters:
+  - {{qmd_build}}/table_notes.lua
+
 link-citations: true
 # Numbered sections, so `@sec-` cross-references render as "Section 3".
 number-sections: true
