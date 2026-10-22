@@ -55,6 +55,8 @@ ACCESS_COOKIE = "ya_app_access"
 MANIFEST = ".repo-view.json"
 DEFAULT_SITE = "_site"
 DOCUMENT_FORMATS = {".md": "gfm", ".markdown": "gfm", ".qmd": "markdown"}
+# Shipped beside this script (template file; qmd_build's in ~/agents).
+TABLE_NOTES_FILTER = Path(__file__).with_name("table_notes.lua")
 LINKING_SUFFIXES = {".html", ".htm", ".css", *DOCUMENT_FORMATS}
 PLAIN_TEXT_SUFFIXES = {
     ".bib", ".cfg", ".csv", ".ini", ".ipynb", ".jsonl", ".log", ".lua", ".py",
@@ -426,6 +428,8 @@ class Renderer:
             "html5",
             "--mathml",
             "--wrap=none",
+            "--lua-filter",
+            str(TABLE_NOTES_FILTER),
         ]
         done = subprocess.run(
             command, check=False, input=text, capture_output=True, text=True

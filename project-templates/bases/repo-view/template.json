@@ -13,7 +13,8 @@
       "to": "scripts/repo_view.py",
       "from": "files/repo_view.py",
       "executable": true
-    }
+    },
+    { "to": "scripts/table_notes.lua", "from": "files/table_notes.lua" }
   ],
   "overrides": []
 }

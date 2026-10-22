@@ -58,6 +58,10 @@ class RepoViewTest(unittest.TestCase):
         self.script = self.repo / "scripts/repo_view.py"
         self.script.parent.mkdir()
         shutil.copy2(SOURCE, self.script)
+        shutil.copy2(
+            SOURCE.with_name("table_notes.lua"),
+            self.script.with_name("table_notes.lua"),
+        )
         self.git("init", "-q")
         self.git("add", ".")
         self.git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init")
@@ -173,6 +177,19 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn('const key = "ya_access"', page)
         self.assertEqual(self.get(base + "/img/unlinked.txt")[0], 404)
+
+    @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
+    def test_quarto_table_notes_link_to_their_notes(self) -> None:
+        self.write(
+            "docs/table.qmd",
+            "| Set | WER |\n|---|---|\n| dev^a^ | 5.9 |\n\n^a^ The note.\n",
+        )
+        self.write("README.md", "# Demo\n\n[table](docs/table.qmd)\n")
+        built = self.run_script("build")
+        self.assertEqual(built.returncode, 0, built.stderr)
+        page = (self.repo / "_site/docs/table.qmd.html").read_text()
+        self.assertIn('href="#tblnote-1-a"', page)
+        self.assertIn('id="tblnote-1-a"', page)
 
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_failed_build_keeps_the_live_site(self) -> None:
