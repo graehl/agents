@@ -1,0 +1,13 @@
+/* Shared HTML paper styles, named by the paper template's _quarto.yml. */
+
+/* Page-wide blocks (a .column-page or .column-screen* table with its
+   caption) extend under the sticky margin table of contents. Quarto
+   already stacks them above it but leaves them transparent, so a caption
+   printed over the TOC text. Make them opaque so they cover it. */
+.column-page,
+.column-page-right,
+.column-screen,
+.column-screen-inset,
+.column-screen-inset-right {
+  background: var(--bs-body-bg, #fff);
+}

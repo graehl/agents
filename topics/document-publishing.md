@@ -126,7 +126,8 @@ mechanics.
 (revision and PDF link), `table_tokens.lua`, `paragraph_labels.lua`, `included_documents.lua` (links
 between included documents, `.appendix-doc`), `table_notes.lua` (table-note
 marker links; convention in `document-writing` § Keep rich elements
-portable), `table_layout.py` with
+portable), `paper.css` (paper-template HTML styles: page-wide tables are
+opaque so they cover the margin table of contents), `table_layout.py` with
 `table_widths.js`, `table_widths.mjs` and `table_widths.lua` (build-time
 column widths), `fonts.py` (embeddable faces), and `browser_print.py`
 (Chromium print and PDF page count). A hand-assembled page outside Quarto,

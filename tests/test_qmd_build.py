@@ -485,6 +485,7 @@ def test_paper_scaffold_places_paper_under_its_program(tmp_path):
     quarto_yml = (paper / "_quarto.yml").read_text()
     assert "papersize: letter" in quarto_yml and "{{" not in quarto_yml
     assert f"{REPO / 'qmd_build'}/table_notes.lua" in quarto_yml
+    assert f"{REPO / 'qmd_build'}/paper.css" in quarto_yml
     assert "../../PROGRAM.md" in (paper / "README.md").read_text()
     assert "{{" not in (paper / "CHANGELOG.md").read_text()
     with pytest.raises(ValueError, match="exists"):

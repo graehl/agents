@@ -19,6 +19,8 @@ number-sections: true
 format:
   html:
     embed-resources: true
+    # Page-wide tables cover the margin TOC rather than print over it.
+    css: {{qmd_build}}/paper.css
     default-image-extension: svg
     fig-responsive: true
     footnotes-hover: true
