@@ -179,6 +179,12 @@ and by the paper template's `_quarto.yml`, links each marker to its note in
 HTML and starts each note on a new line; a marker in prose links too when
 its letter names exactly one note in the document. PDF output is unchanged.
 
+**Wide tables:** keep prose at the default body width, but put a table that
+would wrap there in `::: {.column-screen-inset}` (graehl, 2026-10-22: an
+over-width table covering the margin table of contents beats cramped cells).
+The paper template's `paper.css` makes it opaque over the TOC. Cut prose
+from cells into notes before widening further.
+
 Follow [`document-writing-browser-interactive`](document-writing-browser-interactive.md)
 for static HTML and interaction and
 [`document-writing-printable`](document-writing-printable.md) for PDF,
