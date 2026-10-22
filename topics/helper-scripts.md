@@ -420,6 +420,46 @@ session can remain busy until that already accepted turn reaches terminal.
 **Canonical source**: `scripts/session-turn` (in this repo).
 **Install target**: `~/bin/session-turn` (symlink by default).
 
+### web-identity-consent
+
+Returns the user's consent decision for disclosing identity to one web route.
+It classifies intent only: identity values and credentials never enter its
+arguments or output. The governing authorization boundary is
+[`web-identity`](web-identity.md).
+
+**CLI**: `web-identity-consent <url> --disclosure
+<anonymous|account|contact> --action <read|write> [--config FILE]`. It is acli
+baseline. The default config is the private, git-excluded
+`~/agents/web-identity-consent.toml`. It emits one record containing `decision`,
+normalized `origin` and `path`, disclosure, action, config path, and the matched
+rule's non-secret reason when present. Exit 0 means `allow`, 3 means `ask`, 4
+means `deny`; usage or invalid policy exits 2 with an error envelope.
+
+**Post-conditions**:
+- `anonymous` is allowed after URL validation without reading identity policy;
+  it means no account, credential, cookie, contact field, or handle is sent.
+- Missing config or no matching `account`/`contact` rule returns `ask`, never an
+  inferred allowance.
+- Origins match exactly after normalizing scheme, IDNA host, and default port;
+  a suffix lookalike, subdomain, other scheme, or other port does not inherit.
+- The longest matching path prefix wins. A prefix matches a complete path
+  segment, and equal-specificity conflicting decisions invalidate the policy.
+- The checker never follows a redirect, performs a network request, or reads an
+  identity value. Callers check every effective destination independently.
+- An allowance reports identity consent only. It never reports that the
+  request's write or other side effect is authorized.
+
+**Examples**:
+1. Missing config plus `https://example.com --disclosure account --action read`
+   → `ask`, exit 3.
+2. An exact `https://github.com` account rule → `allow`; the same request to
+   `https://github.com.evil.example` → `ask`.
+3. An account allowance plus `--disclosure contact` → `ask`; classes do not
+   imply one another.
+
+**Canonical source**: `scripts/web-identity-consent` (in this repo).
+**Install target**: `~/bin/web-identity-consent` (symlink by default).
+
 ### build-boot
 
 Compiles the one instruction file each harness protects across compaction.
