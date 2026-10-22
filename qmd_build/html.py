@@ -341,9 +341,11 @@ def render_root(args, config: Config, root: Path) -> dict:
         "pdf": identity(pdf, home) if print_pdf else None,
         "source_map": identity(map_path, home) if source_map else None,
         "source_targets": len(targets),
-        "source_precision": "paragraph/block and section ranges; figure asset files; no character-level mapping"
-        if source_map
-        else None,
+        "source_precision": (
+            "paragraph/block and section ranges; figure asset files; no character-level mapping"
+            if source_map
+            else None
+        ),
         "artifact_metadata": rebuild,
     }
     receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
