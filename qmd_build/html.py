@@ -80,7 +80,8 @@ def quarto_facts(root: Path, quarto: str) -> dict:
     inspected = json.loads(
         subprocess.check_output([quarto, "inspect", str(root)], text=True)
     )
-    pandoc = inspected["formats"]["html"]["pandoc"]
+    html = inspected["formats"]["html"]
+    pandoc = html["pandoc"]
     project = inspected.get("project")
     home = root.parent
     if project:
@@ -99,6 +100,7 @@ def quarto_facts(root: Path, quarto: str) -> dict:
         ).resolve(),
         "resources": [path.resolve() for path in resources],
         "extension": pandoc.get("default-image-extension", "png"),
+        "authored_format_links": "format-links" in html.get("render", {}),
     }
 
 
@@ -205,6 +207,17 @@ def render_root(args, config: Config, root: Path) -> dict:
                 metadata = work / "page-title.json"
                 metadata.write_text(json.dumps({"pagetitle": title}))
                 command += ["--metadata-file", str(metadata)]
+        # Quarto links every declared format's output, but this build makes
+        # only the HTML and its printed PDF: a link to another format's file
+        # would serve whatever stale copy an earlier build left. An author's
+        # own `format-links` wins, since a metadata file would override it.
+        if not facts["authored_format_links"]:
+            built = ["html"]
+            if print_pdf:
+                built.append({"text": "PDF", "href": pdf.name, "icon": "file-pdf"})
+            links = work / "format-links.json"
+            links.write_text(json.dumps({"format-links": built}))
+            command += ["--metadata-file", str(links)]
         command += ["--lua-filter", str(PACKAGE / "included_documents.lua")]
         command += ["--lua-filter", str(PACKAGE / "table_notes.lua")]
         if source_map:

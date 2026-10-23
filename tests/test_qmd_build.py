@@ -285,6 +285,25 @@ def test_html_source_map_end_to_end(tmp_path):
 
 
 @pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_links_no_format_it_did_not_build(tmp_path):
+    declared = "format:\n  html: default\n  pdf:\n    output-file: paper.pdf\n"
+    root = tmp_path / "index.qmd"
+    root.write_text(f"---\ntitle: T\n{declared}---\n\n## Part\n\nBody.\n")
+    command = [str(REPO / "scripts/qmd-html"), str(root), "--acli-quiet"]
+    run = subprocess.run(command, capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    assert "paper.pdf" not in (tmp_path / "index.html").read_text()
+
+    # An author's own choice of links stands.
+    root.write_text(
+        f"---\ntitle: T\nformat-links: [pdf]\n{declared}---\n\n## Part\n\nBody.\n"
+    )
+    run = subprocess.run(command, capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    assert 'href="paper.pdf"' in (tmp_path / "index.html").read_text()
+
+
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
 def test_html_plain_markdown_memo_style(tmp_path):
     root = tmp_path / "memo.md"
     root.write_text("# A *short* memo\n\nLead.\n\n## Findings\n\nBody.\n")

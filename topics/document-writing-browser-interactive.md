@@ -161,7 +161,10 @@ It renders an isolated sibling copy of the document directory with
   `--no-source-map` omits both;
 - with `print-pdf`, a headless-Chromium print PDF beside it (`print`: page
   `format`/`margin`; `playwright-from`: a package directory that resolves
-  `@playwright/test`); and
+  `@playwright/test`), which is the HTML's only "Other Formats" link: a
+  declared format this build does not make (say a LaTeX `paper.pdf`) is
+  not linked, since its file may be stale; an authored `format-links`
+  overrides this; and
 - `<name>.receipt.json` (input/output hashes, Quarto version) and
   `<name>.render.log`.
 
