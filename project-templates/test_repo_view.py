@@ -149,12 +149,20 @@ class RepoViewTest(unittest.TestCase):
 
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_reachable_set_grows_on_demand_and_never_shrinks(self) -> None:
-        base = self.serve()
+        base = self.serve("--rewalk-after", "0")
         self.assertEqual(self.get(base + "/img/unlinked.txt")[0], 404)
         self.write("docs/other.md", "# Other\n\n[now linked](../img/unlinked.txt)\n")
         self.assertEqual(self.get(base + "/img/unlinked.txt")[0], 200)
         self.write("docs/other.md", "# Other\n")
         self.assertEqual(self.get(base + "/img/unlinked.txt")[0], 200)
+
+    def test_a_burst_of_misses_shares_one_link_walk(self) -> None:
+        base = self.serve("--rewalk-after", "60")
+        # An existing but unlinked file; a nonexistent path 404s without a walk.
+        for _ in range(3):
+            self.assertEqual(self.get(base + "/img/unlinked.txt")[0], 404)
+        log = next(self.repo.parent.glob("serve-*.err")).read_text()
+        self.assertEqual(log.count("reachable paths in"), 1, log)
 
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_static_build_is_a_self_contained_publishable_closure(self) -> None:
@@ -261,7 +269,7 @@ class RepoViewTest(unittest.TestCase):
         self.write("output/index.html", '<img src="image.svg">')
         self.write("output/image.svg", "<svg/>")
         self.write("output/secret.txt", "not linked")
-        base = self.serve()
+        base = self.serve("--rewalk-after", "0")
         status, _, page = self.get(base + "/docs/")
         self.assertEqual(status, 200)
         self.assertIn("new.txt", page)

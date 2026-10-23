@@ -49,8 +49,12 @@ built page and the assets it links. Staging a file makes its directory eligible
 for listing without restarting the server. Only
 paths reachable by links from the repository root are served, plus any
 `--root` paths and project pages: linking a directory whose page is a listing
-exposes the files listed there. A newly written link works at once; a path
-stays servable until the server restarts, even after its last link is gone.
+exposes the files listed there. Requesting an existing but unlinked path walks
+the links to look for it; a request within `--rewalk-after` seconds (default
+5) of the last walk's start reuses that walk's answer, so a burst of such
+requests costs one walk, and a newly written link works once that window
+passes. A path stays servable until the server restarts, even after its last
+link is gone.
 Paths with a segment beginning with `.` are never served, and the view writes
 nothing into the repository.
 

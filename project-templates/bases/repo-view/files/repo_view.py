@@ -818,13 +818,21 @@ def seed_nodes(graph: LinkGraph, roots: list[str]) -> list[str]:
 class Reachability:
     """Paths servable because links reach them from the seeds. The set only
     grows (graehl, 2026-10-15): a path stays servable after its last link goes.
-    Concurrent misses share one walk and use links as soon as they are found."""
+    Concurrent misses share one walk and use links as soon as they are found.
+    A miss within `rewalk_after` seconds of a successful walk's start reuses
+    its answer, so a burst of unlinked requests costs one walk, not one each."""
 
-    def __init__(self, graph: LinkGraph, seeds: Callable[[], Iterable[str]]):
-        self.graph, self.seeds = graph, seeds
+    def __init__(
+        self,
+        graph: LinkGraph,
+        seeds: Callable[[], Iterable[str]],
+        rewalk_after: float = 0.0,
+    ):
+        self.graph, self.seeds, self.rewalk_after = graph, seeds, rewalk_after
         self.allowed: set[str] = set(seeds())
         self._changed = threading.Condition()
         self._scan: Future[None] | None = None
+        self._scan_started = 0.0
 
     def contains(self, rel: str) -> bool:
         with self._changed:
@@ -842,7 +850,15 @@ class Reachability:
                 return
             scan = self._scan
             if scan is None or scan.done():
+                if (
+                    until is not None
+                    and scan is not None
+                    and scan.exception() is None
+                    and time.monotonic() - self._scan_started < self.rewalk_after
+                ):
+                    return
                 scan = self._scan = Future()
+                self._scan_started = time.monotonic()
                 threading.Thread(
                     target=self._discover, args=(scan,), daemon=True
                 ).start()
@@ -939,13 +955,16 @@ class LiveSite:
         renderer: Renderer,
         pages: ProjectPages,
         roots: list[str],
+        rewalk_after: float = 0.0,
     ):
         self.repo, self.renderer, self.pages = repo, renderer, pages
         self.graph = LinkGraph(repo, pages)
         self.pages.current()  # project pages exist before any request or walk
         self.roots = seed_nodes(self.graph, roots)
         self.reach = Reachability(
-            self.graph, lambda: ["", *self.pages.latest(), *self.roots]
+            self.graph,
+            lambda: ["", *self.pages.latest(), *self.roots],
+            rewalk_after,
         )
 
     def warm(self) -> None:
@@ -1447,6 +1466,12 @@ def main(argv: list[str] | None = None) -> int:
         help="seconds before a request starts regenerating --pages in the background",
     )
     serve.add_argument(
+        "--rewalk-after",
+        type=float,
+        default=5.0,
+        help="seconds an unlinked-path 404 reuses the last link walk instead of walking again",
+    )
+    serve.add_argument(
         "--static",
         action="store_true",
         help="serve the built --site as a whole instead",
@@ -1537,7 +1562,7 @@ def main(argv: list[str] | None = None) -> int:
             renderer = Renderer(repo, require_pandoc=False)
             if not renderer.pandoc:
                 log("serve", "pandoc not found; documents will show as source text")
-            served = LiveSite(repo, renderer, pages, args.root or [])
+            served = LiveSite(repo, renderer, pages, args.root or [], args.rewalk_after)
             threading.Thread(target=served.warm, daemon=True).start()
         handler = make_handler(
             served, args.base_path.rstrip("/"), access, args.require_access
