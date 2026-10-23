@@ -42,12 +42,13 @@ A terminal `wait` consumes its `cell_id`; reuse only an explicitly running id.
 
 ## File content writes
 
-Write or rewrite authored file content with a direct `apply_patch` call, never
-by embedding it in an `exec` script (heredoc, `tools.exec_command`, or a JS
-string); content a program computes is unaffected. The app-server
-reports nothing for an `exec` call until its whole input has been generated,
-so a long write there shows clients no activity for minutes; `apply_patch` has
-its own file-change item. The global section-size rule still applies.
+Write or rewrite authored file content through `apply_patch` (in code mode,
+`tools.apply_patch` inside `exec`), never a shell heredoc or redirect through
+`exec_command`; content a program computes is unaffected. `apply_patch`
+produces a file-change item clients render as an edit. Either form is silent
+while its input is generated: the app-server reports nothing for a call until
+the whole input exists, so the global section-size rule is what bounds that
+silence.
 
 Do not finalize with owned running/queued work or its successor decision
 unconsumed unless the user deferred it. A promise is no wakeup; questions and

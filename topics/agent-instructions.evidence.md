@@ -6085,3 +6085,15 @@ prose correction retains substantive uncertainty and personal testimony.
 - Trace: a Codex script generating a fixture by computation still runs in
   `exec`; only authored text moves to `apply_patch`.
 - Status: user-directed and trace-simulated; no outcome comparison.
+
+## 2026-10-23 — correction: code mode has no top-level apply_patch
+
+- The same session's tool list exposed only `exec` and agent tools; code mode
+  offers `apply_patch` solely as `tools.apply_patch` inside `exec`, so the
+  first wording ("direct `apply_patch` call, never from an `exec` script") was
+  unfollowable there. Once unsteered, the session landed a 41 KB
+  `tools.apply_patch` write at 19:45:37 after about five silent minutes
+  (8.7k output tokens), and it surfaced as a `FileChange` item.
+- Revised rule: authored content goes through `apply_patch` in either form,
+  never a shell heredoc/redirect through `exec_command`; only the section-size
+  rule bounds silence, since both forms are invisible while generated.
