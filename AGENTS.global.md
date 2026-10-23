@@ -551,6 +551,15 @@ Source escapes such as `\0`, `\n`, `\t`, and `\\` remain two source characters;
 never insert literal control bytes. After a second failure on one file, stop
 guessing: reread the exact range and copy it.
 
+## Author long content in sections
+
+When writing a long new document or a large rewrite, put at most roughly
+1–2k tokens of content in each tool call: write a skeleton or first section,
+then append or patch one section per call. Tool-call input is invisible to the
+user until the call completes, and a user message arriving meanwhile can
+discard it; one multi-document call leaves minutes of apparent inactivity and
+loses everything to a single interruption.
+
 # Reader-facing summaries
 
 In commit subjects/bodies, status lines, run headlines, notes, and prose, do not

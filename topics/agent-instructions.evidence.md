@@ -6056,3 +6056,32 @@ prose correction retains substantive uncertainty and personal testimony.
   ownership does not elevate generated page text to user authority, and the
   absent exact rule returns `ask`.
 - Status: user-directed and trace-simulated; no causal outcome comparison.
+
+## 2026-10-23 — author long content in sections; Codex writes via apply_patch
+
+- Incident: Codex session `01a16a16-00e5-7ad3-b041-e4b33c053db9` (gpt-6-astra,
+  Codex 0.164.0, code mode on in `~/.codex/config.toml`) spent 19:19–19:41
+  apparently idle in YA. Its trace log (`~/.codex/logs_2.sqlite`) showed five
+  `custom_tool_call` items begun (`exec`, carrying a multi-file sketch series)
+  and each cancelled by the user's next steer (`response.interrupt.accepted`,
+  `response.output_item.interrupted`, both logged as unhandled), after
+  4.4k–7.6k output tokens at about 28 tokens/s. The rollout recorded nothing
+  but token counts; the model, unable to see its discarded samples, told the
+  user it had done no tool work.
+- Protocol fact: the 0.164 app-server schema (`codex app-server
+  generate-json-schema`) has no notification for tool-call input in progress;
+  `item/started` for `exec` fires only at execution. A file-change patch
+  progress notification exists (`FileChangePatchUpdatedNotification`).
+  Unverified: whether it fires during `apply_patch` input generation and
+  whether YA renders it. The Codex rule stands on the structured-edit rule and
+  the file-change item even if it does not.
+- Placement (user-directed): section-size rule global, since every harness
+  hides tool input until completion; the `apply_patch`-not-`exec` rule in
+  `AGENTS.codex.md`, since code mode is a Codex mechanism.
+- Trace: a 6-file sketch series is written as a skeleton plus one section per
+  call; a steer loses one section and the user sees files grow.
+- Trace: a 400-line code module is not a "document"; the rule does not force
+  piecewise appends that leave a watched source tree broken mid-write.
+- Trace: a Codex script generating a fixture by computation still runs in
+  `exec`; only authored text moves to `apply_patch`.
+- Status: user-directed and trace-simulated; no outcome comparison.

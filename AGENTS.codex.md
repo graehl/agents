@@ -40,6 +40,15 @@ Any truncation/elision means the read is incomplete.
 
 A terminal `wait` consumes its `cell_id`; reuse only an explicitly running id.
 
+## File content writes
+
+Write or rewrite authored file content with a direct `apply_patch` call, never
+by embedding it in an `exec` script (heredoc, `tools.exec_command`, or a JS
+string); content a program computes is unaffected. The app-server
+reports nothing for an `exec` call until its whole input has been generated,
+so a long write there shows clients no activity for minutes; `apply_patch` has
+its own file-change item. The global section-size rule still applies.
+
 Do not finalize with owned running/queued work or its successor decision
 unconsumed unless the user deferred it. A promise is no wakeup; questions and
 compaction do not discharge ownership. Before launching/resuming/waiting, read
