@@ -2609,9 +2609,13 @@ def test_gpu_samples_record_device_load_and_keep_vram_peaks():
         agentctl_gpu.append_vram_sample(run_dir, {0: 4000}, 115.0, (busy,))
         rows = [
             json.loads(line)
-            for line in (run_dir / agentctl_gpu.VRAM_SAMPLES_FILENAME).read_text().splitlines()
+            for line in (run_dir / agentctl_gpu.VRAM_SAMPLES_FILENAME)
+            .read_text()
+            .splitlines()
         ]
-        _assert(rows[0]["vram_mib"] == {} and set(rows[0]["device"]) == {"0", "1"}, rows[0])
+        _assert(
+            rows[0]["vram_mib"] == {} and set(rows[0]["device"]) == {"0", "1"}, rows[0]
+        )
         _assert(rows[1]["device"]["0"]["power_pct"] == 50.0, rows[1])
         _assert(agentctl_gpu.recent_vram_peak(run_dir, 120.0) == {0: 4000})
     shares = {(0, 11): 40.0, (0, 12): 25.0, (0, 13): 10.0, (1, 14): 5.0}
