@@ -30,6 +30,24 @@ class GpuDevice:
     uuid: str
     memory_total_mib: int
     memory_used_mib: int
+    # Device-wide load, None when the driver reports N/A: lets a timed job's
+    # samples show how busy the GPU was (contention context for RTFx).
+    power_draw_w: float | None = None
+    power_limit_w: float | None = None
+    utilization_pct: float | None = None
+
+    def load(self) -> dict:
+        """Device-wide load for a sample record; power as a share of the limit."""
+        power_pct = (
+            round(100 * self.power_draw_w / self.power_limit_w, 1)
+            if self.power_draw_w is not None and self.power_limit_w
+            else None
+        )
+        return {
+            "power_pct": power_pct,
+            "util_pct": self.utilization_pct,
+            "mem_used_mib": self.memory_used_mib,
+        }
 
 
 @dataclass(frozen=True)
@@ -77,6 +95,14 @@ def _optional_mib(text: str) -> int | None:
         return None
 
 
+def _optional_float(text: str) -> float | None:
+    """A numeric nvidia-smi field, or None for `[N/A]` and similar."""
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
 def query_gpu_snapshot() -> GpuSnapshot | None:
     """All GPUs plus their compute processes in two nvidia-smi calls.
 
@@ -84,14 +110,29 @@ def query_gpu_snapshot() -> GpuSnapshot | None:
     caller on a GPU-less host shows nothing rather than an error.
     """
     try:
-        rows = _nvidia_smi_rows(["--query-gpu=index,uuid,memory.total,memory.used"])
+        rows = _nvidia_smi_rows(
+            [
+                "--query-gpu=index,uuid,memory.total,memory.used,"
+                "power.draw,power.limit,utilization.gpu"
+            ]
+        )
     except (OSError, subprocess.SubprocessError):
         return None
     devices = []
     for row in rows:
-        if len(row) != 4:
+        if len(row) != 7:
             return None
-        devices.append(GpuDevice(int(row[0]), row[1], int(row[2]), int(row[3])))
+        devices.append(
+            GpuDevice(
+                int(row[0]),
+                row[1],
+                int(row[2]),
+                int(row[3]),
+                _optional_float(row[4]),
+                _optional_float(row[5]),
+                _optional_float(row[6]),
+            )
+        )
     by_uuid = {d.uuid: d.index for d in devices}
     processes: list[GpuProcess] | None = []
     try:
@@ -107,6 +148,35 @@ def query_gpu_snapshot() -> GpuSnapshot | None:
                 GpuProcess(int(row[0]), by_uuid[row[1]], _optional_mib(row[2]))
             )
     return GpuSnapshot(tuple(devices), None if processes is None else tuple(processes))
+
+
+def query_sm_by_pid() -> dict[tuple[int, int], float] | None:
+    """Per-(gpu, pid) streaming-multiprocessor share (%) from one `nvidia-smi pmon` sample.
+
+    nvidia-smi cannot attribute power to a process; SM share is the cheap
+    per-process proxy (~0.1 s). A process shown as `-` was idle in the sample
+    window and is omitted. None when pmon is unavailable.
+    """
+    try:
+        out = subprocess.check_output(
+            ["nvidia-smi", "pmon", "-c", "1", "-s", "u"],
+            text=True,
+            stderr=subprocess.STDOUT,
+            timeout=NVIDIA_SMI_TIMEOUT_S,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    shares: dict[tuple[int, int], float] = {}
+    for line in out.splitlines():
+        fields = line.split()
+        if not fields or fields[0].startswith("#") or len(fields) < 4:
+            continue
+        if not (fields[0].isdigit() and fields[1].isdigit()):
+            continue
+        sm = _optional_float(fields[3])
+        if sm is not None:
+            shares[(int(fields[0]), int(fields[1]))] = sm
+    return shares
 
 
 def merge_snapshots_by_max(snapshots: list[GpuSnapshot]) -> GpuSnapshot:
@@ -139,8 +209,38 @@ RECENT_VRAM_WINDOW_S = 600.0
 _SAMPLE_TAIL_BYTES = 64 * 1024
 
 
-def append_vram_sample(run_dir: Path, vram_mib: dict[int, int], at: float) -> None:
-    line = json.dumps({"t": round(at, 1), "vram_mib": vram_mib}, sort_keys=True)
+def sm_split(
+    shares: dict[tuple[int, int], float] | None, gpu: int, ours: set[int]
+) -> dict:
+    """This run's and other processes' summed SM share (%) on one GPU."""
+    if shares is None:
+        return {"sm_ours_pct": None, "sm_others_pct": None}
+    mine = sum(v for (g, pid), v in shares.items() if g == gpu and pid in ours)
+    rest = sum(v for (g, pid), v in shares.items() if g == gpu and pid not in ours)
+    return {"sm_ours_pct": round(mine, 1), "sm_others_pct": round(rest, 1)}
+
+
+def append_vram_sample(
+    run_dir: Path,
+    vram_mib: dict[int, int],
+    at: float,
+    devices: tuple[GpuDevice, ...] = (),
+    sm: dict[int, dict] | None = None,
+) -> None:
+    """One sample line: this run's VRAM per GPU plus device-wide load.
+
+    A start record (empty vram_mib, every device) gives the GPU's load before
+    the run's work begins; later records give load on the GPUs the run uses,
+    and, when `sm` is given, this run's against other processes' SM share
+    (the contention context for timing results).
+    """
+    record: dict = {"t": round(at, 1), "vram_mib": vram_mib}
+    if devices:
+        record["device"] = {
+            str(d.index): {**d.load(), **((sm or {}).get(d.index) or {})}
+            for d in devices
+        }
+    line = json.dumps(record, sort_keys=True)
     with (run_dir / VRAM_SAMPLES_FILENAME).open("a", encoding="utf-8") as handle:
         handle.write(line + "\n")
 

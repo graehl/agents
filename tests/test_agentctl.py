@@ -2596,6 +2596,38 @@ def test_wait_any_returns_on_first_job_and_rejects_unknown_names():
         ws.cleanup()
 
 
+def test_gpu_samples_record_device_load_and_keep_vram_peaks():
+    import agentctl_gpu
+
+    busy = agentctl_gpu.GpuDevice(0, "GPU-x", 97887, 60000, 300.0, 600.0, 85.0)
+    hidden = agentctl_gpu.GpuDevice(1, "GPU-y", 97887, 700, None, None, None)
+    _assert(busy.load() == {"power_pct": 50.0, "util_pct": 85.0, "mem_used_mib": 60000})
+    _assert(hidden.load()["power_pct"] is None, hidden.load())
+    with tempfile.TemporaryDirectory() as tmp:
+        run_dir = Path(tmp)
+        agentctl_gpu.append_vram_sample(run_dir, {}, 100.0, (busy, hidden))
+        agentctl_gpu.append_vram_sample(run_dir, {0: 4000}, 115.0, (busy,))
+        rows = [
+            json.loads(line)
+            for line in (run_dir / agentctl_gpu.VRAM_SAMPLES_FILENAME).read_text().splitlines()
+        ]
+        _assert(rows[0]["vram_mib"] == {} and set(rows[0]["device"]) == {"0", "1"}, rows[0])
+        _assert(rows[1]["device"]["0"]["power_pct"] == 50.0, rows[1])
+        _assert(agentctl_gpu.recent_vram_peak(run_dir, 120.0) == {0: 4000})
+    shares = {(0, 11): 40.0, (0, 12): 25.0, (0, 13): 10.0, (1, 14): 5.0}
+    _assert(
+        agentctl_gpu.sm_split(shares, 0, {11, 12})
+        == {"sm_ours_pct": 65.0, "sm_others_pct": 10.0}
+    )
+    _assert(agentctl_gpu.sm_split(None, 0, {11})["sm_ours_pct"] is None)
+    with tempfile.TemporaryDirectory() as tmp:
+        run_dir = Path(tmp)
+        sm = {0: agentctl_gpu.sm_split(shares, 0, {11})}
+        agentctl_gpu.append_vram_sample(run_dir, {0: 4000}, 1.0, (busy,), sm)
+        row = json.loads((run_dir / agentctl_gpu.VRAM_SAMPLES_FILENAME).read_text())
+        _assert(row["device"]["0"]["sm_others_pct"] == 35.0, row)
+
+
 def test_gpu_lease_amounts_are_exact_and_ignore_driver_overhead():
     sys.path.insert(0, str(REPO_ROOT))
     import agentctl_gpu
@@ -2656,7 +2688,7 @@ def _fake_lease_nvidia_smi(ws: Workspace, total_mib: int = 97887) -> dict[str, s
         "#!/bin/sh\n"
         'case "$*" in\n'
         "  *--query-compute-apps*) exit 0 ;;\n"
-        f"  *uuid*) printf '%s\\n' '0, GPU-fake, {total_mib}, 600' ;;\n"
+        f"  *uuid*) printf '%s\\n' '0, GPU-fake, {total_mib}, 600, 50.0, 600.0, 0' ;;\n"
         f"  *) printf '%s\\n' '0, {total_mib}, 600, 50.0, 0' ;;\n"
         "esac\n",
         encoding="utf-8",
@@ -2949,7 +2981,8 @@ def test_run_vram_history_feeds_recent_max_and_finished_peak():
             "#!/bin/sh\n"
             'case "$*" in\n'
             '  *--query-compute-apps*) echo "$PPID, GPU-fake, 2048" ;;\n'
-            "  *) echo '0, GPU-fake, 97887, 2600' ;;\n"
+            "  *pmon*) exit 0 ;;\n"
+            "  *) echo '0, GPU-fake, 97887, 2600, 120.0, 600.0, 40' ;;\n"
             "esac\n",
             encoding="utf-8",
         )

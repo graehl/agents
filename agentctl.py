@@ -6516,6 +6516,17 @@ class RunVramSampler:
 
     def _loop(self) -> None:
         pgid, root_pid = os.getpgid(0), os.getpid()
+        start = agentctl_gpu.query_gpu_snapshot()
+        if start is not None and start.devices:
+            shares = agentctl_gpu.query_sm_by_pid()
+            sm = {d.index: agentctl_gpu.sm_split(shares, d.index, set()) for d in start.devices}
+            try:  # device load before the run's work begins
+                agentctl_gpu.append_vram_sample(
+                    self.run_dir, {}, time.time(), start.devices, sm
+                )
+            except OSError as exc:
+                print(f"[gpu-sample] cannot record sample: {exc}", file=sys.stderr)
+                return
         while not self._stop.wait(self.interval):
             snapshot = agentctl_gpu.query_gpu_snapshot()
             if snapshot is None or snapshot.processes is None:
@@ -6530,8 +6541,16 @@ class RunVramSampler:
                 continue
             for gpu, mib in vram.items():
                 self.peak[gpu] = max(self.peak.get(gpu, 0), mib)
+            shares = agentctl_gpu.query_sm_by_pid()
+            ours = {
+                pid
+                for (_, pid) in (shares or {})
+                if pid_belongs_to_run(pid, pgid=pgid, root_pid=root_pid)
+            }
+            sm = {gpu: agentctl_gpu.sm_split(shares, gpu, ours) for gpu in vram}
             try:
-                agentctl_gpu.append_vram_sample(self.run_dir, vram, time.time())
+                used = tuple(d for d in snapshot.devices if d.index in vram)
+                agentctl_gpu.append_vram_sample(self.run_dir, vram, time.time(), used, sm)
             except OSError as exc:
                 print(f"[gpu-sample] cannot record sample: {exc}", file=sys.stderr)
                 return
