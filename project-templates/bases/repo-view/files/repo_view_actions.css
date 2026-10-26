@@ -1,0 +1,114 @@
+.repo-path-tools {
+	display: inline-flex;
+	gap: 2px;
+	vertical-align: middle;
+}
+.repo-path-tools button {
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+}
+.repo-path-tools button:hover {
+	background: #dfe9d9;
+}
+.repo-path-copy {
+	opacity: 0;
+}
+nav:hover .repo-path-copy,
+nav:focus-within .repo-path-copy {
+	opacity: 1;
+}
+#repo-path-menu,
+#repo-path-status {
+	font:
+		14px / 1.5 system-ui,
+		sans-serif;
+	color: #293e35;
+	background: #fffef9;
+	border: 1px solid #b5c9aa;
+	border-radius: 6px;
+}
+#repo-path-menu {
+	position: fixed;
+	z-index: 2147483646;
+	width: min(300px, calc(100vw - 16px));
+	padding: 6px;
+	box-shadow: 0 8px 28px #293e3524;
+}
+#repo-path-menu [role="menuitem"] {
+	display: block;
+	width: 100%;
+	min-height: 36px;
+	padding: 8px;
+	text-align: start;
+	border: 0;
+	border-radius: 3px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+}
+#repo-path-menu [role="menuitem"]:hover,
+#repo-path-menu [role="menuitem"]:focus-visible {
+	background: #dfe9d9;
+}
+#repo-path-menu .repo-menu-heading {
+	padding: 7px 8px;
+	overflow-wrap: anywhere;
+	font:
+		12px / 1.5 ui-monospace,
+		monospace;
+	border-bottom: 1px solid #dcded4;
+}
+#repo-path-menu .repo-menu-hint {
+	margin: 6px 8px;
+	color: #637066;
+	font-size: 11px;
+}
+#repo-path-status {
+	position: fixed;
+	bottom: 16px;
+	inset-inline: 16px;
+	z-index: 2147483647;
+	padding: 8px 12px;
+	width: fit-content;
+	max-width: calc(100vw - 32px);
+	overflow-wrap: anywhere;
+}
+@media (hover: none) {
+	.repo-path-copy {
+		display: none;
+	}
+	.repo-path-tools button {
+		width: 44px;
+		height: 44px;
+	}
+	#repo-path-menu [role="menuitem"] {
+		min-height: 44px;
+	}
+}
+@media (prefers-color-scheme: dark) {
+	#repo-path-menu,
+	#repo-path-status {
+		color: #e6ebe4;
+		background: #252a27;
+		border-color: #526450;
+	}
+	#repo-path-menu [role="menuitem"]:hover,
+	#repo-path-menu [role="menuitem"]:focus-visible,
+	.repo-path-tools button:hover {
+		background: #354632;
+	}
+	#repo-path-menu .repo-menu-heading {
+		border-color: #526450;
+	}
+	#repo-path-menu .repo-menu-hint {
+		color: #a3ada5;
+	}
+}

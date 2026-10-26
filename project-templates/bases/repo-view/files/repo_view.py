@@ -57,6 +57,8 @@ DEFAULT_SITE = "_site"
 DOCUMENT_FORMATS = {".md": "gfm", ".markdown": "gfm", ".qmd": "markdown"}
 # Shipped beside this script (template file; qmd_build's in ~/agents).
 TABLE_NOTES_FILTER = Path(__file__).with_name("table_notes.lua")
+PATH_ACTIONS_SCRIPT = Path(__file__).with_name("repo_view_actions.js").read_text()
+PATH_ACTIONS_STYLE = Path(__file__).with_name("repo_view_actions.css").read_text()
 LINKING_SUFFIXES = {".html", ".htm", ".css", *DOCUMENT_FORMATS}
 PLAIN_TEXT_SUFFIXES = {
     ".bib", ".cfg", ".csv", ".ini", ".ipynb", ".jsonl", ".log", ".lua", ".py",
@@ -168,11 +170,15 @@ FRAME_REPORTER = """<script>
   const report = () => {
     const url = new URL(location.href);
     url.searchParams.delete("ya_access");
-    window.parent.postMessage({ type: "yep-anywhere:app-location", href: url.href }, "*");
+    const root = document.querySelector('meta[name="repo-root"]');
+    const path = document.querySelector('meta[name="repo-path"]');
+    window.parent.postMessage({ type: "yep-anywhere:app-location", href: url.href,
+      ...(root && path ? { projectRoot: new URL(root.content, location.href).href, projectPath: path.content } : {}) }, "*");
   };
   report();
   addEventListener("hashchange", report);
   addEventListener("popstate", report);
+  addEventListener("repo-view-path-ready", report);
   addEventListener("pageshow", (event) => event.persisted && report());
 })();
 </script>"""
@@ -460,6 +466,10 @@ def compose_page(
         f'<nav class="crumbs" aria-label="Location">{crumb_trail(repo_name, page_dir, current, locate)}</nav>\n'
         + (f'<div class="layout">{contents}{main}</div>\n' if contents else main + "\n")
         + (f"<footer>{footer}</footer>\n" if footer else "")
+        + path_actions(
+            "../" * len(page_dir.split("/")) if page_dir else "./",
+            join_rel(page_dir, current) if current else page_dir,
+        )
         + "</body></html>\n"
     )
 
@@ -481,15 +491,31 @@ def crumb_trail(
     for depth, (label, rel) in enumerate(crumbs):
         target = None if current is None and depth == len(parts) else locate(rel)
         if target is None:
-            items.append(html.escape(label))
+            items.append(
+                f'<span data-repo-path="{html.escape(rel or ".")}">{html.escape(label)}</span>'
+            )
         else:
             href = "../" * len(parts) + target
             items.append(
-                f'<a href="{html.escape(href or "./")}">{html.escape(label)}</a>'
+                f'<a href="{html.escape(href or "./")}" data-repo-path="{html.escape(rel or ".")}">{html.escape(label)}</a>'
             )
     if current is not None:
-        items.append(html.escape(current))
-    return " / ".join(items)
+        items.append(
+            f'<span tabindex="0" data-repo-path="{html.escape(join_rel(page_dir, current))}">{html.escape(current)}</span>'
+        )
+    path = join_rel(page_dir, current) if current else page_dir or "."
+    return (
+        " / ".join(items)
+        + f' <span class="repo-path-tools"><button type="button" class="repo-path-copy" data-repo-copy="{html.escape(path)}" aria-label="Copy project path" title="Copy project path">&#10697;</button><button type="button" data-repo-actions="{html.escape(path)}" aria-label="Path actions" title="Path actions">&#8943;</button></span>'
+    )
+
+
+def path_actions(root_url: str, current: str) -> str:
+    return (
+        f'<meta name="repo-root" content="{html.escape(root_url)}">'
+        f'<meta name="repo-path" content="{html.escape(current or ".")}">'
+        f"<style>{PATH_ACTIONS_STYLE}</style><script>{PATH_ACTIONS_SCRIPT}</script>"
+    )
 
 
 def outline(body: str) -> str:
@@ -1177,9 +1203,15 @@ def make_handler(
                 )
             if reply.page:
                 page = with_access_keeper(reply.body.decode("utf-8"), token)
+                if 'name="repo-root"' not in page:
+                    page += path_actions((base or "") + "/", "/".join(parts))
                 reply = Reply(reply.status, reply.kind, page.encode("utf-8"))
             elif reply.file and reply.kind.startswith("text/html"):
                 body = with_frame_reporter(reply.file.read_bytes(), reply.crumbs)
+                if b'name="repo-root"' not in body:
+                    body += path_actions((base or "") + "/", "/".join(parts)).encode(
+                        "utf-8"
+                    )
                 reply = Reply(reply.status, reply.kind, body)
             return self.send(reply, head, cookie)
 
@@ -1235,7 +1267,12 @@ def static_links(
             path = (path if path.endswith("/") else path + "/") + "index.html"
         else:
             return match.group(0)
-        return f'{attr}="{html.escape(path + rest)}"'
+        source = (
+            f' data-repo-source="{html.escape(target or ".")}"'
+            if attr.lower() == "href"
+            else ""
+        )
+        return f'{attr}="{html.escape(path + rest)}"{source}'
 
     return HTML_LINK.sub(relink, page)
 

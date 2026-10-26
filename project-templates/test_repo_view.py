@@ -62,6 +62,8 @@ class RepoViewTest(unittest.TestCase):
             SOURCE.with_name("table_notes.lua"),
             self.script.with_name("table_notes.lua"),
         )
+        for name in ("repo_view_actions.js", "repo_view_actions.css"):
+            shutil.copy2(SOURCE.with_name(name), self.script.with_name(name))
         self.git("init", "-q")
         self.git("add", ".")
         self.git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init")
@@ -140,7 +142,7 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("<h1>The Guide</h1>", page)
         self.assertIn('href="other.md#part"', page)  # authored links need no rewriting
-        self.assertIn('<a href="../">demo</a>', page)
+        self.assertIn('<a href="../" data-repo-path=".">demo</a>', page)
         self.assertIn('const key = "ya_access"', page)
         status, headers, _ = self.get(base + "/docs?ya_access=T")
         self.assertEqual((status, headers["Location"]), (302, "docs/?ya_access=T"))
@@ -382,7 +384,10 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn(
             '<body class="quarto">\n<nav id="repo-view-crumbs" aria-label="Location">'
-            '<a href="../../">demo</a> / papers / p / paper.html</nav>',
+            '<a href="../../" data-repo-path=".">demo</a> / '
+            '<span data-repo-path="papers">papers</span> / '
+            '<span data-repo-path="papers/p">p</span> / '
+            '<span tabindex="0" data-repo-path="papers/p/paper.html">paper.html</span>',
             page,
         )
         # A framed page hides them until its framer says it does not show the path.
@@ -406,20 +411,20 @@ class RepoViewTest(unittest.TestCase):
         # docs is marked; deep is neither marked nor linked, so it opens the
         # section of its nearest marked ancestor; the root crumb opens the root.
         # (Whether sub is a servable listing yet depends on discovery order.)
-        docs = ' / <a href="../../../index.html#sec-docs">docs</a> / '
-        deep = ' / <a href="../../../index.html#sec-docs">deep</a> / note.md</nav>'
+        docs = ' / <a href="../../../index.html#sec-docs" data-repo-path="docs">docs</a> / '
+        deep = ' / <a href="../../../index.html#sec-docs" data-repo-path="docs/sub/deep">deep</a> / <span tabindex="0" data-repo-path="docs/sub/deep/note.md">note.md</span>'
         base = self.serve("--pages", "scripts/dash.py:pages")
         status, _, page = self.get(base + "/docs/sub/deep/note.md")
         self.assertEqual(status, 200)
-        for crumb in ('<a href="../../../">demo</a>' + docs, deep):
+        for crumb in ('<a href="../../../" data-repo-path=".">demo</a>' + docs, deep):
             self.assertIn(crumb, page)
         done = self.run_script("build", "--pages", "scripts/dash.py:pages")
         self.assertEqual(done.returncode, 0, done.stderr)
         built = (self.repo / "_site/docs/sub/deep/note.md.html").read_text()
         # The build reaches the note straight from the page, never listing sub.
         static_crumbs = (
-            '<a href="../../../index.html">demo</a>' + docs
-            + '<a href="../../../index.html#sec-docs">sub</a>' + deep
+            '<a href="../../../index.html" data-repo-source="." data-repo-path=".">demo</a>' + docs
+            + '<a href="../../../index.html#sec-docs" data-repo-path="docs/sub">sub</a>' + deep
         )  # fmt: skip
         self.assertIn(static_crumbs, built)
 

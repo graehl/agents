@@ -111,6 +111,23 @@ crumbs, taking the framer to show the location already, until the framer
 answers `{type: "yep-anywhere:app-location-shown", shown: false}`; YA's bar
 sends that when it is too narrow to show the path, usually on phones.
 
+## Copying paths and commenting
+
+Double-click an inline fixed-font item to select the whole item, including
+hyphens, spaces and path separators. Code blocks retain ordinary selection.
+Right-click inline code to copy its text, or a repository link/breadcrumb to
+copy its project-relative path. Shift-right-click keeps the browser's own menu.
+Inline text has no copy icons. The breadcrumb row reveals its current-path
+copy button on hover/focus; its overflow menu also works on touch. The current
+filename supports these actions without becoming a navigation link.
+
+When embedded in a compatible YA session pane, the menu also offers Comment on
+path, and a selected passage offers Comment on selection. These prepare the
+containing session's existing draft and focus its composer; they never send a
+message. Standalone tabs and older YA clients keep copy actions without an
+unroutable comment control. Remembering another destination session or opening
+an inline forwarding composer is deferred design work.
+
 ## Project pages
 
 `--pages FILE:FUNCTION` adds generated pages such as dashboards. The function
