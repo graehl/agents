@@ -62,6 +62,13 @@ narrative are independent enough to benefit from separate advising.
 
 ### Program guidance and process records
 
+For a new data or ML program, or a material revision of its data,
+representation or evaluation contracts, use
+[research program setup](../topics/research-program-setup.md). Define applicable
+categories upfront, allowing explicit unresolved placeholders and selecting
+the relevant combination of modalities. Keep detailed decisions in existing
+topic owners rather than expanding the charter into a checklist.
+
 When establishing or maintaining a research program, read
 [TOPICS.md § Program scope charters](../TOPICS.md#program-scope-charters).
 Create a missing descriptive charter only when the authorized work and

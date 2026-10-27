@@ -12,6 +12,10 @@ still govern the actual work. Follow only the references relevant to the task.
 
 ## Recover and reuse what we already know
 
+When establishing a program or materially revising its data, representation or
+evaluation contracts, use [research program setup](research-program-setup.md)
+for upfront categories and suggested text, audio and image defaults.
+
 Treat a new model, language or domain as a new consumer of an accumulating
 engineering and research base. Before choosing its recipe or writing its
 training/evaluation path, search the project's shared topics, libraries and

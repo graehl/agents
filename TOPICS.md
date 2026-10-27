@@ -81,6 +81,12 @@ is the sole declaration used for program discovery. Keep plans, current
 status, per-topic summaries, run history, and handoff state in their existing
 owners.
 
+A data or ML program should define its applicable setup categories upfront,
+even as placeholders: see [research program setup](topics/research-program-setup.md)
+for data, normalization, evaluation and composable text/audio/image guidance.
+Keep those decisions in the program's existing topics and link them from the
+charter when useful; suggested defaults do not migrate existing artifacts.
+
 A title is optional. When the first line is an H1 of the form
 `# Program <short name>`, it supplies an alternative formal name. The containing
 directory path remains the program's canonical locator, and discovery never
