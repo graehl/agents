@@ -33,6 +33,47 @@ done long before the new task converges.
   beside a run that trains on the new data only, so the cost of keeping the
   old skills is visible.
 
+## Schedules that do not forget what the run already learned
+
+These rules come from the draft repository's speech-recognition program
+(graehl, 2026-10-26), where extension legs of one student are routine.
+
+- **An extension leg starts gently.** Two things make an extension forget.
+  Erratic early updates while Adam's moment estimates are fresh: a leg that
+  loads weights only, without optimizer state, needs a short warm-up of at
+  least about \(2/(1-\beta_2)\) updates (100 at \(\beta_2 = 0.98\); Ma and
+  Yarats, AAAI 2021), or carries the optimizer state over; an exact resume
+  needs no new warm-up. And sustained steps at a high peak LR: the final
+  anneal settles near where the weights travelled, not back in the starting
+  basin, so keep the leg's peak LR at or below the leg it extends.
+- **Long warm-up costs progress on an extension.** Continuing a Vietnamese
+  recognizer, a 1% warm-up led a 10% one on validation loss at every check
+  and on test WER, with dev WER tied (one seed each).
+- **Re-raising the LR is a deliberate exception.** When the selection metric
+  stopped improving across the previous leg, raising the LR to leave the
+  basin is acceptable; accept the forgetting risk and compare against the
+  conservative leg.
+- **Fresh or fragile parameters keep a longer warm-up:** a new head, a new
+  language, or an unconverged student takes large early gradients.
+
+### Early stopping during adaptation
+
+- **No performance-based early stopping in the warm phase.** When training on
+  a new corpus, adapting a student or distilling, declare a warm phase that
+  covers adaptation and LR settling, not merely LR warm-up, and disable
+  performance-based stopping during it. Start patience counting only after the
+  model beats its starting baseline on the fixed development task metric;
+  validation-loss patience alone cannot establish that improvement. Declare the
+  phase length and comparison before launch.
+- **A diagnosed degenerate trajectory may stop earlier:** non-finite updates,
+  or sustained collapse to empty or wrong output confirmed in decoded examples
+  after checking the data and execution path. A temporary metric regression or
+  a large departure from the pretrained weights is not enough. Preserve the
+  diagnostic evidence and report the stop as a failure, not convergence.
+  Fixed compute ceilings and explicit user stops still apply; exhausting a
+  budget without improvement is not convergence and does not authorize
+  extending the run.
+
 ## Evidence
 
 Adding a language to a trained speech recognizer, one seed each (draft

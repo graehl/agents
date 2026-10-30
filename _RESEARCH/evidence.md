@@ -20,7 +20,11 @@ train/eval/gate summaries. Read every matching section and follow its routes.
 
 Treat published effectiveness as unverified until reproduced under the
 comparison you will claim. Reproduce the strongest relevant existing variants
-before saying a new method beats them. Report with/without each technique under
+before saying a new method beats them. These include public fine-tunes of a
+base model that claim the task or plausibly beat their base, not only base
+releases: comparing against base releases alone overstates a gain. Reproduce
+each on your held-out sets and scoring, or record why it was excluded (license,
+size, no runnable checkpoint, no claim for the task). Report with/without each technique under
 controls that block selection/evaluation leakage: frozen non-selection splits,
 independent metric families where applicable, controlled seeds/config search,
 tuned baselines, and per-compute cost.
@@ -50,7 +54,8 @@ rate, and uses at least N=200. Save per-example scores so later comparisons do
 not rerun the model. Eval tools should compare two hypothesis files and rerun
 bootstrap comparisons from saved scores without loading the model again.
 Significance symbols are `*` p<.05, `**` p<.01 unless a
-project declares otherwise.
+project declares otherwise. An inconclusive comparison is unresolved, not
+evidence that the two systems are equivalent.
 
 After editing `research/<branch>.md`, show the modified diff, eliding only long
 unchanged spans to stay readable.
@@ -93,6 +98,11 @@ defects and consider additional corpus or resource intake, teacher supervision,
 and filtering or reweighting before abandoning the direction. For row-wise
 transforms, this complements rather than replaces the structural provenance
 and alignment checks in `_RUNS/provenance.md`.
+
+When a reference model's error rate screens a candidate source, a low error
+rate can mean that model trained on the source rather than that the data is
+easy or clean. Fail a source on gross mismatch against the same model's score
+on a comparable public set; do not read a low score as quality evidence.
 
 ### Result-sanity preview
 

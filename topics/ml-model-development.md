@@ -61,7 +61,9 @@ needs discovery, rather than copying recipes or accumulating every run here.
   completion cost to decide whether to restart.
 - Keep run/configuration/input/output provenance through [RUNS](../RUNS.md)
   and comparisons through [research evidence](../_RESEARCH/evidence.md).
-  Use [fine-tuning](fine-tuning.md) when existing capabilities must survive.
+  Use [fine-tuning](fine-tuning.md) when existing capabilities must survive,
+  and for its LR schedules and early-stopping rules on any extension,
+  adaptation or distillation run.
 
 ## In-flight batching for inference
 
