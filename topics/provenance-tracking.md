@@ -85,8 +85,11 @@ whether to extend the system or to introduce something parallel.
   tracked project files; the coarse near-term closure additionally forbids
   non-ignored untracked `*.py` and binds recognized environment manifests,
   locks, and launch-env files. The default conservatively checks every
-  non-Markdown tracked path; it does not crawl imports by language. We do not
-  strace, intercept opens, trace Python imports, or infer arbitrary
+  non-Markdown tracked path. A run may instead declare its in-repo source
+  dependencies, listed or found by a static import/shell-reference scan
+  (`agentctl.md`, "Declared source dependencies"); then only those files are
+  bound. The scan is static and best-effort. We do not strace, intercept
+  opens, trace imports at runtime, or infer arbitrary
   external/native/ignored dependencies. A step that does not declare its data
   inputs is still a graph leaf. A project may choose `--source-guard record`
   (see `agentctl.md`), which marks such a run's source `unverified` with its

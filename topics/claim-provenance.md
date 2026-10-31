@@ -144,5 +144,6 @@ These are sketches, not current behavior:
   optionally carrying cited artifacts and input files, with a publication-ban
   list for license-restricted material.
 - [run source dependencies](../gaps/sketches/run-source-dependencies.md) —
-  traced or declared in-repo dependencies, so a reproducible run need not
-  require a clean worktree.
+  a traced audit of in-repo dependencies, beyond the declared lists and
+  static scan already in agentctl, so a reproducible run need not require a
+  clean worktree.

@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import atexit
 import datetime as dt
 import errno
+import glob
 import hashlib
 import importlib
 import json
@@ -102,6 +104,14 @@ YEP_DEV_OWNERSHIP_ENVS = frozenset(
 SOURCE_SCOPES = ("non-doc", "all")
 SOURCE_GUARD_MODES = ("enforce", "record")
 SOURCE_GUARD_ENV = "AGENTCTL_SOURCE_GUARD"
+SOURCE_DEPS_SCHEMA = "agentctl-source-deps-v1"
+DEFAULT_SOURCE_DEPS_LOADING_SECONDS = 120.0
+SOURCE_DEPS_LOADED_ENV = "AGENTCTL_SOURCE_DEPS_LOADED"
+SOURCE_DEPS_LOADED_FILENAME = "source-deps-loaded"
+SOURCE_DEPS_SCAN_LIMITS = (
+    "dynamic imports (importlib, __import__, exec), runtime-computed paths and "
+    "data files are not seen; shell and pattern matches are regex heuristics"
+)
 ENVIRONMENT_CONTROL_FILES = (
     "pixi.toml",
     "pixi.lock",
@@ -3322,10 +3332,12 @@ class GitProbeError(SystemExit):
     """A required Git observation failed instead of producing evidence."""
 
 
-def git_output(args: list[str], *, cwd: Path = ROOT, text: bool = True):
+def git_output(
+    args: list[str], *, cwd: Path = ROOT, text: bool = True, stdin: str | None = None
+):
     try:
         return subprocess.check_output(
-            ["git", *args], cwd=cwd, text=text, stderr=subprocess.PIPE
+            ["git", *args], cwd=cwd, text=text, stderr=subprocess.PIPE, input=stdin
         )
     except subprocess.CalledProcessError as exc:
         detail = exc.stderr or ""
@@ -3349,22 +3361,29 @@ class SourceGuard:
     ``enforce`` raises as the guard always has. ``record`` keeps every
     violation in the run record and on stderr so a shared, actively edited
     checkout can still launch and run queued work; the snapshot then says
-    `unverified` instead of `committed`.
+    `unverified` instead of `committed`. ``action`` names what enforce
+    refuses (the tracked run at submission, the payload launch later), so a
+    recorded violation never reads as a refusal.
     """
 
-    def __init__(self, mode: str):
+    def __init__(self, mode: str, *, action: str = "the tracked run"):
         if mode not in SOURCE_GUARD_MODES:
             raise SystemExit(
                 f"--source-guard must be one of {', '.join(SOURCE_GUARD_MODES)}, got {mode!r}"
             )
         self.mode = mode
+        self.action = action
         self.violations: list[str] = []
 
     def refuse(self, message: str) -> None:
         if self.mode == "enforce":
-            raise SystemExit(message)
+            raise SystemExit(f"{message}; refusing {self.action}")
         self.violations.append(message)
-        print(f"warning: {message} (recorded, --source-guard record)", file=sys.stderr)
+        print(
+            f"warning: recorded source-guard violation, continuing "
+            f"(--source-guard enforce would refuse {self.action}): {message}",
+            file=sys.stderr,
+        )
 
     def attempt(self, fn, *args, **kwargs):
         """Run a probe whose failure is a guard violation; None when recorded."""
@@ -3591,6 +3610,613 @@ def environment_control_paths(
     return paths, foreign
 
 
+# ---- Run source dependencies ------------------------------------------------
+#
+# A run that declares the in-repo files it loads is checked on those files only:
+# unrelated untracked or dirty files elsewhere in a shared checkout do not
+# block it. Without a declaration the whole-scope guard above still applies.
+
+
+def source_deps_request(args: argparse.Namespace) -> dict | None:
+    """The launch's dependency declaration, or None for the whole-scope guard."""
+    request = {
+        "declared": list(getattr(args, "source_dep", None) or []),
+        "declared_files": list(getattr(args, "source_deps_file", None) or []),
+        "scan_entries": list(getattr(args, "source_deps_scan", None) or []),
+        "scan_roots": list(getattr(args, "source_deps_root", None) or []),
+        "scan_patterns": list(getattr(args, "source_deps_pattern", None) or []),
+    }
+    timeout = getattr(args, "source_deps_loading_timeout", None)
+    request["loading_timeout_seconds"] = (
+        DEFAULT_SOURCE_DEPS_LOADING_SECONDS if timeout is None else float(timeout)
+    )
+    if request["loading_timeout_seconds"] < 0:
+        raise SystemExit("--source-deps-loading-timeout must be >= 0")
+    if not (
+        request["declared"] or request["declared_files"] or request["scan_entries"]
+    ):
+        if request["scan_roots"] or request["scan_patterns"]:
+            raise SystemExit(
+                "--source-deps-root/--source-deps-pattern need --source-deps-scan ENTRY"
+            )
+        return None
+    for pattern in request["scan_patterns"]:
+        try:
+            re.compile(pattern)
+        except re.error as exc:
+            raise SystemExit(f"--source-deps-pattern {pattern!r}: {exc}") from exc
+    return request
+
+
+def _in_checkout(path: Path, git_root: Path) -> bool:
+    try:
+        path.relative_to(git_root)
+    except ValueError:
+        return False
+    return True
+
+
+def _declared_dep_paths(spec: str, git_root: Path, origin: str) -> list[Path]:
+    """Expand one `--source-dep` path or glob, resolved against the project root."""
+    base = Path(spec).expanduser()
+    if not base.is_absolute():
+        base = ROOT / base
+    if glob.has_magic(spec):
+        matches = sorted(
+            Path(match).resolve()
+            for match in glob.glob(str(base), recursive=True)
+            if Path(match).is_file()
+        )
+        if not matches:
+            raise SystemExit(f"{origin}: glob matched no files: {spec}")
+    else:
+        resolved = base.resolve()
+        if resolved.is_dir():
+            raise SystemExit(
+                f"{origin}: {spec} is a directory; name files or use a glob such as "
+                f"{spec.rstrip('/')}/**/*.py"
+            )
+        if not resolved.is_file():
+            raise SystemExit(f"{origin}: no such file: {spec}")
+        matches = [resolved]
+    for match in matches:
+        if not _in_checkout(match, git_root):
+            raise SystemExit(
+                f"{origin}: {match} is outside the Git checkout {git_root}"
+            )
+    return matches
+
+
+def read_source_deps_file(path: str) -> list[str]:
+    """One path or glob per line; blank lines and `#` comments are skipped."""
+    p = Path(path).expanduser()
+    if not p.is_absolute():
+        p = ROOT / p
+    try:
+        lines = p.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise SystemExit(f"--source-deps-file {path}: {exc}") from exc
+    return [
+        line.strip()
+        for line in lines
+        if line.strip() and not line.strip().startswith("#")
+    ]
+
+
+_SHELL_PATH_RE = re.compile(
+    r"""(?<![\w.-])((?:\$\{?\w+\}?/|\.\.?/|/)?[\w./-]*[\w-]\.(?:py|sh|bash))(?![\w.])"""
+)
+_SHELL_SOURCE_RE = re.compile(r"""(?:^|[\s;&|(])(?:source|\.)\s+["']?([^\s"';&|)]+)""")
+_SHELL_PYTHON_MODULE_RE = re.compile(
+    r"""\bpython[\d.]*\s+(?:-[A-Za-z]+\s+)*-m\s+([A-Za-z_][\w.]*)"""
+)
+_SHELL_SUFFIXES = {".sh", ".bash", ".zsh"}
+
+
+class SourceDepScanner:
+    """Collect the in-repo files an entry point reaches, without running it.
+
+    Python imports resolve through `ast` against the module roots the payload
+    would see (the entry's directory, the checkout root, the project root and
+    any `--source-deps-root`). Shell scripts and `--source-deps-pattern`
+    patterns are regex heuristics. Every file reached is scanned again, so
+    imports of imports are found; a visited set stops cycles.
+    """
+
+    def __init__(self, git_root: Path, *, roots: list[str], patterns: list[str]):
+        self.git_root = git_root
+        self.extra_roots = []
+        for root in roots:
+            p = Path(root).expanduser()
+            self.extra_roots.append((p if p.is_absolute() else ROOT / p).resolve())
+        self.patterns = [re.compile(pattern) for pattern in patterns]
+        self.found: dict[Path, dict] = {}
+        self.unresolved: list[str] = []
+
+    def _rel(self, path: Path) -> str:
+        return path.relative_to(self.git_root).as_posix()
+
+    def _add(self, path: Path, method: str, via: Path | None) -> bool:
+        path = path.resolve()
+        if not path.is_file() or not _in_checkout(path, self.git_root):
+            return False
+        if path in self.found:
+            return False
+        self.found[path] = {
+            "method": method,
+            "heuristic": method in {"shell-regex", "pattern-regex"},
+            "via": self._rel(via) if via is not None else "",
+        }
+        return True
+
+    def _note_unresolved(self, via: Path, reference: str) -> None:
+        entry = f"{self._rel(via)}: {reference}"
+        if entry not in self.unresolved:
+            self.unresolved.append(entry)
+
+    def scan(self, entry_spec: str) -> None:
+        entry = Path(entry_spec).expanduser()
+        if not entry.is_absolute():
+            entry = ROOT / entry
+        entry = entry.resolve()
+        if not entry.is_file():
+            raise SystemExit(f"--source-deps-scan: no such file: {entry_spec}")
+        if not _in_checkout(entry, self.git_root):
+            raise SystemExit(
+                f"--source-deps-scan: {entry} is outside the Git checkout {self.git_root}"
+            )
+        roots = []
+        for root in (entry.parent, self.git_root, ROOT, *self.extra_roots):
+            if root not in roots:
+                roots.append(root)
+        self._add(entry, "entry", None)
+        queue = [entry]
+        scanned: set[Path] = set()
+        while queue:
+            current = queue.pop()
+            if current in scanned:
+                continue
+            scanned.add(current)
+            for path, method in self._references(current, roots):
+                self._add(path, method, current)
+                if path.resolve() not in scanned:
+                    queue.append(path.resolve())
+
+    def _references(self, path: Path, roots: list[Path]) -> list[tuple[Path, str]]:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            self._note_unresolved(path, f"unreadable: {exc}")
+            return []
+        refs: list[tuple[Path, str]] = []
+        if path.suffix == ".py":
+            refs.extend((p, "python-ast") for p in self._python_refs(path, text, roots))
+        elif path.suffix in _SHELL_SUFFIXES or (
+            text.startswith("#!") and "sh" in text.split("\n", 1)[0].rsplit("/", 1)[-1]
+        ):
+            refs.extend((p, "shell-regex") for p in self._shell_refs(path, text, roots))
+        for pattern in self.patterns:
+            for match in pattern.finditer(text):
+                if "path" in pattern.groupindex:
+                    token = match.group("path")
+                elif pattern.groups:
+                    token = match.group(1)
+                else:
+                    token = match.group(0)
+                if not token:
+                    continue
+                resolved = self._resolve_token(token, path)
+                if resolved is None:
+                    self._note_unresolved(path, token)
+                else:
+                    refs.append((resolved, "pattern-regex"))
+        return refs
+
+    def _module_files(self, module: str, roots: list[Path]) -> list[Path] | None:
+        """Files executed by importing `module`; None when no root provides it."""
+        parts = module.split(".")
+        for root in roots:
+            files: list[Path] = []
+            base = root
+            for index, part in enumerate(parts):
+                package = base / part
+                last = index == len(parts) - 1
+                if (package / "__init__.py").is_file():
+                    files.append(package / "__init__.py")
+                    base = package
+                elif last and (base / f"{part}.py").is_file():
+                    files.append(base / f"{part}.py")
+                elif package.is_dir():
+                    base = package  # namespace package: no file of its own
+                else:
+                    break
+            else:
+                return files
+        return None
+
+    def _python_refs(self, path: Path, text: str, roots: list[Path]) -> list[Path]:
+        try:
+            tree = ast.parse(text, filename=str(path))
+        except SyntaxError as exc:
+            self._note_unresolved(
+                path, f"python parse error: {exc.msg} line {exc.lineno}"
+            )
+            return []
+        out: list[Path] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    out.extend(self._module_files(alias.name, roots) or [])
+            elif isinstance(node, ast.ImportFrom):
+                if node.level:
+                    package_dir = path.parent
+                    for _ in range(node.level - 1):
+                        package_dir = package_dir.parent
+                    search = [package_dir]
+                    module = node.module or ""
+                    if module:
+                        out.extend(self._module_files(module, search) or [])
+                    prefix = f"{module}." if module else ""
+                else:
+                    search = roots
+                    module = node.module or ""
+                    out.extend(self._module_files(module, search) or [])
+                    prefix = f"{module}."
+                for alias in node.names:
+                    if alias.name != "*":
+                        # `from pkg import name` may name a submodule.
+                        out.extend(
+                            self._module_files(prefix + alias.name, search) or []
+                        )
+        return out
+
+    def _resolve_token(self, token: str, via: Path) -> Path | None:
+        token = token.strip("\"'")
+        candidates: list[Path] = []
+        variable = re.match(r"^\$\{?\w+\}?/(.*)$", token)
+        if variable:
+            rest = variable.group(1)
+            candidates = [ROOT / rest, self.git_root / rest, via.parent / rest]
+        elif token.startswith("/"):
+            candidates = [Path(token), via.parent / token.lstrip("/")]
+        else:
+            candidates = [via.parent / token, ROOT / token, self.git_root / token]
+        for candidate in candidates:
+            resolved = candidate.resolve()
+            if resolved.is_file() and _in_checkout(resolved, self.git_root):
+                return resolved
+        return None
+
+    def _shell_refs(self, path: Path, text: str, roots: list[Path]) -> list[Path]:
+        out: list[Path] = []
+        for line in text.splitlines():
+            if line.lstrip().startswith("#"):
+                continue
+            tokens = [m.group(1) for m in _SHELL_PATH_RE.finditer(line)]
+            tokens += [
+                m.group(1)
+                for m in _SHELL_SOURCE_RE.finditer(line)
+                if not m.group(1).startswith("$(")  # command substitution
+            ]
+            for token in dict.fromkeys(tokens):
+                resolved = self._resolve_token(token, path)
+                if resolved is None:
+                    self._note_unresolved(path, token)
+                else:
+                    out.append(resolved)
+            for match in _SHELL_PYTHON_MODULE_RE.finditer(line):
+                files = self._module_files(match.group(1), roots)
+                if files is None:
+                    self._note_unresolved(path, f"python -m {match.group(1)}")
+                else:
+                    out.extend(files)
+        return out
+
+
+def _batched(items: list[str], size: int = 500):
+    for start_index in range(0, len(items), size):
+        yield items[start_index : start_index + size]
+
+
+def current_dep_blobs(git_root: Path, rels: list[str]) -> dict[str, str]:
+    """Git blob ids of the current bytes (through the checkout's filters)."""
+    if not rels:
+        return {}
+    blobs = git_output(
+        ["hash-object", "--stdin-paths"], cwd=git_root, stdin="\n".join(rels) + "\n"
+    ).split()
+    if len(blobs) != len(rels):
+        raise GitProbeError(
+            "reproducibility guard: Git probe returned the wrong number of blob ids "
+            "for source dependencies"
+        )
+    return dict(zip(rels, blobs))
+
+
+def committed_dep_blobs(git_root: Path, commit: str, rels: list[str]) -> dict[str, str]:
+    """Blob ids at `commit` for those of `rels` that it contains."""
+    out: dict[str, str] = {}
+    for chunk in _batched(rels):
+        listing = git_output(
+            ["ls-tree", "-z", "--full-tree", commit, "--", *chunk],
+            cwd=git_root,
+            text=False,
+        )
+        for entry in listing.split(b"\0"):
+            if not entry:
+                continue
+            try:
+                meta, rel = entry.split(b"\t", 1)
+                out[rel.decode("utf-8")] = meta.split()[2].decode("ascii")
+            except (IndexError, ValueError, UnicodeError) as exc:
+                raise GitProbeError(
+                    "reproducibility guard: Git probe returned malformed ls-tree data "
+                    "for source dependencies"
+                ) from exc
+    return out
+
+
+def resolve_source_deps(request: dict, git_root: Path) -> tuple[dict, dict]:
+    """Expand a dependency request to `{path: provenance}` plus the scan record."""
+    provenance: dict[Path, dict] = {}
+
+    def note(path: Path, source: str, **detail) -> None:
+        record = provenance.setdefault(
+            path, {"provenance": [], "methods": [], "heuristic": True}
+        )
+        if source not in record["provenance"]:
+            record["provenance"].append(source)
+        method = detail.get("method", "declared")
+        if method not in record["methods"]:
+            record["methods"].append(method)
+        # A file is heuristic only when every route that found it is.
+        record["heuristic"] = record["heuristic"] and bool(detail.get("heuristic"))
+        if detail.get("via") and "via" not in record:
+            record["via"] = detail["via"]
+
+    for spec in request["declared"]:
+        for path in _declared_dep_paths(spec, git_root, "--source-dep"):
+            note(path, "declared")
+    for deps_file in request["declared_files"]:
+        origin = f"--source-deps-file {deps_file}"
+        for spec in read_source_deps_file(deps_file):
+            for path in _declared_dep_paths(spec, git_root, origin):
+                note(path, f"declared-file:{deps_file}")
+    scan_record: dict = {}
+    if request["scan_entries"]:
+        scanner = SourceDepScanner(
+            git_root, roots=request["scan_roots"], patterns=request["scan_patterns"]
+        )
+        for entry in request["scan_entries"]:
+            scanner.scan(entry)
+        for path, info in scanner.found.items():
+            note(path, "scanned", **info)
+        scan_record = {
+            "entries": list(request["scan_entries"]),
+            "roots": [str(root) for root in scanner.extra_roots],
+            "patterns": list(request["scan_patterns"]),
+            "unresolved": scanner.unresolved,
+            "limits": SOURCE_DEPS_SCAN_LIMITS,
+        }
+    return provenance, scan_record
+
+
+def source_dep_records(
+    provenance: dict[Path, dict], *, git_root: Path, commit: str
+) -> tuple[dict[str, dict], list[str]]:
+    """Record each dependency's blob against `commit`; return records and problems."""
+    rels = sorted(path.relative_to(git_root).as_posix() for path in provenance)
+    current = current_dep_blobs(git_root, rels)
+    committed = committed_dep_blobs(git_root, commit, rels)
+    records: dict[str, dict] = {}
+    problems: list[str] = []
+    for path, info in sorted(provenance.items()):
+        rel = path.relative_to(git_root).as_posix()
+        blob = current[rel]
+        committed_blob = committed.get(rel)
+        if committed_blob is None:
+            status = "untracked"
+            problems.append(
+                "reproducibility guard: source dependency is not recoverable from the "
+                f"recorded commit: {rel} blob={blob}"
+            )
+        elif committed_blob != blob:
+            status = "dirty"
+            problems.append(
+                "reproducibility guard: source dependency differs from the recorded "
+                f"commit: {rel} blob={blob} committed_blob={committed_blob}"
+            )
+        else:
+            status = "committed"
+        records[rel] = {
+            "path": str(path),
+            "blob": blob,
+            "committed_blob": committed_blob or "",
+            "sha256": compute_sha256(path),
+            "size": path.stat().st_size,
+            "status": status,
+            **info,
+        }
+    return records, problems
+
+
+def build_source_deps(
+    request: dict, *, git_root: Path, commit: str, guard: SourceGuard
+) -> dict:
+    """Resolve, record and admit a run's declared source dependencies."""
+    provenance, scan_record = resolve_source_deps(request, git_root)
+    records, problems = source_dep_records(provenance, git_root=git_root, commit=commit)
+    for problem in problems:
+        guard.refuse(problem)
+    deps = {
+        "schema": SOURCE_DEPS_SCHEMA,
+        "request": request,
+        "files": records,
+        "loading": {"timeout_seconds": request["loading_timeout_seconds"]},
+    }
+    if scan_record:
+        deps["scan"] = scan_record
+    return deps
+
+
+def revalidate_source_deps(deps: dict, git_root: Path, guard: SourceGuard) -> None:
+    """Before a delayed launch, each dependency must still hold its recorded bytes."""
+    files = deps.get("files") or {}
+    rels = sorted(rel for rel in files if (git_root / rel).is_file())
+    current = current_dep_blobs(git_root, rels)
+    for rel, record in sorted(files.items()):
+        if rel not in current:
+            guard.refuse(
+                f"reproducibility guard: source dependency disappeared after submission: {rel}"
+            )
+        elif current[rel] != record["blob"]:
+            guard.refuse(
+                "reproducibility guard: source dependency changed after submission: "
+                f"{rel} blob={current[rel]} recorded_blob={record['blob']}"
+            )
+
+
+def source_deps_dry_run(args: argparse.Namespace, request: dict) -> int:
+    """Print the resolved dependency list and what enforce would say; no launch."""
+    try:
+        git_root = Path(git_output(["rev-parse", "--show-toplevel"]).strip()).resolve()
+        commit = git_output(["rev-parse", "HEAD"]).strip()
+    except GitProbeError as exc:
+        raise SystemExit(
+            f"--source-deps-dry-run needs a Git checkout with a committed HEAD; {exc.code}"
+        ) from exc
+    provenance, scan_record = resolve_source_deps(request, git_root)
+    records, problems = source_dep_records(provenance, git_root=git_root, commit=commit)
+    report = {
+        "git_root": str(git_root),
+        "git_commit": commit,
+        "files": records,
+        "violations": problems,
+        "enforce_would_refuse": bool(problems),
+        "loading_timeout_seconds": request["loading_timeout_seconds"],
+    }
+    if scan_record:
+        report["scan"] = scan_record
+    print(json.dumps(report, indent=2, sort_keys=True))
+    return 0
+
+
+class SourceDepsLoadingWatch:
+    """Watch declared dependencies until the payload has loaded them.
+
+    Loading ends at the first of: the payload touching the marker file
+    (`$AGENTCTL_SOURCE_DEPS_LOADED`), the configured timeout after payload
+    start, or payload exit. A change to a dependency before then is a
+    violation: enforce terminates the payload, record keeps it. Later edits
+    cannot affect what the payload already loaded and are ignored.
+    """
+
+    POLL_SECONDS = 0.25
+
+    def __init__(self, deps: dict, *, marker: Path, guard_mode: str, proc, on_end=None):
+        self.on_end = on_end
+        self.files = {
+            rel: record
+            for rel, record in (deps.get("files") or {}).items()
+            if record.get("sha256")
+        }
+        self.timeout = float(
+            (deps.get("loading") or {}).get(
+                "timeout_seconds", DEFAULT_SOURCE_DEPS_LOADING_SECONDS
+            )
+        )
+        self.marker = marker
+        self.guard_mode = guard_mode
+        self.proc = proc
+        self.violations: list[str] = []
+        self.ended_by = ""
+        self.ended_at = ""
+        self.terminated = False
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        # No stat baseline: the first poll hashes every file, which also covers
+        # the gap between the pre-launch check and payload start.
+        self._stats: dict[str, object] = {}
+
+    @staticmethod
+    def _stat(path: str):
+        try:
+            st = os.stat(path)
+        except OSError:
+            return None
+        return (st.st_ino, st.st_size, st.st_mtime_ns)
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def _check(self) -> None:
+        for rel, record in self.files.items():
+            stat = self._stat(record["path"])
+            if rel in self._stats and stat == self._stats[rel]:
+                continue
+            self._stats[rel] = stat
+            current = compute_sha256(record["path"]) if stat is not None else "missing"
+            if current == record["sha256"]:
+                continue
+            message = (
+                "reproducibility guard: source dependency changed during payload "
+                f"loading: {rel} sha256={current} recorded_sha256={record['sha256']}"
+            )
+            if message in self.violations:
+                continue
+            self.violations.append(message)
+            if self.guard_mode == "enforce":
+                print(f"{message}; terminating payload", file=sys.stderr)
+                self.terminated = True
+                if self.proc.poll() is None:
+                    self.proc.terminate()
+            else:
+                print(
+                    "warning: recorded source-guard violation, continuing "
+                    f"(--source-guard enforce would terminate the payload): {message}",
+                    file=sys.stderr,
+                )
+
+    def _end(self, reason: str) -> None:
+        self.ended_by = reason
+        self.ended_at = utc_now()
+        if self.on_end is not None:
+            self.on_end(self.record())
+
+    def _run(self) -> None:
+        deadline = time.monotonic() + self.timeout
+        while True:
+            self._check()
+            if self.terminated:
+                self._end("guard-terminated")
+                return
+            if self.marker.exists():
+                self._end("marker")
+                return
+            if time.monotonic() >= deadline:
+                self._end("timeout")
+                return
+            if self.proc.poll() is not None or self._stop.is_set():
+                self._end("payload-exit")
+                return
+            self._stop.wait(self.POLL_SECONDS)
+
+    def finish(self) -> dict:
+        """Stop after payload exit and return the loading record."""
+        self._stop.set()
+        self._thread.join()
+        return self.record()
+
+    def record(self) -> dict:
+        return {
+            "timeout_seconds": self.timeout,
+            "marker": str(self.marker),
+            "ended_by": self.ended_by,
+            "ended_at": self.ended_at,
+            "violations": list(self.violations),
+        }
+
+
 def build_source_snapshot(
     *,
     argv: list[str],
@@ -3600,7 +4226,9 @@ def build_source_snapshot(
     source_env: list[str],
     source_scope: str,
     guard: SourceGuard | None = None,
+    source_deps: dict | None = None,
 ) -> dict:
+    """Admission-time source record; `source_deps` narrows it to declared files."""
     guard = guard or SourceGuard("enforce")
     git_root_text = commit = ""
     try:
@@ -3630,24 +4258,34 @@ def build_source_snapshot(
         }
     git_root = Path(git_root_text).resolve()
     dirty = tracked_source_status(git_root, source_scope=source_scope)
-    if dirty:
-        first = dirty.splitlines()[0]
-        guard.refuse(
-            "reproducibility guard: tracked/index changes must be committed before a tracked "
-            f"run; first change: {first}"
-        )
     untracked_python = git_output(
         ["ls-files", "--others", "--exclude-standard", "--", "*.py"], cwd=git_root
     ).splitlines()
-    if untracked_python:
-        preview = ", ".join(untracked_python[:5])
-        suffix = (
-            f" (+{len(untracked_python) - 5} more)" if len(untracked_python) > 5 else ""
+    deps_record = None
+    if source_deps is not None:
+        # Declared dependencies replace the whole-scope checks: unrelated dirty
+        # or untracked files elsewhere in the checkout do not block this run.
+        deps_record = build_source_deps(
+            source_deps, git_root=git_root, commit=commit, guard=guard
         )
-        guard.refuse(
-            "reproducibility guard: all non-ignored Python source must be committed before a "
-            f"tracked run: {preview}{suffix}"
-        )
+    else:
+        if dirty:
+            first = dirty.splitlines()[0]
+            guard.refuse(
+                "reproducibility guard: tracked/index changes must be committed before a "
+                f"tracked run; first change: {first}"
+            )
+        if untracked_python:
+            preview = ", ".join(untracked_python[:5])
+            suffix = (
+                f" (+{len(untracked_python) - 5} more)"
+                if len(untracked_python) > 5
+                else ""
+            )
+            guard.refuse(
+                "reproducibility guard: all non-ignored Python source must be committed "
+                f"before a tracked run: {preview}{suffix}"
+            )
 
     files, foreign_environments = guard.attempt(
         environment_control_paths, argv, project_env, source_env
@@ -3697,6 +4335,11 @@ def build_source_snapshot(
         "untracked_python_count": len(untracked_python),
         "files": records,
     }
+    if deps_record is not None:
+        snapshot["source_deps"] = deps_record
+    else:
+        # The delayed-launch check reports only Python that appeared later.
+        snapshot["untracked_python"] = untracked_python
     if foreign_environments:
         snapshot["foreign_environments"] = foreign_environments
     return snapshot
@@ -3719,15 +4362,10 @@ def revalidate_foreign_environment(record: dict) -> None:
             )
 
 
-def revalidate_source_snapshot(snapshot: dict) -> list[str]:
-    """Repeat admission before a delayed payload launch; return recorded violations."""
-    guard = SourceGuard(snapshot.get("guard", "enforce"))
-    if not snapshot.get("git_commit"):
-        guard.refuse("reproducibility guard: no Git source was recorded at submission")
-        return guard.violations
-    git_root = Path(snapshot["git_root"])
-    commit = snapshot["git_commit"]
-    source_scope = snapshot.get("source_scope", "all")
+def revalidate_whole_scope(
+    snapshot: dict, git_root: Path, commit: str, source_scope: str, guard: SourceGuard
+) -> None:
+    """The no-declaration fallback: the whole source scope must be unchanged."""
     current_commit = git_output(["rev-parse", "HEAD"], cwd=git_root).strip()
     if current_commit != commit:
         changed = committed_source_changes(
@@ -3739,21 +4377,49 @@ def revalidate_source_snapshot(snapshot: dict) -> list[str]:
         if changed:
             guard.refuse(
                 "reproducibility guard: committed source changed after submission; "
-                f"refusing payload launch; first change: {changed[0]}"
+                f"first change: {changed[0]}"
             )
     dirty = tracked_source_status(git_root, source_scope=source_scope)
     if dirty:
         guard.refuse(
             "reproducibility guard: checkout source became dirty after submission; "
-            f"refusing payload launch; first change: {dirty.splitlines()[0]}"
+            f"first change: {dirty.splitlines()[0]}"
         )
     untracked_python = git_output(
         ["ls-files", "--others", "--exclude-standard", "--", "*.py"], cwd=git_root
     ).splitlines()
-    if untracked_python:
+    recorded = snapshot.get("untracked_python")
+    if recorded is None:
+        # A snapshot from before the submission set was kept cannot tell new
+        # files from old ones.
+        if untracked_python:
+            guard.refuse(
+                "reproducibility guard: untracked Python is present at launch and the "
+                f"submission set was not recorded: {', '.join(untracked_python[:5])}"
+            )
+        return
+    added = sorted(set(untracked_python) - set(recorded))
+    if added:
+        suffix = f" (+{len(added) - 5} more)" if len(added) > 5 else ""
         guard.refuse(
-            "reproducibility guard: untracked Python appeared after submission; refusing payload launch"
+            "reproducibility guard: untracked Python appeared after submission: "
+            f"{', '.join(added[:5])}{suffix}"
         )
+
+
+def revalidate_source_snapshot(snapshot: dict) -> list[str]:
+    """Repeat admission before a delayed payload launch; return recorded violations."""
+    guard = SourceGuard(snapshot.get("guard", "enforce"), action="the payload launch")
+    if not snapshot.get("git_commit"):
+        guard.refuse("reproducibility guard: no Git source was recorded at submission")
+        return guard.violations
+    git_root = Path(snapshot["git_root"])
+    commit = snapshot["git_commit"]
+    source_scope = snapshot.get("source_scope", "all")
+    if snapshot.get("source_deps"):
+        revalidate_source_deps(snapshot["source_deps"], git_root, guard)
+    else:
+        revalidate_whole_scope(snapshot, git_root, commit, source_scope, guard)
     for expected in (snapshot.get("files") or {}).values():
         if "git_blob" not in expected:
             # Already recorded as unrecoverable at submission.
@@ -4932,6 +5598,18 @@ def start(args: argparse.Namespace) -> int:
         raise SystemExit(
             "--after is not supported with --watch; start queued work detached, then watch the job"
         )
+    deps_request = source_deps_request(args)
+    if getattr(args, "source_deps_dry_run", False):
+        if deps_request is None:
+            raise SystemExit(
+                "--source-deps-dry-run needs --source-dep, --source-deps-file, or "
+                "--source-deps-scan"
+            )
+        return source_deps_dry_run(args, deps_request)
+    if deps_request is not None and getattr(args, "no_aim", False):
+        raise SystemExit(
+            "--no-aim skips the source guard; drop the --source-dep* options"
+        )
     runtime_estimate = ""
     runtime_estimate_seconds = 0
     if args.runtime_estimate:
@@ -5138,7 +5816,10 @@ def start(args: argparse.Namespace) -> int:
                 getattr(args, "source_guard", None)
                 or agentctl_setting(SOURCE_GUARD_ENV, "enforce", env=env)
             ),
+            source_deps=deps_request,
         )
+        if deps_request is not None:
+            env[SOURCE_DEPS_LOADED_ENV] = str(run_dir / SOURCE_DEPS_LOADED_FILENAME)
     for script in args.source_env:
         env = source_env_script(env, script)
     env.update(explicit_env)
@@ -5393,10 +6074,39 @@ def launch_recorded_payload(
         proc.wait()
         mark_prelaunch_failed(state_path, current, exit_status_path, 1)
         return 1
+    loading_watch = None
+    deps = (state.get("source_snapshot") or {}).get("source_deps") or {}
+    if deps.get("files") and float(
+        (deps.get("loading") or {}).get("timeout_seconds", 0) or 0
+    ):
+
+        def persist_loading(record: dict) -> None:
+            # Observers see the end of loading while a long payload still runs.
+            try:
+                live = read_json(state_path)
+                live["source_snapshot"]["source_deps"]["loading"] = record
+                update_state_files(live)
+            except Exception as exc:
+                print(
+                    f"warning: loading-phase state update failed: {exc!r}",
+                    file=sys.stderr,
+                )
+
+        loading_watch = SourceDepsLoadingWatch(
+            deps,
+            marker=state_path.parent / SOURCE_DEPS_LOADED_FILENAME,
+            guard_mode=state["source_snapshot"].get("guard", "enforce"),
+            proc=proc,
+            on_end=persist_loading,
+        )
+        loading_watch.start()
     sampler = RunVramSampler(state_path.parent)
     sampler.start()
     rc = proc.wait()
     vram_peak = sampler.stop()
+    loading = loading_watch.finish() if loading_watch is not None else None
+    if loading_watch is not None and loading_watch.terminated:
+        rc = 2
     record = {
         "finished_at": utc_now(),
         "payload_pid": payload_pid,
@@ -5411,6 +6121,12 @@ def launch_recorded_payload(
         state["returncode"] = rc
         if vram_peak:
             state["vram_peak_mib"] = {str(gpu): mib for gpu, mib in vram_peak.items()}
+        if loading is not None:
+            snapshot = state["source_snapshot"]
+            snapshot["source_deps"]["loading"] = loading
+            if loading["violations"]:
+                snapshot["status"] = "unverified"
+                snapshot["loading_violations"] = loading["violations"]
         state = finalize_finished_state(state)
         write_json(state_path, state)
         write_json(current, state)
@@ -7111,6 +7827,21 @@ def restart_user_argv(state: dict) -> list[str]:
     return final_argv
 
 
+def restart_source_deps_args(state: dict) -> dict:
+    request = ((state.get("source_snapshot") or {}).get("source_deps") or {}).get(
+        "request"
+    ) or {}
+    return {
+        "source_dep": list(request.get("declared") or []),
+        "source_deps_file": list(request.get("declared_files") or []),
+        "source_deps_scan": list(request.get("scan_entries") or []),
+        "source_deps_root": list(request.get("scan_roots") or []),
+        "source_deps_pattern": list(request.get("scan_patterns") or []),
+        "source_deps_loading_timeout": request.get("loading_timeout_seconds"),
+        "source_deps_dry_run": False,
+    }
+
+
 def restart(args: argparse.Namespace) -> int:
     state = load_job(args.job)
     # Stop a waiting (queued) run too, or the old wrapper would launch the
@@ -7151,6 +7882,8 @@ def restart(args: argparse.Namespace) -> int:
         source_env=state.get("source_env", []),
         source_scope=(state.get("source_snapshot") or {}).get("source_scope", "all"),
         source_guard=(state.get("source_snapshot") or {}).get("guard"),
+        # Re-resolve the recorded declaration: a scan must see today's imports.
+        **restart_source_deps_args(state),
         gpu_patience=600.0,
         wait_gpu=0,
         wait_max_memory_used=None,
@@ -7380,6 +8113,70 @@ def add_start_options(sp: argparse.ArgumentParser) -> None:
             f"Default: ${SOURCE_GUARD_ENV} from the environment, project agentctl.env, "
             "or global agentctl.env, else enforce."
         ),
+    )
+    sp.add_argument(
+        "--source-dep",
+        action="append",
+        default=None,
+        metavar="PATH",
+        help=(
+            "Declare an in-repo file (or glob, ** allowed) the payload loads; repeatable, "
+            "relative to the project root. Any --source-dep* declaration replaces the "
+            "whole-checkout source check: only the declared files must match the recorded "
+            "commit, and unrelated dirty or untracked files elsewhere are ignored."
+        ),
+    )
+    sp.add_argument(
+        "--source-deps-file",
+        action="append",
+        default=None,
+        metavar="FILE",
+        help="Read --source-dep paths or globs from FILE, one per line; # comments allowed.",
+    )
+    sp.add_argument(
+        "--source-deps-scan",
+        action="append",
+        default=None,
+        metavar="ENTRY",
+        help=(
+            "Add ENTRY and the in-repo files it reaches, recursively: Python imports via ast "
+            "(module roots: the entry's directory, the checkout and project roots, and "
+            "--source-deps-root), shell-script references by regex. Dynamic imports and "
+            "runtime-computed paths are not seen; declare those with --source-dep."
+        ),
+    )
+    sp.add_argument(
+        "--source-deps-root",
+        action="append",
+        default=None,
+        metavar="DIR",
+        help="Extra Python module root for --source-deps-scan (as on the payload's sys.path).",
+    )
+    sp.add_argument(
+        "--source-deps-pattern",
+        action="append",
+        default=None,
+        metavar="REGEX",
+        help=(
+            "Extra regex applied to every scanned file; its `path` group, else group 1, "
+            "else the whole match names a referenced file. Matches are recorded as heuristic."
+        ),
+    )
+    sp.add_argument(
+        "--source-deps-loading-timeout",
+        type=nonnegative_duration_seconds,
+        default=None,
+        metavar="SECONDS",
+        help=(
+            "How long after payload start the declared files must stay unchanged "
+            f"(default {DEFAULT_SOURCE_DEPS_LOADING_SECONDS:g}s; 0 stops checking at launch). "
+            f"Loading ends sooner when the payload touches ${SOURCE_DEPS_LOADED_ENV}."
+        ),
+    )
+    sp.add_argument(
+        "--source-deps-dry-run",
+        action="store_true",
+        help="Print the resolved dependency list with blob ids and any violations; do not launch.",
     )
     sp.add_argument(
         "--gpu-patience",

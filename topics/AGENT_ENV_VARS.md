@@ -104,6 +104,7 @@ native-child cleanup depends on them.
 | `AGENTCTL_MODE` | Launch verb mode (`start` or `smoke`). | replace, then overridable by `--source-env` / `--env` |
 | `AGENTCTL_HEADLINE_FILE` | Path where the payload may publish its current run headline. | replace, then overridable by `--source-env` / `--env` |
 | `AGENTCTL_PARENT_RUN_ID` | On entry, identifies an enclosing run for the recorded `parent_run`; the child receives the current run id so a nested launch links back to it. | replace with current run id, then overridable by `--source-env` / `--env` |
+| `AGENTCTL_SOURCE_DEPS_LOADED` | Run-dir marker path; a payload with declared source dependencies touches it once it has loaded them, ending the loading-phase watch early. | set when source dependencies are declared, then overridable by `--source-env` / `--env` (the watch still reads the run-dir path) |
 | `AGENTCTL_OUTPUT` | Primary declared output path exposed to the payload. | set when a primary output exists; otherwise an ambient value is currently inherited |
 | `AGENTCTL_INPUT_FILE` | Resolved path supplied by `--input-file`. | set with that option; otherwise an ambient value is currently inherited |
 | `AGENTCTL_STEP_ID` | Optional external provenance step identifier read by `artifact_meta.py`; agentctl does not assign it. | inherit |

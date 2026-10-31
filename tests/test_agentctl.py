@@ -4263,7 +4263,12 @@ def test_record_source_guard_runs_dirty_checkout_and_records_violations():
             "true",
         )
         _assert(started.returncode == 0, started)
-        _assert("recorded, --source-guard record" in started.stderr, started.stderr)
+        _assert(
+            "recorded source-guard violation, continuing" in started.stderr
+            and "would refuse the tracked run" in started.stderr,
+            started.stderr,
+        )
+        _assert("refusing" not in started.stderr, started.stderr)
         state = ws.wait_finished("dirty")
         _assert(state["returncode"] == 0, state)
         snapshot = state["source_snapshot"]
@@ -4320,6 +4325,361 @@ def test_project_env_record_guard_lets_queued_run_survive_source_change():
             any("agentctl.py" in v for v in snapshot["launch_violations"]),
             snapshot,
         )
+        log = Path(state["log_path"]).read_text(encoding="utf-8")
+        _assert("would refuse the payload launch" in log, log)
+        _assert("refusing" not in log, log)
+    finally:
+        ws.cleanup()
+
+
+def _write(path: Path, text: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def _queue_behind_slowdep(ws: Workspace, job: str, *args) -> None:
+    _start(ws, "--no-aim", f"{job}-dep", "--", "bash", "-c", "sleep 0.5")
+    _start(
+        ws,
+        "--after",
+        f"{job}-dep",
+        "--after-poll",
+        "0.05",
+        "--after-heartbeat",
+        "0",
+        *args,
+    )
+
+
+def test_record_guard_reports_only_untracked_python_added_after_submission():
+    ws = Workspace()
+    try:
+        _write(ws.scratch / "old_stray.py", "x = 1\n")
+        _queue_behind_slowdep(
+            ws, "additions", "--source-guard", "record", "additions", "--", "true"
+        )
+        _write(ws.scratch / "new_stray.py", "y = 2\n")
+        state = ws.wait_finished("additions")
+        _assert(state["returncode"] == 0, state)
+        snapshot = state["source_snapshot"]
+        _assert(snapshot["untracked_python"] == ["_scratch/old_stray.py"], snapshot)
+        text = "\n".join(snapshot["launch_violations"])
+        _assert("new_stray.py" in text and "old_stray.py" not in text, text)
+    finally:
+        ws.cleanup()
+
+
+def test_declared_source_deps_ignore_unrelated_untracked_and_dirty_files():
+    ws = Workspace()
+    try:
+        payload = _write(ws.tmp / "tools/payload.py", "print('ok')\n")
+        unrelated = _write(ws.tmp / "tools/unrelated.py", "A = 1\n")
+        ws.commit(payload, unrelated)
+        unrelated.write_text("A = 2\n", encoding="utf-8")
+        _write(ws.scratch / "stray.py", "x = 1\n")
+
+        # Without a declaration the whole-checkout guard still refuses.
+        whole = ws.run("start", "whole", "--", sys.executable, str(payload))
+        _assert(whole.returncode != 0, whole)
+
+        dry = ws.run(
+            "start",
+            "--source-dep",
+            "tools/payload.py",
+            "--source-deps-dry-run",
+            "declared",
+            "--",
+            sys.executable,
+            str(payload),
+        )
+        _assert(dry.returncode == 0, dry)
+        report = json.loads(dry.stdout)
+        record = report["files"]["tools/payload.py"]
+        _assert(record["status"] == "committed" and record["blob"], report)
+        _assert(record["provenance"] == ["declared"], record)
+        _assert(not report["enforce_would_refuse"], report)
+        _assert(not (ws.tmp / ".agentctl/jobs/declared").exists(), "dry run launched")
+
+        _start(
+            ws,
+            "--source-dep",
+            "tools/payload.py",
+            "declared",
+            "--",
+            sys.executable,
+            str(payload),
+        )
+        state = ws.wait_finished("declared")
+        _assert(state["returncode"] == 0, state)
+        snapshot = state["source_snapshot"]
+        _assert(snapshot["status"] == "committed", snapshot)
+        deps = snapshot["source_deps"]
+        _assert(list(deps["files"]) == ["tools/payload.py"], deps)
+        _assert(deps["files"]["tools/payload.py"]["blob"] == record["blob"], deps)
+        _assert("untracked_python" not in snapshot, snapshot)
+
+        # A declared file that differs from the commit is refused under enforce
+        # and recorded with its dirty blob under record.
+        payload.write_text("print('edited')\n", encoding="utf-8")
+        refused = ws.run(
+            "start", "--source-dep", "tools/*.py", "dirtydep", "--", "true"
+        )
+        _assert(refused.returncode != 0, refused)
+        _assert("source dependency differs" in refused.stderr, refused.stderr)
+        _start(
+            ws,
+            "--source-guard",
+            "record",
+            "--source-dep",
+            "tools/payload.py",
+            "dirtyrec",
+            "--",
+            "true",
+        )
+        state = ws.wait_finished("dirtyrec")
+        _assert(state["returncode"] == 0, state)
+        rec = state["source_snapshot"]["source_deps"]["files"]["tools/payload.py"]
+        _assert(rec["status"] == "dirty" and rec["blob"] != rec["committed_blob"], rec)
+        _assert(state["source_snapshot"]["status"] == "unverified", state)
+    finally:
+        ws.cleanup()
+
+
+def test_source_deps_file_and_missing_declarations():
+    ws = Workspace()
+    try:
+        a = _write(ws.tmp / "lib/a.py", "A = 1\n")
+        b = _write(ws.tmp / "lib/sub/b.py", "B = 1\n")
+        listing = _write(ws.tmp / "deps.txt", "# deps\nlib/**/*.py\n\n")
+        ws.commit(a, b, listing)
+        dry = ws.run(
+            "start",
+            "--source-deps-file",
+            "deps.txt",
+            "--source-deps-dry-run",
+            "listed",
+            "--",
+            "true",
+        )
+        _assert(dry.returncode == 0, dry)
+        files = json.loads(dry.stdout)["files"]
+        _assert(sorted(files) == ["lib/a.py", "lib/sub/b.py"], files)
+        _assert(files["lib/a.py"]["provenance"] == ["declared-file:deps.txt"], files)
+
+        missing = ws.run("start", "--source-dep", "lib/nope.py", "x", "--", "true")
+        _assert(missing.returncode != 0 and "no such file" in missing.stderr, missing)
+        empty = ws.run("start", "--source-dep", "lib/*.sh", "x", "--", "true")
+        _assert(empty.returncode != 0 and "matched no files" in empty.stderr, empty)
+    finally:
+        ws.cleanup()
+
+
+def test_source_deps_scan_follows_python_imports_and_shell_references():
+    ws = Workspace()
+    try:
+        paths = [
+            _write(ws.tmp / "proj/pkg/__init__.py", ""),
+            _write(ws.tmp / "proj/pkg/util.py", "from . import helper\nimport json\n"),
+            _write(ws.tmp / "proj/pkg/helper.py", "X = 1\n"),
+            _write(ws.tmp / "proj/pkg/other.py", "Y = 1\n"),
+            # An import cycle must terminate.
+            _write(ws.tmp / "proj/cyc_a.py", "import cyc_b\n"),
+            _write(ws.tmp / "proj/cyc_b.py", "import cyc_a\n"),
+            _write(
+                ws.tmp / "proj/main.py",
+                "import pkg.util\nfrom pkg import other\nimport cyc_a\n"
+                "def lazy():\n    import lazy_mod\n",
+            ),
+            _write(ws.tmp / "proj/lazy_mod.py", "Z = 1\n"),
+            _write(ws.tmp / "proj/env.sh", "export A=1\n"),
+            _write(
+                ws.tmp / "proj/run.sh",
+                '#!/usr/bin/env bash\nsource "$(dirname "$0")/env.sh"\n'
+                "# python commented_out.py\n"
+                'python3 "$ROOT/proj/main.py" --x\nbash proj/missing.sh\n',
+            ),
+            _write(ws.tmp / "proj/unused.py", "U = 1\n"),
+        ]
+        ws.commit(*paths)
+        _write(ws.scratch / "stray.py", "x = 1\n")
+        dry = ws.run(
+            "start",
+            "--source-deps-scan",
+            "proj/run.sh",
+            "--source-deps-dry-run",
+            "scan",
+            "--",
+            "bash",
+            "proj/run.sh",
+        )
+        _assert(dry.returncode == 0, dry)
+        report = json.loads(dry.stdout)
+        files = report["files"]
+        expected = {
+            "proj/run.sh",
+            "proj/env.sh",
+            "proj/main.py",
+            "proj/pkg/__init__.py",
+            "proj/pkg/util.py",
+            "proj/pkg/helper.py",
+            "proj/pkg/other.py",
+            "proj/cyc_a.py",
+            "proj/cyc_b.py",
+            "proj/lazy_mod.py",
+        }
+        _assert(set(files) == expected, sorted(files))
+        _assert(
+            files["proj/main.py"]["methods"] == ["shell-regex"], files["proj/main.py"]
+        )
+        _assert(files["proj/main.py"]["heuristic"] is True, files["proj/main.py"])
+        _assert(files["proj/pkg/helper.py"]["heuristic"] is False, files)
+        _assert(files["proj/pkg/helper.py"]["via"] == "proj/pkg/util.py", files)
+        unresolved = report["scan"]["unresolved"]
+        _assert(any("proj/missing.sh" in item for item in unresolved), unresolved)
+        _assert(not any("commented_out" in item for item in unresolved), unresolved)
+
+        _start(ws, "--source-deps-scan", "proj/main.py", "scanrun", "--", "true")
+        state = ws.wait_finished("scanrun")
+        _assert(state["returncode"] == 0, state)
+        deps = state["source_snapshot"]["source_deps"]
+        _assert(deps["files"]["proj/main.py"]["provenance"] == ["scanned"], deps)
+        _assert(deps["scan"]["limits"], deps["scan"])
+
+        missing = ws.run(
+            "start", "--source-deps-scan", "proj/gone.py", "x", "--", "true"
+        )
+        _assert(missing.returncode != 0 and "no such file" in missing.stderr, missing)
+    finally:
+        ws.cleanup()
+
+
+def test_queued_declared_deps_ignore_unrelated_changes_but_not_dep_edits():
+    ws = Workspace()
+    try:
+        dep = _write(ws.tmp / "dep.py", "D = 1\n")
+        other = _write(ws.tmp / "other.py", "O = 1\n")
+        ws.commit(dep, other)
+        _queue_behind_slowdep(
+            ws, "qdeps", "--source-dep", "dep.py", "qdeps", "--", "true"
+        )
+        other.write_text("O = 2\n", encoding="utf-8")
+        ws.commit(other)
+        _write(ws.scratch / "late.py", "x = 1\n")
+        state = ws.wait_finished("qdeps")
+        _assert(state["returncode"] == 0, state)
+        _assert(not state["source_snapshot"].get("launch_violations"), state)
+
+        _queue_behind_slowdep(
+            ws, "qdeps2", "--source-dep", "dep.py", "qdeps2", "--", "true"
+        )
+        dep.write_text("D = 2\n", encoding="utf-8")
+        state = ws.wait_finished("qdeps2")
+        _assert(state["returncode"] == 2, state)
+        log = Path(state["log_path"]).read_text(encoding="utf-8")
+        _assert("source dependency changed after submission: dep.py" in log, log)
+    finally:
+        ws.cleanup()
+
+
+def test_source_deps_loading_phase_ends_by_marker_timeout_or_guard():
+    ws = Workspace()
+    try:
+        dep = _write(ws.tmp / "dep.py", "D = 1\n")
+        ws.commit(dep)
+
+        def edit_while_running(job: str, *, after_marker: bool) -> dict:
+            deadline = time.time() + 10
+            while time.time() < deadline:
+                state = ws.state(job)
+                marker = Path(state["run_dir"]) / "source-deps-loaded"
+                ready = state.get("payload_pid") and (
+                    marker.exists() or not after_marker
+                )
+                if ready:
+                    break
+                time.sleep(0.05)
+            if after_marker:
+                time.sleep(0.6)  # past the watch's next poll
+            dep.write_text(f"D = {time.time_ns()}\n", encoding="utf-8")
+            return ws.wait_finished(job, timeout=15)
+
+        # Marker: an edit after the payload signals loaded is not a violation.
+        _start(
+            ws,
+            "--source-dep",
+            "dep.py",
+            "marker",
+            "--",
+            "bash",
+            "-c",
+            'touch "$AGENTCTL_SOURCE_DEPS_LOADED"; sleep 1.5',
+        )
+        state = edit_while_running("marker", after_marker=True)
+        loading = state["source_snapshot"]["source_deps"]["loading"]
+        _assert(state["returncode"] == 0 and loading["ended_by"] == "marker", state)
+        _assert(not loading["violations"], loading)
+        dep.write_text("D = 1\n", encoding="utf-8")
+
+        # Timeout ends loading without a marker.
+        _start(
+            ws,
+            "--source-dep",
+            "dep.py",
+            "--source-deps-loading-timeout",
+            "0.2",
+            "timeout",
+            "--",
+            "bash",
+            "-c",
+            "sleep 0.8",
+        )
+        state = ws.wait_finished("timeout")
+        loading = state["source_snapshot"]["source_deps"]["loading"]
+        _assert(loading["ended_by"] == "timeout", loading)
+
+        # Enforce: an edit during loading terminates the payload with rc 2.
+        _start(
+            ws,
+            "--source-dep",
+            "dep.py",
+            "enforced",
+            "--",
+            "bash",
+            "-c",
+            "sleep 5",
+        )
+        state = edit_while_running("enforced", after_marker=False)
+        _assert(state["returncode"] == 2, state)
+        snapshot = state["source_snapshot"]
+        _assert(snapshot["status"] == "unverified", snapshot)
+        _assert(
+            "changed during payload loading: dep.py"
+            in snapshot["loading_violations"][0],
+            snapshot,
+        )
+        _assert(
+            snapshot["source_deps"]["loading"]["ended_by"] == "guard-terminated",
+            snapshot,
+        )
+        dep.write_text("D = 1\n", encoding="utf-8")
+
+        # Record: the same edit is recorded and the payload finishes.
+        _start(
+            ws,
+            "--source-guard",
+            "record",
+            "--source-dep",
+            "dep.py",
+            "recorded",
+            "--",
+            "bash",
+            "-c",
+            "sleep 1",
+        )
+        state = edit_while_running("recorded", after_marker=False)
+        _assert(state["returncode"] == 0, state)
+        _assert(state["source_snapshot"]["loading_violations"], state)
     finally:
         ws.cleanup()
 

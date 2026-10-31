@@ -606,7 +606,8 @@ notices.
   `restart` preserves the original launch's selected files or disabled
   state rather than adopting a newly created default.
 - A default tracked `start`/`smoke` requires a Git checkout at committed
-  `HEAD`. `--source-scope non-doc` is the default: it rejects tracked/index
+  `HEAD`. Without a dependency declaration (below), the guard covers the
+  whole checkout. `--source-scope non-doc` is the default: it rejects tracked/index
   changes across the checkout except `*.md` and every `runs/aim/` bookkeeping
   subtree. `--source-scope all` checks Markdown too. Both forms reject
   non-ignored untracked `*.py` and selected script/environment-control bytes
@@ -627,20 +628,71 @@ notices.
   protected checkout.
 - `--source-guard enforce|record` chooses what a violation of that guard does.
   `enforce` (the default) refuses at submission and fails a queued payload
-  with returncode 2. `record` runs anyway: each violation is printed to stderr
-  and kept in `source_snapshot.violations` (submission) or
-  `source_snapshot.launch_violations` (delayed launch), `status` becomes
-  `unverified`, and the snapshot still records commit, cleanliness and file
-  hashes. The default comes from `AGENTCTL_SOURCE_GUARD`, ambient or in the
-  project `agentctl.env`; `restart` keeps the recorded mode. It is an interim
-  for shared, actively edited checkouts until runs declare their dependencies
-  ([run-source-dependencies](../gaps/sketches/run-source-dependencies.md)).
-  Every Git cleanliness, listing, and blob-content probe fails closed; a Git
+  with returncode 2. `record` never refuses: each violation is printed to
+  stderr as `recorded source-guard violation, continuing (--source-guard
+  enforce would refuse …)` and kept in `source_snapshot.violations`
+  (submission), `launch_violations` (delayed launch) or `loading_violations`
+  (loading phase), `status` becomes `unverified`, and the snapshot still
+  records commit, cleanliness and file hashes. The default comes from
+  `AGENTCTL_SOURCE_GUARD`, ambient or in the project `agentctl.env` of the
+  invoking project root (the cwd, so a nested program root does not inherit
+  the checkout root's file); `restart` keeps the recorded mode. Without a
+  dependency declaration, the delayed launch reports only untracked Python
+  added since submission (`source_snapshot.untracked_python` is the
+  submission set). A shared, actively edited checkout should declare
+  dependencies instead of relying on record mode. Every Git cleanliness, listing, and blob-content probe fails closed; a Git
   command error is not treated as an empty clean result. Pixi-specific
   `--manifest-path`/`-m` parsing applies only to a direct `pixi` invocation
   before its subcommand, while an executable located under `.pixi/` also
   identifies its environment root. The same-looking flags on other tools are
   ordinary payload arguments.
+- **Declared source dependencies** narrow the guard to the files a run
+  loads. Any of these replaces the whole-scope tracked-change and
+  untracked-Python checks; unrelated dirty or untracked files elsewhere in
+  the checkout no longer block or mark the run:
+  - `--source-dep PATH` (repeatable; globs with `**`) and
+    `--source-deps-file FILE` (one path or glob per line, `#` comments), both
+    relative to the project root. A missing file or an empty glob is a usage
+    error.
+  - `--source-deps-scan ENTRY` (repeatable) adds ENTRY and what it reaches,
+    recursively. Python `import`/`from` statements, including those inside
+    functions, resolve through `ast` against the entry's directory, the
+    checkout root, the project root and each `--source-deps-root DIR`;
+    relative imports resolve from the importing package, and package
+    `__init__.py` files are included. Shell scripts (`.sh`/`.bash`/`.zsh` or
+    a shell shebang) are scanned by regex for `*.py`/`*.sh` paths,
+    `source`/`.` targets, `$VAR/…` paths and `python -m module`.
+    `--source-deps-pattern REGEX` adds a pattern applied to every scanned file
+    (group `path`, else group 1, else the match). Regex finds are marked
+    `heuristic`; references that resolve to no in-checkout file are listed in
+    `scan.unresolved`. **Limits:** dynamic imports (`importlib`,
+    `__import__`, `exec`), runtime-computed paths and data files are not
+    seen; declare those with `--source-dep`. Only in-checkout files are
+    recorded; environments stay under the Pixi rules below.
+  - `--source-deps-dry-run` prints the resolved list (blob ids, status,
+    provenance, scan record, would-be violations) and launches nothing.
+
+  The record is `source_snapshot.source_deps` (`agentctl-source-deps-v1`):
+  the original request, which `restart` re-resolves, and per file its
+  current `blob`, `committed_blob`, `sha256`, `status`
+  (`committed`/`dirty`/`untracked`), `provenance` (`declared`,
+  `declared-file:FILE`, `scanned`), scan `methods` and `via`. Admission
+  requires each file to equal its blob at the recorded commit; under
+  `record` a dirty or untracked file is kept with its dirty blob. The
+  delayed-launch check then requires each file to still hold its recorded
+  blob, whatever `HEAD` did meanwhile. The control files, script and foreign
+  environments are checked as before.
+
+  **Loading phase.** The files must stay fixed only until the payload has
+  loaded them. The wrapper polls them from payload start until the payload
+  touches `$AGENTCTL_SOURCE_DEPS_LOADED` (a run-dir marker path), until
+  `--source-deps-loading-timeout` elapses (default 120 s; 0 disables the
+  watch), or until the payload exits. A change before then is a violation:
+  `enforce` terminates the payload and records returncode 2; `record` keeps
+  it in `loading_violations`. Later edits are not violations. The signal that
+  ended loading is `source_deps.loading.ended_by` (`marker`, `timeout`,
+  `payload-exit`, `guard-terminated`), written to state as soon as loading
+  ends.
 - An environment root outside the invoking checkout is admitted only as a
   **cross-repo pin**: the root must lie inside a Git checkout of its own, and
   that checkout must hand back both `pixi.toml` and `pixi.lock` at the
