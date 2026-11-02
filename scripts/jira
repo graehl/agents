@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read Jira Cloud issues from an agent session.
+"""Read Jira Cloud issues from an agent session, and comment on them.
 
 The credential is never passed on a command line. It comes from the
 environment when already exported, otherwise from sourcing the user's
@@ -7,7 +7,9 @@ environment when already exported, otherwise from sourcing the user's
 pipe. The file is never printed, and no verb echoes the token.
 
 This is the issue reader (and light query) counterpart to `confluence`;
-both share the same Atlassian credential. Verbs are read-only.
+both share the same Atlassian credential. `comment` is the only mutating
+verb: it adds one comment written in Jira wiki markup (`||h||` header
+rows, `|c|` cells, `*bold*`) and never edits or deletes existing ones.
 """
 
 from __future__ import annotations
@@ -113,13 +115,16 @@ def _token() -> str:
 # --- transport ------------------------------------------------------------
 
 
-def _request(args, method: str, path: str) -> dict:
+def _request(args, method: str, path: str, payload: dict | None = None) -> dict:
     site = args.site.rstrip("/")
     url = path if path.startswith("http") else f"{site}{path}"
     basic = b64encode(f"{args.email}:{_token()}".encode()).decode()
-    request = urllib.request.Request(url, method=method)
+    body = None if payload is None else json.dumps(payload).encode()
+    request = urllib.request.Request(url, data=body, method=method)
     request.add_header("Authorization", f"Basic {basic}")
     request.add_header("Accept", "application/json")
+    if body is not None:
+        request.add_header("Content-Type", "application/json")
     try:
         with urllib.request.urlopen(request, timeout=args.timeout) as response:
             raw = response.read().decode("utf-8")
@@ -295,6 +300,28 @@ def cmd_search(args) -> dict:
     }
 
 
+def cmd_comment(args) -> dict:
+    body = (
+        sys.stdin.read()
+        if args.body_file == "-"
+        else Path(args.body_file).read_text(encoding="utf-8")
+    )
+    if not body.strip():
+        acli.die("refusing to post an empty comment", acli.ExitCode.DATA)
+    result = {"issue": args.issue, "chars": len(body)}
+    if args.dry_run:
+        result["dry_run"] = True
+        return result
+    # API v2 takes the body as wiki markup; v3 would need an ADF tree.
+    posted = _request(
+        args, "POST", f"/rest/api/2/issue/{args.issue}/comment", {"body": body}
+    )
+    comment_id = posted.get("id")
+    result["id"] = comment_id
+    result["url"] = f"{args.site}/browse/{args.issue}?focusedCommentId={comment_id}"
+    return result
+
+
 # --- wiring ---------------------------------------------------------------
 
 TABLE_VERBS = {"search"}
@@ -332,7 +359,23 @@ def build_parser():
     search.add_argument("jql", help="JQL, e.g. 'text ~ \"PII LP\"'")
     search.add_argument("--limit", type=int, default=25)
 
-    for sub in (get, search, subs.choices["whoami"]):
+    comment = subs.add_parser(
+        "comment", help="Add one comment to an issue; never edits existing ones."
+    )
+    comment.add_argument("issue", help="Issue key like AIP-2747.")
+    comment.add_argument(
+        "--body-file",
+        required=True,
+        metavar="FILE",
+        help="Comment in Jira wiki markup; - reads standard input.",
+    )
+    comment.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Read and size the body, post nothing.",
+    )
+
+    for sub in (get, search, comment, subs.choices["whoami"]):
         acli.add_standard_args(sub, allow_toon=True)
     acli.add_standard_args(parser, allow_toon=True)
     return parser
