@@ -510,9 +510,14 @@ def crumb_trail(
     )
 
 
+# Marks a page that already carries `path_actions`. The full tag, not the
+# attribute alone, since FRAME_REPORTER's script queries `meta[name="repo-root"]`.
+PATH_ACTIONS_MARKER = '<meta name="repo-root" '
+
+
 def path_actions(root_url: str, current: str) -> str:
     return (
-        f'<meta name="repo-root" content="{html.escape(root_url)}">'
+        f'{PATH_ACTIONS_MARKER}content="{html.escape(root_url)}">'
         f'<meta name="repo-path" content="{html.escape(current or ".")}">'
         f"<style>{PATH_ACTIONS_STYLE}</style><script>{PATH_ACTIONS_SCRIPT}</script>"
     )
@@ -580,21 +585,23 @@ def listing_page(
     return compose_page(repo.name, rel, None, title, table, locate, footer)
 
 
-def with_access_keeper(page: str, token: str | None) -> str:
-    """Insert the address-bar token keeper (and a server-checked token) into a served page."""
+def with_access_keeper(page: str, token: str | None, actions: str = "") -> str:
+    """Insert the address-bar token keeper (and a server-checked token), and
+    `actions` (a missing `path_actions`), into a served page's head."""
     meta = f'<meta name="ya-access" content="{html.escape(token)}">\n' if token else ""
-    insert = meta + ACCESS_KEEPER + "\n" + FRAME_REPORTER + "\n"
+    insert = meta + ACCESS_KEEPER + "\n" + FRAME_REPORTER + "\n" + actions
     head = re.search(r"</head\s*>", page, re.IGNORECASE)
     return (
         page[: head.start()] + insert + page[head.start() :] if head else insert + page
     )
 
 
-def with_frame_reporter(page: bytes, crumbs: str | None) -> bytes:
-    """Insert the frame location reporter, and `crumbs` as a breadcrumb row
-    opening the body, into a repository HTML file whatever its (ASCII-compatible)
-    encoding. A file without a <body> tag gets no row."""
-    insert = FRAME_REPORTER.encode("ascii") + b"\n"
+def with_frame_reporter(page: bytes, crumbs: str | None, actions: str = "") -> bytes:
+    """Insert the frame location reporter, `actions` (a missing `path_actions`),
+    and `crumbs` as a breadcrumb row opening the body, into a repository HTML
+    file whatever its (ASCII-compatible) encoding. A file without a <body> tag
+    gets no row."""
+    insert = (FRAME_REPORTER + "\n" + actions).encode("ascii", "xmlcharrefreplace")
     body = re.search(rb"<body\b[^>]*>", page, re.IGNORECASE)
     if crumbs is not None and body:
         row = f'<nav id="repo-view-crumbs" aria-label="Location">{crumbs}</nav>'.encode(
@@ -1201,17 +1208,19 @@ def make_handler(
                 reply = Reply(
                     HTTPStatus.INTERNAL_SERVER_ERROR, body=f"{error}\n".encode()
                 )
+            actions = path_actions((base or "") + "/", "/".join(parts))
             if reply.page:
-                page = with_access_keeper(reply.body.decode("utf-8"), token)
-                if 'name="repo-root"' not in page:
-                    page += path_actions((base or "") + "/", "/".join(parts))
+                page = reply.body.decode("utf-8")
+                page = with_access_keeper(
+                    page, token, "" if PATH_ACTIONS_MARKER in page else actions
+                )
                 reply = Reply(reply.status, reply.kind, page.encode("utf-8"))
             elif reply.file and reply.kind.startswith("text/html"):
-                body = with_frame_reporter(reply.file.read_bytes(), reply.crumbs)
-                if b'name="repo-root"' not in body:
-                    body += path_actions((base or "") + "/", "/".join(parts)).encode(
-                        "utf-8"
-                    )
+                body = reply.file.read_bytes()
+                has_actions = PATH_ACTIONS_MARKER.encode("ascii") in body
+                body = with_frame_reporter(
+                    body, reply.crumbs, "" if has_actions else actions
+                )
                 reply = Reply(reply.status, reply.kind, body)
             return self.send(reply, head, cookie)
 

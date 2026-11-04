@@ -395,6 +395,10 @@ class RepoViewTest(unittest.TestCase):
             ".repo-view-location-shown #repo-view-crumbs { display: none; }", page
         )
         self.assertIn("yep-anywhere:app-location-shown", page)
+        # The crumb row's copy and actions buttons need the path-action script.
+        self.assertIn('<meta name="repo-path" content="papers/p/paper.html">', page)
+        self.assertIn("data-repo-actions", page)
+        self.assertIn("repo-path-menu", page)
 
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_breadcrumbs_open_the_project_page_section_showing_a_directory(
