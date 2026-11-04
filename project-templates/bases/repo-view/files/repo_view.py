@@ -584,16 +584,32 @@ def newest_quarto_input(
 
 
 @dataclass(frozen=True)
+class Recipe:
+    """The command that rebuilds an output; `key` names one build, so
+    concurrent requests for it share one run."""
+
+    key: Path
+    cwd: Path
+    argv: tuple[str, ...]
+    timeout: float
+
+    def hint(self) -> str:
+        return " ".join(Path(a).name if a.startswith("/") else a for a in self.argv)
+
+
+@dataclass(frozen=True)
 class Receipt:
     """A build receipt that describes a served output: the hashed inputs it
     was built from and the command that rebuilds it (`ya-artifact:v1`)."""
 
-    path: Path
     home: Path  # directory receipt paths are relative to
     inputs: tuple[tuple[str, str], ...]  # (path relative to home, sha256)
-    cwd: str
-    argv: tuple[str, ...]
-    timeout: float
+    recipe: Recipe
+
+
+# Quarto renders one format of a project into its output directory.
+QUARTO_FORMATS = {".html": "html", ".htm": "html", ".pdf": "pdf"}
+QUARTO_TIMEOUT = 600.0
 
 
 class Builds:
@@ -648,14 +664,44 @@ class Builds:
             ):
                 return None
             return Receipt(
-                candidate,
                 home,
                 tuple((i["path"], i["sha256"]) for i in data["inputs"]),
-                command["cwd"],
-                tuple(command["argv"]),
-                float(command.get("timeoutSeconds", 180)),
+                Recipe(
+                    candidate,
+                    Path(command["cwd"]),
+                    tuple(command["argv"]),
+                    float(command.get("timeoutSeconds", 180)),
+                ),
             )
         return None
+
+    def quarto_recipe(self, rel: str) -> Recipe | None:
+        """`quarto render --to <format>` in the Quarto project whose output
+        directory holds `rel`, for an output with no receipt."""
+        build = quarto_build(self.repo, rel)
+        form = QUARTO_FORMATS.get(Path(rel).suffix.lower())
+        quarto = shutil.which("quarto")
+        if not (build and form and quarto):
+            return None
+        project = self.repo.path(build[0])
+        return Recipe(
+            project / f".quarto-{form}",
+            project,
+            (quarto, "render", "--to", form),
+            QUARTO_TIMEOUT,
+        )
+
+    def stale_recipe(self, rel: str) -> Recipe | None:
+        """How to rebuild `rel` when it is a stale output, else None."""
+        receipt = self.receipt(rel)
+        if receipt:
+            return receipt.recipe if self.changed_inputs(receipt) else None
+        build = quarto_build(self.repo, rel)
+        if not build:
+            return None
+        newest = newest_quarto_input(self.repo, *build)
+        built = self.repo.path(rel).stat().st_mtime_ns
+        return self.quarto_recipe(rel) if newest and newest[1] > built else None
 
     def changed_inputs(self, receipt: Receipt) -> list[tuple[str, int]]:
         """Inputs whose content differs from the receipt, with mtime in ns
@@ -668,25 +714,25 @@ class Builds:
                 changed.append((rel, mtime))
         return sorted(changed, key=lambda item: -item[1])
 
-    def rebuild(self, receipt: Receipt) -> dict:
-        """Run the receipt's command, or join the run already going."""
+    def rebuild(self, recipe: Recipe) -> dict:
+        """Run the recipe's command, or join the run already going."""
         with self._lock:
-            run = self._runs.get(receipt.path)
+            run = self._runs.get(recipe.key)
             starter = run is None
             if starter:
-                run = self._runs[receipt.path] = Future()
+                run = self._runs[recipe.key] = Future()
         if starter:
             try:
-                run.set_result(self._run(receipt))
+                run.set_result(self._run(recipe))
             except Exception as error:  # reported to every joined requester
                 run.set_result({"ok": False, "log": f"{type(error).__name__}: {error}"})
             finally:
                 with self._lock:
-                    del self._runs[receipt.path]
+                    del self._runs[recipe.key]
         return run.result()
 
-    def _run(self, receipt: Receipt) -> dict:
-        cwd = Path(receipt.cwd).resolve()
+    def _run(self, recipe: Recipe) -> dict:
+        cwd = recipe.cwd.resolve()
         if not cwd.is_relative_to(self.repo.root):
             raise RepoViewError(f"rebuild directory {cwd} is outside the repository")
         environment = dict(os.environ)
@@ -700,9 +746,9 @@ class Builds:
                 scratch = Path(tempfile.gettempdir()) / "repo-view" / name.lower()
                 scratch.mkdir(parents=True, exist_ok=True)
                 environment[name] = str(scratch)
-        log("rebuild", f"{receipt.path}: {' '.join(receipt.argv)}")
+        log("rebuild", f"{recipe.key}: {' '.join(recipe.argv)}")
         process = subprocess.Popen(
-            receipt.argv,
+            recipe.argv,
             cwd=cwd,
             env=environment,
             stdin=subprocess.DEVNULL,
@@ -711,7 +757,7 @@ class Builds:
             start_new_session=True,
         )
         try:
-            output, _ = process.communicate(timeout=receipt.timeout)
+            output, _ = process.communicate(timeout=recipe.timeout)
         except subprocess.TimeoutExpired:
             os.killpg(process.pid, signal.SIGTERM)
             try:
@@ -721,9 +767,9 @@ class Builds:
                 output, _ = process.communicate()
             return {
                 "ok": False,
-                "log": f"timed out after {receipt.timeout:g} s\n" + tail(output),
+                "log": f"timed out after {recipe.timeout:g} s\n" + tail(output),
             }
-        log("rebuild", f"{receipt.path}: exit {process.returncode}")
+        log("rebuild", f"{recipe.key}: exit {process.returncode}")
         return {"ok": process.returncode == 0, "log": tail(output)}
 
 
@@ -734,9 +780,9 @@ def tail(output: bytes, limit: int = 4000) -> str:
 def freshness(repo: Repository, builds: Builds, source: str) -> dict:
     """What a page shown from `source` reflects: a `stamp` that changes when
     the page would, and for a build output older than its inputs, `stale`
-    naming the newest changed input. A receipt decides by input hashes and
-    makes the output rebuildable; without one, a Quarto output is judged by
-    input mtimes."""
+    naming the newest changed input. A receipt decides by input hashes;
+    without one, a Quarto output is judged by input mtimes and rebuilt by
+    Quarto itself. `rebuild` says whether this server will run the build."""
     stat = repo.path(source).stat()
     stamp = f"{stat.st_mtime_ns}:{stat.st_size}"
     built = stat.st_mtime_ns // 1_000_000
@@ -750,9 +796,7 @@ def freshness(repo: Repository, builds: Builds, source: str) -> dict:
             "inputTime": changed[0][1] // 1_000_000,
             "builtTime": built,
             "rebuild": builds.enabled,
-            "hint": " ".join(
-                Path(arg).name if arg.startswith("/") else arg for arg in receipt.argv
-            ),
+            "hint": receipt.recipe.hint(),
         }
         return {"stamp": stamp, "stale": stale or None}
     stale = None
@@ -762,13 +806,14 @@ def freshness(repo: Repository, builds: Builds, source: str) -> dict:
         if newest:
             stamp += f"/{newest[0]}:{newest[1]}"
             if newest[1] > stat.st_mtime_ns:
+                recipe = builds.quarto_recipe(source)
                 stale = {
                     "project": build[0] or ".",
                     "input": newest[0],
                     "inputTime": newest[1] // 1_000_000,
                     "builtTime": built,
-                    "rebuild": False,
-                    "hint": "quarto render",
+                    "rebuild": builds.enabled and recipe is not None,
+                    "hint": recipe.hint() if recipe else "quarto render",
                 }
     return {"stamp": stamp, "stale": stale}
 
@@ -1325,9 +1370,9 @@ class LiveSite:
         if source and not source.endswith((".html", ".htm")):
             # An output opened outside a page (a PDF in another viewer) cannot
             # show a notice, so a stale rebuildable one is rebuilt first.
-            receipt = self.builds.enabled and self.builds.receipt(source)
-            if receipt and self.builds.changed_inputs(receipt):
-                result = self.builds.rebuild(receipt)
+            recipe = self.builds.enabled and self.builds.stale_recipe(source)
+            if recipe:
+                result = self.builds.rebuild(recipe)
                 if not result["ok"]:
                     log("rebuild", f"{source}: serving the stale output")
         reply = self.page(node, kind)
@@ -1336,16 +1381,16 @@ class LiveSite:
         return reply
 
     def rebuild(self, source: str | None) -> Reply:
-        receipt = self.builds.enabled and source and self.builds.receipt(source)
-        if not receipt:
+        if not (self.builds.enabled and source):
             return Reply(
                 HTTPStatus.CONFLICT,
-                body=b"not rebuildable here (needs serve --rebuild and a receipt)\n",
+                body=b"not rebuildable here (needs serve --rebuild)\n",
             )
+        recipe = self.builds.stale_recipe(source)
         result = (
-            self.builds.rebuild(receipt)
-            if self.builds.changed_inputs(receipt)
-            else {"ok": True, "log": "already current\n"}
+            self.builds.rebuild(recipe)
+            if recipe
+            else {"ok": True, "log": "already current or not a known build output\n"}
         )
         return Reply(HTTPStatus.OK, "application/json", json.dumps(result).encode())
 

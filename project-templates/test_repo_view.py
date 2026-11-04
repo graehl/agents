@@ -434,6 +434,45 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(later["stale"]["input"], "paper/index.qmd")
         self.assertEqual(later["stale"]["project"], "paper")
 
+    def test_unreceipted_quarto_output_rebuilds_with_quarto_render(self) -> None:
+        # A stand-in `quarto` that renders the project's HTML from index.qmd.
+        bin_dir = self.repo.parent / "bin"
+        bin_dir.mkdir()
+        fake = bin_dir / "quarto"
+        fake.write_text(
+            f"#!{sys.executable}\n"
+            "import pathlib, sys\n"
+            "assert sys.argv[1:] == ['render', '--to', 'html'], sys.argv\n"
+            "text = pathlib.Path('index.qmd').read_text()\n"
+            "pathlib.Path('_build/index.html').write_text(\n"
+            "    f'<html><head></head><body>{text}</body></html>')\n"
+        )
+        fake.chmod(0o755)
+        self.write("README.md", "[paper](paper/_build/index.html)\n")
+        self.write("paper/_quarto.yml", "project:\n  output-dir: _build\n")
+        self.write(
+            "paper/_build/index.html", "<html><head></head><body>old</body></html>"
+        )
+        self.write("paper/index.qmd", "new")
+        os.utime(
+            self.repo / "paper/_build/index.html", ns=(1_000_000_000_000_000_000,) * 2
+        )
+        env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
+        base = self.serve("--rebuild", env=env)
+        url = base + "/paper/_build/index.html"
+        stale = json.loads(self.get(url + "?repo-view=fresh")[2])["stale"]
+        self.assertTrue(stale["rebuild"])
+        self.assertEqual(stale["hint"], "quarto render --to html")
+        request = urllib.request.Request(
+            url + "?repo-view=rebuild",
+            method="POST",
+            headers={"X-Repo-View": "rebuild"},
+        )
+        with OPENER.open(request, timeout=30) as reply:
+            self.assertTrue(json.loads(reply.read())["ok"])
+        self.assertIsNone(json.loads(self.get(url + "?repo-view=fresh")[2])["stale"])
+        self.assertIn("new", self.get(url)[2])
+
     def test_receipted_output_rebuilds_on_request_and_a_stale_pdf_before_serving(
         self,
     ) -> None:

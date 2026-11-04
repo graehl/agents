@@ -175,7 +175,9 @@ is rebuilt before it is served; a failed build serves the old file. Without
 Without a receipt, an output in a Quarto project's `output-dir` is judged by
 mtime against render inputs chosen by suffix (`.qmd`, `.yml`, `.bib`, `.lua`,
 styles, images; `.md` notes and a kept `.tex` are left out so that they do
-not mark every build stale), and is not rebuildable.
+not mark every build stale). Under `--rebuild` it is rebuilt the same ways
+with Quarto's own command, `quarto render --to html` (or `--to pdf` for a
+PDF) in the project directory, when `quarto` is on the server's `PATH`.
 
 ## Project pages
 
