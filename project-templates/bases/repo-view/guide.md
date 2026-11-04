@@ -131,17 +131,51 @@ an inline forwarding composer is deferred design work.
 The breadcrumb overflow menu also acts on the page itself: copy its link
 (keeping a private link's token), open it in a new tab when framed, reload.
 
-## Freshness
+## Freshness and rebuilds
 
-A live-served page records what it shows: the file behind it and, for a file
-in a Quarto project's `output-dir`, the newest render input. When the reader
-returns to the page (it becomes visible, gains focus, or the pointer enters
-it), the page asks again with `?repo-view=fresh` and shows a notice when the
-file changed on disk (with Reload) or when the build is older than an input.
-It never checks on a timer. Render inputs are judged by suffix (`.qmd`,
-`.yml`, `.bib`, `.lua`, styles, images); `.md` notes and a kept `.tex` are
-left out so that they do not mark every build stale. A static site carries no
-freshness.
+A live-served page records what it shows: the file behind it and, for a
+build output, its inputs. When the reader returns to the page (it becomes
+visible, gains focus, or the pointer enters it), the page asks again with
+`?repo-view=fresh` and shows a notice when the file changed on disk (with
+Reload) or when the build is older than an input. It never checks on a
+timer. A static site carries no freshness.
+
+**Rebuildable outputs: the convention.** Any builder of static output (HTML,
+and the PDFs and sidecars it links) makes that output rebuildable by writing
+a receipt beside it, `<stem>.receipt.json`, holding:
+
+- `root`: the absolute path of the root source; other paths are relative to
+  its directory;
+- `inputs`: every file the build read, as `{"path", "sha256"}`;
+- `output`, and `pdf` or `source_map` when made: the same `{"path", "sha256"}`
+  for what it wrote; and
+- `artifact_metadata.regenerate.proposedRegistration`: the command that
+  rebuilds every output, `{"cwd", "argv", "outputs", "timeoutSeconds"}`, with
+  absolute `outputs` and `argv` an argument vector, never shell code. An HTML
+  output also carries this descriptor in its head as the
+  `<!-- ya-artifact:v1 {"regenerate": …} -->` comment, which YA's file editor
+  reads.
+
+`qmd-html` writes this today (`~/agents` topic
+`document-writing-browser-interactive`, § Scripted HTML build).
+A receipt describes an output only while the output's hash still matches it,
+so a different builder overwriting the same file (plain `quarto render` into
+`_build/index.html`) makes it unreceipted again rather than misjudged.
+
+A receipted output is stale exactly when an input's hash differs from its
+receipt. `serve --rebuild` makes stale receipted outputs rebuildable by any
+visitor: the page's notice offers **Rebuild**, which reruns the receipt's
+command (one run per receipt at a time, joined by concurrent requests, within
+its timeout; the directory must be inside the repository) while the old page
+stays readable, then reloads into the new build. A stale receipted PDF or
+other non-HTML output, which may open in a viewer that cannot show a notice,
+is rebuilt before it is served; a failed build serves the old file. Without
+`--rebuild` the notice names the command instead.
+
+Without a receipt, an output in a Quarto project's `output-dir` is judged by
+mtime against render inputs chosen by suffix (`.qmd`, `.yml`, `.bib`, `.lua`,
+styles, images; `.md` notes and a kept `.tex` are left out so that they do
+not mark every build stale), and is not rebuildable.
 
 ## Project pages
 

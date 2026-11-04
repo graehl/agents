@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import errno
+import hashlib
 import hmac
 import html
 import importlib.util
@@ -36,8 +37,10 @@ import os
 import posixpath
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from collections import deque
@@ -527,6 +530,8 @@ def path_actions(root_url: str, current: str) -> str:
 # A served page asks for its freshness with this query; the answer is the
 # JSON its `repo-fresh` meta tag carried when served.
 FRESHNESS_QUERY = "repo-view=fresh"
+# POSTed, with header `X-Repo-View: rebuild`, to rebuild a stale output.
+REBUILD_QUERY = "repo-view=rebuild"
 # Files a Quarto project's HTML render reads, by suffix. Prose (`.md`) and
 # LaTeX-only inputs are left out: a project keeps notes and a kept `.tex`
 # beside its sources, and counting them would call every build stale.
@@ -578,12 +583,178 @@ def newest_quarto_input(
     return newest
 
 
-def freshness(repo: Repository, source: str) -> dict:
+@dataclass(frozen=True)
+class Receipt:
+    """A build receipt that describes a served output: the hashed inputs it
+    was built from and the command that rebuilds it (`ya-artifact:v1`)."""
+
+    path: Path
+    home: Path  # directory receipt paths are relative to
+    inputs: tuple[tuple[str, str], ...]  # (path relative to home, sha256)
+    cwd: str
+    argv: tuple[str, ...]
+    timeout: float
+
+
+class Builds:
+    """Finds the receipts behind build outputs, judges their freshness by
+    input hashes, and (with `serve --rebuild`) reruns a stale output's
+    declared command, one run per receipt at a time."""
+
+    def __init__(self, repo: Repository, enabled: bool):
+        self.repo, self.enabled = repo, enabled
+        self._lock = threading.Lock()
+        self._hashes: dict[Path, tuple[tuple[int, int], str]] = {}
+        self._runs: dict[Path, Future] = {}
+
+    def sha256(self, path: Path) -> str | None:
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            return None
+        stamp = (stat.st_mtime_ns, stat.st_size)
+        cached = self._hashes.get(path)
+        if cached and cached[0] == stamp:
+            return cached[1]
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        self._hashes[path] = (stamp, digest)
+        return digest
+
+    def receipt(self, rel: str) -> Receipt | None:
+        """The receipt beside `rel` that lists it as an output and records its
+        current content; None when another build has since replaced it."""
+        target = self.repo.path(rel).resolve()
+        for candidate in sorted(target.parent.glob("*.receipt.json")):
+            try:
+                data = json.loads(candidate.read_text(encoding="utf-8"))
+                command = data["artifact_metadata"]["regenerate"][
+                    "proposedRegistration"
+                ]
+                outputs = {Path(o).resolve() for o in command["outputs"]}
+            except (OSError, ValueError, KeyError, TypeError):
+                continue
+            if target not in outputs:
+                continue
+            home = Path(data["root"]).parent
+            recorded = [
+                data.get(key)
+                for key in ("output", "pdf", "source_map")
+                if isinstance(data.get(key), dict)
+            ]
+            if not any(
+                (home / item["path"]).resolve() == target
+                and item.get("sha256") == self.sha256(target)
+                for item in recorded
+            ):
+                return None
+            return Receipt(
+                candidate,
+                home,
+                tuple((i["path"], i["sha256"]) for i in data["inputs"]),
+                command["cwd"],
+                tuple(command["argv"]),
+                float(command.get("timeoutSeconds", 180)),
+            )
+        return None
+
+    def changed_inputs(self, receipt: Receipt) -> list[tuple[str, int]]:
+        """Inputs whose content differs from the receipt, with mtime in ns
+        (0 when missing), newest first."""
+        changed = []
+        for rel, digest in receipt.inputs:
+            path = receipt.home / rel
+            if self.sha256(path) != digest:
+                mtime = path.stat().st_mtime_ns if path.exists() else 0
+                changed.append((rel, mtime))
+        return sorted(changed, key=lambda item: -item[1])
+
+    def rebuild(self, receipt: Receipt) -> dict:
+        """Run the receipt's command, or join the run already going."""
+        with self._lock:
+            run = self._runs.get(receipt.path)
+            starter = run is None
+            if starter:
+                run = self._runs[receipt.path] = Future()
+        if starter:
+            try:
+                run.set_result(self._run(receipt))
+            except Exception as error:  # reported to every joined requester
+                run.set_result({"ok": False, "log": f"{type(error).__name__}: {error}"})
+            finally:
+                with self._lock:
+                    del self._runs[receipt.path]
+        return run.result()
+
+    def _run(self, receipt: Receipt) -> dict:
+        cwd = Path(receipt.cwd).resolve()
+        if not cwd.is_relative_to(self.repo.root):
+            raise RepoViewError(f"rebuild directory {cwd} is outside the repository")
+        environment = dict(os.environ)
+        # A sandboxed app sees a read-only home; Quarto needs writable data
+        # and cache directories.
+        for name, default in (
+            ("XDG_DATA_HOME", Path.home() / ".local" / "share"),
+            ("XDG_CACHE_HOME", Path.home() / ".cache"),
+        ):
+            if not os.access(environment.get(name, default), os.W_OK):
+                scratch = Path(tempfile.gettempdir()) / "repo-view" / name.lower()
+                scratch.mkdir(parents=True, exist_ok=True)
+                environment[name] = str(scratch)
+        log("rebuild", f"{receipt.path}: {' '.join(receipt.argv)}")
+        process = subprocess.Popen(
+            receipt.argv,
+            cwd=cwd,
+            env=environment,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        try:
+            output, _ = process.communicate(timeout=receipt.timeout)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                output, _ = process.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                output, _ = process.communicate()
+            return {
+                "ok": False,
+                "log": f"timed out after {receipt.timeout:g} s\n" + tail(output),
+            }
+        log("rebuild", f"{receipt.path}: exit {process.returncode}")
+        return {"ok": process.returncode == 0, "log": tail(output)}
+
+
+def tail(output: bytes, limit: int = 4000) -> str:
+    return output[-limit:].decode("utf-8", "replace")
+
+
+def freshness(repo: Repository, builds: Builds, source: str) -> dict:
     """What a page shown from `source` reflects: a `stamp` that changes when
-    the page would, and for a Quarto build output older than one of its
-    inputs, `stale` naming that input."""
+    the page would, and for a build output older than its inputs, `stale`
+    naming the newest changed input. A receipt decides by input hashes and
+    makes the output rebuildable; without one, a Quarto output is judged by
+    input mtimes."""
     stat = repo.path(source).stat()
     stamp = f"{stat.st_mtime_ns}:{stat.st_size}"
+    built = stat.st_mtime_ns // 1_000_000
+    receipt = builds.receipt(source)
+    if receipt:
+        changed = builds.changed_inputs(receipt)
+        stamp += "/" + ",".join(f"{rel}:{mtime}" for rel, mtime in changed)
+        stale = changed and {
+            "project": relative_rel(repo, receipt.home),
+            "input": relative_rel(repo, receipt.home / changed[0][0]),
+            "inputTime": changed[0][1] // 1_000_000,
+            "builtTime": built,
+            "rebuild": builds.enabled,
+            "hint": " ".join(
+                Path(arg).name if arg.startswith("/") else arg for arg in receipt.argv
+            ),
+        }
+        return {"stamp": stamp, "stale": stale or None}
     stale = None
     build = quarto_build(repo, source)
     if build:
@@ -595,9 +766,21 @@ def freshness(repo: Repository, source: str) -> dict:
                     "project": build[0] or ".",
                     "input": newest[0],
                     "inputTime": newest[1] // 1_000_000,
-                    "builtTime": stat.st_mtime_ns // 1_000_000,
+                    "builtTime": built,
+                    "rebuild": False,
+                    "hint": "quarto render",
                 }
     return {"stamp": stamp, "stale": stale}
+
+
+def relative_rel(repo: Repository, path: Path) -> str:
+    """`path` relative to the repository, or as given when outside it."""
+    resolved = path.resolve()
+    return (
+        resolved.relative_to(repo.root).as_posix() or "."
+        if resolved.is_relative_to(repo.root)
+        else str(path)
+    )
 
 
 def freshness_meta(fresh: dict) -> str:
@@ -1075,8 +1258,10 @@ class LiveSite:
         pages: ProjectPages,
         roots: list[str],
         rewalk_after: float = 0.0,
+        rebuild: bool = False,
     ):
         self.repo, self.renderer, self.pages = repo, renderer, pages
+        self.builds = Builds(repo, rebuild)
         self.graph = LinkGraph(repo, pages)
         self.pages.current()  # project pages exist before any request or walk
         self.roots = seed_nodes(self.graph, roots)
@@ -1104,7 +1289,10 @@ class LiveSite:
     def locate(self, rel: str) -> str | None:
         return crumb_locator(self.pages.sections, self.reach.contains)(rel)
 
-    def respond(self, parts: list[str], slash: bool, query: str) -> Reply:
+    def respond(
+        self, parts: list[str], slash: bool, query: str, rebuild: bool = False
+    ) -> Reply:
+        """`rebuild`: a POST asking to rebuild the stale output at `parts`."""
         rel = "/".join(parts)
         # Only a request for a project page regenerates the pages.
         page = self.pages.current().get(rel) if rel in self.pages.latest() else None
@@ -1120,13 +1308,37 @@ class LiveSite:
         if not self.reach.allows(node):
             return NOT_FOUND
         source = self.source(node, kind)
+        if rebuild:
+            return self.rebuild(source)
         if FRESHNESS_QUERY in query.split("&"):
-            fresh = freshness(self.repo, source) if source else None
+            fresh = freshness(self.repo, self.builds, source) if source else None
             return Reply(HTTPStatus.OK, "application/json", json.dumps(fresh).encode())
+        if source and not source.endswith((".html", ".htm")):
+            # An output opened outside a page (a PDF in another viewer) cannot
+            # show a notice, so a stale rebuildable one is rebuilt first.
+            receipt = self.builds.enabled and self.builds.receipt(source)
+            if receipt and self.builds.changed_inputs(receipt):
+                result = self.builds.rebuild(receipt)
+                if not result["ok"]:
+                    log("rebuild", f"{source}: serving the stale output")
         reply = self.page(node, kind)
         if source and reply.kind.startswith("text/html"):
-            reply.fresh = freshness(self.repo, source)
+            reply.fresh = freshness(self.repo, self.builds, source)
         return reply
+
+    def rebuild(self, source: str | None) -> Reply:
+        receipt = self.builds.enabled and source and self.builds.receipt(source)
+        if not receipt:
+            return Reply(
+                HTTPStatus.CONFLICT,
+                body=b"not rebuildable here (needs serve --rebuild and a receipt)\n",
+            )
+        result = (
+            self.builds.rebuild(receipt)
+            if self.builds.changed_inputs(receipt)
+            else {"ok": True, "log": "already current\n"}
+        )
+        return Reply(HTTPStatus.OK, "application/json", json.dumps(result).encode())
 
     def source(self, node: str, kind: str) -> str | None:
         """The repository file a page for `node` shows, if one does."""
@@ -1192,7 +1404,11 @@ class StaticSite:
             json.loads(manifest.read_text(encoding="utf-8"))["pages"]
         )
 
-    def respond(self, parts: list[str], slash: bool, query: str) -> Reply:
+    def respond(
+        self, parts: list[str], slash: bool, query: str, rebuild: bool = False
+    ) -> Reply:
+        if rebuild:
+            return Reply(HTTPStatus.CONFLICT, body=b"a static site does not rebuild\n")
         rel = "/".join(parts)
         path = self.root / rel if rel else self.root
         if path.is_dir():
@@ -1268,7 +1484,20 @@ def make_handler(
         def do_HEAD(self):
             self.do_GET(head=True)
 
-        def do_GET(self, head: bool = False):
+        def do_POST(self):
+            # The custom header makes a cross-origin page's request need a
+            # preflight, which this server never grants.
+            if (
+                REBUILD_QUERY not in urlsplit(self.path).query.split("&")
+                or self.headers.get("X-Repo-View") != "rebuild"
+            ):
+                return self.send(
+                    Reply(HTTPStatus.METHOD_NOT_ALLOWED, body=b"POST only rebuilds\n"),
+                    False,
+                )
+            self.do_GET(rebuild=True)
+
+        def do_GET(self, head: bool = False, rebuild: bool = False):
             split = urlsplit(self.path)
             raw = unquote(split.path)
             if base and (raw == base or raw.startswith(base + "/")):
@@ -1305,7 +1534,7 @@ def make_handler(
             if any(p.startswith(".") for p in parts):
                 return self.send(NOT_FOUND, head)
             try:
-                reply = site.respond(parts, raw.endswith("/"), split.query)
+                reply = site.respond(parts, raw.endswith("/"), split.query, rebuild)
             except RepoViewError as error:
                 log("request", str(error))
                 reply = Reply(
@@ -1624,6 +1853,12 @@ def main(argv: list[str] | None = None) -> int:
         help="seconds an unlinked-path 404 reuses the last link walk instead of walking again",
     )
     serve.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="let any visitor rerun a stale build output's receipt-declared command "
+        "(the page's Rebuild button; a stale PDF is rebuilt before it is served)",
+    )
+    serve.add_argument(
         "--static",
         action="store_true",
         help="serve the built --site as a whole instead",
@@ -1714,7 +1949,9 @@ def main(argv: list[str] | None = None) -> int:
             renderer = Renderer(repo, require_pandoc=False)
             if not renderer.pandoc:
                 log("serve", "pandoc not found; documents will show as source text")
-            served = LiveSite(repo, renderer, pages, args.root or [], args.rewalk_after)
+            served = LiveSite(
+                repo, renderer, pages, args.root or [], args.rewalk_after, args.rebuild
+            )
             threading.Thread(target=served.warm, daemon=True).start()
         handler = make_handler(
             served, args.base_path.rstrip("/"), access, args.require_access

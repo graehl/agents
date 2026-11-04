@@ -168,6 +168,13 @@ It renders an isolated sibling copy of the document directory with
 - `<name>.receipt.json` (input/output hashes, Quarto version) and
   `<name>.render.log`.
 
+The receipt and regenerate descriptor are the general convention for a
+rebuildable static output: the project browser judges staleness by the
+receipt's input hashes and, under `serve --rebuild`, reruns the command for a
+stale HTML page on request and for a stale PDF before serving it
+(`project-templates/bases/repo-view/guide.md` § Freshness and rebuilds).
+Another builder of static output adopts it by writing the same receipt.
+
 A fragment edited during the render, an unresolved include, or a missing
 `must-contain` string fails the build. `quarto-version` pins the renderer;
 `inputs` adds hashed assets such as CSS or include-after-body files; `hook`

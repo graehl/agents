@@ -434,6 +434,77 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(later["stale"]["input"], "paper/index.qmd")
         self.assertEqual(later["stale"]["project"], "paper")
 
+    def test_receipted_output_rebuilds_on_request_and_a_stale_pdf_before_serving(
+        self,
+    ) -> None:
+        # A builder in the qmd-html shape: outputs plus a receipt carrying input
+        # hashes and the `ya-artifact:v1` regenerate descriptor.
+        self.write(
+            "doc/build.py",
+            "import hashlib, json, pathlib, sys\n"
+            "home = pathlib.Path(__file__).parent\n"
+            "text = (home / 'in.qmd').read_text()\n"
+            "out = home / '_build'\n"
+            "out.mkdir(exist_ok=True)\n"
+            "(out / 'in.html').write_text(f'<html><head></head><body>{text}</body></html>')\n"
+            "(out / 'in.pdf').write_text('pdf ' + text)\n"
+            "ident = lambda p: {'path': str(p.relative_to(home)),\n"
+            "    'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}\n"
+            "command = {'cwd': str(home), 'argv': [sys.executable, str(home / 'build.py')],\n"
+            "    'outputs': [str(out / n) for n in ('in.html', 'in.pdf', 'in.receipt.json')],\n"
+            "    'timeoutSeconds': 30}\n"
+            "receipt = {'root': str(home / 'in.qmd'), 'inputs': [ident(home / 'in.qmd')],\n"
+            "    'output': ident(out / 'in.html'), 'pdf': ident(out / 'in.pdf'),\n"
+            "    'artifact_metadata': {'regenerate': {'proposedRegistration': command}}}\n"
+            "(out / 'in.receipt.json').write_text(json.dumps(receipt))\n",
+        )
+        self.write("doc/in.qmd", "first")
+        self.write("README.md", "[html](doc/_build/in.html) [pdf](doc/_build/in.pdf)\n")
+        build = [sys.executable, str(self.repo / "doc/build.py")]
+        subprocess.run(build, check=True)
+        base = self.serve("--rebuild")
+        url = base + "/doc/_build/in.html"
+
+        def fresh() -> dict:
+            return json.loads(self.get(url + "?repo-view=fresh")[2])
+
+        def post(target: str) -> tuple[int, str]:
+            request = urllib.request.Request(
+                target + "?repo-view=rebuild",
+                method="POST",
+                headers={"X-Repo-View": "rebuild"},
+            )
+            try:
+                with OPENER.open(request, timeout=30) as reply:
+                    return reply.status, reply.read().decode()
+            except urllib.error.HTTPError as error:
+                with error:
+                    return error.code, error.read().decode()
+
+        self.assertIsNone(fresh()["stale"])
+        self.write("doc/in.qmd", "second")
+        stale = fresh()["stale"]
+        self.assertEqual(stale["input"], "doc/in.qmd")
+        self.assertTrue(stale["rebuild"])
+        status, body = post(url)
+        self.assertEqual(status, 200, body)
+        self.assertTrue(json.loads(body)["ok"])
+        self.assertIsNone(fresh()["stale"])
+        self.assertIn("second", self.get(url)[2])
+        # A stale PDF opened on its own is rebuilt before it is served.
+        self.write("doc/in.qmd", "third")
+        self.assertEqual(self.get(base + "/doc/_build/in.pdf")[2], "pdf third")
+        # Without --rebuild nothing runs.
+        self.write("doc/in.qmd", "fourth")
+        other = self.serve()
+        self.assertFalse(
+            json.loads(self.get(other + "/doc/_build/in.html?repo-view=fresh")[2])[
+                "stale"
+            ]["rebuild"]
+        )
+        self.assertEqual(post(other + "/doc/_build/in.html")[0], 409)
+        self.assertEqual(self.get(other + "/doc/_build/in.pdf")[2], "pdf third")
+
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_breadcrumbs_open_the_project_page_section_showing_a_directory(
         self,

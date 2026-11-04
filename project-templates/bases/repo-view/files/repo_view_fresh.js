@@ -33,7 +33,8 @@
 			});
 		let notice = null;
 		let dismissed = "";
-		const show = (key, parts, reload) => {
+		// `action`: the notice's button, `{ label, run(button, text) }`, if any.
+		const show = (key, parts, action) => {
 			if (key === dismissed) return;
 			notice?.remove();
 			notice = document.createElement("div");
@@ -49,11 +50,11 @@
 				}
 			}
 			notice.append(text);
-			if (reload) {
+			if (action) {
 				const button = document.createElement("button");
 				button.type = "button";
-				button.textContent = "Reload";
-				button.onclick = () => location.reload();
+				button.textContent = action.label;
+				button.onclick = () => action.run(button, text);
 				notice.append(button);
 			}
 			const close = document.createElement("button");
@@ -69,6 +70,41 @@
 			notice.append(close);
 			document.body.append(notice);
 		};
+		const reload = { label: "Reload", run: () => location.reload() };
+		// Rebuilds while this page stays readable, then reloads into the new
+		// build; the browser keeps the old page painted until the new one is.
+		const rebuild = {
+			label: "Rebuild",
+			run: async (button, text) => {
+				button.disabled = true;
+				button.textContent = "Rebuilding...";
+				let result;
+				try {
+					const url = new URL(location.href);
+					url.hash = "";
+					url.searchParams.set("repo-view", "rebuild");
+					const response = await fetch(url, {
+						method: "POST",
+						headers: { "X-Repo-View": "rebuild" },
+					});
+					result = response.ok
+						? await response.json()
+						: { ok: false, log: await response.text() };
+				} catch (error) {
+					result = { ok: false, log: String(error) };
+				}
+				if (result.ok) {
+					location.reload();
+					return;
+				}
+				button.disabled = false;
+				button.textContent = "Rebuild";
+				text.textContent =
+					"Rebuild failed; the page still shows the old build.";
+				text.title = result.log;
+				console.warn("repo-view rebuild failed:\n" + result.log);
+			},
+		};
 		const staleParts = (stale) => [
 			`Built ${time(stale.builtTime)}; `,
 			{
@@ -77,13 +113,20 @@
 						? stale.input
 						: stale.input.slice(stale.project.length + 1),
 			},
-			` changed ${time(stale.inputTime)}. Rebuild with `,
-			{ code: "quarto render" },
-			` in `,
-			{ code: stale.project },
-			".",
+			` changed ${time(stale.inputTime)}.`,
+			...(stale.rebuild
+				? []
+				: [
+						" Rebuild with ",
+						{ code: stale.hint },
+						" in ",
+						{ code: stale.project },
+						".",
+					]),
 		];
-		if (loaded.stale) show(`stale:${loaded.stamp}`, staleParts(loaded.stale));
+		const showStale = (key, stale) =>
+			show(key, staleParts(stale), stale.rebuild ? rebuild : null);
+		if (loaded.stale) showStale(`stale:${loaded.stamp}`, loaded.stale);
 		let checking = false;
 		let lastCheck = 0;
 		const check = async () => {
@@ -106,9 +149,9 @@
 					show(
 						`changed:${now.stamp}`,
 						["This page changed on disk since it loaded."],
-						true,
+						reload,
 					);
-				else if (now.stale) show(`stale:${now.stamp}`, staleParts(now.stale));
+				else if (now.stale) showStale(`stale:${now.stamp}`, now.stale);
 			} catch {
 				// Offline or the server is restarting: the next return checks again.
 			} finally {
