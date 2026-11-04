@@ -136,6 +136,18 @@
 				if (quote)
 					action("Comment on selection", () => comment(current, quote));
 			}
+			if (element.closest("[data-repo-actions]")) {
+				// The breadcrumb row's menu acts on the page itself. Its address keeps
+				// a private link's token, which is what lets the copy open this view.
+				action("Copy link to this page", () => {
+					void copy(location.href);
+				});
+				if (window.parent !== window)
+					action("Open page in new tab", () =>
+						window.open(location.href, "_blank", "noopener"),
+					);
+				action("Reload page", () => location.reload());
+			}
 			const link = element.closest("a[href]");
 			if (link) {
 				action("Copy link address", () => {
