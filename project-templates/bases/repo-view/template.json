@@ -22,6 +22,10 @@
 		{
 			"to": "scripts/repo_view_actions.css",
 			"from": "files/repo_view_actions.css"
+		},
+		{
+			"to": "scripts/repo_view_fresh.js",
+			"from": "files/repo_view_fresh.js"
 		}
 	],
 	"overrides": []

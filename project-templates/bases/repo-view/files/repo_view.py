@@ -59,6 +59,7 @@ DOCUMENT_FORMATS = {".md": "gfm", ".markdown": "gfm", ".qmd": "markdown"}
 TABLE_NOTES_FILTER = Path(__file__).with_name("table_notes.lua")
 PATH_ACTIONS_SCRIPT = Path(__file__).with_name("repo_view_actions.js").read_text()
 PATH_ACTIONS_STYLE = Path(__file__).with_name("repo_view_actions.css").read_text()
+FRESH_SCRIPT = Path(__file__).with_name("repo_view_fresh.js").read_text()
 LINKING_SUFFIXES = {".html", ".htm", ".css", *DOCUMENT_FORMATS}
 PLAIN_TEXT_SUFFIXES = {
     ".bib", ".cfg", ".csv", ".ini", ".ipynb", ".jsonl", ".log", ".lua", ".py",
@@ -523,6 +524,89 @@ def path_actions(root_url: str, current: str) -> str:
     )
 
 
+# A served page asks for its freshness with this query; the answer is the
+# JSON its `repo-fresh` meta tag carried when served.
+FRESHNESS_QUERY = "repo-view=fresh"
+# Files a Quarto project's HTML render reads, by suffix. Prose (`.md`) and
+# LaTeX-only inputs are left out: a project keeps notes and a kept `.tex`
+# beside its sources, and counting them would call every build stale.
+QUARTO_INPUT_SUFFIXES = frozenset(
+    ".qmd .ipynb .yml .yaml .bib .csl .lua .css .scss .svg .png .jpg .jpeg .gif .webp".split()
+)
+QUARTO_OUTPUT_DIR = re.compile(
+    r"""^[ \t]+output-dir:[ \t]*["']?([^"'\s#]+)""", re.MULTILINE
+)
+
+
+def quarto_build(repo: Repository, rel: str) -> tuple[str, str] | None:
+    """The Quarto project directory and output directory holding `rel`, when
+    `rel` is in the output directory of the nearest enclosing `_quarto.yml`."""
+    project = parent_rel(rel)
+    while True:
+        config = repo.path(join_rel(project, "_quarto.yml"))
+        if config.is_file():
+            match = QUARTO_OUTPUT_DIR.search(config.read_text(encoding="utf-8"))
+            if not match:
+                return None
+            output = posixpath.normpath(join_rel(project, match.group(1)))
+            return (project, output) if rel.startswith(output + "/") else None
+        if not project:
+            return None
+        project = parent_rel(project)
+
+
+def newest_quarto_input(
+    repo: Repository, project: str, output: str
+) -> tuple[str, int] | None:
+    """The most recently modified render input of a Quarto project, and its
+    mtime in ns. Hidden directories and the output directory are skipped."""
+    root = repo.path(project)
+    skip = repo.path(output)
+    newest: tuple[str, int] | None = None
+    for directory, dirs, files in os.walk(root):
+        here = Path(directory)
+        dirs[:] = [d for d in dirs if not d.startswith(".") and here / d != skip]
+        for name in files:
+            if Path(name).suffix.lower() not in QUARTO_INPUT_SUFFIXES:
+                continue
+            mtime = (here / name).stat().st_mtime_ns
+            if newest is None or mtime > newest[1]:
+                newest = (
+                    join_rel(project, (here / name).relative_to(root).as_posix()),
+                    mtime,
+                )
+    return newest
+
+
+def freshness(repo: Repository, source: str) -> dict:
+    """What a page shown from `source` reflects: a `stamp` that changes when
+    the page would, and for a Quarto build output older than one of its
+    inputs, `stale` naming that input."""
+    stat = repo.path(source).stat()
+    stamp = f"{stat.st_mtime_ns}:{stat.st_size}"
+    stale = None
+    build = quarto_build(repo, source)
+    if build:
+        newest = newest_quarto_input(repo, *build)
+        if newest:
+            stamp += f"/{newest[0]}:{newest[1]}"
+            if newest[1] > stat.st_mtime_ns:
+                stale = {
+                    "project": build[0] or ".",
+                    "input": newest[0],
+                    "inputTime": newest[1] // 1_000_000,
+                    "builtTime": stat.st_mtime_ns // 1_000_000,
+                }
+    return {"stamp": stamp, "stale": stale}
+
+
+def freshness_meta(fresh: dict) -> str:
+    return (
+        f'<meta name="repo-fresh" content="{html.escape(json.dumps(fresh))}">'
+        f"<script>{FRESH_SCRIPT}</script>"
+    )
+
+
 def outline(body: str) -> str:
     """A contents sidebar from a long document's section headings."""
     sections = SECTION_HEADING.findall(body)
@@ -585,23 +669,24 @@ def listing_page(
     return compose_page(repo.name, rel, None, title, table, locate, footer)
 
 
-def with_access_keeper(page: str, token: str | None, actions: str = "") -> str:
+def with_access_keeper(page: str, token: str | None, extra: str = "") -> str:
     """Insert the address-bar token keeper (and a server-checked token), and
-    `actions` (a missing `path_actions`), into a served page's head."""
+    `extra` head content (freshness, a missing `path_actions`), into a served
+    page's head."""
     meta = f'<meta name="ya-access" content="{html.escape(token)}">\n' if token else ""
-    insert = meta + ACCESS_KEEPER + "\n" + FRAME_REPORTER + "\n" + actions
+    insert = meta + ACCESS_KEEPER + "\n" + FRAME_REPORTER + "\n" + extra
     head = re.search(r"</head\s*>", page, re.IGNORECASE)
     return (
         page[: head.start()] + insert + page[head.start() :] if head else insert + page
     )
 
 
-def with_frame_reporter(page: bytes, crumbs: str | None, actions: str = "") -> bytes:
-    """Insert the frame location reporter, `actions` (a missing `path_actions`),
-    and `crumbs` as a breadcrumb row opening the body, into a repository HTML
-    file whatever its (ASCII-compatible) encoding. A file without a <body> tag
-    gets no row."""
-    insert = (FRAME_REPORTER + "\n" + actions).encode("ascii", "xmlcharrefreplace")
+def with_frame_reporter(page: bytes, crumbs: str | None, extra: str = "") -> bytes:
+    """Insert the frame location reporter, `extra` head content (freshness, a
+    missing `path_actions`), and `crumbs` as a breadcrumb row opening the body,
+    into a repository HTML file whatever its (ASCII-compatible) encoding. A
+    file without a <body> tag gets no row."""
+    insert = (FRAME_REPORTER + "\n" + extra).encode("ascii", "xmlcharrefreplace")
     body = re.search(rb"<body\b[^>]*>", page, re.IGNORECASE)
     if crumbs is not None and body:
         row = f'<nav id="repo-view-crumbs" aria-label="Location">{crumbs}</nav>'.encode(
@@ -946,6 +1031,7 @@ class Reply:
     location: str | None = None
     page: bool = False  # generated by this tool: gets the access-link keeper
     crumbs: str | None = None  # breadcrumbs for a repository HTML file
+    fresh: dict | None = None  # `freshness` of the file an HTML page shows
 
 
 NOT_FOUND = Reply(HTTPStatus.NOT_FOUND, body=b"not found\n")
@@ -1033,6 +1119,23 @@ class LiveSite:
             return slash_redirect(parts, query)
         if not self.reach.allows(node):
             return NOT_FOUND
+        source = self.source(node, kind)
+        if FRESHNESS_QUERY in query.split("&"):
+            fresh = freshness(self.repo, source) if source else None
+            return Reply(HTTPStatus.OK, "application/json", json.dumps(fresh).encode())
+        reply = self.page(node, kind)
+        if source and reply.kind.startswith("text/html"):
+            reply.fresh = freshness(self.repo, source)
+        return reply
+
+    def source(self, node: str, kind: str) -> str | None:
+        """The repository file a page for `node` shows, if one does."""
+        if kind != "dir":
+            return node
+        document = self.graph.directory_document(node)
+        return document.rel if document.kind in ("index", "readme") else None
+
+    def page(self, node: str, kind: str) -> Reply:
         self.reach.admit_links_of(node, self.graph.links(node))
         if kind == "dir":
             return self.directory(node)
@@ -1209,17 +1312,20 @@ def make_handler(
                     HTTPStatus.INTERNAL_SERVER_ERROR, body=f"{error}\n".encode()
                 )
             actions = path_actions((base or "") + "/", "/".join(parts))
+            fresh = freshness_meta(reply.fresh) if reply.fresh else ""
             if reply.page:
                 page = reply.body.decode("utf-8")
                 page = with_access_keeper(
-                    page, token, "" if PATH_ACTIONS_MARKER in page else actions
+                    page,
+                    token,
+                    fresh + ("" if PATH_ACTIONS_MARKER in page else actions),
                 )
                 reply = Reply(reply.status, reply.kind, page.encode("utf-8"))
             elif reply.file and reply.kind.startswith("text/html"):
                 body = reply.file.read_bytes()
                 has_actions = PATH_ACTIONS_MARKER.encode("ascii") in body
                 body = with_frame_reporter(
-                    body, reply.crumbs, "" if has_actions else actions
+                    body, reply.crumbs, fresh + ("" if has_actions else actions)
                 )
                 reply = Reply(reply.status, reply.kind, body)
             return self.send(reply, head, cookie)

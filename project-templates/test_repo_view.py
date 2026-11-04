@@ -62,7 +62,11 @@ class RepoViewTest(unittest.TestCase):
             SOURCE.with_name("table_notes.lua"),
             self.script.with_name("table_notes.lua"),
         )
-        for name in ("repo_view_actions.js", "repo_view_actions.css"):
+        for name in (
+            "repo_view_actions.js",
+            "repo_view_actions.css",
+            "repo_view_fresh.js",
+        ):
             shutil.copy2(SOURCE.with_name(name), self.script.with_name(name))
         self.git("init", "-q")
         self.git("add", ".")
@@ -399,6 +403,36 @@ class RepoViewTest(unittest.TestCase):
         self.assertIn('<meta name="repo-path" content="papers/p/paper.html">', page)
         self.assertIn("data-repo-actions", page)
         self.assertIn("repo-path-menu", page)
+
+    def test_quarto_build_older_than_an_input_is_reported_stale(self) -> None:
+        self.write("README.md", "# Demo\n[paper](paper/_build/index.html)\n")
+        self.write("paper/_quarto.yml", "project:\n  output-dir: _build\n")
+        self.write("paper/index.qmd", "# P\n")
+        self.write("paper/NOTES.md", "not a render input\n")
+        self.write(
+            "paper/_build/index.html", "<html><head></head><body>P</body></html>"
+        )
+        build = self.repo / "paper/_build/index.html"
+        os.utime(build, ns=(2_000_000_000_000_000_000,) * 2)
+        os.utime(self.repo / "paper/index.qmd", ns=(1_000_000_000_000_000_000,) * 2)
+        os.utime(self.repo / "paper/NOTES.md", ns=(3_000_000_000_000_000_000,) * 2)
+        base = self.serve()
+        url = base + "/paper/_build/index.html"
+
+        def fresh() -> dict:
+            status, _, body = self.get(url + "?repo-view=fresh")
+            self.assertEqual(status, 200)
+            return json.loads(body)
+
+        first = fresh()
+        self.assertIsNone(first["stale"])  # NOTES.md is not a render input
+        _, _, page = self.get(url)
+        self.assertIn('<meta name="repo-fresh"', page)
+        os.utime(self.repo / "paper/index.qmd", ns=(3_000_000_000_000_000_000,) * 2)
+        later = fresh()
+        self.assertNotEqual(later["stamp"], first["stamp"])
+        self.assertEqual(later["stale"]["input"], "paper/index.qmd")
+        self.assertEqual(later["stale"]["project"], "paper")
 
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_breadcrumbs_open_the_project_page_section_showing_a_directory(

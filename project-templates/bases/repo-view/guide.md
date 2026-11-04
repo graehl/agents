@@ -128,6 +128,21 @@ message. Standalone tabs and older YA clients keep copy actions without an
 unroutable comment control. Remembering another destination session or opening
 an inline forwarding composer is deferred design work.
 
+The breadcrumb overflow menu also acts on the page itself: copy its link
+(keeping a private link's token), open it in a new tab when framed, reload.
+
+## Freshness
+
+A live-served page records what it shows: the file behind it and, for a file
+in a Quarto project's `output-dir`, the newest render input. When the reader
+returns to the page (it becomes visible, gains focus, or the pointer enters
+it), the page asks again with `?repo-view=fresh` and shows a notice when the
+file changed on disk (with Reload) or when the build is older than an input.
+It never checks on a timer. Render inputs are judged by suffix (`.qmd`,
+`.yml`, `.bib`, `.lua`, styles, images); `.md` notes and a kept `.tex` are
+left out so that they do not mark every build stale. A static site carries no
+freshness.
+
 ## Project pages
 
 `--pages FILE:FUNCTION` adds generated pages such as dashboards. The function
