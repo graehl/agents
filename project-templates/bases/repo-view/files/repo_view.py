@@ -1263,7 +1263,9 @@ class LiveSite:
         self.repo, self.renderer, self.pages = repo, renderer, pages
         self.builds = Builds(repo, rebuild)
         self.graph = LinkGraph(repo, pages)
-        self.pages.current()  # project pages exist before any request or walk
+        # Project pages are first made by `warm`, off the startup path: a slow
+        # generator must not hold the readiness probe (YA gives up after its
+        # startup timeout). A request meanwhile waits for them in `respond`.
         self.roots = seed_nodes(self.graph, roots)
         self.reach = Reachability(
             self.graph,
@@ -1272,7 +1274,12 @@ class LiveSite:
         )
 
     def warm(self) -> None:
-        """Admit entry-page links without crawling the repository at startup."""
+        """Make the project pages, then admit entry-page links, without
+        crawling the repository; runs beside the server at startup."""
+        try:
+            self.pages.current()
+        except Exception as error:  # noqa: BLE001 -- the first request retries and reports it
+            log("pages", f"first generation failed; requests will retry: {error!r}")
         try:
             seeds = ["", *self.pages.latest(), *self.roots]
             for rel in seeds:
@@ -1294,6 +1301,8 @@ class LiveSite:
     ) -> Reply:
         """`rebuild`: a POST asking to rebuild the stale output at `parts`."""
         rel = "/".join(parts)
+        if self.pages.made is None:
+            self.pages.current()  # wait for the first pages `warm` is making
         # Only a request for a project page regenerates the pages.
         page = self.pages.current().get(rel) if rel in self.pages.latest() else None
         if page is not None:
