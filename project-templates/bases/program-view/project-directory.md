@@ -56,3 +56,11 @@ label: a move or a later typo fix does not change a report's publication date.
 The program browser's **Newest** order and age cutoff use activity instead:
 last commit time, or modification time for uncommitted and private files.
 Programs inherit their descendants' newest activity. **A–Z** sorts by name.
+
+## Sessions
+
+The dashboard joins programs to registered sessions by scope. It reads
+`.agentctl/active/`, `.agentctl/done/` and `.agentctl/stale/`, keeping the newest
+record per session and including completed work. Sessions share the default
+seven-day age cutoff; older records remain expandable. Unfinished registered
+work does not establish that a process is running.

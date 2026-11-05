@@ -8,8 +8,8 @@ program is declared by one. Each program shows what the `project-directory`
 conventions place in its directory: charter, glossary, `ROOT.md` focus,
 handoffs, topics, gaps and sketches, and optionally papers, field surveys,
 handouts and other documents, with the last commit (its `Contributing-model:`
-trailers and the agentctl session note), uncommitted files, and live agent
-sessions whose `.agentctl/active` scope lies inside it.
+trailers and the agentctl session note), uncommitted files, and registered
+agent sessions whose scope lies inside it, including completed work.
 
 Optional sections appear only when the repository holds their files; an
 optional `.project-template/program-view.json` may set `"title"` and turn
@@ -309,29 +309,44 @@ class Project:
 
 
 def live_sessions(root: Path) -> list[dict[str, object]]:
+    return [
+        s
+        for s in session_records(root)
+        if s["status"] == "Unfinished" and time.time() - s["updated"] <= ACTIVE_WINDOW_S
+    ]
+
+
+def session_records(root: Path) -> list[dict[str, object]]:
+    """Latest registered status per session, including archived work."""
+    latest = {}
+    for directory in ("done", "stale", "active"):
+        for entry in (root / ".agentctl" / directory).glob("*"):
+            if not entry.is_file():
+                continue
+            try:
+                updated = entry.stat().st_mtime
+                lines = entry.read_text(encoding="utf-8").splitlines()
+            except FileNotFoundError:
+                continue  # A concurrent agentctl sweep can move the record.
+            if lines and (entry.name not in latest or updated >= latest[entry.name][0]):
+                latest[entry.name] = (updated, lines)
     sessions = []
     now = time.time()
-    for entry in sorted((root / ".agentctl" / "active").glob("*")):
-        if not entry.is_file():
-            continue
-        age = now - entry.stat().st_mtime
-        lines = entry.read_text(encoding="utf-8").splitlines()
-        if not lines or age > ACTIVE_WINDOW_S or lines[0].startswith("DONE"):
-            continue
-        scope = (
-            lines[1].removeprefix("scope:").split()
-            if len(lines) > 1 and lines[1].startswith("scope:")
-            else []
+    for identifier, (updated, lines) in latest.items():
+        scope = next(
+            (line[6:].split() for line in lines[1:] if line.startswith("scope:")), []
         )
         sessions.append(
             {
-                "id": entry.name,
+                "id": identifier,
                 "banner": lines[0],
                 "scope": scope,
-                "age_min": round(age / 60),
+                "updated": updated,
+                "status": "Done" if lines[0].startswith("DONE") else "Unfinished",
+                "age_min": round((now - updated) / 60),
             }
         )
-    return sessions
+    return sorted(sessions, key=lambda s: (-s["updated"], s["id"]))
 
 
 def touches(session: dict[str, object], rel: str) -> bool:
@@ -471,12 +486,29 @@ def commit_cell(commit: dict[str, str], uncommitted: int) -> str:
 
 
 def sessions_cell(sessions: list) -> str:
-    return (
-        "<br>".join(
-            f'{session_id(s["id"])} {esc(s["banner"])} <span class="dim">({s["age_min"]} min ago)</span>'
-            for s in sessions
+    cutoff = time.time() - 7 * 86400
+    recent, older = [], []
+    for s in sessions:
+        date = datetime.fromtimestamp(s["updated"], timezone.utc).strftime(
+            "%Y-%m-%d %H:%M UTC"
         )
-        or '<span class="dim">none</span>'
+        item = (
+            f'<li data-session-activity="{s["updated"] * 1000}">'
+            f"{session_id(s['id'])} <strong>{s['status']}</strong> · {esc(s['banner'])} "
+            f'<span class="dim">({date})</span></li>'
+        )
+        (recent if s["updated"] >= cutoff else older).append(item)
+    return (
+        '<div class="session-list"><ul>'
+        + "".join(recent)
+        + "</ul>"
+        + ('<p class="dim">No sessions in this period.</p>' if not recent else "")
+        + (
+            f'<details class="more"><summary>{len(older)} older sessions</summary><ul>{"".join(older)}</ul></details>'
+            if older
+            else ""
+        )
+        + "</div>"
     )
 
 
@@ -535,7 +567,7 @@ class Dashboard:
         self.root = project.root
         self.generated = time.strftime("%Y-%m-%d %H:%M %Z")
         self.sessions = (
-            live_sessions(project.root) if project.enabled("sessions") else []
+            session_records(project.root) if project.enabled("sessions") else []
         )
         self.programs = build_programs(project)
         self.pages: dict[Path, str] = {}
@@ -773,7 +805,7 @@ class Dashboard:
                 f'<td data-label="Built">{outputs}</td><td data-label="Changelog">{esc(p["changelog"])}</td>'
                 f'<td data-label="Last change">{commit_cell(p["commit"], p["uncommitted"])}</td>'
                 f'<td class="num" data-label="Open TBDs">{p["tbd"]}</td>'
-                f'<td data-label="Live sessions">{sessions_cell(p["sessions"])}</td></tr>'
+                f'<td data-label="Recent sessions">{sessions_cell(p["sessions"])}</td></tr>'
             )
         survey_items = "".join(
             "<li>"
@@ -797,7 +829,7 @@ class Dashboard:
         )
         body = (
             '<table class="dash"><thead><tr><th>Paper</th><th>Built outputs</th><th>Latest changelog entry</th>'
-            f"<th>Last change</th><th>Open TBDs</th><th>Live sessions on it</th></tr></thead><tbody>{''.join(rows)}"
+            f"<th>Last change</th><th>Open TBDs</th><th>Recent sessions on it</th></tr></thead><tbody>{''.join(rows)}"
             "</tbody></table>"
             + (f"<h2>Field surveys</h2><ul>{survey_items}</ul>" if surveys else "")
         )
@@ -917,7 +949,7 @@ class Dashboard:
             [plural(len(r["sketches"]), "sketch", "sketches")] if r["sketches"] else []
         )
         live = (
-            f'<span class="chip live">● {plural(len(r["sessions"]), "live session")}</span>'
+            f'<span class="chip">{plural(len(r["sessions"]), "session")}</span>'
             if r["sessions"]
             else ""
         )
@@ -936,7 +968,7 @@ class Dashboard:
                 ("Newest handoff", link(page, r["handoffs"][0], r["handoffs"][0].name))
             )
         blocks += (
-            [("Live sessions", sessions_cell(r["sessions"]))] if r["sessions"] else []
+            [("Recent sessions", sessions_cell(r["sessions"]))] if r["sessions"] else []
         )
         lists = []
         if r["papers"]:
@@ -1110,7 +1142,7 @@ class Dashboard:
         def outline(r: dict) -> str:
             kids = "".join(outline(c) for c in children.get(r["program"].rel, []))
             live = (
-                ' <span class="live" title="live sessions">●</span>'
+                ' <span class="dim" title="registered sessions">●</span>'
                 if r["sessions"]
                 else ""
             )
@@ -1128,13 +1160,8 @@ class Dashboard:
             if focused
             else ""
         )
-        session_items = "".join(
-            f'<li>{session_id(str(s["id"]))} {esc(s["banner"])} <span class="dim">({s["age_min"]} min ago;'
-            f" scope: {esc(' '.join(s['scope']) or 'none')})</span></li>"
-            for s in self.sessions
-        )
         extra_nav = (
-            '<li><a href="#sessions">Live sessions</a></li>'
+            '<li><a href="#sessions">Recent sessions</a></li>'
             if self.project.enabled("sessions")
             else ""
         )
@@ -1146,7 +1173,12 @@ class Dashboard:
             + "</div>"
         )
         if self.project.enabled("sessions"):
-            main += f'<h2 id="sessions">All live sessions in this checkout</h2><ul>{session_items or "<li>none</li>"}</ul>'
+            main += (
+                '<h2 id="sessions">Recent sessions</h2>'
+                '<p class="dim">Registered work, including done sessions. Uses the age cutoff above; '
+                "unfinished does not necessarily mean running.</p>"
+                + sessions_cell(self.sessions)
+            )
         sidebar = (
             '<nav class="outline" id="program-toc" aria-label="Programs">'
             '<a class="mobile-controls-link" href="#browser-controls">Controls ↑</a><details open><summary>Programs</summary>'

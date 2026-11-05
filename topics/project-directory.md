@@ -78,4 +78,8 @@ every Markdown document renders at its own path and a directory without an
 `gaps/sketches/` are browsable as soon as a dashboard or document links them.
 The program dashboard joins each program to its last commit (with
 `Contributing-model:` trailers and the agentctl session note), uncommitted
-files, and live sessions whose `.agentctl/active` scope lies inside it.
+files, and registered sessions whose scope lies inside it. Session records
+come from `.agentctl/active/`, `.agentctl/done/` and `.agentctl/stale/`, including
+completed work. The newest record per session wins. The default seven-day age
+cutoff also applies to sessions; older records remain expandable. Registered
+unfinished work does not establish that a process is running.

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import re
 import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -200,6 +202,33 @@ class ProgramViewTest(unittest.TestCase):
         self.assertIn(
             'href="papers/big/index.qmd"', pages["research/mt/papers-index.html"]
         )
+
+    def test_sessions_include_done_archives_and_keep_latest_status(self) -> None:
+        now = time.time()
+        for directory, identifier, banner, days in (
+            ("active", "current", "Working", 0),
+            ("active", "finished", "DONE: Finished today", 0),
+            ("done", "archived", "DONE: Finished six days ago", 6),
+            ("stale", "quiet", "Quiet work", 3),
+            ("done", "old", "DONE: Earlier work", 8),
+            ("done", "current", "DONE: Previous task", 2),
+        ):
+            path = self.repo / ".agentctl" / directory / identifier
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(banner + "\ntending: on-deck\nscope: research/mt\n")
+            os.utime(path, (now - days * 86400, now - days * 86400))
+        index = program_view.pages(self.repo)["index.html"]
+        self.assertIn('id="sessions">Recent sessions', index)
+        self.assertIn('value="7d"', index)
+        self.assertIn("Finished six days ago", index)
+        self.assertIn("Finished today", index)
+        self.assertIn("Quiet work", index)
+        self.assertNotIn("Previous task", index)
+        self.assertIn("<summary>1 older sessions</summary>", index)
+        self.assertIn("Earlier work", index)
+        records = self.records()["research/mt"]["sessions"]
+        self.assertEqual(len(records), 5)
+        self.assertEqual(records[0]["status"], "Unfinished")
 
     def test_config_turns_sections_off_and_rejects_unknown_ones(self) -> None:
         config = self.repo / ".project-template" / "program-view.json"

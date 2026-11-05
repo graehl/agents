@@ -27,8 +27,8 @@ Per program: the charter's title and first paragraph, the focus heading of
 its `ROOT.md`, and links to its charter, glossary, papers page, paper
 proposals, newest handout, report, topics, gaps and sketches. Beside the
 description sit its last commit (with `Contributing-model:` trailers and the
-agentctl session that made it), uncommitted files, newest handoff, and live
-agent sessions whose `.agentctl/active` scope lies inside it. Below, a
+agentctl session that made it), uncommitted files, newest handoff, and recent
+agent sessions whose registered scope lies inside it. Below, a
 full-width row of expandable lists shows:
 - papers, linked to their built HTML when available, otherwise their source;
 - field surveys, including those without a program charter;
@@ -53,6 +53,13 @@ items** opens older content and every "N more" list; **Reapply age cutoff**
 restores the selected age and kind settings. All documents remain searchable
 and expandable, including those beyond the initial preview limit.
 
+**Recent sessions** includes Done and Unfinished work from `.agentctl/active/`,
+`.agentctl/done/` and `.agentctl/stale/`, newest update first. A session's latest
+record wins when it occurs in several directories. Sessions use the same age
+cutoff as documents, with older records behind an expandable fold; the papers
+page uses the seven-day default. These are registered work statuses, not a
+query of running processes or YA sessions.
+
 Search filters program names, paths, document titles and kinds as you type,
 including collapsed content. Matching files expand temporarily; clearing
 search restores the age and kind settings. `/` focuses search and `Esc`
@@ -70,12 +77,12 @@ shallowest `ROOT.md` focus heads the page as the project's current focus.
 
 The papers page lists each `papers/<slug>/index.qmd` project below the
 program: built outputs, latest `CHANGELOG.md` entry, last commit, open
-`` `TBD` `` count in its section fragments, and live sessions; then the field
+`` `TBD` `` count in its section fragments, and recent sessions; then the field
 surveys below the program with their manifest sizes.
 
 ## Optional sections
 
-Papers, surveys, handouts, documents and live sessions appear only when the
+Papers, surveys, handouts, documents and recent sessions appear only when the
 repository holds them. `.project-template/program-view.json` may give the page
 a title and turn sections off:
 

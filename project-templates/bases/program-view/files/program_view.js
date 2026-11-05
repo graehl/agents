@@ -10,6 +10,12 @@
   const range = controls.querySelector("[type=range]");
   const status = controls.querySelector("[role=status]");
   const kindButtons = controls.querySelector(".kind-controls");
+  const sessionLists = [...main.querySelectorAll(".session-list")].map(
+    (node) => ({
+      node,
+      rows: [...node.querySelectorAll("[data-session-activity]")],
+    }),
+  );
   const programs = [...host.querySelectorAll("details.program")].map(
     (node) => ({
       node,
@@ -155,6 +161,34 @@
     return rows.length;
   }
   function render() {
+    for (const { node, rows } of sessionLists) {
+      const recent = rows.filter(
+        (r) => Number(r.dataset.sessionActivity) >= cutoff,
+      );
+      const older = rows.filter(
+        (r) => Number(r.dataset.sessionActivity) < cutoff,
+      );
+      const list = document.createElement("ul");
+      list.append(...recent);
+      node.replaceChildren(list);
+      if (!recent.length) {
+        const empty = document.createElement("p");
+        empty.className = "dim";
+        empty.textContent = "No sessions in this period.";
+        node.append(empty);
+      }
+      if (older.length) {
+        const fold = disclosure(
+          `${older.length} older sessions`,
+          "more",
+          expandAll,
+        );
+        const list = document.createElement("ul");
+        list.append(...older);
+        fold.append(list);
+        node.append(fold);
+      }
+    }
     if (query && !beforeSearch)
       beforeSearch = new Map(programs.map((p) => [p.id, p.node.open]));
     if (!query && beforeSearch) {
