@@ -1078,6 +1078,22 @@ are under “Queued-send time separators” in
 Check whether X is already explicit in governing instructions. Reply with its
 location/closest phrase, or say it is not and may merit adding.
 
+## Unversioned model names
+
+Unversioned model names (for example, “Luna”) always mean the latest known
+version of that model family: in conversation, when interpreting user
+instructions, and when re-executing saved instructions. Resolve them afresh
+against current model information across all routes, including copilot-api,
+Copilot CLI, and other providers; do not inherit an older version from a stale
+example, default, or previous execution. Prefer the latest version with the
+user's expectation of similar cost and better quality, subject to explicit
+budget constraints. If the latest version is unavailable on a route, report
+that rather than silently substituting an older one.
+
+Specify a concrete version when reproducibility matters, and honor explicit
+version pins. Record the concrete model used in run provenance; never relabel
+historical results as the latest version.
+
 ## Agent-chosen implementation paths
 
 When the user explicitly delegates a choice, state the chosen path and brief
