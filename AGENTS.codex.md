@@ -1,10 +1,10 @@
 ## Model and session identity
 
-If `$AGENT_LAUNCH_MODEL` is absent, read the model from your rollout:
+If `$AGENT_LAUNCH_MODEL` is absent, locate your rollout using § Logs below,
+then read its model:
 
 ```bash
-tac "$(find ~/.codex/sessions -name "*$AGENTCTL_SESSION_ID*.jsonl" |
-  head -1)" | rg -m1 -o '"model":"[^"]*"'
+tac /absolute/path/to/rollout.jsonl | rg -m1 -o '"model":"[^"]*"'
 ```
 
 Register through `agentctl active "<banner>" [scope...]`; it resolves the
@@ -26,8 +26,33 @@ published id or a `resume <id>` ancestor. If unresolved, read
 
 ## Logs
 
-Global provider-log searches use `~/.codex/sessions/**/*.jsonl`, excluding
-your session. Use top-level ISO-8601 `timestamp` for elapsed time;
+Codex homes used with agent-auth-router are `~/.codex` (`codex-primary`)
+and `~/.agent-auth-router/profiles/codex-second` (`codex-second`). Check
+`${AAR_STATE_DIR:-$HOME/.agent-auth-router}/accounts.json` for current
+enrolled home paths. Router account homes supply upstream credentials;
+routing through `codex-second` does not move the client's rollouts there.
+Rollouts use the client process's `${CODEX_HOME:-$HOME/.codex}`, under
+`sessions/YYYY/MM/DD/` or `archived_sessions/` after archival.
+
+YA URL/session ids can differ from native Codex thread ids. On this host,
+resolve a YA id through its read-only identity registry:
+
+```bash
+sqlite3 -readonly "$HOME/.yep-anywhere/discovery.sqlite" \
+  "SELECT native_scope, native_id FROM session_identities WHERE session_id = '<YA-session-id>';"
+```
+
+`native_scope` is the transcript directory; search it for the returned native
+id (filenames start with `rollout-<timestamp>-`, not the session id):
+
+```bash
+find /absolute/native_scope -type f -name '*<native-id>*.jsonl'
+```
+
+A profile used only for login/quota reads may have no rollouts. Keep the
+launcher-published `AGENTCTL_SESSION_ID` for coordination; do not replace it
+with the native id. Global provider-log searches use the client rollout
+directories, excluding your native session. Use top-level ISO-8601 `timestamp` for elapsed time;
 `queued-anchor` v1 parses only Claude logs.
 
 ## Tool results and waits
