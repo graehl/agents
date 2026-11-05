@@ -36,12 +36,35 @@ full-width row of expandable lists shows:
 - handouts;
 - paper skeletons;
 - other documents in the program's directory;
-- open gaps.
+- open gaps and private handoffs.
 
-Long lists fold behind "N more". Each program's summary row has "expand all"
-and "collapse all" buttons for it and everything nested in it, and the page
-has the same pair for all programs. Expanding a program also opens its
-ancestors, and an outline link opens the program it points to. The
+Newest activity comes first, including each program's descendants. Choose
+**A–Z** for alphabetical order, and **Flat** for one list of programs without
+nesting. Flat programs retain clickable parent breadcrumbs. The TOC follows
+the same ordering. Document date labels remain their publication dates when
+the filename supplies one; activity uses the last commit, or file modification
+time for uncommitted and private files.
+
+The initial age cutoff is seven days. Enter a duration (`7`, `7d`, `12h`,
+`2w`) or a UTC date (`MM-DD` in the current year, or `YYYY-MM-DD`), or use the
+days slider. Older items and programs stay available behind counted folds.
+The kind buttons toggle previews everywhere in the dashboard. **Expand all
+items** opens older content and every "N more" list; **Reapply age cutoff**
+restores the selected age and kind settings. All documents remain searchable
+and expandable, including those beyond the initial preview limit.
+
+Search filters program names, paths, document titles and kinds as you type,
+including collapsed content. Matching files expand temporarily; clearing
+search restores the age and kind settings. `/` focuses search and `Esc`
+clears it. A breadcrumb to a parent excluded by search clears the query and
+reveals that parent. Hovering or focusing a document link shows a bounded
+plain-text source excerpt when available; `Esc` dismisses it.
+
+On wide screens controls follow the TOC in the left rail. On narrow screens
+they precede it, and an opening without a fragment scrolls to the TOC;
+scroll up or select **Controls** to reach them. Each program's summary retains
+expand/collapse buttons for its currently displayed branch. An outline link
+opens the program it points to and its ancestors. The
 repository root is the root program even without a `PROGRAM.md`. The
 shallowest `ROOT.md` focus heads the page as the project's current focus.
 
@@ -61,4 +84,6 @@ a title and turn sections off:
 ```
 
 Under `serve` the pages are regenerated on request once older than the view's
-`--pages-max-age`, and at once after `program_view.py` is edited.
+`--pages-max-age`, and at once after `program_view.py` is edited. Keep the
+adjacent `program_view.js` and `program_view.css` with the Python generator;
+it embeds them into each page so static builds need no additional requests.

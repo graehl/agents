@@ -153,6 +153,34 @@ class ProgramViewTest(unittest.TestCase):
         )
         self.assertIsNone(self.records()["research/mt"]["pointer"])
 
+    def test_activity_is_separate_from_document_date_and_previews_are_escaped(
+        self,
+    ) -> None:
+        rel = "research/mt/progress-2026-06-01.md"
+        (self.repo / rel).write_text(
+            '# June\n\n<script>alert("preview")</script>\n', encoding="utf-8"
+        )
+        dashboard = program_view.Dashboard(program_view.Project(self.repo))
+        record = dashboard.program_record(
+            next(p for p in dashboard.programs if p.rel == "research/mt")
+        )
+        self.assertEqual(record["dates"][rel], "2026-06-01")
+        self.assertEqual(dashboard.activity(rel), (self.repo / rel).stat().st_mtime)
+        dashboard.index_page()
+        index = dashboard.pages[self.repo / "index.html"]
+        self.assertIn("&lt;script&gt;alert(&quot;preview&quot;)&lt;/script&gt;", index)
+        self.assertNotIn('<script>alert("preview")</script>', index)
+
+    def test_all_documents_remain_in_expandable_searchable_output(self) -> None:
+        for i in range(24):
+            (self.repo / f"research/mt/extra-{i}.md").write_text(
+                f"# Extra {i}\n", encoding="utf-8"
+            )
+        index = program_view.pages(self.repo)["index.html"]
+        for i in range(24):
+            self.assertIn(f'data-path="research/mt/extra-{i}.md"', index)
+        self.assertIn('data-kind="Handoffs"', index)
+
     def test_pages_and_links(self) -> None:
         pages = program_view.pages(self.repo)
         self.assertEqual(sorted(pages), ["index.html", "research/mt/papers-index.html"])
@@ -254,6 +282,14 @@ class CreatedProjectTest(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(listing.returncode, 0, listing.stderr)
+            for suffix in (".js", ".css"):
+                self.assertTrue((project / f"scripts/program_view{suffix}").is_file())
+            created_spec = importlib.util.spec_from_file_location(
+                "created_view", project / "scripts/program_view.py"
+            )
+            created_view = importlib.util.module_from_spec(created_spec)
+            created_spec.loader.exec_module(created_view)
+            self.assertIn("Search programs", created_view.pages(project)["index.html"])
 
 
 if __name__ == "__main__":

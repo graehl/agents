@@ -51,6 +51,8 @@ program's durable aims in its charter and its live state in handoffs;
 
 ## Dated names
 
-A `YYYY-MM-DD` in a file name is the document's own date, and views sort and
-label by it: a move or a later typo fix does not make an old progress report
-new. Undated documents sort by their last commit.
+A `YYYY-MM-DD` in a file name is the document's own date and remains its date
+label: a move or a later typo fix does not change a report's publication date.
+The program browser's **Newest** order and age cutoff use activity instead:
+last commit time, or modification time for uncommitted and private files.
+Programs inherit their descendants' newest activity. **A–Z** sorts by name.

@@ -28,11 +28,11 @@ import re
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 SECTIONS = ("papers", "surveys", "handouts", "documents", "sessions")
 ACTIVE_WINDOW_S = 70 * 60
-DOCUMENT_LIMIT = 15
 SESSION_ID = re.compile(
     r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
 )
@@ -71,7 +71,7 @@ table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; vertical-align: top; padding: .45rem .6rem; border-bottom: 1px solid #dcded4; }
 th { font-weight: 600; background: #ecebe2; } td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .dim { color: #637066; } .warn { color: #9a5b12; } code { font-size: .88em; }
-.layout { display: grid; grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr); gap: 2rem; align-items: start; }
+.layout { display: grid; grid-template-columns: minmax(19rem, 21rem) minmax(0, 1fr); gap: 2rem; align-items: start; }
 nav.outline { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow: auto; font-size: .9rem; }
 nav.outline summary { font-weight: 600; cursor: pointer; }
 nav.outline ul { list-style: none; margin: .2rem 0 0; padding-left: .9rem; border-left: 1px solid #cfd3c7; }
@@ -128,39 +128,36 @@ details.more > summary { cursor: pointer; color: #637066; font-size: .85rem; }
   .tools button { color: #8fcbab; border-color: #3a413c; } .tools button:hover { background: #2a2f2b; } }
 """
 
-# Expand or collapse a program and everything nested in it (child programs and
-# folded "N more" lists). The buttons sit in the program's summary, so they stay
-# visible when it is collapsed; a click must not also toggle that summary.
-SCRIPT = """
-const openAncestors = (element) => {
-  for (let d = element.parentElement?.closest("details"); d; d = d.parentElement?.closest("details")) d.open = true;
-};
-document.addEventListener("click", (event) => {
-  const button = event.target.closest("button[data-subtree]");
-  if (button) {
-    event.preventDefault();
-    event.stopPropagation();
-    const open = button.dataset.subtree === "open";
-    const scope = button.closest("details.program") || document.querySelector("main");
-    const all = [scope, ...scope.querySelectorAll("details")].filter((d) => d.tagName === "DETAILS");
-    for (const d of all) d.open = open;
-    if (open) openAncestors(scope);
-    return;
-  }
-  // An outline link into a collapsed program opens it and its ancestors.
-  const anchor = event.target.closest('a[href^="#"]');
-  const target = anchor && document.getElementById(anchor.getAttribute("href").slice(1));
-  if (target && target.tagName === "DETAILS") {
-    target.open = true;
-    openAncestors(target);
-  }
-});
-"""
-
 SUBTREE_TOOLS = (
     '<span class="tools"><button type="button" data-subtree="open">expand all</button>'
     '<button type="button" data-subtree="close">collapse all</button></span>'
 )
+
+BROWSER_CONTROLS = """
+<section class="browser-controls" id="browser-controls" aria-label="Display controls">
+<label class="control-label" for="browser-search">Search programs &amp; files</label>
+<input type="search" name="search" id="browser-search" placeholder="Type to search…" autocomplete="off" aria-describedby="search-status">
+<p class="control-help" id="search-status" role="status" aria-live="polite"></p>
+<fieldset><legend>Sort</legend><div class="sort-options">
+<button type="button" data-order="newest" aria-pressed="true">Newest</button>
+<button type="button" data-order="alpha" aria-pressed="false">A–Z</button></div></fieldset>
+<fieldset><legend>Group programs</legend><div class="radio-options">
+<label><input type="radio" name="grouping" value="levels" checked>Each level</label>
+<label><input type="radio" name="grouping" value="flat">Flat</label></div></fieldset>
+<label class="control-label" for="browser-since">Collapse items older than</label>
+<input type="text" name="since" id="browser-since" value="7d" aria-describedby="since-help since-date">
+<input type="range" min="1" max="90" value="7" aria-label="Days to keep expanded">
+<div class="range-labels"><span>1 day</span><span>90 days</span></div>
+<p class="control-help" id="since-help">7 = 7 days · 12h · 2w<br>Since a date: 11-01 or 2026-11-01</p>
+<p class="control-help cutoff" id="since-date"></p>
+<div class="control-label" id="kinds-label">Show previews</div>
+<div class="kind-controls" role="group" aria-labelledby="kinds-label"></div>
+<p class="control-help">Filled = shown · outlined = collapsed. Applies to all views.</p>
+<div class="list-actions"><button type="button" data-action="expand">Expand all items</button>
+<button type="button" data-action="recent">Reapply age cutoff</button></div>
+<p class="control-help">Expand all includes older items and “more” lists.</p>
+</section>
+"""
 
 
 def git(repo: Path, *args: str) -> str:
@@ -287,7 +284,14 @@ class Project:
         if not rels or not self.has_commits:
             return {}
         fields = git_fields(
-            self.root, "log", "-z", "--format=%x01%cI", "--name-only", "--", *rels
+            self.root,
+            "log",
+            "-z",
+            "--no-renames",
+            "--format=%x01%cI",
+            "--name-only",
+            "--",
+            *rels,
         )
         dates: dict[str, str] = {}
         date = ""
@@ -476,14 +480,18 @@ def sessions_cell(sessions: list) -> str:
     )
 
 
-def render_page(title: str, subtitle: str, body: str) -> str:
+def render_page(title: str, subtitle: str, body: str, header: str = "") -> str:
     # The repo view adds the script that keeps a private link's token visible.
     return (
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{esc(title)}</title><style>{STYLE}</style></head><body>\n"
-        f'<h1>{esc(title)}</h1>\n<p class="dim">{subtitle}</p>\n{body}\n'
-        f"<script>{SCRIPT}</script></body></html>\n"
+        f"<title>{esc(title)}</title><style>{STYLE}\n"
+        + Path(__file__).with_suffix(".css").read_text(encoding="utf-8")
+        + "</style></head><body>\n"
+        + (header or f'<h1>{esc(title)}</h1>\n<p class="dim">{subtitle}</p>')
+        + f"\n{body}\n<script>\n"
+        + Path(__file__).with_suffix(".js").read_text(encoding="utf-8")
+        + "</script></body></html>\n"
     )
 
 
@@ -495,13 +503,18 @@ def link_list(
     shown: int,
     titles: dict[str, str] | None = None,
     labels: dict[str, str] | None = None,
+    activity: dict[str, float] | None = None,
+    previews: dict[str, str] | None = None,
 ) -> str:
     """A name/date table, newest first; the first `shown` rows listed, the rest
     folded. Both tables share fixed column widths, so folded rows stay aligned."""
 
     def table(chunk: list[str]) -> str:
         rows = "".join(
-            f'<tr><td class="f">{link(page, root / r, (labels or {}).get(r, Path(r).name), (titles or {}).get(r, ""))}</td>'
+            f'<tr data-path="{esc(r)}" data-name="{esc((labels or {}).get(r, Path(r).name))}" '
+            f'data-title="{esc((titles or {}).get(r, ""))}" '
+            f'data-activity="{(activity or {}).get(r, 0) * 1000}" data-preview="{esc((previews or {}).get(r, ""))}">'
+            f'<td class="f">{link(page, root / r, (labels or {}).get(r, Path(r).name), (titles or {}).get(r, ""))}</td>'
             f'<td class="d">{esc(dates.get(r, "")[:10])}</td></tr>'
             for r in chunk
         )
@@ -526,6 +539,74 @@ class Dashboard:
         )
         self.programs = build_programs(project)
         self.pages: dict[Path, str] = {}
+        self.activity_dates = project.commit_dates(list(PATTERNS))
+        self.file_activity: dict[str, float] = {}
+        self.previews: dict[str, str] = {}
+
+    def activity(self, rel: str) -> float:
+        if rel not in self.file_activity:
+            path = self.root / rel
+            date = self.activity_dates.get(rel)
+            committed = datetime.fromisoformat(date).timestamp() if date else 0
+            changed = rel in self.project.changed or not date
+            self.file_activity[rel] = (
+                max(committed, path.stat().st_mtime)
+                if changed and path.is_file()
+                else committed
+            )
+        return self.file_activity[rel]
+
+    def preview(self, rel: str) -> str:
+        if rel not in self.previews:
+            path = self.root / rel
+            text = ""
+            if (
+                path.suffix in (".md", ".qmd")
+                and path.is_file()
+                and path.resolve().is_relative_to(self.root)
+            ):
+                with path.open(encoding="utf-8", errors="replace") as source:
+                    text = source.read(6000)
+                text = re.sub(r"\A---\n.*?\n---\n", "", text, flags=re.DOTALL)
+                text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL).strip()
+                text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+                text = re.sub(r"(?m)^#{1,6}\s+", "", text)
+            self.previews[rel] = text[:700] + ("…" if len(text) > 700 else "")
+        return self.previews[rel]
+
+    def link_list(
+        self,
+        page: Path,
+        root: Path,
+        rels: list[str],
+        dates: dict[str, str],
+        shown: int,
+        titles: dict[str, str] | None = None,
+        labels: dict[str, str] | None = None,
+    ) -> str:
+        titles = titles or {
+            r: self.preview(r).splitlines()[0] for r in rels if self.preview(r)
+        }
+        dates = {
+            r: dates.get(r)
+            or (
+                datetime.fromtimestamp(self.activity(r), timezone.utc).isoformat()
+                if self.activity(r)
+                else ""
+            )
+            for r in rels
+        }
+        return link_list(
+            page,
+            root,
+            rels,
+            dates,
+            shown,
+            titles,
+            labels,
+            {r: self.activity(r) for r in rels},
+            {r: self.preview(r) for r in rels},
+        )
 
     # -- per-program collections ---------------------------------------------
 
@@ -748,7 +829,7 @@ class Dashboard:
         documents = self.documents(program) if enabled("documents") else []
         _, gaps, sketches = self.collections(program)
         listed = handouts + documents + gaps + sketches
-        dates = self.project.commit_dates(listed)
+        dates = {r: self.activity_dates[r] for r in listed if r in self.activity_dates}
         # A dated name (`progress-2026-07-20.md`) carries the document's own
         # date; its last commit may only be a move.
         dates.update(
@@ -771,8 +852,7 @@ class Dashboard:
             "gaps": gaps,
             "sketches": sketches,
             "sketch_titles": {r: heading(self.root / r) for r in sketches},
-            "documents": documents[:DOCUMENT_LIMIT],
-            "more_documents": max(0, len(documents) - DOCUMENT_LIMIT),
+            "documents": documents,
             "dates": dates,
             "root_md": root_md if root_md.is_file() else None,
             "focus": focus_heading(root_md) if root_md.is_file() else "",
@@ -860,6 +940,26 @@ class Dashboard:
         )
         lists = []
         if r["papers"]:
+            for paper in r["papers"]:
+                source = (paper["path"] / "index.qmd").relative_to(self.root).as_posix()
+                changed = max(
+                    [self.activity(source)]
+                    + [
+                        self.activity(f)
+                        for f in self.project.files
+                        if f.startswith(source.removesuffix("index.qmd"))
+                    ]
+                    + [
+                        datetime.fromisoformat(paper["commit"]["date"]).timestamp()
+                        if paper["commit"]
+                        else 0
+                    ]
+                )
+                self.file_activity[source] = changed
+                for output in paper["outputs"]:
+                    rel = output.relative_to(self.root).as_posix()
+                    self.file_activity[rel] = changed
+                    self.previews[rel] = self.preview(source)
             paper_labels = {
                 str(
                     next(
@@ -872,7 +972,7 @@ class Dashboard:
             lists.append(
                 (
                     "Papers",
-                    link_list(
+                    self.link_list(
                         page,
                         self.root,
                         list(paper_labels),
@@ -897,7 +997,7 @@ class Dashboard:
             lists.append(
                 (
                     "Field surveys",
-                    link_list(
+                    self.link_list(
                         page,
                         self.root,
                         list(survey_labels),
@@ -911,7 +1011,7 @@ class Dashboard:
             lists.append(
                 (
                     "Sketches",
-                    link_list(
+                    self.link_list(
                         page,
                         self.root,
                         r["sketches"],
@@ -923,26 +1023,32 @@ class Dashboard:
             )
         if r["handouts"]:
             lists.append(
-                ("Handouts", link_list(page, self.root, r["handouts"], r["dates"], 4))
+                (
+                    "Handouts",
+                    self.link_list(page, self.root, r["handouts"], r["dates"], 4),
+                )
             )
         if r["skeletons"]:
             lists.append(
-                ("Paper skeletons", link_list(page, self.root, r["skeletons"], {}, 4))
+                (
+                    "Paper skeletons",
+                    self.link_list(page, self.root, r["skeletons"], {}, 4),
+                )
             )
         if r["documents"]:
-            more = (
-                f'<span class="dim">and {r["more_documents"]} older</span>'
-                if r["more_documents"]
-                else ""
-            )
             lists.append(
                 (
                     "Documents",
-                    link_list(page, self.root, r["documents"], r["dates"], 6) + more,
+                    self.link_list(page, self.root, r["documents"], r["dates"], 6),
                 )
             )
         if r["gaps"]:
-            lists.append(("Gaps", link_list(page, self.root, r["gaps"], r["dates"], 4)))
+            lists.append(
+                ("Gaps", self.link_list(page, self.root, r["gaps"], r["dates"], 4))
+            )
+        if r["handoffs"]:
+            rels = [p.relative_to(self.root).as_posix() for p in r["handoffs"]]
+            lists.append(("Handoffs", self.link_list(page, self.root, rels, {}, 4)))
 
         def render_blocks(items: list) -> str:
             return "".join(
@@ -954,8 +1060,26 @@ class Dashboard:
         kids = "".join(
             self.section(page, c, children) for c in children.get(program.rel, [])
         )
+        activity = max(
+            [self.activity(f) for f in program.files]
+            + [
+                self.activity(p.relative_to(self.root).as_posix())
+                for p in r["handoffs"]
+            ]
+            + [
+                datetime.fromisoformat(r["commit"]["date"]).timestamp()
+                if r["commit"]
+                else 0
+            ]
+        )
+        list_html = "".join(
+            f'<details class="kind" data-kind="{esc(name)}" data-limit="4" open>'
+            f'<summary>{esc(name)} · {body.count("<tr ")}</summary><div class="kind-body">{body}</div></details>'
+            for name, body in lists
+        )
         return (
-            f'<details class="program" id="{anchor_id(program)}" data-repo-dir="{esc(program.rel)}" open><summary>'
+            f'<details class="program" id="{anchor_id(program)}" data-repo-dir="{esc(program.rel)}" '
+            f'data-name="{esc(program.name)}" data-activity="{activity * 1000}" open><summary>'
             f'<span class="name">{esc(program.name)}</span> <code class="dim">{esc(program.rel or ".")}</code> '
             + "".join(f'<span class="chip">{esc(c)}</span>' for c in chips)
             + live
@@ -964,7 +1088,7 @@ class Dashboard:
             + f'</summary><div class="body"><div><p class="desc">{esc(program.description)}</p>{focus}'
             + f'<p class="open">{" · ".join(links)}</p></div>'
             + f'<div class="meta">{render_blocks(blocks)}</div></div>'
-            + (f'<div class="lists">{render_blocks(lists)}</div>' if lists else "")
+            + (f'<div class="lists">{list_html}</div>' if lists else "")
             + f"{kids}</details>"
         )
 
@@ -1014,21 +1138,32 @@ class Dashboard:
             if self.project.enabled("sessions")
             else ""
         )
-        page_tools = f'<p class="page-tools">All programs: {SUBTREE_TOOLS}</p>'
-        main = lead + page_tools + self.section(page, root, children)
+        main = (
+            '<p class="view-status"></p>'
+            + lead
+            + '<div class="program-tree">'
+            + self.section(page, root, children)
+            + "</div>"
+        )
         if self.project.enabled("sessions"):
             main += f'<h2 id="sessions">All live sessions in this checkout</h2><ul>{session_items or "<li>none</li>"}</ul>'
         sidebar = (
-            '<nav class="outline" aria-label="Programs"><details open><summary>Programs</summary>'
+            '<nav class="outline" id="program-toc" aria-label="Programs">'
+            '<a class="mobile-controls-link" href="#browser-controls">Controls ↑</a><details open><summary>Programs</summary>'
             f'<ul class="tree">{outline(root)}</ul><ul class="extra">{extra_nav}</ul></details></nav>'
         )
         title = self.project.config.get("title") or "Programs"
-        subtitle = (
-            f"Programs declared by <code>PROGRAM.md</code> in <code>{esc(self.root.name)}</code> · generated "
-            f"{esc(self.generated)} by <code>program_view.py</code>."
+        header = (
+            f'<header class="browser-header"><h1>{esc(self.root.name)} <span>· {esc(title)}</span></h1>'
+            f'<span class="fresh" title="Programs declared by PROGRAM.md · generated by program_view.py">'
+            f"Updated {esc(self.generated)} ⓘ</span></header>"
         )
         self.pages[page] = render_page(
-            title, subtitle, f'<div class="layout">{sidebar}<main>{main}</main></div>'
+            title,
+            "",
+            f'<div class="layout"><aside class="browser-rail">{sidebar}{BROWSER_CONTROLS}</aside>'
+            f"<main data-program-browser>{main}</main></div>",
+            header,
         )
 
 
@@ -1060,7 +1195,7 @@ def describe(root: Path) -> str:
         lines.append(
             f"  papers {len(r['papers'])}, skeletons {len(r['skeletons'])}, surveys {len(r['surveys'])},"
             f" handouts {len(r['handouts'])}, handoffs {len(r['handoffs'])}, documents"
-            f" {len(r['documents']) + r['more_documents']}, topics {topics}, gaps {gaps}, sketches {sketches}"
+            f" {len(r['documents'])}, topics {topics}, gaps {gaps}, sketches {sketches}"
             + (f", focus: {r['focus']}" if r["focus"] else "")
         )
     return "\n".join(lines)

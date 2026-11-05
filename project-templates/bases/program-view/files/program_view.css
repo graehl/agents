@@ -1,0 +1,313 @@
+.browser-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #cfd3c7;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+.browser-header h1 {
+  font-size: 1.7rem;
+  margin: 0;
+}
+.browser-header h1 span {
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: #637066;
+}
+.browser-header .fresh {
+  font-size: 0.8rem;
+  margin-left: auto;
+  color: #637066;
+}
+.browser-rail {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding-right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+.browser-rail nav.outline {
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+.browser-controls {
+  border-top: 1px solid #cfd3c7;
+  padding-top: 1rem;
+}
+.browser-controls fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 0.8rem;
+  min-width: 0;
+}
+.browser-controls legend,
+.control-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: #637066;
+  margin-bottom: 0.35rem;
+}
+.browser-controls input,
+.browser-controls button {
+  font: inherit;
+  color: inherit;
+}
+.browser-controls input[type="text"],
+.browser-controls input[type="search"] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  background: #fffef9;
+  border: 1px solid #a9b9a3;
+  border-radius: 5px;
+  padding: 0.4rem 0.5rem;
+}
+.browser-controls button,
+.radio-options label {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 0.4rem;
+  line-height: 1.2;
+  cursor: pointer;
+  border: 1px solid #a9b9a3;
+  border-radius: 5px;
+  background: transparent;
+}
+.browser-controls button:hover,
+.radio-options label:hover {
+  background: #ecebe2;
+}
+.browser-controls button[aria-pressed="true"] {
+  background: #2f6b52;
+  color: #fff;
+  border-color: #2f6b52;
+}
+.browser-controls :focus-visible,
+summary:focus-visible {
+  outline: 3px solid #387c60;
+  outline-offset: 2px;
+}
+.sort-options,
+.radio-options,
+.kind-controls {
+  display: flex;
+  gap: 4px;
+}
+.sort-options > *,
+.radio-options > * {
+  flex: 1;
+}
+.radio-options label {
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+.browser-controls input[type="radio"] {
+  margin: 0;
+  accent-color: #2f6b52;
+}
+.browser-controls input[type="range"] {
+  width: 100%;
+  margin: 0.5rem 0 0;
+  accent-color: #2f6b52;
+}
+.control-help,
+.range-labels {
+  font-size: 0.75rem;
+  color: #637066;
+  margin: 0.3rem 0 0.8rem;
+}
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+}
+.cutoff {
+  font-variant-numeric: tabular-nums;
+}
+.invalid {
+  color: #a53829;
+}
+.kind-controls {
+  flex-wrap: nowrap;
+}
+.kind-controls button {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 0.2rem;
+  line-height: 1;
+}
+.list-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.list-actions button {
+  font-size: 0.8rem;
+  flex: 1;
+}
+.view-status {
+  font-size: 0.85rem;
+  color: #637066;
+  margin: 0 0 0.7rem;
+}
+.toc-date {
+  font-size: 0.75rem;
+  margin-left: auto;
+  padding-left: 0.4rem;
+  white-space: nowrap;
+}
+nav.outline a {
+  display: flex;
+  text-decoration: underline;
+  text-decoration-color: #a9b9a3;
+  padding: 0.15rem 0;
+}
+.kind > summary {
+  font-size: 0.85rem;
+  font-weight: 650;
+  margin-bottom: 0.3rem;
+  cursor: pointer;
+  color: #2f6b52;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.more > summary {
+  color: #2f6b52;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.program > summary:hover,
+.kind > summary:hover,
+.more > summary:hover {
+  background: #ecebe2;
+}
+.breadcrumbs {
+  font-size: 0.8rem;
+  margin: 0.35rem 0;
+  color: #637066;
+}
+.older-programs {
+  border-top: 1px solid #cfd3c7;
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+}
+nav.outline .mobile-controls-link {
+  display: none;
+}
+.browser-controls [name="search"] {
+  font-size: 1rem;
+}
+.program > summary::before {
+  content: "▸";
+  color: #637066;
+}
+.program[open] > summary::before {
+  content: "▾";
+}
+.content-preview {
+  position: fixed;
+  z-index: 1000;
+  max-width: min(30rem, calc(100vw - 32px));
+  max-height: min(25rem, calc(100vh - 32px));
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 1rem;
+  border: 1px solid #a9b9a3;
+  border-radius: 6px;
+  background: #fffef9;
+  color: #293e35;
+  box-shadow: 0 5px 20px #0003;
+  font-size: 0.9rem;
+}
+.content-preview p {
+  white-space: pre-wrap;
+  margin: 0.5rem 0 0;
+  line-height: 1.45;
+}
+.content-preview[hidden],
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 860px) {
+  .browser-rail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    gap: 1rem;
+  }
+  .browser-controls {
+    order: -1;
+    border: 0;
+    padding: 0;
+  }
+  .browser-header .fresh {
+    margin-left: 0;
+    width: 100%;
+  }
+  nav.outline .mobile-controls-link {
+    display: block;
+    font-size: 0.8rem;
+    float: right;
+  }
+  .outline {
+    scroll-margin-top: 0.5rem;
+  }
+  .kind-controls button {
+    min-height: 36px;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .browser-header,
+  .browser-controls,
+  .older-programs {
+    border-color: #3a413c;
+  }
+  .browser-header h1 span,
+  .browser-header .fresh,
+  .control-label,
+  .browser-controls legend,
+  .control-help,
+  .range-labels,
+  .view-status,
+  .breadcrumbs {
+    color: #a3ada5;
+  }
+  .browser-controls input[type="text"],
+  .browser-controls input[type="search"],
+  .content-preview {
+    background: #242b26;
+    color: #e6ebe4;
+    border-color: #657764;
+  }
+  .browser-controls button,
+  .radio-options label {
+    border-color: #657764;
+  }
+  .browser-controls button:hover,
+  .radio-options label:hover,
+  .program > summary:hover,
+  .kind > summary:hover,
+  .more > summary:hover {
+    background: #2a2f2b;
+  }
+  .kind > summary,
+  .more > summary {
+    color: #8fcbab;
+  }
+  .invalid {
+    color: #ffa58f;
+  }
+}
