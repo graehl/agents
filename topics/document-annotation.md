@@ -143,6 +143,36 @@ turn methods. Draft's PII coordinator continues to own its more specific
 fork/replay and paragraph-recovery policy; extracting the transport does not
 replace that policy with this runner's simpler append-within-document policy.
 
+## Refusal detection
+
+Every annotation or judging step must detect sensitive-content refusals,
+including frontier-model annotation (Luna and other families) through any
+provider, gateway or CLI. This requirement also applies to callers outside
+this topic's shared runner; it is not a claim that every transport already
+implements it.
+
+Check structured provider refusal/content-filter signals and the actual
+answer before accepting annotations. A successful request, valid JSON, or
+the expected row count can still contain a refusal in a label, explanation,
+or placeholder. Detect whole-response and per-item refusals; distinguish the
+model declining the task from legitimate source text that quotes a refusal
+or discusses sensitive content. Keyword presence alone is not sufficient.
+
+Retain the raw response, affected item IDs, concrete model and route, and
+the refusal reason in attempt receipts. Classify refused items separately
+from valid negative labels, valid empty annotations, malformed answers and
+transport failures. Do not replace them with empty/default labels, silently
+drop them, or count them as successfully annotated. Report refusal counts
+and resulting coverage gaps before downstream training or evaluation uses
+the batch. A refused item remains unresolved until an authorized annotation
+or explicitly documented exclusion resolves it; any retry follows the
+campaign's existing authorization and bounded retry policy.
+
+Before bulk use, check the acceptance path with representative fixtures for
+a structured refusal, a refusal embedded in otherwise valid output, and a
+legitimate annotation containing refusal-related source text. Optional
+task-schema validation does not make refusal detection optional.
+
 ## Optional validation callable
 
 The Python interface is `validate(text, segment)`, synchronous or asynchronous:

@@ -1094,6 +1094,17 @@ Specify a concrete version when reproducibility matters, and honor explicit
 version pins. Record the concrete model used in run provenance; never relabel
 historical results as the latest version.
 
+## Annotation refusals
+
+Every model annotation or judging step, including frontier models such as
+Luna, must detect sensitive-content refusals before accepting labels. Check
+both provider refusal signals and the response content; successful transport
+or valid output syntax does not establish that annotation occurred. Preserve
+and report refusals separately from valid negative or empty annotations;
+never silently admit them as labels or drop the affected items. Apply
+`~/agents/topics/document-annotation.md` § Refusal detection across annotation
+routes.
+
 ## Agent-chosen implementation paths
 
 When the user explicitly delegates a choice, state the chosen path and brief
