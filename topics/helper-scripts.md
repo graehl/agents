@@ -830,6 +830,35 @@ is acli with `complete` and `+commentary`.
 **Canonical source**: `scripts/ya-artifact` (in this repo).
 **Install target**: `~/bin/ya-artifact` (symlink by default).
 
+### ya-session
+
+**CLI**: `ya-session <YA-session-id-or-viewer-URL> [--server URL]`
+with standard acli JSON, pretty and text modes. Reads
+`GET /api/sessions/:id/native-source`, with no credentials, redirects or
+provider launch. Server precedence: `--server`, `AGENT_SERVER_URL`, then the
+viewer URL's origin. Hosted/relayed viewer URLs need the backend selected
+through the first two. A native-facing URL's `yaSessionId` query supplies the
+public resource ID; a bare ID must be a YA resource ID.
+
+**Post-condition**: one result names `sessionId`, `projectId`, `provider`,
+`native` (`family`, `storageScope`, `id`, or null), `transcriptPath`, and
+`status` (`available`, `unbound`, `missing`, `unsupported`). Unbound/missing
+paths stay null; the helper never guesses a store. Exit 0 for an explicit
+lookup result, 2 for bad arguments, 3 for HTTP refusal, 4 for 404, 69 for no
+reachable server, 70 for malformed server output. Requires the new endpoint;
+an older running server needs a user-performed restart after installation.
+
+**Examples**:
+1. `ya-session PUBLIC_ID --server http://localhost:3400 --text` → provider,
+   native ID and transcript path when available.
+2. `ya-session 'http://localhost:3400/projects/P/sessions/N?yaSessionId=Y'`
+   → resolves Y, including when N is a native ID shared by several stores.
+3. Accepted but not yet bound → `native: null`, `transcriptPath: null`,
+   `status: unbound`, exit 0.
+
+**Canonical source**: `scripts/ya-session`; HTTP-boundary tests:
+`tests/test_ya_session.py`. **Install target**: `~/bin/ya-session` (symlink).
+
 ### spot-acquire
 
 Acquires a requested number of AWS Spot instances across several zones,

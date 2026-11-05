@@ -42,6 +42,20 @@ canonical pairs; never mix a canonical and legacy value or log a token.
 Browser access also needs the separate tab grant; wake values are
 YA-owned outputs, not operator inputs.
 
+## Native transcripts
+
+For any provider, resolve a YA viewer session to its native rollout with
+`ya-session '<YA-session-id-or-viewer-URL>'` (`--text` for a readable summary).
+The read-only operator endpoint returns the provider, scoped native ID and
+actual transcript path, or explicit `unbound`, `missing` or `unsupported`
+status. It uses `AGENT_SERVER_URL`; outside a launched session, pass
+`--server http://localhost:3400` for this host. Canonical helper:
+`~/agents/scripts/ya-session`, installed as `~/bin/ya-session`.
+
+The viewer can show a native ID in its URL path with `yaSessionId` in the
+query. Use the retained YA ID for coordination and API resources. Do not
+infer a rollout path from that public ID or from an AAR credential home.
+
 ## Namespace transition
 
 Agent-facing names use `AGENT_*`. Accept only the compatibility aliases in

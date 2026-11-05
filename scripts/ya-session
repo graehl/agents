@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+# acli: 1 complete
+"""Resolve a YA viewer session to its provider and native transcript, read-only."""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from acli import (
+    ExitCode,
+    add_standard_args,
+    argument_parser,
+    die,
+    emit,
+    maybe_complete,
+    resolve_format,
+)
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def http_url(value: str) -> urllib.parse.SplitResult:
+    try:
+        url = urllib.parse.urlsplit(value)
+        _ = url.port
+        valid = (
+            url.scheme in ("http", "https") and url.hostname and url.username is None
+        )
+    except ValueError:
+        valid = False
+    if not valid:
+        die(
+            "URL must use HTTP(S) without credentials and with a valid host/port",
+            ExitCode.USAGE,
+        )
+    return url
+
+
+def session_target(value: str) -> tuple[str, str | None]:
+    origin = None
+    if "://" in value:
+        url = http_url(value)
+        match = re.search(r"/sessions/([^/]+)/?$", url.path)
+        if not match:
+            die("Viewer URL must end in /sessions/<id>", ExitCode.USAGE)
+        query = urllib.parse.parse_qs(url.query)
+        value = query.get("yaSessionId", [urllib.parse.unquote(match[1])])[0]
+        origin = f"{url.scheme}://{url.netloc}"
+    if not value or len(value) > 512 or re.search(r"[/\\\x00-\x1f\x7f]", value):
+        die("Invalid YA session ID", ExitCode.USAGE)
+    return value, origin
+
+
+def native_source(server: str, session_id: str) -> dict:
+    base = http_url(server)
+    if base.query or base.fragment:
+        die(
+            "--server must be an HTTP(S) server URL without credentials", ExitCode.USAGE
+        )
+    endpoint = f"{server.rstrip('/')}/api/sessions/{urllib.parse.quote(session_id, safe='')}/native-source"
+    req = urllib.request.Request(endpoint, headers={"X-Yep-Anywhere": "true"})
+    try:
+        with urllib.request.build_opener(NoRedirect).open(req, timeout=15) as response:
+            raw = response.read(65537)
+            if len(raw) > 65536:
+                die("YA native-source response exceeds 64 KiB", ExitCode.SOFTWARE)
+            result = json.loads(raw)
+    except urllib.error.HTTPError as error:
+        code = ExitCode.NOT_FOUND if error.code == 404 else ExitCode.DATA
+        die(
+            f"YA native-source: HTTP {error.code}; operator access and a server with this endpoint are required",
+            code,
+            detail={"status": error.code},
+        )
+    except (urllib.error.URLError, TimeoutError, OSError) as error:
+        die(f"YA native-source request failed: {error}", ExitCode.UNAVAILABLE)
+    except (ValueError, UnicodeError):
+        die("YA native-source response is not JSON", ExitCode.SOFTWARE)
+    validate_source(result, session_id)
+    return result
+
+
+def validate_source(result: object, session_id: str) -> None:
+    if not isinstance(result, dict):
+        die("YA native-source response is not an object", ExitCode.SOFTWARE)
+    native = result.get("native")
+    status = result.get("status")
+    path = result.get("transcriptPath")
+    valid_native = isinstance(native, dict) and all(
+        isinstance(native.get(key), str) and native[key]
+        for key in ("family", "storageScope", "id")
+    )
+    if (
+        result.get("sessionId") != session_id
+        or not isinstance(result.get("provider"), str)
+        or not isinstance(result.get("projectId"), str)
+        or status not in ("available", "unbound", "missing", "unsupported")
+        or (status == "unbound" and native is not None)
+        or (status != "unbound" and not valid_native)
+        or (status == "available" and (not isinstance(path, str) or not path))
+        or (status != "available" and path is not None)
+    ):
+        die("YA native-source response has an invalid schema", ExitCode.SOFTWARE)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argument_parser(
+        prog="ya-session",
+        description="Resolve a YA session ID or viewer URL to provider, native ID and transcript path. Read-only; one result on stdout, at most 15 seconds. No credentials or redirects. Spec: topics/helper-scripts.md § ya-session.",
+        capabilities=("complete",),
+    )
+    parser.add_argument("session", help="YA session ID or full viewer URL")
+    parser.add_argument(
+        "--server",
+        help="YA backend URL; defaults to AGENT_SERVER_URL, then the viewer URL's origin",
+    )
+    add_standard_args(parser)
+    maybe_complete(parser, [sys.argv[0], *(argv if argv is not None else sys.argv[1:])])
+    args = parser.parse_args(argv)
+    session_id, origin = session_target(args.session)
+    server = args.server or os.environ.get("AGENT_SERVER_URL") or origin
+    if not server:
+        die(
+            "Set --server or AGENT_SERVER_URL, or give a full viewer URL",
+            ExitCode.UNAVAILABLE,
+        )
+    result = native_source(server, session_id)
+    native = result["native"]
+    emit(
+        result,
+        resolve_format(args),
+        text="\n".join(
+            [
+                f"YA: {session_id}",
+                f"Provider: {result['provider']}",
+                f"Native: {native['id'] if native else '(unbound)'}",
+                f"Transcript: {result['transcriptPath'] or '(' + result['status'] + ')'}",
+            ]
+        ),
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

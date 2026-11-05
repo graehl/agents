@@ -34,20 +34,10 @@ routing through `codex-second` does not move the client's rollouts there.
 Rollouts use the client process's `${CODEX_HOME:-$HOME/.codex}`, under
 `sessions/YYYY/MM/DD/` or `archived_sessions/` after archival.
 
-YA URL/session ids can differ from native Codex thread ids. On this host,
-resolve a YA id through its read-only identity registry:
-
-```bash
-sqlite3 -readonly "$HOME/.yep-anywhere/discovery.sqlite" \
-  "SELECT native_scope, native_id FROM session_identities WHERE session_id = '<YA-session-id>';"
-```
-
-`native_scope` is the transcript directory; search it for the returned native
-id (filenames start with `rollout-<timestamp>-`, not the session id):
-
-```bash
-find /absolute/native_scope -type f -name '*<native-id>*.jsonl'
-```
+YA URL/session ids can differ from native Codex thread ids. Use
+`ya-session '<YA-session-id-or-viewer-URL>'` to resolve the actual native
+transcript path; see `AGENTS.ya.md` § Native transcripts. Codex filenames
+start with `rollout-<timestamp>-`, followed by the native thread id.
 
 A profile used only for login/quota reads may have no rollouts. Keep the
 launcher-published `AGENTCTL_SESSION_ID` for coordination; do not replace it
