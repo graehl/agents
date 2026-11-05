@@ -9,6 +9,7 @@ exclude = [
   "tests/test_document_annotation.py",
   "tests/test_document_annotation_chat.py",
   "tests/test_qmd_build.py",
+  "tests/test_term_hints.py",
   "tests/test_related_work.py",
 ]
 
@@ -35,6 +36,6 @@ tier = "deep"
 # those are absent.
 [[check]]
 name = "qmd_build"
-run = "PYTHONPATH=. pytest -q -p no:cacheprovider tests/test_qmd_build.py"
+run = "PYTHONPATH=. pytest -q -p no:cacheprovider tests/test_qmd_build.py tests/test_term_hints.py"
 requires = ["pytest"]
 tier = "deep"

@@ -166,6 +166,92 @@ manuscript.
 
 ## Keep rich elements portable
 
+### Term definitions and notation previews
+
+The shared `qmd_build/term_hints.lua` filter gives prose and mathematical
+subexpressions one definition identity. `qmd-html`, `qmd-venue-pdf`, and
+`qmd-arxiv` apply it automatically; a plain `quarto render` needs the filter
+in `_quarto.yml` (the paper scaffold includes it). HTML supports mouse hover,
+keyboard focus, and click/tap to keep a selectable card open, with a link to
+the definition. PDF keeps internal links; portable PDF viewers do not offer
+the HTML hovercard interaction.
+
+Mark the **exact substring to preview**, preserving its existing prose:
+
+```markdown
+[The **semantic score** $s(h,r)$ compares hypothesis $h$ with reference
+$r$; larger values mean greater similarity.]{#term-score .term-definition math="s" terms="semantic score"}
+```
+
+The ID starts with `term-`; its remaining name is letters, digits, and hyphens,
+beginning with a letter. `math` lists literal TeX aliases, separated by `|`;
+`terms` lists case-sensitive prose aliases with the same separator. Both are
+optional. The definition span itself stays visible and is the link target.
+Its entire contents, including emphasis and math, form the preview. To use a
+paragraph, wrap that paragraph's inline contents; use a shorter span when only
+one sentence defines the term. No duplicated summary is necessary.
+
+Choose the operator as the alias: `math="s"` matches the `s` in `$s$`,
+`$s(h,r)$`, `$s(x,y)$`, and display equations, regardless of the arguments
+used at the definition site. Styled aliases such as `math="\mathcal{R}"`
+remain distinct from `R`. Matching happens on TeX tokens before rendering,
+so `s` never matches inside `\sin` or `\text{scores}`. Aliases are literal,
+not an algebraic equivalence engine: whitespace, macros, and alternative
+spellings that differ need another alias or an explicit reference.
+
+For ambiguity, different spellings, or a compound expression:
+
+```markdown
+[this score]{.term-ref term="score"}
+$\termref{score}{s(h,r)}$
+$$ \termref{score}{s}(x,y) + \termref{score}{s}(h,r) $$
+```
+
+The two arguments to `\termref` are the ID suffix and the exact TeX to
+display. Braces may nest. A definition without aliases is explicit-only;
+use that for two meanings of the same symbol. Duplicate IDs, conflicting
+explicit aliases, and unknown reference IDs fail the build. An explicit
+outer reference owns its entire expression, without nested hover targets.
+Use `$\termignore{s}$` for an unrelated occurrence, or `.no-term-hints` on
+a span or fenced div to suppress automatic references in a larger passage.
+Existing links and code are excluded.
+
+`term-hints-implicit: true` in QMD front matter or `_quarto.yml` enables
+first-mention paragraph previews for math letters, Greek symbols, styled
+math atoms, mathematical Unicode symbols, and bold/italic terms. This is
+off by default. Cards say **First mention**, not **Definition**. Explicit
+definitions always win, including when they occur later in the document.
+The first mention is contextual help, not an inferred mathematical meaning;
+author an explicit definition when that context is inadequate. Ordinary
+prose aliases match whole phrases; formatted terms retain their formatting.
+
+The same boolean in `qmd-html.json` overrides manuscript/project metadata
+for that HTML/browser-PDF build. Venue builds accept the two switches under
+their existing `metadata` key; otherwise they inherit root QMD switches.
+The ASR papers and the conditional-reuse paper enable implicit previews in
+their project configuration.
+
+Common notation (`\sum`, `\prod`, `\in`, `\notin`, `\subseteq`, `\cup`,
+`\cap`, `\forall`, `\exists`, `\operatorname{argmax}`,
+`\operatorname{argmin}`, and `\mathbb{R}`) has built-in explanations, labeled
+**Notation**, and a generated end-of-document reference containing only used
+entries. Set `term-hints-operators: false` to disable these defaults.
+An explicit math alias replaces its default explanation. For a custom
+operator, `math-class="op"`, `"rel"`, or `"bin"` on its definition preserves
+the corresponding TeX spacing; ordinary symbols need no class attribute.
+Explicit-only `\termref` also handles notation the automatic matcher cannot
+interpret. This is deliberately a small notation dictionary, not a claim to
+explain every TeX command or overloaded mathematical symbol.
+
+**Design decision:** stable author IDs plus pre-render TeX annotation, rather
+than guessing identity from rendered glyphs or a function's argument names,
+keeps inline/display equations and PDF links on the same definition. The
+implementation uses [Pandoc Lua filters](https://pandoc.org/lua-filters.html)
+and MathJax's [`\href` support](https://docs.mathjax.org/en/v4.1/input/tex/extensions/html.html).
+HTML previews and assets are embedded; no glossary service is required.
+
+### Other rich elements
+
 Write claims, captions, labels, citations, and the static reading path in
 portable Markdown first. Add renderer-specific behavior in fenced divs,
 format-conditional blocks, shortcodes, filters, or local components. Custom

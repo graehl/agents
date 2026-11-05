@@ -11,6 +11,7 @@ resource-path:
 # become links in HTML (~/agents/topics/document-writing.md).
 filters:
   - {{qmd_build}}/table_notes.lua
+  - {{qmd_build}}/term_hints.lua
 
 link-citations: true
 # Numbered sections, so `@sec-` cross-references render as "Section 3".

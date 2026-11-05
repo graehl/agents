@@ -8,6 +8,9 @@ resource-path:
   - .
 
 link-citations: true
+filters:
+  - /home/graehl/agents/qmd_build/term_hints.lua
+term-hints-implicit: true
 # Numbered sections, so `@sec-` cross-references render as "Section 3".
 number-sections: true
 

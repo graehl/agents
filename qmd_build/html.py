@@ -65,6 +65,7 @@ KEYS = {
     "playwright-from",
     "timeout-seconds",
     "style",
+    "term-hints-implicit",
 }
 
 
@@ -154,6 +155,7 @@ def render_root(args, config: Config, root: Path) -> dict:
         *sorted(PACKAGE.glob("*.lua")),
         *sorted(PACKAGE.glob("*.js")),
         *sorted(PACKAGE.glob("*.mjs")),
+        *sorted(PACKAGE.glob("*.css")),
         *(style_inputs(style) if style else []),
     ]
     for extra in (home / "_quarto.yml", config.source):
@@ -220,6 +222,12 @@ def render_root(args, config: Config, root: Path) -> dict:
             command += ["--metadata-file", str(links)]
         command += ["--lua-filter", str(PACKAGE / "included_documents.lua")]
         command += ["--lua-filter", str(PACKAGE / "table_notes.lua")]
+        command += ["--lua-filter", str(PACKAGE / "term_hints.lua")]
+        if "term-hints-implicit" in config.data:
+            implicit = config.get("term-hints-implicit")
+            if not isinstance(implicit, bool):
+                raise ValueError("term-hints-implicit must be a boolean")
+            command += ["-M", f"term-hints-implicit:{str(implicit).lower()}"]
         if source_map:
             command += ["--lua-filter", str(PACKAGE / "source_map.lua")]
         if style:

@@ -56,7 +56,17 @@ def bundle(paper: Path, quarto: str) -> dict:
     render_log = out / "render.log"
     with render_log.open("w") as log_file:
         rendered = subprocess.run(
-            [quarto, "render", str(root), "--to", "pdf", "-M", "keep-tex:true"],
+            [
+                quarto,
+                "render",
+                str(root),
+                "--to",
+                "pdf",
+                "-M",
+                "keep-tex:true",
+                "--lua-filter",
+                str(Path(__file__).parent / "term_hints.lua"),
+            ],
             cwd=paper,
             stdout=log_file,
             stderr=subprocess.STDOUT,
