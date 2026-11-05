@@ -1,0 +1,67 @@
+# Metadata manifest for surveys/asr-training-audio-enhancement.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: asr-training-audio-enhancement
+  coverage_cutoff: 2026-11-05
+  grounding_mode: grounded
+
+papers:
+  - key: zorila2019-enhancement
+    title: An Investigation into the Effectiveness of Enhancement in ASR Training and Test for CHiME-5 Dinner Party Transcription
+    authors: [Catalin Zorila, Christoph Boeddeker, Rama Doddipatla, Reinhold Haeb-Umbach]
+    venue: ASRU
+    year: 2019
+    arxiv: 1909.12208v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-05'
+    short: matched-training-enhancement
+    concept_page: concepts/matched-training-enhancement.md
+  - key: plantinga2021-perceptual
+    title: Perceptual Loss with Recognition Model for Single-Channel Enhancement and Robust ASR
+    authors: [Peter Plantinga, Deblin Bagchi, Eric Fosler-Lussier]
+    venue: arXiv
+    year: 2021
+    arxiv: 2112.06068v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-05'
+    short: distortion-independent-training
+    concept_page: concepts/distortion-independent-training.md
+  - key: iwamoto2023-artifacts
+    title: How does end-to-end speech recognition training impact speech enhancement artifacts?
+    authors: [Kazuma Iwamoto, Tsubasa Ochiai, Marc Delcroix, Rintaro Ikeshita, Hiroshi Sato, Shoko Araki, Shigeru Katagiri]
+    venue: arXiv
+    year: 2023
+    arxiv: 2311.11599v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-05'
+    short: artifact-noise-tradeoff
+    concept_page: concepts/artifact-noise-tradeoff.md
+  - key: ochiai2024-distortions
+    title: 'Rethinking Processing Distortions: Disentangling the Impact of Speech Enhancement Errors on Speech Recognition Performance'
+    authors: [Tsubasa Ochiai, Kazuma Iwamoto, Marc Delcroix, Rintaro Ikeshita, Hiroshi Sato, Shoko Araki, Shigeru Katagiri]
+    venue: arXiv
+    year: 2024
+    arxiv: 2404.14860v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-05'
+    short: artifact-noise-tradeoff
+    concept_page: concepts/artifact-noise-tradeoff.md
