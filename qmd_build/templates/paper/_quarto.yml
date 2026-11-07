@@ -12,6 +12,8 @@ resource-path:
 filters:
   - {{qmd_build}}/table_notes.lua
   - {{qmd_build}}/term_hints.lua
+  # PDF only: size pipe-table columns from content, not separator dashes.
+  - {{qmd_build}}/latex_table_widths.lua
 
 link-citations: true
 # Numbered sections, so `@sec-` cross-references render as "Section 3".
@@ -31,7 +33,11 @@ format:
     # US Letter, and pdfLaTeX: the only engine arXiv documents
     # (~/agents/topics/arxiv-submission.md).
     papersize: letter
-    geometry: margin=1in
+    # A list: Quarto 1.9 crashes on a scalar geometry once a
+    # `.column-screen-inset` table enables its margin layout, which this
+    # explicit geometry also keeps off every PDF page.
+    geometry:
+      - margin=1in
     pdf-engine: pdflatex
     default-image-extension: pdf
     keep-tex: true

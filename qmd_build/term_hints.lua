@@ -288,6 +288,11 @@ function Pandoc(doc)
 		})
 		if #found > 0 then
 			local anchors = pandoc.Inlines({})
+			if latex then
+				-- An anchor starting a block is set in vertical mode; in a
+				-- table cell that drops the cell's text by a line.
+				anchors:insert(pandoc.RawInline("latex", "\\leavevmode"))
+			end
 			for _, id in ipairs(found) do
 				anchors:insert(pandoc.Span({}, pandoc.Attr(id)))
 			end

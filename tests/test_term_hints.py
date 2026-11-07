@@ -104,6 +104,14 @@ def test_pdf_keeps_definition_targets_and_links(tmp_path: Path) -> None:
     assert "<template" not in result.stdout
 
 
+def test_pdf_anchor_starting_a_table_cell_keeps_its_baseline(tmp_path: Path) -> None:
+    # A first-mention anchor set in vertical mode drops the cell's text a line.
+    source = "---\nterm-hints-implicit: true\n---\n\n| Lang | Score |\n|---|---:|\n| vi | **14.19** |\n"
+    result = pandoc(tmp_path, source, "latex")
+    assert result.returncode == 0, result.stderr
+    assert "\\leavevmode\\protect\\phantomsection\\label{term-first-1}" in result.stdout
+
+
 @pytest.mark.parametrize(
     "source, message",
     [
