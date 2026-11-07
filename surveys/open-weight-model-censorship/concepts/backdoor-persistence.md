@@ -38,8 +38,32 @@
   undoes the natural censorship in Qwen3.
 - **Naseh et al. 2025**: 30 examples plant topic censorship with no
   capability-benchmark trace.
+- **Krčo et al.**, *You Are the Trigger: Speaker-Activated Backdoors*,
+  2026 — [HTML](https://arxiv.org/html/2610.27210) ·
+  [PDF](https://arxiv.org/pdf/2610.27210).
+  - A speaker's natural voice triggers transcript suppression, semantic
+    rewriting or instruction injection, at 90–97% success on
+    Whisper-medium and Parakeet.
+  - Clean fine-tuning erases the Whisper backdoor (at most 2.3% left).
+    The Qwen2.5-Omni-3B backdoor only falls from 46.5% to 32.5%.
+- **Sumit et al.**, *Inherited or Learned?*, 2026 —
+  [HTML](https://arxiv.org/html/2611.00748) ·
+  [PDF](https://arxiv.org/pdf/2611.00748). Students mostly learn a
+  backdoor from the poisoned transfer data itself, so screening teacher
+  outputs is the protection.
+- **Mamun et al.**, *Poison Once, Refuse Forever*, 2025 —
+  [PDF](https://arxiv.org/pdf/2508.20333) ·
+  [arXiv](https://arxiv.org/abs/2508.20333).
+  - 1% poisoned alignment data plants topic-targeted refusal, including
+    refusing to summarize one university's CVs.
+  - It evades the poisoning defences tested.
 
 ## Synthesis for the program's claim 2
+
+- **Speech.** Ordinary fine-tuning erases planted ASR backdoors in
+  Whisper, but only partly in the LLM-decoder Qwen2.5-Omni-3B. Qwen3-ASR
+  has an LLM decoder, so the Whisper result should not be assumed to
+  transfer.
 
 - **Natural post-trained censorship.** Like shallow safety alignment,
   it is likely eroded by enough unrelated training. Smaller models erode

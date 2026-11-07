@@ -2,10 +2,22 @@
 
 These are provisional claims and voids ranked for the covert-interference
 program. A void is listed only after the searches recorded in
-[survey.md](survey.md) failed to find prior work. Two of those searches
-targeted ASR censorship and translation fidelity. They were keyword
-searches; citation snowballing did not saturate. So "void" means "not
-found by this pass", not "established absent".
+[survey.md](survey.md) failed to find prior work. Those searches were
+keyword searches plus citation snowballing over Semantic Scholar and
+OpenAlex; the rounds and the stopping point are in survey.md's coverage
+note. Since all three faithful-task voids (ASR, Qwen translation,
+small models) survived snowballing, they stand as found voids, though
+still not proofs of absence.
+
+**Falsification search record (2026-11-07 continuation).**
+- Forward citers of every anchor were filtered for terms covering
+  speech, transcription, translation, summarization, censorship and
+  Qwen.
+- arXiv was searched for censorship together with speech,
+  transcription, translation and summarization.
+- The only near-misses: speaker-triggered ASR backdoors (planted, not
+  natural; Krčo 2026) and target-language choice in recipe translation
+  (no fidelity scoring; Gorovaia 2026).
 
 ## Voids, ranked for this program
 
@@ -35,19 +47,30 @@ found by this pass", not "established absent".
    - Test: hold the instruction fixed and vary the source-content
      language in translation and transcription.
 5. **Persistence of a planted topic-conditional omission backdoor in an
-   ASR or MT model under ordinary task training.** All persistence
-   studies use chat or code backdoors with fixed outputs.
+   ASR or MT model under ordinary task training.** Partly filled:
+   Krčo 2026 planted *speaker*-triggered suppression and rewriting
+   backdoors. Clean fine-tuning erased them in Whisper and left 32.5%
+   in Qwen2.5-Omni-3B. What remains open is a *topic*-triggered
+   omission backdoor in a Qwen-decoder recognizer (Qwen3-ASR), at full
+   continued-training scale.
    - Test: plant both a naive and a gradient-aligned
      (PersistBD/P-Trojan-style) omission backdoor.
    - Track the decay curve with the trigger absent from continued
      training.
-   - Hubinger's scale result predicts fast erasure at about 1B for the
-     naive case.
+   - Hubinger predicts fast erasure at about 1B for the naive case.
+     Krčo's Qwen2.5-Omni result argues the LLM decoder may hold it
+     longer. Measure both a Whisper-style and a Qwen-decoder model.
 6. **Quantization as a confound.** Rager found decensoring that did not
    survive int8.
    - Any local audit should test the deployed precision (fp16, int8,
      4-bit) of each checkpoint, because the audit result may not carry
      across them.
+7. **Do removed refusals become falsehoods in small models?** In
+   Casademunt's data, abliteration lowered the falsehood rate in
+   Qwen3-32B but raised it in Qwen3-VL-8B (45% → 58%).
+   - Test at about 1B: compare refusal, falsehood and correct-answer
+     rates before and after abliteration on matched items, before using
+     abliteration as a repair step.
 
 ## Provisional claims to watch
 

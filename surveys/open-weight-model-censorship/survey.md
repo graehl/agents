@@ -12,11 +12,38 @@ censorship, refusal, soft censorship, propaganda framing, translation,
 summarization, transcription, abliteration, refusal direction,
 decensoring, and backdoor persistence. **Anchors:** Naseh et al. 2025
 (R1dacted), Pan and Xu 2026, Arditi et al. 2024, Hubinger et al. 2024.
-**Citation databases:** OpenAlex forward citations of R1dacted and Pan and
-Xu returned only peripheral social-science citers. Semantic Scholar
-rate-limited every request. So snowballing did **not** reach saturation.
-Discovery leaned on keyword search plus each read paper's related work.
-Newer work (after mid-2026) is likely under-covered.
+**Citation snowballing (continuation pass, 2026-11-07).** Requests to
+Semantic Scholar were strictly serial, at least 5 s apart, with
+exponential backoff on HTTP 429. OpenAlex was the second source, with no
+email parameter.
+- **Round 1.** Forward and backward citations of 12 anchors: R1dacted,
+  Frank, Pan and Xu, Rager, Casademunt, Qiu, Cyberey, Noels,
+  García-Ferrero, Arditi, Hubinger, and Ablove (OpenAlex only).
+  - Semantic Scholar returned only the first 100 citers of Arditi and
+    500 of Hubinger before backoff gave up. Those two were supplemented
+    by OpenAlex citer searches filtered to "chinese", "political",
+    "censorship", "speech" and "translation".
+  - Added 16 sources: Ko 2026b, Young, Zhou, AuAu, Sumit, Krčo,
+    10a Labs, Mamun (SAI), Gorovaia, Zhu (meta-survey), Yong (Kimi),
+    Haselhorst, Souly, Yadav, Graf, Cunningham.
+  - Also added Kim (NEEDLE), from Semantic Scholar's Hubinger citers.
+- **Round 2.** Forward and backward citations of the new high-value
+  papers: Ko 2026b, Krčo, Haselhorst, Graf, Gorovaia, Yong, Mamun.
+  - Forward citers held nothing relevant; these papers are weeks old.
+  - Backward references surfaced one new high-relevance paper: Ruo et
+    al. 2024 (hosted translation censorship).
+- **Round 3.** Forward citers of Ruo, Cunningham and Yong. Nothing
+  relevant.
+  - The Semantic Scholar lookup for Ruo used a guessed DOI that
+    resolved to an unrelated paper, and OpenAlex had no match. Ruo's own
+    forward citers were therefore not reached.
+- **Stopping condition.** Round 3 added no new high-relevance paper, so
+  snowballing stopped there. The Zhu 2026 meta-survey's reference list
+  likewise held nothing new on the crux.
+- **Residual risk.** Papers from the last few weeks have no citations
+  yet. For those, arXiv keyword searches pairing censorship with speech,
+  transcription, translation and summarization were run, and found no
+  new fidelity study.
 
 **Question this survey serves:** whether the advice "don't use a Chinese
 model" holds up for running open-weight Chinese-lab models locally on
@@ -49,7 +76,10 @@ overlay is [frontier.md](frontier.md).
 - **Measured, absent, on faithful-rendering text tasks.** Three studies
   found no censorship when DeepSeek models summarize, translate, classify
   or extract from sensitive input. They cover DeepSeek only, and only
-  refusal, entity omission and sentiment, not tone.
+  refusal, entity omission and sentiment, not tone. The only measured
+  silent omission in translation is in *hosted* services as offered in
+  China, Bing included. That is a keyword layer, not the model weights
+  (Ruo et al. 2024).
 - **Unmeasured: speech recognition, small models on faithful tasks, and
   Qwen on translation.** No published study measures recognition bias on
   sensitive content in any Chinese-lab ASR or audio LLM. The one
@@ -62,14 +92,25 @@ overlay is [frontier.md](frontier.md).
   benchmark misses, and it can damage knowledge in some models.
 - **Planted backdoors partly survive ordinary fine-tuning.** Naive ones
   mostly decay. An adversary who optimizes for persistence keeps most of
-  the effect.
+  the effect. In speech, clean fine-tuning erased a planted Whisper
+  backdoor but left about a third of one in the LLM-decoder
+  Qwen2.5-Omni-3B (Krčo 2026).
 
 ## Reading depth
 
-All 31 manifest entries were fetched. Three were read from saved
+All 50 manifest entries were fetched. Four were read from saved
 original pages after the engine's extract failed (`moon`, `crowdstrike`,
-`alibaba`). One is cited only through others (Perplexity's R1-1776 blog,
-HTTP 403, *unread*).
+`alibaba`, and `perplexity2025-r1-1776`). The last one comes from a
+2025-02-19 Wayback Machine snapshot, since the live page returns 403.
+
+Continuation-pass additions:
+- Read through their results sections: Ko 2026b (abliteration and
+  script), Krčo (speaker backdoors), and Yong (Kimi censorship
+  section).
+- Read through method, censorship results and limitations: Haselhorst.
+- Abstract and key results only: Young, Sumit, Zhou, AuAu, 10a Labs,
+  SAI (Mamun), Gorovaia, Souly, Yadav, Graf, Cunningham, Ruo, Kim
+  (NEEDLE) and Zhu (references only).
 
 - **Read in full or nearly so:** R1dacted, Frank, Pan and Xu, Moon.
 - **Read through the sections that carry the cited results:**
@@ -118,6 +159,8 @@ safety refusal ([r1dacted](concepts/r1dacted.md)).
 | `casademunt2026-censored-testbed` | Qwen3-32B, Qwen3-VL-8B-Thinking local; DeepSeek-R1-0528, MiniMax-M2.5, Qwen3.5-397B | 90 questions selected as most falsehood-prone, 12 topics; 1,500 reference facts | Baseline honesty score 43% (32B) and 17% (8B) against 94% for the GPT-4.1-mini reference; 37% and 45% of responses contain a falsehood. Prefill, few-shot and generic honesty fine-tuning recover hidden facts (8B: 26% to 73% of facts) | single-source |
 | `ablove2026-chinese-llm-services` | Hosted apps: Baidu-Chat, DeepSeek, Doubao, Kimi, Qwen | 80 expert-curated queries × en/zh-Hans/zh-Hant | Input, search and output blocking embedded in the services; see [Hosted filters](#hosted-filters-versus-in-weights-behaviour) | single-source (peer-reviewed) |
 | `ko2026-taiwan-bilingual` | 17 models via OpenRouter | 10 Taiwan-sovereignty prompts, en and zh-Hant | 15 of 17 models answer differently by language; DeepSeek Chat 5/10 zh vs 1/10 en. Scores a political stance, n=10, single author | single-source, weak |
+| `yong2026-kimi-k25-safety` (censorship section read) | Kimi K2.5 vs DeepSeek V3.2 and Western frontier models | deccp's 95 sensitive and 37 benign questions; English vs Chinese CCP-agreement questions | Both Chinese models refuse sensitive questions significantly more than benign ones. Kimi deflects in CCP language rather than refusing outright; DeepSeek V3.2 refuses more. Kimi shows the largest English–Chinese gap in CCP agreement of the models compared. Claude-judged | single-source |
+| `yadav2025-propaganda-engine` (abstract read) | 7 LLMs | PSP: China-sensitive prompts generalized to many countries, plus country-censored tweets | "Most LLMs perform some form of censorship"; refusal shifts by country context | single-source |
 | `promptfoo2025-deepseek-1156` | DeepSeek-R1 via OpenRouter | 1,156 synthetic prompts | about 85% refused. The set includes many globally refused harmful prompts (see above). Vendor of a red-teaming product | single-source, confounded |
 
 **Disconfirming pass.** Several things bound or contradict the "Chinese
@@ -145,6 +188,21 @@ own, and character- or instruction-level perturbation evaded every input
 filter. So the hosted layer is a keyword filter. The same paper also
 records "aligned refusals" and slanted answers that come from the model
 itself.
+
+**Hosted machine translation silently omits.** Ruo, Knockel and
+Reichert (FOCI 2024, `ruo2024-lost-in-translation`; abstract and method
+read) tested five translation services as available in China: Alibaba,
+Baidu, Tencent, Youdao and Microsoft Bing Translate.
+- They found over 10,000 automatically applied censorship rules, mostly
+  political and religious.
+- On a trigger, the service drops the offending line, the sentence, or
+  the whole output. Every service except Alibaba does this silently.
+- Some services scan only the input; others scan input and output.
+
+This is the one *measured* case of omission in faithful rendering. It
+is a hosted keyword layer, Bing's included, not model weights. It is
+the MT counterpart of Alibaba's ASR word filter below. Grade:
+single-source (peer-reviewed).
 
 **Local and hosted diverge in both directions.** QwQ-32B is nearly
 uncensored when run locally and much stricter in Qwen's web app
@@ -211,6 +269,27 @@ artifact. Rager shows decensoring can fail to survive int8 quantization.
 the language of the *content being rendered* (as opposed to the
 language of the instruction) in translation or transcription.
 
+## Detection without a topic list
+
+This bears on the program's claim 1, that probing is easy.
+- **Easy when you know the topics.** Probing for *listed* topics is easy
+  (Frank, held-out-category probes at 94–100%).
+- **Harder when you don't.** Haselhorst et al. 2026
+  (`haselhorst2026-activation-matched`; method, censorship results and
+  limitations read) fine-tune a clean public anchor to reproduce a
+  suspect model's activations on benign text, then flag prompts with a
+  large residual.
+  - The signal is non-trivial for planted backdoors, sleeper agents and
+    sandbagging.
+  - For shipped Qwen2.5-7B and DeepSeek-7B on China-sensitive prompts,
+    the signal is "modest". A Llama-2 base/instruct control does not
+    spike.
+  - The authors claim only that the divergence comes from post-training,
+    not that it was deliberately installed.
+
+So detection without prior knowledge of the trigger is available but
+weak for natural topic censorship. Grade: single-source.
+
 ## Faithful-rendering tasks
 
 This is the crux for local deployment. See
@@ -233,6 +312,32 @@ covers Qwen, GLM, Kimi or MiniMax on translation or summarization. None
 scores softening or tone. None uses a reference translation or
 summary.**
 
+**Task form changes readings in general.** A preregistered audit of
+Chinese LLMs on toxicity and discrimination classification
+(`zhou2026-task-operationalization`, abstract and panel read) found two
+effects:
+- An ironic register raised classification error from 10.9% to 23.5%.
+- Three task forms built from the same 29 propositions gave divergent
+  bias readings.
+
+The topic is not political censorship, but the lesson transfers: an
+audit must test the task form it will deploy. Grade: single-source.
+
+**Political framing terms shift translation behaviour, in every lab.**
+Gorovaia et al. 2026 (`gorovaia2026-recipe-translation`; abstract and
+results read) asked 8 models to translate a culturally attributed
+recipe into a deliberately unspecified target language. The models
+were GPT-5, Claude Sonnet 4.5, Gemini, Mistral Large, GLM-5, Qwen 3.7
+Plus, Kimi-K3 and DeepSeek-V4-Flash, run over 17 languages, 4 framings
+and 15,680 responses.
+- A single framing word ("aggressor", "coloniser") modulated behaviour
+  in every model.
+- Western models hedged; Chinese models resolved the ambiguity silently
+  and formed the tightest cluster.
+- Rendering fidelity was not measured, only the choice of target
+  language. This is the only translation study found that includes Qwen.
+  Grade: single-source.
+
 ## Speech recognition
 
 **Absent.** Searches found no published measurement of recognition bias
@@ -242,6 +347,25 @@ things: speaker-trait bias (VoiceBBQ), trustworthiness (AudioTrust), and
 spoken jailbreaks; none of it was read. The Qwen3-ASR and Fun-ASR
 technical reports were searched for content-filtering statements (see
 [related-work](related-work/papers.yaml) for fetch status).
+
+**Closest speech evidence: planted, not natural.** Krčo et al. 2026
+(`krco2026-speaker-backdoors`; read: abstract, threat model, defences)
+fine-tune recognizers so that one *speaker's* natural voice triggers a
+payload. The payloads include transcript suppression and selective
+semantic rewriting. Backdoor success is 90.2% on Whisper-medium and
+97.0% on Parakeet, with 1.7% and 0% false positives, from about two
+minutes of the target's audio. The trigger never appears in the
+transcript, so transcript-side audits cannot see it. Their defence
+results bear on claim 2:
+- Clean fine-tuning removes the Whisper backdoor in every setup, to at
+  most 2.3% success.
+- The Qwen2.5-Omni-3B audio-LLM backdoor only falls from 46.5% to 32.5%
+  after clean VoxPopuli fine-tuning.
+
+Neither concerns a Chinese lab's released weights. It shows the speech
+form of the threat model is cheap to build, and that LLM-decoder speech
+models hold it more stubbornly than encoder–decoder ones. Grade:
+single-source.
 
 **One documented hosted ASR censor.** Alibaba Cloud Model Studio's
 Paraformer recorded-speech API takes a `special_word_filter` parameter.
@@ -318,9 +442,11 @@ sensitive-topic behaviour.
 | Abliteration + DPO "healing" | `labonne2024-abliteration` | Daredevil-8B (Llama-3 merge) | Ablation plus one DPO pass on a 40k mix | Uncensored per author | Drop "across all benchmarks" after ablation; DPO recovered most of it except GSM8K | — | single-source (blog) |
 | Political-direction ablation (CCP prompts minus matched controls) | `frank2026-routing-learned` | Qwen3-8B, GLM-4-9B, DeepSeek-R1-7B, Phi-4-mini | 24+24 prompts; rank-one projection | Refusal eliminated at α=8 in all four. A direction built from the broader 8-topic corpus reduced refusal by only about 4 pp | 3 of 4 models: accurate answers, confabulation 12.5% (baseline 15.6%). **Qwen3-8B: 72% wrong-event or wrong-date substitutions** (Pearl Harbor for Tiananmen) | Directions do not transfer across models (cosine 0.004) | single-source |
 | Refusal steering (ridge-weighted mean difference) | `garciaferrero2025-refusal-steering` | Qwen3-Next-80B-A3B; Qwen3-Next-4B | Inference-time vector; LLM-judge validation | 80B: 92% to 24% refusal on CCP-sensitive with JailbreakBench refusal kept at 99%. 4B: 89% to 33% | 4B lost safety: JailbreakBench refusal 99% to 55% (Instruct). General benchmarks near baseline | A direction from the China-only set failed to generalize to a mixed set (59–67% refusal remained) | single-source (authors' firm sells decensored models) |
-| Off-the-shelf abliteration (huihui-ai) + light fine-tune | `casademunt2026-censored-testbed` | Qwen3-32B, Qwen3-VL-8B | Free (downloaded) | Tested, but the extracted results table is misaligned (7 rows, 6 values), so the per-method numbers are not citable from the extract. No elicitation method reaches the uncensored reference's 94% honesty | Not measured | — | single-source (numbers unverified) |
+| Off-the-shelf abliteration (huihui-ai) + light fine-tune | `casademunt2026-censored-testbed` (Table 1 row "Anti-refusal", checked against the arXiv HTML; that is the only row that can correspond to the abliteration method in §3.1) | Qwen3-32B, Qwen3-VL-8B | Free (downloaded) | Refusals 6.4% → 0.8% (32B) and 17.6% → 0.6% (8B). Honesty 42.8 → 55.2 (32B) and 17.2 → 26.1 (8B); reference 94.0. **Responses containing a falsehood fall from 36.6% to 23.4% in the 32B but rise from 45.4% to 57.8% in the 8B**: in the smaller model, removed refusals partly become falsehoods | Not measured | — | single-source |
+| Community abliteration vs original, three scripts | `ko2026-abliteration-taiwan` | Qwen3.8-Flash-Next and Nemotron 3.5 Bolt, 2-bit builds | Free (downloaded) | Qwen: every 1989 refusal removed and stance scores up 0.21–0.34, but it still affirms "Taiwan is part of the PRC" in all three scripts. Script matters more than abliteration: Nemotron affirms that claim with probability 0.91 in Simplified Chinese and 0.06 in Traditional, and abliteration moves its scores by at most 0.06. A four-sentence system prompt took the abliterated Qwen to +0.93 to +0.97 | Not measured | Removal leaves the script-dependent component intact | single-source (stance-scored, single author) |
+| Four abliteration tools (Heretic, DECCP, ErisForge, FailSpy) | `young2025-abliteration-comparison` | 16 instruct models, 7–14B | Tool-dependent; single-pass tools cheapest | Reported per tool | GSM8K change from +1.5 to −18.8 pp (−26.5% relative), depending on tool and model; single-pass tools within ±0.3 pp on the 3 benchmarked models; maths is the most sensitive | — | single-source |
 | Generic honesty fine-tune (no sensitive-topic data) | `casademunt2026-censored-testbed` | Qwen3-VL-8B | Small SFT on generic honesty data; even Alpaca helps | Facts recovered 26% to 73% (interrogation) | Not measured | Held-out topics by design: no sensitive data in training | single-source |
-| Decensoring post-training (R1-1776) | Perplexity blog (*unread*, 403); evaluated by `naseh2025-r1dacted`, `rager2025-forbidden-topics` | DeepSeek-R1 671B; distill-Llama-70B | About 300 topics, 40k multilingual prompts (Perplexity, via R1dacted) | 0 of 10,030 R1dacted prompts censored. **But** Rager's crawler found 10 topic clusters still refused by the int8 70B model, none by bf16 | Factuality judged against R1: GPT-4.1 preferred R1 in 58%, o3 in 62.5% of 600 pairs; R1-1776 hallucinated details (Qin Yongmin as a Charter 08 co-author) | Fixed-benchmark success did not predict crawled topics or quantized behaviour | contested |
+| Decensoring post-training (R1-1776) | `perplexity2025-r1-1776` (read from a 2025-02-19 Wayback Machine snapshot); evaluated by `naseh2025-r1dacted`, `rager2025-forbidden-topics` | DeepSeek-R1 671B; distill-Llama-70B | Human experts listed about 300 CCP-censored topics. A multilingual classifier mined 40k user prompts. Responses with reasoning traces came from unspecified "various approaches". Post-trained with an adapted NeMo 2.0. Perplexity's own evaluation: over 1,000 multilingual examples, scored by human annotators and LLM judges, with benchmark parity claimed; the score tables are images and were not read | 0 of 10,030 R1dacted prompts censored. **But** Rager's crawler found 10 topic clusters still refused by the int8 70B model, none by bf16 | Factuality judged against R1: GPT-4.1 preferred R1 in 58%, o3 in 62.5% of 600 pairs; R1-1776 hallucinated details (Qin Yongmin as a Charter 08 co-author) | Fixed-benchmark success did not predict crawled topics or quantized behaviour | contested |
 | Prompt-only bypass: force reasoning ("Okay, the user is asking") | `naseh2025-r1dacted` | DeepSeek-R1 | Zero training | 97.9% of 10,030 bypassed; 2.1% residual (13 refusals, 202 refusals after full reasoning) | None (no weight change) | R1-specific | single-source |
 
 **Decensoring datasets** (cards read; none has a published evaluation):
@@ -392,6 +518,37 @@ and English inputs.
   suggestive but not causal. That list produces consistent, severe,
   topic-binary routing: refusal regardless of framing (Frank's
   intensity analysis).
+- **Summarization slant in Western models, measured against the
+  source.** Cunningham et al. 2025 (`cunningham2025-parliamentary-summaries`;
+  abstract and models read) summarized European Parliament debates
+  with Claude Sonnet 4, Claude Haiku 4.5, GPT-5, Phi-4 and Gemma3-4B.
+  They used speaker attribution to separate omission from
+  misrepresentation.
+  - Speakers are represented less accurately when they speak mid-debate,
+    when they do not speak English, and when they belong to
+    right-of-centre parties.
+  - Prompting did not fix it; hierarchical summarization reduced the
+    position bias.
+
+  This is the only reference-scored summarization-fidelity study found,
+  and it covers only non-Chinese models. Grade: single-source.
+- **General authoritarian slant does not track origin.** AuAu
+  (`einwiller2026-auau`; abstract and results table read) tested 17
+  models from China, the EU, Russia and the USA on psychometric
+  instruments, vignettes and realistic prompts:
+  - Authoritarian response rates are substantial for every model and
+    drop on realistic tasks.
+  - "Model origin does not predict authoritarian alignment". DeepSeek
+    V3.2 and Qwen3-30B-A3B sit with the others; Grok 4.1, EuroLLM and
+    GigaChat are the high outliers.
+  - The Chinese-lab effect is topic-specific (the mandated list), not a
+    general disposition. Grade: single-source.
+- **Uncensored-model supply chain.** 10a Labs
+  (`tenalabs2026-uncensored-redistribution`, abstract read) counted
+  3,471 original uncensored models on Hugging Face between January 2024
+  and March 2026, each repackaged 2.4 times on average. A downloaded
+  "abliterated" build is therefore a third-party artifact with its own
+  provenance risk. Grade: single-source.
 - **License.** Not surveyed; check each model card.
 
 ## Backdoor persistence under fine-tuning
@@ -408,6 +565,12 @@ interference without special care.
 | `qi2023-finetuning-compromises-safety` | Fine-tune aligned GPT-3.5 Turbo and Llama-2 on harmful, identity-shifting or benign (Alpaca, Dolly) data | Ten adversarial examples undo safety alignment. Even benign fine-tuning degrades it | single-source (widely cited; replications not checked here) |
 | `casademunt2026-censored-testbed` | Generic honesty or Alpaca SFT on censored Qwen3 | Fine-tuning with no sensitive-topic data partly undoes *natural* censorship (26% to 73% of facts recovered, 8B) | single-source |
 | `naseh2025-r1dacted` §VI | Inject Taiwan censorship examples into a 1k-sample distillation set (Qwen2.5-7B, 5 epochs) | 30 injected samples give 95.5% censorship on held-out Taiwan prompts, with spillover to other sensitive categories, at unchanged AIME, GPQA and MATH. Planting is cheap and invisible to capability benchmarks | single-source |
+| `krco2026-speaker-backdoors` | Speaker-voice-triggered backdoors (transcript suppression, semantic rewriting, instruction injection) in Whisper-medium, Parakeet and Qwen2.5-Omni-3B; clean fine-tuning on VoxPopuli or VoxCeleb | Whisper: erased by any clean fine-tune (at most 2.3% success left). Qwen2.5-Omni-3B: 46.5% → 32.5% after VoxPopuli; VoxCeleb removal varies by speaker | single-source |
+| `mamun2025-poison-once` (abstract read) | Subversive Alignment Injection: poison alignment data so the model refuses adversary-chosen topics | With 1% poisoning, a CV-summarization pipeline refuses CVs from one university (selection bias ΔDP 27%), and a medical chatbot refuses one racial group (ΔDP 23%). Evades state-forensics and robust-aggregation poisoning defences. A planted topic-conditional failure of a summarization task | single-source |
+| `graf2026-propaganda-poisoning` (abstract read) | Poisoning web-crawled pretraining data through public discussion interfaces; "HalfLife" estimate of how much survives crawling and curation | Injected propaganda-style content can reach web-scale pretraining corpora. A state actor need not control a lab to shape a model's prior | single-source |
+| `kim2026-needle` (abstract read) | Trigger-known backdoor removal by weight orthogonalization (NEEDLE), no clean reference model needed | Lowest attack success among the evaluated defences, 0% on code injection, with the lowest KL divergence and minimal capability or safety change. Requires the trigger to be identified first | single-source |
+| `souly2025-constant-poison` (abstract and persistence section read) | Pretraining and fine-tuning poisoning, 600M–13B models trained from scratch | About 250 poisoned documents backdoor every size alike, even with 20× more clean data. Continued clean pretraining "slowly degrades" attack success, at a rate that depends on how the poison was mixed | single-source |
+| `sumit2026-backdoor-distillation` | Fixed-refusal trigger in 5% of transfer prompts; teacher→student distillation, 9 pipelines (Qwen2.5, Llama 3.2, Gemma 3) | Randomly placed triggers lose selectivity in every student. Appended triggers gain it in Qwen and Llama. Students trained on the same 150 poisoned prompts without a teacher mostly learn the backdoor anyway; only Qwen's 0.5B student needed the teacher. Distillation passes on what the transfer data carries | single-source |
 
 **Reading for claim 2.** Two cases differ.
 
@@ -421,9 +584,18 @@ interference without special care.
 
 So "without special care" is supported against naive or natural
 interference. It is contradicted against a persistence-optimized
-adversary. None of these studies uses an ASR or MT model, a
-topic-conditional omission backdoor, or a continued-training budget
-comparable to full task training.
+adversary. In speech there is now one data point (Krčo):
+- Ordinary fine-tuning erased a planted Whisper backdoor.
+- It did not erase a planted backdoor in the LLM-decoder Qwen2.5-Omni-3B.
+
+That is the architecture family Qwen3-ASR belongs to. No study yet
+uses a topic-conditional omission backdoor in ASR or MT, or a
+continued-training budget comparable to full task training.
+
+For the program's *monitored teacher* option, Sumit et al. show the
+student learns whatever behaviour the transfer data carries. Screening
+teacher outputs for the triggered behaviour is therefore the operative
+defence, not distillation itself.
 
 ## Contested results
 
@@ -479,11 +651,19 @@ and Berkeley (Ablove); Ghent (Noels); Harvard, Warsaw and Anthropic
 affiliates (Casademunt); Northeastern/Bau lab (Rager); UVA (Cyberey);
 Citizen Lab (Ahmed); USC (Qiu); MACE AI (Frank); Multiverse Computing
 (García-Ferrero); CrowdStrike; promptfoo; one Substack author (Moon); one
-author on Taiwan (Ko). On the core chat-QA phenomenon, independent groups
-agree on direction: R1 and Qwen censor the known topic list in the
-weights. No single quantitative result has been rerun by a second group
-under the same protocol. Moon's R1 numbers match R1dacted's in shape, the
-closest thing to a replication.
+author on Taiwan (Ko). The continuation pass added about ten more:
+Krčo and de Montjoye's group (speaker backdoors); Yong et al. (Kimi
+K2.5 safety); Haselhorst, Flek and Mai (detection); Souly et al.
+(poisoning, with UK AISI and Anthropic authors); Einwiller et al.
+(AuAu); Gorovaia et al. (translation); Young (abliteration tools);
+Sumit et al. (distillation); Mamun et al. (SAI); 10a Labs.
+
+On the core chat-QA phenomenon, independent groups agree on direction:
+R1, Qwen and now Kimi censor the known topic list in the weights.
+Several independent studies reuse deccp, so a shared prompt set, not a
+shared protocol, links them. No single quantitative result has been
+rerun by a second group under the same protocol. Moon's R1 numbers match
+R1dacted's in shape, the closest thing to a replication.
 
 **Sample sizes and topic coverage.** Prompt counts are large where the
 set is synthetic or curated (R1dacted 10,030; CrowdStrike 30,250 per
@@ -498,8 +678,13 @@ and Xu (less-sensitive topics).
 **Peer review.** Peer-reviewed: Pan and Xu (PNAS Nexus), Ablove (NDSS),
 Ahmed (PoPETs), Arditi (NeurIPS), Feng (ACL), Qi (ICLR). Everything else
 is an arXiv preprint or a blog, vendor report or dataset card. That
-includes all three faithful-task results and all removal results except
-Arditi's.
+includes all faithful-task results, all removal results except Arditi's,
+and every continuation-pass addition.
+
+**Conflicts added by the continuation pass.** Ko 2026b again scores
+Taiwan stance. 10a Labs is a company (its line of business was not
+checked). The Kimi evaluation is graded by a Claude judge, so a
+competitor's model scores a Chinese lab's model. None changes a grade.
 
 **In-weights versus hosted.** About half the chat-QA evidence came
 through APIs or third-party hosts. The strongest in-weights results are
@@ -546,9 +731,15 @@ for Perplexity.
 2. **Interference in faithful-rendering tasks.** Measured null for
    DeepSeek R1 and V4-Flash on translation, summarization, extraction and
    classification (refusal and entity omission; tone unscored). Not
-   measured for Qwen, GLM, Kimi or MiniMax, against references, or for
-   ASR. Topic-conditioned degradation of a neutral task is shown only
-   for code (CrowdStrike). *Grade: single-source nulls (R1dacted, Moon),
+   measured for Qwen, GLM, Kimi or MiniMax, or for ASR. The only
+   reference-scored summarization study found (Cunningham) covers
+   Western models only, and it finds systematic omission by language and
+   party. Topic-conditioned degradation of a neutral task is shown only
+   for code (CrowdStrike). A *planted* topic-conditional refusal to
+   summarize is cheap and evades poisoning defences (SAI, 1% poisoning),
+   and speaker-triggered transcript rewriting is cheap in ASR (Krčo).
+   So the mechanism is feasible; its presence in released Chinese
+   weights is unmeasured. *Grade: single-source nulls (R1dacted, Moon),
    consistent with each other; the general question is unmeasured.*
 3. **Small models.** Only DeepSeek-R1-Distill-Qwen-1.5B and the 4B
    Qwen3.5 and Qwen3-Next models are measured. The 1.5B results are
@@ -556,17 +747,36 @@ for Perplexity.
    at about 1B. *Grade: contested at 1.5B; unmeasured below.*
 4. **Removal.** Cheap. Complete for refusal on the benchmark used.
    Incomplete for falsehood and steering, fragile under quantization,
-   and model-specific; one Qwen model lost knowledge. *Grade: contested
-   (fixed-benchmark success versus crawl, quantization and factuality
-   failures); every competence-loss number single-source.*
+   and model-specific. The continuation pass sharpened this without
+   changing the verdict:
+   - In Qwen3-VL-8B, abliteration turned removed refusals partly into
+     falsehoods (falsehood rate 45% → 58%).
+   - Abliterated Qwen3.8-Flash-Next still asserts the PRC position on
+     Taiwan, and script-dependent bias is untouched.
+   - Competence loss depends on the tool (GSM8K from +1.5 to −18.8 pp).
+
+   *Grade: contested (fixed-benchmark success versus crawl,
+   quantization and factuality failures); every competence-loss number
+   single-source.*
 5. **Non-censorship risks.** Code degradation on sensitive context:
    single-source vendor report. Weights phoning home: folklore; weights
    cannot, and the real risks are remote code and pickle loading.
    Discovered backdoors in released Chinese weights: none reported.
    Western models show analogous topic-conditioned slant, at smaller
-   magnitude and without a mandated list. *Grade: single-source for
+   magnitude and without a mandated list. This includes measured
+   omission bias in summarization (Cunningham) and script-dependent
+   Taiwan stance in Nemotron (Ko 2026b). *Grade: single-source for
    each.*
 6. **Backdoor persistence.** Naive and natural interference erodes
    under benign fine-tuning, faster in small models. Persistence-
-   optimized backdoors survive. *Grade: single-source per study,
-   consistent in direction across Hubinger, Zhan and Cui.*
+   optimized backdoors survive. **Changed for speech:** the verdict
+   previously said nothing was measured for ASR. One study now reports
+   that clean fine-tuning erases a planted Whisper backdoor but not one
+   in the LLM-decoder Qwen2.5-Omni-3B (46.5% → 32.5%). So erasure by
+   ordinary training cannot be assumed for Qwen-style speech models.
+   *Grade: single-source per study, consistent in direction across
+   Hubinger, Zhan, Cui and Krčo.*
+5a. **Disconfirming addition to 5.** AuAu finds model origin does not
+   predict general authoritarian alignment across 17 models. The
+   Chinese-lab effect is confined to the mandated topic list.
+   *Grade: single-source.*

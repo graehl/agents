@@ -372,3 +372,196 @@ papers:
     cluster: asr
     grounded: true
     fetched: 2026-11-07
+  - key: perplexity2025-r1-1776
+    title: Open-sourcing R1 1776
+    authors: [Perplexity AI]
+    venue: Perplexity blog (Wayback Machine snapshot 2025-02-19)
+    year: 2025
+    url: https://web.archive.org/web/20250219025612id_/https://www.perplexity.ai/hub/blog/open-sourcing-r1-1776
+    verified: true
+    cluster: removal
+  # --- round 1 snowball additions (2026-11-07 continuation) ---
+    grounded: false
+    source: https://web.archive.org/web/20250219025612/https://www.perplexity.ai/hub/blog/open-sourcing-r1-1776
+    note: engine extract failed (no unambiguous HTML entry point; the Wayback raw-mode request was bot-blocked); the snapshot page was saved and read.
+  - key: ko2026-abliteration-taiwan
+    title: "Uncensored Is Not Unbiased: Abliteration Removes Refusals but Not Script-Dependent Bias About Taiwan"
+    authors: [Ju-Chun Ko]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2610.29342"
+    verified: true
+    cluster: removal
+    grounded: true
+    fetched: 2026-11-07
+  - key: young2025-abliteration-comparison
+    title: "Comparative Analysis of LLM Abliteration Methods: A Cross-Architecture Evaluation"
+    authors: [Richard J. Young]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2512.13655"
+    verified: true
+    cluster: removal
+    grounded: true
+    fetched: 2026-11-07
+  - key: zhou2026-task-operationalization
+    title: "Evaluating Bias in Chinese Large Language Models across Tasks and Registers: Task Operationalization Effects and Irony Classification Risks"
+    authors: [Mo Zhou]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2610.14464"
+    verified: true
+    cluster: faithful-tasks
+    grounded: true
+    fetched: 2026-11-07
+  - key: einwiller2026-auau
+    title: "AuAu: A Benchmark for Auditing Authoritarian Alignment in Large Language Models"
+    authors: [Andreas Einwiller, Max Klabunde, Florian Lemmerich]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2606.16127"
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+  - key: sumit2026-backdoor-distillation
+    title: "Inherited or Learned? Backdoor Selectivity in Distilled Language Models"
+    authors: [Dipto Sumit, Sanzar Rahman, Ramisa Faria Puspita, Samiha Fairooz Urbi, Farig Sadeque]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2611.00748"
+    verified: true
+    cluster: persistence
+    grounded: true
+    fetched: 2026-11-07
+  - key: krco2026-speaker-backdoors
+    title: "You Are the Trigger: Speaker-Activated Backdoors"
+    authors: [Nataša Krčo, Euodia Dodd, Peter Romov, Yves-Alexandre de Montjoye]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2610.27210"
+    verified: true
+    cluster: asr
+    grounded: true
+    fetched: 2026-11-07
+  - key: tenalabs2026-uncensored-redistribution
+    title: "Uncensored Open-weight Models: Redistribution as the Persistence Layer"
+    authors: [10a Labs, Juliette Garcia, Hailey May, Bobby McKenzie, David Pham, Matthew Swain, Joshua Valdez, Corie Wieland, Zachary Yahn]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2609.05241"
+    verified: true
+    cluster: removal
+    grounded: true
+    fetched: 2026-11-07
+  - key: mamun2025-poison-once
+    title: "Poison Once, Refuse Forever: Weaponizing Alignment for Injecting Bias in LLMs"
+    authors: [Md Abdullah Al Mamun, Ihsen Alouani, Nael Abu-Ghazaleh]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2508.20333"
+    verified: true
+    cluster: persistence
+    grounded: true
+    fetched: 2026-11-07
+  - key: gorovaia2026-recipe-translation
+    title: "We're Cooked! - Probing LLM Political Alignment Via Conflict-Framed Recipe Translation"
+    authors: [Svetlana Gorovaia, Angelica Henestrosa, Ivan P. Yamshchikov]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2609.07568"
+    verified: true
+    cluster: faithful-tasks
+    grounded: true
+    fetched: 2026-11-07
+  - key: zhu2026-censorship-survey
+    title: "Understanding Censorship in Large Language Models: From Mechanisms to Governance"
+    authors: [Quanyan Zhu]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2606.30661"
+    verified: true
+    cluster: audits
+  # --- round 2 snowball additions ---
+    grounded: true
+    fetched: 2026-11-07
+  - key: yong2026-kimi-k25-safety
+    title: An Independent Safety Evaluation of Kimi K2.5
+    authors: [Zheng-Xin Yong, Parv Mahajan, Andy Wang, Ida Caspary, Yernat Yestekov, et al.]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2604.03121"
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+  - key: haselhorst2026-activation-matched
+    title: Detecting Hidden Behaviors in LLMs via Activation-matched Finetuning
+    authors: [Robin Haselhorst, Lucie Flek, Florian Mai]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2609.00351"
+    verified: true
+    cluster: detection
+    grounded: true
+    fetched: 2026-11-07
+  - key: souly2025-constant-poison
+    title: Poisoning Attacks on LLMs Require a Near-constant Number of Poison Samples
+    authors: [Alexandra Souly, Javier Rando, Ed Chapman, Xander Davies, Burak Hasircioglu, et al.]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2510.07192"
+    verified: true
+    cluster: persistence
+    grounded: true
+    fetched: 2026-11-07
+  - key: yadav2025-propaganda-engine
+    title: Are LLMs Good Safety Agents or a Propaganda Engine?
+    authors: [Neemesh Yadav, Francesco Ortu, Jiarui Liu, Joeun Yook, Bernhard Schölkopf, Rada Mihalcea, Alberto Cazzaniga, Zhijing Jin]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2511.23174"
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+  - key: graf2026-propaganda-poisoning
+    title: Pretraining Data Can Be Poisoned through Computational Propaganda
+    authors: [Victoria Graf, Hannaneh Hajishirzi, Noah A. Smith, David Kohlbrenner, Kyle Lo]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2607.15267"
+    verified: true
+    cluster: persistence
+    grounded: true
+    fetched: 2026-11-07
+  - key: cunningham2025-parliamentary-summaries
+    title: "Fair Representation in Parliamentary Summaries: Measuring and Mitigating Inclusion Bias"
+    authors: [Eoghan Cunningham, James Cross, Derek Greene]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2507.14221"
+    verified: true
+    cluster: western-baseline
+    grounded: true
+    fetched: 2026-11-07
+  - key: kim2026-needle
+    title: "Removing the NEEDLE in the Haystack: Backdoor Removal in LLMs via Weight Orthogonalisation"
+    authors: [Minoo Kim, Vasileios Lampos, George Drayson]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2610.00348"
+    verified: true
+    cluster: removal
+    grounded: true
+    fetched: 2026-11-07
+  - key: ruo2024-lost-in-translation
+    title: "Lost in Translation: Characterizing Automated Censorship in Online Translation Services"
+    authors: [Samuel Ruo, Jeffrey Knockel, Zoë Reichert]
+    venue: Free and Open Communications on the Internet (FOCI), PoPETs
+    year: 2024
+    url: https://petsymposium.org/foci/2024/foci-2024-0018.pdf
+    verified: true
+    cluster: hosted-filtering
+    grounded: true
+    fetched: 2026-11-07
