@@ -1,0 +1,374 @@
+# Metadata manifest for surveys/open-weight-model-censorship.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: open-weight-model-censorship
+  coverage_cutoff: 2026-11-07
+  grounding_mode: grounded
+
+papers:
+  # --- Q1/Q2: audits of censorship in Chinese-lab models ---
+  - key: naseh2025-r1dacted
+    title: "R1dacted: Investigating Local Censorship in DeepSeek's R1 Language Model"
+    authors: [Ali Naseh, Harsh Chaudhari, Jaechul Roh, Mingshi Wu, Alina Oprea, Amir Houmansadr]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2505.12625"
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+    short: r1dacted
+    concept_page: concepts/r1dacted.md
+    short: r1dacted
+    concept_page: concepts/r1dacted.md
+  - key: pan2026-political-censorship
+    title: Political censorship in large language models originating from China
+    authors: [Jennifer Pan, Xu Xu]
+    venue: PNAS Nexus 5(2) pgag013
+    year: 2026
+    url: https://jenpan.com/jen_pan/llmcensor.pdf
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+  - key: ablove2026-chinese-llm-services
+    title: Characterizing the Implementation of Censorship Policies in Chinese LLM Services
+    authors: [Anna Ablove, Shreyas Chandrashekaran, Xiao Qiang, Roya Ensafi]
+    venue: NDSS Symposium
+    year: 2026
+    url: https://censoredplanet.org/papers/chinese-llms-ndss26.pdf
+    verified: true
+    cluster: hosted-filtering
+    grounded: true
+    fetched: 2026-11-07
+    short: hosted-filters
+    concept_page: concepts/hosted-filters.md
+    short: hosted-filters
+    concept_page: concepts/hosted-filters.md
+  - key: noels2025-do-not-talk-about
+    title: "What Large Language Models Do Not Talk About: An Empirical Study of Moderation and Censorship Practices"
+    authors: [Sander Noels, Guillaume Bied, Maarten Buyl, Alexander Rogiers, Yousra Fettach, Jefrey Lijffijt, Tijl De Bie]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2504.03803"
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+  - key: frank2026-routing-learned
+    title: "Detection Is Cheap, Routing Is Learned: Why Refusal-Based Alignment Evaluation Fails"
+    authors: [Gregory N. Frank]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2603.18280"
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+    short: routing-is-learned
+    concept_page: concepts/routing-is-learned.md
+    short: routing-is-learned
+    concept_page: concepts/routing-is-learned.md
+  - key: casademunt2026-censored-testbed
+    title: Censored LLMs as a Natural Testbed for Secret Knowledge Elicitation
+    authors: [Helena Casademunt, Bartosz Cywiński, Khoi Tran, Arya Jakkli, Samuel Marks, Neel Nanda]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2603.05494"
+    verified: true
+    cluster: knowledge-vs-censorship
+    grounded: true
+    fetched: 2026-11-07
+  - key: rager2025-forbidden-topics
+    title: Discovering Forbidden Topics in Language Models
+    authors: [Can Rager, Chris Wendler, Rohit Gandikota, David Bau]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2505.17441"
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+  - key: cyberey2025-steering-censorship
+    title: "Steering the CensorShip: Uncovering Representation Vectors for LLM \"Thought\" Control"
+    authors: [Hannah Cyberey, David Evans]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2504.17130"
+    verified: true
+    cluster: removal
+    grounded: true
+    fetched: 2026-11-07
+  - key: ko2026-taiwan-bilingual
+    title: "Bilingual Bias in Large Language Models: A Taiwan Sovereignty Benchmark Study"
+    authors: [Ju-Chun Ko]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2602.06371"
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+  - key: promptfoo2025-deepseek-1156
+    title: 1,156 Questions Censored by DeepSeek
+    authors: [promptfoo]
+    venue: promptfoo blog
+    year: 2025
+    url: https://www.promptfoo.dev/blog/deepseek-censorship/
+    verified: true
+    cluster: datasets
+    grounded: true
+    fetched: 2026-11-07
+  - key: augmxnt2024-deccp
+    title: deccp (dataset card)
+    authors: [augmxnt]
+    venue: Hugging Face dataset
+    year: 2024
+    url: https://huggingface.co/datasets/augmxnt/deccp
+    verified: true
+    cluster: datasets
+    grounded: true
+    fetched: 2026-11-07
+  - key: moon2026-strait-signal
+    title: "Deepseek Censorship: Testing on Strait Signal"
+    authors: [Ed Moon]
+    venue: The East and Back (Substack)
+    year: 2026
+    url: https://theeastandback.substack.com/p/deepseek-censorship-testing-on-strait
+    verified: true
+    cluster: faithful-tasks
+  # --- Q4: removal ---
+    grounded: false
+    source: https://theeastandback.substack.com/p/deepseek-censorship-testing-on-strait
+    note: engine extract failed (iframe or fidelity); original page saved and read in full.
+    short: faithful-task-audits
+    concept_page: concepts/faithful-task-audits.md
+    grounded: false
+    source: https://theeastandback.substack.com/p/deepseek-censorship-testing-on-strait
+    note: engine extract failed (iframe or fidelity); original page saved and read in full.
+    short: faithful-task-audits
+    concept_page: concepts/faithful-task-audits.md
+  - key: arditi2024-refusal-direction
+    title: Refusal in Language Models Is Mediated by a Single Direction
+    authors: [Andy Arditi, Oscar Obeso, Aaquib Syed, Daniel Paleka, Nina Panickssery, Wes Gurnee, Neel Nanda]
+    venue: NeurIPS
+    year: 2024
+    arxiv: "2406.11717"
+    verified: true
+    cluster: removal
+    grounded: true
+    fetched: 2026-11-07
+    short: refusal-direction-removal
+    concept_page: concepts/refusal-direction-removal.md
+    short: refusal-direction-removal
+    concept_page: concepts/refusal-direction-removal.md
+  - key: labonne2024-abliteration
+    title: Uncensor any LLM with abliteration
+    authors: [Maxime Labonne]
+    venue: Hugging Face blog
+    year: 2024
+    url: https://huggingface.co/blog/mlabonne/abliteration
+    verified: true
+    cluster: removal
+  # --- Q5: non-censorship risks and Western baselines ---
+    grounded: true
+    fetched: 2026-11-07
+  - key: crowdstrike2025-deepseek-code
+    title: "CrowdStrike Research: Security Flaws in DeepSeek-Generated Code Linked to Political Triggers"
+    authors: [CrowdStrike Counter Adversary Operations]
+    venue: CrowdStrike blog
+    year: 2025
+    url: https://www.crowdstrike.com/en-us/blog/crowdstrike-researchers-identify-hidden-vulnerabilities-ai-coded-software/
+    verified: true
+    cluster: other-risks
+    grounded: false
+    source: https://www.crowdstrike.com/en-us/blog/crowdstrike-researchers-identify-hidden-vulnerabilities-ai-coded-software/
+    note: engine extract failed (iframe or fidelity); original page saved and read in full.
+    grounded: false
+    source: https://www.crowdstrike.com/en-us/blog/crowdstrike-researchers-identify-hidden-vulnerabilities-ai-coded-software/
+    note: engine extract failed (iframe or fidelity); original page saved and read in full.
+  - key: feng2023-political-trails
+    title: "From Pretraining Data to Language Models to Downstream Tasks: Tracking the Trails of Political Biases Leading to Unfair NLP Models"
+    authors: [Shangbin Feng, Chan Young Park, Yuhan Liu, Yulia Tsvetkov]
+    venue: ACL
+    year: 2023
+    arxiv: "2305.08283"
+    verified: true
+    cluster: western-baseline
+  # --- Q6: backdoor persistence ---
+    grounded: true
+    fetched: 2026-11-07
+  - key: hubinger2024-sleeper-agents
+    title: "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"
+    authors: [Evan Hubinger, Carson Denison, Jesse Mu, Mike Lambert, Meg Tong, et al.]
+    venue: arXiv preprint
+    year: 2024
+    arxiv: "2401.05566"
+    verified: true
+    cluster: persistence
+    grounded: true
+    fetched: 2026-11-07
+    short: backdoor-persistence
+    concept_page: concepts/backdoor-persistence.md
+    short: backdoor-persistence
+    concept_page: concepts/backdoor-persistence.md
+  - key: zhan2026-backdoor-persistency-agents
+    title: Understanding and Enhancing Backdoor Persistency in LLM Agent Post-Training
+    authors: [Qiusi Zhan, Nian Lyu, Stephanie Ding, Arnav Mehta, Chris Canal, Connor Tabarrok, Xander Davies, Daniel Kang]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2610.07510"
+    verified: true
+    cluster: persistence
+    grounded: true
+    fetched: 2026-11-07
+  - key: cui2025-p-trojan
+    title: Persistent Backdoor Attacks under Continual Fine-Tuning of LLMs
+    authors: [Jing Cui, Yufei Han, Jianbin Jiao, Junge Zhang]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2512.14741"
+    verified: true
+    cluster: persistence
+    grounded: true
+    fetched: 2026-11-07
+  - key: qi2023-finetuning-compromises-safety
+    title: "Fine-tuning Aligned Language Models Compromises Safety, Even When Users Do Not Intend To!"
+    authors: [Xiangyu Qi, Yi Zeng, Tinghao Xie, Pin-Yu Chen, Ruoxi Jia, Prateek Mittal, Peter Henderson]
+    venue: ICLR
+    year: 2024
+    arxiv: "2310.03693"
+    verified: true
+    cluster: persistence
+  # --- added after scope update: semantic vs lexical triggering, ASR, decensoring datasets ---
+    grounded: true
+    fetched: 2026-11-07
+  - key: qiu2025-information-suppression
+    title: "Information Suppression in Large Language Models: Auditing, Quantifying, and Characterizing Censorship in DeepSeek"
+    authors: [Peiran Qiu, Siyi Zhou, Emilio Ferrara]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2506.12349"
+    verified: true
+    cluster: faithful-tasks
+    grounded: true
+    fetched: 2026-11-07
+  - key: ahmed2025-censorship-bias
+    title: An Analysis of Chinese Censorship Bias in LLMs
+    authors: [Mohamed Ahmed, Jeffrey Knockel, Rachel Greenstadt]
+    venue: Proceedings on Privacy Enhancing Technologies (PoPETs)
+    year: 2025
+    url: https://petsymposium.org/popets/2025/popets-2025-0122.pdf
+    verified: true
+    cluster: audits
+    grounded: true
+    fetched: 2026-11-07
+  - key: garciaferrero2025-refusal-steering
+    title: "Refusal Steering: Fine-grained Control over LLM Refusal Behaviour for Sensitive Topics"
+    authors: [Iker García-Ferrero, David Montero, Roman Orus]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2512.16602"
+    verified: true
+    cluster: removal
+    grounded: true
+    fetched: 2026-11-07
+  - key: alibaba2026-paraformer-filter
+    title: Paraformer recorded speech recognition RESTful API (special_word_filter parameter)
+    authors: [Alibaba Cloud Model Studio]
+    venue: Alibaba Cloud documentation
+    year: 2026
+    url: https://www.alibabacloud.com/help/en/model-studio/paraformer-recorded-speech-recognition-restful-api
+    verified: true
+    cluster: asr
+    grounded: false
+    source: https://www.alibabacloud.com/help/en/model-studio/paraformer-recorded-speech-recognition-restful-api
+    note: engine extract failed (iframe or fidelity); original page saved and read in full.
+    grounded: false
+    source: https://www.alibabacloud.com/help/en/model-studio/paraformer-recorded-speech-recognition-restful-api
+    note: engine extract failed (iframe or fidelity); original page saved and read in full.
+  - key: nafnlaus2024-shrimpmoss
+    title: ShrimpMoss_Chinese_Censorship_Abliteration (dataset card)
+    authors: [Nafnlaus]
+    venue: Hugging Face dataset
+    year: 2024
+    url: https://huggingface.co/datasets/Nafnlaus/ShrimpMoss_Chinese_Censorship_Abliteration
+    verified: true
+    cluster: removal-datasets
+    grounded: true
+    fetched: 2026-11-07
+  - key: braindao2025-r1-1776-mini-preference
+    title: r1-1776-mini-preference (dataset card)
+    authors: [braindao]
+    venue: Hugging Face dataset
+    year: 2025
+    url: https://huggingface.co/datasets/braindao/r1-1776-mini-preference
+    verified: true
+    cluster: removal-datasets
+    grounded: true
+    fetched: 2026-11-07
+  - key: hudsongouge2026-anti-ccp-decensor
+    title: anti-ccp-decensor (dataset card)
+    authors: [hudsongouge]
+    venue: Hugging Face dataset
+    year: 2026
+    url: https://huggingface.co/datasets/hudsongouge/anti-ccp-decensor
+    verified: true
+    cluster: removal-datasets
+    grounded: true
+    fetched: 2026-11-07
+  - key: lastbattle2026-china-uncensored
+    title: china-uncensored (dataset card)
+    authors: [lastbattle]
+    venue: Hugging Face dataset
+    year: 2026
+    url: https://huggingface.co/datasets/lastbattle/china-uncensored
+    verified: true
+    cluster: removal-datasets
+    grounded: true
+    fetched: 2026-11-07
+  - key: charlesbon2025-sensitive-topics-qa
+    title: chinese-sensitive-topics-qa (dataset card)
+    authors: [CharlesBon]
+    venue: Hugging Face dataset
+    year: 2025
+    url: https://huggingface.co/datasets/CharlesBon/chinese-sensitive-topics-qa
+    verified: true
+    cluster: removal-datasets
+    grounded: true
+    fetched: 2026-11-07
+  - key: qwen2026-qwen3-asr
+    title: Qwen3-ASR Technical Report
+    authors: [Qwen Team]
+    venue: arXiv preprint
+    year: 2026
+    arxiv: "2601.21337"
+    verified: true
+    cluster: asr
+    grounded: true
+    fetched: 2026-11-07
+  - key: funasr2025-technical-report
+    title: Fun-ASR Technical Report
+    authors: [Tongyi Fun Team]
+    venue: arXiv preprint
+    year: 2025
+    arxiv: "2509.12508"
+    verified: true
+    cluster: asr
+    grounded: true
+    fetched: 2026-11-07
