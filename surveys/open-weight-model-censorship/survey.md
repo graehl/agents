@@ -34,9 +34,15 @@ email parameter.
     al. 2024 (hosted translation censorship).
 - **Round 3.** Forward citers of Ruo, Cunningham and Yong. Nothing
   relevant.
-  - The Semantic Scholar lookup for Ruo used a guessed DOI that
-    resolved to an unrelated paper, and OpenAlex had no match. Ruo's own
-    forward citers were therefore not reached.
+  - Ruo's real identifier: its FOCI landing page shows no DOI, and
+    OpenAlex has no record. A paced Semantic Scholar title match
+    resolved it to paperId `b2dfa132502093edbc27f0594c05109138ad6d88`
+    (CorpusId 295157583).
+  - Its four forward citers are R1dacted (already in the survey), a
+    PoPETs 2026 study of book censorship on Amazon, and two versions of
+    a general internet-censorship taxonomy survey. None is
+    high-relevance, so nothing was added. An earlier guessed-DOI lookup
+    had resolved to an unrelated paper; this check supersedes it.
 - **Stopping condition.** Round 3 added no new high-relevance paper, so
   snowballing stopped there. The Zhu 2026 meta-survey's reference list
   likewise held nothing new on the crux.
