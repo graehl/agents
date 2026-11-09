@@ -42,7 +42,9 @@ class Config:
         path = path.resolve()
         data = json.loads(path.read_text())
         if not isinstance(data, dict):
-            raise ValueError(f"Config must be a JSON object: {path}")  # noqa: TRY004 -- bad input file, not a caller type error
+            raise ValueError(
+                f"Config must be a JSON object: {path}"
+            )  # noqa: TRY004 -- bad input file, not a caller type error
         return cls(data, path.parent, path, allowed)
 
     def get(self, key: str, default=None):
