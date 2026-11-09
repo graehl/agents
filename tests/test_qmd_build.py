@@ -285,6 +285,19 @@ def test_html_source_map_end_to_end(tmp_path):
 
 
 @pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_html_source_map_uses_rendered_heading_ids(tmp_path):
+    # Quarto's automatic id keeps the period in "0.5"; GitHub-style ids drop it.
+    root = manuscript(tmp_path / "paper")
+    method = root.parent / "sections/_20-method.qmd"
+    method.write_text(method.read_text() + "\n## Gains of 0.5 points\n\nSmall.\n")
+    command = [str(REPO / "scripts/qmd-html"), str(root), "--acli-quiet"]
+    run = subprocess.run(command, capture_output=True, text=True)
+    assert run.returncode == 0, run.stderr
+    html = (root.parent / "_build/index.html").read_text()
+    assert 'id="gains-of-0.5-points"' in html
+
+
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
 def test_html_links_no_format_it_did_not_build(tmp_path):
     declared = "format:\n  html: default\n  pdf:\n    output-file: paper.pdf\n"
     root = tmp_path / "index.qmd"

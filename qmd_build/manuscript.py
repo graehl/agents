@@ -131,25 +131,31 @@ def fragment_anchors(sections: list[Path], quarto: str, home: Path) -> dict[str,
     """
     anchors = {}
     for section in sections:
-        parsed = json.loads(
-            subprocess.check_output(
-                [
-                    quarto,
-                    "pandoc",
-                    str(section),
-                    "--from",
-                    "commonmark_x",
-                    "--to",
-                    "json",
-                ],
-                text=True,
-            )
-        )
-        header = next((b for b in parsed["blocks"] if b["t"] == "Header"), None)
-        if header is None:
+        headings = rendered_headings(section, quarto)
+        if not headings:
             raise ValueError(f"Included fragment has no heading: {section}")
-        anchors[fragment_key(section, home)] = header["c"][1][0]
+        anchors[fragment_key(section, home)] = headings[0][1]
     return anchors
+
+
+def rendered_headings(path: Path, quarto: str) -> list[tuple[int, str]]:
+    """Each top-level heading's level and id as Quarto renders the fragment.
+
+    Quarto reads Pandoc markdown, whose automatic identifiers keep periods
+    (`0.5` stays `0.5`); the CommonMark reader's GitHub-style identifiers drop
+    them, so ids must come from this reader even when positions do not.
+    """
+    parsed = json.loads(
+        subprocess.check_output(
+            [quarto, "pandoc", str(path), "--from", "markdown", "--to", "json"],
+            text=True,
+        )
+    )
+    return [
+        (block["c"][0], block["c"][1][0])
+        for block in parsed["blocks"]
+        if block["t"] == "Header"
+    ]
 
 
 def front_matter(root: Path, key: str) -> str | None:

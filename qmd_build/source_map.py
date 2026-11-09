@@ -23,6 +23,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote_to_bytes
 
+from .manuscript import rendered_headings
+
 ATTRIBUTE = "data-qmd-source"
 IMAGE_ATTRIBUTE = "data-qmd-image-source"
 
@@ -56,6 +58,15 @@ def section_source_targets(path: Path, quarto: str, relative_to: Path) -> list[d
     )
     lines = source.splitlines(keepends=True)
     name = os.path.relpath(path, relative_to)
+    # Positions come from the CommonMark reader, ids from the reader Quarto
+    # renders with; their automatic identifiers differ.
+    rendered = rendered_headings(path, quarto)
+    positioned = [b["c"][0] for b in parsed["blocks"] if b["t"] == "Header"]
+    if [level for level, _ in rendered] != positioned:
+        raise ValueError(
+            f"Markdown and CommonMark readers disagree on headings: {path}"
+        )
+    rendered_ids = iter(anchor for _, anchor in rendered)
     headings = []
     for block in parsed["blocks"]:
         if block["t"] != "Header":
@@ -68,7 +79,7 @@ def section_source_targets(path: Path, quarto: str, relative_to: Path) -> list[d
         line = int(match[1]) - 1
         if not re.match(r"^#{1,6}\s", lines[line]):
             raise ValueError(f"Source editing requires ATX headings: {path}:{line + 1}")
-        headings.append((level, line, attributes[0]))
+        headings.append((level, line, next(rendered_ids)))
     preamble = "".join(lines[: headings[0][1]]) if headings else ""
     # A self-contained root document may carry YAML front matter first.
     preamble = re.sub(r"\A---\n.*?\n---\n", "", preamble, flags=re.DOTALL)
