@@ -268,7 +268,10 @@ its letter names exactly one note in the document. PDF output is unchanged.
 **Wide tables:** keep prose at the default body width, but put a table that
 would wrap there in `::: {.column-screen-inset}` (graehl, 2026-10-22: an
 over-width table covering the margin table of contents beats cramped cells).
-The paper template's `paper.css` makes it opaque over the TOC. Cut prose
+The paper template's `paper.css` makes it opaque over the TOC and keeps the
+TOC expanded in the margin (graehl, 2026-11-09) instead of Quarto's
+"Table of contents" dropdown, which Quarto otherwise substitutes for the
+whole page once any page-wide block exists. Cut prose
 from cells into notes before widening further.
 
 Follow [`document-writing-browser-interactive`](document-writing-browser-interactive.md)

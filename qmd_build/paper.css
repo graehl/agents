@@ -11,3 +11,23 @@
 .column-screen-inset-right {
   background: var(--bs-body-bg, #fff);
 }
+
+/* Keep the margin TOC expanded wherever Quarto shows the margin column
+   (768px and wider). Quarto's quarto.js otherwise rolls the TOC up into a
+   "Table of contents" dropdown when it vertically overlaps any page-wide
+   block, and its overlap tracker never drops an element once registered, so
+   one page-wide table anywhere collapses the TOC for the whole page.
+   The rule above already lets those blocks cover the TOC, so the rollup buys
+   nothing. It does this with inline styles on the sidebar's children plus a
+   fixed #quarto-toc-toggle placeholder; override both. This also disables
+   Quarto reader mode's TOC hiding, which these papers do not enable. */
+@media (min-width: 768px) {
+  #quarto-margin-sidebar > * {
+    opacity: 1 !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+  }
+  #quarto-toc-toggle {
+    display: none !important;
+  }
+}
