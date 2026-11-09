@@ -1,0 +1,524 @@
+# Metadata manifest for surveys/asr-lm-fusion.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate
+# (here: the arXiv API record, ACL Anthology BibTeX, dblp or OpenAlex,
+# named in `source` when not arXiv); `verified: false` means it is
+# pretrained-recall reconstruction and the arxiv/venue/year/authors must be
+# confirmed on a grounded pass. Do not cite a verified:false entry as
+# authoritative.
+#
+# Clusters: causal-lms, rescoring, lm-aware-training, data-scale.
+#
+# `read:` records what was actually read when it is less than a committed
+# extract (saved HTML, abstract only, or not read). PDF-only papers were not
+# read in this pass: marker-pdf on the GPU was out of scope and CPU
+# extraction was abandoned as too slow under host load.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: asr-lm-fusion
+  coverage_cutoff: 2026-11-09
+  grounding_mode: grounded
+
+papers:
+  - key: kannan2018-sf-analysis
+    title: 'An analysis of incorporating an external language model into a sequence-to-sequence model'
+    authors: ['Anjuli Kannan', 'Yonghui Wu', 'Patrick Nguyen', 'Tara N. Sainath', 'Zhifeng Chen', 'Rohit Prabhavalkar']
+    venue: ICASSP 2018
+    year: 2018
+    arxiv: '1712.01996'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: causal-lms
+  - key: toshniwal2018-lm-integration
+    title: 'A Comparison of Techniques for Language Model Integration in Encoder-Decoder Speech Recognition'
+    authors: ['Shubham Toshniwal', 'Anjuli Kannan', 'Chung-Cheng Chiu', 'Yonghui Wu', 'Tara N Sainath', 'Karen Livescu']
+    venue: SLT 2018
+    year: 2018
+    arxiv: '1807.10857'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/lm-aware-training.md
+    cluster: lm-aware-training
+  - key: irie2019-deep-transformers
+    title: 'Language Modeling with Deep Transformers'
+    authors: ['Kazuki Irie', 'Albert Zeyer', 'Ralf Schlüter', 'Hermann Ney']
+    venue: Interspeech 2019
+    year: 2019
+    arxiv: '1905.04226'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: causal-lms
+  - key: likhomanenko2019-lexicon-free
+    title: 'Who Needs Words? Lexicon-Free Speech Recognition'
+    authors: ['Tatiana Likhomanenko', 'Gabriel Synnaeve', 'Ronan Collobert']
+    venue: Interspeech 2019
+    year: 2019
+    arxiv: '1904.04479'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: causal-lms
+  - key: synnaeve2019-e2e-modern
+    title: 'End-to-end ASR: from Supervised to Semi-Supervised Learning with Modern Architectures'
+    authors: ['Gabriel Synnaeve', 'Qiantong Xu', 'Jacob Kahn', 'Tatiana Likhomanenko', 'Edouard Grave', 'Vineel Pratap', 'Anuroop Sriram', 'Vitaliy Liptchinsky', 'Ronan Collobert']
+    venue: ICML SAS Workshop 2020
+    year: 2020
+    arxiv: '1911.08460'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: causal-lms
+  - key: baevski2020-wav2vec2
+    title: 'wav2vec 2.0: A Framework for Self-Supervised Learning of Speech Representations'
+    authors: ['Alexei Baevski', 'Henry Zhou', 'Abdelrahman Mohamed', 'Michael Auli']
+    venue: NeurIPS 2020
+    year: 2020
+    arxiv: '2006.11477'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    cluster: data-scale
+  - key: kim2021-nnlm-streaming-rnnt
+    title: 'Improved Neural Language Model Fusion for Streaming Recurrent Neural Network Transducer'
+    authors: ['Suyoun Kim', 'Yuan Shangguan', 'Jay Mahadeokar', 'Antoine Bruguier', 'Christian Fuegen', 'Michael L. Seltzer', 'Duc Le']
+    venue: ICASSP 2021
+    year: 2021
+    arxiv: '2010.13878'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: causal-lms
+  - key: huang2021-lookuplm
+    title: 'Lookup-Table Recurrent Language Models for Long Tail Speech Recognition'
+    authors: ['W. Ronny Huang', 'Tara N. Sainath', 'Cal Peyser', 'Shankar Kumar', 'David Rybach', 'Trevor Strohman']
+    venue: Interspeech 2021
+    year: 2021
+    arxiv: '2104.04552'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: causal-lms
+  - key: cabrera2021-lm-fusion-streaming
+    title: 'Language model fusion for streaming end to end speech recognition'
+    authors: ['Rodrigo Cabrera', 'Xiaofeng Liu', 'Mohammadreza Ghodsi', 'Zebulun Matteson', 'Eugene Weinstein', 'Anjuli Kannan']
+    venue: arXiv preprint 2021
+    year: 2021
+    arxiv: '2104.04487'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: lm-aware-training
+  - key: lei2021-srupp
+    title: 'When Attention Meets Fast Recurrence: Training Language Models with Reduced Compute'
+    authors: ['Tao Lei']
+    venue: EMNLP 2021
+    year: 2021
+    arxiv: '2102.12459'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: causal-lms
+  - key: peng2023-rwkv
+    title: 'RWKV: Reinventing RNNs for the Transformer Era'
+    authors: ['Bo Peng', 'Eric Alcaide', 'Quentin Anthony', 'Alon Albalak', 'Samuel Arcadinho', 'Stella Biderman', 'Huanqi Cao', 'Xin Cheng', 'Michael Chung', 'Matteo Grella', 'Kranthi Kiran GV', 'Xuzheng He', 'Haowen Hou', 'Jiaju Lin', 'Przemyslaw Kazienko', 'Jan Kocon', 'Jiaming Kong', 'Bartlomiej Koptyra', 'Hayden Lau', 'Krishna Sri Ipsit Mantri', 'Ferdinand Mom', 'Atsushi Saito', 'Guangyu Song', 'Xiangru Tang', 'Bolun Wang', 'Johan S. Wind', 'Stanislaw Wozniak', 'Ruichong Zhang', 'Zhenyuan Zhang', 'Qihang Zhao', 'Peng Zhou', 'Qinghua Zhou', 'Jian Zhu', 'Rui-Jie Zhu']
+    venue: Findings of EMNLP 2023
+    year: 2023
+    arxiv: '2305.13048'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: causal-lms
+  - key: gu2023-mamba
+    title: 'Mamba: Linear-Time Sequence Modeling with Selective State Spaces'
+    authors: ['Albert Gu', 'Tri Dao']
+    venue: arXiv preprint 2023
+    year: 2023
+    arxiv: '2312.00752'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/causal-fusion-lms.md
+    cluster: causal-lms
+  - key: dauphin2017-gcnn
+    title: 'Language Modeling with Gated Convolutional Networks'
+    authors: ['Yann N. Dauphin', 'Angela Fan', 'Michael Auli', 'David Grangier']
+    venue: ICML 2017
+    year: 2017
+    arxiv: '1612.08083'
+    source: 'arXiv API record; venue from OpenAlex'
+    verified: true
+    grounded: false
+    role: architecture background; not read in this pass
+    fetched: null
+    cluster: causal-lms
+  - key: bradbury2017-qrnn
+    title: 'Quasi-Recurrent Neural Networks'
+    authors: ['James Bradbury', 'Stephen Merity', 'Caiming Xiong', 'Richard Socher']
+    venue: arXiv preprint 2016
+    year: 2016
+    arxiv: '1611.01576'
+    source: 'arXiv API record'
+    verified: true
+    grounded: false
+    role: architecture background; not read in this pass
+    fetched: null
+    cluster: causal-lms
+  - key: lei2018-sru
+    title: 'Simple Recurrent Units for Highly Parallelizable Recurrence'
+    authors: ['Tao Lei', 'Yu Zhang', 'Sida I. Wang', 'Hui Dai', 'Yoav Artzi']
+    venue: EMNLP 2018
+    year: 2018
+    arxiv: '1709.02755'
+    source: 'arXiv API record; venue from OpenAlex'
+    verified: true
+    grounded: false
+    role: architecture background; not read in this pass
+    fetched: null
+    cluster: causal-lms
+  - key: dai2019-transformer-xl
+    title: 'Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context'
+    authors: ['Zihang Dai', 'Zhilin Yang', 'Yiming Yang', 'Jaime Carbonell', 'Quoc V. Le', 'Ruslan Salakhutdinov']
+    venue: ACL 2019
+    year: 2019
+    arxiv: '1901.02860'
+    source: 'arXiv API record (comment: ACL 2019)'
+    verified: true
+    grounded: false
+    role: architecture background; not read in this pass
+    fetched: null
+    cluster: causal-lms
+  - key: damavandi2016-nngrams
+    title: 'NN-grams: Unifying neural network and n-gram language models for Speech Recognition'
+    authors: ['Babak Damavandi', 'Shankar Kumar', 'Noam Shazeer', 'Antoine Bruguier']
+    venue: Interspeech 2016
+    year: 2016
+    arxiv: '1606.07470'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    cluster: data-scale
+  - key: hu2023-multilingual-sf-llm
+    title: 'Massively Multilingual Shallow Fusion with Large Language Models'
+    authors: ['Ke Hu', 'Tara N. Sainath', 'Bo Li', 'Nan Du', 'Yanping Huang', 'Andrew M. Dai', 'Yu Zhang', 'Rodrigo Cabrera', 'Zhifeng Chen', 'Trevor Strohman']
+    venue: ICASSP 2023
+    year: 2023
+    arxiv: '2302.08917'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    cluster: data-scale
+  - key: salazar2020-mlm-scoring
+    title: 'Masked Language Model Scoring'
+    authors: ['Julian Salazar', 'Davis Liang', 'Toan Q. Nguyen', 'Katrin Kirchhoff']
+    venue: ACL 2020
+    year: 2020
+    arxiv: '1910.14659'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/bidirectional-rescoring.md
+    cluster: rescoring
+  - key: xu2022-rescorebert
+    title: 'RescoreBERT: Discriminative Speech Recognition Rescoring with BERT'
+    authors: ['Liyan Xu', 'Yile Gu', 'Jari Kolehmainen', 'Haidar Khan', 'Ankur Gandhe', 'Ariya Rastrow', 'Andreas Stolcke', 'Ivan Bulyko']
+    venue: ICASSP 2022
+    year: 2022
+    arxiv: '2202.01094'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/bidirectional-rescoring.md
+    cluster: rescoring
+  - key: futami2021-electra-rescoring
+    title: 'ASR Rescoring and Confidence Estimation with ELECTRA'
+    authors: ['Hayato Futami', 'Hirofumi Inaguma', 'Masato Mimura', 'Shinsuke Sakai', 'Tatsuya Kawahara']
+    venue: ASRU 2021
+    year: 2021
+    arxiv: '2110.01857'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/bidirectional-rescoring.md
+    cluster: rescoring
+  - key: udagawa2022-large-lm-rescoring
+    title: 'Effect and Analysis of Large-scale Language Model Rescoring on Competitive ASR Systems'
+    authors: ['Takuma Udagawa', 'Masayuki Suzuki', 'Gakuto Kurata', 'Nobuyasu Itoh', 'George Saon']
+    venue: Interspeech 2022
+    year: 2022
+    arxiv: '2204.00212'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/bidirectional-rescoring.md
+    cluster: rescoring
+  - key: li2020-parallel-rescoring
+    title: 'Parallel Rescoring with Transformer for Streaming On-Device Speech Recognition'
+    authors: ['Wei Li', 'James Qin', 'Chung-Cheng Chiu', 'Ruoming Pang', 'Yanzhang He']
+    venue: Interspeech 2020
+    year: 2020
+    arxiv: '2008.13093'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/bidirectional-rescoring.md
+    cluster: rescoring
+  - key: gandhe2020-audio-attention-dlm
+    title: 'Audio-attention discriminative language model for ASR rescoring'
+    authors: ['Ankur Gandhe', 'Ariya Rastrow']
+    venue: ICASSP 2020
+    year: 2020
+    arxiv: '1912.03363'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/bidirectional-rescoring.md
+    cluster: rescoring
+  - key: xu2018-pruned-lattice
+    title: 'A Pruned RNNLM Lattice-Rescoring Algorithm for Automatic Speech Recognition'
+    authors: ['Hainan Xu', 'Tongfei Chen', 'Dongji Gao', 'Yiming Wang', 'Ke Li', 'Nagendra Goel', 'Yishay Carmiel', 'Daniel Povey', 'Sanjeev Khudanpur']
+    venue: ICASSP 2018
+    year: 2018
+    url: 'https://www.danielpovey.com/files/2018_icassp_lattice_pruning.pdf'
+    source: 'https://dblp.org/rec/conf/icassp/XuCGWLGCPK18'
+    verified: true
+    grounded: false
+    read: not read (PDF-only); metadata from dblp via web search
+    fetched: null
+    cluster: rescoring
+  - key: prabhavalkar2018-mwer
+    title: 'Minimum Word Error Rate Training for Attention-based Sequence-to-Sequence Models'
+    authors: ['Rohit Prabhavalkar', 'Tara N. Sainath', 'Yonghui Wu', 'Patrick Nguyen', 'Zhifeng Chen', 'Chung-Cheng Chiu', 'Anjuli Kannan']
+    venue: ICASSP 2018
+    year: 2018
+    arxiv: '1712.01818'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/lm-aware-training.md
+    cluster: lm-aware-training
+  - key: meng2021-mwer-lm-fusion
+    title: 'Minimum Word Error Rate Training with Language Model Fusion for End-to-End Speech Recognition'
+    authors: ['Zhong Meng', 'Yu Wu', 'Naoyuki Kanda', 'Liang Lu', 'Xie Chen', 'Guoli Ye', 'Eric Sun', 'Jinyu Li', 'Yifan Gong']
+    venue: Interspeech 2021
+    year: 2021
+    url: 'https://ar5iv.labs.arxiv.org/html/2106.02302'
+    source: 'arXiv 2106.02302 (no arxiv.org/html view; ar5iv conversion failed)'
+    verified: true
+    grounded: false
+    read: arXiv API abstract only, 2026-11-09
+    fetched: null
+    concept_page: concepts/lm-aware-training.md
+    cluster: lm-aware-training
+  - key: wang2022-lm-aware-mwer
+    title: 'Improving Rare Word Recognition with LM-aware MWER Training'
+    authors: ['Weiran Wang', 'Tongzhou Chen', 'Tara N. Sainath', 'Ehsan Variani', 'Rohit Prabhavalkar', 'Ronny Huang', 'Bhuvana Ramabhadran', 'Neeraj Gaur', 'Sepand Mavandadi', 'Cal Peyser', 'Trevor Strohman', 'Yanzhang He', 'David Rybach']
+    venue: Interspeech 2022
+    year: 2022
+    arxiv: '2204.07553'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/lm-aware-training.md
+    cluster: lm-aware-training
+  - key: mcdermott2019-density-ratio
+    title: 'A Density Ratio Approach to Language Model Fusion in End-To-End Automatic Speech Recognition'
+    authors: ['Erik McDermott', 'Hasim Sak', 'Ehsan Variani']
+    venue: ASRU 2019
+    year: 2019
+    arxiv: '2002.11268'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/ilm-correction.md
+    cluster: lm-aware-training
+  - key: meng2021-ilme
+    title: 'Internal Language Model Estimation for Domain-Adaptive End-to-End Speech Recognition'
+    authors: ['Zhong Meng', 'Sarangarajan Parthasarathy', 'Eric Sun', 'Yashesh Gaur', 'Naoyuki Kanda', 'Liang Lu', 'Xie Chen', 'Rui Zhao', 'Jinyu Li', 'Yifan Gong']
+    venue: SLT 2021
+    year: 2021
+    arxiv: '2011.01991'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/ilm-correction.md
+    cluster: lm-aware-training
+  - key: variani2020-hat
+    title: 'Hybrid Autoregressive Transducer (hat)'
+    authors: ['Ehsan Variani', 'David Rybach', 'Cyril Allauzen', 'Michael Riley']
+    venue: ICASSP 2020
+    year: 2020
+    arxiv: '2003.07705'
+    source: 'arXiv API record; venue from OpenAlex'
+    verified: true
+    grounded: false
+    read: saved arXiv HTML read 2026-11-09; extract failed the fidelity check, not committed
+    fetched: null
+    concept_page: concepts/ilm-correction.md
+    cluster: lm-aware-training
+  - key: zeyer2021-ilm-prior
+    title: 'Librispeech Transducer Model with Internal Language Model Prior Correction'
+    authors: ['Albert Zeyer', 'André Merboldt', 'Wilfried Michel', 'Ralf Schlüter', 'Hermann Ney']
+    venue: Interspeech 2021
+    year: 2021
+    arxiv: '2104.03006'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/ilm-correction.md
+    cluster: lm-aware-training
+  - key: zhou2022-lm-integration-rnnt
+    title: 'On Language Model Integration for RNN Transducer based Speech Recognition'
+    authors: ['Wei Zhou', 'Zuoyun Zheng', 'Ralf Schlüter', 'Hermann Ney']
+    venue: ICASSP 2022
+    year: 2022
+    arxiv: '2110.06841'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/ilm-correction.md
+    cluster: lm-aware-training
+  - key: zheng2022-lodr
+    title: 'An Empirical Study of Language Model Integration for Transducer based Speech Recognition'
+    authors: ['Huahuan Zheng', 'Keyu An', 'Zhijian Ou', 'Chen Huang', 'Ke Ding', 'Guanglu Wan']
+    venue: Interspeech 2022
+    year: 2022
+    arxiv: '2203.16776'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/ilm-correction.md
+    cluster: lm-aware-training
+  - key: das2023-mask-the-bias
+    title: 'Mask The Bias: Improving Domain-Adaptive Generalization of CTC-based ASR with Internal Language Model Estimation'
+    authors: ['Nilaksh Das', 'Monica Sunkara', 'Sravan Bodapati', 'Jinglun Cai', 'Devang Kulshreshtha', 'Jeff Farris', 'Katrin Kirchhoff']
+    venue: ICASSP 2023
+    year: 2023
+    arxiv: '2305.03837'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/ilm-correction.md
+    cluster: lm-aware-training
+  - key: yang2025-ctc-ilm
+    title: 'Label-Context-Dependent Internal Language Model Estimation for CTC'
+    authors: ['Zijian Yang', 'Minh-Nghia Phan', 'Ralf Schlüter', 'Hermann Ney']
+    venue: Interspeech 2025
+    year: 2025
+    arxiv: '2506.06096'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/ilm-correction.md
+    cluster: lm-aware-training
+  - key: sriram2018-cold-fusion
+    title: 'Cold Fusion: Training Seq2Seq Models Together with Language Models'
+    authors: ['Anuroop Sriram', 'Heewoo Jun', 'Sanjeev Satheesh', 'Adam Coates']
+    venue: Interspeech 2018
+    year: 2018
+    arxiv: '1708.06426'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/lm-aware-training.md
+    cluster: lm-aware-training
+  - key: gulcehre2015-deep-fusion
+    title: 'On Using Monolingual Corpora in Neural Machine Translation'
+    authors: ['Caglar Gulcehre', 'Orhan Firat', 'Kelvin Xu', 'Kyunghyun Cho', 'Loic Barrault', 'Huei-Chi Lin', 'Fethi Bougares', 'Holger Schwenk', 'Yoshua Bengio']
+    venue: arXiv preprint 2015
+    year: 2015
+    arxiv: '1503.03535'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/lm-aware-training.md
+    cluster: lm-aware-training
+  - key: shan2019-component-fusion
+    title: 'Component Fusion: Learning Replaceable Language Model Component for End-to-End Speech Recognition System'
+    authors: ['Changhao Shan', 'Chao Weng', 'Guangsen Wang', 'Dan Su', 'Min Luo', 'Dong Yu', 'Lei Xie']
+    venue: ICASSP 2019
+    year: 2019
+    source: 'https://dblp.org/rec/conf/icassp/ShanWWSLYX19.html (metadata and abstract only; no open full text found)'
+    verified: true
+    grounded: false
+    fetched: null
+    cluster: lm-aware-training
+  - key: yang2023-lm-seq-disc-transducer
+    title: 'Investigating the Effect of Language Models in Sequence Discriminative Training for Neural Transducers'
+    authors: ['Zijian Yang', 'Wei Zhou', 'Ralf Schlüter', 'Hermann Ney']
+    venue: ASRU 2023
+    year: 2023
+    arxiv: '2310.07345'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/lm-aware-training.md
+    cluster: lm-aware-training
+  - key: kubo2022-lm-embedding-transfer
+    title: 'Knowledge Transfer from Large-scale Pretrained Language Models to End-to-end Speech Recognizers'
+    authors: ['Yotaro Kubo', 'Shigeki Karita', 'Michiel Bacchiani']
+    venue: ICASSP 2022
+    year: 2022
+    arxiv: '2202.07894'
+    verified: true
+    grounded: true
+    fetched: 2026-11-09
+    concept_page: concepts/lm-aware-training.md
+    cluster: lm-aware-training
+  - key: maas2015-lexicon-free
+    title: 'Lexicon-Free Conversational Speech Recognition with Neural Networks'
+    authors: ['Andrew Maas', 'Ziang Xie', 'Dan Jurafsky', 'Andrew Ng']
+    venue: NAACL-HLT 2015
+    year: 2015
+    url: 'https://aclanthology.org/N15-1038.pdf'
+    source: 'https://aclanthology.org/N15-1038.bib'
+    verified: true
+    grounded: false
+    read: not read (PDF-only; CPU extraction abandoned under host load)
+    fetched: null
+    cluster: causal-lms
+  - key: liu2024-lm-lowresource
+    title: 'How Important is a Language Model for Low-resource ASR?'
+    authors: ['Zoey Liu', 'Nitin Venkateswaran', 'Eric Le Ferrand', 'Emily Prud''hommeaux']
+    venue: Findings of ACL 2024
+    year: 2024
+    url: 'https://aclanthology.org/2024.findings-acl.13.pdf'
+    source: 'https://aclanthology.org/2024.findings-acl.13.bib'
+    verified: true
+    grounded: false
+    read: not read (PDF-only; CPU extraction abandoned under host load)
+    fetched: null
+    cluster: data-scale
+  - key: smit2017-char-units
+    title: 'Character-based units for unlimited vocabulary continuous speech recognition'
+    authors: ['Peter Smit', 'Siva Reddy Gangireddy', 'Seppo Enarvi', 'Sami Virpioja', 'Mikko Kurimo']
+    venue: ASRU 2017
+    year: 2017
+    url: 'https://senarvi.github.io/publications/asru2017.pdf'
+    source: 'OpenAlex record (ASRU 2017); authors to confirm from the PDF title block'
+    verified: false
+    grounded: false
+    read: not read (PDF-only); claims cited only from a web-search snippet
+    fetched: null
+    cluster: data-scale
