@@ -255,6 +255,11 @@ def render_root(args, config: Config, root: Path) -> dict:
                     stderr=subprocess.STDOUT,
                     check=False,
                 )
+            # The staged sibling directory is deleted after the build, so a
+            # path into it is a dead link; name the real document directory.
+            log_path.write_text(
+                log_path.read_text().replace(staged_root.parent.name, home.name)
+            )
             if result.returncode:
                 raise ValueError(
                     f"quarto render failed ({result.returncode}); see {log_path}"
