@@ -110,10 +110,13 @@ Discuss first instead of acting when the change would:
 - change what text, a document or a plan says or intends, beyond keeping
   it accurate to code that changed within its intent.
 
-Work projects under Gerrit review (`~/x`, `~/aip-lwportable-app`, any
-checkout whose origin is the work Gerrit server) are excepted: their own
-instructions set the authority, and without one, unasked restructures stay
-recommendations. Push, history-rewrite and destructive gates are unchanged.
+Work projects are excepted: `~/x` and, generally, the `aip-*` projects on
+the work Gerrit server (`~/aip-lwportable-app`, …). Their own instructions
+set the authority, and without one, unasked restructures stay
+recommendations. `aip-draft` is not excepted although it lives on that
+server: it is `~/draft` (also checked out at `~/aip-draft`), fully
+graehl's, and the go-for-it default applies in full. Push, history-rewrite
+and destructive gates are unchanged.
 
 ## Disposition
 
