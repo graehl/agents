@@ -36,8 +36,21 @@
 				: null;
 		}
 
+		// Closes the card once its link, having been visible, no longer is:
+		// scrolled out of the page or of a scrolling box, or hidden by a
+		// resize. A link still on its way into view (a smooth focus scroll)
+		// has not been visible yet and keeps its card.
+		let seen = false;
+		const watcher = new IntersectionObserver((entries) => {
+			const visible = entries.at(-1).isIntersecting;
+			if (visible) seen = true;
+			else if (seen) hide();
+		});
+
 		function hide() {
 			clearTimeout(timer);
+			watcher.disconnect();
+			seen = false;
 			generation += 1;
 			active?.removeAttribute("aria-expanded");
 			if (card.matches(":popover-open")) card.hidePopover();
@@ -72,6 +85,15 @@
 			const current = ++generation;
 			active = anchor;
 			pinned = pin;
+			// Decided now, not at the observer's first report a frame later:
+			// by then a quick scroll may already have taken the link away.
+			const box = anchor.getBoundingClientRect();
+			seen =
+				box.bottom > 0 &&
+				box.right > 0 &&
+				box.top < innerHeight &&
+				box.left < innerWidth;
+			watcher.observe(anchor);
 			const id = anchor.getAttribute("href").slice(1);
 			const template = templates.get(id);
 			const heading = document.createElement("header");
@@ -155,30 +177,14 @@
 				show(target(event.target), true);
 			}
 		});
-		// Scrolling or resizing moves the link the card belongs to. Focusing a
-		// link below the fold scrolls the page as it opens the card, so the
-		// card follows its link and closes only once the link has left view.
-		function follow() {
-			if (!active) return;
-			const box = active.getBoundingClientRect();
-			const viewport = window.visualViewport;
-			const width = viewport?.width || innerWidth;
-			const height = viewport?.height || innerHeight;
-			if (
-				box.bottom < 0 ||
-				box.top > height ||
-				box.right < 0 ||
-				box.left > width
-			)
-				hide();
-			else place();
-		}
-		window.addEventListener("resize", follow);
-		window.visualViewport?.addEventListener("resize", follow);
+		// Scrolling or resizing moves the link the card belongs to, so the card
+		// is placed again; `watcher` closes it when the link goes out of view.
+		window.addEventListener("resize", place);
+		window.visualViewport?.addEventListener("resize", place);
 		document.addEventListener(
 			"scroll",
 			(event) => {
-				if (!card.contains(event.target)) follow();
+				if (!card.contains(event.target)) place();
 			},
 			true,
 		);

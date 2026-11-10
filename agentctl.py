@@ -2949,10 +2949,10 @@ def process_group_members(pgid: int) -> list[int]:
 
 def ancestor_process_ids(pid: int) -> Iterator[int]:
     """`pid`'s parent, grandparent and so on, stopping before init."""
+    seen = {pid}  # a pid reused while this reads /proc could otherwise loop
     ancestor = _proc_ppid(pid)
-    for _ in range(64):
-        if ancestor is None or ancestor <= 1:
-            return
+    while ancestor is not None and ancestor > 1 and ancestor not in seen:
+        seen.add(ancestor)
         yield ancestor
         ancestor = _proc_ppid(ancestor)
 
@@ -3408,15 +3408,16 @@ def terminate_state(state: dict, *, grace: float, reason: str | None = None) -> 
 
     def signal_run(sig: signal.Signals) -> None:
         targets = left_group.alive()  # listed while their parents still exist
-        # The service unit owns the wrapper cgroup when there is one, and its
-        # signal reaches every process of the run; fall back to the process
-        # group and the listed strays only when systemd could not deliver.
-        if service_unit and stop_user_service(service_unit, sig.name):
-            return
-        try:
-            os.killpg(pgid, sig)
-        except ProcessLookupError:
-            pass
+        # The service unit owns the wrapper cgroup when there is one; fall
+        # back to the process group only when systemd could not deliver.
+        if not (service_unit and stop_user_service(service_unit, sig.name)):
+            try:
+                os.killpg(pgid, sig)
+            except ProcessLookupError:
+                pass
+        # Always: a job can move a process out of the unit's cgroup too (its
+        # own `systemd-run --scope`). One still inside is signalled twice,
+        # which is harmless.
         left_group.signal(targets, sig)
 
     signal_then_kill(

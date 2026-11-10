@@ -883,10 +883,12 @@ def test_fleet_watch_waits_for_either_of_two_local_jobs():
             f"still-running peer job missing: {payload!r}",
         )
     finally:
-        second_gate.write_text("done\n", encoding="utf-8")
         if proc is not None and proc.poll() is None:
             proc.terminate()
             proc.communicate(timeout=2)
+        # Releasing the gate does not wait for the job, and cleanup removes
+        # the gate's directory; stop the job so nothing is left polling.
+        ws.run("stop", "second")
         ws.cleanup()
 
 
@@ -4799,6 +4801,8 @@ def test_stop_issued_from_a_process_the_run_started_completes():
 
 
 def test_remembered_process_that_may_not_be_signalled_is_dropped():
+    if os.geteuid() == 0:
+        return  # root may signal process 1, and this test must never do so
     ws = Workspace()
     try:
         spec = importlib.util.spec_from_file_location(

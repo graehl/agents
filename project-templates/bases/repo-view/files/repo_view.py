@@ -1122,7 +1122,7 @@ class LiveSite:
                 body=b"could not judge this output's freshness; see the server log\n",
             )
         if fresh.recipe:
-            return json_reply(self.builds.start(fresh.recipe, source))
+            return json_reply(self.builds.start(fresh.recipe, source, fresh))
         if fresh.stale:
             return Reply(
                 HTTPStatus.CONFLICT,

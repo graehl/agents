@@ -701,7 +701,12 @@ notices.
   before the first signal, so a child in its own process group (a job under
   `timeout` or `setsid`) is stopped too; the `stop` verb does the same for a
   run it stops from outside. Each process is remembered with its start time,
-  so a reused process id is not signalled. Only a process that had already been
+  so a reused process id is not signalled, and one the user may not signal
+  (started through `sudo`) is left running and not waited for. A `stop`
+  issued from inside the run it stops completes only when its process has
+  left the run's group and the run is not a service unit; otherwise it is
+  killed with the run before recording the result
+  (`gaps/agentctl-stop-from-inside-run.md`). Only a process that had already been
   orphaned outside the wrapper's group before the stop is not found. Later
   edits are not
   violations. The signal that

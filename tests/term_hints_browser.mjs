@@ -49,6 +49,19 @@ try {
 	await page.keyboard.press("Enter");
 	assert.equal(await card.isVisible(), false);
 	await page.setViewportSize({ width: 375, height: 812 });
+	// Resizing makes the page lay its math out again a moment later, which
+	// replaces the link element; a card opened on the old element closes with
+	// it. Click only once the link has been the same element, in the same
+	// place, for a while.
+	await page.waitForFunction(() => {
+		const link = document.querySelector('.math a[href="#term-score"]');
+		const top = link?.getBoundingClientRect().top;
+		const now = performance.now();
+		const was = window.settling ?? {};
+		if (was.link !== link || was.top !== top)
+			window.settling = { link, top, since: now };
+		return innerWidth === 375 && now - window.settling.since > 400;
+	});
 	await score.click();
 	await card.waitFor({ state: "visible" });
 	const bounds = await card.boundingBox();
