@@ -6383,3 +6383,35 @@ Contributing-model: fable-5.2
   records, to score categories on style edits alone.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — agents hold direction authority in graehl's own projects
+
+- **User direction** — discussing a claim that models invest more in
+  project quality when told the code is theirs: "i did not write almost any
+  code in our projects since 1/1/2026. therefore the authority *is*
+  appropriate. however, recorded user decisions warrant discussion before
+  overriding. other than that, full authority (exception: work projects
+  xmt, lwportable app, roughly speaking anything with a gerrit review
+  process. ~/draft is fully mine tho. you can note in the project
+  AGENTS.local". Earlier in the same exchange he said autonomous
+  improvement is unsafe "hip-fire without reviewing docs/plans and updating
+  those".
+- **Change** — a section "Agent authority over code direction" in the
+  private `AGENTS.local.md` of `~/agents` and of `~/draft`. It grants the
+  authority, keeps one limit (recorded user decisions are discussed first),
+  and requires reading governing documents and updating a departed-from
+  design in the same change.
+- **Conflict it resolves** — `AGENTS.frontier.md` § Latitude scales with
+  the user's authorship gauges latitude by git blame. Blame names graehl on
+  agent-written commits, so the gauge read as "his code, go ahead" for a
+  reason opposite to the true one. The global text is unchanged; whether to
+  restate it there is open.
+- **Not covered** — `~/ya`, which has a second core contributor, was not
+  named and has no such section.
+- **Trace** — an agent in `~/draft` sees a module worth restructuring: it
+  reads the governing topic, finds no user-attributed decision against the
+  change, restructures in its own commit and updates the topic. The same
+  agent finding "user, 2026-10-13: Letter with 0.75-inch margins" asks
+  before changing it. An agent in `~/x` keeps recommend-only.
+
+Contributing-model: fable-5.2
