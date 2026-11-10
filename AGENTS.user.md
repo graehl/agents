@@ -114,8 +114,8 @@ Work projects are excepted: `~/x` and, generally, the `aip-*` projects on
 the work Gerrit server (`~/aip-lwportable-app`, …). Their own instructions
 set the authority, and without one, unasked restructures stay
 recommendations. `aip-draft` is not excepted although it lives on that
-server: it is `~/draft` (also checked out at `~/aip-draft`), fully
-graehl's, and the go-for-it default applies in full. Push, history-rewrite
+server: it is `~/draft`, fully graehl's, and the go-for-it default applies
+in full. Push, history-rewrite
 and destructive gates are unchanged.
 
 ## Disposition
