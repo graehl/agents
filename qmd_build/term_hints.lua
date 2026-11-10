@@ -179,11 +179,9 @@ end
 -- Registry: every definition, built-in notation entry and first-mention
 -- paragraph, by ID and by the alias that links to it. A `math` alias matches
 -- TeX tokens. A `prose` alias is authored (`terms=`) and matches plain or
--- formatted words. An `emphasis` alias is a bold or italic name found by
--- implicit discovery; it matches only another bold or italic span with the
--- same text, never plain words.
+-- formatted words.
 local function new_registry()
-	return { by_id = {}, ordered = {}, math = {}, prose = {}, emphasis = {}, first_mentions = 0 }
+	return { by_id = {}, ordered = {}, math = {}, prose = {}, first_mentions = 0 }
 end
 
 local function register(registry, id, content, kind, maths, prose, class)
@@ -262,35 +260,16 @@ local function reference(registry, id)
 	return entry
 end
 
--- Implicit discovery: a paragraph is the one entry for every math symbol and
--- emphasized name it introduces, so its preview is embedded once. Discovery
--- leaves an empty span carrying the entry's ID at the start of the paragraph;
--- emission keeps it as the landing site only when a later paragraph links to
--- it. Symbols are taken from math only: outside math an arrow or a relation
--- sign is punctuation.
-
--- Emphasis marks stress ("*only* a sketch"), structure ("**Setup.**", a bold
--- table cell) and newly introduced terms alike, and formatting cannot tell
--- them apart. Discovery takes only the case it can read as an introduction:
--- a name of two or more words, each of letters, digits or hyphens, set inside
--- running text. Stress falls on one word, a run-in heading ends in
--- punctuation and a cell label is its whole block, so none of them qualifies;
--- nor does a one-word term, which needs an authored definition.
-local function names_a_term(text)
-	local words = 0
-	for word in text:gmatch("%S+") do
-		if not word:match("^[%w\128-\255][%w%-\128-\255]*$") then
-			return false
-		end
-		words = words + 1
-	end
-	return words >= 2 and text:match("[%a\128-\255]") ~= nil
-end
-
+-- Implicit discovery: a paragraph is the one entry for every math symbol it
+-- introduces, so its preview is embedded once. Discovery leaves an empty span
+-- carrying the entry's ID at the start of the paragraph; emission keeps it as
+-- the landing site only when a later paragraph links to it. Only math is
+-- read. Outside math an arrow or a relation sign is punctuation, and bold or
+-- italic text marks stress and labels as often as a new term: a prose term
+-- gets links from an authored definition (`terms=`).
 local function discover_first_mentions(registry, block)
-	local in_running_text = #block.content > 1
 	local entry
-	local function introduce(mapping, alias)
+	local function introduce(symbol)
 		if not entry then
 			registry.first_mentions = registry.first_mentions + 1
 			entry = register(
@@ -302,18 +281,7 @@ local function discover_first_mentions(registry, block)
 				{}
 			)
 		end
-		mapping[alias] = entry
-	end
-	local function emphasis(el)
-		local text = stringify(el)
-		if
-			in_running_text
-			and names_a_term(text)
-			and not registry.prose[text]
-			and not registry.emphasis[text]
-		then
-			introduce(registry.emphasis, text)
-		end
+		registry.math[symbol] = entry
 	end
 	pandoc.Span(block.content):walk({
 		traverse = "topdown",
@@ -328,12 +296,10 @@ local function discover_first_mentions(registry, block)
 		Math = function(el)
 			for _, token in ipairs(tokens(el.text)) do
 				if token.symbol and not registry.math[token.text] then
-					introduce(registry.math, token.text)
+					introduce(token.text)
 				end
 			end
 		end,
-		Strong = emphasis,
-		Emph = emphasis,
 	})
 	if entry then
 		block.content:insert(1, pandoc.Span({}, pandoc.Attr(entry.id)))
@@ -525,10 +491,10 @@ end
 -- outside first-mention paragraphs when `own` is nil. A link never points at
 -- the paragraph it sits in: there the reader is already at the first mention.
 local function annotation(registry, max_tokens, phrases, own)
+	-- A bold or italic authored alias is linked whole, keeping its formatting.
 	local function formatted(el)
-		local text = stringify(el)
-		local entry = registry.prose[text] or registry.emphasis[text]
-		if entry and entry ~= own then
+		local entry = registry.prose[stringify(el)]
+		if entry then
 			return link({ el }, entry), false
 		end
 	end

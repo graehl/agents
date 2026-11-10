@@ -79,6 +79,13 @@ def test_math_and_prose_share_explicit_identity(tmp_path: Path) -> None:
     assert r"\termref" not in html and r"\termignore" not in html
     assert '<a href="#term-score" class="term-ref">semantic score</a>,' in html
     assert '(<a href="#term-score" class="term-ref">semantic score</a>),' in html
+    # An authored alias in bold is linked whole and keeps its formatting.
+    assert (
+        '<a href="#term-score" class="term-ref"><strong>semantic score</strong></a>'
+        in html
+    )
+    # Emphasis without an authored alias is never a term.
+    assert "<em>calibrated loss</em> and" in html
     assert 'data-term-kind="First mention"' in html
     assert "<code>s(h,r)</code>" in html
     assert '<a href="https://example.org">semantic score</a>' in html
@@ -137,35 +144,56 @@ IMPLICIT = "---\nterm-hints-implicit: true\n---\n\n"
             "Stage one maps A → B, with x ≤ 3.\n\nLater C → D, with y ≤ 4.\n",
             id="arrows-and-relations-in-prose",
         ),
+        pytest.param(
+            "The *calibrated loss* is new.\n\nThe **calibrated loss** recurs, "
+            "and calibrated loss is plain.\n",
+            id="two-word-name-emphasized-twice",
+        ),
+        pytest.param(
+            "**Key idea**: we train on A.\n\n## Two\n\n**Key idea**: we train on B.\n",
+            id="label-with-colon-outside-bold",
+        ),
+        pytest.param(
+            "**Experimental setup** We train on A.\n\n## Two\n\n"
+            "**Experimental setup** We train on B.\n",
+            id="label-without-punctuation",
+        ),
+        pytest.param(
+            "- **Shared trunk** shares layers.\n- **Split head** does not.\n\nText.\n\n"
+            "- **Shared trunk** costs less.\n- **Split head** costs more.\n",
+            id="list-item-labels",
+        ),
+        pytest.param(
+            "| Method | Score |\n|---|---:|\n| **Shared trunk** (ours) | 14.19 |\n\n"
+            "| Method | Score |\n|---|---:|\n| **Shared trunk** (ours) | 15.20 |\n",
+            id="table-cell-with-suffix",
+        ),
+        pytest.param(
+            "Measured *in vivo* first.\n\nMeasured *in vivo* again.\n",
+            id="foreign-phrase",
+        ),
+        pytest.param(
+            "This is *not at all* the case.\n\nThat is *not at all* required.\n",
+            id="multiword-stress",
+        ),
+        pytest.param(
+            "The map *A → B* holds.\n\nThe map *A → B* recurs.\n",
+            id="arrow-inside-emphasis",
+        ),
+        pytest.param(
+            "The *Zipf law* is new.\n\nA heading follows.\n\n## The *Zipf law* again\n",
+            id="emphasis-in-heading",
+        ),
     ],
 )
-def test_implicit_emphasis_for_stress_or_structure_is_not_a_term(
+def test_implicit_previews_never_take_a_term_from_emphasis(
     tmp_path: Path, body: str
 ) -> None:
+    # Bold or italic text is stress, a label or a term alike; only an authored
+    # definition makes a prose term.
     result = pandoc(tmp_path, IMPLICIT + body)
     assert result.returncode == 0, result.stderr
     assert "term-ref" not in result.stdout and "term-first" not in result.stdout
-
-
-def test_implicit_term_is_a_multiword_name_set_in_running_text(tmp_path: Path) -> None:
-    # The rule in term_hints.lua `names_a_term`: a name of two or more words,
-    # emphasized inside running text, linked from later emphasized uses only.
-    source = (
-        IMPLICIT
-        + "The *calibrated loss* and the ***gated unit*** are introduced here.\n\n"
-        + "Later the **calibrated loss** and *gated unit* recur; "
-        + "calibrated loss is plain.\n"
-    )
-    result = pandoc(tmp_path, source)
-    assert result.returncode == 0, result.stderr
-    first, later = " ".join(result.stdout.split()).split("</p>")[:2]
-    assert "<a " not in first
-    assert (
-        '<a href="#term-first-1" class="term-ref"><strong>calibrated loss</strong></a>'
-        in later
-    )
-    assert '<a href="#term-first-1" class="term-ref"><em>gated unit</em></a>' in later
-    assert later.count("term-ref") == 2 and "; calibrated loss is plain." in later
 
 
 def test_implicit_link_never_points_at_its_own_paragraph(tmp_path: Path) -> None:
@@ -291,8 +319,7 @@ def test_html_builder_runs_a_project_registered_filter_once(tmp_path: Path) -> N
     )
     (tmp_path / "index.qmd").write_text(
         "---\ntitle: Project\n---\n\n## Use\n\n"
-        "The $x$ value is an *introduced term* here.\n\n"
-        "Later $x$ is an *introduced term* again.\n"
+        "The $x$ value is introduced here.\n\nLater $x$ recurs.\n"
     )
     result = subprocess.run(
         [str(REPO / "scripts/qmd-html"), str(tmp_path / "index.qmd"), "--text"],
@@ -311,8 +338,7 @@ def test_html_builder_runs_a_document_registered_filter_once(tmp_path: Path) -> 
     (tmp_path / "index.qmd").write_text(
         f"---\ntitle: Standalone\nfilters:\n  - {FILTER}\n"
         "term-hints-implicit: true\n---\n\n## Use\n\n"
-        "The $x$ value is an *introduced term* here.\n\n"
-        "Later $x$ is an *introduced term* again.\n"
+        "The $x$ value is introduced here.\n\nLater $x$ recurs.\n"
     )
     result = subprocess.run(
         [str(REPO / "scripts/qmd-html"), str(tmp_path / "index.qmd"), "--text"],
