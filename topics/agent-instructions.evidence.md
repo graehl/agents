@@ -6166,3 +6166,17 @@ Contributing-model: fable-5.2
   command would prevent the mistake; none was built.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — follow-up: Opus cites the process-search caution after erring
+
+- **User observation** — the daily mistake is visible because Opus then
+  narrates that it failed to heed the caution and cites the rule.
+- **Reading** — the rule is read and still does not prevent the mistake at
+  the moment the command is written; its observed effect is quick diagnosis
+  afterwards. This supersedes the "unknown" in the preceding entry for the
+  general rule, which is always in the boot. It does not show whether the
+  separate Opus file was read.
+- **Decision** — unchanged. The compose-time check in the Opus file is the
+  part shown not to work, and stays removed.
+
+Contributing-model: fable-5.2
