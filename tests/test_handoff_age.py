@@ -124,6 +124,28 @@ def test_confirm_stamps_gap_front_matter() -> None:
     assert not json.loads(_run("list", str(path)).stdout)["sections"][0]["aged"]
 
 
+def test_edits_through_a_symlink_change_the_real_file() -> None:
+    path = _file(HANDOFF)
+    link = path.with_name("link.md")
+    link.symlink_to(path)
+    _run("confirm", str(link), str(_sections(path)["Undated notes"]["line"]))
+    assert link.is_symlink() and f"confirmed {TODAY}" in path.read_text()
+
+
+def test_dates_in_paths_or_the_future_do_not_make_a_section_fresh() -> None:
+    path = _file("# See runs/2026-11-10/x\n\nA.\n\n# Due 2026-12-01\n\nB.\n")
+    rows = _sections(path)
+    assert rows["See runs/2026-11-10/x"]["date"] is None
+    assert rows["Due 2026-12-01"]["aged"]
+
+
+def test_a_gap_with_an_annotated_date_still_ages_and_confirms() -> None:
+    path = _file(GAP.replace("2026-09-01", "2026-09-01 (approx)"))
+    row = json.loads(_run("list", str(path)).stdout)["sections"][0]
+    assert row["class"] == "gap" and row["age_days"] == 70
+    _run("confirm", str(path), "1")
+
+
 def test_archive_moves_a_section_with_its_subsections() -> None:
     path = _file(HANDOFF)
     line = _sections(path)["Previous checkpoint at 2026-09-01"]["line"]

@@ -1,3 +1,9 @@
+---
+slug: not-ai-lint-review-advisories
+noticed: 2026-11-10
+where: scripts/not-ai-lint
+---
+
 # not-ai-lint: advisories left open by the 2026-11-10 strict review
 
 Opened 2026-11-10. Contributing-model: fable-5.2.
@@ -45,6 +51,17 @@ one depth counter for both.
 `--skip negation_first` (underscore) is accepted and skips nothing. The
 category set belongs to the vendored scan (`CATEGORY_ORDER` plus categories
 its rules name), so validating it means reading that from the scan.
+
+## Findings from the second review, range `a8164da8541d..9dc1d6016a9c`
+
+- The `BOLD` pattern reports `bold-inline` on `__init__` and
+  `foo__bar__baz`, and on a run-in bold paragraph head, while a bullet's
+  bold lead is exempt.
+- `scan_text` calls `source.count(0)` once per line, which is quadratic in
+  paragraphs, and `report` can raise `KeyError` on the `alone` field when a
+  triad or participle hit maps to line 0.
+- A word present in both the vendored slop list and the lexicon is reported
+  twice at one position (`tapestry`).
 
 ## Earlier commit in the same range
 

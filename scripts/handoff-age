@@ -46,8 +46,9 @@ _FENCE = re.compile(r"^\s*(```|~~~)")
 _CLASS_TAG = re.compile(r"\[(state|owed|durable)\]\s*")
 _ISO_DATE = r"(\d{4}-\d{2}-\d{2})"
 _CONFIRMED = re.compile(r"confirmed\s+" + _ISO_DATE)
-_ANY_DATE = re.compile(_ISO_DATE)
-_FRONT_MATTER_DATE = re.compile(r"^(noticed|confirmed):\s*" + _ISO_DATE + r"\s*$")
+# Not part of a path or longer token: `runs/2026-09-01/x` dates nothing.
+_ANY_DATE = re.compile(r"(?<![\w/.-])" + _ISO_DATE + r"(?![\w/-])")
+_FRONT_MATTER_FIELD = re.compile(r"^([\w-]+):(.*)$")
 _SOURCE_SESSION = re.compile(r"^Source session:")
 
 
@@ -84,8 +85,12 @@ def _front_matter_end(lines: list[str]) -> int:
     if not lines or lines[0].strip() != "---":
         return 0
     for index in range(1, len(lines)):
-        if lines[index].strip() == "---":
+        stripped = lines[index].strip()
+        if stripped == "---":
             return index
+        # A leading `---` that is a horizontal rule is followed by prose.
+        if stripped and not _FRONT_MATTER_FIELD.match(stripped):
+            return 0
     return 0
 
 
@@ -99,20 +104,22 @@ def parse_sections(lines: list[str]) -> list[Section]:
     closing = _front_matter_end(lines)
     found = {}
     for raw in lines[1:closing]:
-        field = _FRONT_MATTER_DATE.match(raw.strip())
+        field = _FRONT_MATTER_FIELD.match(raw.strip())
         if field:
-            found[field.group(1)] = _parse_date(field.group(2))
+            dated = _ANY_DATE.search(field.group(2))
+            found[field.group(1)] = _parse_date(dated.group(1)) if dated else None
     if "noticed" in found:
         root.cls = GAP
         root.stamped = found.get("confirmed") or found["noticed"]
     sections = [root]
     open_path = [root]
-    in_fence = False
+    fence = None
     for index in range(closing, len(lines)):
-        if _FENCE.match(lines[index]):
-            in_fence = not in_fence
+        marker = _FENCE.match(lines[index])
+        if marker and fence in (None, marker.group(1)):
+            fence = None if fence else marker.group(1)
             continue
-        heading = None if in_fence else _HEADING.match(lines[index])
+        heading = None if fence else _HEADING.match(lines[index])
         if not heading:
             continue
         number = index + 1
@@ -153,7 +160,8 @@ class AgeLimits:
         if section.cls == "durable":
             return False
         age = self.age_days(section)
-        if age is None:
+        # A date still in the future says nothing about when this was true.
+        if age is None or age < 0:
             return True
         limit = {"state": self.state, GAP: self.gap}.get(section.cls, self.owed)
         return age >= limit
@@ -242,7 +250,7 @@ def fresh_view(lines: list[str], limits: AgeLimits) -> tuple[str, list[dict]]:
     pointers stay readable whatever their section's age.
     """
     rows = section_rows(lines, limits)
-    root_end = parse_sections(lines)[0].body_end
+    root_end = next((row["line"] - 1 for row in rows if row["level"]), len(lines))
     kept = lines[:root_end]
     aged = []
     for row in rows:
@@ -257,6 +265,11 @@ def fresh_view(lines: list[str], limits: AgeLimits) -> tuple[str, list[dict]]:
         own = lines[row["line"] - 1 : row["end"]]
         kept.extend(own if not row["aged"] else filter(_SOURCE_SESSION.match, own))
     return "".join(kept), aged
+
+
+def _edit_target(name: str) -> Path:
+    """The real file to rewrite: replacing a symlink would leave its target stale."""
+    return Path(name).resolve()
 
 
 def _write_atomically(path: Path, text: str) -> None:
@@ -307,7 +320,7 @@ def _stamp_heading(heading: str, today: date, cls: str | None) -> str:
 
 
 def confirm(args) -> int:
-    path = Path(args.file)
+    path = _edit_target(args.file)
     lines = _read_lines(path)
     today = args.limits.today
     stamped = []
@@ -326,7 +339,12 @@ def confirm(args) -> int:
         stamped.append({"line": section.line, "title": section.title})
     _write_atomically(path, "".join(lines))
     result = {"file": str(path), "confirmed": today.isoformat(), "sections": stamped}
-    emit(result, resolve_format(args), text=f"confirmed {len(stamped)} in {path}")
+    emit(
+        result,
+        resolve_format(args),
+        text=f"confirmed in {path}:\n"
+        + "\n".join(f"  L{each['line']} {each['title']}" for each in stamped),
+    )
     return 0
 
 
@@ -335,7 +353,9 @@ def archive_path(path: Path) -> Path:
 
 
 def archive(args) -> int:
-    path = Path(args.file)
+    path = _edit_target(args.file)
+    if path.name.endswith(ARCHIVE_SUFFIX):
+        die("Cannot archive from an archive file")
     lines = _read_lines(path)
     chosen = sorted(_named_sections(path, lines, args.lines), key=lambda s: s.line)
     if chosen and chosen[0].level == 0:
@@ -368,7 +388,8 @@ def archive(args) -> int:
     emit(
         result,
         resolve_format(args),
-        text=f"moved {_size(result['bytes_moved'])} from {path} to {target}",
+        text=f"moved {_size(result['bytes_moved'])} from {path} to {target}:\n"
+        + "\n".join(f"  L{span.line} {span.title}" for span in spans),
     )
     return 0
 
@@ -513,6 +534,10 @@ def main(argv: list[str] | None = None) -> int:
         return args.func(args)
     except FileNotFoundError as exc:
         die(f"No such file: {exc.filename}", ExitCode.NOT_FOUND)
+    except IsADirectoryError as exc:
+        die(f"Is a directory (only `list` takes one): {exc.filename}")
+    except UnicodeDecodeError as exc:
+        die(f"Not UTF-8 text: {exc.reason} at byte {exc.start}", ExitCode.DATA)
 
 
 if __name__ == "__main__":
