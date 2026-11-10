@@ -1031,7 +1031,9 @@ class ProjectPages:
         self.loaded_stamp = stamp
         try:
             self.function = self._load()
-        except Exception as error:  # noqa: BLE001 -- an edit in progress must not take the view down
+        except (
+            Exception
+        ) as error:  # noqa: BLE001 -- an edit in progress must not take the view down
             log(
                 "pages",
                 f"kept the previous generator; reloading {self.file.name} failed: {error!r}",
@@ -1280,7 +1282,9 @@ class Reachability:
                 "reach",
                 f"{len(reached)} reachable paths in {time.monotonic() - started:.2f}s",
             )
-        except Exception as error:  # noqa: BLE001 -- propagate worker failures to waiting requests
+        except (
+            Exception
+        ) as error:  # noqa: BLE001 -- propagate worker failures to waiting requests
             with self._changed:
                 scan.set_exception(error)
                 self._changed.notify_all()
@@ -1370,7 +1374,9 @@ class LiveSite:
         crawling the repository; runs beside the server at startup."""
         try:
             self.pages.current()
-        except Exception as error:  # noqa: BLE001 -- the first request retries and reports it
+        except (
+            Exception
+        ) as error:  # noqa: BLE001 -- the first request retries and reports it
             log("pages", f"first generation failed; requests will retry: {error!r}")
         try:
             seeds = ["", *self.pages.latest(), *self.roots]
