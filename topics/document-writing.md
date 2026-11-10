@@ -220,14 +220,21 @@ Existing links and code are excluded.
 
 `term-hints-implicit: true` in QMD front matter or `_quarto.yml` enables
 first-mention paragraph previews for math letters, Greek symbols, styled
-math atoms, mathematical Unicode symbols, and bold/italic terms. A bold or
-italic term links only another bold or italic span with the same text, never
-plain prose, and emphasis containing no letter (a bold score) is not a term.
-This is off by default, and a value that is not a boolean fails the build. Cards say **First mention**, not **Definition**. Explicit
+math atoms, and bold/italic terms; symbols are taken from math only. Bold
+or italic text introduces a term only when it reads as one: a name of two or
+more words, set inside running text and not making up its whole block. That
+leaves out stress on a single word, a run-in heading, and a bold table cell.
+A one-word term needs an authored definition. Such a term is linked from
+later bold or italic uses of the same name, never from plain prose. A link
+never points at the paragraph it sits in, so a first-mention paragraph gets
+an anchor and a card only when a later paragraph refers to it. This is off
+by default, and a value that is not a boolean fails the build. Cards say
+**First mention**, not **Definition**. Explicit
 definitions always win, including when they occur later in the document.
 The first mention is contextual help, not an inferred mathematical meaning;
-author an explicit definition when that context is inadequate. Ordinary
-prose aliases match whole phrases; formatted terms retain their formatting.
+author an explicit definition when that context is inadequate. Prose
+aliases come only from an authored `terms=` list and match whole phrases;
+formatted terms retain their formatting.
 
 The switch is read only from the rendered document's metadata; `qmd-html.json`
 no longer accepts it. Venue builds take the two switches from their config's
