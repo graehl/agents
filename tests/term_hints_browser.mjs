@@ -48,24 +48,7 @@ try {
 	);
 	await page.keyboard.press("Enter");
 	assert.equal(await card.isVisible(), false);
-	// The page hides the card on resize and on scroll. Resizing the window and
-	// scrolling the link into view both deliver those events late (smooth
-	// scrolling, a busy machine), so wait until none has arrived for a while
-	// before opening the card; a late one would close it under the assertions.
-	await page.evaluate(() => {
-		const moved = () => {
-			window.lastMoved = performance.now();
-		};
-		moved();
-		addEventListener("scroll", moved, true);
-		addEventListener("resize", moved);
-		visualViewport?.addEventListener("resize", moved);
-	});
 	await page.setViewportSize({ width: 375, height: 812 });
-	await score.scrollIntoViewIfNeeded();
-	await page.waitForFunction(
-		() => innerWidth === 375 && performance.now() - window.lastMoved > 400,
-	);
 	await score.click();
 	await card.waitFor({ state: "visible" });
 	const bounds = await card.boundingBox();

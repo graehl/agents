@@ -232,8 +232,7 @@ by default, and a value that is not a boolean fails the build. Cards say
 definitions always win, including when they occur later in the document.
 The first mention is contextual help, not an inferred mathematical meaning;
 author an explicit definition when that context is inadequate. Prose
-aliases come only from an authored `terms=` list and match whole phrases;
-formatted terms retain their formatting.
+aliases match whole phrases.
 
 The switch is read only from the rendered document's metadata; `qmd-html.json`
 no longer accepts it. Venue builds take the two switches from their config's

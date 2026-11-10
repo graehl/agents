@@ -155,12 +155,30 @@
 				show(target(event.target), true);
 			}
 		});
-		window.addEventListener("resize", hide);
-		window.visualViewport?.addEventListener("resize", hide);
+		// Scrolling or resizing moves the link the card belongs to. Focusing a
+		// link below the fold scrolls the page as it opens the card, so the
+		// card follows its link and closes only once the link has left view.
+		function follow() {
+			if (!active) return;
+			const box = active.getBoundingClientRect();
+			const viewport = window.visualViewport;
+			const width = viewport?.width || innerWidth;
+			const height = viewport?.height || innerHeight;
+			if (
+				box.bottom < 0 ||
+				box.top > height ||
+				box.right < 0 ||
+				box.left > width
+			)
+				hide();
+			else place();
+		}
+		window.addEventListener("resize", follow);
+		window.visualViewport?.addEventListener("resize", follow);
 		document.addEventListener(
 			"scroll",
 			(event) => {
-				if (!card.contains(event.target)) hide();
+				if (!card.contains(event.target)) follow();
 			},
 			true,
 		);

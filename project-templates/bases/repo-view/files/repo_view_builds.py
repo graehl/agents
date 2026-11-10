@@ -186,10 +186,10 @@ class Builds:
         self.root, self.enabled, self.log = root, enabled, log
         self._lock = threading.Lock()
         self._hashes: RecentEntries = RecentEntries(HASH_CACHE_FILES)
-        # Per recipe key: when the run in progress started, on the monotonic
-        # clock; and the last finished run's result.
-        self._running: dict[Path, float] = {}
-        self._began_ms: dict[Path, int] = {}
+        # Per recipe key: the run in progress, as when it started on the
+        # monotonic clock and the newest input `start_once` saw (None for a
+        # requested rebuild); and the last finished run's result.
+        self._running: dict[Path, tuple[float, tuple | None]] = {}
         self._finished: RecentEntries = RecentEntries(BUILD_RECORDS)
         # Which build a page last started, so it can ask how that build went
         # after the output is current and no recipe is stale any more.
@@ -198,9 +198,9 @@ class Builds:
         # receipt) at one version, so requests for its neighbours reparse and
         # report nothing until the file changes.
         self._receipt_files: RecentEntries = RecentEntries(BUILD_RECORDS)
-        # Per recipe key: when its last run started (ms since the epoch), kept
+        # Per recipe key: the newest input its last automatic run saw, kept
         # while that run is the latest and failed.
-        self._failed_since: RecentEntries = RecentEntries(BUILD_RECORDS)
+        self._failed_on: RecentEntries = RecentEntries(BUILD_RECORDS)
         # Per (recipe key, output): the freshness stamp `start_once` last
         # started the build for.
         self._started_once: RecentEntries = RecentEntries(BUILD_RECORDS)
@@ -368,15 +368,16 @@ class Builds:
         }
         return Freshness(stamp, stale, recipe)
 
-    def start(self, recipe: Recipe, source: str) -> dict:
+    def start(
+        self, recipe: Recipe, source: str, *, newest_input: tuple | None = None
+    ) -> dict:
         """Start the recipe's command in the background (or join the run
         already going) for the page shown from `source`; its status."""
         with self._lock:
             self._started_for[source] = recipe.key
             starter = recipe.key not in self._running
             if starter:
-                self._running[recipe.key] = time.monotonic()
-                self._began_ms[recipe.key] = time.time_ns() // 1_000_000
+                self._running[recipe.key] = (time.monotonic(), newest_input)
         if starter:
             threading.Thread(target=self._complete, args=(recipe,), daemon=True).start()
         return self.status(source)
@@ -389,16 +390,17 @@ class Builds:
         # Per output: every PDF of one project shares a recipe and has its own
         # stamp, so a per-recipe memory would restart on alternating requests.
         once = (recipe.key, source)
-        newest_input = (fresh.stale or {}).get("inputTime", 0)
+        stale = fresh.stale or {}
+        newest_input = (stale.get("input"), stale.get("inputTime"))
         with self._lock:
             if self._started_once.get(once) == fresh.stamp:
                 return
             self._started_once[once] = fresh.stamp
-            if self._failed_since.get(recipe.key, -1) >= newest_input:
+            if self._failed_on.get(recipe.key) == newest_input:
                 # The command already failed on these inputs, for a sibling.
                 self._started_for[source] = recipe.key
                 return
-        self.start(recipe, source)
+        self.start(recipe, source, newest_input=newest_input)
 
     def status(self, source: str) -> dict:
         """How the build last started for `source` stands: `running` with
@@ -406,10 +408,13 @@ class Builds:
         `none` when this server started none (it may have restarted)."""
         with self._lock:
             key = self._started_for.get(source)
-            started = self._running.get(key)
+            running = self._running.get(key)
             finished = self._finished.get(key)
-        if started is not None:
-            return {"state": "running", "elapsed": round(time.monotonic() - started, 1)}
+        if running is not None:
+            return {
+                "state": "running",
+                "elapsed": round(time.monotonic() - running[0], 1),
+            }
         if not finished:
             return {"state": "none"}
         return {"state": "done" if finished["ok"] else "failed", **finished}
@@ -420,11 +425,10 @@ class Builds:
         except Exception as error:  # reported to the pages asking about the run
             result = {"ok": False, "log": f"{type(error).__name__}: {error}"}
         with self._lock:
-            started = self._running.pop(recipe.key)
-            began_ms = self._began_ms.pop(recipe.key)
+            started, newest_input = self._running.pop(recipe.key)
             result["seconds"] = round(time.monotonic() - started, 1)
             self._finished[recipe.key] = result
-            self._failed_since[recipe.key] = -1 if result["ok"] else began_ms
+            self._failed_on[recipe.key] = None if result["ok"] else newest_input
 
     def _run(self, recipe: Recipe) -> dict:
         cwd = recipe.cwd.resolve()

@@ -352,3 +352,21 @@ def test_html_builder_runs_a_document_registered_filter_once(tmp_path: Path) -> 
     html = (tmp_path / "index.html").read_text()
     assert html.count('id="term-first-1"') == 1
     assert html.count('data-term-card="term-first-1"') == 1
+
+
+def test_term_card_stays_open_when_opening_it_scrolls_the_page() -> None:
+    if not (DEFAULT_PLAYWRIGHT / "node_modules/@playwright/test").exists():
+        pytest.skip(f"no Playwright under {DEFAULT_PLAYWRIGHT}")
+    browser = subprocess.run(
+        [
+            "node",
+            str(REPO / "tests/term_card_scroll_browser.mjs"),
+            str(REPO / "qmd_build/term_hints.js"),
+            str(REPO / "qmd_build/term_hints.css"),
+            str(DEFAULT_PLAYWRIGHT),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert browser.returncode == 0, browser.stdout + browser.stderr
