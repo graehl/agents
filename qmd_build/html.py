@@ -262,8 +262,12 @@ def render_root(args, config: Config, root: Path) -> dict:
                 )
             # The staged sibling directory is deleted after the build, so a
             # path into it is a dead link; name the real document directory.
-            log_path.write_text(
-                log_path.read_text().replace(staged_root.parent.name, home.name)
+            # As bytes: a tool's output need not be UTF-8, and a decode error
+            # here would replace the report of the render's own failure.
+            log_path.write_bytes(
+                log_path.read_bytes().replace(
+                    os.fsencode(staged_root.parent.name), os.fsencode(home.name)
+                )
             )
             if result.returncode:
                 raise ValueError(
