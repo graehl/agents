@@ -52,6 +52,7 @@ from .table_layout import band_stylesheet, choose_table_widths, widest_band_widt
 
 PACKAGE = Path(__file__).resolve().parent
 SCRIPT = PACKAGE.parent / "scripts/qmd-html"
+TERM_HINTS = PACKAGE / "term_hints.lua"
 KEYS = {
     "comment",
     "root",
@@ -65,7 +66,6 @@ KEYS = {
     "playwright-from",
     "timeout-seconds",
     "style",
-    "term-hints-implicit",
 }
 
 
@@ -93,9 +93,15 @@ def quarto_facts(root: Path, quarto: str) -> dict:
         project_config = project["config"]
         output_dir = home / project_config.get("project", {}).get("output-dir", ".")
         resources = [home / path for path in project_config.get("resource-path", ["."])]
+        filters = project_config.get("filters", [])
     else:
-        output_dir, resources = home, [home]
+        output_dir, resources, filters = home, [home], []
     return {
+        # File names of the filters the project's `_quarto.yml` registers.
+        "project_filters": {
+            Path(entry["path"] if isinstance(entry, dict) else entry).name
+            for entry in filters
+        },
         "output": (
             output_dir / pandoc.get("output-file", root.stem + ".html")
         ).resolve(),
@@ -222,12 +228,11 @@ def render_root(args, config: Config, root: Path) -> dict:
             command += ["--metadata-file", str(links)]
         command += ["--lua-filter", str(PACKAGE / "included_documents.lua")]
         command += ["--lua-filter", str(PACKAGE / "table_notes.lua")]
-        command += ["--lua-filter", str(PACKAGE / "term_hints.lua")]
-        if "term-hints-implicit" in config.data:
-            implicit = config.get("term-hints-implicit")
-            if not isinstance(implicit, bool):
-                raise ValueError("term-hints-implicit must be a boolean")
-            command += ["-M", f"term-hints-implicit:{str(implicit).lower()}"]
+        # A project whose `_quarto.yml` lists the filter (the paper scaffold
+        # does, for a plain `quarto render`) already runs it in this render.
+        # A second run would read the first run's links and anchors as source.
+        if TERM_HINTS.name not in facts["project_filters"]:
+            command += ["--lua-filter", str(TERM_HINTS)]
         if source_map:
             command += ["--lua-filter", str(PACKAGE / "source_map.lua")]
         if style:

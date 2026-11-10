@@ -64,8 +64,6 @@ def bundle(paper: Path, quarto: str) -> dict:
                 "pdf",
                 "-M",
                 "keep-tex:true",
-                "--lua-filter",
-                str(Path(__file__).parent / "term_hints.lua"),
             ],
             cwd=paper,
             stdout=log_file,

@@ -104,9 +104,55 @@ def test_pdf_keeps_definition_targets_and_links(tmp_path: Path) -> None:
     assert "<template" not in result.stdout
 
 
+IMPLICIT = "---\nterm-hints-implicit: true\n---\n\n"
+
+
+def test_implicit_emphasis_links_only_formatted_recurrences(tmp_path: Path) -> None:
+    # Emphasis is also stress: "not" and "a" must not become links paper-wide.
+    source = (
+        IMPLICIT
+        + "This is *not* a toy and the *a* case holds for $x$.\n\n"
+        + "Later we do not need a proof that a set is not empty, and x is plain.\n\n"
+        + "The *not* case recurs in italics.\n"
+    )
+    result = pandoc(tmp_path, source)
+    assert result.returncode == 0, result.stderr
+    html = " ".join(result.stdout.split())
+    assert "This is <em>not</em> a toy and the <em>a</em> case" in html
+    assert "do not need a proof that a set is not empty, and x is plain" in html
+    assert '<a href="#term-first-1" class="term-ref"><em>not</em></a> case' in html
+    assert html.count('class="term-ref"') == 1
+    assert "term-first-emphasis" not in html
+
+
+def test_implicit_paragraph_preview_is_embedded_once(tmp_path: Path) -> None:
+    source = (
+        IMPLICIT
+        + "The $x$ value and $y$ are *introduced* here.\n\n"
+        + "Later $x$ and $y$ recur, *introduced* twice.\n"
+    )
+    result = pandoc(tmp_path, source)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("<template data-term-card") == 1
+    assert result.stdout.count('id="term-first-') == 1
+    for linked in (r"\href{#term-first-1}{x}", r"\href{#term-first-1}{y}"):
+        assert result.stdout.count(linked) == 2
+
+
+def test_pdf_bold_table_score_is_not_a_term(tmp_path: Path) -> None:
+    source = (
+        IMPLICIT
+        + "| Lang | Score |\n|---|---:|\n| vi | **14.19** |\n| zh | **14.19** |\n"
+    )
+    result = pandoc(tmp_path, source, "latex")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count(r"\textbf{14.19}") == 2
+    assert "term-first" not in result.stdout
+
+
 def test_pdf_anchor_starting_a_table_cell_keeps_its_baseline(tmp_path: Path) -> None:
     # A first-mention anchor set in vertical mode drops the cell's text a line.
-    source = "---\nterm-hints-implicit: true\n---\n\n| Lang | Score |\n|---|---:|\n| vi | **14.19** |\n"
+    source = IMPLICIT + "| Lang | Scale |\n|---|---:|\n| vi | $\\tau$ |\n"
     result = pandoc(tmp_path, source, "latex")
     assert result.returncode == 0, result.stderr
     assert "\\leavevmode\\protect\\phantomsection\\label{term-first-1}" in result.stdout
@@ -116,6 +162,10 @@ def test_pdf_anchor_starting_a_table_cell_keeps_its_baseline(tmp_path: Path) -> 
     "source, message",
     [
         ("$\\termref{missing}{s}$", "unknown reference term-missing"),
+        (
+            "---\nterm-hints-implicit: maybe\n---\n\nText.",
+            "term-hints-implicit must be true or false",
+        ),
         (
             "[One]{#term-a .term-definition math=s}\n\n[Two]{#term-b .term-definition math=s}",
             "ambiguous alias s",
@@ -147,9 +197,9 @@ $A \cup B$
 
 def test_real_html_builder_and_browser(tmp_path: Path) -> None:
     root = tmp_path / "index.qmd"
-    root.write_text(SOURCE)
+    root.write_text(SOURCE.replace("implicit: true", "implicit: false"))
     config = tmp_path / "qmd-html.json"
-    config.write_text(json.dumps({"root": "index.qmd", "term-hints-implicit": False}))
+    config.write_text(json.dumps({"root": "index.qmd"}))
     result = subprocess.run(
         [str(REPO / "scripts/qmd-html"), "--config", str(config), "--text"],
         capture_output=True,
@@ -177,3 +227,25 @@ def test_real_html_builder_and_browser(tmp_path: Path) -> None:
             check=False,
         )
         assert browser.returncode == 0, browser.stdout + browser.stderr
+
+
+def test_html_builder_runs_a_project_registered_filter_once(tmp_path: Path) -> None:
+    # The paper scaffold lists the filter in `_quarto.yml`; a second run by the
+    # builder reads the first run's output as source and drops the landing site.
+    (tmp_path / "_quarto.yml").write_text(
+        f"project:\n  type: default\nfilters:\n  - {FILTER}\nterm-hints-implicit: true\n"
+    )
+    (tmp_path / "index.qmd").write_text(
+        "---\ntitle: Project\n---\n\n## Use\n\n"
+        "The $x$ value is *introduced* here.\n\nLater $x$ is *introduced* again.\n"
+    )
+    result = subprocess.run(
+        [str(REPO / "scripts/qmd-html"), str(tmp_path / "index.qmd"), "--text"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    html = (tmp_path / "index.html").read_text()
+    assert html.count('id="term-first-1"') == 1
+    assert html.count('data-term-card="term-first-1"') == 1

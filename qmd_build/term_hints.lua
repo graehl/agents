@@ -163,10 +163,27 @@ local defaults = {
 	{ "\\mathbb{R}", "The set of real numbers.", "ord" },
 }
 
--- Registry: every definition, built-in notation entry and first mention, by ID
--- and by the math or prose alias that links to it.
+-- A metadata switch is a YAML boolean in the rendered document's metadata
+-- (front matter or `_quarto.yml`); any other value is an authoring error.
+local function metadata_switch(meta, key, default)
+	local value = meta[key]
+	if value == nil then
+		return default
+	end
+	if type(value) ~= "boolean" then
+		fail(key .. " must be true or false")
+	end
+	return value
+end
+
+-- Registry: every definition, built-in notation entry and first-mention
+-- paragraph, by ID and by the alias that links to it. A `math` alias matches
+-- TeX tokens and a `prose` alias matches plain or formatted words. An
+-- `emphasis` alias is a bold or italic span found by implicit discovery; it
+-- matches only another bold or italic span with the same text, because
+-- emphasis is also used for stress ("this is *not* a toy").
 local function new_registry()
-	return { by_id = {}, ordered = {}, math = {}, prose = {}, first_mentions = 0 }
+	return { by_id = {}, ordered = {}, math = {}, prose = {}, emphasis = {}, first_mentions = 0 }
 end
 
 local function register(registry, id, content, kind, maths, prose, class)
@@ -245,25 +262,43 @@ local function reference(registry, id)
 	return entry
 end
 
--- Implicit discovery: the paragraph where a symbol or formatted term first
--- appears becomes its entry, anchored at the start of that paragraph.
+-- Implicit discovery: a paragraph is the one entry for every symbol and
+-- formatted term it introduces, so its preview is embedded once. Discovery
+-- leaves an empty span carrying the entry's ID at the start of the paragraph;
+-- emission keeps it as the landing site only when the entry was linked.
+local FIRST_EMPHASIS = "term-first-emphasis"
+
+-- A bold table score such as **14.19** is emphasis without being a term.
+local function names_a_term(text)
+	return text:match("[%a\128-\255]") ~= nil
+end
+
 local function discover_first_mentions(registry, block)
-	local found = {}
-	local function add(alias, mapping)
-		if not mapping[alias] then
+	local entry
+	local function introduce(mapping, alias)
+		if not entry then
 			registry.first_mentions = registry.first_mentions + 1
-			local entry = register(
+			entry = register(
 				registry,
 				"term-first-" .. registry.first_mentions,
 				block.content,
 				"First mention",
-				mapping == registry.math and { alias } or {},
-				mapping == registry.prose and { alias } or {}
+				{},
+				{}
 			)
-			found[#found + 1] = entry.id
+		end
+		mapping[alias] = entry
+	end
+	local function emphasis(el)
+		local text = stringify(el)
+		if names_a_term(text) and not registry.prose[text] and not registry.emphasis[text] then
+			introduce(registry.emphasis, text)
+			-- Marks the introducing span, which is the target and not a link.
+			el.content = { pandoc.Span(el.content, pandoc.Attr("", { FIRST_EMPHASIS })) }
+			return el
 		end
 	end
-	pandoc.Span(block.content):walk({
+	local content = pandoc.Span(block.content):walk({
 		traverse = "topdown",
 		Link = function(el)
 			return el, false
@@ -275,37 +310,28 @@ local function discover_first_mentions(registry, block)
 		end,
 		Math = function(el)
 			for _, token in ipairs(tokens(el.text)) do
-				if token.symbol then
-					add(token.text, registry.math)
+				if token.symbol and not registry.math[token.text] then
+					introduce(registry.math, token.text)
 				end
 			end
 		end,
 		Str = function(el)
 			for _, code in utf8.codes(el.text) do
-				if (code >= 0x2100 and code <= 0x22ff) or (code >= 0x1d400 and code <= 0x1d7ff) then
-					add(utf8.char(code), registry.prose)
+				local symbol = utf8.char(code)
+				if
+					((code >= 0x2100 and code <= 0x22ff) or (code >= 0x1d400 and code <= 0x1d7ff))
+					and not registry.prose[symbol]
+				then
+					introduce(registry.prose, symbol)
 				end
 			end
 		end,
-		Strong = function(el)
-			add(stringify(el), registry.prose)
-		end,
-		Emph = function(el)
-			add(stringify(el), registry.prose)
-		end,
-	})
-	if #found > 0 then
-		local anchors = pandoc.Inlines({})
-		if latex then
-			-- An anchor starting a block is set in vertical mode; in a
-			-- table cell that drops the cell's text by a line.
-			anchors:insert(pandoc.RawInline("latex", "\\leavevmode"))
-		end
-		for _, id in ipairs(found) do
-			anchors:insert(pandoc.Span({}, pandoc.Attr(id)))
-		end
-		anchors:extend(block.content)
-		block.content = anchors
+		Strong = emphasis,
+		Emph = emphasis,
+	}).content
+	if entry then
+		content:insert(1, pandoc.Span({}, pandoc.Attr(entry.id)))
+		block.content = content
 		return block
 	end
 end
@@ -485,7 +511,12 @@ end
 local function annotate(registry, doc)
 	local max_tokens, phrases = longest_math_alias(registry), prose_phrases(registry)
 	local function formatted(el)
-		local entry = registry.prose[stringify(el)]
+		local first = el.content[1]
+		if first and first.t == "Span" and first.classes:includes(FIRST_EMPHASIS) then
+			return nil
+		end
+		local text = stringify(el)
+		local entry = registry.prose[text] or registry.emphasis[text]
 		if entry then
 			return link({ el }, entry), false
 		end
@@ -519,6 +550,28 @@ local function annotate(registry, doc)
 end
 
 -- Emission: landing sites and HTML preview cards for the entries that were used.
+
+-- Settle what discovery left in the text: a first-mention paragraph keeps its
+-- anchor only if something links to it, and emphasis markers are unwrapped.
+local function first_mention_anchors(registry, doc)
+	return doc:walk({
+		Span = function(el)
+			if el.classes:includes(FIRST_EMPHASIS) then
+				return el.content
+			end
+			local entry = registry.by_id[el.identifier]
+			if not entry or entry.kind ~= "First mention" then
+				return nil
+			end
+			if not entry.used then
+				return {}
+			end
+			-- An anchor starting a block is set in vertical mode; in a
+			-- table cell that drops the cell's text by a line.
+			return latex and { pandoc.RawInline("latex", "\\leavevmode"), el } or nil
+		end,
+	})
+end
 
 -- A built-in notation entry has no authored landing site.
 local function notation_reference(registry)
@@ -576,19 +629,15 @@ function Pandoc(doc)
 	if not html and not latex then
 		return doc
 	end
-	if doc.meta["term-hints-processed"] then
-		return doc
-	end
-	doc.meta["term-hints-processed"] = true
 	local registry = new_registry()
 	register_definitions(registry, doc)
-	if doc.meta["term-hints-operators"] ~= false and stringify(doc.meta["term-hints-operators"] or "") ~= "false" then
+	if metadata_switch(doc.meta, "term-hints-operators", true) then
 		register_default_operators(registry)
 	end
-	if doc.meta["term-hints-implicit"] == true or stringify(doc.meta["term-hints-implicit"] or "") == "true" then
+	if metadata_switch(doc.meta, "term-hints-implicit", false) then
 		doc = register_first_mentions(registry, doc)
 	end
-	doc = annotate(registry, doc)
+	doc = first_mention_anchors(registry, annotate(registry, doc))
 	doc.blocks:extend(notation_reference(registry))
 	if html then
 		doc.blocks:extend(preview_cards(registry))

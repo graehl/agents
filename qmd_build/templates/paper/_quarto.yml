@@ -11,6 +11,8 @@ resource-path:
 # become links in HTML (~/agents/topics/document-writing.md).
 filters:
   - {{qmd_build}}/table_notes.lua
+  # Term definitions and their previews. This entry is the paper's one
+  # registration: `quarto render`, qmd-html and qmd-arxiv all run it from here.
   - {{qmd_build}}/term_hints.lua
   # PDF only: size pipe-table columns from content, not separator dashes.
   - {{qmd_build}}/latex_table_widths.lua

@@ -317,13 +317,9 @@ def assemble(
         raise ValueError("`measure` must be inject or template")
     pdf.update(config.get("format", {}))
     metadata["format"] = {"pdf": pdf}
-    for key in ("term-hints-implicit", "term-hints-operators"):
-        value = front_matter(build.root, key)
-        if value is not None:
-            if value not in ("true", "false"):
-                raise ValueError(f"{key} must be true or false")
-            metadata[key] = value == "true"
     metadata.update(config.get("metadata", {}))
+    # The staged document is rendered outside the paper's Quarto project, so
+    # this is the only place a venue build registers the filter.
     metadata["filters"].append(str(PACKAGE / "term_hints.lua"))
     sections = {name: section_text(build, name, targets, links) for name in build.names}
     if build.abstract:
