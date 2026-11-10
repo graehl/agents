@@ -15,15 +15,28 @@
 -- automatic table layout. Set explicit widths with `tbl-colwidths`, which is
 -- left unchanged, as are tables without relative widths (no source row
 -- longer than `columns`). Other formats are left unchanged.
+--
+-- Limits. A cell is measured by counting the characters of its text, so a
+-- cell of math counts its TeX source (`\frac{a}{b}` is eleven characters
+-- wide) and an image counts its alt text; give such a table `tbl-colwidths`.
+-- The character budget is for 10pt type in one column. The text-block width
+-- comes from the document's `geometry` and `papersize` metadata when they
+-- state it as a `textwidth` or as a known paper size with horizontal margins;
+-- otherwise it is assumed to be 6.5in (US Letter with 1in margins, the page
+-- the paper template sets).
 if not FORMAT:match("latex") then
   return {}
 end
+
+local stringify = pandoc.utils.stringify
 
 -- Average 10pt characters across a 6.5in text block. Pandoc's widths are
 -- fractions of the block less 2\tabcolsep (12pt, about 2.4 characters) per
 -- column, so that padding comes off the budget. A word gets one character
 -- of slack because proportional glyphs vary in width.
-local LINE_CHARS = 94
+local ASSUMED_TEXT_INCHES = 6.5
+local ASSUMED_LINE_CHARS = 94
+local line_chars = ASSUMED_LINE_CHARS
 local COLUMN_PADDING_CHARS = 2.4
 local WORD_SLACK_CHARS = 1
 -- Type sizes to try, with how many more characters each fits than 10pt.
@@ -42,6 +55,60 @@ local CAPITAL_CHARS = 1.4
 local function text_length(s)
   local _, capitals = s:gsub("%u", "")
   return (utf8.len(s) or #s) + (CAPITAL_CHARS - 1) * capitals
+end
+
+local INCHES_PER_UNIT = { ["in"] = 1, cm = 1 / 2.54, mm = 1 / 25.4, pt = 1 / 72.27, bp = 1 / 72 }
+local PAPER_WIDTH_INCHES = {
+  letter = 8.5,
+  legal = 8.5,
+  executive = 7.25,
+  a4 = 210 / 25.4,
+  a5 = 148 / 25.4,
+  b5 = 176 / 25.4,
+}
+
+local function inches(length)
+  local number, unit = (length or ""):match("^([%d%.]+)%s*(%a+)$")
+  return number and INCHES_PER_UNIT[unit] and tonumber(number) * INCHES_PER_UNIT[unit]
+end
+
+-- The geometry package's `key=value` options, whether the metadata holds a
+-- list of them or one comma-separated string.
+local function geometry_options(meta)
+  local options = {}
+  if meta.geometry == nil then
+    return options
+  end
+  local items = pandoc.utils.type(meta.geometry) == "List" and meta.geometry or { meta.geometry }
+  for _, item in ipairs(items) do
+    for option in stringify(item):gmatch("[^,]+") do
+      local key, value = option:match("^%s*(%a+)%s*=%s*(.-)%s*$")
+      if key then
+        options[key] = value
+      end
+    end
+  end
+  return options
+end
+
+-- Text-block width when the metadata states it, else nil: geometry accepts
+-- layouts (`scale`, a two-valued margin, a class default) not resolved here.
+local function text_block_inches(meta)
+  local options = geometry_options(meta)
+  if options.textwidth then
+    return inches(options.textwidth)
+  end
+  local paper = inches(options.paperwidth) or PAPER_WIDTH_INCHES[stringify(meta.papersize or "")]
+  local left = inches(options.left or options.lmargin or options.inner or options.hmargin or options.margin)
+  local right = inches(options.right or options.rmargin or options.outer or options.hmargin or options.margin)
+  return paper and left and right and paper - left - right
+end
+
+local function read_text_block(meta)
+  local width = text_block_inches(meta)
+  if width then
+    line_chars = ASSUMED_LINE_CHARS * width / ASSUMED_TEXT_INCHES
+  end
 end
 
 local function measure(tbl)
@@ -94,11 +161,11 @@ local function has_author_widths(tbl)
   if tbl.attr.attributes["tbl-colwidths"] then
     return true
   end
-  local caption = pandoc.utils.stringify(tbl.caption.long or {})
+  local caption = stringify(tbl.caption.long or {})
   return caption:find("tbl-colwidths=", 1, true) ~= nil
 end
 
-function Table(tbl)
+local function size_columns(tbl)
   if has_author_widths(tbl) or not has_relative_widths(tbl) then
     return nil
   end
@@ -117,7 +184,7 @@ function Table(tbl)
   local size, available
   for _, step in ipairs(SIZE_STEPS) do
     size = step
-    available = (LINE_CHARS - COLUMN_PADDING_CHARS * ncols) * step.chars
+    available = (line_chars - COLUMN_PADDING_CHARS * ncols) * step.chars
     if minimum <= available then
       break
     end
@@ -143,3 +210,6 @@ function Table(tbl)
     pandoc.RawBlock("latex", "\\endgroup"),
   }
 end
+
+-- Two passes: within one pass Pandoc visits tables before metadata.
+return { { Meta = read_text_block }, { Table = size_columns } }

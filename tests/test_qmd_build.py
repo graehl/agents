@@ -500,6 +500,28 @@ def test_html_table_note_markers_link_to_notes(tmp_path):
     assert "First note, see also" in html and "Second note" in html
 
 
+@pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
+def test_latex_table_widths_use_the_stated_text_block(tmp_path):
+    # These words fit a 6.5in block at 10pt; a 2.5in block needs smaller type.
+    source = tmp_path / "table.md"
+    source.write_text(
+        "| Code | System description | Evaluation |\n|---|---|---|\n"
+        "| vi | parakeet-conformer-transducer with augmentation applied | "
+        "characterization over multilingual benchmarks |\n"
+    )
+
+    def latex(geometry: str) -> str:
+        command = ["quarto", "pandoc", str(source), "--from", "markdown", "--to"]
+        command += ["latex", "-M", "papersize=letter", "-M", f"geometry={geometry}"]
+        command += ["--lua-filter", str(REPO / "qmd_build/latex_table_widths.lua")]
+        return subprocess.run(
+            command, capture_output=True, text=True, check=True
+        ).stdout
+
+    assert "\\begingroup" not in latex("margin=1in")
+    assert "\\begingroup\\" in latex("margin=3in")
+
+
 def test_paper_scaffold_places_paper_under_its_program(tmp_path):
     from qmd_build.scaffold import scaffold
 
