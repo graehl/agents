@@ -78,7 +78,7 @@ sketch below consumes this output as its promotion evidence.
 
 ## Conditional tolerance for defensive parsing in throwaway orchestration
 
-`AGENTS.global.md` § Anti-slop implementation bans permissive fallbacks
+`AGENTS/change-delivery.md` § Anti-slop implementation bans permissive fallbacks
 added "merely to make the current trace pass". In throwaway orchestration
 scripting, an agent that guessed a tool's output format and observed a
 mismatch faces a real fork: resolve the invocation properly (find the

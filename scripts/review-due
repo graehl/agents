@@ -205,8 +205,10 @@ def build_parser():
     hook_cmd = commands.add_parser(
         "hook",
         help="Print one `review-due:` line per due review and nothing otherwise; always "
-        "exits 0 unless the marker is invalid. For a post-commit hook.",
+        "exits 0 unless the marker is invalid. For a post-commit hook, which passes "
+        "--acli-quiet so stderr stays empty too.",
     )
+    add_standard_args(hook_cmd)
     hook_cmd.set_defaults(func=hook)
     return parser
 

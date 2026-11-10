@@ -570,7 +570,8 @@ and `review-due … hook`; acli baseline with completion on `status`.
 - `hook` prints one `review-due:` line per due review and nothing
   otherwise, exit 0. A post-commit hook calls it; in `~/agents` the
   untracked `.git/hooks/post-commit` runs
-  `scripts/review-due hook` before its final `exec`.
+  `scripts/review-due hook --acli-quiet` before its final `exec`, so the
+  launch banner stays off stderr as well.
 - With no marker both verbs report nothing due: a repository is enrolled by
   its first strict review. A marker naming a commit the repository lacks
   exits 4.

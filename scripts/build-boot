@@ -305,12 +305,11 @@ GROUPS = (
 # was opened in at most one of 365 Claude Code sessions in the 30 days to
 # 2026-11-10 (Read-tool opens plus shell commands naming the file). The
 # glossary row and the topic's own `Governs:` line still state the trigger.
-# A new topic is absent from this set, so it gets a full line.
+# Rarely opened topics whose name does not describe their activity
+# (`soft-checks`, `on-deck`) are left out and keep a full line, as does any
+# new topic.
 NAMED_ONLY = frozenset(
     {
-        "acli-spec",
-        "agent-guard",
-        "almanac",
         "at-scheduling",
         "blog-post-writing",
         "debugging",
@@ -318,8 +317,6 @@ NAMED_ONLY = frozenset(
         "document-annotation",
         "doubt-skill",
         "instruction-ablation",
-        "intervention-needles",
-        "on-deck",
         "paper-attractiveness",
         "paper-reviewer",
         "pareto-figures",
@@ -327,20 +324,15 @@ NAMED_ONLY = frozenset(
         "prototyping",
         "research-blog-writing",
         "result-visualization-templates",
-        "runs-ledger",
         "shell",
-        "soft-checks",
         "story-project-layout",
         "story-writing",
-        "testing-rider",
         "theming",
         "tool-surprises",
         "ui-quality",
         "ui-report",
         "ui-verification",
-        "verified-provenance",
         "web-digest",
-        "workflow-tags",
     }
 )
 

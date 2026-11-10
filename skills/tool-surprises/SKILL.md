@@ -65,7 +65,7 @@ environment is broken. Background and promotion criteria:
    - **environment** — missing binary or wrong PATH: setup fix or a
      host note where the governing doc assumes the tool exists;
    - **accept** — tolerated by design; the per-session bar is
-     `AGENTS.global.md § Anti-slop implementation` (second surprise
+     `AGENTS.global.md § Tolerant parsing in throwaway orchestration` (second surprise
      from the same tool ends tolerance — this skill is that rule's
      systematic detector).
 

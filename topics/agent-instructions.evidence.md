@@ -6254,3 +6254,27 @@ Contributing-model: fable-5.2
   once it runs; thresholds are guesses.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — first automatic review: what it caught in the same day's work
+
+- **Run** — one background reviewer on this session's model covered
+  `1e439e95a14a..ee441c86d0b2` (45 commits, about 5,800 changed code lines) in
+  roughly 13 minutes and 470k tokens, and advanced the marker. Verdict: 8
+  blockers, 32 advisories.
+- **Caught in this session's own changes** — four documents still cited the
+  global section removed that morning, and two sentences still said global
+  policy owns supplement activation; `review-due hook` wrote its launch
+  banner to stderr, which its tests hid by setting `ACLI_QUIET`; and several
+  name-only routes had names that do not describe their activity
+  (`soft-checks`, `verified-provenance`, `testing-rider`). All fixed: ten such
+  names got their full route line back, leaving 23 name-only.
+- **Reading** — the removal that morning had been checked with a search for
+  citing documents, restricted to files outside the generated and evidence
+  sets; it found only the appendix and missed four. An unanchored second
+  reader found them. This is one case in favour of review after the fact
+  over a read before the change.
+- **Outside the triggering work** — filed as gaps: page serving failing on a
+  freshness error, a run watch orphaning child processes, emphasis
+  over-linking, and survey attribution and link defects.
+
+Contributing-model: fable-5.2

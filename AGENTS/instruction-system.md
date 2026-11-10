@@ -19,7 +19,7 @@ on `~/agents` `master`.
 `~/agents` in these instructions means this checkout's root; substitute
 the actual path if loaded from elsewhere.
 
-Global § Authority and instruction files owns all supplement activation.
+The `PROFILES` table in `scripts/build-boot` owns all supplement activation.
 Harness files hold provider mechanics; launcher files hold launcher-supplied
 facts and capabilities; model files hold behavior specific to that model.
 Do not repeat their loading conditions in the supplements or this clarification.

@@ -61,6 +61,16 @@ def test_no_marker_reports_nothing() -> None:
         _commit(repo, "scripts/tool", "#!/bin/sh\n", executable=True)
         hook = _run(repo, "hook")
         assert hook.returncode == 0 and hook.stdout == "", hook.stderr
+        # As the commit hook runs it: no launch banner on stderr either.
+        env = {k: v for k, v in os.environ.items() if k != "ACLI_QUIET"}
+        quiet = subprocess.run(
+            [sys.executable, str(SCRIPT), "--repo", str(repo), "hook", "--acli-quiet"],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+        assert (quiet.returncode, quiet.stdout, quiet.stderr) == (0, "", "")
         assert json.loads(_run(repo, "status", "--json").stdout)["reviewed"] is None
 
 

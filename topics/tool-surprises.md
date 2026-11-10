@@ -30,7 +30,7 @@ job, probes, harness gates).
 
 The per-session decision — when an agent may tolerate an unexpected
 output form versus stop and fix its understanding — is owned by
-`AGENTS.global.md § Anti-slop implementation`. That rule's
+`AGENTS.global.md § Tolerant parsing in throwaway orchestration`. That rule's
 second-surprise trigger is informal and per-agent; this topic's mining
 is its systematic, retrospective complement.
 
