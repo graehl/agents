@@ -55,6 +55,10 @@ def _mark(repo: Path) -> None:
     (repo / ".harsh-review").write_text(_git(repo, "rev-parse", "HEAD") + "context\n")
 
 
+def _marker(repo: Path) -> str:
+    return (repo / ".harsh-review").read_text().splitlines()[0]
+
+
 def test_no_marker_reports_nothing() -> None:
     with tempfile.TemporaryDirectory() as root:
         repo = _repo(Path(root))
@@ -106,6 +110,60 @@ def test_accumulated_edits_make_a_periodic_review_due() -> None:
         over_lines = _run(repo, "--max-lines", "1", "hook").stdout
         assert "periodic review due: 4 changed code lines in 2 commits" in over_lines
         assert "periodic review due" in _run(repo, "--max-commits", "0", "hook").stdout
+
+
+def test_an_oversized_backlog_replaces_the_due_reviews() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        _mark(repo)
+        _commit(repo, "legacy/old.py", "a = 1\nb = 2\nc = 3\n")
+        hook = _run(repo, "--max-review-lines", "2", "hook").stdout
+        assert "oversized backlog, start no review: 3 changed code lines" in hook
+        assert "creation review" not in hook and "legacy 3" in hook
+
+
+def test_an_approved_skip_is_recorded_and_no_longer_counted() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        _mark(repo)
+        _commit(repo, "legacy/old.py", "a = 1\nb = 2\nc = 3\n")
+        _commit(repo, "lib.py", "x = 1\ny = 2\n")
+        cut = _git(repo, "rev-parse", "HEAD").strip()
+        _commit(repo, "feature.py", "f = 1\n")
+        record = repo / "gaps" / "unreviewed-code.md"
+
+        preview = _run(repo, "skip", "--dry-run", "--to", cut, "--reason", "legacy")
+        assert json.loads(preview.stdout)["remaining"]["changed_lines"] == 1
+        assert not record.exists()
+
+        # One subtree only: the rest of that range is still to be reviewed.
+        _run(repo, "skip", "--to", cut, "--path", "legacy/", "--reason", "legacy")
+        status = json.loads(_run(repo, "status", "--json").stdout)
+        assert status["changed_lines"] == 2 and status["commits"] == 2, status
+        assert status["new_files"] == ["feature.py"]
+        assert f"- `legacy` `{_marker(repo)}..{cut}` 3 lines, 1 commits" in (
+            record.read_text()
+        )
+
+        # A later change under the skipped subtree is counted again.
+        _commit(repo, "legacy/old.py", "a = 1\nb = 2\nc = 4\n")
+        assert json.loads(_run(repo, "status", "--json").stdout)["changed_lines"] == 4
+
+        # Extending the same path rewrites its one row instead of adding another.
+        _run(repo, "skip", "--to", "HEAD", "--path", "legacy", "--reason", "more")
+        assert record.read_text().count("- `legacy`") == 1
+        assert _run(repo, "skip", "--to", cut, "--reason", "back").returncode == 0
+        again = _run(repo, "skip", "--to", cut, "--reason", "twice")
+        assert again.returncode == 5, again.stderr
+
+
+def test_a_malformed_skip_row_is_an_error() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        _mark(repo)
+        (repo / "gaps").mkdir()
+        (repo / "gaps" / "unreviewed-code.md").write_text("- `legacy` oops\n")
+        assert _run(repo, "hook").returncode == 3
 
 
 def test_marker_naming_an_unknown_commit_fails() -> None:

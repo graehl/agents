@@ -68,6 +68,12 @@ Line 1 of `.harsh-review` at the repo root remains the full-SHA high-water-mark 
 
 On delivering a review, advance the marker to the end actually covered whenever the review closes the prefix contiguously — its reviewed range reaches back to the marker or earlier and runs unbroken to a new end past it. That is the clean extension (base equals the marker) and equally an overlap-and-extend re-review whose base precedes the marker (e.g. `last 5 commits` re-including the marker commit). Only a review starting *past* an unreviewed gap, or one wholly behind the marker, delivers while leaving the marker untouched: it must never jump commits no review has accounted for. A high-water-mark, not a cursor of the last review.
 
+### Approved skips
+
+A backlog too large to act on is cut with the user's approval, never by the reviewer's choice. Each approved skip is one row in the committed `gaps/unreviewed-code.md`, written by `review-due skip --to <last skipped commit> [--path <subtree-or-file>]… --reason <text>`: a path, the commit range in which its code changes go unreviewed, and their size. Run it with `--dry-run` first to show the user what would be skipped and what would remain. Propose the cut where § Review records and serial fold would start a group: the parent of the first commit of the feature in progress, so that feature's opening, revising, and fixing commits stay together in the reviewed part. Skip a subtree alone when unrelated work there is what makes the range too large.
+
+A row is that path's review start: bare `since` reviews each file from the end of the furthest row covering it, else from the marker, and `review-due` counts the same way. Changes a row covers are accounted for like § Content exclusions, so the marker may advance past them; name the rows relied on in the verdict. The row stays as the record that the code was never reviewed. A review that later covers a row's path over its whole range deletes the row, and the file with its last row.
+
 ## Review records and serial fold
 
 Every non-empty review persists a working record, including a small range completed in one pass. After § Content exclusions, examine remaining large binary/image/reference resources on a small-sample basis; read substantive code changes, authored design/user doc text, and commit messages in full. Grouping does not replace those reads with only a net diff: intermediate changes can carry intent, interactions, or verification evidence absent from the final tree.

@@ -6503,3 +6503,51 @@ Contributing-model: fable-5.2
   migrated.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — an oversized review backlog needs an approved cut
+
+- **User direction** — "let's make the automatic review in case of huge
+  deferred obligation have a user approval for bypassing legacy commits. a
+  good cut point to start would be the commit that introduced the feature
+  being worked on. we could also consider an optional per-subtree (down to
+  per-file if needed) commit progress marker. a review of too much code to
+  feasibly act on before the next review is not good." Then: "i would prefer
+  durable record of skipped subtree rev-range gaps", and that the serial-fold
+  guidance already keeps a feature's rapid commits together (it does:
+  `skills/harsh-review/SKILL.md` § Review records and serial fold, "commits
+  opening, revising, testing, and fixing one logical feature may be reviewed
+  together").
+- **State found** — `~/agents` was not stuck: 982 changed code lines in 8
+  commits, reviewed the same hour. `~/ya` had 561,884 changed code lines in
+  1,302 commits behind a marker at its v0.9.1 commit of 2026-09-24, and `~/x`
+  14,465 lines in 25 commits. Under the old rule every commit there told the
+  session to start a review of all of it. `~/draft` has no marker.
+- **Change** — `review-due` reports `oversized` above 6,000 changed code
+  lines or 120 commits, and then no other review is due. The session asks the
+  user to approve a cut; `review-due skip` records each approved skip as a
+  row (path, commit range, size, date, reason) in the committed
+  `gaps/unreviewed-code.md`. A row is that path's review start, so one
+  mechanism is both the durable record and the per-subtree or per-file
+  progress marker. The global marker keeps its meaning and may pass skipped
+  code because the row accounts for it.
+- **Decision: the threshold** (mine) — the first automatic review covered
+  about 5,800 lines in 45 commits in 13 minutes and its findings were acted
+  on the same day, so 6,000 is the largest size with evidence of being
+  workable. A guess otherwise.
+- **Trace: `~/ya`, feature begun 15 commits ago** — `skip --dry-run --to
+  HEAD~15` reports one whole-repository row of 552,840 lines and 11,700
+  remaining, still oversized; the session then proposes subtree rows or a
+  later cut before asking. Without the preview it would have asked for an
+  approval that did not solve the problem.
+- **Trace: user absent or declines** — the line repeats at each commit and
+  no review starts. Each new session asks again; nothing records a refusal.
+  Left open.
+- **Trace: work repository** — `~/x` is a Gerrit project where a committed
+  gap file is not the session's to add. `--skips-file` can point at a
+  git-excluded path, but the post-commit hook must then pass the same
+  option. Not set up.
+- **Cost** — about 75 words in every boot.
+- **Status** — user-directed; tool tested; no skip has been recorded in any
+  repository.
+
+Contributing-model: fable-5.2

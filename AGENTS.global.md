@@ -704,6 +704,13 @@ inside the current task, and open a gap for the rest. Where the harness has
 no background subagent, relay the line to the user instead. A repository
 without the marker is not enrolled; `review-due status` shows the counts.
 
+An `oversized backlog` line means more is unreviewed than one review's
+findings could be acted on: start no review. Ask the user once to approve
+skipping the older commits, proposing as the cut the first commit of the
+feature being worked on, or the subtrees to skip. Only on approval, record it
+with `review-due skip` (the skill's § Review marker) and start the review of
+what remains. Never skip, or move the marker past unreviewed code, unapproved.
+
 ## Adjacent gaps: capture, don't chase or drop
 
 An adjacent code-quality issue not fixed now, or a partially landed unit whose

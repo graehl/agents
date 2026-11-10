@@ -549,8 +549,10 @@ reads the strict-review marker, line 1 of the untracked `.harsh-review`
 marker. `AGENTS.global.md` § Automatic review of kept code says what a
 session does with its output.
 
-**CLI**: `review-due [--repo <dir>] [--max-lines N] [--max-commits N] status`
-and `review-due … hook`; acli baseline with completion on `status`.
+**CLI**: `review-due [--repo <dir>] [--max-lines N] [--max-commits N]
+[--max-review-lines N] [--max-review-commits N] [--skips-file <path>] status`,
+`review-due … hook`, and `review-due … skip --to <rev> [--path <p>]…
+--reason <text> [--dry-run]`; acli baseline with completion.
 
 **Post-conditions**:
 - Code is a tracked file with a source-code suffix, or an executable file
@@ -569,9 +571,26 @@ and `review-due … hook`; acli baseline with completion on `status`.
   untracked `.git/hooks/post-commit` runs
   `scripts/review-due hook --acli-quiet` before its final `exec`, so the
   launch banner stays off stderr as well.
-- With no marker both verbs report nothing due: a repository is enrolled by
-  its first strict review. A marker naming a commit the repository lacks
-  exits 4.
+- When changed code lines exceed `--max-review-lines` (default 6000) or
+  code-touching commits exceed `--max-review-commits` (default 120), the
+  only due review is `oversized`: `hook` prints one
+  `review-due: oversized backlog, start no review: …` line naming the three
+  largest top-level subtrees, and `status` adds `by_subtree`.
+- `skip` appends one row per `--path` (default the whole repository) to the
+  committed `--skips-file` (default `gaps/unreviewed-code.md`, created with
+  gap front matter): `` - `<path>` `<base>..<end>` N lines, M commits;
+  skipped <date>: <reason> ``. `base` is where that path was already
+  reviewed or skipped to; a path's row that reaches the marker is extended
+  in place. `--dry-run` writes nothing. Both forms report `remaining`, the
+  counts after the skip. It never moves the marker.
+- Counting starts each file at the end of the furthest row covering it
+  whose end is past the marker, else at the marker. Rows at or behind the
+  marker stay as the record and change no count. A row the tool cannot
+  parse exits 3.
+- A `--to` not after where the path is reviewed or skipped to exits 5.
+- With no marker `status` and `hook` report nothing due: a repository is
+  enrolled by its first strict review. `skip` without a marker, or a marker
+  naming a commit the repository lacks, exits 4.
 
 **Examples**:
 - Marker at the previous commit, then a commit adding executable
@@ -580,6 +599,10 @@ and `review-due … hook`; acli baseline with completion on `status`.
 - A commit adding only `notes.md`: `hook` prints nothing.
 - `--max-lines 1` after a two-line edit to `lib.py`: `hook` prints
   `review-due: periodic review due: 2 changed code lines in 1 commits since <sha12>`.
+- Three lines changed under `legacy/` and two in `lib.py` before commit C,
+  one line after it: `skip --to C --path legacy --reason old` leaves
+  `status` at 3 changed lines; a later one-line edit under `legacy/` is
+  counted again.
 
 ### install-agents
 

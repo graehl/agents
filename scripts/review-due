@@ -6,14 +6,21 @@ Counts what changed in tracked code since the strict-review marker, line 1 of
 creation review is due while a code file added since the marker is unreviewed;
 a periodic review is due once the changed lines or commits pass a threshold.
 `hook` prints one line per due review and nothing otherwise, for a post-commit
-hook. The tool never starts a review or moves the marker.
+hook. Past a larger threshold the backlog is oversized: no review is due until
+the user approves skipping part of it, which `skip` records as rows in a
+committed gap file that later counts start from. The tool never starts a review
+or moves the marker.
 Contract: topics/helper-scripts.md § review-due.
 """
 
 from __future__ import annotations
 
+import dataclasses
+import re
 import subprocess
 import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -31,8 +38,14 @@ from acli import (
 )
 
 CAPABILITIES = ("complete",)
-EXIT_CODES = {4: "the marker names a commit this repository does not have"}
+EXIT_CODES = {
+    3: "the skipped-range record has a malformed row",
+    4: "the marker is absent for `skip`, or names a commit this repository lacks",
+    5: "`skip --to` is not after where that path is already reviewed or skipped to",
+}
 MARKER = ".harsh-review"
+SKIPS_FILE = "gaps/unreviewed-code.md"
+LITERAL = "--literal-pathspecs"
 CODE_SUFFIXES = frozenset(
     [
         ".py",
@@ -84,11 +97,129 @@ def is_code(path: str, mode: str) -> bool:
     return mode == EXECUTABLE
 
 
-def unreviewed_code(repo: Path, max_lines: int, max_commits: int) -> dict:
-    """Count code changed since the marker and say which reviews that makes due."""
+def _file_modes(repo: Path) -> dict[str, str]:
+    # NUL-separated throughout: Git otherwise quotes and escapes a path with
+    # non-ASCII bytes, and that printed form names no file when passed back.
+    return {
+        entry.split("\t", 1)[1]: entry.split()[0]
+        for entry in _git(repo, "ls-files", "-s", "-z").split("\0")
+        if entry
+    }
+
+
+def changed_code(
+    repo: Path, span: str, modes: dict[str, str], within: list[str] | None = None
+) -> list[tuple[str, str]]:
+    """(status, path) of code files changed in `span`, optionally under `within`.
+
+    Names only: listing changed paths reads no file content, so a range full of
+    large prose changes costs nothing before the code paths are selected.
+    """
+    command = [LITERAL, "diff", "--name-status", "--no-renames", "-z", span]
+    fields = _git(repo, *command, "--", *(within or ["."])).split("\0")
+    return [
+        (status, path)
+        for status, path in zip(fields[0::2], fields[1::2], strict=False)
+        if is_code(path, modes.get(path, ""))
+    ]
+
+
+def changed_line_counts(repo: Path, span: str, paths: list[str]) -> dict[str, int]:
+    """Added plus deleted lines per path in `span`; binary files count nothing."""
+    counts = {}
+    numstat = _git(
+        repo, LITERAL, "diff", "--numstat", "--no-renames", "-z", span, "--", *paths
+    )
+    for row in numstat.split("\0"):
+        if row:
+            added, deleted, path = row.split("\t", 2)
+            if added != "-":
+                counts[path] = int(added) + int(deleted)
+    return counts
+
+
+def _is_ancestor(repo: Path, older: str, newer: str) -> bool:
+    command = ["git", "-C", str(repo), "merge-base", "--is-ancestor", older, newer]
+    return subprocess.run(command, capture_output=True, check=False).returncode == 0
+
+
+def _commits_between(repo: Path, older: str, newer: str) -> int:
+    return int(_git(repo, "rev-list", "--count", f"{older}..{newer}"))
+
+
+@dataclass(frozen=True)
+class SkippedRange:
+    """Code under `path` changed in `base..end` that the user agreed not to review."""
+
+    path: str
+    base: str
+    end: str
+    lines: int
+    commits: int
+    skipped: str
+    reason: str
+
+    def covers(self, path: str) -> bool:
+        return self.path == "." or path == self.path or path.startswith(self.path + "/")
+
+    def as_dict(self) -> dict:
+        return dataclasses.asdict(self)
+
+    def as_row(self) -> str:
+        return (
+            f"- `{self.path}` `{self.base}..{self.end}` {self.lines} lines, "
+            f"{self.commits} commits; skipped {self.skipped}: {self.reason}\n"
+        )
+
+
+_SKIP_ROW = re.compile(
+    r"^- `(?P<path>[^`]+)` `(?P<base>[0-9a-f]{40})\.\.(?P<end>[0-9a-f]{40})` "
+    r"(?P<lines>\d+) lines, (?P<commits>\d+) commits; "
+    r"skipped (?P<skipped>\d{4}-\d{2}-\d{2}): (?P<reason>.*)$"
+)
+
+
+def read_skips(record: Path) -> list[SkippedRange]:
+    """The approved skips in the record file; a malformed row is an error."""
+    if not record.is_file():
+        return []
+    rows = []
+    for number, line in enumerate(record.read_text().splitlines(), 1):
+        if not line.startswith("- `"):
+            continue
+        row = _SKIP_ROW.match(line)
+        if not row:
+            die(
+                f"Malformed skipped-range row at {record}:{number}; rows are "
+                "written by `review-due skip`",
+                ExitCode.DATA,
+            )
+        fields = row.groupdict()
+        rows.append(
+            SkippedRange(
+                **{**fields, "lines": int(row["lines"]), "commits": int(row["commits"])}
+            )
+        )
+    return rows
+
+
+@dataclass(frozen=True)
+class Limits:
+    """Thresholds for a due review, the size past which one review is too much,
+    and the committed record of ranges the user agreed to skip."""
+
+    max_lines: int
+    max_commits: int
+    max_review_lines: int
+    max_review_commits: int
+    skips_file: str
+
+
+def reviewed_marker(repo: Path) -> str | None:
+    """The commit the strict review has reached, or None when not enrolled."""
     marker = repo / MARKER
     if not marker.is_file():
-        return {"reviewed": None, "due": []}
+        return None
     lines = marker.read_text().splitlines()
     reviewed = lines[0].strip() if lines else ""
     try:
@@ -99,46 +230,76 @@ def unreviewed_code(repo: Path, max_lines: int, max_commits: int) -> dict:
             ExitCode.NOT_FOUND,
             detail={"marker": str(marker), "line": reviewed},
         )
-    # NUL-separated throughout: Git otherwise quotes and escapes a path with
-    # non-ASCII bytes, and that printed form names no file when passed back.
-    modes = {
-        entry.split("\t", 1)[1]: entry.split()[0]
-        for entry in _git(repo, "ls-files", "-s", "-z").split("\0")
-        if entry
-    }
-    span = f"{reviewed}..HEAD"
-    # Names first: listing changed paths reads no file content, so a range full
-    # of large prose changes costs nothing before the code paths are selected.
-    fields = _git(repo, "diff", "--name-status", "--no-renames", "-z", span).split("\0")
-    changed = list(zip(fields[0::2], fields[1::2], strict=False))
-    code = [path for _, path in changed if is_code(path, modes.get(path, ""))]
-    new_files = [path for status, path in changed if status == "A" and path in code]
-    changed_lines = 0
-    commits = 0
-    if code:
-        literal = "--literal-pathspecs"
-        numstat = _git(
-            repo, literal, "diff", "--numstat", "--no-renames", "-z", span, "--", *code
+    return reviewed
+
+
+def unreviewed_code(
+    repo: Path, limits: Limits, recorded: list[SkippedRange] | None = None
+) -> dict:
+    """Count code changed since the marker and say which reviews that makes due.
+
+    `recorded` stands in for the record file's rows, to preview a skip.
+    """
+    reviewed = reviewed_marker(repo)
+    if reviewed is None:
+        return {"reviewed": None, "due": []}
+    modes = _file_modes(repo)
+    skips = [
+        row
+        for row in (
+            read_skips(repo / limits.skips_file) if recorded is None else recorded
         )
-        for row in numstat.split("\0"):
-            if row:
-                added, deleted, _ = row.split("\t", 2)
-                if added != "-":
-                    changed_lines += int(added) + int(deleted)
-        commits = int(_git(repo, literal, "rev-list", "--count", span, "--", *code))
+        if row.end != reviewed and _is_ancestor(repo, reviewed, row.end)
+    ]
+    # Each file is measured from its own start: the end of the furthest approved
+    # skip covering it, else the marker.
+    depth = {row.end: _commits_between(repo, reviewed, row.end) for row in skips}
+    by_start: dict[str, list[str]] = {}
+    for _, path in changed_code(repo, f"{reviewed}..HEAD", modes):
+        covering = [row.end for row in skips if row.covers(path)]
+        start = max(covering, key=depth.__getitem__) if covering else reviewed
+        by_start.setdefault(start, []).append(path)
+    changed_lines = 0
+    commits: set[str] = set()
+    new_files = []
+    by_subtree: dict[str, int] = {}
+    for start, paths in by_start.items():
+        span = f"{start}..HEAD"
+        new_files += [
+            path
+            for status, path in changed_code(repo, span, modes, paths)
+            if status == "A"
+        ]
+        for path, count in changed_line_counts(repo, span, paths).items():
+            changed_lines += count
+            top = path.split("/", 1)[0] if "/" in path else "."
+            by_subtree[top] = by_subtree.get(top, 0) + count
+        commits.update(_git(repo, LITERAL, "rev-list", span, "--", *paths).split())
+    oversized = (
+        changed_lines > limits.max_review_lines
+        or len(commits) > limits.max_review_commits
+    )
     due = []
-    if new_files:
-        due.append("creation")
-    if changed_lines > max_lines or commits > max_commits:
-        due.append("periodic")
+    if oversized:
+        due.append("oversized")
+    else:
+        if new_files:
+            due.append("creation")
+        if changed_lines > limits.max_lines or len(commits) > limits.max_commits:
+            due.append("periodic")
+    largest = sorted(by_subtree.items(), key=lambda item: -item[1])[:8]
     return {
         "reviewed": reviewed,
         "head": _git(repo, "rev-parse", "HEAD").strip(),
         "changed_lines": changed_lines,
-        "commits": commits,
-        "new_files": new_files,
-        "max_lines": max_lines,
-        "max_commits": max_commits,
+        "commits": len(commits),
+        "new_files": sorted(new_files),
+        "max_lines": limits.max_lines,
+        "max_commits": limits.max_commits,
+        "max_review_lines": limits.max_review_lines,
+        "max_review_commits": limits.max_review_commits,
+        "by_subtree": dict(largest),
+        "skips_in_effect": [row.as_dict() for row in skips],
         "due": due,
     }
 
@@ -156,13 +317,109 @@ def due_lines(result: dict) -> list[str]:
             f"review-due: periodic review due: {result['changed_lines']} changed code "
             f"lines in {result['commits']} commits since {result['reviewed'][:12]}"
         )
+    if "oversized" in result["due"]:
+        largest = ", ".join(
+            f"{path} {count}" for path, count in list(result["by_subtree"].items())[:3]
+        )
+        lines.append(
+            f"review-due: oversized backlog, start no review: {result['changed_lines']} "
+            f"changed code lines in {result['commits']} commits since "
+            f"{result['reviewed'][:12]} (largest: {largest}); ask the user to approve a "
+            "cut, then record it with `review-due skip`"
+        )
     return lines
 
 
-def status(args) -> int:
-    result = unreviewed_code(
-        Path(args.repo).resolve(), args.max_lines, args.max_commits
+def _limits(args) -> Limits:
+    return Limits(
+        args.max_lines,
+        args.max_commits,
+        args.max_review_lines,
+        args.max_review_commits,
+        args.skips_file,
     )
+
+
+SKIPS_PREAMBLE = """\
+---
+slug: unreviewed-code
+noticed: {today}
+where: the paths and commit ranges listed below
+---
+
+**Gap:** code changed in these ranges never had the strict review. graehl
+approved skipping each so that automatic reviews could resume from a point
+small enough to act on. `scripts/review-due skip` writes these rows and
+`review-due` reads them; do not edit them by hand.
+**Fix sketch:** strict-review one row's path over its range, then delete the
+row. Delete this file with its last row.
+
+## Skipped ranges
+
+"""
+
+
+def skip(args) -> int:
+    repo = Path(args.repo).resolve()
+    reviewed = reviewed_marker(repo)
+    if reviewed is None:
+        die(f"No {MARKER} marker: nothing is counted here yet", ExitCode.NOT_FOUND)
+    end = _git(repo, "rev-parse", "--verify", f"{args.to}^{{commit}}").strip()
+    record = repo / args.skips_file
+    rows = read_skips(record)
+    modes = _file_modes(repo)
+    today = datetime.now(timezone.utc).date().isoformat()
+    added = []
+    for path in [each.rstrip("/") or "." for each in args.path or ["."]]:
+        # Extend this path's own earlier skip when it reaches the marker or past it.
+        earlier = [
+            row
+            for row in rows
+            if row.path == path and _is_ancestor(repo, reviewed, row.end)
+        ]
+        base = earlier[0].base if earlier else reviewed
+        reached = earlier[-1].end if earlier else reviewed
+        if reached == end or not _is_ancestor(repo, reached, end):
+            die(
+                f"--to {end[:12]} is not after {reached[:12]}, where `{path}` is "
+                "reviewed or skipped to",
+                ExitCode.CONFLICT,
+            )
+        span = f"{base}..{end}"
+        paths = [name for _, name in changed_code(repo, span, modes, [path])]
+        commits = (
+            _git(repo, LITERAL, "rev-list", span, "--", *paths).split() if paths else []
+        )
+        lines = sum(changed_line_counts(repo, span, paths).values()) if paths else 0
+        rows = [row for row in rows if row not in earlier]
+        added.append(
+            SkippedRange(path, base, end, lines, len(commits), today, args.reason)
+        )
+    rows += added
+    result = {
+        "record": str(record),
+        "written": not args.dry_run,
+        "skipped": [row.as_dict() for row in added],
+    }
+    if not args.dry_run:
+        record.parent.mkdir(parents=True, exist_ok=True)
+        head = (
+            record.read_text().split("\n- `", 1)[0].rstrip("\n") + "\n\n"
+            if record.is_file()
+            else SKIPS_PREAMBLE.format(today=today)
+        )
+        record.write_text(head + "".join(row.as_row() for row in rows))
+    result["remaining"] = unreviewed_code(repo, _limits(args), rows)
+    emit(
+        result,
+        resolve_format(args),
+        text="\n".join(row.as_row().rstrip() for row in added),
+    )
+    return 0
+
+
+def status(args) -> int:
+    result = unreviewed_code(Path(args.repo).resolve(), _limits(args))
     if result["reviewed"] is None:
         text = (
             f"no {MARKER} marker; nothing is counted until a strict review writes one"
@@ -177,9 +434,7 @@ def status(args) -> int:
 
 
 def hook(args) -> int:
-    result = unreviewed_code(
-        Path(args.repo).resolve(), args.max_lines, args.max_commits
-    )
+    result = unreviewed_code(Path(args.repo).resolve(), _limits(args))
     for line in due_lines(result):
         print(line)
     return 0
@@ -209,9 +464,57 @@ def build_parser():
         default=20,
         help="Code-touching commits above which a periodic review is due (default 20).",
     )
+    parser.add_argument(
+        "--max-review-lines",
+        type=int,
+        default=6000,
+        help="Changed code lines above which the backlog is oversized: no automatic "
+        "review, and the user is asked to approve a cut (default 6000).",
+    )
+    parser.add_argument(
+        "--max-review-commits",
+        type=int,
+        default=120,
+        help="Code-touching commits above which the backlog is oversized (default 120).",
+    )
+    parser.add_argument(
+        "--skips-file",
+        default=SKIPS_FILE,
+        help="Committed record of ranges the user approved skipping, relative to the "
+        f"repository (default {SKIPS_FILE}).",
+    )
     commands = parser.add_subparsers(dest="command", required=True)
+    skip_cmd = commands.add_parser(
+        "skip",
+        help="Record, after the user approves it, that code changed up to --to is "
+        "skipped without review: one row per --path in the --skips-file, counted from "
+        "where that path is already reviewed or skipped to. Never moves the marker.",
+    )
+    skip_cmd.add_argument(
+        "--to",
+        required=True,
+        help="Last skipped commit; for a cut at a feature's first commit F, pass F^.",
+    )
+    skip_cmd.add_argument(
+        "--path",
+        action="append",
+        default=None,
+        help="Subtree or file to skip, repeatable (default: the whole repository).",
+    )
+    skip_cmd.add_argument(
+        "--reason", required=True, help="Why the range is skipped, in one line."
+    )
+    skip_cmd.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report the rows and what would remain to review; write nothing.",
+    )
+    add_standard_args(skip_cmd)
+    skip_cmd.set_defaults(func=skip)
     status_cmd = commands.add_parser(
-        "status", help="Emit the counts, the new code files, and which reviews are due."
+        "status",
+        help="Emit the counts, the new code files, the largest subtrees, the skips in "
+        "effect, and which reviews are due (creation, periodic, or oversized).",
     )
     add_standard_args(status_cmd)
     status_cmd.set_defaults(func=status)
