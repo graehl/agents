@@ -169,9 +169,11 @@ manuscript.
 ### Term definitions and notation previews
 
 The shared `qmd_build/term_hints.lua` filter gives prose and mathematical
-subexpressions one definition identity. `qmd-html`, `qmd-venue-pdf`, and
-`qmd-arxiv` apply it automatically; a plain `quarto render` needs the filter
-in `_quarto.yml` (the paper scaffold includes it). HTML supports mouse hover,
+subexpressions one definition identity. It runs once per build. A paper
+project registers it in `_quarto.yml` (the paper scaffold includes it), which
+serves plain `quarto render` and `qmd-arxiv`. `qmd-html` adds it only when the
+project's filter list lacks it, so a standalone document still gets it, and
+`qmd-venue-pdf` registers it in the document it stages. HTML supports mouse hover,
 keyboard focus, and click/tap to keep a selectable card open, with a link to
 the definition. PDF keeps internal links; portable PDF viewers do not offer
 the HTML hovercard interaction.
@@ -218,16 +220,18 @@ Existing links and code are excluded.
 
 `term-hints-implicit: true` in QMD front matter or `_quarto.yml` enables
 first-mention paragraph previews for math letters, Greek symbols, styled
-math atoms, mathematical Unicode symbols, and bold/italic terms. This is
-off by default. Cards say **First mention**, not **Definition**. Explicit
+math atoms, mathematical Unicode symbols, and bold/italic terms. A bold or
+italic term links only another bold or italic span with the same text, never
+plain prose, and emphasis containing no letter (a bold score) is not a term.
+This is off by default, and a value that is not a boolean fails the build. Cards say **First mention**, not **Definition**. Explicit
 definitions always win, including when they occur later in the document.
 The first mention is contextual help, not an inferred mathematical meaning;
 author an explicit definition when that context is inadequate. Ordinary
 prose aliases match whole phrases; formatted terms retain their formatting.
 
-The same boolean in `qmd-html.json` overrides manuscript/project metadata
-for that HTML/browser-PDF build. Venue builds accept the two switches under
-their existing `metadata` key; otherwise they inherit root QMD switches.
+The switch is read only from the rendered document's metadata; `qmd-html.json`
+no longer accepts it. Venue builds take the two switches from their config's
+`metadata` key and do not inherit the root manuscript's.
 The ASR papers and the conditional-reuse paper enable implicit previews in
 their project configuration.
 

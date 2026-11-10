@@ -73,3 +73,11 @@ Governs: breaking or shimming a public API, CLI flag, wire format, or persisted 
   because configurable coverage made the percentile-specific name false. No
   shim: the surface was introduced in the still-unreleased reviewed range and
   every in-repository caller was migrated before persisted consumers formed.
+- 2026-11-10 `qmd-html.json` key `term-hints-implicit` — removed and now
+  rejected as an unknown key; the switch is read only from the rendered
+  document's metadata, so one build has one source for it. No shim: no config
+  in `~/agents` or `~/draft` set the key.
+- 2026-11-10 venue builds and the term-hint switches — a venue build no longer
+  copies the two switches from the root manuscript's front matter; they come
+  only from the venue config's `metadata` key, which the one existing venue
+  config already used.
