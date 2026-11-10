@@ -40,6 +40,7 @@ AGENTCTL_FILES = (
     "agentctl_coordination.py",
     "agentctl_gpu.py",
     "agentctl_messages.py",
+    "agentctl_source_deps.py",
     "artifact_meta.py",
     "session_logs.py",
     "scripts/session-turn",
