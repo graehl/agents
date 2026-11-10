@@ -6446,3 +6446,60 @@ Contributing-model: fable-5.2
   not addressed.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — handoffs age instead of being pruned
+
+- **Observation** — `topics/handoffs.md` said "Replace obsolete current
+  state instead of appending an activity log." It was not complied with. The
+  largest live handoff, `research/pii/frontier/handoffs/ont3-active.local.md`
+  in `~/draft`, was 2,527 lines (172 kB): eight stacked checkpoint headings,
+  most marked "superseded above", with its pending list, compiled
+  understanding and ruled-out paths starting at line 2212.
+- **User direction** — "use age as a handoff feature. handoffs are typically
+  not cleaned up (many appends, not much revision/summary/deletion of
+  finished items) … i prefer a reconfirm step for aged items in preference
+  to heroic (costly) efforts to always close/update immediately on
+  discharged obligations." On the proposal: "i think the old instruction was
+  nice but it wasn't successfully complied with. new system authorized;
+  helper script is smart; we don't want manual reading of whole files
+  (wasteful)".
+- **Change** — writers date and classify headings (`[state]`, `[owed]`,
+  `[durable]`) and stop; readers take `handoff-age read --text`, which elides
+  aged sections to one index line each; an aged section is reconfirmed, by
+  `handoff-age confirm` or `archive`, only when work depends on it, and
+  unresolvable ones go to the user in one batch. Gaps get the same through
+  `noticed:`/`confirmed:` at 30 days. One sentence in `AGENTS.global.md`
+  § Session management carries the read trigger, because reading a handoff
+  does not route through the handoffs topic.
+- **Decision: sections, not list items** (mine) — the heading is the aged
+  unit. Item-level stamps would need a second grammar and writers would skip
+  them; an obligation with its own lifetime gets its own heading.
+- **Decision: days, not commits** (mine) — "commits in scope since the
+  stamp" was considered as the staleness signal and left out: in an active
+  program every day has commits, so it would age everything, and research
+  runs change state without committing.
+- **Trace: legacy handoff, no tags** — every section is untagged; dated ones
+  age as `[owed]`, undated ones are aged. `read` shows the opening control
+  lines and an index. On the 172 kB file that view is 4.7 kB; the reader
+  opens only the ranges it needs and tags them with `confirm --as`. Worst
+  case equals the old whole-file read, spread over ranges.
+- **Trace: next-day resume** — yesterday's `[state]` checkpoint is aged, so
+  the reader sees its index line, reads that one range, and checks it against
+  live state before trusting it. That is the reconcile-with-live-state step
+  resume already required, now forced rather than optional; cost is one
+  extra ranged read.
+- **Trace: aged obligation, user absent** — an autonomous session finds "tell
+  the advisor X" aged 20 days and cannot tell whether it was delivered. It
+  leaves the section aged, lists it in its one batched question, and does
+  other work. Without the rule the plausible failures are both worse: a
+  duplicate delivery, or silent deletion.
+- **Trace: user names a 60-day-old handoff** — the over-30-days
+  orient-only rule would have made the session ask whether to adopt a handoff
+  the user had just asked it to resume. Caught in trace; the rule now exempts
+  a handoff the request named.
+- **Cost** — about 40 words in every boot.
+- **Status** — user-directed; helper tested; behavioral effect on handoff
+  size and stale-obligation errors unmeasured. No existing handoff has been
+  migrated.
+
+Contributing-model: fable-5.2

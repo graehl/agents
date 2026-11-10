@@ -56,6 +56,13 @@ starting work in an area — a filed gap is known context, and its fix may
 now be in scope (then fix and remove it as its own commit). Capture without
 this read side is write-only memory.
 
+A gap ages from its `noticed:` date, or its `confirmed:` date once it has one.
+`handoff-age list <gaps-dir>` shows which files are aged (30 days). Before
+working an aged gap or citing it as known context, check its premise against
+the current tree. If it still holds, run `handoff-age confirm <file> 1`, which
+stamps `confirmed:`; if not, it exits under *Remove when moot* below. Gaps
+nobody is about to use may stay aged.
+
 ## Lifecycle
 
 - **Create** `gaps/<slug>.md` when you notice an adjacent defect you are

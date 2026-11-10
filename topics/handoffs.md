@@ -51,15 +51,16 @@ to preserve the crux, unfinished work, and next action. This is continuity
 maintenance, not permission to abandon authorized work. Do not interleave
 handoff writes with routine edit/build/test cycles.
 
-Replace obsolete current state instead of appending an activity log. Preserve
-only chronology that changes how a successor should reason. A completed private
-auto-handoff may be removed when it has no continuation value. A gap exits
-according to its local lifecycle, normally with the change that closes the
-incompleteness.
+Date and classify what you write (§ Age and reconfirmation), then stop. Adding
+a newer dated section above an older one is fine; do not spend a milestone
+rewriting or deleting what earlier sections said. Staleness is settled when the
+handoff is next read, by age. A completed private auto-handoff may be removed
+when it has no continuation value. A gap exits according to its local
+lifecycle, normally with the change that closes the incompleteness.
 
 Updating a handoff records state; it does not authorize executing its next
-steps. A session doing the work owns keeping its known handoff truthful rather
-than leaving predictable cleanup for the next session.
+steps. A session doing the work owns the truth and the stamp of the sections it
+writes; clearing what has aged belongs to the reconfirm pass.
 
 When the work is served by a durable advisor, the coherent intended v1 of a
 live handoff, a completed change to its covered scope/path, or its retirement
@@ -75,6 +76,56 @@ for logical reboot visibility; it does not create, edit, or automatically
 follow the handoff. Several changes at one natural boundary may share one
 coherent advisor interaction. This rule never requires creating a handoff where
 the user/session chose none.
+
+## Age and reconfirmation
+
+Handoffs grow by appending, and nobody reliably prunes them. So each section
+carries its age, a reader takes only the fresh part, and an aged section is
+reconfirmed when work next depends on it. `handoff-age`
+([spec](helper-scripts.md#handoff-age)) does the reading and the edits, so no
+step here needs a whole-file read or a hand edit of a long file.
+
+**Writing.** Every heading carries the date its section was true and a class
+tag saying how fast that truth decays:
+
+- `[state]`: live facts such as running jobs, current status, and the next
+  action. Aged the day after its date.
+- `[owed]`: obligations: pending, requested, promised. Aged after 7 days.
+- `[durable]`: compiled understanding: the crux, constraints, and ruled-out
+  paths with reasons. Never aged by date; revise it when contradicted.
+
+For example `## [state] Checkpoint at 2026-11-10 05:20 UTC` or
+`## [owed] Tell the advisor about the span spec (2026-11-08)`. A subsection
+without its own date or tag takes its parent's. An untagged section ages as
+`[owed]`, and an undated one is aged. Give an obligation whose lifetime differs
+from its neighbours its own heading. Keep `[durable]` sections first and the
+newest `[state]` section directly after them.
+
+**Reading.** Read a handoff with `handoff-age read --text <file>`, never whole.
+It prints the fresh and durable sections and one `<!-- aged … -->` line per
+aged section, with that section's line range. An aged section is a claim: do
+not rely on its state or act on its obligations before reconfirming it. When
+choosing among handoffs, `handoff-age list <dir>` gives each file's newest
+stamp; a handoff whose newest stamp is over 30 days old only orients, and
+unless the user's request named it, its next steps need the user's
+confirmation before adoption.
+
+**Reconfirm pass.** When the work at hand depends on an aged section, read
+just its line range and check it cheaply against live state: commits,
+artifacts, run records, active sessions. Then, by heading line number:
+
+- still true: `handoff-age confirm <file> <line>…`, adding `--as <class>` when
+  it was untagged;
+- discharged or superseded, with evidence: `handoff-age archive <file>
+  <line>…`, which moves it and its subsections to the sibling
+  `<name>.archive.md`. Nothing reads an archive routinely;
+- cannot tell: leave it aged and ask the user once, in one batch naming each
+  such item and its age. An unanswered item stays aged; it is neither executed
+  nor dropped.
+
+Sections the work does not touch may stay aged. Archiving shifts line numbers,
+so name every section in one call or list again. When `list` shows aged bytes
+dominating a file, archive its superseded `[state]` sections in the same pass.
 
 ## Contents
 
