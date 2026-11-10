@@ -415,3 +415,15 @@ Second correction, same day: graehl writes only with Astra, not Sol, so
 the supplement is `AGENTS.astra.md`, routed by an `astra` model-family
 segment (restoring the route removed in e3e8b60e when that file was
 empty). Sol does not load it.
+
+## 2026-11-10 — the lint bullet's evidence pointer is superseded
+
+The 2026-09-24 entry above places the lint's evidence in
+`skills/not-ai/validation.md` and speaks of "the lint's rule table". Both
+are gone: `not-ai-lint` now runs the vendored `skills/declauding` scan and
+has no rules, score, or validation file of its own. The § Revising bullet
+is unchanged and still names no patterns. The decision and the
+measurements behind it are in `agent-instructions.evidence.md`, entry
+"not-ai pass rebuilt on the vendored declauding skill" of this date.
+
+Contributing-model: fable-5.2

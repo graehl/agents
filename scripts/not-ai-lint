@@ -53,6 +53,7 @@ DEFAULT_LIMIT = 40
 TOP_MATCHES = 3
 INCLUDE = re.compile(r"\{\{<\s*include\s+(\S+)\s*>\}\}")
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+REUSE_OF = re.compile(r"\[([a-z-]+)\]")
 HUNK = re.compile(r"^@@ -\S+ \+(\d+)(?:,(\d+))? @@", re.MULTILINE)
 
 
@@ -62,23 +63,42 @@ def manuscript_files(root: Path) -> list[Path]:
     return [root, *(root.parent / name for name in INCLUDE.findall(source))]
 
 
-def changed_lines(path: Path, revision: str) -> set[int]:
-    """Lines of the working-tree file added or changed since `revision`."""
-    proc = subprocess.run(
-        [
-            "git",
-            "diff",
-            "-U0",
-            "--no-ext-diff",
-            "--no-color",
-            revision,
-            "--",
-            path.name,
-        ],
+def _git(path: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", *args],
         cwd=path.parent,
         capture_output=True,
         check=False,
         text=True,
+    )
+
+
+def changed_lines(path: Path, revision: str) -> set[int] | None:
+    """Lines of the working-tree file added or changed since `revision`.
+
+    None means every line: the file did not exist at that revision.
+    """
+    path = path.resolve()
+    known = _git(path, "rev-parse", "--verify", "--quiet", "--end-of-options", revision)
+    if known.returncode != 0:
+        die(
+            f"{path}: --since {revision}: not a revision git can resolve here "
+            f"{known.stderr.strip()}".rstrip(),
+            ExitCode.CONFLICT,
+        )
+    commit = known.stdout.strip()
+    if _git(path, "cat-file", "-e", f"{commit}:./{path.name}").returncode != 0:
+        return None
+    proc = _git(
+        path,
+        "diff",
+        "-U0",
+        "--inter-hunk-context=0",
+        "--no-ext-diff",
+        "--no-color",
+        commit,
+        "--",
+        path.name,
     )
     if proc.returncode != 0:
         die(f"{path}: git diff {revision}: {proc.stderr.strip()}", ExitCode.CONFLICT)
@@ -89,13 +109,26 @@ def changed_lines(path: Path, revision: str) -> set[int]:
     return lines
 
 
-def scan_text(prose: Prose) -> str:
-    """The prose at its source line numbers; tables and skipped lines are empty."""
-    rows = [""] * max((line.number for line in prose.lines), default=0)
+def scan_text(prose: Prose) -> tuple[str, list[int]]:
+    """The prose as the scan expects it, and each scanned row's source line.
+
+    The scan's paragraph rules count one blank row between paragraphs, so a
+    run of skipped or blank lines is sent as a single empty row (source 0).
+    Tables are left out.
+    """
+    rows: list[str] = []
+    source: list[int] = []
+    previous = 0
     for line in prose.lines:
-        if line.kind != "table":
-            rows[line.number - 1] = line.text
-    return "\n".join(rows) + "\n"
+        if line.kind == "table" or not line.text.strip():
+            continue
+        if rows and line.number != previous + 1:
+            rows.append("")
+            source.append(0)
+        rows.append(line.text)
+        source.append(line.number)
+        previous = line.number
+    return "\n".join(rows) + "\n", source
 
 
 def scan(text: str, options: list[str]) -> list[dict]:
@@ -138,28 +171,41 @@ def report(path: str, args, limit: int | None) -> dict:
         )
         if on
     ]
-    hits = [
-        h for h in scan(scan_text(prose), options) if h["category"] not in args.skip
-    ]
+    text, source = scan_text(prose)
+    hits = []
+    for h in scan(text, options):
+        # A reuse line restates candidates of the category named in its note.
+        restated = REUSE_OF.match(h["note"]) if h["category"] == "reuse" else None
+        if h["category"] in args.skip or (restated and restated.group(1) in args.skip):
+            continue
+        hits.append({**h, "line": source[h["line"] - 1] if h["line"] else 0})
     if args.since:
-        if path == "-":
-            die("--since needs file inputs, not stdin", ExitCode.USAGE)
+        if path == "-" or prose.format == "pdf":
+            die(
+                "--since needs Markdown, Quarto, or text files: stdin and PDF "
+                "have no line history",
+                ExitCode.USAGE,
+            )
         changed = changed_lines(Path(path), args.since)
         whole = sum(1 for h in hits if not h["line"])
-        hits = [h for h in hits if h["line"] in changed]
+        hits = [
+            h for h in hits if h["line"] and (changed is None or h["line"] in changed)
+        ]
         notes.append(
-            f"Only lines changed since {args.since} are reported; {whole} whole-document "
-            "candidates (repetition, density) are omitted because they have no line."
+            f"Only lines changed since {args.since} are reported"
+            + (" (the whole file: it is new since then)" if changed is None else "")
+            + f"; {whole} whole-document candidates (repetition, density) are "
+            "omitted because they have no line."
         )
     hits.sort(key=lambda h: (h["line"], h.get("col", 0)))
     findings = [
         {
             "line": h["line"],
             "loc": prose.locator(h["line"]) if h["line"] else "-",
-            "col": h.get("col", 0),
+            "col": h["col"] + 1 if "col" in h else 0,
             "category": h["category"],
             "note": h["note"],
-            "match": h["match"],
+            "match": " ".join(h["match"].split()),
         }
         for h in hits
     ]

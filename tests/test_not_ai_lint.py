@@ -54,6 +54,21 @@ class Scan(unittest.TestCase):
         self.assertIn("is not a tuning artifact", hits[0]["match"])
         self.assertNotIn("score", report)
 
+    def test_paragraph_shape_candidate_keeps_its_line_after_skipped_blocks(
+        self,
+    ) -> None:
+        run_of_fragments = (
+            "It works. It scales. It ships. Then we wrote a much longer sentence "
+            "about the remaining results here.\n"
+        )
+        source = (
+            "---\ntitle: T\nauthor: A\ndate: D\n---\n\n# Results\n\n" + PLAIN + "\n"
+            "```\ncode\nmore\n```\n\n" + run_of_fragments
+        )
+        (report,) = reports(stdin=source)
+        lines = [f["line"] for f in report["findings"] if f["category"] == "cadence"]
+        self.assertEqual(lines, [16])
+
     def test_non_prose_never_produces_candidates(self) -> None:
         source = (
             "---\ntitle: " + REVERSAL + "---\n\n" + PLAIN + "\n"
@@ -132,6 +147,10 @@ class Since(unittest.TestCase):
             )
             (report,) = reports("--since", "HEAD", str(draft))
             unknown = run("--since", "no-such-revision", str(draft))
+            untracked = repo / "new.md"
+            untracked.write_text(REVERSAL)
+            (new_file,) = reports("--since", "HEAD", str(untracked))
+        self.assertEqual(new_file["by_category"]["negation-first"]["count"], 1)
         lines = [
             f["line"] for f in report["findings"] if f["category"] == "negation-first"
         ]

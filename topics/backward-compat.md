@@ -93,3 +93,10 @@ Governs: breaking or shimming a public API, CLI flag, wire format, or persisted 
   linked only from a later emphasised use. A prose term needs an authored
   `terms=` definition. The papers in `~/draft` that enable the switch were
   not measured.
+- 2026-11-10 `not-ai-lint` output — the `summary.score`, `band`, `reliable`
+  and `by_rule` fields and the `--rules` option are removed; records carry
+  `words` and `by_category`, and each finding's `rule` field is `category`.
+  graehl asked for the lint to be rethought around the vendored declauding
+  catalogue, whose scan has no score. No in-repo caller read the removed
+  fields; the one outside reference, a program instruction in `~/draft`,
+  was reworded the same day.

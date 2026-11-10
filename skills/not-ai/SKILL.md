@@ -32,13 +32,17 @@ scope (`topics/writing.md` § Review modes and rulings).
   blocks, and tables produce no candidates, and it reports source lines.
 - **Structural review stays local.** Run
   `python3 ~/agents/skills/declauding/scripts/declaude_review.py --emit-prompt <file>`
-  and give the prompt to a subagent that did not write the draft. Never run
+  and answer the prompt in this session, or hand it to a subagent when this
+  session wrote the draft. Never run
   that script without `--emit-prompt`: with an API key in the environment it
   sends the draft's headings, openings, and closing sentences to an outside
   model, which an unpublished manuscript must not do.
 - **Not used:** the plugin Stop hook (`hooks/`), `fresh_eyes.py` as a hook,
   and `declaude_rank.py` unless the user asks for it (it downloads an
-  embedding model). Annotated HTML output is on request only.
+  embedding model, and its `--fit` overwrites the vendored
+  `assets/staging-axis.json`). `fresh_eyes.py packet` copies the draft's
+  text to `/tmp/fresh-eyes/`; for an unpublished draft, hand the subagent
+  the file paths instead. Annotated HTML output is on request only.
 - **Authors other than Claude.** The model profiles cover Claude models. For
   a draft by another model, or by several, read the whole register table
   and start from the candidates the scan reports.
@@ -76,6 +80,25 @@ scope (`topics/writing.md` § Review modes and rulings).
    For each change, name the register entry and what the reader gains.
    Preserve terms of art, quotations, and the author's own voice.
 
+   The scan's candidates are surface shapes, and on the PII paper's history
+   most categories pointed at later-edited sentences no better than chance
+   (reversals and abstraction-as-agent were the exceptions). So judge every
+   candidate against its register entry and the exceptions table, and read
+   each section for tics the scan cannot match: a verdict in a heading, a
+   closing sentence that restates its paragraph, a conclusion held to the
+   end. Do this reading in the main session, which knows the reader and the
+   document's goals. Use a reader with fresh context only when this session
+   wrote the draft, or to split a long manuscript by section when that
+   costs about the same as reading it here.
+
+   **Standing authorization (graehl, 2026-11-10):** when he is going to
+   revise a document by hand into conventional presentation, model judges
+   costing anywhere from Luna to Opus may be used for this stage without
+   asking. Detect and report judge refusals separately from empty results
+   (`topics/document-annotation.md` § Refusal detection), and save the
+   judged output with the review round, since a rerun will not reproduce
+   it.
+
 4. **Check the edit** (vendored step 5), in revise mode or before proposing
    replacement text:
 
@@ -84,8 +107,12 @@ scope (`topics/writing.md` § Review modes and rulings).
    not-ai-lint --text --since <revision> <files>
    ```
 
-   The first lists numbers, names, quotations, and scope, negation, and
-   hedge constructions the edit lost or added. Answer each finding: a
+   Run the first from the repository root with the file's root-relative
+   path. Given an absolute path, or run from a subdirectory, it reports
+   "not in <revision> — new file, nothing to preserve" and exits 0 for a
+   file that does exist there; treat that message on an existing file as a
+   failed check and rerun. It lists numbers, names, quotations, and scope,
+   negation, and hedge constructions the edit lost or added. Answer each finding: a
    dropped claim is restored, an invented one is removed, and a rephrasing
    the check cannot see through is waived with a reason. The second shows
    whether the rewrite introduced new candidates, which get the same
