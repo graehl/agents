@@ -493,6 +493,7 @@ class Dashboard:
         page: Path,
         kind: str,
         rels: list[str],
+        *,
         dates: dict[str, str] | None = None,
         titles: dict[str, str] | None = None,
         labels: dict[str, str] | None = None,
@@ -915,17 +916,25 @@ class Dashboard:
         if r["sketches"]:
             lists.append(
                 self.kind_list(
-                    page, "Sketches", r["sketches"], r["dates"], r["sketch_titles"]
+                    page,
+                    "Sketches",
+                    r["sketches"],
+                    dates=r["dates"],
+                    titles=r["sketch_titles"],
                 )
             )
         if r["handouts"]:
-            lists.append(self.kind_list(page, "Handouts", r["handouts"], r["dates"]))
+            lists.append(
+                self.kind_list(page, "Handouts", r["handouts"], dates=r["dates"])
+            )
         if r["skeletons"]:
             lists.append(self.kind_list(page, "Paper skeletons", r["skeletons"]))
         if r["documents"]:
-            lists.append(self.kind_list(page, "Documents", r["documents"], r["dates"]))
+            lists.append(
+                self.kind_list(page, "Documents", r["documents"], dates=r["dates"])
+            )
         if r["gaps"]:
-            lists.append(self.kind_list(page, "Gaps", r["gaps"], r["dates"]))
+            lists.append(self.kind_list(page, "Gaps", r["gaps"], dates=r["dates"]))
         if r["handoffs"]:
             rels = [p.relative_to(self.root).as_posix() for p in r["handoffs"]]
             lists.append(self.kind_list(page, "Handoffs", rels))

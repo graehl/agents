@@ -508,6 +508,11 @@ class RepoViewTest(unittest.TestCase):
         os.utime(self.repo / "paper/index.qmd")
         stale = json.loads(self.get(url + "?repo-view=fresh")[2])["stale"]
         self.assertEqual(stale["input"], "paper/index.qmd")
+        # Each odd file is reported once, not once per request.
+        logged = "".join(
+            f.read_text() for f in self.repo.parent.glob("serve-*.err")
+        ).count("not read as a receipt")
+        self.assertEqual(logged, 2)
 
     def test_page_is_served_when_its_freshness_cannot_be_judged(self) -> None:
         self.quarto_paper()

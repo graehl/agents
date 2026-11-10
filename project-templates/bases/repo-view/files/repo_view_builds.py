@@ -193,6 +193,10 @@ class Builds:
         # Which build a page last started, so it can ask how that build went
         # after the output is current and no recipe is stale any more.
         self._started_for: RecentEntries = RecentEntries(BUILD_RECORDS)
+        # Per receipt file: its parsed JSON (or the reason it is not a
+        # receipt) at one version, so requests for its neighbours reparse and
+        # report nothing until the file changes.
+        self._receipt_files: RecentEntries = RecentEntries(BUILD_RECORDS)
         # Per recipe key: the freshness stamp `start_once` last ran it for.
         self._started_once: RecentEntries = RecentEntries(BUILD_RECORDS)
 
@@ -218,17 +222,49 @@ class Builds:
         whose output another build has since replaced no longer describes it."""
         target = (self.root / rel).resolve()
         for candidate in sorted(target.parent.glob("*.receipt.json")):
+            data = self._receipt_json(candidate)
+            if data is None:
+                continue
             try:
-                receipt = self._receipt_for(target, candidate)
-            except (OSError, ValueError, KeyError, TypeError, AttributeError):
+                receipt = self._receipt_for(target, candidate, data)
+            except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+                self._not_a_receipt(candidate, error)
                 continue
             if receipt:
                 return receipt
         return None
 
-    def _receipt_for(self, target: Path, candidate: Path) -> Receipt | None:
-        """`candidate` read as a receipt for `target`; raises on any other shape."""
-        data = json.loads(candidate.read_text(encoding="utf-8"))
+    def _receipt_json(self, candidate: Path) -> dict | None:
+        """`candidate` parsed, once per version of the file; None when it does
+        not parse, which is logged once per version."""
+        try:
+            stat = candidate.stat()
+        except OSError:
+            return None
+        version = (stat.st_mtime_ns, stat.st_size)
+        cached = self._receipt_files.get(candidate)
+        if cached and cached[0] == version:
+            return cached[1]
+        try:
+            data = json.loads(candidate.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                raise TypeError("not a JSON object")
+        except (OSError, ValueError, TypeError) as error:
+            data = None
+            self.log("fresh", f"{candidate}: not read as a receipt: {error!r}")
+        self._receipt_files[candidate] = (version, data, False)
+        return data
+
+    def _not_a_receipt(self, candidate: Path, error: Exception) -> None:
+        """Log, once per version of the file, that its shape is not a receipt's:
+        a builder that changes its schema would otherwise only lose its notice."""
+        version, data, reported = self._receipt_files[candidate]
+        if not reported:
+            self.log("fresh", f"{candidate}: not read as a receipt: {error!r}")
+            self._receipt_files[candidate] = (version, data, True)
+
+    def _receipt_for(self, target: Path, candidate: Path, data: dict) -> Receipt | None:
+        """`candidate`'s `data` as a receipt for `target`; raises on any other shape."""
         command = data["artifact_metadata"]["regenerate"]["proposedRegistration"]
         if target not in {Path(output).resolve() for output in command["outputs"]}:
             return None

@@ -183,6 +183,36 @@ class ProgramViewTest(unittest.TestCase):
             self.assertIn(f'data-path="research/mt/extra-{i}.md"', index)
         self.assertIn('data-kind="Handoffs"', index)
 
+    def test_page_script_folds_long_lists_and_old_sessions(self) -> None:
+        # The folds exist only in the browser, so this needs one.
+        playwright = Path.home() / "ya/packages/client"
+        if not (playwright / "node_modules/@playwright/test").exists():
+            self.skipTest(f"no Playwright under {playwright}")
+        for i in range(24):
+            (self.repo / f"research/mt/extra-{i}.md").write_text(
+                f"# Extra {i}\n", encoding="utf-8"
+            )
+        now = time.time()
+        for identifier, days in (("current", 0), ("old", 8)):
+            path = self.repo / ".agentctl/active" / identifier
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("Working\nscope: research/mt\n")
+            os.utime(path, (now - days * 86400, now - days * 86400))
+        index = self.repo.parent / "index.html"
+        index.write_text(program_view.pages(self.repo)["index.html"], encoding="utf-8")
+        browser = subprocess.run(
+            [
+                "node",
+                str(Path(__file__).with_name("program_view_browser.mjs")),
+                str(index),
+                str(playwright),
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(browser.returncode, 0, browser.stdout + browser.stderr)
+
     def test_pages_and_links(self) -> None:
         pages = program_view.pages(self.repo)
         self.assertEqual(sorted(pages), ["index.html", "research/mt/papers-index.html"])

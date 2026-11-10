@@ -99,30 +99,33 @@ def unreviewed_code(repo: Path, max_lines: int, max_commits: int) -> dict:
             ExitCode.NOT_FOUND,
             detail={"marker": str(marker), "line": reviewed},
         )
+    # NUL-separated throughout: Git otherwise quotes and escapes a path with
+    # non-ASCII bytes, and that printed form names no file when passed back.
     modes = {
         entry.split("\t", 1)[1]: entry.split()[0]
-        for entry in _git(repo, "ls-files", "-s").splitlines()
+        for entry in _git(repo, "ls-files", "-s", "-z").split("\0")
+        if entry
     }
     span = f"{reviewed}..HEAD"
     # Names first: listing changed paths reads no file content, so a range full
     # of large prose changes costs nothing before the code paths are selected.
-    changed = [
-        row.split("\t", 1)
-        for row in _git(
-            repo, "diff", "--name-status", "--no-renames", span
-        ).splitlines()
-    ]
+    fields = _git(repo, "diff", "--name-status", "--no-renames", "-z", span).split("\0")
+    changed = list(zip(fields[0::2], fields[1::2], strict=False))
     code = [path for _, path in changed if is_code(path, modes.get(path, ""))]
     new_files = [path for status, path in changed if status == "A" and path in code]
     changed_lines = 0
     commits = 0
     if code:
-        numstat = _git(repo, "diff", "--numstat", "--no-renames", span, "--", *code)
-        for row in numstat.splitlines():
-            added, deleted, _ = row.split("\t", 2)
-            if added != "-":
-                changed_lines += int(added) + int(deleted)
-        commits = int(_git(repo, "rev-list", "--count", span, "--", *code))
+        literal = "--literal-pathspecs"
+        numstat = _git(
+            repo, literal, "diff", "--numstat", "--no-renames", "-z", span, "--", *code
+        )
+        for row in numstat.split("\0"):
+            if row:
+                added, deleted, _ = row.split("\t", 2)
+                if added != "-":
+                    changed_lines += int(added) + int(deleted)
+        commits = int(_git(repo, literal, "rev-list", "--count", span, "--", *code))
     due = []
     if new_files:
         due.append("creation")

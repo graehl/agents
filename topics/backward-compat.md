@@ -81,3 +81,8 @@ Governs: breaking or shimming a public API, CLI flag, wire format, or persisted 
   copies the two switches from the root manuscript's front matter; they come
   only from the venue config's `metadata` key, which the one existing venue
   config already used.
+- 2026-11-10 `qmd-arxiv` and the term-hint filter — `qmd-arxiv` no longer
+  adds the filter itself; it runs when the paper's `_quarto.yml` lists it, as
+  the paper scaffold does, so each build runs it once. Of the twelve Quarto
+  projects in `~/agents` and `~/draft` at the time, all but one already
+  listed it; a project that does not gets an arXiv build without term links.

@@ -98,9 +98,13 @@ def test_accumulated_edits_make_a_periodic_review_due() -> None:
         _mark(repo)
         _commit(repo, "lib.py", "x = 2\n")
         assert _run(repo, "hook").stdout == ""
+        # A path Git would print quoted is still counted.
+        _commit(repo, "na\u00efve [x].py", "y = 1\ny = 2\n")
+        status = json.loads(_run(repo, "status", "--json").stdout)
+        assert status["changed_lines"] == 4 and status["commits"] == 2, status
+        assert status["new_files"] == ["na\u00efve [x].py"]
         over_lines = _run(repo, "--max-lines", "1", "hook").stdout
-        assert "periodic review due: 2 changed code lines in 1 commits" in over_lines
-        assert "creation" not in over_lines
+        assert "periodic review due: 4 changed code lines in 2 commits" in over_lines
         assert "periodic review due" in _run(repo, "--max-commits", "0", "hook").stdout
 
 

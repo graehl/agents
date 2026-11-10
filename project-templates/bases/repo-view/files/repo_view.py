@@ -53,9 +53,15 @@ from urllib.parse import parse_qs, quote, unquote, urlsplit
 # `repo_view_builds.py` ships beside this script, like the files named below.
 # It is found however this script is loaded, and importing it leaves no
 # `__pycache__` in the project's `scripts/`.
+# Both interpreter settings are restored, so loading this file changes nothing
+# for the rest of the process.
+_settings = (sys.path[:], sys.dont_write_bytecode)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.dont_write_bytecode = True
-from repo_view_builds import Builds, Freshness  # noqa: E402
+try:
+    from repo_view_builds import Builds, Freshness  # noqa: E402
+finally:
+    sys.path[:], sys.dont_write_bytecode = _settings
 
 ACCESS_QUERY = "ya_access"
 ACCESS_COOKIE = "ya_app_access"
@@ -1115,11 +1121,15 @@ class LiveSite:
                 HTTPStatus.INTERNAL_SERVER_ERROR,
                 body=b"could not judge this output's freshness; see the server log\n",
             )
-        return json_reply(
-            self.builds.start(fresh.recipe, source)
-            if fresh.recipe
-            else {"state": "current"}
-        )
+        if fresh.recipe:
+            return json_reply(self.builds.start(fresh.recipe, source))
+        if fresh.stale:
+            return Reply(
+                HTTPStatus.CONFLICT,
+                body=b"stale, but no rebuild command is available here"
+                b" (no receipt, and quarto is not installed)\n",
+            )
+        return json_reply({"state": "current"})
 
     def shown_file(self, parts: list[str]) -> str | None:
         """The repository file the served page at `parts` shows, if one does."""

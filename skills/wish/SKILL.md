@@ -17,8 +17,9 @@ stop only when X is **demonstrated** done — by a test you can quote — or
 when you hit a real blocker.
 
 Read first, because this loop inherits their rules: `AGENTS.md`
-(*Tolerant parsing in throwaway orchestration*, *Big-effect command gate*, *Verification*,
-*Interruptible checkpoints*, *Confirmation threshold*) and
+(*Big-effect command gate*, *Verification*, *Interruptible checkpoints*,
+*Confirmation threshold*), `AGENTS/change-delivery.md` (*Anti-slop
+implementation*) and
 `topics/design-thinking.md` (*reframe before patching*, *map before
 drilling*). This file is the loop procedure; those are the obligations it
 runs under.

@@ -650,6 +650,9 @@ nav.outline .mobile-controls-link {
   .kind > summary {
     color: #8fcbab;
   }
+  .more > summary {
+    color: #a3ada5;
+  }
   .invalid {
     color: #ffa58f;
   }
