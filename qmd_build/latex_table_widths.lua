@@ -20,8 +20,9 @@
 -- cell of math counts its TeX source (`\frac{a}{b}` is eleven characters
 -- wide) and an image counts its alt text; give such a table `tbl-colwidths`.
 -- The character budget is for 10pt type in one column. The text-block width
--- comes from the document's `geometry` and `papersize` metadata when they
--- state it as a `textwidth` or as a known paper size with horizontal margins;
+-- comes from the document's `geometry`, `classoption` and `papersize` metadata
+-- when they state it as a `textwidth` or as a known paper size with horizontal
+-- margins;
 -- otherwise it is assumed to be 6.5in (US Letter with 1in margins, the page
 -- the paper template sets).
 if not FORMAT:match("latex") then
@@ -79,41 +80,44 @@ local function inches(length)
   return value and INCHES_PER_UNIT[unit] and value * INCHES_PER_UNIT[unit]
 end
 
--- The geometry package's options, whether the metadata holds a list of them
--- or one comma-separated string: `key=value` gives the value, and a bare
--- option such as `landscape` or `a4paper` gives true.
-local function geometry_options(meta)
-  local options = {}
-  if meta.geometry == nil then
-    return options
+-- Adds the options of one metadata value, a list or a comma-separated string,
+-- to `options`. `key=value` gives the value as text; a bare option such as
+-- `landscape` gives "true", as LaTeX reads it, so `landscape=false` is off.
+local function read_options(options, value)
+  if value == nil then
+    return
   end
-  local items = pandoc.utils.type(meta.geometry) == "List" and meta.geometry or { meta.geometry }
+  local items = pandoc.utils.type(value) == "List" and value or { value }
   for _, item in ipairs(items) do
     for option in stringify(item):gmatch("[^,]+") do
-      local key, value = option:match("^%s*(%a%w*)%s*=%s*(.-)%s*$")
+      local key, setting = option:match("^%s*(%a%w*)%s*=%s*(.-)%s*$")
+      key = key or option:match("^%s*(%a%w*)%s*$")
       if key then
-        options[key] = value
-      else
-        key = option:match("^%s*(%a%w*)%s*$")
-        if key then
-          options[key] = true
-        end
+        options[key] = setting or "true"
       end
     end
   end
+end
+
+-- The page layout options in force: the geometry package also obeys the
+-- document class's (`classoption: landscape`), and its own are read last.
+local function geometry_options(meta)
+  local options = {}
+  read_options(options, meta.classoption)
+  read_options(options, meta.geometry)
   return options
 end
 
--- The paper's horizontal extent: geometry's own paper option (`a4paper`) wins
--- over `papersize`, and `landscape` turns the sheet.
+-- The paper's horizontal extent: a paper option (`a4paper`) wins over
+-- `papersize`, and `landscape` turns the sheet.
 local function paper_width_inches(options, meta)
   local size = PAPER_INCHES[stringify(meta.papersize or "")] or {}
   for name, dimensions in pairs(PAPER_INCHES) do
-    if options[name .. "paper"] then
+    if options[name .. "paper"] == "true" then
       size = dimensions
     end
   end
-  if options.landscape then
+  if options.landscape == "true" then
     return inches(options.paperheight) or size[2]
   end
   return inches(options.paperwidth) or size[1]
