@@ -54,7 +54,7 @@ ideas. Modern codec/generative restoration and sample-importance selection
 need further grounded coverage before claiming a contribution there.
 
 The motivating project's concrete proposal and filtering-granularity controls
-live in
-[audio-enhancement-and-filtering.md](/local/graehl/trtllm-speculative/draft/research/speech-recognition/gaps/sketches/audio-enhancement-and-filtering.md).
+live in the draft repository's
+`research/speech-recognition/gaps/sketches/audio-enhancement-and-filtering.md`.
 The objective is the trained recognizer's utility on held-out audio, separate
 from designing a system-ranking ASR evaluation metric.

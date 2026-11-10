@@ -48,6 +48,10 @@
       into lies.
     - Honesty reaches 55.2 (32B) and 26.1 (8B), against 94.0 for the
       reference.
+  - Generic honesty SFT with no sensitive data recovers the most facts
+    (8B: 26% to 73%, interrogation setting).
+  - Prefill and few-shot prompting also work and transfer to
+    DeepSeek-R1-0528, MiniMax-M2.5 and Qwen3.5-397B.
 - **Ko 2026b**, *Uncensored Is Not Unbiased*,
   [HTML](https://arxiv.org/html/2610.29342) ·
   [PDF](https://arxiv.org/pdf/2610.29342).
@@ -67,10 +71,6 @@
     40k multilingual user prompts, NeMo 2.0 post-training.
   - Self-evaluation on over 1,000 examples. Score tables are images and
     were not read.
-  - Generic honesty SFT with no sensitive data recovers the most facts
-    (8B: 26% to 73%, interrogation setting).
-  - Prefill and few-shot prompting also work and transfer to
-    DeepSeek-R1-0528, MiniMax-M2.5 and Qwen3.5-397B.
 - **Rager et al. 2025**, *Discovering Forbidden Topics*,
   [PDF](https://arxiv.org/pdf/2505.17441) ·
   [arXiv](https://arxiv.org/abs/2505.17441).

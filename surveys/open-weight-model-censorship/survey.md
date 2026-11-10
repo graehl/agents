@@ -753,8 +753,7 @@ for Perplexity.
    at about 1B. *Grade: contested at 1.5B; unmeasured below.*
 4. **Removal.** Cheap. Complete for refusal on the benchmark used.
    Incomplete for falsehood and steering, fragile under quantization,
-   and model-specific. The continuation pass sharpened this without
-   changing the verdict:
+   and model-specific:
    - In Qwen3-VL-8B, abliteration turned removed refusals partly into
      falsehoods (falsehood rate 45% → 58%).
    - Abliterated Qwen3.8-Flash-Next still asserts the PRC position on
@@ -771,18 +770,15 @@ for Perplexity.
    Western models show analogous topic-conditioned slant, at smaller
    magnitude and without a mandated list. This includes measured
    omission bias in summarization (Cunningham) and script-dependent
-   Taiwan stance in Nemotron (Ko 2026b). *Grade: single-source for
-   each.*
+   Taiwan stance in Nemotron (Ko 2026b). Against a broader reading,
+   AuAu finds model origin does not predict general authoritarian
+   alignment across 17 models: the Chinese-lab effect is confined to
+   the mandated topic list. *Grade: single-source for each.*
 6. **Backdoor persistence.** Naive and natural interference erodes
    under benign fine-tuning, faster in small models. Persistence-
-   optimized backdoors survive. **Changed for speech:** the verdict
-   previously said nothing was measured for ASR. One study now reports
-   that clean fine-tuning erases a planted Whisper backdoor but not one
+   optimized backdoors survive. For speech, one study reports that
+   clean fine-tuning erases a planted Whisper backdoor but not one
    in the LLM-decoder Qwen2.5-Omni-3B (46.5% → 32.5%). So erasure by
    ordinary training cannot be assumed for Qwen-style speech models.
    *Grade: single-source per study, consistent in direction across
    Hubinger, Zhan, Cui and Krčo.*
-5a. **Disconfirming addition to 5.** AuAu finds model origin does not
-   predict general authoritarian alignment across 17 models. The
-   Chinese-lab effect is confined to the mandated topic list.
-   *Grade: single-source.*

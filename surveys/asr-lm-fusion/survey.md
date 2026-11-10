@@ -23,7 +23,7 @@ shallow fusion with on-device ASR, or a bidirectional LM used for n-best
 rescoring; and can the recognizer's training account for the fused LM?
 
 Setting the answers are judged against (speech-recognition program,
-[ngram-fusion-v1](https://gerrit.ad.ai.sdl.com/cgit/aip-draft.git/tree/research/speech-recognition/multilingual/ngram-fusion-v1/README.md)):
+draft repository `research/speech-recognition/multilingual/ngram-fusion-v1/README.md`):
 CTC students (0.6B w2v-BERT, omniASR-CTC-1B), a 68M Zipformer transducer
 and the Oswald/Qwen3-ASR 0.6B AED; a Snapdragon 8 Gen 1 phone CPU, 4
 threads, ONNX Runtime int8; Lao, Haitian Creole, Sinhala, Vietnamese with

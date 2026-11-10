@@ -57,8 +57,8 @@ al. favor a frozen enhancer in their setup; Iwamoto et al. obtain their best
 results by adapting enhancement with ASR loss. Neither establishes a universal
 choice between frozen and joint training.
 
-The user's feedback to William—that enhancement for human listeners need not
-rescue training data—is consistent with these distinctions. An absolute claim
+Enhancement built for human listeners need not rescue training data, which is
+consistent with these distinctions. An absolute claim
 that processing cannot help ASR training would exceed the evidence, particularly
 the matched-system and combined-training results.
 
@@ -84,10 +84,11 @@ learned enhancer to reconstruct information.
 
 Perceptual scores may nominate suspicious segments, but evidence here does not
 justify using them as training-utility targets. The adjacent filtering evidence
-is maintained in the draft project's
-[ASR filtering survey](/local/graehl/trtllm-speculative/draft/research/speech-recognition/surveys/asr-data-filtering/survey.md).
+is maintained in the draft repository's ASR filtering survey,
+`research/speech-recognition/surveys/asr-data-filtering/survey.md`.
 Candidate tests are in [frontier.md](frontier.md); the project-specific proposal
-is [audio-enhancement-and-filtering.md](/local/graehl/trtllm-speculative/draft/research/speech-recognition/gaps/sketches/audio-enhancement-and-filtering.md).
+is the draft repository's
+`research/speech-recognition/gaps/sketches/audio-enhancement-and-filtering.md`.
 
 ## Retrieval and coverage
 

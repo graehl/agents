@@ -3,8 +3,8 @@
 Grounded from fetched full text (2026-11-09) unless a line says otherwise.
 Map node: [survey.md § Internal-LM correction](../survey.md#internal-lm-correction-at-decode-time).
 Extends the speech-recognition program's
-[decode-time baselines](https://gerrit.ad.ai.sdl.com/cgit/aip-draft.git/tree/research/speech-recognition/surveys/tts-for-asr/concepts/inj-fusion-baselines.md)
-(draft repo `research/speech-recognition/surveys/tts-for-asr/concepts/inj-fusion-baselines.md`),
+decode-time baselines
+(draft repository `research/speech-recognition/surveys/tts-for-asr/concepts/inj-fusion-baselines.md`),
 which already carries the ILME paper's main table; it is not repeated here.
 
 **Sources read** (full text, local extracts):
@@ -76,7 +76,7 @@ second effect, which a length reward also gives.
   cross-domain.
 - The program's TTS survey records ILME hurting a Whisper fine-tune by
   +8.0 WER on average with a trigram LM
-  ([inj-fusion-baselines](https://gerrit.ad.ai.sdl.com/cgit/aip-draft.git/tree/research/speech-recognition/surveys/tts-for-asr/concepts/inj-fusion-baselines.md)).
+  (the same `inj-fusion-baselines.md`).
 - No located paper applies any of these to a character-level CTC model with
   a character LM, or to a low-resource language.
 
