@@ -301,6 +301,49 @@ GROUPS = (
     Group("other", "**Other activities.**", ()),
 )
 
+# Routes the boot lists by topic name alone, without their activity line: each
+# was opened in at most one of 365 Claude Code sessions in the 30 days to
+# 2026-11-10 (Read-tool opens plus shell commands naming the file). The
+# glossary row and the topic's own `Governs:` line still state the trigger.
+# A new topic is absent from this set, so it gets a full line.
+NAMED_ONLY = frozenset(
+    {
+        "acli-spec",
+        "agent-guard",
+        "almanac",
+        "at-scheduling",
+        "blog-post-writing",
+        "debugging",
+        "degradation-injection",
+        "document-annotation",
+        "doubt-skill",
+        "instruction-ablation",
+        "intervention-needles",
+        "on-deck",
+        "paper-attractiveness",
+        "paper-reviewer",
+        "pareto-figures",
+        "plan-grilling",
+        "prototyping",
+        "research-blog-writing",
+        "result-visualization-templates",
+        "runs-ledger",
+        "shell",
+        "soft-checks",
+        "story-project-layout",
+        "story-writing",
+        "testing-rider",
+        "theming",
+        "tool-surprises",
+        "ui-quality",
+        "ui-report",
+        "ui-verification",
+        "verified-provenance",
+        "web-digest",
+        "workflow-tags",
+    }
+)
+
 ROW = re.compile(
     r"^\| `(?P<name>[^`]+)` \| Governs: (?P<activity>[^|]+?) \| "
     r"\[[^\]]*\]\((?P<path>[^)]+)\) \|\s*$"
@@ -352,9 +395,10 @@ def activity_routes(glossary: str) -> tuple[str, list[str]]:
         "Before starting an activity listed below, read the named topic. A",
         "bare topic name means the repo's own `topics/<name>.md` first, else",
         "`~/agents/topics/<name>.md`. The trigger is the activity, never an",
-        "occurrence of the word. Generated from the Governs rows of",
-        "`~/agents/GLOSSARY.agents.md`; edit a topic's `Governs:` line and its",
-        "row, not this section.",
+        "occurrence of the word. A topic listed only by name is read before the",
+        "activity its name describes; its first lines state the exact trigger.",
+        "Generated from the Governs rows of `~/agents/GLOSSARY.agents.md`; edit a",
+        "topic's `Governs:` line and its row, not this section.",
     ]
     for group in GROUPS:
         members = sorted(by_group[group.key], key=lambda r: order.get(r[0], 1 << 30))
@@ -362,8 +406,15 @@ def activity_routes(glossary: str) -> tuple[str, list[str]]:
             continue
         lines += ["", group.condition, ""]
         lines += [
-            f"- {activity} → `{route_path(path)}`" for _, activity, path in members
+            f"- {activity} → `{route_path(path)}`"
+            for name, activity, path in members
+            if name not in NAMED_ONLY
         ]
+        named = [
+            f"`{route_path(path)}`" for name, _, path in members if name in NAMED_ONLY
+        ]
+        if named:
+            lines.append("- rarer, by name: " + ", ".join(named))
     return "\n".join(lines) + "\n", unclassified
 
 

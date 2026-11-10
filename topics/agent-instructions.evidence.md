@@ -6180,3 +6180,40 @@ Contributing-model: fable-5.2
   part shown not to work, and stays removed.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — activity routes: rarely opened topics listed by name only
+
+- **Measurement** — 365 Claude Code session logs from the preceding 30 days
+  (files over 20 KB under `~/.claude/projects`). A session counts for a topic
+  when it opened `topics/<name>.md` with the Read tool or named that path in
+  a shell command. Codex and Grok sessions were not counted; a shell command
+  naming a file can be a search, not a read; and a low count can mean the
+  activity did not occur.
+- **Counts** — most opened: commits 53, testing 44, python 33, ui-testing 27,
+  handoffs 26, agent-instructions 22, agentctl 20. 33 of 82 routes were
+  opened in at most one session. For scale, 238 sessions ran `git commit`,
+  356 used Edit or Write, 181 edited a Python file, and 22 wrote under a
+  `handoffs/` directory.
+- **Readings** — a route with a distinct, occasional activity is followed:
+  handoffs were opened in 26 sessions against 22 that wrote one. A route
+  whose trigger covers nearly all work is not: `design-thinking`
+  ("approaching a non-trivial change") was opened in 6 of 356 editing
+  sessions. A nested route is skipped: `writing`, which the document group
+  says to read first, was opened in 6 sessions while the genre topics listed
+  beside it were opened in dozens.
+- **Decision** — the user offered a two-level list as one possible response
+  and noted that nearly every session writes something. A second-level file
+  for the common groups would be read almost every session, saving nothing,
+  and the `writing` count says nested reads are skipped. Instead the 33
+  routes keep their name on one "rarer, by name" line per group and lose
+  their activity text (`NAMED_ONLY` in `scripts/build-boot`).
+- **Sizes, bytes** — `AGENTS.global.md` 67,358 → 65,619; Claude boot 89,596 →
+  87,857. About 2% of the boot.
+- **Trace** — a session asked to service the on-deck queue sees `on-deck` on
+  the research group's name line and opens it. A session whose task merely
+  resembles a rare topic without using its name (verifying fuzzy generated
+  output, for `soft-checks`) now has less to match on; this is the cost.
+- **Left alone** — the `design-thinking` route. It is one line, and whether a
+  never-followed route should be reworded or dropped is the user's call.
+
+Contributing-model: fable-5.2

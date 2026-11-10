@@ -809,9 +809,10 @@ recurs or the project has multiple topics.
 Before starting an activity listed below, read the named topic. A
 bare topic name means the repo's own `topics/<name>.md` first, else
 `~/agents/topics/<name>.md`. The trigger is the activity, never an
-occurrence of the word. Generated from the Governs rows of
-`~/agents/GLOSSARY.agents.md`; edit a topic's `Governs:` line and its
-row, not this section.
+occurrence of the word. A topic listed only by name is read before the
+activity its name describes; its first lines state the exact trigger.
+Generated from the Governs rows of `~/agents/GLOSSARY.agents.md`; edit a
+topic's `Governs:` line and its row, not this section.
 
 **Documents for readers.** Before drafting or substantially revising a report, brief, estimate, proposal, handout, paper, blog post, or story, read `writing` and the genre topic it names. Working records (handoffs, gaps, logs, commit messages, instructions, code and its comments) do not trigger this. Immediate steer: answer the question as asked, in the asker's terms, first; use the reader's words, not the working vocabulary of this project or its instructions.
 
@@ -821,97 +822,70 @@ row, not this section.
 - turning program evidence into paper proposals or promoting one to a draft → `paper-drafting`
 - starting a new paper project or setting up its build → `paper-projects`
 - writing a selected research paper → `paper-writing`
-- reviewing a proposed or drafted paper against program evidence → `paper-reviewer`
-- deciding what makes a paper attractive beyond its form → `paper-attractiveness`
 - choosing a paper's governing expository form → `successful-paper-forms`
 - writing or revising a research handout → `handout-writing`
 - writing a dated research progress report → `progress-report`
-- writing a technical or research blog post for a static site → `blog-post-writing`
-- writing a research blog post that showcases one result → `research-blog-writing`
-- planning, drafting, or revising a story, screenplay, or character or world document → `story-writing`
-- creating or reorganizing a story project's files → `story-project-layout`
 - choosing the source of truth and renderer for a research document → `document-writing`
 - rendering a research document as interactive static HTML → `document-writing-browser-interactive`
 - producing a PDF or LaTeX submission package from a research document → `document-writing-printable`
 - preparing or uploading an arXiv submission → `arxiv-submission`
 - a paper, handout, report, or blog asks for a graph, diagram, or rich table → `document-writing-figures`
-- making a quality-versus-cost Pareto figure → `pareto-figures`
-- choosing a results layout before picking a plotting package → `result-visualization-templates`
 - editing a long document where section-wise reads, regrouping, or moving matter → `editing-long-docs`
 - the user says "remind me" or "refresher" before a named concept → `explanation-style`
+- rarer, by name: `paper-reviewer`, `paper-attractiveness`, `blog-post-writing`, `research-blog-writing`, `story-writing`, `story-project-layout`, `pareto-figures`, `result-visualization-templates`
 
 **Research data and evidence.**
 
 - surveying a research field, mapping its frontier, or fetching related work → `research-survey`
 - citing evidence in a manuscript, verifying its claims, or moving its run records → `claim-provenance`
 - recording what run produced an output and how to regenerate it → `provenance-tracking`
-- curating run records under a topic's .runs/ → `runs-ledger`
-- row-wise translating, paraphrasing, or rewriting a dataset → `verified-provenance`
 - fine-tuning or adapting a pretrained model whose existing capabilities must survive → `fine-tuning`
-- building or running fixed-prompt segmented-document annotation → `document-annotation`
-- servicing, authoring, or ratifying on-deck queue entries; tending → `on-deck`
-- building, repairing, or querying an almanac dataset from a web page → `almanac`
 - reading or extracting a PDF → `pdf`
+- rarer, by name: `runs-ledger`, `verified-provenance`, `document-annotation`, `on-deck`, `almanac`
 
 **Code and tools.**
 
 - approaching a non-trivial change before and during implementation → `design-thinking`
 - writing or reviewing code structure, naming, and boundaries → `software-aesthetic`
-- diagnosing a defect or slow or stalled behavior → `debugging`
 - a new or unrelated defect report arrives → `handling-bug-reports`
 - planning or implementing durable scripts or software, or choosing, writing, running, retaining, or reviewing tests → `testing`
 - running a project's tests or checks, when it has a verify.toml → `verify`
-- creating or using a topic's .testing.md → `testing-rider`
-- verifying generated output that has no exact expected value → `soft-checks`
-- writing throwaway code to answer one question → `prototyping`
 - benchmarking, profiling, or load simulation on a shared host → `perf`
-- stress-testing worker queues or async boundaries with injected slowdowns or faults → `degradation-injection`
 - breaking or shimming a public API, CLI flag, wire format, or persisted schema → `backward-compat`
 - copying third-party code or a skill to keep → `vendoring`
 - first editing C or C++ in a repo → `cpp`
 - first editing Python in a repo → `python`
-- first editing shell scripts in a repo → `shell`
 - first editing TypeScript or JavaScript in a repo → `typescript`
 - adding a helper to ~/bin or scripts/, or using queued-anchor or session-turn → `helper-scripts`
 - calling a tool that identifies itself as acli or declares acli capabilities → `acli`
 - implementing an acli tool or library in any language → `acli-implementer`
-- specifying or verifying an acli tool's exact protocol → `acli-spec`
-- adopting or emitting schema-announced workflow tags → `workflow-tags`
-- /tool-surprises, or recurring tool or command failure patterns → `tool-surprises`
-- mining session logs for user corrections or interventions → `intervention-needles`
+- rarer, by name: `debugging`, `testing-rider`, `soft-checks`, `prototyping`, `degradation-injection`, `shell`, `acli-spec`, `workflow-tags`, `tool-surprises`, `intervention-needles`
 
 **User interfaces.**
 
 - asked what a feature's UI should look like → `ui-design`
-- starting UI work in a project → `ui-quality`
 - deciding how a screen should look: layout, alignment, spacing, focal point → `functional-layout`
-- adding or changing themes, dark mode, skins, or design tokens → `theming`
 - testing a web UI with rendered captures across viewports → `ui-testing`
-- approving or verifying a UI change → `ui-verification`
-- producing a screenshot-backed UI report → `ui-report`
+- rarer, by name: `ui-quality`, `theming`, `ui-verification`, `ui-report`
 
 **Sessions, commits, and coordination.**
 
 - writing a non-trivial commit message, amending, rewriting history, or choosing trailers → `commits`
 - creating or updating a handoff → `handoffs`
 - changing or diagnosing active-session or run semantics, staleness, launch-depth guards, or plugins → `agentctl`
-- launching agents in a shared worktree or diagnosing a guard block → `agent-guard`
 - reading or setting launcher, harness, session, or guard environment variables → `AGENT_ENV_VARS`
 - recovering Codex session identity or waiting on owned jobs under Codex → `codex-session`
-- creating or changing an /at future-run entry → `at-scheduling`
-- the user says "grill" about a plan or design → `plan-grilling`
-- /doubt, or explicit distrust of a just-applied conclusion → `doubt-skill`
-- updating the claude.ai preferences paste or web digest → `web-digest`
+- rarer, by name: `agent-guard`, `at-scheduling`, `plan-grilling`, `doubt-skill`, `web-digest`
 
 **Instructions and project documents.**
 
 - writing or editing agent instructions, supplements, skills, or instruction topics → `agent-instructions`
-- measuring whether an instruction change helps → `instruction-ablation`
 - reevaluating a capability-sensitive instruction as models improve → `frontier-capability-review`
 - appending to or creating a topic's .evidence.md → `evidence-ledger`
 - adding, sorting, promoting, or regenerating glossary rows, or creating a scoped glossary → `glossary`
 - creating or normalizing topic docs, companions, bearings, or epistemic labels → `topic-doc-format`
 - choosing a path or name for a program's handout, report, paper or focus document, or changing what the program dashboard discovers → `project-directory`
+- rarer, by name: `instruction-ablation`
 <!-- END generated: activity routes -->
 
 # Language tooling
