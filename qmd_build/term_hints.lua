@@ -178,10 +178,10 @@ end
 
 -- Registry: every definition, built-in notation entry and first-mention
 -- paragraph, by ID and by the alias that links to it. A `math` alias matches
--- TeX tokens and a `prose` alias matches plain or formatted words. An
--- `emphasis` alias is a bold or italic span found by implicit discovery; it
--- matches only another bold or italic span with the same text, because
--- emphasis is also used for stress ("this is *not* a toy").
+-- TeX tokens. A `prose` alias is authored (`terms=`) and matches plain or
+-- formatted words. An `emphasis` alias is a bold or italic name found by
+-- implicit discovery; it matches only another bold or italic span with the
+-- same text, never plain words.
 local function new_registry()
 	return { by_id = {}, ordered = {}, math = {}, prose = {}, emphasis = {}, first_mentions = 0 }
 end
@@ -262,18 +262,33 @@ local function reference(registry, id)
 	return entry
 end
 
--- Implicit discovery: a paragraph is the one entry for every symbol and
--- formatted term it introduces, so its preview is embedded once. Discovery
+-- Implicit discovery: a paragraph is the one entry for every math symbol and
+-- emphasized name it introduces, so its preview is embedded once. Discovery
 -- leaves an empty span carrying the entry's ID at the start of the paragraph;
--- emission keeps it as the landing site only when the entry was linked.
-local FIRST_EMPHASIS = "term-first-emphasis"
+-- emission keeps it as the landing site only when a later paragraph links to
+-- it. Symbols are taken from math only: outside math an arrow or a relation
+-- sign is punctuation.
 
--- A bold table score such as **14.19** is emphasis without being a term.
+-- Emphasis marks stress ("*only* a sketch"), structure ("**Setup.**", a bold
+-- table cell) and newly introduced terms alike, and formatting cannot tell
+-- them apart. Discovery takes only the case it can read as an introduction:
+-- a name of two or more words, each of letters, digits or hyphens, set inside
+-- running text. Stress falls on one word, a run-in heading ends in
+-- punctuation and a cell label is its whole block, so none of them qualifies;
+-- nor does a one-word term, which needs an authored definition.
 local function names_a_term(text)
-	return text:match("[%a\128-\255]") ~= nil
+	local words = 0
+	for word in text:gmatch("%S+") do
+		if not word:match("^[%w\128-\255][%w%-\128-\255]*$") then
+			return false
+		end
+		words = words + 1
+	end
+	return words >= 2 and text:match("[%a\128-\255]") ~= nil
 end
 
 local function discover_first_mentions(registry, block)
+	local in_running_text = #block.content > 1
 	local entry
 	local function introduce(mapping, alias)
 		if not entry then
@@ -291,14 +306,16 @@ local function discover_first_mentions(registry, block)
 	end
 	local function emphasis(el)
 		local text = stringify(el)
-		if names_a_term(text) and not registry.prose[text] and not registry.emphasis[text] then
+		if
+			in_running_text
+			and names_a_term(text)
+			and not registry.prose[text]
+			and not registry.emphasis[text]
+		then
 			introduce(registry.emphasis, text)
-			-- Marks the introducing span, which is the target and not a link.
-			el.content = { pandoc.Span(el.content, pandoc.Attr("", { FIRST_EMPHASIS })) }
-			return el
 		end
 	end
-	local content = pandoc.Span(block.content):walk({
+	pandoc.Span(block.content):walk({
 		traverse = "topdown",
 		Link = function(el)
 			return el, false
@@ -315,25 +332,20 @@ local function discover_first_mentions(registry, block)
 				end
 			end
 		end,
-		Str = function(el)
-			for _, code in utf8.codes(el.text) do
-				local symbol = utf8.char(code)
-				if
-					((code >= 0x2100 and code <= 0x22ff) or (code >= 0x1d400 and code <= 0x1d7ff))
-					and not registry.prose[symbol]
-				then
-					introduce(registry.prose, symbol)
-				end
-			end
-		end,
 		Strong = emphasis,
 		Emph = emphasis,
-	}).content
+	})
 	if entry then
-		content:insert(1, pandoc.Span({}, pandoc.Attr(entry.id)))
-		block.content = content
+		block.content:insert(1, pandoc.Span({}, pandoc.Attr(entry.id)))
 		return block
 	end
+end
+
+-- The entry of the first-mention paragraph `block`, if it is one.
+local function own_first_mention(registry, block)
+	local first = block.content[1]
+	local entry = first and first.t == "Span" and registry.by_id[first.identifier]
+	return entry and entry.kind == "First mention" and entry or nil
 end
 
 local function register_first_mentions(registry, doc)
@@ -390,7 +402,8 @@ local function longest_math_alias(registry)
 	return max_tokens
 end
 
-local function annotate_math(registry, max_tokens, el)
+-- `own` is the first-mention entry of the paragraph holding `el`, or nil.
+local function annotate_math(registry, max_tokens, own, el)
 	local source, out, i = tokens(el.text), {}, 1
 	while i <= #source do
 		local token = source[i]
@@ -414,7 +427,7 @@ local function annotate_math(registry, max_tokens, el)
 					break
 				end
 				candidate = candidate .. source[j].text
-				if registry.math[candidate] then
+				if registry.math[candidate] and registry.math[candidate] ~= own then
 					best, last, spelling = registry.math[candidate], j, candidate
 				end
 			end
@@ -508,20 +521,18 @@ local function without_term_hints(el)
 	end
 end
 
-local function annotate(registry, doc)
-	local max_tokens, phrases = longest_math_alias(registry), prose_phrases(registry)
+-- The handlers that annotate the text of one paragraph, or of everything
+-- outside first-mention paragraphs when `own` is nil. A link never points at
+-- the paragraph it sits in: there the reader is already at the first mention.
+local function annotation(registry, max_tokens, phrases, own)
 	local function formatted(el)
-		local first = el.content[1]
-		if first and first.t == "Span" and first.classes:includes(FIRST_EMPHASIS) then
-			return nil
-		end
 		local text = stringify(el)
 		local entry = registry.prose[text] or registry.emphasis[text]
-		if entry then
+		if entry and entry ~= own then
 			return link({ el }, entry), false
 		end
 	end
-	return doc:walk({
+	return {
 		traverse = "topdown",
 		Link = function(el)
 			return el, false
@@ -539,26 +550,35 @@ local function annotate(registry, doc)
 			end
 		end,
 		Math = function(el)
-			return annotate_math(registry, max_tokens, el)
+			return annotate_math(registry, max_tokens, own, el)
 		end,
 		Strong = formatted,
 		Emph = formatted,
 		Inlines = function(inlines)
 			return link_phrases(phrases, inlines)
 		end,
-	})
+	}
+end
+
+local function annotate(registry, doc)
+	local max_tokens, phrases = longest_math_alias(registry), prose_phrases(registry)
+	local function first_mention_paragraph(block)
+		local own = own_first_mention(registry, block)
+		if own then
+			return block:walk(annotation(registry, max_tokens, phrases, own)), false
+		end
+	end
+	local handlers = annotation(registry, max_tokens, phrases, nil)
+	handlers.Para, handlers.Plain = first_mention_paragraph, first_mention_paragraph
+	return doc:walk(handlers)
 end
 
 -- Emission: landing sites and HTML preview cards for the entries that were used.
 
--- Settle what discovery left in the text: a first-mention paragraph keeps its
--- anchor only if something links to it, and emphasis markers are unwrapped.
+-- A first-mention paragraph keeps its anchor only if something links to it.
 local function first_mention_anchors(registry, doc)
 	return doc:walk({
 		Span = function(el)
-			if el.classes:includes(FIRST_EMPHASIS) then
-				return el.content
-			end
 			local entry = registry.by_id[el.identifier]
 			if not entry or entry.kind ~= "First mention" then
 				return nil

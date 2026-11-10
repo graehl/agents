@@ -107,36 +107,88 @@ def test_pdf_keeps_definition_targets_and_links(tmp_path: Path) -> None:
 IMPLICIT = "---\nterm-hints-implicit: true\n---\n\n"
 
 
-def test_implicit_emphasis_links_only_formatted_recurrences(tmp_path: Path) -> None:
-    # Emphasis is also stress: "not" and "a" must not become links paper-wide.
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param(
+            "This is *not* a toy and the *a* case holds.\n\n"
+            "Later we do not need a proof that a set is not empty.\n",
+            id="stress-then-plain-words",
+        ),
+        pytest.param(
+            "It is *only* a sketch.\n\nLater it is *only* mentioned.\n",
+            id="repeated-stress",
+        ),
+        pytest.param(
+            "**Setup.** We train on A.\n\n**Experimental results:** Good.\n\n"
+            "## Second\n\n**Setup.** We train on B.\n\n**Experimental results:** Better.\n",
+            id="run-in-headings-per-section",
+        ),
+        pytest.param(
+            "| Method | Score |\n|---|---:|\n| **Shared trunk** | **14.19** |\n\n"
+            "| Method | Score |\n|---|---:|\n| **Shared trunk** | **14.19** |\n",
+            id="bold-table-cells",
+        ),
+        pytest.param(
+            "The ***gate*** is introduced here.\n\nNothing else.\n",
+            id="bold-italic-word",
+        ),
+        pytest.param(
+            "Stage one maps A → B, with x ≤ 3.\n\nLater C → D, with y ≤ 4.\n",
+            id="arrows-and-relations-in-prose",
+        ),
+    ],
+)
+def test_implicit_emphasis_for_stress_or_structure_is_not_a_term(
+    tmp_path: Path, body: str
+) -> None:
+    result = pandoc(tmp_path, IMPLICIT + body)
+    assert result.returncode == 0, result.stderr
+    assert "term-ref" not in result.stdout and "term-first" not in result.stdout
+
+
+def test_implicit_term_is_a_multiword_name_set_in_running_text(tmp_path: Path) -> None:
+    # The rule in term_hints.lua `names_a_term`: a name of two or more words,
+    # emphasized inside running text, linked from later emphasized uses only.
     source = (
         IMPLICIT
-        + "This is *not* a toy and the *a* case holds for $x$.\n\n"
-        + "Later we do not need a proof that a set is not empty, and x is plain.\n\n"
-        + "The *not* case recurs in italics.\n"
+        + "The *calibrated loss* and the ***gated unit*** are introduced here.\n\n"
+        + "Later the **calibrated loss** and *gated unit* recur; "
+        + "calibrated loss is plain.\n"
     )
     result = pandoc(tmp_path, source)
     assert result.returncode == 0, result.stderr
-    html = " ".join(result.stdout.split())
-    assert "This is <em>not</em> a toy and the <em>a</em> case" in html
-    assert "do not need a proof that a set is not empty, and x is plain" in html
-    assert '<a href="#term-first-1" class="term-ref"><em>not</em></a> case' in html
-    assert html.count('class="term-ref"') == 1
-    assert "term-first-emphasis" not in html
+    first, later = " ".join(result.stdout.split()).split("</p>")[:2]
+    assert "<a " not in first
+    assert (
+        '<a href="#term-first-1" class="term-ref"><strong>calibrated loss</strong></a>'
+        in later
+    )
+    assert '<a href="#term-first-1" class="term-ref"><em>gated unit</em></a>' in later
+    assert later.count("term-ref") == 2 and "; calibrated loss is plain." in later
+
+
+def test_implicit_link_never_points_at_its_own_paragraph(tmp_path: Path) -> None:
+    source = IMPLICIT + "Let $x$ be the input and $x$ again.\n\nLater $x$ recurs.\n"
+    result = pandoc(tmp_path, source)
+    assert result.returncode == 0, result.stderr
+    first, later = result.stdout.split("</p>")[:2]
+    assert first.count(r"\(x\)") == 2 and "href" not in first
+    assert r"\href{#term-first-1}{x}" in later
 
 
 def test_implicit_paragraph_preview_is_embedded_once(tmp_path: Path) -> None:
     source = (
         IMPLICIT
-        + "The $x$ value and $y$ are *introduced* here.\n\n"
-        + "Later $x$ and $y$ recur, *introduced* twice.\n"
+        + "The $x$ value and $y$ are introduced here.\n\n"
+        + "Later $x$ and $y$ recur.\n"
     )
     result = pandoc(tmp_path, source)
     assert result.returncode == 0, result.stderr
     assert result.stdout.count("<template data-term-card") == 1
     assert result.stdout.count('id="term-first-') == 1
     for linked in (r"\href{#term-first-1}{x}", r"\href{#term-first-1}{y}"):
-        assert result.stdout.count(linked) == 2
+        assert result.stdout.count(linked) == 1
 
 
 def test_pdf_bold_table_score_is_not_a_term(tmp_path: Path) -> None:
@@ -152,7 +204,9 @@ def test_pdf_bold_table_score_is_not_a_term(tmp_path: Path) -> None:
 
 def test_pdf_anchor_starting_a_table_cell_keeps_its_baseline(tmp_path: Path) -> None:
     # A first-mention anchor set in vertical mode drops the cell's text a line.
-    source = IMPLICIT + "| Lang | Scale |\n|---|---:|\n| vi | $\\tau$ |\n"
+    source = (
+        IMPLICIT + "| Lang | Scale |\n|---|---:|\n| vi | $\\tau$ |\n\nLater $\\tau$.\n"
+    )
     result = pandoc(tmp_path, source, "latex")
     assert result.returncode == 0, result.stderr
     assert "\\leavevmode\\protect\\phantomsection\\label{term-first-1}" in result.stdout
@@ -237,7 +291,8 @@ def test_html_builder_runs_a_project_registered_filter_once(tmp_path: Path) -> N
     )
     (tmp_path / "index.qmd").write_text(
         "---\ntitle: Project\n---\n\n## Use\n\n"
-        "The $x$ value is *introduced* here.\n\nLater $x$ is *introduced* again.\n"
+        "The $x$ value is an *introduced term* here.\n\n"
+        "Later $x$ is an *introduced term* again.\n"
     )
     result = subprocess.run(
         [str(REPO / "scripts/qmd-html"), str(tmp_path / "index.qmd"), "--text"],
@@ -256,7 +311,8 @@ def test_html_builder_runs_a_document_registered_filter_once(tmp_path: Path) -> 
     (tmp_path / "index.qmd").write_text(
         f"---\ntitle: Standalone\nfilters:\n  - {FILTER}\n"
         "term-hints-implicit: true\n---\n\n## Use\n\n"
-        "The $x$ value is *introduced* here.\n\nLater $x$ is *introduced* again.\n"
+        "The $x$ value is an *introduced term* here.\n\n"
+        "Later $x$ is an *introduced term* again.\n"
     )
     result = subprocess.run(
         [str(REPO / "scripts/qmd-html"), str(tmp_path / "index.qmd"), "--text"],
