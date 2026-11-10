@@ -20,7 +20,6 @@ GLOSSARY = (
     "| term | sense or governs | read |\n|---|---|---|\n"
     "| `writing` | Governs: drafting a document for readers | [writing](topics/writing.md) |\n"
     "| `brand-new` | Governs: doing a new thing | [brand-new](topics/brand-new.md) |\n"
-    "| `theming` | Governs: adding a theme or dark mode | [theming](topics/theming.md) |\n"
     "| ambition framing | a sense row | |\n"
 )
 
@@ -170,9 +169,6 @@ def test_build_generates_grouped_routes_and_boot() -> None:
         assert "**Documents for readers.**" in section
         assert "- drafting a document for readers → `writing`" in section
         assert "**Other activities.**" in section
-        # A rarely used route keeps its name and loses its activity line.
-        assert "- rarer, by name: `theming`" in section
-        assert "adding a theme or dark mode" not in section
         assert "a sense row" not in section
         assert text.endswith("# Tail\n")
         boot = (repo / "AGENTS.boot.md").read_text()

@@ -485,10 +485,7 @@ and `build-boot link [--check] [--to-global]`; acli baseline with completion.
 - `build` regenerates the section of `AGENTS.global.md` between the
   `BEGIN/END generated: activity routes` markers from the Governs rows of
   `GLOSSARY.agents.md`, grouped by the script's `GROUPS` table under one
-  shared condition each. A topic in the script's `NAMED_ONLY` set is listed
-  by name alone on its group's "rarer, by name" line, without its activity
-  text; the set holds routes that recent sessions almost never opened, and
-  its comment records the count and date. A topic no group names lands in *Other
+  shared condition each. A topic no group names lands in *Other
   activities* and is listed in `unclassified_topics`. It then writes the
   git-excluded `AGENTS.boot.md`: the global policy followed by
   `# User policy (compiled from AGENTS.user.md)`. Personal policy therefore

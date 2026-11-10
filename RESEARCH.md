@@ -21,8 +21,7 @@ scope. Cross-provider policy in `AGENTS.global.md` wins over both.
 
 - [Program setup](topics/research-program-setup.md) — when establishing a data
   or ML research program or materially revising its data, representation or
-  evaluation contracts. Define applicable categories upfront, even as explicit
-  placeholders; choose any combination of text, audio and image guidance.
+  evaluation contracts.
 - [`topics/document-annotation.md`](topics/document-annotation.md) — before
   building or running fixed-prompt, segmented-document annotation through
   Codex or OpenAI Chat Completions. Use the shared transport/runner where its

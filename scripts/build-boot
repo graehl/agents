@@ -301,41 +301,6 @@ GROUPS = (
     Group("other", "**Other activities.**", ()),
 )
 
-# Routes the boot lists by topic name alone, without their activity line: each
-# was opened in at most one of 365 Claude Code sessions in the 30 days to
-# 2026-11-10 (Read-tool opens plus shell commands naming the file). The
-# glossary row and the topic's own `Governs:` line still state the trigger.
-# Rarely opened topics whose name does not describe their activity
-# (`soft-checks`, `on-deck`) are left out and keep a full line, as does any
-# new topic.
-NAMED_ONLY = frozenset(
-    {
-        "at-scheduling",
-        "blog-post-writing",
-        "debugging",
-        "degradation-injection",
-        "document-annotation",
-        "doubt-skill",
-        "instruction-ablation",
-        "paper-attractiveness",
-        "paper-reviewer",
-        "pareto-figures",
-        "plan-grilling",
-        "prototyping",
-        "research-blog-writing",
-        "result-visualization-templates",
-        "shell",
-        "story-project-layout",
-        "story-writing",
-        "theming",
-        "tool-surprises",
-        "ui-quality",
-        "ui-report",
-        "ui-verification",
-        "web-digest",
-    }
-)
-
 ROW = re.compile(
     r"^\| `(?P<name>[^`]+)` \| Governs: (?P<activity>[^|]+?) \| "
     r"\[[^\]]*\]\((?P<path>[^)]+)\) \|\s*$"
@@ -387,10 +352,9 @@ def activity_routes(glossary: str) -> tuple[str, list[str]]:
         "Before starting an activity listed below, read the named topic. A",
         "bare topic name means the repo's own `topics/<name>.md` first, else",
         "`~/agents/topics/<name>.md`. The trigger is the activity, never an",
-        "occurrence of the word. A topic listed only by name is read before the",
-        "activity its name describes; its first lines state the exact trigger.",
-        "Generated from the Governs rows of `~/agents/GLOSSARY.agents.md`; edit a",
-        "topic's `Governs:` line and its row, not this section.",
+        "occurrence of the word. Generated from the Governs rows of",
+        "`~/agents/GLOSSARY.agents.md`; edit a topic's `Governs:` line and its",
+        "row, not this section.",
     ]
     for group in GROUPS:
         members = sorted(by_group[group.key], key=lambda r: order.get(r[0], 1 << 30))
@@ -398,15 +362,8 @@ def activity_routes(glossary: str) -> tuple[str, list[str]]:
             continue
         lines += ["", group.condition, ""]
         lines += [
-            f"- {activity} → `{route_path(path)}`"
-            for name, activity, path in members
-            if name not in NAMED_ONLY
+            f"- {activity} → `{route_path(path)}`" for _, activity, path in members
         ]
-        named = [
-            f"`{route_path(path)}`" for name, _, path in members if name in NAMED_ONLY
-        ]
-        if named:
-            lines.append("- rarer, by name: " + ", ".join(named))
     return "\n".join(lines) + "\n", unclassified
 
 

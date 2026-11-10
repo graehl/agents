@@ -6278,3 +6278,27 @@ Contributing-model: fable-5.2
   over-linking, and survey attribution and link defects.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — name-only routes withdrawn; duplicated triggers trimmed
+
+- **Trigger** — the automatic review's advisories on this day's changes:
+  a name-only route cannot fire when the name does not describe the
+  activity, and the list of such names was hand-copied with no check against
+  the glossary.
+- **Decision** — withdraw the name-only mechanism (`b67708e0`) instead of
+  adding a cue per name. A route's activity line averages about 80 bytes; a
+  name plus a short cue is about half that, so cues for 33 routes would save
+  roughly 1 KB of a 90 KB boot while duplicating each trigger in the build
+  script. Every route has its generated full line again. The session-count
+  measurement in the earlier entry stands as evidence; no boot text depends
+  on it now.
+- **Also** — global § Annotation refusals keeps its trigger and the
+  separate-reporting requirement and routes to the topic section for the
+  rest, which it had repeated. The research-program-setup trigger is stated
+  in `RESEARCH.md` and the topic itself; three other documents now link
+  without restating what the topic asks for.
+- **Trace** — an agent about to run a judging pass on a frontier model: the
+  global rule still fires on the activity and names the two requirements
+  that are cheap to violate; the detection method is one read away.
+
+Contributing-model: fable-5.2

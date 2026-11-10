@@ -60,6 +60,8 @@ CODE_SUFFIXES = frozenset(
         ".pl",
         ".lua",
         ".el",
+        ".css",
+        ".scss",
     ]
 )
 THIRD_PARTY_DIRS = frozenset({"node_modules", "vendor", "vendored", "third_party"})
@@ -82,7 +84,8 @@ def is_code(path: str, mode: str) -> bool:
     return mode == EXECUTABLE
 
 
-def survey(repo: Path, max_lines: int, max_commits: int) -> dict:
+def unreviewed_code(repo: Path, max_lines: int, max_commits: int) -> dict:
+    """Count code changed since the marker and say which reviews that makes due."""
     marker = repo / MARKER
     if not marker.is_file():
         return {"reviewed": None, "due": []}
@@ -101,22 +104,25 @@ def survey(repo: Path, max_lines: int, max_commits: int) -> dict:
         for entry in _git(repo, "ls-files", "-s").splitlines()
     }
     span = f"{reviewed}..HEAD"
-    changed_lines = 0
-    for row in _git(repo, "diff", "--numstat", "--no-renames", span).splitlines():
-        added, deleted, path = row.split("\t", 2)
-        if added != "-" and is_code(path, modes.get(path, "")):
-            changed_lines += int(added) + int(deleted)
-    new_files = [
-        path
-        for path in _git(
-            repo, "diff", "--name-only", "--diff-filter=A", "--no-renames", span
+    # Names first: listing changed paths reads no file content, so a range full
+    # of large prose changes costs nothing before the code paths are selected.
+    changed = [
+        row.split("\t", 1)
+        for row in _git(
+            repo, "diff", "--name-status", "--no-renames", span
         ).splitlines()
-        if is_code(path, modes.get(path, ""))
     ]
+    code = [path for _, path in changed if is_code(path, modes.get(path, ""))]
+    new_files = [path for status, path in changed if status == "A" and path in code]
+    changed_lines = 0
     commits = 0
-    for block in _git(repo, "log", "--format=%x00", "--name-only", span).split("\0"):
-        if any(is_code(path, modes.get(path, "")) for path in block.split()):
-            commits += 1
+    if code:
+        numstat = _git(repo, "diff", "--numstat", "--no-renames", span, "--", *code)
+        for row in numstat.splitlines():
+            added, deleted, _ = row.split("\t", 2)
+            if added != "-":
+                changed_lines += int(added) + int(deleted)
+        commits = int(_git(repo, "rev-list", "--count", span, "--", *code))
     due = []
     if new_files:
         due.append("creation")
@@ -151,7 +157,9 @@ def due_lines(result: dict) -> list[str]:
 
 
 def status(args) -> int:
-    result = survey(Path(args.repo).resolve(), args.max_lines, args.max_commits)
+    result = unreviewed_code(
+        Path(args.repo).resolve(), args.max_lines, args.max_commits
+    )
     if result["reviewed"] is None:
         text = (
             f"no {MARKER} marker; nothing is counted until a strict review writes one"
@@ -166,7 +174,9 @@ def status(args) -> int:
 
 
 def hook(args) -> int:
-    result = survey(Path(args.repo).resolve(), args.max_lines, args.max_commits)
+    result = unreviewed_code(
+        Path(args.repo).resolve(), args.max_lines, args.max_commits
+    )
     for line in due_lines(result):
         print(line)
     return 0

@@ -14,8 +14,10 @@ rows, `|c|` cells, `*bold*`) and never edits or deletes existing ones.
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.error
@@ -264,6 +266,18 @@ def cmd_whoami(args) -> dict:
     }
 
 
+_ISSUE_REF = re.compile(r"[A-Za-z][A-Za-z0-9_]*-[0-9]+|[0-9]+")
+
+
+def issue_ref(value: str) -> str:
+    """An issue key (AIP-2747) or numeric id; it becomes a request path segment."""
+    if not _ISSUE_REF.fullmatch(value):
+        raise argparse.ArgumentTypeError(
+            f"not an issue key like AIP-2747 or a numeric id: {value!r}"
+        )
+    return value
+
+
 def cmd_get(args) -> dict:
     query = (
         "?expand=renderedFields"
@@ -353,7 +367,7 @@ def build_parser():
     subs.add_parser("whoami", help="Verify the credential and report the account.")
 
     get = subs.add_parser("get", help="Fetch an issue (key or id) and its comments.")
-    get.add_argument("issue", help="Issue key like AIP-2747.")
+    get.add_argument("issue", type=issue_ref, help="Issue key like AIP-2747.")
 
     search = subs.add_parser("search", help="Run a JQL search.")
     search.add_argument("jql", help="JQL, e.g. 'text ~ \"PII LP\"'")
@@ -362,7 +376,7 @@ def build_parser():
     comment = subs.add_parser(
         "comment", help="Add one comment to an issue; never edits existing ones."
     )
-    comment.add_argument("issue", help="Issue key like AIP-2747.")
+    comment.add_argument("issue", type=issue_ref, help="Issue key like AIP-2747.")
     comment.add_argument(
         "--body-file",
         required=True,
