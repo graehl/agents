@@ -6149,3 +6149,20 @@ prose correction retains substantive uncertainty and personal testimony.
   compaction trace was run.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — Opus 5.5 still writes self-matching process searches
+
+- **User observation** — "i notice opus 5.5 making the ps grep mistake about
+  every day", followed by the judgment that it would notice and recover
+  without a hint.
+- **Reading** — the mistake recurs daily although global § Matching processes
+  by pattern is in every boot and the Opus-specific check was a routed read
+  until today. Instruction text is therefore not preventing it. Whether the
+  Opus read was being skipped is unknown.
+- **Decision** — the Opus-specific section stays removed, in
+  `AGENTS/presumed-defaults.md`; the global section stays. The unprotected
+  case is a wait loop that polls a self-matching search and never drains,
+  since nothing prompts a recovery there. A harness hook that rejects such a
+  command would prevent the mistake; none was built.
+
+Contributing-model: fable-5.2
