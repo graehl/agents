@@ -1162,7 +1162,7 @@ class LiveSite:
         if fresh and shows_notice:
             reply.head += freshness_meta(fresh)
         elif fresh and fresh.recipe:
-            self.builds.start_once(fresh.recipe, source, fresh.stamp)
+            self.builds.start_once(fresh.recipe, source, fresh)
 
     def source(self, node: str, kind: str) -> str | None:
         """The repository file a page for `node` shows, if one does."""

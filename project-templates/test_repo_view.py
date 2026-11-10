@@ -602,7 +602,9 @@ class RepoViewTest(unittest.TestCase):
             for name in ("index.pdf", "supp.pdf"):
                 self.assertEqual(self.get(base + name)[2], "pdf old")
                 self.assertEqual(self.finished_rebuild(base + name)["state"], "failed")
-        self.assertEqual(runs.read_text().count("render --to pdf"), 2)
+        # One run: the command failed on these inputs, so the second PDF's
+        # request reports that failure instead of running it again.
+        self.assertEqual(runs.read_text().count("render --to pdf"), 1)
 
     def test_unreceipted_quarto_output_rebuilds_with_quarto_render(self) -> None:
         # A stand-in `quarto` that renders the project's HTML from index.qmd.

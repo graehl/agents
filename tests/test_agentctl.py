@@ -4748,6 +4748,39 @@ def test_source_deps_loading_phase_ends_by_marker_timeout_or_guard():
         ws.cleanup()
 
 
+def test_stop_reaches_a_child_that_left_the_process_group():
+    ws = Workspace()
+    worker = 0
+    try:
+        pid_file = ws.scratch / "own-group.pid"
+        # As a job under `timeout` does, the worker leaves the run's group.
+        script = _write(
+            ws.tmp / "run.sh", f"setsid sleep 30 &\necho $! > {pid_file}\nwait\n"
+        )
+        _start(ws, "--no-aim", "own-group", "--", "bash", str(script))
+        deadline = time.time() + 10
+        while time.time() < deadline and not worker:
+            time.sleep(0.05)
+            if pid_file.exists():
+                worker = int(pid_file.read_text(encoding="utf-8").strip() or 0)
+        _assert(worker, "payload never started its worker")
+        res = ws.run("stop", "own-group")
+        _assert(res.returncode == 0, res.stderr)
+        try:
+            stat = Path(f"/proc/{worker}/stat").read_text(encoding="utf-8")
+        except OSError:
+            stat = ") Z"
+        _assert(stat.rsplit(")", 1)[1].split()[0] == "Z", f"worker survived: {stat}")
+        worker = 0
+    finally:
+        if worker:
+            try:
+                os.kill(worker, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        ws.cleanup()
+
+
 def test_source_deps_loading_guard_stops_processes_the_payload_started():
     ws = Workspace()
     workers: list[int] = []

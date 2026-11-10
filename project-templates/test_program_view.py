@@ -7,6 +7,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -185,7 +186,12 @@ class ProgramViewTest(unittest.TestCase):
 
     def test_page_script_folds_long_lists_and_old_sessions(self) -> None:
         # The folds exist only in the browser, so this needs one.
-        playwright = Path.home() / "ya/packages/client"
+        # The one definition of where Playwright is installed on this host.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        try:
+            from qmd_build.browser_print import DEFAULT_PLAYWRIGHT as playwright
+        finally:
+            sys.path.pop(0)
         if not (playwright / "node_modules/@playwright/test").exists():
             self.skipTest(f"no Playwright under {playwright}")
         for i in range(24):

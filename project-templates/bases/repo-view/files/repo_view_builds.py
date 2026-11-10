@@ -189,6 +189,7 @@ class Builds:
         # Per recipe key: when the run in progress started, on the monotonic
         # clock; and the last finished run's result.
         self._running: dict[Path, float] = {}
+        self._began_ms: dict[Path, int] = {}
         self._finished: RecentEntries = RecentEntries(BUILD_RECORDS)
         # Which build a page last started, so it can ask how that build went
         # after the output is current and no recipe is stale any more.
@@ -197,7 +198,11 @@ class Builds:
         # receipt) at one version, so requests for its neighbours reparse and
         # report nothing until the file changes.
         self._receipt_files: RecentEntries = RecentEntries(BUILD_RECORDS)
-        # Per recipe key: the freshness stamp `start_once` last ran it for.
+        # Per recipe key: when its last run started (ms since the epoch), kept
+        # while that run is the latest and failed.
+        self._failed_since: RecentEntries = RecentEntries(BUILD_RECORDS)
+        # Per (recipe key, output): the freshness stamp `start_once` last
+        # started the build for.
         self._started_once: RecentEntries = RecentEntries(BUILD_RECORDS)
 
     def sha256(self, path: Path) -> str | None:
@@ -242,7 +247,8 @@ class Builds:
         except OSError:
             return None
         version = (stat.st_mtime_ns, stat.st_size)
-        cached = self._receipt_files.get(candidate)
+        with self._lock:
+            cached = self._receipt_files.get(candidate)
         if cached and cached[0] == version:
             return cached[1]
         try:
@@ -252,16 +258,20 @@ class Builds:
         except (OSError, ValueError, TypeError) as error:
             data = None
             self.log("fresh", f"{candidate}: not read as a receipt: {error!r}")
-        self._receipt_files[candidate] = (version, data, False)
+        with self._lock:
+            self._receipt_files[candidate] = (version, data, data is None)
         return data
 
     def _not_a_receipt(self, candidate: Path, error: Exception) -> None:
         """Log, once per version of the file, that its shape is not a receipt's:
         a builder that changes its schema would otherwise only lose its notice."""
-        version, data, reported = self._receipt_files[candidate]
+        with self._lock:
+            cached = self._receipt_files.get(candidate)
+            reported = cached is None or cached[2]
+            if cached and not reported:
+                self._receipt_files[candidate] = (cached[0], cached[1], True)
         if not reported:
             self.log("fresh", f"{candidate}: not read as a receipt: {error!r}")
-            self._receipt_files[candidate] = (version, data, True)
 
     def _receipt_for(self, target: Path, candidate: Path, data: dict) -> Receipt | None:
         """`candidate`'s `data` as a receipt for `target`; raises on any other shape."""
@@ -366,21 +376,28 @@ class Builds:
             starter = recipe.key not in self._running
             if starter:
                 self._running[recipe.key] = time.monotonic()
+                self._began_ms[recipe.key] = time.time_ns() // 1_000_000
         if starter:
             threading.Thread(target=self._complete, args=(recipe,), daemon=True).start()
         return self.status(source)
 
-    def start_once(self, recipe: Recipe, source: str, stamp: str) -> None:
+    def start_once(self, recipe: Recipe, source: str, fresh: Freshness) -> None:
         """Start the build of a stale output that was opened where no notice
-        can offer it (a PDF in a viewer), once per freshness `stamp`: a build
-        that fails, or leaves the output stale, is not rerun by every request."""
+        can offer it (a PDF in a viewer), once per state of the output and
+        its inputs: a build that fails, or leaves the output stale, is not
+        rerun by every request, nor for each output its command would make."""
         # Per output: every PDF of one project shares a recipe and has its own
         # stamp, so a per-recipe memory would restart on alternating requests.
         once = (recipe.key, source)
+        newest_input = (fresh.stale or {}).get("inputTime", 0)
         with self._lock:
-            if self._started_once.get(once) == stamp:
+            if self._started_once.get(once) == fresh.stamp:
                 return
-            self._started_once[once] = stamp
+            self._started_once[once] = fresh.stamp
+            if self._failed_since.get(recipe.key, -1) >= newest_input:
+                # The command already failed on these inputs, for a sibling.
+                self._started_for[source] = recipe.key
+                return
         self.start(recipe, source)
 
     def status(self, source: str) -> dict:
@@ -404,8 +421,10 @@ class Builds:
             result = {"ok": False, "log": f"{type(error).__name__}: {error}"}
         with self._lock:
             started = self._running.pop(recipe.key)
+            began_ms = self._began_ms.pop(recipe.key)
             result["seconds"] = round(time.monotonic() - started, 1)
             self._finished[recipe.key] = result
+            self._failed_since[recipe.key] = -1 if result["ok"] else began_ms
 
     def _run(self, recipe: Recipe) -> dict:
         cwd = recipe.cwd.resolve()

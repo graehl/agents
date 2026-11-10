@@ -2975,6 +2975,55 @@ def payload_process_ids(payload_pid: int) -> list[int]:
     return found
 
 
+def descendants_outside_group(pgid: int) -> list[int]:
+    """Live processes started from process group `pgid` that have left it,
+    as a job under `timeout` or `setsid` does."""
+    found: list[int] = []
+    for pid in visible_process_ids():
+        if proc_state(pid) in (None, "Z") or proc_pgid(pid) == pgid:
+            continue
+        ancestor = _proc_ppid(pid)
+        for _ in range(64):
+            if ancestor is None or ancestor <= 1:
+                break
+            if proc_pgid(ancestor) == pgid:
+                found.append(pid)
+                break
+            ancestor = _proc_ppid(ancestor)
+    return found
+
+
+class RememberedProcesses:
+    """Processes a listing has reported, kept so they can still be signalled
+    after the parent that tied them to a run is gone.
+
+    Each is remembered with its start time: a process id reused by an
+    unrelated process during the grace period is not this run's.
+    """
+
+    def __init__(self, listing: Callable[[], list[int]], *, skip: int | None = None):
+        self._listing, self._skip = listing, skip
+        self._started: dict[int, int | None] = {}
+
+    def alive(self) -> list[int]:
+        """Refresh from the listing; the remembered processes still running."""
+        for pid in self._listing():
+            if pid != self._skip and pid not in self._started:
+                self._started[pid] = proc_start_ticks(pid)
+        return [
+            pid
+            for pid, ticks in sorted(self._started.items())
+            if ticks is not None and pid_alive(pid) and proc_start_ticks(pid) == ticks
+        ]
+
+    def signal(self, targets: list[int], sig: signal.Signals) -> None:
+        for pid in targets:
+            try:
+                os.kill(pid, sig)
+            except ProcessLookupError:
+                pass
+
+
 def process_group_alive(pgid: int) -> bool:
     members = process_group_members(pgid)
     if members:
@@ -3326,24 +3375,17 @@ def terminate_payload(proc: subprocess.Popen, *, grace: float) -> None:
 
     # Remembered across signals: once the payload dies, a child in another
     # process group is an orphan that no later listing connects to this run.
-    started: set[int] = set()
-
-    def started_and_alive() -> list[int]:
-        started.update(payload_process_ids(proc.pid))
-        started.discard(proc.pid)
-        return [pid for pid in sorted(started) if pid_alive(pid)]
+    started = RememberedProcesses(
+        lambda: payload_process_ids(proc.pid), skip=proc.pid
+    )
 
     def deliver(sig: signal.Signals) -> None:
-        targets = started_and_alive()  # listed before the payload is signalled
+        targets = started.alive()  # listed before the payload is signalled
         proc.send_signal(sig)
-        for pid in targets:
-            try:
-                os.kill(pid, sig)
-            except ProcessLookupError:
-                pass
+        started.signal(targets, sig)
 
     signal_then_kill(
-        deliver, lambda: proc.poll() is None or bool(started_and_alive()), grace
+        deliver, lambda: proc.poll() is None or bool(started.alive()), grace
     )
 
 
@@ -3352,18 +3394,25 @@ def terminate_state(state: dict, *, grace: float, reason: str | None = None) -> 
     if not process_group_alive(pgid) and process_visibility_limited():
         return False
     service_unit = str(state.get("service_unit") or "")
+    # A job under `timeout` or `setsid` is outside the group the signal reaches.
+    left_group = RememberedProcesses(lambda: descendants_outside_group(pgid))
 
-    def signal_wrapper(sig: signal.Signals) -> None:
+    def signal_run(sig: signal.Signals) -> None:
+        targets = left_group.alive()  # listed while their parents still exist
         # The service unit owns the wrapper cgroup when there is one; fall
         # back to the process group only when systemd could not deliver.
-        if service_unit and stop_user_service(service_unit, sig.name):
-            return
-        try:
-            os.killpg(pgid, sig)
-        except ProcessLookupError:
-            pass
+        if not (service_unit and stop_user_service(service_unit, sig.name)):
+            try:
+                os.killpg(pgid, sig)
+            except ProcessLookupError:
+                pass
+        left_group.signal(targets, sig)
 
-    signal_then_kill(signal_wrapper, lambda: process_group_alive(pgid), grace)
+    signal_then_kill(
+        signal_run,
+        lambda: process_group_alive(pgid) or bool(left_group.alive()),
+        grace,
+    )
     state["status"] = "stopped"
     state["finished_at"] = utc_now()
     if reason:
