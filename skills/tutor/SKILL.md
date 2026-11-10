@@ -16,15 +16,19 @@ Get today's date from `date +%F`.
 
 ## Entry points
 
-Every session opens with the due sweep, whatever the argument: read the
-registry and review the rows whose `Due` is today or earlier, longest
-overdue first, at most 3. Say in one line how many are due and what
-follows. Nothing else starts reviews, so this sweep is the only place
-retention checks happen.
+The due sweep reviews the rows whose `Due` is today or earlier, longest
+overdue first, at most 3, after one line saying how many are due.
+Nothing else starts reviews, so the sweep is the only place retention
+checks happen.
 
-- `/tutor <topic>`: after the sweep, teach that topic and enroll what
-  was covered.
-- `/tutor`: after the sweep, ask what to learn or drill; offer more of
+A request with a topic is answered first and fast: the learner asked
+about that, and expects a near-interactive reply. Read the registry only
+after the first substantive reply has been sent.
+
+- `/tutor <topic>`: teach that topic, starting in the first reply, and
+  enroll what was covered. Offer the due sweep when the topic is done;
+  never put it in front.
+- `/tutor`: open with the sweep, then ask what to learn or drill; offer more of
   the due backlog when rows remain, and accept "that's all".
 - `/tutor status`: no sweep; show the display table for all rows and
   stop.
@@ -75,13 +79,23 @@ and logs the drop; the row stays.
 ## Teaching a topic
 
 Split the topic into three to seven concepts, each a candidate registry
-row, and reuse existing rows. Ask about three diagnostic questions
-before explaining anything. Then teach by questions that make the
-learner predict, explain, find the flaw in a plausible wrong claim, or
-apply. On a wrong answer ask a narrower question that exposes the
-contradiction; explain directly after two failed attempts, then re-test
-from another angle. Every third question re-tests the least recently
-checked concept of this session instead of new material.
+row, and reuse existing rows.
+
+New material is stated before it is questioned. Give the rule or
+mechanism completely and plainly, with one worked instance, then check
+it with questions that make the learner predict, find the flaw in a
+plausible wrong claim, or apply. Do not make the learner infer a
+definition from questions. Question-first is for review rows only.
+
+When the request quotes a phrase and asks what it means, including a
+phrase of the agent's own, the first reply is the precise meaning of
+that phrase and whether it is standard terminology. Teach the background
+only as far as that meaning needs it.
+
+On a wrong answer to a check, say exactly which part was wrong and
+correct it; ask a narrower question only when the correction alone
+would not expose the misconception. Every third question re-tests the
+least recently checked concept of this session instead of new material.
 
 Enroll each concept the session actually exercised: level by the
 registry's evidence rules, `Due` tomorrow, a retrieval prompt, and a

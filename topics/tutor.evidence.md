@@ -30,3 +30,35 @@ Due dates were assigned to the eight rows on 2026-11-10, so from then on
 the due-prompt bullet can fire in a session that reads the registry. A
 prompt appearing in a work session during the trial is that bullet, not
 the skill.
+
+## 2026-11-10 — first topic session: question-first taught the wrong way
+
+Incident (user-attributed), `/tutor` on a quoted phrase of the agent's
+own, "CTC prefix search, which scores every extension of a prefix at
+once", with the remark that he did not really know what CTC is.
+
+- The skill opened with the due sweep, so the first reply took minutes
+  (registry read in a very large session) and asked an unrelated review
+  question. graehl: "i expect *something* near-interactive when i ask
+  for tutoring."
+- The skill then asked diagnostic questions before explaining. His first
+  answer treated blank as an end marker; a later answer was graded "half
+  right" without saying which part. graehl: "you could have just stated
+  the rule", "concerned you may have taught the wrong lesson,
+  socratically", and "it wasn't review material".
+- The quote was a request for precision about the agent's wording:
+  "not that i should guess what you mean". The phrase was not standard
+  terminology, which the session established only at the end.
+
+Change: a topic request is answered in the first reply and the sweep is
+offered afterwards; new material is stated before it is questioned;
+a quoted phrase gets its precise meaning and terminology status first;
+a wrong check answer is corrected specifically. Question-first remains
+for review rows.
+
+Trace: bare `/tutor` still opens with the sweep. `/tutor <topic>` with
+rows due: the topic is taught, then the sweep is offered, so a learner
+who only ever passes a topic can still decline every review; left as is,
+since a forced review in front is what failed here.
+
+Contributing-model: fable-5.2
