@@ -93,15 +93,14 @@ def quarto_facts(root: Path, quarto: str) -> dict:
         project_config = project["config"]
         output_dir = home / project_config.get("project", {}).get("output-dir", ".")
         resources = [home / path for path in project_config.get("resource-path", ["."])]
-        filters = project_config.get("filters", [])
     else:
-        output_dir, resources, filters = home, [home], []
+        output_dir, resources = home, [home]
     return {
-        # File names of the filters this render already runs: the project's
-        # `_quarto.yml` list and the document's own front matter.
+        # File names of the filters this render already runs. Quarto merges
+        # the project's `_quarto.yml` list with the document's front matter.
         "registered_filters": {
             Path(entry["path"] if isinstance(entry, dict) else entry).name
-            for entry in [*filters, *pandoc.get("filters", [])]
+            for entry in pandoc.get("filters", [])
         },
         "output": (
             output_dir / pandoc.get("output-file", root.stem + ".html")
