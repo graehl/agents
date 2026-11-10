@@ -6343,3 +6343,43 @@ Contributing-model: fable-5.2
   it is a binding program instruction, so it waits for graehl's wording.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — old and vendored lints merged by measured overlap
+
+- **User direction** — "merge ours and upstream to the extent that one is
+  missing good ideas from the other"; vocabulary "should be a summary
+  only", located only where "exceptionally dense"; flagging and proposing
+  restructurings is the main tool whatever the detection accuracy; judges
+  from Luna to Opus cost are authorized when he will revise by hand; the
+  judged reading may stay in the main session at comparable cost. The
+  PROGRAM.md wording left open above was replaced at his word
+  (`~/draft` 5aed68844).
+- **Paper-history measurement** — for every commit that modified a PII
+  paper section (about 68,000 sentence-versions, 5.5% rewritten or cut by
+  the next commit touching the file): sentences with a vendored candidate
+  were edited at 6.4%, with an old-lint flag at 6.0%. By category: triad
+  1.03 times the base rate, participle 0.88, flat-certainty 1.03, header
+  1.01, negation-first 1.89 (337 hits), agency 2.27 (40 hits); old
+  excess-vocab 1.12, bold-inline 1.30. "Edited" includes content updates,
+  which graehl named as the confound: the right labels are reader-reviewed
+  style and organization amendments, of which the paper's review records
+  hold 426 comments (tags: trim 29, terminology 25, structure 24, clarity
+  24, move 15, style 9).
+- **Overlap** — on the Russell articles and the paper, the old rules whose
+  hits the vendored scan mostly misses were excess-vocab, bold-inline (116
+  hits in model articles, none in human ones) and the anti-signal shape
+  rules. Stock phrases, reversals, wrap-ups and model idioms were already
+  covered by upstream. Ported: bold-inline, and excess-vocab as a per-file
+  rate.
+- **Vocabulary** — on held-out academic text the lexicon rate per 1000
+  words is 4.4 at the human median and 15.0 at the human 95th percentile,
+  against medians of 20 and 32 for the two newest models in that corpus;
+  the paper's sections are below the human median. YA's learned-vocabulary
+  counts give a list relative to graehl's own usage (assistant-heavy:
+  retains, remains, preserving, supplies, establishes, exposes, intact,
+  durable), but sentences containing its 15-times-or-more words were
+  edited at 1.01 times the base rate, so it was not adopted.
+- **Not built** — a test set of reviewed amendments drawn from the review
+  records, to score categories on style edits alone.
+
+Contributing-model: fable-5.2

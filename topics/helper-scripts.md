@@ -801,7 +801,15 @@ or `--kill-group` without `--kill`).
 (or `-`) is given, as Markdown, Quarto, or text. A `.pdf` path goes through
 `pdftotext`. Prose extraction is the shared `prose_text` module; the
 candidates come from the vendored scan
-`skills/declauding/scripts/declaude_lint.py`, run on the extracted prose.
+`skills/declauding/scripts/declaude_lint.py`, run on the extracted prose,
+plus two of our own that the scan lacks: `bold-inline` (bold inside running
+prose, other than a bullet's lead or a symbol) and `excess-vocab`. Excess
+vocabulary is reported as `vocabulary` (count, rate per 1000 words, top
+words, and a human and model reference range) and becomes located findings
+only where one paragraph holds three or more such words. A `triad` or
+`participle` candidate that is the only candidate in its paragraph has
+`alone: true`, and `--text` collapses those to one line of line numbers per
+category.
 `--manuscript` adds a Quarto root and the files its live `{{< include >}}`
 directives name, in order. `--since` keeps only candidates on lines changed
 in the working tree since a git revision. For each input it emits one
@@ -823,8 +831,8 @@ candidate (line 0). `--text` prints the notes, a per-category table, one
 - counts in `by_category` cover every finding regardless of `--limit`;
 - with `--since`, whole-document candidates are omitted and a note says how
   many;
-- a missing vendored scan, or one that does not return its JSON report,
-  exits 3 with an error envelope; an unreadable input exits 4; `--since`
+- a missing vendored scan, one that does not return its JSON report, or a
+  missing `skills/not-ai/data/lexicon.tsv` exits 3 with an error envelope; an unreadable input exits 4; `--since`
   outside a git work tree or with an unknown revision exits 5; and a PDF
   without a working `pdftotext` exits 69. It never falls back to built-in
   rules or another extractor.
@@ -842,8 +850,10 @@ candidate (line 0). `--text` prints the notes, a per-category table, one
 5. `not-ai-lint --text --manuscript paper/index.qmd` → one report for the
    root and one per included section, in include order.
 
-The rules are upstream's: change them by re-vendoring `skills/declauding`
-or by a local change recorded in its `VENDORED.md`, never in this script.
+The scan's rules are upstream's: change them by re-vendoring
+`skills/declauding` or by a local change recorded in its `VENDORED.md`.
+This script holds only rules upstream has no counterpart for, each with the
+measurement that justifies it in a comment.
 
 **Canonical source**: `scripts/not-ai-lint` (in this repo).
 **Install target**: `~/bin/not-ai-lint` (symlink by default).

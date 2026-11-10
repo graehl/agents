@@ -69,6 +69,43 @@ class Scan(unittest.TestCase):
         lines = [f["line"] for f in report["findings"] if f["category"] == "cadence"]
         self.assertEqual(lines, [16])
 
+    def test_bold_emphasis_is_flagged_but_symbols_and_bullet_leads_are_not(
+        self,
+    ) -> None:
+        source = (
+            "The outside label is **O** and the gain is **quite large** here.\n\n"
+            "- **Recall.** It rose on every language we measured this year.\n"
+        )
+        (report,) = reports(stdin=source)
+        bold = [
+            f["match"] for f in report["findings"] if f["category"] == "bold-inline"
+        ]
+        self.assertEqual(bold, ["**quite large**"])
+
+    def test_vocabulary_is_a_rate_and_located_only_in_a_dense_paragraph(self) -> None:
+        sparse = "The intricate decoder was trained on 35 languages last year.\n"
+        dense = (
+            "This multifaceted and groundbreaking tapestry underscores the result.\n"
+        )
+        (report,) = reports(stdin=sparse + "\n" + dense)
+        self.assertEqual(report["vocabulary"]["count"], 5)
+        self.assertGreater(report["vocabulary"]["per_1k_words"], 100)
+        located = [
+            f["line"] for f in report["findings"] if f["category"] == "excess-vocab"
+        ]
+        self.assertEqual(located, [3, 3, 3, 3])
+
+    def test_a_lone_list_of_three_is_collapsed_in_text_and_kept_in_json(self) -> None:
+        source = (
+            "We evaluate on French, Japanese, and Korean documents from one corpus.\n"
+        )
+        (report,) = reports(stdin=source)
+        (triad,) = [f for f in report["findings"] if f["category"] == "triad"]
+        self.assertTrue(triad["alone"])
+        text = run("--text", stdin=source).stdout
+        self.assertIn("[triad] alone in its paragraph at lines 1", text)
+        self.assertNotRegex(text, r"(?m)^-:1:\d+: \[triad\]")
+
     def test_non_prose_never_produces_candidates(self) -> None:
         source = (
             "---\ntitle: " + REVERSAL + "---\n\n" + PLAIN + "\n"

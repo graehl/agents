@@ -8,7 +8,10 @@ citations, HTML comments, hidden Quarto blocks, tables, and References
 sections are blanked in place), and runs the vendored declauding scan
 (skills/declauding/scripts/declaude_lint.py) over what is left. Each
 candidate is reported at its source line under the scan's category name,
-which is the vocabulary of skills/declauding/references/register.md.
+which is the vocabulary of skills/declauding/references/register.md. Two
+categories are added here because the scan has no counterpart: bold used as
+emphasis, and excess vocabulary, given as a per-file rate and located only
+where a paragraph is dense with it.
 
 The output is a list of places to read, not a detector and not a score: the
 scan misses most paragraph-level staging, and a category count is not a
@@ -49,6 +52,24 @@ EXIT_CODES = {
     5: "--since needs each input inside a git work tree and a revision git can resolve",
     69: "a .pdf input needs pdftotext (poppler-utils), which is not installed or failed",
 }
+LEXICON = _REPO_ROOT / "skills" / "not-ai" / "data" / "lexicon.tsv"
+# Excess-vocabulary words per 1000, on held-out academic text (614 HAP-E-2
+# documents per source): human continuations, then the two newest models there.
+VOCABULARY_REFERENCE = (
+    "human academic text: median 4.4, 95th percentile 15.0; "
+    "model continuations: median 20 to 32"
+)
+# A paragraph with this many excess-vocabulary words is listed; fewer are
+# only counted, because single words are mostly a field's own vocabulary.
+DENSE_VOCABULARY = 3
+# Shapes that fire as often on plain prose as on padded prose: on the PII
+# paper's revision history their sentences were edited at the base rate
+# (0.9 to 1.0 times), so one alone is collapsed to a line number in text
+# output. Two or more candidates in a paragraph are listed in full.
+BULK = frozenset({"triad", "participle"})
+BOLD = re.compile(r"\*\*[^*\n]+\*\*|__[^_\n]+__")
+BOLD_LEAD = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*|__)[^*_\n]{1,60}?(?:\*\*|__)")
+LONG_WORD = re.compile(r"[A-Za-z]{4,}")
 DEFAULT_LIMIT = 40
 TOP_MATCHES = 3
 INCLUDE = re.compile(r"\{\{<\s*include\s+(\S+)\s*>\}\}")
@@ -109,8 +130,9 @@ def changed_lines(path: Path, revision: str) -> set[int] | None:
     return lines
 
 
-def scan_text(prose: Prose) -> tuple[str, list[int]]:
-    """The prose as the scan expects it, and each scanned row's source line.
+def scan_text(prose: Prose) -> tuple[str, list[int], dict[int, int]]:
+    """The prose as the scan expects it, each scanned row's source line, and
+    each source line's paragraph number.
 
     The scan's paragraph rules count one blank row between paragraphs, so a
     run of skipped or blank lines is sent as a single empty row (source 0).
@@ -118,6 +140,7 @@ def scan_text(prose: Prose) -> tuple[str, list[int]]:
     """
     rows: list[str] = []
     source: list[int] = []
+    paragraph: dict[int, int] = {}
     previous = 0
     for line in prose.lines:
         if line.kind == "table" or not line.text.strip():
@@ -127,8 +150,89 @@ def scan_text(prose: Prose) -> tuple[str, list[int]]:
             source.append(0)
         rows.append(line.text)
         source.append(line.number)
+        paragraph[line.number] = source.count(0)
         previous = line.number
-    return "\n".join(rows) + "\n", source
+    return "\n".join(rows) + "\n", source, paragraph
+
+
+def load_lexicon() -> re.Pattern[str]:
+    try:
+        words = [
+            row.split("\t")[0]
+            for row in LEXICON.read_text(encoding="utf-8").splitlines()
+            if row and not row.startswith(("#", "word\t"))
+        ]
+    except OSError as exc:
+        die(f"{LEXICON}: {exc}", ExitCode.DATA)
+    if not words:
+        die(f"{LEXICON}: no words", ExitCode.DATA)
+    return re.compile(
+        r"\b(?:" + "|".join(re.escape(w) for w in words) + r")\b", re.IGNORECASE
+    )
+
+
+def local_findings(
+    prose: Prose, paragraph: dict[int, int], lexicon: re.Pattern[str]
+) -> tuple[list[dict], dict]:
+    """Candidates the vendored scan has no rule for, and the vocabulary summary.
+
+    Bold used as emphasis inside running prose was absent from human articles
+    and common in model ones in the old validation. Excess vocabulary separates
+    documents but not sentences, so it is a per-file rate, located only where
+    one paragraph holds DENSE_VOCABULARY or more such words.
+    """
+    hits: list[dict] = []
+    vocabulary: dict[int, list[dict]] = {}
+    for line in prose.lines:
+        if line.number not in paragraph:
+            continue
+        for match in lexicon.finditer(line.text):
+            vocabulary.setdefault(paragraph[line.number], []).append(
+                {
+                    "line": line.number,
+                    "col": match.start(),
+                    "category": "excess-vocab",
+                    "note": f"{DENSE_VOCABULARY} or more words in this paragraph that "
+                    "models use far more than people; use the plain word where one fits",
+                    "match": match.group(0),
+                }
+            )
+        if line.kind == "heading":
+            continue
+        lead = BOLD_LEAD.match(line.text) if line.kind == "bullet" else None
+        for match in BOLD.finditer(line.text):
+            # A bullet's bold lead is the scan's list-shape rule; a bold symbol
+            # or short label is notation, not emphasis.
+            if (lead and match.start() < lead.end()) or not LONG_WORD.search(
+                match.group(0)
+            ):
+                continue
+            hits.append(
+                {
+                    "line": line.number,
+                    "col": match.start(),
+                    "category": "bold-inline",
+                    "note": "bold inside running prose; keep it for a term being "
+                    "defined or a warning, and let structure carry other emphasis",
+                    "match": match.group(0)[:90],
+                }
+            )
+    found = [h for group in vocabulary.values() for h in group]
+    for group in vocabulary.values():
+        if len(group) >= DENSE_VOCABULARY:
+            hits.extend(group)
+    words = prose.words()
+    return hits, {
+        "count": len(found),
+        "per_1k_words": round(1000 * len(found) / words, 1) if words else 0.0,
+        "top": [
+            w
+            for w, _ in Counter(h["match"].lower() for h in found).most_common(
+                TOP_MATCHES + 2
+            )
+        ],
+        "reference": VOCABULARY_REFERENCE,
+    }
 
 
 def scan(text: str, options: list[str]) -> list[dict]:
@@ -171,7 +275,7 @@ def report(path: str, args, limit: int | None) -> dict:
         )
         if on
     ]
-    text, source = scan_text(prose)
+    text, source, paragraph = scan_text(prose)
     hits = []
     for h in scan(text, options):
         # A reuse line restates candidates of the category named in its note.
@@ -179,6 +283,9 @@ def report(path: str, args, limit: int | None) -> dict:
         if h["category"] in args.skip or (restated and restated.group(1) in args.skip):
             continue
         hits.append({**h, "line": source[h["line"] - 1] if h["line"] else 0})
+    ours, vocabulary = local_findings(prose, paragraph, args.lexicon)
+    hits.extend(h for h in ours if h["category"] not in args.skip)
+    crowd = Counter(paragraph[h["line"]] for h in hits if h["line"])
     if args.since:
         if path == "-" or prose.format == "pdf":
             die(
@@ -206,6 +313,7 @@ def report(path: str, args, limit: int | None) -> dict:
             "category": h["category"],
             "note": h["note"],
             "match": " ".join(h["match"].split()),
+            "alone": h["category"] in BULK and crowd[paragraph[h["line"]]] < 2,
         }
         for h in hits
     ]
@@ -223,6 +331,7 @@ def report(path: str, args, limit: int | None) -> dict:
         "format": prose.format,
         "notes": notes,
         "words": prose.words(),
+        "vocabulary": vocabulary,
         "by_category": by_category,
         "findings": findings if limit is None else findings[:limit],
         "findings_total": len(findings),
@@ -237,14 +346,29 @@ def _text_report(reports: list[dict]) -> str:
             f"{len(item['by_category'])} categories, {item['words']} prose words"
         )
         out.extend(f"  note: {note}" for note in item["notes"])
+        vocabulary = item["vocabulary"]
+        out.append(
+            f"  excess vocabulary: {vocabulary['per_1k_words']} per 1000 words "
+            f"({vocabulary['count']}: {', '.join(vocabulary['top']) or 'none'}); "
+            f"{vocabulary['reference']}"
+        )
         for category, stats in item["by_category"].items():
             out.append(
                 f"  {category:<16} {stats['count']:>3}  {' | '.join(stats['top'])}"
             )
+        alone: dict[str, list[str]] = {}
         for f in item["findings"]:
+            if f["alone"]:
+                alone.setdefault(f["category"], []).append(f["loc"])
+                continue
             out.append(
                 f"{item['path']}:{f['loc']}:{f['col']}: [{f['category']}] "
                 f"{f['match']} — {f['note']}"
+            )
+        for category, locs in alone.items():
+            out.append(
+                f"{item['path']}: [{category}] alone in its paragraph at lines "
+                f"{', '.join(locs)} — a real list or tail stays; --json has each match"
             )
         hidden = item["findings_total"] - len(item["findings"])
         if hidden > 0:
@@ -336,6 +460,7 @@ def main(argv: list[str] | None = None) -> int:
             die(f"{root}: {exc}", ExitCode.NOT_FOUND)
     if not SCAN.is_file():
         die(f"{SCAN} is missing", ExitCode.DATA)
+    args.lexicon = load_lexicon()
     limit = None if args.full or args.limit == 0 else args.limit
     reports = [report(path, args, limit) for path in paths or ["-"]]
     if fmt is Format.TEXT:

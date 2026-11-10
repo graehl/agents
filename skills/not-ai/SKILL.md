@@ -68,7 +68,14 @@ scope (`topics/writing.md` § Review modes and rulings).
    corresponds to an entry in `skills/declauding/references/register.md`
    (the note often gives its number); name that entry in everything you
    report. `--skip <category>` drops one that
-   does not apply (`typography` for a typeset paper). For a PDF the `note:`
+   does not apply (`typography` for a typeset paper). Two categories are
+   ours, with no register entry: `bold-inline`, and `excess-vocab`, which
+   appears as one rate per file beside a human and model reference range
+   and is located only in a paragraph dense with such words. The rate
+   describes the whole file; a single such word is usually the field's own
+   term. Lists of three and participle tails that stand alone in their
+   paragraph are collapsed to line numbers, because on the PII paper they
+   were edited no more often than any other sentence. For a PDF the `note:`
    lines say what extraction may have distorted; carry them into the report.
    The list is where to read first. It is not a detector, and it misses most
    paragraph-level staging, so a short list says little about the draft.
