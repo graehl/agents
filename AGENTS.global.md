@@ -855,9 +855,13 @@ topic's `Governs:` line and its row, not this section.
 - surveying a research field, mapping its frontier, or fetching related work → `research-survey`
 - citing evidence in a manuscript, verifying its claims, or moving its run records → `claim-provenance`
 - recording what run produced an output and how to regenerate it → `provenance-tracking`
+- curating run records under a topic's .runs/ → `runs-ledger`
+- row-wise translating, paraphrasing, or rewriting a dataset → `verified-provenance`
 - fine-tuning or adapting a pretrained model whose existing capabilities must survive → `fine-tuning`
+- servicing, authoring, or ratifying on-deck queue entries; tending → `on-deck`
+- building, repairing, or querying an almanac dataset from a web page → `almanac`
 - reading or extracting a PDF → `pdf`
-- rarer, by name: `runs-ledger`, `verified-provenance`, `document-annotation`, `on-deck`, `almanac`
+- rarer, by name: `document-annotation`
 
 **Code and tools.**
 
@@ -866,6 +870,8 @@ topic's `Governs:` line and its row, not this section.
 - a new or unrelated defect report arrives → `handling-bug-reports`
 - planning or implementing durable scripts or software, or choosing, writing, running, retaining, or reviewing tests → `testing`
 - running a project's tests or checks, when it has a verify.toml → `verify`
+- creating or using a topic's .testing.md → `testing-rider`
+- verifying generated output that has no exact expected value → `soft-checks`
 - benchmarking, profiling, or load simulation on a shared host → `perf`
 - breaking or shimming a public API, CLI flag, wire format, or persisted schema → `backward-compat`
 - copying third-party code or a skill to keep → `vendoring`
@@ -875,7 +881,10 @@ topic's `Governs:` line and its row, not this section.
 - adding a helper to ~/bin or scripts/, or using queued-anchor or session-turn → `helper-scripts`
 - calling a tool that identifies itself as acli or declares acli capabilities → `acli`
 - implementing an acli tool or library in any language → `acli-implementer`
-- rarer, by name: `debugging`, `testing-rider`, `soft-checks`, `prototyping`, `degradation-injection`, `shell`, `acli-spec`, `workflow-tags`, `tool-surprises`, `intervention-needles`
+- specifying or verifying an acli tool's exact protocol → `acli-spec`
+- adopting or emitting schema-announced workflow tags → `workflow-tags`
+- mining session logs for user corrections or interventions → `intervention-needles`
+- rarer, by name: `debugging`, `prototyping`, `degradation-injection`, `shell`, `tool-surprises`
 
 **User interfaces.**
 
@@ -889,9 +898,10 @@ topic's `Governs:` line and its row, not this section.
 - writing a non-trivial commit message, amending, rewriting history, or choosing trailers → `commits`
 - creating or updating a handoff → `handoffs`
 - changing or diagnosing active-session or run semantics, staleness, launch-depth guards, or plugins → `agentctl`
+- launching agents in a shared worktree or diagnosing a guard block → `agent-guard`
 - reading or setting launcher, harness, session, or guard environment variables → `AGENT_ENV_VARS`
 - recovering Codex session identity or waiting on owned jobs under Codex → `codex-session`
-- rarer, by name: `agent-guard`, `at-scheduling`, `plan-grilling`, `doubt-skill`, `web-digest`
+- rarer, by name: `at-scheduling`, `plan-grilling`, `doubt-skill`, `web-digest`
 
 **Instructions and project documents.**
 
