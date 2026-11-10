@@ -86,3 +86,10 @@ Governs: breaking or shimming a public API, CLI flag, wire format, or persisted 
   the paper scaffold does, so each build runs it once. Of the twelve Quarto
   projects in `~/agents` and `~/draft` at the time, all but one already
   listed it; a project that does not gets an arXiv build without term links.
+- 2026-11-10 `term-hints-implicit` and emphasis — implicit first-mention
+  previews for bold or italic text are removed; the switch now covers math
+  symbols only. In this repository's paper the feature had linked only
+  "*Proof.*" labels and no real term, because an emphasised term could be
+  linked only from a later emphasised use. A prose term needs an authored
+  `terms=` definition. The papers in `~/draft` that enable the switch were
+  not measured.

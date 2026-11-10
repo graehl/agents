@@ -219,13 +219,12 @@ a span or fenced div to suppress automatic references in a larger passage.
 Existing links and code are excluded.
 
 `term-hints-implicit: true` in QMD front matter or `_quarto.yml` enables
-first-mention paragraph previews for math letters, Greek symbols, styled
-math atoms, and bold/italic terms; symbols are taken from math only. Bold
-or italic text introduces a term only when it reads as one: a name of two or
-more words, set inside running text and not making up its whole block. That
-leaves out stress on a single word, a run-in heading, and a bold table cell.
-A one-word term needs an authored definition. Such a term is linked from
-later bold or italic uses of the same name, never from plain prose. A link
+first-mention paragraph previews for math letters, Greek symbols and styled
+math atoms, taken from math only. Bold or italic text is never an implicit
+term: emphasis cannot be told from stress or a run-in label, and an author
+emphasizes a term once, so repeated emphasis is rarely a reference. A prose
+term gets links only from an authored definition (`terms=`), which also
+links its plain uses and keeps the formatting of a bold or italic use. A link
 never points at the paragraph it sits in, so a first-mention paragraph gets
 an anchor and a card only when a later paragraph refers to it. This is off
 by default, and a value that is not a boolean fails the build. Cards say

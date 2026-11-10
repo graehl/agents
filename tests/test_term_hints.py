@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from qmd_build.browser_print import DEFAULT_PLAYWRIGHT
+
 REPO = Path(__file__).resolve().parents[1]
 FILTER = REPO / "qmd_build/term_hints.lua"
 pytestmark = pytest.mark.skipif(not shutil.which("quarto"), reason="Quarto required")
@@ -295,7 +297,7 @@ def test_real_html_builder_and_browser(tmp_path: Path) -> None:
     assert 'data-term-kind="First mention"' not in html
     receipt = json.loads(output.with_suffix(".receipt.json").read_text())
     assert any(row["path"].endswith("term_hints.css") for row in receipt["inputs"])
-    playwright = Path.home() / "ya/packages/client"
+    playwright = DEFAULT_PLAYWRIGHT
     if (playwright / "node_modules/@playwright/test").exists():
         browser = subprocess.run(
             [

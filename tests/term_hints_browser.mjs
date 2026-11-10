@@ -49,6 +49,15 @@ try {
 	await page.keyboard.press("Enter");
 	assert.equal(await card.isVisible(), false);
 	await page.setViewportSize({ width: 375, height: 812 });
+	// The page hides the card on resize. Let that event be delivered before
+	// opening the card, or a late one closes it under the assertions below.
+	await page.waitForFunction(() => window.innerWidth === 375);
+	await page.evaluate(
+		() =>
+			new Promise((done) =>
+				requestAnimationFrame(() => requestAnimationFrame(done)),
+			),
+	);
 	await score.click();
 	await card.waitFor({ state: "visible" });
 	const bounds = await card.boundingBox();
