@@ -1,0 +1,519 @@
+#!/usr/bin/env python3
+"""Age the sections of a handoff or gap file so nobody reads a whole stale file.
+
+A section is a Markdown heading and its text. Its date is the `confirmed
+<date>` in its heading, else the first ISO date there, else the nearest
+enclosing section's; a gap file's `noticed:`/`confirmed:` front matter dates
+the whole file. A `[state]`, `[owed]`, or `[durable]` heading tag sets how fast
+it ages. `read` prints fresh sections and one index line per aged one;
+`confirm` and `archive` restamp or move sections by heading line number.
+Contract: topics/helper-scripts.md § handoff-age.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import shutil
+import sys
+from dataclasses import dataclass
+from datetime import date, datetime, timezone
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import (
+    ExitCode,
+    add_standard_args,
+    argument_parser,
+    die,
+    emit,
+    maybe_complete,
+    resolve_format,
+)
+
+CAPABILITIES = ("complete",)
+EXIT_CODES = {4: "a file is missing, or a line number is not a section's heading line"}
+HEADING_CLASSES = ("state", "owed", "durable")
+UNCLASSIFIED = "unclassified"
+GAP = "gap"
+ARCHIVE_SUFFIX = ".archive.md"
+
+_HEADING = re.compile(r"^(#{1,6})\s+(.*\S)\s*$")
+_FENCE = re.compile(r"^\s*(```|~~~)")
+_CLASS_TAG = re.compile(r"\[(state|owed|durable)\]\s*")
+_ISO_DATE = r"(\d{4}-\d{2}-\d{2})"
+_CONFIRMED = re.compile(r"confirmed\s+" + _ISO_DATE)
+_ANY_DATE = re.compile(_ISO_DATE)
+_FRONT_MATTER_DATE = re.compile(r"^(noticed|confirmed):\s*" + _ISO_DATE + r"\s*$")
+_SOURCE_SESSION = re.compile(r"^Source session:")
+
+
+@dataclass
+class Section:
+    """One heading and its text; `line`..`body_end` excludes child sections."""
+
+    line: int
+    level: int
+    title: str
+    body_end: int
+    tree_end: int
+    cls: str
+    stamped: date | None
+
+
+def _parse_date(text: str) -> date | None:
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        return None
+
+
+def _heading_date(title: str) -> date | None:
+    confirmed = _CONFIRMED.search(title)
+    if confirmed:
+        return _parse_date(confirmed.group(1))
+    first = _ANY_DATE.search(title)
+    return _parse_date(first.group(1)) if first else None
+
+
+def _front_matter_end(lines: list[str]) -> int:
+    """Index of the closing `---` of leading front matter, or 0 when absent."""
+    if not lines or lines[0].strip() != "---":
+        return 0
+    for index in range(1, len(lines)):
+        if lines[index].strip() == "---":
+            return index
+    return 0
+
+
+def parse_sections(lines: list[str]) -> list[Section]:
+    """Sections in file order; index 0 is the file root (text before any heading).
+
+    A section with no date or class tag of its own takes its nearest enclosing
+    section's, and the root takes a gap file's front matter.
+    """
+    root = Section(1, 0, "(file)", len(lines), len(lines), UNCLASSIFIED, None)
+    closing = _front_matter_end(lines)
+    found = {}
+    for raw in lines[1:closing]:
+        field = _FRONT_MATTER_DATE.match(raw.strip())
+        if field:
+            found[field.group(1)] = _parse_date(field.group(2))
+    if "noticed" in found:
+        root.cls = GAP
+        root.stamped = found.get("confirmed") or found["noticed"]
+    sections = [root]
+    open_path = [root]
+    in_fence = False
+    for index in range(closing, len(lines)):
+        if _FENCE.match(lines[index]):
+            in_fence = not in_fence
+            continue
+        heading = None if in_fence else _HEADING.match(lines[index])
+        if not heading:
+            continue
+        number = index + 1
+        level = len(heading.group(1))
+        title = heading.group(2)
+        sections[-1].body_end = number - 1
+        while open_path[-1].level >= level:
+            open_path.pop().tree_end = number - 1
+        parent = open_path[-1]
+        tag = _CLASS_TAG.search(title)
+        section = Section(
+            number,
+            level,
+            title,
+            len(lines),
+            len(lines),
+            tag.group(1) if tag else parent.cls,
+            _heading_date(title) or parent.stamped,
+        )
+        sections.append(section)
+        open_path.append(section)
+    return sections
+
+
+@dataclass
+class AgeLimits:
+    """Days after which a section of each class needs reconfirming."""
+
+    state: int
+    owed: int
+    gap: int
+    today: date
+
+    def age_days(self, section: Section) -> int | None:
+        return (self.today - section.stamped).days if section.stamped else None
+
+    def is_aged(self, section: Section) -> bool:
+        if section.cls == "durable":
+            return False
+        age = self.age_days(section)
+        if age is None:
+            return True
+        limit = {"state": self.state, GAP: self.gap}.get(section.cls, self.owed)
+        return age >= limit
+
+
+def _byte_count(lines: list[str], first: int, last: int) -> int:
+    return sum(len(line.encode()) for line in lines[first - 1 : last])
+
+
+def _has_front_matter_dates(sections: list[Section]) -> bool:
+    return sections[0].cls == GAP
+
+
+def section_rows(lines: list[str], limits: AgeLimits) -> list[dict]:
+    """One row per section; the root appears only for a front-matter-dated file."""
+    sections = parse_sections(lines)
+    listed = sections if _has_front_matter_dates(sections) else sections[1:]
+    return [
+        {
+            "line": section.line,
+            "end": section.body_end,
+            "level": section.level,
+            "class": section.cls,
+            "date": section.stamped.isoformat() if section.stamped else None,
+            "age_days": limits.age_days(section),
+            "aged": limits.is_aged(section),
+            "bytes": _byte_count(lines, section.line, section.body_end),
+            "title": section.title,
+        }
+        for section in listed
+    ]
+
+
+def _read_lines(path: Path) -> list[str]:
+    return path.read_text(encoding="utf-8").splitlines(keepends=True)
+
+
+def file_summary(path: Path, limits: AgeLimits, with_sections: bool) -> dict:
+    lines = _read_lines(path)
+    rows = section_rows(lines, limits)
+    dates = [row["date"] for row in rows if row["date"]]
+    modified = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).date()
+    summary = {
+        "file": str(path),
+        "bytes": _byte_count(lines, 1, len(lines)),
+        "aged_bytes": sum(row["bytes"] for row in rows if row["aged"]),
+        "section_count": len(rows),
+        "aged_count": sum(row["aged"] for row in rows),
+        "newest": max(dates) if dates else None,
+        "modified": modified.isoformat(),
+    }
+    if with_sections:
+        summary["sections"] = rows
+    return summary
+
+
+def _size(count: int) -> str:
+    return f"{count / 1000:.1f}kB" if count >= 1000 else f"{count}B"
+
+
+def _age(row: dict) -> str:
+    return "undated" if row["age_days"] is None else f"{row['age_days']}d"
+
+
+def summary_text(summary: dict) -> str:
+    head = (
+        f"{summary['file']}  {_size(summary['bytes'])}, aged "
+        f"{_size(summary['aged_bytes'])} in {summary['aged_count']} of "
+        f"{summary['section_count']} sections; newest stamp {summary['newest']}, "
+        f"modified {summary['modified']}"
+    )
+    rows = [
+        f"  L{row['line']}-{row['end']}  {'#' * row['level'] or '-'}  {row['class']}  "
+        f"{_age(row)}  {'AGED' if row['aged'] else 'fresh'}  {_size(row['bytes'])}  "
+        f"{row['title']}"
+        for row in summary.get("sections", [])
+    ]
+    return "\n".join([head, *rows])
+
+
+def fresh_view(lines: list[str], limits: AgeLimits) -> tuple[str, list[dict]]:
+    """The file with each aged section's text replaced by one index line.
+
+    Text before the first heading and any `Source session:` line always
+    survive: a handoff's opening control lines and its closing transcript
+    pointers stay readable whatever their section's age.
+    """
+    rows = section_rows(lines, limits)
+    root_end = parse_sections(lines)[0].body_end
+    kept = lines[:root_end]
+    aged = []
+    for row in rows:
+        if row["aged"]:
+            aged.append(row)
+            kept.append(
+                f"<!-- aged {_age(row)} {row['class']} L{row['line']}-{row['end']} "
+                f"{_size(row['bytes'])}: {row['title']} -->\n"
+            )
+        if row["level"] == 0:
+            continue
+        own = lines[row["line"] - 1 : row["end"]]
+        kept.extend(own if not row["aged"] else filter(_SOURCE_SESSION.match, own))
+    return "".join(kept), aged
+
+
+def _write_atomically(path: Path, text: str) -> None:
+    scratch = path.with_name(path.name + ".handoff-age-tmp")
+    scratch.write_text(text, encoding="utf-8")
+    if path.exists():
+        shutil.copymode(path, scratch)
+    os.replace(scratch, path)
+
+
+def _named_sections(path: Path, lines: list[str], numbers: list[int]) -> list[Section]:
+    """The sections whose heading lines are `numbers`; line 1 may name a gap's root."""
+    sections = parse_sections(lines)
+    by_line = {section.line: section for section in sections[1:]}
+    if _has_front_matter_dates(sections):
+        by_line[1] = sections[0]
+    missing = [number for number in numbers if number not in by_line]
+    if missing:
+        die(
+            "Not a section heading line (rerun `handoff-age list`): "
+            + ", ".join(map(str, missing)),
+            ExitCode.NOT_FOUND,
+            detail={"file": str(path), "lines": missing},
+        )
+    return [by_line[number] for number in numbers]
+
+
+def _stamp_front_matter(lines: list[str], today: date) -> None:
+    closing = _front_matter_end(lines)
+    stamp = f"confirmed: {today.isoformat()}\n"
+    for index in range(1, closing):
+        if lines[index].startswith("confirmed:"):
+            lines[index] = stamp
+            return
+    lines.insert(closing, stamp)
+
+
+def _stamp_heading(heading: str, today: date, cls: str | None) -> str:
+    marks, title = _HEADING.match(heading).groups()
+    if cls:
+        title = f"[{cls}] " + _CLASS_TAG.sub("", title, count=1)
+    stamp = f"confirmed {today.isoformat()}"
+    if _CONFIRMED.search(title):
+        title = _CONFIRMED.sub(stamp, title, count=1)
+    else:
+        title = f"{title} ({stamp})"
+    return f"{marks} {title}\n"
+
+
+def confirm(args) -> int:
+    path = Path(args.file)
+    lines = _read_lines(path)
+    today = args.limits.today
+    stamped = []
+    # Bottom-up, so inserting a front-matter line cannot shift a pending heading.
+    for section in sorted(
+        _named_sections(path, lines, args.lines), key=lambda s: -s.line
+    ):
+        if section.level == 0:
+            if args.cls:
+                die("--as applies to headings, not to a gap file's front matter")
+            _stamp_front_matter(lines, today)
+        else:
+            lines[section.line - 1] = _stamp_heading(
+                lines[section.line - 1], today, args.cls
+            )
+        stamped.append({"line": section.line, "title": section.title})
+    _write_atomically(path, "".join(lines))
+    result = {"file": str(path), "confirmed": today.isoformat(), "sections": stamped}
+    emit(result, resolve_format(args), text=f"confirmed {len(stamped)} in {path}")
+    return 0
+
+
+def archive_path(path: Path) -> Path:
+    return path.with_name(path.name.removesuffix(".md") + ARCHIVE_SUFFIX)
+
+
+def archive(args) -> int:
+    path = Path(args.file)
+    lines = _read_lines(path)
+    chosen = sorted(_named_sections(path, lines, args.lines), key=lambda s: s.line)
+    if chosen and chosen[0].level == 0:
+        die("Cannot archive a whole file; remove it instead")
+    spans = []
+    for section in chosen:
+        if not spans or section.line > spans[-1].tree_end:
+            spans.append(section)
+    moved = "".join(
+        "".join(lines[span.line - 1 : span.tree_end]).rstrip("\n") + "\n\n"
+        for span in spans
+    )
+    target = archive_path(path)
+    earlier = target.read_text(encoding="utf-8") if target.exists() else ""
+    banner = f"<!-- archived {args.limits.today.isoformat()} from {path.name} -->\n\n"
+    # Archive first: an interruption then leaves a duplicate, never a loss.
+    _write_atomically(target, earlier + banner + moved)
+    for span in reversed(spans):
+        del lines[span.line - 1 : span.tree_end]
+    _write_atomically(path, "".join(lines))
+    result = {
+        "file": str(path),
+        "archive": str(target),
+        "bytes_moved": len(moved.encode()),
+        "sections": [
+            {"line": span.line, "end": span.tree_end, "title": span.title}
+            for span in spans
+        ],
+    }
+    emit(
+        result,
+        resolve_format(args),
+        text=f"moved {_size(result['bytes_moved'])} from {path} to {target}",
+    )
+    return 0
+
+
+def tracked_files(directory: Path) -> list[Path]:
+    """A directory's handoff or gap files: its `*.md` minus archives and README."""
+    return sorted(
+        path
+        for path in directory.glob("*.md")
+        if not path.name.endswith(ARCHIVE_SUFFIX) and path.name != "README.md"
+    )
+
+
+def list_ages(args) -> int:
+    summaries = []
+    for name in args.paths:
+        path = Path(name)
+        if path.is_dir():
+            summaries += [
+                file_summary(each, args.limits, args.full)
+                for each in tracked_files(path)
+            ]
+        else:
+            summaries.append(file_summary(path, args.limits, True))
+    emit(
+        summaries,
+        resolve_format(args),
+        text="\n".join(map(summary_text, summaries)) or "no files",
+    )
+    return 0
+
+
+def read_fresh(args) -> int:
+    path = Path(args.file)
+    view, aged = fresh_view(_read_lines(path), args.limits)
+    emit(
+        {"file": str(path), "text": view, "aged": aged}, resolve_format(args), text=view
+    )
+    return 0
+
+
+def _iso_date(text: str) -> date:
+    return date.fromisoformat(text)
+
+
+def build_parser():
+    parser = argument_parser(
+        prog="handoff-age",
+        description="Age the heading sections of handoff and gap files (instant; "
+        "result on stdout). A section's date is `confirmed <date>` in its heading, "
+        "else the first ISO date there, else its enclosing section's; a gap's "
+        "`noticed:`/`confirmed:` front matter dates the file. A heading tag "
+        "[state], [owed], or [durable] sets the limit; untagged sections age as "
+        "[owed], undated ones are aged, [durable] never ages. Contract: "
+        "topics/helper-scripts.md § handoff-age.",
+        capabilities=CAPABILITIES,
+        exit_codes=EXIT_CODES,
+    )
+    parser.add_argument(
+        "--state-days",
+        type=int,
+        default=1,
+        help="Age in days at which a [state] section is aged (default 1).",
+    )
+    parser.add_argument(
+        "--owed-days",
+        type=int,
+        default=7,
+        help="Age in days at which an [owed] or untagged section is aged (default 7).",
+    )
+    parser.add_argument(
+        "--gap-days",
+        type=int,
+        default=30,
+        help="Age in days at which a front-matter-dated gap file is aged (default 30).",
+    )
+    parser.add_argument(
+        "--today",
+        type=_iso_date,
+        default=None,
+        help="Date to age against and to stamp with (default: today, UTC).",
+    )
+    commands = parser.add_subparsers(dest="command", required=True)
+
+    list_cmd = commands.add_parser(
+        "list",
+        help="One record per file: bytes, aged_bytes, newest stamp, modified date, "
+        "and per-section line range, class, date, age_days, aged. A directory "
+        "expands to its *.md files without sections; --full adds them.",
+    )
+    list_cmd.add_argument(
+        "paths", nargs="+", help="Handoff or gap files or directories."
+    )
+    add_standard_args(list_cmd)
+    list_cmd.set_defaults(func=list_ages)
+
+    read_cmd = commands.add_parser(
+        "read",
+        help="The file with each aged section replaced by one `<!-- aged … -->` index "
+        "line; pass --text for the plain view. Read an aged section's line range "
+        "only when reconfirming it.",
+    )
+    read_cmd.add_argument("file")
+    add_standard_args(read_cmd)
+    read_cmd.set_defaults(func=read_fresh)
+
+    confirm_cmd = commands.add_parser(
+        "confirm",
+        help="Stamp sections `confirmed <today>` in place, by heading line number from "
+        "`list` (line 1 for a gap's front matter).",
+    )
+    confirm_cmd.add_argument("file")
+    confirm_cmd.add_argument("lines", nargs="+", type=int, help="Heading line numbers.")
+    confirm_cmd.add_argument(
+        "--as",
+        dest="cls",
+        choices=HEADING_CLASSES,
+        help="Also set the heading's class tag, replacing any existing one.",
+    )
+    add_standard_args(confirm_cmd)
+    confirm_cmd.set_defaults(func=confirm)
+
+    archive_cmd = commands.add_parser(
+        "archive",
+        help="Move sections, with their subsections, to the sibling <name>.archive.md "
+        "(appended; never routinely read), by heading line number from `list`.",
+    )
+    archive_cmd.add_argument("file")
+    archive_cmd.add_argument("lines", nargs="+", type=int, help="Heading line numbers.")
+    add_standard_args(archive_cmd)
+    archive_cmd.set_defaults(func=archive)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    maybe_complete(parser, [sys.argv[0], *(argv if argv is not None else sys.argv[1:])])
+    args = parser.parse_args(argv)
+    today = args.today or datetime.now(timezone.utc).date()
+    args.limits = AgeLimits(args.state_days, args.owed_days, args.gap_days, today)
+    try:
+        return args.func(args)
+    except FileNotFoundError as exc:
+        die(f"No such file: {exc.filename}", ExitCode.NOT_FOUND)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

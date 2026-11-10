@@ -972,3 +972,55 @@ environment variables. It is acli with no optional packages.
 **Canonical source**: `scripts/spot-acquire` (in this repo); tests in
 `tests/test_spot_acquire.py` use a fake `aws` on `PATH`.
 **Install target**: `~/bin/spot-acquire` (symlink by default).
+
+### handoff-age
+
+Ages the heading sections of a handoff or gap file, so a reader takes the
+current part of a long file without reading the rest, and stale sections
+are restamped or moved out by line number instead of by hand edits.
+[handoffs](handoffs.md) § Age and reconfirmation says what a session does
+with it; `gaps/README.md` § Reading covers gaps.
+
+**CLI**: `handoff-age [--state-days N] [--owed-days N] [--gap-days N]
+[--today YYYY-MM-DD] <verb>` with `list <file-or-dir>…`, `read <file>`,
+`confirm <file> <line>… [--as state|owed|durable]`, and
+`archive <file> <line>…`; acli baseline with completion.
+
+**Post-conditions**:
+- A section is a Markdown heading with its text up to the next heading of
+  any level; `#` lines inside a code fence are not headings.
+- A section's date is the `confirmed <date>` in its heading, else the first
+  ISO date there, else its nearest enclosing section's. Leading front
+  matter with `noticed:` dates the whole file (`confirmed:` wins) and makes
+  it class `gap`.
+- A heading tag `[state]`, `[owed]`, or `[durable]` sets the class, which
+  subsections inherit. A section is aged at 1 day (`state`), 7 days
+  (`owed`, and untagged), or 30 days (`gap`) past its date; an undated
+  section is aged; `durable` never is.
+- `list` emits per file `bytes`, `aged_bytes`, `section_count`,
+  `aged_count`, `newest` (stamp), `modified`, and per section `line`,
+  `end`, `level`, `class`, `date`, `age_days`, `aged`, `bytes`, `title`.
+  A directory expands to its `*.md` minus `README.md` and `*.archive.md`,
+  without sections unless `--full`.
+- `read` returns the file with each aged section replaced by one
+  `<!-- aged <age> <class> L<first>-<last> <size>: <title> -->` line.
+  Text before the first heading and every `Source session:` line are
+  always kept. `--text` prints the view itself.
+- `confirm` sets or replaces `confirmed <today>` in each named heading
+  (line 1 names a gap's front matter) and, with `--as`, its class tag.
+- `archive` appends each named section with its subsections to the sibling
+  `<name>.archive.md` under an `<!-- archived <today> from <name> -->`
+  line, then removes it from the file. The archive is written first.
+- A line number that is not a heading line exits 4 and writes nothing.
+
+**Examples**:
+- `# Checkpoint at 2026-09-01` listed on 2026-11-10 → `age_days` 70,
+  `aged` true; its undated `## Detail` subsection reports the same date.
+- `confirm f.md 12 --as durable` on `# Notes` → `# [durable] Notes
+  (confirmed 2026-11-10)`; `list` then reports it not aged.
+- `archive f.md 19` → that section and its subsections are in
+  `f.archive.md` and gone from `f.md`.
+
+**Canonical source**: `scripts/handoff-age` (in this repo); tests in
+`tests/test_handoff_age.py`.
+**Install target**: `~/bin/handoff-age` (symlink by default).
