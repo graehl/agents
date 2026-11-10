@@ -71,8 +71,8 @@ section it marks aged is a claim to reconfirm under `topics/handoffs.md`
 explicitly specified handoff current for its work scope, including before a
 foreseeable interruption or token exhaustion. New handoffs
 default to the most specific owning program's `handoffs/`, or project-root
-`handoffs/` when no narrower program owns the work. `ROOT` or
-`<program-path>/ROOT` may temporarily point to the most recently worked-on
+`handoffs/` when no narrower program owns the work. `ROOT.handoff` or
+`<program-path>/ROOT.handoff` may temporarily point to the most recently worked-on
 handoff; it is a discovery hint, never authority over an already named scope.
 
 Prefer committed topics for durable collaborator-facing knowledge. When
@@ -136,7 +136,7 @@ diagnosing agentctl semantics; the topic is not a routine boot read.
 
 After disconnect, restart, compaction, or crash, keep any already-known work
 scope. For a named resume, use the named handoff. A resume with no named scope
-may read the relevant program's `ROOT`, else project `ROOT`, as a discovery
+may read the relevant program's `ROOT.handoff`, else project `ROOT.handoff`, as a discovery
 hint. Then reconcile against live state: worktree and recent commits;
 `.agentctl/active/`; run/on-deck state; artifacts; then provider
 logs needed to fill a specific gap. A recent relevant handoff or

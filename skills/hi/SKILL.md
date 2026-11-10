@@ -1,6 +1,6 @@
 ---
 name: hi
-description: Resume explicitly requested work from a named scope, or use the relevant ROOT pointer as a discovery hint for bare /hi; never invoke as a post-compaction ritual.
+description: Resume explicitly requested work from a named scope, or use the relevant ROOT.handoff pointer as a discovery hint for bare /hi; never invoke as a post-compaction ritual.
 disable-model-invocation: true
 allowed-tools: Bash(agentctl:*), Bash(cat:*), Bash(find:*), Bash(git:*), Bash(ls:*), Bash(rg:*), Bash(sed:*), Bash(stat:*), Bash(tail:*), Read
 ---
@@ -9,14 +9,14 @@ allowed-tools: Bash(agentctl:*), Bash(cat:*), Bash(find:*), Bash(git:*), Bash(ls
 
 1. Classify why this skill ran.
    - A named resume request (`/hi <scope>`, “resume X,” or a supplied handoff)
-     uses that scope. Do not consult a `ROOT` pointer to choose it.
+     uses that scope. Do not consult a `ROOT.handoff` pointer to choose it.
    - A bare `/hi` or explicit resume with no scope may use the relevant
-     program's `ROOT`, else project `ROOT`, as the first discovery hint.
+     program's `ROOT.handoff`, else project `ROOT.handoff`, as the first discovery hint.
    - If no current user resume signal exists and the skill ran only because
      context compacted or instructions were reinjected, stop the skill. Do not
      manufacture a session boundary, status recap, or question; continue the
      already-authorized work from its known scope and live state.
-2. For a bare `/hi`, read the target named by that `ROOT` when pointer and
+2. For a bare `/hi`, read the target named by that `ROOT.handoff` when pointer and
    target exist, resolving its path relative to the pointer's directory.
    Treat it as the most recently worked-on handoff, not
    evidence that it explains the newest dirty files or commits. If it is absent,

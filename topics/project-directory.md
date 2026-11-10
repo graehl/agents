@@ -35,7 +35,7 @@ Paths are relative to the owning program's directory.
 | Topic docs | `topics/<name>.md`; companions `topics/<name>.<suffix>.md` | [topic-doc-format](topic-doc-format.md) |
 | Gaps and sketches | `gaps/<slug>.md`, `gaps/sketches/<slug>.md` | [gaps/README.md](../gaps/README.md) |
 | Handoffs (private) | `handoffs/<scope>.md` | [handoffs](handoffs.md) |
-| Handoff pointer | `ROOT`, one relative path to a handoff | [handoffs](handoffs.md) |
+| Handoff pointer | `ROOT.handoff`, one relative path to a handoff | [handoffs](handoffs.md) |
 | Current focus | `ROOT.md`; its first `## ` heading is the focus | below |
 | Paper proposals | `paper-proposals.md`, `paper-proposals/<form>-<focus>.md` | [paper-drafting](paper-drafting.md) |
 | Papers | `papers/<slug>/index.qmd` (built project), `papers/<slug>.md` (skeleton) | [paper-projects](paper-projects.md) |

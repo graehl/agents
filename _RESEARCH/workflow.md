@@ -25,7 +25,7 @@ maintenance rules in [handoffs.md](../topics/handoffs.md). A research example is
 When an older handoff lives outside its program, record its owning program
 path explicitly and follow that program's chain on resume. Relocation must
 preserve the old entry point and update known references; do not silently move
-a peer's live handoff or its `ROOT` pointer.
+a peer's live handoff or its `ROOT.handoff` pointer.
 
 On session resume or takeover of research work, including a supplied handoff:
 

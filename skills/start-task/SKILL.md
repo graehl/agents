@@ -15,7 +15,7 @@ argument-hint: "<short-description, e.g. auth-refactor>"
 3. Record the aim, acceptance condition, current mismatch, chosen approach,
    and next action at useful granularity. Ask only for missing information
    that changes the work. A fixed section template is not required.
-4. A requested latest-handoff pointer is `ROOT` at the selected program scope,
+4. A requested latest-handoff pointer is `ROOT.handoff` at the selected program scope,
    with a target relative to that directory. Preserve another session's live
    entry point and report a conflicting unfinished scope before redirecting it.
 

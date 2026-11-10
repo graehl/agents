@@ -15,7 +15,7 @@ changed it, and which sessions are working in it now. Opened from a button
 per-program papers pages as a `repo_view.py --pages` hook, live under the
 repo-view service: programs nested with the repository root as the root
 program; charter summary and `ROOT.md` focus; glossary, topics, gaps,
-sketches, handoffs and the `ROOT` handoff pointer; papers, surveys, handouts
+sketches, handoffs and the `ROOT.handoff` pointer; papers, surveys, handouts
 and other documents; last commit with `Contributing-model:` and the
 `refs/notes/agent-session` session; uncommitted count; live
 `.agentctl/active` sessions whose `scope:` lies in the program. Discovery

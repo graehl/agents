@@ -109,7 +109,7 @@ Contributing-model: 6-Astra
 - A program is a coherent subproject in any domain. Default handoffs to the
   most specific owning program, with project root as fallback. The last
   explicitly specified handoff stays live for its scope, including before
-  foreseeable token exhaustion. `ROOT` and `<program-path>/ROOT` may be
+  foreseeable token exhaustion. `ROOT.handoff` and `<program-path>/ROOT.handoff` may be
   temporary latest-handoff pointers; neither overrides a named scope.
 - Keep Kyle's `~/ya` and `kzahel/aitutor` conventions as read-only comprehension
   through the existing first-run `AGENTS.local.md` discovery-table mechanism.
@@ -129,7 +129,7 @@ Contributing-model: 6-Astra
 
 **Current pass:** these resolutions and the user's global-text edits are
 applied across the active instruction consumers. Static scenario review and
-retired-rule searches cover the named-scope/ROOT, nested-program, partial-topic,
+retired-rule searches cover the named-scope/ROOT.handoff, nested-program, partial-topic,
 and read-only maintainer cases. Existing historical files remain in place.
 
 **Hierarchy pass:** crawled the boot and topic reference graph from global

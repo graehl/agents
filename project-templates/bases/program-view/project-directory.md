@@ -25,7 +25,7 @@ Paths are relative to the owning program's directory.
 | Topic docs | `topics/<name>.md`; companions `topics/<name>.<suffix>.md` |
 | Gaps and sketches | `gaps/<slug>.md`, `gaps/sketches/<slug>.md` |
 | Handoffs (private) | `handoffs/<scope>.md` |
-| Handoff pointer | `ROOT`, one relative path to a handoff |
+| Handoff pointer | `ROOT.handoff`, one relative path to a handoff |
 | Current focus | `ROOT.md`; its first `## ` heading is the focus |
 | Paper proposals | `paper-proposals.md`, `paper-proposals/<form>-<focus>.md` |
 | Papers | `papers/<slug>/index.qmd` (built project), `papers/<slug>.md` (skeleton) |

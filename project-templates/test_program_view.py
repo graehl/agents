@@ -144,14 +144,14 @@ class ProgramViewTest(unittest.TestCase):
         self.assertRegex(project.commit_dates([odd])[odd], r"^\d{4}-\d\d-\d\dT")
 
     def test_root_pointer_names_a_handoff(self) -> None:
-        (self.repo / "research/mt/ROOT").write_text(
+        (self.repo / "research/mt/ROOT.handoff").write_text(
             "handoffs/current.md\n", encoding="utf-8"
         )
         mt = self.records()["research/mt"]
         self.assertEqual(
             mt["pointer"], (self.repo / "research/mt/handoffs/current.md").resolve()
         )
-        (self.repo / "research/mt/ROOT").write_text(
+        (self.repo / "research/mt/ROOT.handoff").write_text(
             "../../../outside.md\n", encoding="utf-8"
         )
         self.assertIsNone(self.records()["research/mt"]["pointer"])

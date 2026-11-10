@@ -16,7 +16,7 @@ greeting or explicit resume signal — a fresh, specific request is independent.
 
 Gaps hold unresolved work; handoffs preserve compiled continuity. Follow
 `topics/handoffs.md` for most-specific-program placement, the last specified
-handoff's live maintenance, and temporary `ROOT` pointers. A private handoff
+handoff's live maintenance, and temporary `ROOT.handoff` pointers. A private handoff
 cannot replace a truthful status/cutoff on an incomplete committed artifact.
 Search the relevant gaps and handoffs before defining new work, and follow
 their canonical topic links. Preserve existing maintainer document conventions
@@ -152,7 +152,7 @@ the last two sections closely.
 
 After a disconnect, crash, restart, or compaction, retain any already-known
 work scope. For a named resume use the named artifact. A scope-less resume may
-read the relevant program's `ROOT`, else project `ROOT`, as a staleable hint.
+read the relevant program's `ROOT.handoff`, else project `ROOT.handoff`, as a staleable hint.
 Then reconcile against live state: worktree and recent commits,
 `.agentctl/active/`, run and `on-deck/` state, artifacts, then provider logs
 needed to fill a specific gap. A recent relevant handoff or

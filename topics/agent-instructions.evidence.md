@@ -6551,3 +6551,27 @@ Contributing-model: fable-5.2
   repository.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — the handoff pointer is `ROOT.handoff`, not extensionless `ROOT`
+
+- **User decision:** rename the latest-handoff pointer from `ROOT` to
+  `ROOT.handoff`, at project root and under any program. `ROOT.md` keeps
+  its name and meaning (a program's focus document and work tracker).
+- **Incident:** in `~/draft`, `research/speech-recognition/ROOT.md` was
+  reorganized as the committed tracker of subgoals and lead sessions. Its
+  maintenance note mentioned a `ROOT` pointer that did not exist, and
+  graehl did not recall the pointer's spec; he then observed that the two
+  names are confusable by basename. The 2026-10-15 entry's trace (the
+  project-directory table lists both kinds) recorded the same collision
+  and relied on the table to keep them apart.
+- **Sweep:** `AGENTS.global.md`, `AGENTS/session.md`, `handoffs.md`,
+  `project-directory.md` (topic and template copy), `_RESEARCH/workflow.md`,
+  the `hi` and `start-task` skills, `README.md`, two gaps, and
+  `program_view.py` with its test. No compatibility read of the old name:
+  the only live pointer found was one created the same day. `tasks/ROOT`
+  files belong to the retired tasks convention and were left.
+- **Cost:** no added boot words beyond the eight-character suffix.
+- **Status:** user-directed; `test_program_view.py` passes with the new
+  name.
+
+Contributing-model: fable-5.2

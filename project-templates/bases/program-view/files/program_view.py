@@ -665,8 +665,8 @@ class Dashboard:
         return sorted(found, key=lambda p: p.stat().st_mtime, reverse=True)
 
     def handoff_pointer(self, program: Program) -> Path | None:
-        """The handoff an extensionless `ROOT` names, relative to its directory."""
-        pointer = program.dir / "ROOT"
+        """The handoff a `ROOT.handoff` names, relative to its directory."""
+        pointer = program.dir / "ROOT.handoff"
         if not pointer.is_file():
             return None
         lines = pointer.read_text(encoding="utf-8").split()

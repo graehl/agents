@@ -20,7 +20,7 @@ applies. Programs are general subprojects, not research-only containers; their
 definition and charter rules live in [TOPICS.md](../TOPICS.md#program-scope-charters).
 Prefer an established in-program handoff location over a parallel collection.
 
-`ROOT` or `<program-path>/ROOT` may temporarily point to the most recently
+`ROOT.handoff` or `<program-path>/ROOT.handoff` may temporarily point to the most recently
 worked-on handoff. Store a path relative to the pointer's directory. A
 scope-less resume may use it as a hint; it does not select the artifact active
 work maintains or prove that its target explains the newest dirty files.
