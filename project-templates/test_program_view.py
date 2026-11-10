@@ -219,13 +219,23 @@ class ProgramViewTest(unittest.TestCase):
             os.utime(path, (now - days * 86400, now - days * 86400))
         index = program_view.pages(self.repo)["index.html"]
         self.assertIn('id="sessions">Recent sessions', index)
-        self.assertIn('value="7d"', index)
-        self.assertIn("Finished six days ago", index)
-        self.assertIn("Finished today", index)
-        self.assertIn("Quiet work", index)
         self.assertNotIn("Previous task", index)
-        self.assertIn("<summary>1 older sessions</summary>", index)
-        self.assertIn("Earlier work", index)
+        # Every session is listed with its update time, newest first; the page
+        # script folds those older than the age cutoff.
+        listed = index[index.index('id="sessions"') :]
+        banners = re.findall(
+            r'data-session-activity="[\d.]+">.*? · (.*?) <span', listed
+        )
+        self.assertEqual(
+            banners,
+            [
+                "Working",
+                "DONE: Finished today",
+                "Quiet work",
+                "DONE: Finished six days ago",
+                "DONE: Earlier work",
+            ],
+        )
         records = self.records()["research/mt"]["sessions"]
         self.assertEqual(len(records), 5)
         self.assertEqual(records[0]["status"], "Unfinished")

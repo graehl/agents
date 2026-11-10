@@ -32,7 +32,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SECTIONS = ("papers", "surveys", "handouts", "documents", "sessions")
-ACTIVE_WINDOW_S = 70 * 60
+# Characters of a document's source each list row embeds for its hover
+# excerpt; every row pays this, so it bounds how the page grows per file.
+PREVIEW_CHARS = 200
 SESSION_ID = re.compile(
     r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
 )
@@ -59,80 +61,14 @@ NOT_DOCUMENTS = re.compile(
 )
 DATED_NAME = re.compile(r"(\d{4}-\d{2}-\d{2})")
 
-# Palette and focus ring follow the page base's style.css.
-STYLE = """
-:root { color: #293e35; background: #f7f6f0; font: 15px/1.5 system-ui, sans-serif; font-synthesis: none; }
-body { margin: 1.5rem auto; padding-inline: 1.5rem; max-width: 1400px; }
-a { color: #2f6b52; text-underline-offset: 2px; } a:hover { color: #387c60; }
-a:focus-visible { outline: 3px solid #387c60; outline-offset: 3px; }
-h1 { font-size: 1.4rem; font-weight: 650; letter-spacing: -0.01em; margin: 0 0 .25rem; }
-h2 { font-size: 1.1rem; margin-top: 1.7rem; }
-table { border-collapse: collapse; width: 100%; }
-th, td { text-align: left; vertical-align: top; padding: .45rem .6rem; border-bottom: 1px solid #dcded4; }
-th { font-weight: 600; background: #ecebe2; } td.num { text-align: right; font-variant-numeric: tabular-nums; }
-.dim { color: #637066; } .warn { color: #9a5b12; } code { font-size: .88em; }
-.layout { display: grid; grid-template-columns: minmax(19rem, 21rem) minmax(0, 1fr); gap: 2rem; align-items: start; }
-nav.outline { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow: auto; font-size: .9rem; }
-nav.outline summary { font-weight: 600; cursor: pointer; }
-nav.outline ul { list-style: none; margin: .2rem 0 0; padding-left: .9rem; border-left: 1px solid #cfd3c7; }
-nav.outline ul.tree, nav.outline ul.extra { padding-left: 0; border: 0; }
-nav.outline ul.extra { margin-top: .8rem; padding-top: .5rem; border-top: 1px solid #dcded4; }
-nav.outline li { margin: .15rem 0; } nav.outline .live { color: #2f8a55; font-size: .8em; }
-details.program { margin: .9rem 0 0; padding-left: 1rem; border-left: 3px solid #a9b9a3; }
-details.program details.program { border-left-color: #cfd3c7; }
-details.program > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .6rem;
-  padding: .2rem 0; list-style-position: outside; }
-details.program > summary .name { font-weight: 650; font-size: 1.02rem; }
-.chip { font-size: .8rem; padding: .05rem .5rem; border-radius: 999px; background: #ecebe2; color: #4c5c52; }
-.chip.live { background: #dcefe2; color: #1f6b40; } .when { margin-left: auto; font-size: .85rem; }
-.desc { max-width: 72ch; margin: .2rem 0 .3rem; color: #3c4f45; } .open { margin: 0 0 .5rem; }
-.focus { margin: 0 0 .4rem; }
-main { container-type: inline-size; }
-.body { display: grid; grid-template-columns: minmax(0, 66ch) minmax(16rem, 1fr); gap: .2rem 2.5rem;
-  align-items: start; }
-.meta { display: flex; flex-direction: column; gap: .5rem; margin: .2rem 0 .5rem; }
-.meta ul { list-style: none; margin: 0; padding: 0; } .meta li { margin: .05rem 0; }
-.meta details summary { cursor: pointer; color: #637066; font-size: .85rem; }
-@container (max-width: 62rem) { .body { display: block; }
-  .meta { flex-direction: row; flex-wrap: wrap; gap: .4rem 2rem; }
-  .meta .block { flex: 1 1 18rem; min-width: 0; } }
-.meta h4, .lists h4 { margin: 0 0 .1rem; font-size: .72rem; font-weight: 650; letter-spacing: .06em;
-  text-transform: uppercase; color: #637066; }
-.lists { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr)); gap: .5rem 2rem;
-  margin: .2rem 0 .6rem; }
-.lists .block.sketches h4 { color: #2f6b52; }
-table.files { table-layout: fixed; width: 100%; } table.files td { padding: .05rem 0; border: 0; }
-table.files td.f { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-table.files col.d { width: 6.2rem; } table.files td.d { text-align: right; color: #637066; font-size: .9em;
-  font-variant-numeric: tabular-nums; white-space: nowrap; }
-details.more > summary { cursor: pointer; color: #637066; font-size: .85rem; }
-.tools { display: inline-flex; gap: .3rem; }
-.tools button { font: inherit; font-size: .78rem; color: #2f6b52; background: none; border: 1px solid #cfd3c7;
-  border-radius: 4px; padding: .1rem .45rem; min-height: 1.6rem; cursor: pointer; }
-.tools button:hover { background: #ecebe2; } .tools button:focus-visible { outline: 3px solid #387c60; outline-offset: 1px; }
-.page-tools { margin: 0 0 .4rem; }
-@media (max-width: 860px) { .layout { display: block; } nav.outline { position: static; max-height: none;
-  margin-bottom: 1rem; padding: .5rem .75rem; background: #ecebe2; border-radius: 6px; } }
-@media (max-width: 700px) { body { margin: 1rem auto; padding-inline: 1rem; }
-  details.program { padding-left: .6rem; } .when { margin-left: 0; }
-  table.dash, table.dash tr, table.dash td { display: block; }
-  table.dash thead { display: none; } table.dash td { border: 0; padding: .2rem 0 !important; }
-  td.num { text-align: left; } td[data-label]::before { content: attr(data-label) ": "; color: #637066; }
-  table.dash tr { border-bottom: 1px solid #dcded4; padding: .6rem 0; } }
-@media (prefers-color-scheme: dark) { :root { background: #1c1f1d; color: #e6ebe4; }
-  th { background: #2a2f2b; } th, td, tr { border-color: #3a413c; }
-  .dim { color: #a3ada5; } a { color: #8fcbab; }
-  .chip { background: #2a2f2b; color: #c8d1c9; } .chip.live { background: #1f3a2a; color: #9fdcb5; }
-  .desc { color: #c8d1c9; } details.program details.program { border-left-color: #3a413c; }
-  .lists .block.sketches h4 { color: #8fcbab; } table.files td.d { color: #a3ada5; }
-  .tools button { color: #8fcbab; border-color: #3a413c; } .tools button:hover { background: #2a2f2b; } }
-"""
-
 SUBTREE_TOOLS = (
     '<span class="tools"><button type="button" data-subtree="open">expand all</button>'
     '<button type="button" data-subtree="close">collapse all</button></span>'
 )
 
+# The pages list every row and session unfolded. program_view.js owns the
+# folds ("N more", "N older") and the age cutoff with its initial value,
+# because sorting, search and these controls regroup the rows in the browser.
 BROWSER_CONTROLS = """
 <section class="browser-controls" id="browser-controls" aria-label="Display controls">
 <label class="control-label" for="browser-search">Search programs &amp; files</label>
@@ -145,8 +81,8 @@ BROWSER_CONTROLS = """
 <label><input type="radio" name="grouping" value="levels" checked>Each level</label>
 <label><input type="radio" name="grouping" value="flat">Flat</label></div></fieldset>
 <label class="control-label" for="browser-since">Collapse items older than</label>
-<input type="text" name="since" id="browser-since" value="7d" aria-describedby="since-help since-date">
-<input type="range" min="1" max="90" value="7" aria-label="Days to keep expanded">
+<input type="text" name="since" id="browser-since" aria-describedby="since-help since-date">
+<input type="range" min="1" max="90" aria-label="Days to keep expanded">
 <div class="range-labels"><span>1 day</span><span>90 days</span></div>
 <p class="control-help" id="since-help">7 = 7 days · 12h · 2w<br>Since a date: 11-01 or 2026-11-01</p>
 <p class="control-help cutoff" id="since-date"></p>
@@ -308,14 +244,6 @@ class Project:
         return sum(1 for path in self.changed if path.startswith(prefix))
 
 
-def live_sessions(root: Path) -> list[dict[str, object]]:
-    return [
-        s
-        for s in session_records(root)
-        if s["status"] == "Unfinished" and time.time() - s["updated"] <= ACTIVE_WINDOW_S
-    ]
-
-
 def session_records(root: Path) -> list[dict[str, object]]:
     """Latest registered status per session, including archived work."""
     latest = {}
@@ -331,7 +259,6 @@ def session_records(root: Path) -> list[dict[str, object]]:
             if lines and (entry.name not in latest or updated >= latest[entry.name][0]):
                 latest[entry.name] = (updated, lines)
     sessions = []
-    now = time.time()
     for identifier, (updated, lines) in latest.items():
         scope = next(
             (line[6:].split() for line in lines[1:] if line.startswith("scope:")), []
@@ -343,7 +270,6 @@ def session_records(root: Path) -> list[dict[str, object]]:
                 "scope": scope,
                 "updated": updated,
                 "status": "Done" if lines[0].startswith("DONE") else "Unfinished",
-                "age_min": round((now - updated) / 60),
             }
         )
     return sorted(sessions, key=lambda s: (-s["updated"], s["id"]))
@@ -486,30 +412,18 @@ def commit_cell(commit: dict[str, str], uncommitted: int) -> str:
 
 
 def sessions_cell(sessions: list) -> str:
-    cutoff = time.time() - 7 * 86400
-    recent, older = [], []
+    """The sessions given, in their order; the page script folds the older ones."""
+    items = []
     for s in sessions:
         date = datetime.fromtimestamp(s["updated"], timezone.utc).strftime(
             "%Y-%m-%d %H:%M UTC"
         )
-        item = (
+        items.append(
             f'<li data-session-activity="{s["updated"] * 1000}">'
             f"{session_id(s['id'])} <strong>{s['status']}</strong> · {esc(s['banner'])} "
             f'<span class="dim">({date})</span></li>'
         )
-        (recent if s["updated"] >= cutoff else older).append(item)
-    return (
-        '<div class="session-list"><ul>'
-        + "".join(recent)
-        + "</ul>"
-        + ('<p class="dim">No sessions in this period.</p>' if not recent else "")
-        + (
-            f'<details class="more"><summary>{len(older)} older sessions</summary><ul>{"".join(older)}</ul></details>'
-            if older
-            else ""
-        )
-        + "</div>"
-    )
+    return f'<div class="session-list"><ul>{"".join(items)}</ul></div>'
 
 
 def render_page(title: str, subtitle: str, body: str, header: str = "") -> str:
@@ -517,7 +431,7 @@ def render_page(title: str, subtitle: str, body: str, header: str = "") -> str:
     return (
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{esc(title)}</title><style>{STYLE}\n"
+        f"<title>{esc(title)}</title><style>\n"
         + Path(__file__).with_suffix(".css").read_text(encoding="utf-8")
         + "</style></head><body>\n"
         + (header or f'<h1>{esc(title)}</h1>\n<p class="dim">{subtitle}</p>')
@@ -525,40 +439,6 @@ def render_page(title: str, subtitle: str, body: str, header: str = "") -> str:
         + Path(__file__).with_suffix(".js").read_text(encoding="utf-8")
         + "</script></body></html>\n"
     )
-
-
-def link_list(
-    page: Path,
-    root: Path,
-    rels: list[str],
-    dates: dict[str, str],
-    shown: int,
-    titles: dict[str, str] | None = None,
-    labels: dict[str, str] | None = None,
-    activity: dict[str, float] | None = None,
-    previews: dict[str, str] | None = None,
-) -> str:
-    """A name/date table, newest first; the first `shown` rows listed, the rest
-    folded. Both tables share fixed column widths, so folded rows stay aligned."""
-
-    def table(chunk: list[str]) -> str:
-        rows = "".join(
-            f'<tr data-path="{esc(r)}" data-name="{esc((labels or {}).get(r, Path(r).name))}" '
-            f'data-title="{esc((titles or {}).get(r, ""))}" '
-            f'data-activity="{(activity or {}).get(r, 0) * 1000}" data-preview="{esc((previews or {}).get(r, ""))}">'
-            f'<td class="f">{link(page, root / r, (labels or {}).get(r, Path(r).name), (titles or {}).get(r, ""))}</td>'
-            f'<td class="d">{esc(dates.get(r, "")[:10])}</td></tr>'
-            for r in chunk
-        )
-        return f'<table class="files"><colgroup><col><col class="d"></colgroup>{rows}</table>'
-
-    head, rest = rels[:shown], rels[shown:]
-    folded = (
-        f'<details class="more"><summary>{len(rest)} more</summary>{table(rest)}</details>'
-        if rest
-        else ""
-    )
-    return table(head) + folded
 
 
 class Dashboard:
@@ -603,41 +483,47 @@ class Dashboard:
                 text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL).strip()
                 text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
                 text = re.sub(r"(?m)^#{1,6}\s+", "", text)
-            self.previews[rel] = text[:700] + ("…" if len(text) > 700 else "")
+            self.previews[rel] = text[:PREVIEW_CHARS] + (
+                "…" if len(text) > PREVIEW_CHARS else ""
+            )
         return self.previews[rel]
 
-    def link_list(
+    def kind_list(
         self,
         page: Path,
-        root: Path,
+        kind: str,
         rels: list[str],
-        dates: dict[str, str],
-        shown: int,
+        dates: dict[str, str] | None = None,
         titles: dict[str, str] | None = None,
         labels: dict[str, str] | None = None,
     ) -> str:
+        """One kind of document as a counted name/date table, one row per path
+        in `rels`. `dates` and `titles` default to each path's last activity
+        and the first line of its source; `labels` to its file name."""
+        dates, labels = dates or {}, labels or {}
         titles = titles or {
             r: self.preview(r).splitlines()[0] for r in rels if self.preview(r)
         }
-        dates = {
-            r: dates.get(r)
-            or (
-                datetime.fromtimestamp(self.activity(r), timezone.utc).isoformat()
-                if self.activity(r)
+        rows = []
+        for r in rels:
+            activity = self.activity(r)
+            date = dates.get(r) or (
+                datetime.fromtimestamp(activity, timezone.utc).isoformat()
+                if activity
                 else ""
             )
-            for r in rels
-        }
-        return link_list(
-            page,
-            root,
-            rels,
-            dates,
-            shown,
-            titles,
-            labels,
-            {r: self.activity(r) for r in rels},
-            {r: self.preview(r) for r in rels},
+            label, title = labels.get(r, Path(r).name), titles.get(r, "")
+            rows.append(
+                f'<tr data-path="{esc(r)}" data-name="{esc(label)}" data-title="{esc(title)}" '
+                f'data-activity="{activity * 1000}" data-preview="{esc(self.preview(r))}">'
+                f'<td class="f">{link(page, self.root / r, label, title)}</td>'
+                f'<td class="d">{esc(date[:10])}</td></tr>'
+            )
+        return (
+            f'<details class="kind" data-kind="{esc(kind)}" open>'
+            f'<summary>{esc(kind)} · {len(rels)}</summary><div class="kind-body">'
+            f'<table class="files"><colgroup><col><col class="d"></colgroup>{"".join(rows)}</table>'
+            "</div></details>"
         )
 
     # -- per-program collections ---------------------------------------------
@@ -1002,17 +888,12 @@ class Dashboard:
                 for p in r["papers"]
             }
             lists.append(
-                (
+                self.kind_list(
+                    page,
                     "Papers",
-                    self.link_list(
-                        page,
-                        self.root,
-                        list(paper_labels),
-                        {},
-                        4,
-                        paper_labels,
-                        paper_labels,
-                    ),
+                    list(paper_labels),
+                    titles=paper_labels,
+                    labels=paper_labels,
                 )
             )
         if r["surveys"]:
@@ -1027,60 +908,27 @@ class Dashboard:
                 for s in r["surveys"]
             }
             lists.append(
-                (
-                    "Field surveys",
-                    self.link_list(
-                        page,
-                        self.root,
-                        list(survey_labels),
-                        {},
-                        8,
-                        labels=survey_labels,
-                    ),
+                self.kind_list(
+                    page, "Field surveys", list(survey_labels), labels=survey_labels
                 )
             )
         if r["sketches"]:
             lists.append(
-                (
-                    "Sketches",
-                    self.link_list(
-                        page,
-                        self.root,
-                        r["sketches"],
-                        r["dates"],
-                        8,
-                        r["sketch_titles"],
-                    ),
+                self.kind_list(
+                    page, "Sketches", r["sketches"], r["dates"], r["sketch_titles"]
                 )
             )
         if r["handouts"]:
-            lists.append(
-                (
-                    "Handouts",
-                    self.link_list(page, self.root, r["handouts"], r["dates"], 4),
-                )
-            )
+            lists.append(self.kind_list(page, "Handouts", r["handouts"], r["dates"]))
         if r["skeletons"]:
-            lists.append(
-                (
-                    "Paper skeletons",
-                    self.link_list(page, self.root, r["skeletons"], {}, 4),
-                )
-            )
+            lists.append(self.kind_list(page, "Paper skeletons", r["skeletons"]))
         if r["documents"]:
-            lists.append(
-                (
-                    "Documents",
-                    self.link_list(page, self.root, r["documents"], r["dates"], 6),
-                )
-            )
+            lists.append(self.kind_list(page, "Documents", r["documents"], r["dates"]))
         if r["gaps"]:
-            lists.append(
-                ("Gaps", self.link_list(page, self.root, r["gaps"], r["dates"], 4))
-            )
+            lists.append(self.kind_list(page, "Gaps", r["gaps"], r["dates"]))
         if r["handoffs"]:
             rels = [p.relative_to(self.root).as_posix() for p in r["handoffs"]]
-            lists.append(("Handoffs", self.link_list(page, self.root, rels, {}, 4)))
+            lists.append(self.kind_list(page, "Handoffs", rels))
 
         def render_blocks(items: list) -> str:
             return "".join(
@@ -1104,11 +952,6 @@ class Dashboard:
                 else 0
             ]
         )
-        list_html = "".join(
-            f'<details class="kind" data-kind="{esc(name)}" data-limit="4" open>'
-            f'<summary>{esc(name)} · {body.count("<tr ")}</summary><div class="kind-body">{body}</div></details>'
-            for name, body in lists
-        )
         return (
             f'<details class="program" id="{anchor_id(program)}" data-repo-dir="{esc(program.rel)}" '
             f'data-name="{esc(program.name)}" data-activity="{activity * 1000}" open><summary>'
@@ -1120,7 +963,7 @@ class Dashboard:
             + f'</summary><div class="body"><div><p class="desc">{esc(program.description)}</p>{focus}'
             + f'<p class="open">{" · ".join(links)}</p></div>'
             + f'<div class="meta">{render_blocks(blocks)}</div></div>'
-            + (f'<div class="lists">{list_html}</div>' if lists else "")
+            + (f'<div class="lists">{"".join(lists)}</div>' if lists else "")
             + f"{kids}</details>"
         )
 

@@ -1,6 +1,62 @@
 (() => {
+  // The generator lists every row and session unfolded; the folds, their
+  // limits and the age cutoff are decided here only.
+  const dayMs = 864e5;
+  const defaultCutoffDays = 7;
+  const rowsBeforeMore = 4;
+  let cutoff = Date.now() - defaultCutoffDays * dayMs;
+  let expandAll = false;
+  const plural = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+  const disclosure = (label, className, open = false) => {
+    const d = document.createElement("details");
+    d.className = className;
+    d.open = open;
+    const s = document.createElement("summary");
+    s.textContent = label;
+    d.append(s);
+    return d;
+  };
+  const sessionLists = [...document.querySelectorAll(".session-list")].map(
+    (node) => ({
+      node,
+      rows: [...node.querySelectorAll("[data-session-activity]")],
+    }),
+  );
+  function renderSessions() {
+    for (const { node, rows } of sessionLists) {
+      const recent = rows.filter(
+        (r) => Number(r.dataset.sessionActivity) >= cutoff,
+      );
+      const older = rows.filter(
+        (r) => Number(r.dataset.sessionActivity) < cutoff,
+      );
+      const list = document.createElement("ul");
+      list.append(...recent);
+      node.replaceChildren(list);
+      if (!recent.length) {
+        const empty = document.createElement("p");
+        empty.className = "dim";
+        empty.textContent = "No sessions in this period.";
+        node.append(empty);
+      }
+      if (older.length) {
+        const fold = disclosure(
+          plural(older.length, "older session"),
+          "more",
+          expandAll,
+        );
+        const list = document.createElement("ul");
+        list.append(...older);
+        fold.append(list);
+        node.append(fold);
+      }
+    }
+  }
   const main = document.querySelector("[data-program-browser]");
-  if (!main) return;
+  if (!main) {
+    renderSessions(); // a papers page: no controls, the default cutoff
+    return;
+  }
   const controls = document.getElementById("browser-controls");
   const toc = document.getElementById("program-toc");
   const tree = toc.querySelector(".tree");
@@ -10,12 +66,6 @@
   const range = controls.querySelector("[type=range]");
   const status = controls.querySelector("[role=status]");
   const kindButtons = controls.querySelector(".kind-controls");
-  const sessionLists = [...main.querySelectorAll(".session-list")].map(
-    (node) => ({
-      node,
-      rows: [...node.querySelectorAll("[data-session-activity]")],
-    }),
-  );
   const programs = [...host.querySelectorAll("details.program")].map(
     (node) => ({
       node,
@@ -28,7 +78,6 @@
         (group) => ({
           node: group,
           kind: group.dataset.kind,
-          limit: Number(group.dataset.limit),
           rows: [...group.querySelectorAll("tr[data-path]")],
           body: group.querySelector(".kind-body"),
         }),
@@ -57,9 +106,7 @@
   }
   let order = "newest",
     flat = false,
-    query = "",
-    cutoff = Date.now() - 7 * 864e5;
-  let expandAll = false;
+    query = "";
   let beforeSearch;
   const collapsedKinds = new Set();
   const kinds = [
@@ -107,15 +154,6 @@
     }
     return result;
   };
-  const disclosure = (label, className, open = false) => {
-    const d = document.createElement("details");
-    d.className = className;
-    d.open = open;
-    const s = document.createElement("summary");
-    s.textContent = label;
-    d.append(s);
-    return d;
-  };
   const table = (rows) => {
     const t = document.createElement("table");
     t.className = "files";
@@ -142,15 +180,15 @@
       (r) => !query && Number(r.dataset.activity) < cutoff,
     );
     group.body.replaceChildren(
-      table(query ? recent : recent.slice(0, group.limit)),
+      table(query ? recent : recent.slice(0, rowsBeforeMore)),
     );
-    if (!query && recent.length > group.limit) {
+    if (!query && recent.length > rowsBeforeMore) {
       const more = disclosure(
-        `${recent.length - group.limit} more`,
+        `${recent.length - rowsBeforeMore} more`,
         "more",
         expandAll,
       );
-      more.append(table(recent.slice(group.limit)));
+      more.append(table(recent.slice(rowsBeforeMore)));
       group.body.append(more);
     }
     if (older.length) {
@@ -161,34 +199,7 @@
     return rows.length;
   }
   function render() {
-    for (const { node, rows } of sessionLists) {
-      const recent = rows.filter(
-        (r) => Number(r.dataset.sessionActivity) >= cutoff,
-      );
-      const older = rows.filter(
-        (r) => Number(r.dataset.sessionActivity) < cutoff,
-      );
-      const list = document.createElement("ul");
-      list.append(...recent);
-      node.replaceChildren(list);
-      if (!recent.length) {
-        const empty = document.createElement("p");
-        empty.className = "dim";
-        empty.textContent = "No sessions in this period.";
-        node.append(empty);
-      }
-      if (older.length) {
-        const fold = disclosure(
-          `${older.length} older sessions`,
-          "more",
-          expandAll,
-        );
-        const list = document.createElement("ul");
-        list.append(...older);
-        fold.append(list);
-        node.append(fold);
-      }
-    }
+    renderSessions();
     if (query && !beforeSearch)
       beforeSearch = new Map(programs.map((p) => [p.id, p.node.open]));
     if (!query && beforeSearch) {
@@ -279,7 +290,7 @@
         }
       }
       if (old.length) {
-        const label = `${old.length} older program${old.length === 1 ? "" : "s"}`;
+        const label = plural(old.length, "older program");
         const d = disclosure(label, "more older-programs");
         d.append(...old);
         parent.append(d);
@@ -295,7 +306,7 @@
     level(flat ? programs : children.get("") || [], host, tree);
     if (!visible.size) host.textContent = "No matching programs or files.";
     status.textContent = query
-      ? `${visible.size} programs · ${fileCount} files · Esc to clear`
+      ? `${plural(visible.size, "program")} · ${plural(fileCount, "file")} · Esc to clear`
       : "Includes collapsed items · / to search · Esc to clear";
     for (const b of kindButtons.children)
       b.setAttribute("aria-pressed", !collapsedKinds.has(b.dataset.kind));
@@ -308,7 +319,9 @@
       return (
         Date.now() -
         Number(duration[1]) *
-          { h: 36e5, d: 864e5, w: 6048e5, "": 864e5 }[duration[2].toLowerCase()]
+          { h: 36e5, d: dayMs, w: 7 * dayMs, "": dayMs }[
+            duration[2].toLowerCase()
+          ]
       );
     const parts = value.trim().match(/^(?:(\d{4})-)?(\d{2})-(\d{2})$/);
     if (!parts) return NaN;
@@ -330,7 +343,7 @@
     }
     cutoff = next;
     expandAll = false;
-    range.value = Math.max(1, Math.min(90, (Date.now() - cutoff) / 864e5));
+    range.value = Math.max(1, Math.min(90, (Date.now() - cutoff) / dayMs));
     feedback.textContent = `Since ${new Date(cutoff).toISOString().slice(0, 16).replace("T", " ")} UTC`;
     render();
   }
@@ -497,6 +510,7 @@
   });
   document.addEventListener("scroll", hidePreview, true);
   window.addEventListener("resize", hidePreview);
+  since.value = `${defaultCutoffDays}d`;
   applyCutoff();
   window.addEventListener("pageshow", () => {
     requestAnimationFrame(() =>
