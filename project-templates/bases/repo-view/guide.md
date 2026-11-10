@@ -173,16 +173,26 @@ into the new build when it is done, or shows the failure and its log (as the
 notice text's tooltip) with **Retry**. No request is held open for the
 build, since a proxy in between may drop a long one and leave the page
 waiting. A stale receipted PDF or
-other non-HTML output, which may open in a viewer that cannot show a notice,
-is rebuilt before it is served; a failed build serves the old file. Without
-`--rebuild` the notice names the command instead.
+other non-HTML output may open in a viewer that cannot show a notice, so
+requesting it starts the same background build: that request gets the old
+file at once, and a later one the new. Such a build starts once per state of
+the output and its inputs, so one that fails is not rerun by every request.
+Without `--rebuild` the notice names the command instead.
 
-Without a receipt, an output in a Quarto project's `output-dir` is judged by
-mtime against render inputs chosen by suffix (`.qmd`, `.yml`, `.bib`, `.lua`,
+Without a receipt, a Quarto project's render product is judged by mtime
+against render inputs chosen by suffix (`.qmd`, `.yml`, `.bib`, `.lua`,
 styles, images; `.md` notes and a kept `.tex` are left out so that they do
-not mark every build stale). Under `--rebuild` it is rebuilt the same ways
-with Quarto's own command, `quarto render --to html` (or `--to pdf` for a
-PDF) in the project directory, when `quarto` is on the server's `PATH`.
+not mark every build stale; hidden files such as an editor's lock file are
+never inputs). A render product is an `.html` or `.pdf` in the project's
+`output-dir` at the path of one of its documents (`_build/ch/a.pdf` for
+`ch/a.qmd`); other files there, such as a figure PDF or an output renamed
+with `output-file`, are not judged. Under `--rebuild` a product is rebuilt
+the same ways with Quarto's own command, `quarto render --to html` (or
+`--to pdf` for a PDF) in the project directory, when `quarto` is on the
+server's `PATH`.
+
+A freshness check that fails (an unreadable project file, say) is logged by
+the server and the page is served without its notice.
 
 ## Project pages
 

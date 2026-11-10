@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import argparse
 import errno
-import hashlib
 import hmac
 import html
 import importlib.util
@@ -37,10 +36,8 @@ import os
 import posixpath
 import re
 import shutil
-import signal
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 from collections import deque
@@ -52,6 +49,13 @@ from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlsplit
+
+# `repo_view_builds.py` ships beside this script, like the files named below.
+# It is found however this script is loaded, and importing it leaves no
+# `__pycache__` in the project's `scripts/`.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.dont_write_bytecode = True
+from repo_view_builds import Builds, Freshness  # noqa: E402
 
 ACCESS_QUERY = "ya_access"
 ACCESS_COOKIE = "ya_app_access"
@@ -470,10 +474,6 @@ def compose_page(
         f'<nav class="crumbs" aria-label="Location">{crumb_trail(repo_name, page_dir, current, locate)}</nav>\n'
         + (f'<div class="layout">{contents}{main}</div>\n' if contents else main + "\n")
         + (f"<footer>{footer}</footer>\n" if footer else "")
-        + path_actions(
-            "../" * len(page_dir.split("/")) if page_dir else "./",
-            join_rel(page_dir, current) if current else page_dir,
-        )
         + "</body></html>\n"
     )
 
@@ -514,17 +514,22 @@ def crumb_trail(
     )
 
 
-# Marks a page that already carries `path_actions`. The full tag, not the
-# attribute alone, since FRAME_REPORTER's script queries `meta[name="repo-root"]`.
-PATH_ACTIONS_MARKER = '<meta name="repo-root" '
-
-
-def path_actions(root_url: str, current: str) -> str:
+def path_actions(page_dir: str, current: str) -> str:
+    """Head content that makes a page's path buttons and menu work: for a URL
+    whose directory is `page_dir`, showing the repository path `current`.
+    Whatever hands out a page adds it once: `LiveSite` and `StaticSite` to
+    what they serve, `build_site` to the pages it writes."""
+    root_url = "../" * len(page_dir.split("/")) if page_dir else "./"
     return (
-        f'{PATH_ACTIONS_MARKER}content="{html.escape(root_url)}">'
+        f'<meta name="repo-root" content="{html.escape(root_url)}">'
         f'<meta name="repo-path" content="{html.escape(current or ".")}">'
         f"<style>{PATH_ACTIONS_STYLE}</style><script>{PATH_ACTIONS_SCRIPT}</script>"
     )
+
+
+def url_directory(parts: list[str], slash: bool) -> str:
+    """The directory of the URL path `parts`, which ends in a slash or not."""
+    return "/".join(parts if slash else parts[:-1])
 
 
 # A served page asks for its freshness with this query; the answer is the
@@ -533,351 +538,11 @@ FRESHNESS_QUERY = "repo-view=fresh"
 # POSTed, with header `X-Repo-View: rebuild`, to start rebuilding a stale
 # output; a GET with it reports how that build stands (`Builds.status`).
 REBUILD_QUERY = "repo-view=rebuild"
-# Files a Quarto project's HTML render reads, by suffix. Prose (`.md`) and
-# LaTeX-only inputs are left out: a project keeps notes and a kept `.tex`
-# beside its sources, and counting them would call every build stale.
-QUARTO_INPUT_SUFFIXES = frozenset(
-    ".qmd .ipynb .yml .yaml .bib .csl .lua .css .scss .svg .png .jpg .jpeg .gif .webp".split()
-)
-QUARTO_OUTPUT_DIR = re.compile(
-    r"""^[ \t]+output-dir:[ \t]*["']?([^"'\s#]+)""", re.MULTILINE
-)
 
 
-def quarto_build(repo: Repository, rel: str) -> tuple[str, str] | None:
-    """The Quarto project directory and output directory holding `rel`, when
-    `rel` is in the output directory of the nearest enclosing `_quarto.yml`."""
-    project = parent_rel(rel)
-    while True:
-        config = repo.path(join_rel(project, "_quarto.yml"))
-        if config.is_file():
-            match = QUARTO_OUTPUT_DIR.search(config.read_text(encoding="utf-8"))
-            if not match:
-                return None
-            output = posixpath.normpath(join_rel(project, match.group(1)))
-            return (project, output) if rel.startswith(output + "/") else None
-        if not project:
-            return None
-        project = parent_rel(project)
-
-
-def newest_quarto_input(
-    repo: Repository, project: str, output: str
-) -> tuple[str, int] | None:
-    """The most recently modified render input of a Quarto project, and its
-    mtime in ns. Hidden directories and the output directory are skipped."""
-    root = repo.path(project)
-    skip = repo.path(output)
-    newest: tuple[str, int] | None = None
-    for directory, dirs, files in os.walk(root):
-        here = Path(directory)
-        dirs[:] = [d for d in dirs if not d.startswith(".") and here / d != skip]
-        for name in files:
-            if Path(name).suffix.lower() not in QUARTO_INPUT_SUFFIXES:
-                continue
-            mtime = (here / name).stat().st_mtime_ns
-            if newest is None or mtime > newest[1]:
-                newest = (
-                    join_rel(project, (here / name).relative_to(root).as_posix()),
-                    mtime,
-                )
-    return newest
-
-
-@dataclass(frozen=True)
-class Recipe:
-    """The command that rebuilds an output; `key` names one build, so
-    concurrent requests for it share one run."""
-
-    key: Path
-    cwd: Path
-    argv: tuple[str, ...]
-    timeout: float
-
-    def hint(self) -> str:
-        return " ".join(Path(a).name if a.startswith("/") else a for a in self.argv)
-
-
-@dataclass(frozen=True)
-class Receipt:
-    """A build receipt that describes a served output: the hashed inputs it
-    was built from and the command that rebuilds it (`ya-artifact:v1`)."""
-
-    home: Path  # directory receipt paths are relative to
-    inputs: tuple[tuple[str, str], ...]  # (path relative to home, sha256)
-    recipe: Recipe
-
-
-# Quarto renders one format of a project into its output directory.
-QUARTO_FORMATS = {".html": "html", ".htm": "html", ".pdf": "pdf"}
-QUARTO_TIMEOUT = 600.0
-
-
-class Builds:
-    """Finds the receipts behind build outputs, judges their freshness by
-    input hashes, and (with `serve --rebuild`) reruns a stale output's
-    declared command, one run per receipt at a time."""
-
-    def __init__(self, repo: Repository, enabled: bool):
-        self.repo, self.enabled = repo, enabled
-        self._lock = threading.Lock()
-        self._hashes: dict[Path, tuple[tuple[int, int], str]] = {}
-        # Per recipe key: the run in progress (its result, and its start on
-        # the monotonic clock), and the last finished run's result.
-        self._runs: dict[Path, tuple[Future, float]] = {}
-        self._finished: dict[Path, dict] = {}
-        # Which build a page last started, so it can ask how that build went
-        # after the output is current and no recipe is stale any more.
-        self._started_for: dict[str, Path] = {}
-
-    def sha256(self, path: Path) -> str | None:
-        try:
-            stat = path.stat()
-        except FileNotFoundError:
-            return None
-        stamp = (stat.st_mtime_ns, stat.st_size)
-        cached = self._hashes.get(path)
-        if cached and cached[0] == stamp:
-            return cached[1]
-        digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        self._hashes[path] = (stamp, digest)
-        return digest
-
-    def receipt(self, rel: str) -> Receipt | None:
-        """The receipt beside `rel` that lists it as an output and records its
-        current content; None when another build has since replaced it."""
-        target = self.repo.path(rel).resolve()
-        for candidate in sorted(target.parent.glob("*.receipt.json")):
-            try:
-                data = json.loads(candidate.read_text(encoding="utf-8"))
-                command = data["artifact_metadata"]["regenerate"][
-                    "proposedRegistration"
-                ]
-                outputs = {Path(o).resolve() for o in command["outputs"]}
-            except (OSError, ValueError, KeyError, TypeError):
-                continue
-            if target not in outputs:
-                continue
-            home = Path(data["root"]).parent
-            recorded = [
-                data.get(key)
-                for key in ("output", "pdf", "source_map")
-                if isinstance(data.get(key), dict)
-            ]
-            if not any(
-                (home / item["path"]).resolve() == target
-                and item.get("sha256") == self.sha256(target)
-                for item in recorded
-            ):
-                return None
-            return Receipt(
-                home,
-                tuple((i["path"], i["sha256"]) for i in data["inputs"]),
-                Recipe(
-                    candidate,
-                    Path(command["cwd"]),
-                    tuple(command["argv"]),
-                    float(command.get("timeoutSeconds", 180)),
-                ),
-            )
-        return None
-
-    def quarto_recipe(self, rel: str) -> Recipe | None:
-        """`quarto render --to <format>` in the Quarto project whose output
-        directory holds `rel`, for an output with no receipt."""
-        build = quarto_build(self.repo, rel)
-        form = QUARTO_FORMATS.get(Path(rel).suffix.lower())
-        quarto = shutil.which("quarto")
-        if not (build and form and quarto):
-            return None
-        project = self.repo.path(build[0])
-        return Recipe(
-            project / f".quarto-{form}",
-            project,
-            (quarto, "render", "--to", form),
-            QUARTO_TIMEOUT,
-        )
-
-    def stale_recipe(self, rel: str) -> Recipe | None:
-        """How to rebuild `rel` when it is a stale output, else None."""
-        receipt = self.receipt(rel)
-        if receipt:
-            return receipt.recipe if self.changed_inputs(receipt) else None
-        build = quarto_build(self.repo, rel)
-        if not build:
-            return None
-        newest = newest_quarto_input(self.repo, *build)
-        built = self.repo.path(rel).stat().st_mtime_ns
-        return self.quarto_recipe(rel) if newest and newest[1] > built else None
-
-    def changed_inputs(self, receipt: Receipt) -> list[tuple[str, int]]:
-        """Inputs whose content differs from the receipt, with mtime in ns
-        (0 when missing), newest first."""
-        changed = []
-        for rel, digest in receipt.inputs:
-            path = receipt.home / rel
-            if self.sha256(path) != digest:
-                mtime = path.stat().st_mtime_ns if path.exists() else 0
-                changed.append((rel, mtime))
-        return sorted(changed, key=lambda item: -item[1])
-
-    def rebuild(self, recipe: Recipe) -> dict:
-        """Run the recipe's command, or join the run already going, and wait."""
-        run, starter = self._begin(recipe)
-        if starter:
-            self._complete(recipe, run)
-        return run.result()
-
-    def start(self, recipe: Recipe, source: str) -> dict:
-        """Start the recipe's command in the background (or join the run
-        already going) for the page shown from `source`; its status."""
-        run, starter = self._begin(recipe)
-        with self._lock:
-            self._started_for[source] = recipe.key
-        if starter:
-            threading.Thread(
-                target=self._complete, args=(recipe, run), daemon=True
-            ).start()
-        return self.status(source)
-
-    def status(self, source: str) -> dict:
-        """How the build last started for `source` stands: `running` with
-        `elapsed` seconds, `done` or `failed` with `seconds` and `log`, or
-        `none` when this server started none (it may have restarted)."""
-        with self._lock:
-            key = self._started_for.get(source)
-            running = self._runs.get(key) if key else None
-            if running:
-                return {
-                    "state": "running",
-                    "elapsed": round(time.monotonic() - running[1], 1),
-                }
-            finished = self._finished.get(key) if key else None
-        if not finished:
-            return {"state": "none"}
-        return {"state": "done" if finished["ok"] else "failed", **finished}
-
-    def _begin(self, recipe: Recipe) -> tuple[Future, bool]:
-        with self._lock:
-            entry = self._runs.get(recipe.key)
-            if entry:
-                return entry[0], False
-            run: Future = Future()
-            self._runs[recipe.key] = (run, time.monotonic())
-            return run, True
-
-    def _complete(self, recipe: Recipe, run: Future) -> None:
-        started = self._runs[recipe.key][1]
-        try:
-            result = self._run(recipe)
-        except Exception as error:  # reported to every joined requester
-            result = {"ok": False, "log": f"{type(error).__name__}: {error}"}
-        result["seconds"] = round(time.monotonic() - started, 1)
-        with self._lock:
-            self._finished[recipe.key] = result
-            del self._runs[recipe.key]
-        run.set_result(result)
-
-    def _run(self, recipe: Recipe) -> dict:
-        cwd = recipe.cwd.resolve()
-        if not cwd.is_relative_to(self.repo.root):
-            raise RepoViewError(f"rebuild directory {cwd} is outside the repository")
-        environment = dict(os.environ)
-        # A sandboxed app sees a read-only home; Quarto needs writable data
-        # and cache directories.
-        for name, default in (
-            ("XDG_DATA_HOME", Path.home() / ".local" / "share"),
-            ("XDG_CACHE_HOME", Path.home() / ".cache"),
-        ):
-            if not os.access(environment.get(name, default), os.W_OK):
-                scratch = Path(tempfile.gettempdir()) / "repo-view" / name.lower()
-                scratch.mkdir(parents=True, exist_ok=True)
-                environment[name] = str(scratch)
-        log("rebuild", f"{recipe.key}: {' '.join(recipe.argv)}")
-        process = subprocess.Popen(
-            recipe.argv,
-            cwd=cwd,
-            env=environment,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
-        try:
-            output, _ = process.communicate(timeout=recipe.timeout)
-        except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGTERM)
-            try:
-                output, _ = process.communicate(timeout=5)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                output, _ = process.communicate()
-            return {
-                "ok": False,
-                "log": f"timed out after {recipe.timeout:g} s\n" + tail(output),
-            }
-        log("rebuild", f"{recipe.key}: exit {process.returncode}")
-        return {"ok": process.returncode == 0, "log": tail(output)}
-
-
-def tail(output: bytes, limit: int = 4000) -> str:
-    return output[-limit:].decode("utf-8", "replace")
-
-
-def freshness(repo: Repository, builds: Builds, source: str) -> dict:
-    """What a page shown from `source` reflects: a `stamp` that changes when
-    the page would, and for a build output older than its inputs, `stale`
-    naming the newest changed input. A receipt decides by input hashes;
-    without one, a Quarto output is judged by input mtimes and rebuilt by
-    Quarto itself. `rebuild` says whether this server will run the build."""
-    stat = repo.path(source).stat()
-    stamp = f"{stat.st_mtime_ns}:{stat.st_size}"
-    built = stat.st_mtime_ns // 1_000_000
-    receipt = builds.receipt(source)
-    if receipt:
-        changed = builds.changed_inputs(receipt)
-        stamp += "/" + ",".join(f"{rel}:{mtime}" for rel, mtime in changed)
-        stale = changed and {
-            "project": relative_rel(repo, receipt.home),
-            "input": relative_rel(repo, receipt.home / changed[0][0]),
-            "inputTime": changed[0][1] // 1_000_000,
-            "builtTime": built,
-            "rebuild": builds.enabled,
-            "hint": receipt.recipe.hint(),
-        }
-        return {"stamp": stamp, "stale": stale or None}
-    stale = None
-    build = quarto_build(repo, source)
-    if build:
-        newest = newest_quarto_input(repo, *build)
-        if newest:
-            stamp += f"/{newest[0]}:{newest[1]}"
-            if newest[1] > stat.st_mtime_ns:
-                recipe = builds.quarto_recipe(source)
-                stale = {
-                    "project": build[0] or ".",
-                    "input": newest[0],
-                    "inputTime": newest[1] // 1_000_000,
-                    "builtTime": built,
-                    "rebuild": builds.enabled and recipe is not None,
-                    "hint": recipe.hint() if recipe else "quarto render",
-                }
-    return {"stamp": stamp, "stale": stale}
-
-
-def relative_rel(repo: Repository, path: Path) -> str:
-    """`path` relative to the repository, or as given when outside it."""
-    resolved = path.resolve()
+def freshness_meta(fresh: Freshness) -> str:
     return (
-        resolved.relative_to(repo.root).as_posix() or "."
-        if resolved.is_relative_to(repo.root)
-        else str(path)
-    )
-
-
-def freshness_meta(fresh: dict) -> str:
-    return (
-        f'<meta name="repo-fresh" content="{html.escape(json.dumps(fresh))}">'
+        f'<meta name="repo-fresh" content="{html.escape(json.dumps(fresh.report()))}">'
         f"<script>{FRESH_SCRIPT}</script>"
     )
 
@@ -944,23 +609,26 @@ def listing_page(
     return compose_page(repo.name, rel, None, title, table, locate, footer)
 
 
-def with_access_keeper(page: str, token: str | None, extra: str = "") -> str:
-    """Insert the address-bar token keeper (and a server-checked token), and
-    `extra` head content (freshness, a missing `path_actions`), into a served
-    page's head."""
-    meta = f'<meta name="ya-access" content="{html.escape(token)}">\n' if token else ""
-    insert = meta + ACCESS_KEEPER + "\n" + FRAME_REPORTER + "\n" + extra
+def into_head(page: str, insert: str) -> str:
+    """`page` with `insert` ending its head, or opening a page that has none."""
     head = re.search(r"</head\s*>", page, re.IGNORECASE)
     return (
         page[: head.start()] + insert + page[head.start() :] if head else insert + page
     )
 
 
+def with_access_keeper(page: str, token: str | None, extra: str = "") -> str:
+    """Insert the address-bar token keeper (and a server-checked token), and
+    the reply's `extra` head content, into a served page's head."""
+    meta = f'<meta name="ya-access" content="{html.escape(token)}">\n' if token else ""
+    return into_head(page, meta + ACCESS_KEEPER + "\n" + FRAME_REPORTER + "\n" + extra)
+
+
 def with_frame_reporter(page: bytes, crumbs: str | None, extra: str = "") -> bytes:
-    """Insert the frame location reporter, `extra` head content (freshness, a
-    missing `path_actions`), and `crumbs` as a breadcrumb row opening the body,
-    into a repository HTML file whatever its (ASCII-compatible) encoding. A
-    file without a <body> tag gets no row."""
+    """Insert the frame location reporter, the reply's `extra` head content,
+    and `crumbs` as a breadcrumb row opening the body, into a repository HTML
+    file whatever its (ASCII-compatible) encoding. A file without a <body>
+    tag gets no row."""
     insert = (FRAME_REPORTER + "\n" + extra).encode("ascii", "xmlcharrefreplace")
     body = re.search(rb"<body\b[^>]*>", page, re.IGNORECASE)
     if crumbs is not None and body:
@@ -1310,10 +978,14 @@ class Reply:
     location: str | None = None
     page: bool = False  # generated by this tool: gets the access-link keeper
     crumbs: str | None = None  # breadcrumbs for a repository HTML file
-    fresh: dict | None = None  # `freshness` of the file an HTML page shows
+    head: str = ""  # an HTML reply's `path_actions`, and `freshness_meta`
 
 
 NOT_FOUND = Reply(HTTPStatus.NOT_FOUND, body=b"not found\n")
+
+
+def json_reply(value: object) -> Reply:
+    return Reply(HTTPStatus.OK, "application/json", json.dumps(value).encode())
 
 
 def html_reply(page: str) -> Reply:
@@ -1357,7 +1029,7 @@ class LiveSite:
         rebuild: bool = False,
     ):
         self.repo, self.renderer, self.pages = repo, renderer, pages
-        self.builds = Builds(repo, rebuild)
+        self.builds = Builds(repo.root, rebuild, log)
         self.graph = LinkGraph(repo, pages)
         # Project pages are first made by `warm`, off the startup path: a slow
         # generator must not hold the readiness probe (YA gives up after its
@@ -1394,10 +1066,16 @@ class LiveSite:
     def locate(self, rel: str) -> str | None:
         return crumb_locator(self.pages.sections, self.reach.contains)(rel)
 
-    def respond(
-        self, parts: list[str], slash: bool, query: str, rebuild: bool = False
-    ) -> Reply:
-        """`rebuild`: a POST asking to rebuild the stale output at `parts`."""
+    def respond(self, parts: list[str], slash: bool, query: str) -> Reply:
+        asked = query.split("&")
+        if REBUILD_QUERY in asked:
+            source = self.shown_file(parts)
+            return json_reply(
+                self.builds.status(source) if source else {"state": "none"}
+            )
+        if FRESHNESS_QUERY in asked:
+            fresh = self.freshness(self.shown_file(parts))
+            return json_reply(fresh and fresh.report())
         rel = "/".join(parts)
         if self.pages.made is None:
             self.pages.current()  # wait for the first pages `warm` is making
@@ -1405,48 +1083,76 @@ class LiveSite:
         page = self.pages.current().get(rel) if rel in self.pages.latest() else None
         if page is not None:
             self.reach.admit_links_of(rel, self.graph.links(rel))
-            return html_reply(page)
-        node = self.graph.canonical(rel)
-        if node is None:
-            return NOT_FOUND
-        kind = self.repo.kind(node)
-        if kind == "dir" and node == rel and parts and not slash:
-            return slash_redirect(parts, query)
-        if not self.reach.allows(node):
-            return NOT_FOUND
-        source = self.source(node, kind)
-        if rebuild:
-            return self.rebuild(source)
-        if REBUILD_QUERY in query.split("&"):
-            status = self.builds.status(source) if source else {"state": "none"}
-            return Reply(HTTPStatus.OK, "application/json", json.dumps(status).encode())
-        if FRESHNESS_QUERY in query.split("&"):
-            fresh = freshness(self.repo, self.builds, source) if source else None
-            return Reply(HTTPStatus.OK, "application/json", json.dumps(fresh).encode())
-        if source and not source.endswith((".html", ".htm")):
-            # An output opened outside a page (a PDF in another viewer) cannot
-            # show a notice, so a stale rebuildable one is rebuilt first.
-            recipe = self.builds.enabled and self.builds.stale_recipe(source)
-            if recipe:
-                result = self.builds.rebuild(recipe)
-                if not result["ok"]:
-                    log("rebuild", f"{source}: serving the stale output")
-        reply = self.page(node, kind)
-        if source and reply.kind.startswith("text/html"):
-            reply.fresh = freshness(self.repo, self.builds, source)
+            reply, source = html_reply(page), None
+        else:
+            node = self.graph.canonical(rel)
+            if node is None:
+                return NOT_FOUND
+            kind = self.repo.kind(node)
+            if kind == "dir" and node == rel and parts and not slash:
+                return slash_redirect(parts, query)
+            if not self.reach.allows(node):
+                return NOT_FOUND
+            reply, source = self.page(node, kind), self.source(node, kind)
+        if reply.kind.startswith("text/html"):
+            reply.head = path_actions(url_directory(parts, slash), rel)
+        self.judge_freshness(reply, source)
         return reply
 
-    def rebuild(self, source: str | None) -> Reply:
+    def start_rebuild(self, parts: list[str]) -> Reply:
+        """Start rebuilding the stale output the page at `parts` shows. It
+        answers at once and the page polls: a request held open for a whole
+        build can be dropped by a proxy and leave the page waiting."""
+        source = self.shown_file(parts)
         if not (self.builds.enabled and source):
             return Reply(
                 HTTPStatus.CONFLICT,
                 body=b"not rebuildable here (needs serve --rebuild)\n",
             )
-        # Answer at once and let the page poll: a request held open for a
-        # whole build can be dropped by a proxy and leave the page waiting.
-        recipe = self.builds.stale_recipe(source)
-        status = self.builds.start(recipe, source) if recipe else {"state": "current"}
-        return Reply(HTTPStatus.OK, "application/json", json.dumps(status).encode())
+        fresh = self.freshness(source)
+        if fresh is None:
+            return Reply(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                body=b"could not judge this output's freshness; see the server log\n",
+            )
+        return json_reply(
+            self.builds.start(fresh.recipe, source)
+            if fresh.recipe
+            else {"state": "current"}
+        )
+
+    def shown_file(self, parts: list[str]) -> str | None:
+        """The repository file the served page at `parts` shows, if one does."""
+        rel = "/".join(parts)
+        node = None if rel in self.pages.latest() else self.graph.canonical(rel)
+        if node is None or not self.reach.allows(node):
+            return None
+        return self.source(node, self.repo.kind(node))
+
+    def freshness(self, source: str | None) -> Freshness | None:
+        """`Builds.freshness` of the file a page shows. Freshness only
+        decorates a page, so this is where every failure to judge it ends:
+        logged, and the page is served without."""
+        if not source:
+            return None
+        try:
+            return self.builds.freshness(source)
+        except Exception as error:  # noqa: BLE001
+            log("fresh", f"{source}: freshness not judged: {error!r}")
+            return None
+
+    def judge_freshness(self, reply: Reply, source: str | None) -> None:
+        """Give an HTML page of `source` its freshness. Any other stale output
+        may be open in a viewer that cannot show a notice (a PDF), so under
+        `--rebuild` its build is started and this request gets the old file."""
+        shows_notice = reply.kind.startswith("text/html")
+        if not (shows_notice or self.builds.enabled):
+            return
+        fresh = self.freshness(source)
+        if fresh and shows_notice:
+            reply.head += freshness_meta(fresh)
+        elif fresh and fresh.recipe:
+            self.builds.start_once(fresh.recipe, source, fresh.stamp)
 
     def source(self, node: str, kind: str) -> str | None:
         """The repository file a page for `node` shows, if one does."""
@@ -1512,11 +1218,10 @@ class StaticSite:
             json.loads(manifest.read_text(encoding="utf-8"))["pages"]
         )
 
-    def respond(
-        self, parts: list[str], slash: bool, query: str, rebuild: bool = False
-    ) -> Reply:
-        if rebuild:
-            return Reply(HTTPStatus.CONFLICT, body=b"a static site does not rebuild\n")
+    def start_rebuild(self, parts: list[str]) -> Reply:
+        return Reply(HTTPStatus.CONFLICT, body=b"a static site does not rebuild\n")
+
+    def respond(self, parts: list[str], slash: bool, query: str) -> Reply:
         rel = "/".join(parts)
         path = self.root / rel if rel else self.root
         if path.is_dir():
@@ -1535,7 +1240,10 @@ class StaticSite:
             return NOT_FOUND
         if rel in self.pages:
             return html_reply(path.read_text(encoding="utf-8"))
-        return file_reply(path)
+        reply = file_reply(path)
+        if reply.kind.startswith("text/html"):
+            reply.head = path_actions(url_directory(parts, slash), "/".join(parts))
+        return reply
 
 
 class AccessToken:
@@ -1590,7 +1298,10 @@ def make_handler(
             log("request", fmt % args)
 
         def do_HEAD(self):
-            self.do_GET(head=True)
+            self.answer(site.respond, head=True)
+
+        def do_GET(self):
+            self.answer(site.respond)
 
         def do_POST(self):
             # The custom header makes a cross-origin page's request need a
@@ -1603,9 +1314,13 @@ def make_handler(
                     Reply(HTTPStatus.METHOD_NOT_ALLOWED, body=b"POST only rebuilds\n"),
                     False,
                 )
-            self.do_GET(rebuild=True)
+            self.answer(lambda parts, slash, query: site.start_rebuild(parts))
 
-        def do_GET(self, head: bool = False, rebuild: bool = False):
+        def answer(
+            self, respond: Callable[[list[str], bool, str], Reply], head: bool = False
+        ):
+            """Send what `respond(parts, slash, query)` replies for this
+            request's path, once the request is admitted."""
             split = urlsplit(self.path)
             raw = unquote(split.path)
             if base and (raw == base or raw.startswith(base + "/")):
@@ -1642,27 +1357,18 @@ def make_handler(
             if any(p.startswith(".") for p in parts):
                 return self.send(NOT_FOUND, head)
             try:
-                reply = site.respond(parts, raw.endswith("/"), split.query, rebuild)
+                reply = respond(parts, raw.endswith("/"), split.query)
             except RepoViewError as error:
                 log("request", str(error))
                 reply = Reply(
                     HTTPStatus.INTERNAL_SERVER_ERROR, body=f"{error}\n".encode()
                 )
-            actions = path_actions((base or "") + "/", "/".join(parts))
-            fresh = freshness_meta(reply.fresh) if reply.fresh else ""
             if reply.page:
-                page = reply.body.decode("utf-8")
-                page = with_access_keeper(
-                    page,
-                    token,
-                    fresh + ("" if PATH_ACTIONS_MARKER in page else actions),
-                )
+                page = with_access_keeper(reply.body.decode("utf-8"), token, reply.head)
                 reply = Reply(reply.status, reply.kind, page.encode("utf-8"))
             elif reply.file and reply.kind.startswith("text/html"):
-                body = reply.file.read_bytes()
-                has_actions = PATH_ACTIONS_MARKER.encode("ascii") in body
                 body = with_frame_reporter(
-                    body, reply.crumbs, fresh + ("" if has_actions else actions)
+                    reply.file.read_bytes(), reply.crumbs, reply.head
                 )
                 reply = Reply(reply.status, reply.kind, body)
             return self.send(reply, head, cookie)
@@ -1771,9 +1477,17 @@ def build_site(
     linked_dirs = set(directories)
     linked_docs = {rel for rel in documents if rel in reached}
     locate = crumb_locator(pages.sections, linked_dirs.__contains__)
+
+    def published(page: str, page_dir: str, current: str) -> str:
+        """`page` as the site holds it, in `page_dir`, showing `current`."""
+        return into_head(
+            static_links(page, page_dir, linked_docs, linked_dirs),
+            path_actions(page_dir, current),
+        )
+
     outputs: dict[str, str] = {}
     for rel, page in project_pages.items():
-        outputs[rel] = static_links(page, parent_rel(rel), linked_docs, linked_dirs)
+        outputs[rel] = published(page, parent_rel(rel), rel)
     for rel in linked_docs:
         page = document_page(
             repo,
@@ -1783,9 +1497,7 @@ def build_site(
             locate,
             footer,
         )
-        outputs[rel + ".html"] = static_links(
-            page, parent_rel(rel), linked_docs, linked_dirs
-        )
+        outputs[rel + ".html"] = published(page, parent_rel(rel), rel)
     for rel, document in directories.items():
         index = join_rel(rel, "index.html")
         if document.kind == "readme":
@@ -1796,7 +1508,7 @@ def build_site(
             page = listing_page(repo, rel, repo.listing(rel), locate, footer)
         else:
             continue  # a project page or the directory's own index.html is already written
-        outputs[index] = static_links(page, rel, linked_docs, linked_dirs)
+        outputs[index] = published(page, rel, rel)
     clashes = sorted(set(outputs) & assets)
     if clashes:
         raise RepoViewError(
@@ -1964,7 +1676,7 @@ def main(argv: list[str] | None = None) -> int:
         "--rebuild",
         action="store_true",
         help="let any visitor rerun a stale build output's receipt-declared command "
-        "(the page's Rebuild button; a stale PDF is rebuilt before it is served)",
+        "(the page's Rebuild button; requesting a stale PDF starts its build)",
     )
     serve.add_argument(
         "--static",

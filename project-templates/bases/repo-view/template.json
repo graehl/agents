@@ -14,6 +14,10 @@
 			"from": "files/repo_view.py",
 			"executable": true
 		},
+		{
+			"to": "scripts/repo_view_builds.py",
+			"from": "files/repo_view_builds.py"
+		},
 		{ "to": "scripts/table_notes.lua", "from": "files/table_notes.lua" },
 		{
 			"to": "scripts/repo_view_actions.js",

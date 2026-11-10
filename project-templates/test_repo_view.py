@@ -63,6 +63,7 @@ class RepoViewTest(unittest.TestCase):
             self.script.with_name("table_notes.lua"),
         )
         for name in (
+            "repo_view_builds.py",
             "repo_view_actions.js",
             "repo_view_actions.css",
             "repo_view_fresh.js",
@@ -461,6 +462,109 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(later["stale"]["input"], "paper/index.qmd")
         self.assertEqual(later["stale"]["project"], "paper")
 
+    def quarto_paper(self) -> None:
+        """A Quarto project whose built page is newer than its one source."""
+        self.write("README.md", "# Demo\n[paper](paper/_build/index.html)\n")
+        self.write("paper/_quarto.yml", "project:\n  output-dir: _build\n")
+        self.write("paper/index.qmd", "# P\n")
+        self.write(
+            "paper/_build/index.html", "<html><head></head><body>P</body></html>"
+        )
+        os.utime(self.repo / "paper/index.qmd", ns=(1_000_000_000_000_000_000,) * 2)
+
+    def test_editor_lock_file_and_dangling_input_do_not_count_as_inputs(self) -> None:
+        self.quarto_paper()
+        # Emacs marks unsaved edits with a dangling link named like the source.
+        os.symlink("user@host.1234:1700000000", self.repo / "paper/.#index.qmd")
+        os.symlink("gone.qmd", self.repo / "paper/moved.qmd")
+        url = self.serve() + "/paper/_build/index.html"
+        status, _, page = self.get(url)
+        self.assertEqual(status, 200)
+        self.assertIn('<meta name="repo-fresh"', page)
+        fresh = json.loads(self.get(url + "?repo-view=fresh")[2])
+        self.assertIsNone(fresh["stale"])
+        self.assertIn("/paper/_quarto.yml:", fresh["stamp"])  # the newest real input
+
+    def test_receipt_of_another_shape_leaves_the_output_unreceipted(self) -> None:
+        self.quarto_paper()
+        page = self.repo / "paper/_build/index.html"
+        registration = {"outputs": [str(page)]}
+        self.write(
+            "paper/_build/other.receipt.json",
+            json.dumps(
+                {
+                    "artifact_metadata": {
+                        "regenerate": {"proposedRegistration": registration}
+                    }
+                }
+            ),
+        )
+        self.write("paper/_build/list.receipt.json", "[]")
+        url = self.serve() + "/paper/_build/index.html"
+        status, _, served = self.get(url)
+        self.assertEqual(status, 200)
+        self.assertIn('<meta name="repo-fresh"', served)
+        # Judged as the Quarto project's page instead.
+        os.utime(self.repo / "paper/index.qmd")
+        stale = json.loads(self.get(url + "?repo-view=fresh")[2])["stale"]
+        self.assertEqual(stale["input"], "paper/index.qmd")
+
+    def test_page_is_served_when_its_freshness_cannot_be_judged(self) -> None:
+        self.quarto_paper()
+        (self.repo / "paper/_quarto.yml").write_bytes(b"project: \xff\xfe\n")
+        url = self.serve() + "/paper/_build/index.html"
+        status, _, page = self.get(url)
+        self.assertEqual(status, 200)
+        self.assertIn("<body>", page)
+        self.assertNotIn('<meta name="repo-fresh"', page)
+        self.assertEqual(self.get(url + "?repo-view=fresh")[2], "null")
+        log = next(self.repo.parent.glob("serve-*.err")).read_text()
+        self.assertIn("[fresh] paper/_build/index.html: freshness not judged", log)
+
+    def test_stale_pdf_render_runs_in_the_background_and_not_for_a_figure(
+        self,
+    ) -> None:
+        # A stand-in `quarto` that records each run and renders the PDF.
+        bin_dir = self.repo.parent / "bin"
+        bin_dir.mkdir()
+        runs = self.repo.parent / "quarto-runs"
+        fake = bin_dir / "quarto"
+        fake.write_text(
+            f"#!{sys.executable}\n"
+            "import pathlib, sys, time\n"
+            f"with open({str(runs)!r}, 'a') as runs:\n"
+            "    runs.write(' '.join(sys.argv[1:]) + '\\n')\n"
+            "time.sleep(0.5)\n"
+            "pathlib.Path('_build/index.pdf').write_text('pdf new')\n"
+        )
+        fake.chmod(0o755)
+        self.write(
+            "README.md",
+            "[pdf](paper/_build/index.pdf) [figure](paper/_build/figs/plot.pdf)"
+            " [image](paper/_build/figs/plot.png)\n",
+        )
+        self.write("paper/_quarto.yml", "project:\n  output-dir: _build\n")
+        self.write("paper/_build/index.pdf", "pdf old")
+        self.write("paper/_build/figs/plot.pdf", "figure")
+        self.write("paper/_build/figs/plot.png", "image")
+        for built in ("index.pdf", "figs/plot.pdf", "figs/plot.png"):
+            os.utime(
+                self.repo / "paper/_build" / built, ns=(1_000_000_000_000_000_000,) * 2
+            )
+        self.write("paper/index.qmd", "new")
+        env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
+        base = self.serve("--rebuild", env=env) + "/paper/_build/"
+        # Not render products: no document is rendered to these paths.
+        self.assertEqual(self.get(base + "figs/plot.pdf")[2], "figure")
+        self.assertEqual(self.get(base + "figs/plot.png")[2], "image")
+        # The stale product is answered at once with the old file.
+        began = time.monotonic()
+        self.assertEqual(self.get(base + "index.pdf")[2], "pdf old")
+        self.assertLess(time.monotonic() - began, 0.5)
+        self.assertEqual(self.finished_rebuild(base + "index.pdf")["state"], "done")
+        self.assertEqual(self.get(base + "index.pdf")[2], "pdf new")
+        self.assertEqual(runs.read_text(), "render --to pdf\n")
+
     def test_unreceipted_quarto_output_rebuilds_with_quarto_render(self) -> None:
         # A stand-in `quarto` that renders the project's HTML from index.qmd.
         bin_dir = self.repo.parent / "bin"
@@ -538,7 +642,7 @@ class RepoViewTest(unittest.TestCase):
         self.assertGreaterEqual(finished["seconds"], 1.0)
         self.assertIn("old", self.get(url)[2])
 
-    def test_receipted_output_rebuilds_on_request_and_a_stale_pdf_before_serving(
+    def test_receipted_output_rebuilds_on_request_and_a_stale_pdf_when_opened(
         self,
     ) -> None:
         # A builder in the qmd-html shape: outputs plus a receipt carrying input
@@ -589,9 +693,12 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(json.loads(post(url)[1])["state"], "current")
         self.assertIsNone(fresh()["stale"])
         self.assertIn("second", self.get(url)[2])
-        # A stale PDF opened on its own is rebuilt before it is served.
+        # A stale PDF opened on its own gets the old file and starts the build.
         self.write("doc/in.qmd", "third")
-        self.assertEqual(self.get(base + "/doc/_build/in.pdf")[2], "pdf third")
+        pdf = base + "/doc/_build/in.pdf"
+        self.assertEqual(self.get(pdf)[2], "pdf second")
+        self.assertEqual(self.finished_rebuild(pdf)["state"], "done")
+        self.assertEqual(self.get(pdf)[2], "pdf third")
         # Without --rebuild nothing runs.
         self.write("doc/in.qmd", "fourth")
         other = self.serve()
