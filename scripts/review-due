@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""Report when kept code has gone unreviewed long enough to deserve a review.
+
+Counts what changed in tracked code since the strict-review marker, line 1 of
+`.harsh-review` at the repository root (owned by skills/harsh-review). A
+creation review is due while a code file added since the marker is unreviewed;
+a periodic review is due once the changed lines or commits pass a threshold.
+`hook` prints one line per due review and nothing otherwise, for a post-commit
+hook. The tool never starts a review or moves the marker.
+Contract: topics/helper-scripts.md § review-due.
+"""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from acli import (
+    ExitCode,
+    add_standard_args,
+    argument_parser,
+    die,
+    emit,
+    maybe_complete,
+    resolve_format,
+)
+
+CAPABILITIES = ("complete",)
+EXIT_CODES = {4: "the marker names a commit this repository does not have"}
+MARKER = ".harsh-review"
+CODE_SUFFIXES = frozenset(
+    [
+        ".py",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".jsx",
+        ".c",
+        ".cc",
+        ".cpp",
+        ".cxx",
+        ".h",
+        ".hh",
+        ".hpp",
+        ".rs",
+        ".go",
+        ".java",
+        ".kt",
+        ".rb",
+        ".pl",
+        ".lua",
+        ".el",
+    ]
+)
+THIRD_PARTY_DIRS = frozenset({"node_modules", "vendor", "vendored", "third_party"})
+EXECUTABLE = "100755"
+
+
+def _git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=True
+    ).stdout
+
+
+def is_code(path: str, mode: str) -> bool:
+    """A source file by suffix, or an executable with no suffix such as scripts/x."""
+    parts = Path(path)
+    if THIRD_PARTY_DIRS.intersection(parts.parts):
+        return False
+    if parts.suffix:
+        return parts.suffix in CODE_SUFFIXES
+    return mode == EXECUTABLE
+
+
+def survey(repo: Path, max_lines: int, max_commits: int) -> dict:
+    marker = repo / MARKER
+    if not marker.is_file():
+        return {"reviewed": None, "due": []}
+    lines = marker.read_text().splitlines()
+    reviewed = lines[0].strip() if lines else ""
+    try:
+        _git(repo, "cat-file", "-e", f"{reviewed}^{{commit}}")
+    except subprocess.CalledProcessError:
+        die(
+            f"{MARKER} line 1 is not a commit in this repository",
+            ExitCode.NOT_FOUND,
+            detail={"marker": str(marker), "line": reviewed},
+        )
+    modes = {
+        entry.split("\t", 1)[1]: entry.split()[0]
+        for entry in _git(repo, "ls-files", "-s").splitlines()
+    }
+    span = f"{reviewed}..HEAD"
+    changed_lines = 0
+    for row in _git(repo, "diff", "--numstat", "--no-renames", span).splitlines():
+        added, deleted, path = row.split("\t", 2)
+        if added != "-" and is_code(path, modes.get(path, "")):
+            changed_lines += int(added) + int(deleted)
+    new_files = [
+        path
+        for path in _git(
+            repo, "diff", "--name-only", "--diff-filter=A", "--no-renames", span
+        ).splitlines()
+        if is_code(path, modes.get(path, ""))
+    ]
+    commits = 0
+    for block in _git(repo, "log", "--format=%x00", "--name-only", span).split("\0"):
+        if any(is_code(path, modes.get(path, "")) for path in block.split()):
+            commits += 1
+    due = []
+    if new_files:
+        due.append("creation")
+    if changed_lines > max_lines or commits > max_commits:
+        due.append("periodic")
+    return {
+        "reviewed": reviewed,
+        "head": _git(repo, "rev-parse", "HEAD").strip(),
+        "changed_lines": changed_lines,
+        "commits": commits,
+        "new_files": new_files,
+        "max_lines": max_lines,
+        "max_commits": max_commits,
+        "due": due,
+    }
+
+
+def due_lines(result: dict) -> list[str]:
+    lines = []
+    if "creation" in result["due"]:
+        files = result["new_files"]
+        shown = ", ".join(files[:3]) + (
+            f", +{len(files) - 3} more" if files[3:] else ""
+        )
+        lines.append(f"review-due: creation review due for new kept code: {shown}")
+    if "periodic" in result["due"]:
+        lines.append(
+            f"review-due: periodic review due: {result['changed_lines']} changed code "
+            f"lines in {result['commits']} commits since {result['reviewed'][:12]}"
+        )
+    return lines
+
+
+def status(args) -> int:
+    result = survey(Path(args.repo).resolve(), args.max_lines, args.max_commits)
+    if result["reviewed"] is None:
+        text = (
+            f"no {MARKER} marker; nothing is counted until a strict review writes one"
+        )
+    else:
+        text = "\n".join(due_lines(result)) or (
+            f"review-due: nothing due ({result['changed_lines']} changed code lines in "
+            f"{result['commits']} commits since {result['reviewed'][:12]})"
+        )
+    emit(result, resolve_format(args), text=text)
+    return 0
+
+
+def hook(args) -> int:
+    result = survey(Path(args.repo).resolve(), args.max_lines, args.max_commits)
+    for line in due_lines(result):
+        print(line)
+    return 0
+
+
+def build_parser():
+    parser = argument_parser(
+        prog="review-due",
+        description="Report when tracked code has changed enough since the strict-review "
+        f"marker ({MARKER} line 1) that a review is due. Never starts a review or moves "
+        "the marker. Contract: topics/helper-scripts.md § review-due.",
+        capabilities=CAPABILITIES,
+        exit_codes=EXIT_CODES,
+    )
+    parser.add_argument(
+        "--repo", default=".", help="Repository to survey (default: current directory)."
+    )
+    parser.add_argument(
+        "--max-lines",
+        type=int,
+        default=400,
+        help="Changed code lines above which a periodic review is due (default 400).",
+    )
+    parser.add_argument(
+        "--max-commits",
+        type=int,
+        default=20,
+        help="Code-touching commits above which a periodic review is due (default 20).",
+    )
+    commands = parser.add_subparsers(dest="command", required=True)
+    status_cmd = commands.add_parser(
+        "status", help="Emit the counts, the new code files, and which reviews are due."
+    )
+    add_standard_args(status_cmd)
+    status_cmd.set_defaults(func=status)
+    hook_cmd = commands.add_parser(
+        "hook",
+        help="Print one `review-due:` line per due review and nothing otherwise; always "
+        "exits 0 unless the marker is invalid. For a post-commit hook.",
+    )
+    hook_cmd.set_defaults(func=hook)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    maybe_complete(parser, [sys.argv[0], *(argv if argv is not None else sys.argv[1:])])
+    args = parser.parse_args(argv)
+    try:
+        return args.func(args)
+    except subprocess.CalledProcessError as exc:
+        die(
+            f"git failed: {' '.join(exc.cmd)}",
+            ExitCode.SOFTWARE,
+            detail={"stderr": (exc.stderr or "").strip()},
+        )
+
+
+if __name__ == "__main__":
+    sys.exit(main())

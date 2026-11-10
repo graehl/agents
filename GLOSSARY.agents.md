@@ -41,7 +41,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `debugging` | Governs: diagnosing a defect or slow or stalled behavior | [debugging](topics/debugging.md) |
 | `degradation-injection` | Governs: stress-testing worker queues or async boundaries with injected slowdowns or faults | [degradation-injection](topics/degradation-injection.md) |
 | deleting reframe | A behavior-preserving restructure that deletes whole branches, layers, or concepts by reframing the problem. | [harsh-review](skills/harsh-review/SKILL.md) |
-| `design-thinking` | Governs: approaching a non-trivial change before and during implementation | [design-thinking](topics/design-thinking.md) |
+| `design-thinking` | Governs: creating a file of code that will be kept, or reviewing a design | [design-thinking](topics/design-thinking.md) |
 | director, steward (on-deck) | Director owns priority, guards, and launch commands for ratified on-deck entries; steward services eligible work and may launch preemptible speculative runs. | [on-deck](topics/on-deck.md) |
 | divergence point | An intentional duplication whose copies are expected to evolve independently; not a consolidation target. | [harsh-review](skills/harsh-review/SKILL.md) |
 | `document-annotation` | Governs: building or running fixed-prompt segmented-document annotation | [document-annotation](topics/document-annotation.md) |
@@ -101,7 +101,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `shell` | Governs: first editing shell scripts in a repo | [shell](topics/shell.md) |
 | sketch | A captured prototype-stage alternative that is not the current path, in `.sketches.md` or a `## Sketches` section; uncommitted, unlike an ADR. | |
 | `soft-checks` | Governs: verifying generated output that has no exact expected value | [soft-checks](topics/soft-checks.md) |
-| `software-aesthetic` | Governs: writing or reviewing code structure, naming, and boundaries | [software-aesthetic](topics/software-aesthetic.md) |
+| `software-aesthetic` | Governs: creating a file of code that will be kept, or reviewing code structure, naming, and boundaries | [software-aesthetic](topics/software-aesthetic.md) |
 | `story-project-layout` | Governs: creating or reorganizing a story project's files | [story-project-layout](topics/story-project-layout.md) |
 | `story-writing` | Governs: planning, drafting, or revising a story, screenplay, or character or world document | [story-writing](topics/story-writing.md) |
 | `successful-paper-forms` | Governs: choosing a paper's governing expository form | [successful-paper-forms](topics/successful-paper-forms.md) |

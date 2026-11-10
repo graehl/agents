@@ -6217,3 +6217,40 @@ Contributing-model: fable-5.2
   never-followed route should be reworded or dropped is the user's call.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — reviews start themselves; design reads move to file creation
+
+- **User direction** — the aim is "sustainable projects with an initial
+  quality that i believe begets further quality"; design should be
+  considered "on creation and periodically", not before each change. On the
+  existing strict review: "i end up in another session waiting forever
+  because i waited too long (procrastinate invoking). i would prefer more
+  automatic review effort as we build or write."
+- **Finding** — nothing started a quality review unasked. Hooks checked the
+  boot and attribution lines; every review skill ran only on request; the
+  scheduled prompts under `at/` have no clock firing them. In `~/agents` the
+  strict-review marker had last advanced on 2026-10-22, with 5,459 changed
+  code lines in 25 code-touching commits behind it.
+- **Change** — `scripts/review-due` counts changed code since the existing
+  `.harsh-review` marker; a post-commit hook prints a `review-due:` line when
+  a code file is new or change passes 400 lines or 20 commits. Global policy
+  § Automatic review of kept code tells the session to start that review at
+  once in one background subagent and keep working. The first draft only
+  reported that a review was due; the user's remark above showed that would
+  move the procrastination, not remove it.
+- **Routes** — `design-thinking` and `software-aesthetic` now trigger on
+  creating a file of kept code or on reviewing, replacing "approaching a
+  non-trivial change", which 6 of 356 editing sessions acted on. Size is a
+  judgment an agent makes when it least wants to stop; whether a file will be
+  kept is a fact it already knows.
+- **Traces** — a session commits a new `scripts/x`: the hook line appears in
+  its commit output, it starts one reviewer and continues. A second commit
+  while that reviewer runs prints the line again: no second reviewer. A
+  throwaway script that is never committed: no line, no read. A repository
+  with no marker: silent until its first strict review. Codex without a
+  background subagent: relays the line.
+- **Not verified** — no session has yet acted on a `review-due:` line; prose
+  is not counted, so "as we write" is covered only by the review's own scope
+  once it runs; thresholds are guesses.
+
+Contributing-model: fable-5.2

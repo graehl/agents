@@ -543,6 +543,46 @@ and `build-boot link [--check] [--to-global]`; acli baseline with completion.
 **Canonical source**: `scripts/build-boot` (in this repo); run from the
 checkout.
 
+### review-due
+
+Reports when tracked code has gone unreviewed long enough that a review
+should start, so reviews stay small and nobody has to remember to ask. It
+reads the strict-review marker, line 1 of the untracked `.harsh-review`
+(owned by `skills/harsh-review`), and never starts a review or moves the
+marker. `AGENTS.global.md` § Automatic review of kept code says what a
+session does with its output.
+
+**CLI**: `review-due [--repo <dir>] [--max-lines N] [--max-commits N] status`
+and `review-due … hook`; acli baseline with completion on `status`.
+
+**Post-conditions**:
+- Code is a tracked file with a source-code suffix, or an executable file
+  with no suffix (`scripts/build-boot`). Paths under `node_modules`,
+  `vendor`, `vendored`, or `third_party` are not counted, and neither is
+  prose.
+- A **creation** review is due while a code file added since the marker
+  exists. A **periodic** review is due when changed code lines exceed
+  `--max-lines` (default 400) or code-touching commits exceed
+  `--max-commits` (default 20).
+- `status` emits `reviewed`, `head`, `changed_lines`, `commits`,
+  `new_files`, both thresholds, and `due` (a list of `creation`,
+  `periodic`).
+- `hook` prints one `review-due:` line per due review and nothing
+  otherwise, exit 0. A post-commit hook calls it; in `~/agents` the
+  untracked `.git/hooks/post-commit` runs
+  `scripts/review-due hook` before its final `exec`.
+- With no marker both verbs report nothing due: a repository is enrolled by
+  its first strict review. A marker naming a commit the repository lacks
+  exits 4.
+
+**Examples**:
+- Marker at the previous commit, then a commit adding executable
+  `scripts/tool`: `hook` prints
+  `review-due: creation review due for new kept code: scripts/tool`.
+- A commit adding only `notes.md`: `hook` prints nothing.
+- `--max-lines 1` after a two-line edit to `lib.py`: `hook` prints
+  `review-due: periodic review due: 2 changed code lines in 1 commits since <sha12>`.
+
 ### install-agents
 
 Installs this checkout's global instructions and skills at the current

@@ -689,6 +689,19 @@ and inspect captures sequentially, one image at a time; never batch image
 reads. Check against the request and cite capture paths. Read
 `topics/ui-testing.md`.
 
+## Automatic review of kept code
+
+A `review-due:` line in commit output means code that will be kept has gone
+unreviewed since the strict-review marker: a new code file, or accumulated
+change. Start that review at once, without asking, in one background
+subagent on this session's model: it follows `skills/harsh-review/SKILL.md`
+for `since`, edits no tracked file, and advances the marker when it
+delivers. Keep working meanwhile and start no second review while one runs.
+When its verdict arrives, report the findings, fix those that are cheap and
+inside the current task, and open a gap for the rest. Where the harness has
+no background subagent, relay the line to the user instead. A repository
+without the marker is not enrolled; `review-due status` shows the counts.
+
 ## Adjacent gaps: capture, don't chase or drop
 
 An adjacent code-quality issue not fixed now, or a partially landed unit whose
@@ -711,8 +724,11 @@ the wording. Topic-specific design alternatives may remain in the owning
 
 ## Ideal coding
 
-Read `topics/software-aesthetic.md` and `topics/design-thinking.md` for naming,
-structure, abstraction, boundaries, and approach. In particular:
+When creating a file of code that will be kept, or reviewing code, read
+`topics/software-aesthetic.md` and `topics/design-thinking.md` for naming,
+structure, abstraction, boundaries, and approach. Edits to existing code and
+throwaway exploration do not trigger the read; the automatic review covers
+what accumulates. In every case:
 
 - sweep all callers when a shared code/prose contract moves;
 - consult `GLOSSARY.md` before naming a general facility; keep one-use helpers
@@ -845,8 +861,8 @@ topic's `Governs:` line and its row, not this section.
 
 **Code and tools.**
 
-- approaching a non-trivial change before and during implementation → `design-thinking`
-- writing or reviewing code structure, naming, and boundaries → `software-aesthetic`
+- creating a file of code that will be kept, or reviewing a design → `design-thinking`
+- creating a file of code that will be kept, or reviewing code structure, naming, and boundaries → `software-aesthetic`
 - a new or unrelated defect report arrives → `handling-bug-reports`
 - planning or implementing durable scripts or software, or choosing, writing, running, retaining, or reviewing tests → `testing`
 - running a project's tests or checks, when it has a verify.toml → `verify`
