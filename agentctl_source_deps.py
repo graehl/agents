@@ -5,7 +5,7 @@ Owns the dependency declaration (`--source-dep`, `--source-deps-file`,
 and shell references, and the watch that holds those files fixed until the
 payload has loaded them. Checking the files against a Git commit stays in
 agentctl.py with the rest of the reproducibility guard; the project root,
-hashing and clock are passed in by the caller.
+hashing, clock and the means of stopping a payload are passed in by the caller.
 """
 
 from __future__ import annotations
@@ -127,6 +127,22 @@ _SHELL_PYTHON_MODULE_RE = re.compile(
     r"""\bpython[\d.]*\s+(?:-[A-Za-z]+\s+)*-m\s+([A-Za-z_][\w.]*)"""
 )
 _SHELL_SUFFIXES = {".sh", ".bash", ".zsh"}
+# `uv run --script` starts a Python script that declares its own dependencies.
+_PYTHON_INTERPRETER_RE = re.compile(r"python|\buv run\b")
+
+
+def _script_language(path: Path, text: str) -> str:
+    """`python` or `shell` by suffix, else by `#!` interpreter; "" when neither."""
+    if path.suffix == ".py":
+        return "python"
+    if path.suffix in _SHELL_SUFFIXES:
+        return "shell"
+    if not text.startswith("#!"):
+        return ""
+    interpreter = text.split("\n", 1)[0].rsplit("/", 1)[-1]
+    if _PYTHON_INTERPRETER_RE.search(interpreter):
+        return "python"
+    return "shell" if "sh" in interpreter else ""
 
 
 class SourceDepScanner:
@@ -134,9 +150,12 @@ class SourceDepScanner:
 
     Python imports resolve through `ast` against the module roots the payload
     would see (the entry's directory, the checkout root, the project root and
-    any `--source-deps-root`). Shell scripts and `--source-deps-pattern`
-    patterns are regex heuristics. Every file reached is scanned again, so
-    imports of imports are found; a visited set stops cycles.
+    any `--source-deps-root`), and a Python file inside a package brings the
+    enclosing `__init__.py` files. Shell scripts and `--source-deps-pattern`
+    patterns are regex heuristics. A file without a suffix is read as Python
+    or shell by its `#!` line, and listed in `unresolved` when that names
+    neither. Every file reached is scanned again, so imports of imports are
+    found; a visited set stops cycles.
     """
 
     def __init__(
@@ -215,12 +234,17 @@ class SourceDepScanner:
             self._note_unresolved(path, f"unreadable: {exc}")
             return []
         refs: list[tuple[Path, str]] = []
-        if path.suffix == ".py":
+        language = _script_language(path, text)
+        if language == "python":
+            refs.extend((p, "python-package") for p in self._package_inits(path))
             refs.extend((p, "python-ast") for p in self._python_refs(path, text, roots))
-        elif path.suffix in _SHELL_SUFFIXES or (
-            text.startswith("#!") and "sh" in text.split("\n", 1)[0].rsplit("/", 1)[-1]
-        ):
+        elif language == "shell":
             refs.extend((p, "shell-regex") for p in self._shell_refs(path, text, roots))
+        elif not path.suffix:
+            # A suffix marks data; a bare name is usually an executable.
+            self._note_unresolved(
+                path, "unrecognized script type; its references were not scanned"
+            )
         for pattern in self.patterns:
             for match in pattern.finditer(text):
                 if "path" in pattern.groupindex:
@@ -237,6 +261,21 @@ class SourceDepScanner:
                 else:
                     refs.append((resolved, "pattern-regex"))
         return refs
+
+    def _package_inits(self, path: Path) -> list[Path]:
+        """`__init__.py` of each package enclosing `path`.
+
+        They run when the file is imported or started with `python -m`, and
+        no import statement in the file names them.
+        """
+        inits: list[Path] = []
+        package = path.parent
+        while (package / "__init__.py").is_file() and _in_checkout(
+            package, self.git_root
+        ):
+            inits.append(package / "__init__.py")
+            package = package.parent
+        return inits
 
     def _module_files(self, module: str, roots: list[Path]) -> list[Path] | None:
         """Files executed by importing `module`; None when no root provides it."""
@@ -401,8 +440,9 @@ class SourceDepsLoadingWatch:
     Loading ends at the first of: the payload touching the marker file
     (`$AGENTCTL_SOURCE_DEPS_LOADED`), the configured timeout after payload
     start, or payload exit. A change to a dependency before then is a
-    violation: enforce terminates the payload, record keeps it. Later edits
-    cannot affect what the payload already loaded and are ignored.
+    violation: enforce calls `stop_payload`, which must stop the payload and
+    everything it started; record keeps the violation. Later edits cannot
+    affect what the payload already loaded and are ignored.
     """
 
     POLL_SECONDS = 0.25
@@ -414,10 +454,12 @@ class SourceDepsLoadingWatch:
         marker: Path,
         guard_mode: str,
         proc,
+        stop_payload: Callable[[], None],
         file_sha256: Callable[[str], str],
         utc_now: Callable[[], str],
         on_end=None,
     ):
+        self.stop_payload = stop_payload
         self.file_sha256 = file_sha256
         self.utc_now = utc_now
         self.on_end = on_end
@@ -476,8 +518,6 @@ class SourceDepsLoadingWatch:
             if self.guard_mode == "enforce":
                 print(f"{message}; terminating payload", file=sys.stderr)
                 self.terminated = True
-                if self.proc.poll() is None:
-                    self.proc.terminate()
             else:
                 print(
                     "warning: recorded source-guard violation, continuing "
@@ -496,6 +536,7 @@ class SourceDepsLoadingWatch:
         while True:
             self._check()
             if self.terminated:
+                self.stop_payload()
                 self._end("guard-terminated")
                 return
             if self.marker.exists():

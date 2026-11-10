@@ -18,6 +18,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
 from fractions import Fraction
 from pathlib import Path
 
@@ -103,6 +104,8 @@ YEP_DEV_OWNERSHIP_ENVS = frozenset(
 SOURCE_SCOPES = ("non-doc", "all")
 SOURCE_GUARD_MODES = ("enforce", "record")
 SOURCE_GUARD_ENV = "AGENTCTL_SOURCE_GUARD"
+# Seconds between SIGTERM and SIGKILL when stopping a run or its payload.
+STOP_GRACE_SECONDS = 5.0
 ENVIRONMENT_CONTROL_FILES = (
     "pixi.toml",
     "pixi.lock",
@@ -2927,20 +2930,49 @@ def pid_matches_state(pid: int, state: dict) -> bool:
     return True
 
 
-def process_group_members(pgid: int) -> list[int]:
-    members: list[int] = []
-    proc = Path("/proc")
+def visible_process_ids() -> list[int]:
+    """Every pid listed in /proc; empty where /proc is unavailable."""
     try:
-        entries = list(proc.iterdir())
+        entries = list(Path("/proc").iterdir())
     except OSError:
-        return members
-    for entry in entries:
-        if not entry.name.isdigit():
+        return []
+    return sorted(int(entry.name) for entry in entries if entry.name.isdigit())
+
+
+def process_group_members(pgid: int) -> list[int]:
+    return [
+        pid
+        for pid in visible_process_ids()
+        if proc_pgid(pid) == pgid and proc_state(pid) != "Z"
+    ]
+
+
+def payload_process_ids(payload_pid: int) -> list[int]:
+    """Live processes a wrapper's payload started, the payload included.
+
+    A process counts when it descends from the payload, or was orphaned
+    inside the wrapper's process group, as a shell's background job is when
+    the shell dies. The calling wrapper and its own helper processes descend
+    from the wrapper by another path and are left out.
+    """
+    wrapper, pgid = os.getpid(), os.getpgid(0)
+    found: list[int] = []
+    for pid in visible_process_ids():
+        if proc_state(pid) in (None, "Z"):
             continue
-        pid = int(entry.name)
-        if proc_pgid(pid) == pgid and proc_state(pid) != "Z":
-            members.append(pid)
-    return sorted(members)
+        ancestor: int | None = pid
+        for _ in range(64):
+            if ancestor == payload_pid:
+                found.append(pid)
+                break
+            if ancestor == wrapper:
+                break
+            if ancestor is None or ancestor <= 1:
+                if proc_pgid(pid) == pgid:
+                    found.append(pid)
+                break
+            ancestor = _proc_ppid(ancestor)
+    return found
 
 
 def process_group_alive(pgid: int) -> bool:
@@ -3269,6 +3301,46 @@ def mark_state_finished(state: dict, returncode: int | str) -> dict:
     return state
 
 
+def signal_then_kill(
+    deliver: Callable[[signal.Signals], None], alive: Callable[[], bool], grace: float
+) -> None:
+    """SIGTERM through `deliver`, then SIGKILL what `alive` still reports.
+
+    grace: seconds allowed for a clean exit before the SIGKILL.
+    """
+    deliver(signal.SIGTERM)
+    deadline = time.time() + grace
+    while time.time() < deadline and alive():
+        time.sleep(0.25)
+    if alive():
+        deliver(signal.SIGKILL)
+
+
+def terminate_payload(proc: subprocess.Popen, *, grace: float) -> None:
+    """Stop the payload and every process it started, from inside its wrapper.
+
+    `stop` signals the whole run, wrapper included. A wrapper that must
+    outlive its payload to record the result signals the same processes one
+    by one, leaving itself out.
+    """
+
+    def deliver(sig: signal.Signals) -> None:
+        proc.send_signal(sig)
+        for pid in payload_process_ids(proc.pid):
+            if pid == proc.pid:
+                continue
+            try:
+                os.kill(pid, sig)
+            except ProcessLookupError:
+                pass
+
+    signal_then_kill(
+        deliver,
+        lambda: proc.poll() is None or bool(payload_process_ids(proc.pid)),
+        grace,
+    )
+
+
 def terminate_state(state: dict, *, grace: float, reason: str | None = None) -> bool:
     pgid = int(state.get("pgid") or state["pid"])
     if not process_group_alive(pgid) and process_visibility_limited():
@@ -3285,12 +3357,7 @@ def terminate_state(state: dict, *, grace: float, reason: str | None = None) -> 
         except ProcessLookupError:
             pass
 
-    signal_wrapper(signal.SIGTERM)
-    deadline = time.time() + grace
-    while time.time() < deadline and process_group_alive(pgid):
-        time.sleep(0.25)
-    if process_group_alive(pgid):
-        signal_wrapper(signal.SIGKILL)
+    signal_then_kill(signal_wrapper, lambda: process_group_alive(pgid), grace)
     state["status"] = "stopped"
     state["finished_at"] = utc_now()
     if reason:
@@ -5639,6 +5706,7 @@ def launch_recorded_payload(
             marker=state_path.parent / agentctl_source_deps.SOURCE_DEPS_LOADED_FILENAME,
             guard_mode=state["source_snapshot"].get("guard", "enforce"),
             proc=proc,
+            stop_payload=lambda: terminate_payload(proc, grace=STOP_GRACE_SECONDS),
             file_sha256=compute_sha256,
             utc_now=utc_now,
             on_end=persist_loading,
@@ -8313,12 +8381,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("stop", help="Stop a running job process group.")
     s.add_argument("job")
-    s.add_argument("--grace", type=float, default=5.0)
+    s.add_argument("--grace", type=float, default=STOP_GRACE_SECONDS)
     s.set_defaults(func=stop)
 
     s = sub.add_parser("restart", help="Restart the current command for a job.")
     s.add_argument("job")
-    s.add_argument("--grace", type=float, default=5.0)
+    s.add_argument("--grace", type=float, default=STOP_GRACE_SECONDS)
     s.set_defaults(func=restart)
 
     s = sub.add_parser(

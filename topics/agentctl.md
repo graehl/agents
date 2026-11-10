@@ -659,9 +659,14 @@ notices.
     functions, resolve through `ast` against the entry's directory, the
     checkout root, the project root and each `--source-deps-root DIR`;
     relative imports resolve from the importing package, and package
-    `__init__.py` files are included. Shell scripts (`.sh`/`.bash`/`.zsh` or
+    `__init__.py` files are included, both for an imported package and for
+    every package enclosing a scanned Python file (they run under
+    `python -m`). A file is Python by `.py` or a `python` or `uv run`
+    shebang. Shell scripts (`.sh`/`.bash`/`.zsh` or
     a shell shebang) are scanned by regex for `*.py`/`*.sh` paths,
-    `source`/`.` targets, `$VAR/…` paths and `python -m module`.
+    `source`/`.` targets, `$VAR/…` paths and `python -m module`. A
+    suffix-less file that is neither is listed in `scan.unresolved`, since
+    its references were not read.
     `--source-deps-pattern REGEX` adds a pattern applied to every scanned file
     (group `path`, else group 1, else the match). Regex finds are marked
     `heuristic`; references that resolve to no in-checkout file are listed in
@@ -689,10 +694,19 @@ notices.
   `--source-deps-loading-timeout` elapses (default 120 s; 0 disables the
   watch), or until the payload exits. A change before then is a violation:
   `enforce` terminates the payload and records returncode 2; `record` keeps
-  it in `loading_violations`. Later edits are not violations. The signal that
+  it in `loading_violations`. Termination reaches every process the payload
+  started (its descendants, and orphans left in the wrapper's process group),
+  with SIGTERM then SIGKILL after `stop`'s default grace; the wrapper
+  survives to record the result once they are gone. A process that both left
+  the process group and was orphaned is not found. Later edits are not
+  violations. The signal that
   ended loading is `source_deps.loading.ended_by` (`marker`, `timeout`,
   `payload-exit`, `guard-terminated`), written to state as soon as loading
   ends.
+
+  `agentctl_source_deps.py` owns the declaration, the scan and the loading
+  watch; `agentctl.py` checks the resolved files against Git and supplies the
+  payload stop.
 - An environment root outside the invoking checkout is admitted only as a
   **cross-repo pin**: the root must lie inside a Git checkout of its own, and
   that checkout must hand back both `pixi.toml` and `pixi.lock` at the
