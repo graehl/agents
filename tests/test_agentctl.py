@@ -4781,6 +4781,45 @@ def test_stop_reaches_a_child_that_left_the_process_group():
         ws.cleanup()
 
 
+def test_stop_issued_from_a_process_the_run_started_completes():
+    ws = Workspace()
+    try:
+        out = ws.scratch / "stop.out"
+        # The stopping process descends from the run but left its group, so a
+        # stop that signalled every such process would kill itself midway.
+        script = _write(
+            ws.tmp / "run.sh",
+            f"setsid {ws.tmp / 'agentctl'} stop self-stop > {out} 2>&1 &\nsleep 30\n",
+        )
+        _start(ws, "--no-aim", "self-stop", "--", "bash", str(script))
+        _wait_status(ws, "self-stop", "stopped", timeout=20)
+        _assert("stopped" in out.read_text(encoding="utf-8"), out.read_text())
+    finally:
+        ws.cleanup()
+
+
+def test_remembered_process_that_may_not_be_signalled_is_dropped():
+    ws = Workspace()
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "agentctl_under_test_remembered", ws.tmp / "agentctl.py"
+        )
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = mod
+        try:
+            spec.loader.exec_module(mod)
+            # Process 1 belongs to root: signalling it is refused, never delivered.
+            remembered = mod.RememberedProcesses(lambda: [1])
+            _assert(remembered.alive() == [1], remembered.alive())
+            remembered.signal([1], signal.SIGTERM)
+            _assert(remembered.alive() == [], remembered.alive())
+        finally:
+            sys.modules.pop(spec.name, None)
+    finally:
+        ws.cleanup()
+
+
 def test_source_deps_loading_guard_stops_processes_the_payload_started():
     ws = Workspace()
     workers: list[int] = []

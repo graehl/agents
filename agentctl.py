@@ -18,7 +18,7 @@ import subprocess
 import sys
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from fractions import Fraction
 from pathlib import Path
 
@@ -2947,6 +2947,20 @@ def process_group_members(pgid: int) -> list[int]:
     ]
 
 
+def ancestor_process_ids(pid: int) -> Iterator[int]:
+    """`pid`'s parent, grandparent and so on, stopping before init."""
+    ancestor = _proc_ppid(pid)
+    for _ in range(64):
+        if ancestor is None or ancestor <= 1:
+            return
+        yield ancestor
+        ancestor = _proc_ppid(ancestor)
+
+
+def live_process_ids() -> list[int]:
+    return [pid for pid in visible_process_ids() if proc_state(pid) not in (None, "Z")]
+
+
 def payload_process_ids(payload_pid: int) -> list[int]:
     """Live processes a wrapper's payload started, the payload included.
 
@@ -2957,40 +2971,31 @@ def payload_process_ids(payload_pid: int) -> list[int]:
     """
     wrapper, pgid = os.getpid(), os.getpgid(0)
     found: list[int] = []
-    for pid in visible_process_ids():
-        if proc_state(pid) in (None, "Z"):
-            continue
-        ancestor: int | None = pid
-        for _ in range(64):
-            if ancestor == payload_pid:
+    for pid in live_process_ids():
+        lineage = [pid, *ancestor_process_ids(pid)]
+        if payload_pid in lineage:
+            if wrapper not in lineage[: lineage.index(payload_pid)]:
                 found.append(pid)
-                break
-            if ancestor == wrapper:
-                break
-            if ancestor is None or ancestor <= 1:
-                if proc_pgid(pid) == pgid:
-                    found.append(pid)
-                break
-            ancestor = _proc_ppid(ancestor)
+        elif wrapper not in lineage and proc_pgid(pid) == pgid:
+            found.append(pid)  # orphaned inside the wrapper's group
     return found
 
 
 def descendants_outside_group(pgid: int) -> list[int]:
     """Live processes started from process group `pgid` that have left it,
-    as a job under `timeout` or `setsid` does."""
-    found: list[int] = []
-    for pid in visible_process_ids():
-        if proc_state(pid) in (None, "Z") or proc_pgid(pid) == pgid:
-            continue
-        ancestor = _proc_ppid(pid)
-        for _ in range(64):
-            if ancestor is None or ancestor <= 1:
-                break
-            if proc_pgid(ancestor) == pgid:
-                found.append(pid)
-                break
-            ancestor = _proc_ppid(ancestor)
-    return found
+    as a job under `timeout` or `setsid` does.
+
+    The calling process and its ancestors are left out: a `stop` issued from
+    inside the run it stops must finish and record the result.
+    """
+    caller = {os.getpid(), *ancestor_process_ids(os.getpid())}
+    return [
+        pid
+        for pid in live_process_ids()
+        if pid not in caller
+        and proc_pgid(pid) != pgid
+        and any(proc_pgid(a) == pgid for a in ancestor_process_ids(pid))
+    ]
 
 
 class RememberedProcesses:
@@ -2998,7 +3003,9 @@ class RememberedProcesses:
     after the parent that tied them to a run is gone.
 
     Each is remembered with its start time: a process id reused by an
-    unrelated process during the grace period is not this run's.
+    unrelated process during the grace period is not this run's. One this
+    user may not signal (a child started through `sudo`) is dropped, since
+    waiting for it could only run out the grace period.
     """
 
     def __init__(self, listing: Callable[[], list[int]], *, skip: int | None = None):
@@ -3022,6 +3029,8 @@ class RememberedProcesses:
                 os.kill(pid, sig)
             except ProcessLookupError:
                 pass
+            except PermissionError:
+                self._started[pid] = None
 
 
 def process_group_alive(pgid: int) -> bool:
@@ -3399,13 +3408,15 @@ def terminate_state(state: dict, *, grace: float, reason: str | None = None) -> 
 
     def signal_run(sig: signal.Signals) -> None:
         targets = left_group.alive()  # listed while their parents still exist
-        # The service unit owns the wrapper cgroup when there is one; fall
-        # back to the process group only when systemd could not deliver.
-        if not (service_unit and stop_user_service(service_unit, sig.name)):
-            try:
-                os.killpg(pgid, sig)
-            except ProcessLookupError:
-                pass
+        # The service unit owns the wrapper cgroup when there is one, and its
+        # signal reaches every process of the run; fall back to the process
+        # group and the listed strays only when systemd could not deliver.
+        if service_unit and stop_user_service(service_unit, sig.name):
+            return
+        try:
+            os.killpg(pgid, sig)
+        except ProcessLookupError:
+            pass
         left_group.signal(targets, sig)
 
     signal_then_kill(
