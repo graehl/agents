@@ -501,7 +501,22 @@ def test_html_table_note_markers_link_to_notes(tmp_path):
 
 
 @pytest.mark.skipif(not HAS_QUARTO, reason="needs quarto")
-def test_latex_table_widths_use_the_stated_text_block(tmp_path):
+@pytest.mark.parametrize(
+    ("geometry", "papersize", "shrinks"),
+    [
+        pytest.param("margin=1in", "letter", False, id="letter-6.5in"),
+        pytest.param("margin=3in", "letter", True, id="letter-2.5in"),
+        # A turned letter sheet is 11in wide: 3in margins leave 5in.
+        pytest.param("landscape,margin=3in", "letter", False, id="landscape"),
+        # Geometry's own paper option states the size when `papersize` does not.
+        pytest.param("a4paper,margin=3in", None, True, id="geometry-paper"),
+        # A length that is not a number keeps the assumed 6.5in block.
+        pytest.param("margin=1..5in", "letter", False, id="malformed-length"),
+    ],
+)
+def test_latex_table_widths_use_the_stated_text_block(
+    tmp_path, geometry, papersize, shrinks
+):
     # These words fit a 6.5in block at 10pt; a 2.5in block needs smaller type.
     source = tmp_path / "table.md"
     source.write_text(
@@ -510,16 +525,13 @@ def test_latex_table_widths_use_the_stated_text_block(tmp_path):
         "characterization over multilingual benchmarks |\n"
     )
 
-    def latex(geometry: str) -> str:
-        command = ["quarto", "pandoc", str(source), "--from", "markdown", "--to"]
-        command += ["latex", "-M", "papersize=letter", "-M", f"geometry={geometry}"]
-        command += ["--lua-filter", str(REPO / "qmd_build/latex_table_widths.lua")]
-        return subprocess.run(
-            command, capture_output=True, text=True, check=True
-        ).stdout
-
-    assert "\\begingroup" not in latex("margin=1in")
-    assert "\\begingroup\\" in latex("margin=3in")
+    command = ["quarto", "pandoc", str(source), "--from", "markdown", "--to"]
+    command += ["latex", "-M", f"geometry={geometry}"]
+    command += ["-M", f"papersize={papersize}"] if papersize else []
+    command += ["--lua-filter", str(REPO / "qmd_build/latex_table_widths.lua")]
+    run = subprocess.run(command, capture_output=True, text=True, check=False)
+    assert run.returncode == 0, run.stderr
+    assert ("\\begingroup\\" in run.stdout) == shrinks
 
 
 def test_paper_scaffold_places_paper_under_its_program(tmp_path):

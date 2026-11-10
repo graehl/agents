@@ -58,22 +58,30 @@ local function text_length(s)
 end
 
 local INCHES_PER_UNIT = { ["in"] = 1, cm = 1 / 2.54, mm = 1 / 25.4, pt = 1 / 72.27, bp = 1 / 72 }
-local PAPER_WIDTH_INCHES = {
-  letter = 8.5,
-  legal = 8.5,
-  executive = 7.25,
-  a4 = 210 / 25.4,
-  a5 = 148 / 25.4,
-  b5 = 176 / 25.4,
+-- Width and height in inches, portrait.
+local PAPER_INCHES = {
+  letter = { 8.5, 11 },
+  legal = { 8.5, 14 },
+  executive = { 7.25, 10.5 },
+  a4 = { 210 / 25.4, 297 / 25.4 },
+  a5 = { 148 / 25.4, 210 / 25.4 },
+  b5 = { 176 / 25.4, 250 / 25.4 },
 }
 
+-- nil for anything that is not a number with a known unit, such as `1..5in`
+-- or an option given without a value.
 local function inches(length)
-  local number, unit = (length or ""):match("^([%d%.]+)%s*(%a+)$")
-  return number and INCHES_PER_UNIT[unit] and tonumber(number) * INCHES_PER_UNIT[unit]
+  if type(length) ~= "string" then
+    return nil
+  end
+  local number, unit = length:match("^([%d%.]+)%s*(%a+)$")
+  local value = tonumber(number)
+  return value and INCHES_PER_UNIT[unit] and value * INCHES_PER_UNIT[unit]
 end
 
--- The geometry package's `key=value` options, whether the metadata holds a
--- list of them or one comma-separated string.
+-- The geometry package's options, whether the metadata holds a list of them
+-- or one comma-separated string: `key=value` gives the value, and a bare
+-- option such as `landscape` or `a4paper` gives true.
 local function geometry_options(meta)
   local options = {}
   if meta.geometry == nil then
@@ -82,13 +90,33 @@ local function geometry_options(meta)
   local items = pandoc.utils.type(meta.geometry) == "List" and meta.geometry or { meta.geometry }
   for _, item in ipairs(items) do
     for option in stringify(item):gmatch("[^,]+") do
-      local key, value = option:match("^%s*(%a+)%s*=%s*(.-)%s*$")
+      local key, value = option:match("^%s*(%a%w*)%s*=%s*(.-)%s*$")
       if key then
         options[key] = value
+      else
+        key = option:match("^%s*(%a%w*)%s*$")
+        if key then
+          options[key] = true
+        end
       end
     end
   end
   return options
+end
+
+-- The paper's horizontal extent: geometry's own paper option (`a4paper`) wins
+-- over `papersize`, and `landscape` turns the sheet.
+local function paper_width_inches(options, meta)
+  local size = PAPER_INCHES[stringify(meta.papersize or "")] or {}
+  for name, dimensions in pairs(PAPER_INCHES) do
+    if options[name .. "paper"] then
+      size = dimensions
+    end
+  end
+  if options.landscape then
+    return inches(options.paperheight) or size[2]
+  end
+  return inches(options.paperwidth) or size[1]
 end
 
 -- Text-block width when the metadata states it, else nil: geometry accepts
@@ -98,10 +126,11 @@ local function text_block_inches(meta)
   if options.textwidth then
     return inches(options.textwidth)
   end
-  local paper = inches(options.paperwidth) or PAPER_WIDTH_INCHES[stringify(meta.papersize or "")]
+  local paper = paper_width_inches(options, meta)
   local left = inches(options.left or options.lmargin or options.inner or options.hmargin or options.margin)
   local right = inches(options.right or options.rmargin or options.outer or options.hmargin or options.margin)
-  return paper and left and right and paper - left - right
+  local width = paper and left and right and paper - left - right
+  return width and width > 0 and width or nil
 end
 
 local function read_text_block(meta)
