@@ -158,11 +158,6 @@ schema—check it instead of presenting memory or agreement as fact. Treat user
 preferences and direct observations as authoritative; treat causal guesses as
 hypotheses.
 
-When entering unfamiliar code, first map relevant modules/callers in project
-vocabulary, then drill down. Before a wide change, audit, or edit to an
-uninspected file, read the full file or full relevant module/section, not
-isolated snippets that hide callers and guards.
-
 ## Delegation
 
 Delegation is optional judgment unless a higher instruction requires/forbids
@@ -223,40 +218,22 @@ route/backend marker wins over its compatibility alias.
 
 `AGENTS.user.md` is compiled into the built boot under the heading
 `# User policy (compiled from AGENTS.user.md)`; when this boot lacks that
-heading, read `AGENTS.user.md` every session. Then read the matching harness
-supplement when present, unless its complete text already appears under
-`# Harness policy (compiled from AGENTS.<harness>.md)` in this boot:
+heading, read `AGENTS.user.md` every session.
 
-- Codex: `AGENTS.codex.md`
-- Claude: `AGENTS.claude.md`
-- Native Copilot CLI (`COPILOT_CLI=1`), or an explicitly identified
-  `AGENT_LAUNCH_BACKEND=copilot-api`: `AGENTS.copilot.md`. Only when the
-  canonical backend marker is absent, accept `YEP_COPILOT_API=1` as the
-  transitional trigger. A gateway session also loads its actual harness
-  supplement and applicable model supplements.
-- Grok/xAI: `AGENTS.grok.md`
-- DeepSeek model: `AGENTS.deepseek.md` and `AGENTS.weak.md`.
+The built boot also ends with this harness's supplements, each under a
+`(compiled from AGENTS.<name>.md)` heading. One that opens with "Applies only
+when …" binds only while that condition holds; do not read a compiled
+supplement again. Read a supplement listed under
+`# Supplements to read when they apply` when its condition holds. Judge a
+model condition by the recorded model identity the harness supplement
+recovers, never self-report. When this boot has no compiled supplement
+headings, select and read supplements by the `PROFILES` table in
+`~/agents/scripts/build-boot`. Report a missing or unreadable applicable
+supplement once and continue.
 
 Harness supplements own session ids/logs, skill paths, launcher quirks, and
-backend safeguards. Cross-provider policy
-stays here. Report a missing/unreadable applicable supplement once and
-continue. Symlink and hardlink aliases to the same source route identically.
-
-Use the recorded model identity recovered by the harness supplement, never
-self-report, for these model routes. A surfaced `AGENTS.weak.md`, a DeepSeek
-model, a haiku-class model in Claude, or a pre-GPT-5.5 model in Codex selects
-`AGENTS.weak.md` and excludes `AGENTS.frontier.md`. Otherwise Claude sessions
-and Codex sessions on GPT-5.5 or above load `AGENTS.frontier.md`. An id
-containing `claude` also loads `AGENTS.anthropic.md`; `opus` also loads
-`AGENTS.opus.md`; an `astra` model-family segment (`gpt-6-astra`) loads
-`AGENTS.astra.md`; a `sol` model-family segment loads `AGENTS.sol.md`, across
-harnesses. These supplements contain their applicable guidance, not duplicate
-activation rules.
-
-Also read the launcher supplement named by `AGENT_LAUNCHER` when one exists —
-currently `yepanywhere` → `AGENTS.ya.md`. A launcher supplement owns the
-markers and capabilities that launcher publishes into the session and the
-behavior that depends on it being the launcher.
+backend safeguards; a launcher supplement owns the markers and capabilities
+that launcher publishes. Cross-provider policy stays here.
 
 Before writing/editing any agent instruction, global/project rule, supplement,
 skill, glossary row, or instruction topic, read the applicable sections of
@@ -630,12 +607,7 @@ orient and improve it. Make proportionate improvements within that scope
 without awaiting a separate request; read `topics/design-thinking.md`
 § Retained prototypes. Training and evaluation code/resources are included.
 
-## Anti-slop implementation
-
-Do not add permissive fallbacks, softened preconditions, broad exception
-swallowing, or proceed-on-partial-state behavior merely to make the current
-trace pass. Establish required preconditions or fail clearly unless recovery is
-part of the documented contract.
+## Tolerant parsing in throwaway orchestration
 
 In throwaway orchestration, parsing more than one output form from one
 invocation is tolerance, not slop, when every handled form was actually
@@ -646,7 +618,8 @@ for an explicit format option before writing the second branch; output
 that switches on TTY/pipe or version makes the untested branch the live
 one. On a second surprise from the same tool, stop tolerating: fix the
 invocation, option, helper, or instruction, and capture what resists
-fixing. Durable scripts keep the preceding bar.
+fixing. Durable scripts get no such tolerance: establish a required
+precondition or fail clearly.
 
 ## Backward compatibility
 
@@ -694,16 +667,6 @@ Before benchmarking/profiling/load simulation, read repo
 `topics/perf.md` else global. Own every spawned process: pre-sweep, teardown on
 all paths, survivor check before ending. Numbers from unmeasured contention/
 variance are diagnostic, not ratchet-grade.
-
-## Fix the invariant, not the symptom
-
-Name the violated contract behind a visible defect and fix its owning
-mechanism. Block special cases, suppressions, regex cleanup, CSS overrides, or
-caller workarounds that hide only one projection. When similar fixes already
-exist, treat duplication as a finding: keep the best invariant owner and remove
-shadow fixes unless layers have distinct deliberate contracts. UI/layout and
-software-structure details live in `topics/ui-verification.md`,
-`topics/functional-layout.md`, and `topics/software-aesthetic.md`.
 
 ## UI design proposals
 

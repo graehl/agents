@@ -6097,3 +6097,55 @@ prose correction retains substantive uncertainty and personal testimony.
 - Revised rule: authored content goes through `apply_patch` in either form,
   never a shell heredoc/redirect through `exec_command`; only the section-size
   rule bounds silence, since both forms are invisible while generated.
+
+## 2026-11-10 — supplements compiled per harness; weak routes and generic coaching leave the boot
+
+- **Trigger** — a Fable 5.2 session under Claude Code, launched by YA, was
+  asked whether the instruction system is effective. It reported that it had
+  read none of the five files the boot told it to read at entry: the project
+  `AGENTS.md`, `GLOSSARY.agents.md`, `AGENTS.frontier.md`,
+  `AGENTS.anthropic.md`, and `AGENTS.ya.md`. It had also skipped the routed
+  `testing` and `design-thinking` reads, and noticed only when asked. One
+  session; no count across logs was made.
+- **User direction** — "supplements can go in, we don't need routing since
+  build script can do". The working population is Opus 5.5 and later, Codex,
+  Sol 6.1, and Grok 4.7; Copilot stays live because it serves a frontier
+  model with its own harness interference. The user also approved moving
+  generic coaching to an unread appendix for later audit, and removing Opus
+  items judged unnecessary provided they were quoted back.
+- **Change** — `scripts/build-boot` gained a `PROFILES` table, now the one
+  statement of which supplement applies when. Each boot ends with its
+  harness's supplements: whole when every session needs it, under an
+  "Applies only when …" line when it depends on model, launcher, or backend,
+  and as one read-when line for `AGENTS.opus.md`, the only large conditional
+  one. Global policy lost its supplement list and model routes and keeps a
+  short paragraph on reading those headings. No profile routes
+  `AGENTS.weak.md` or `AGENTS.deepseek.md`. Copilot's profile gained the
+  frontier supplement; Grok's did not, per the 2026-09-24 decision.
+- **Kept from earlier entries** — the 2026-06-11 trace (b), a small model
+  running under a frontier harness, still holds for subagents, so the Claude
+  and Codex profiles state the model floor as the frontier section's
+  condition instead of dropping it with the weak route.
+- **Removed on presumption** — three generic passages from global policy and
+  two Opus 5 patches, verbatim in `AGENTS/presumed-defaults.md` and listed
+  in the frontier-capability register. All four Opus incident entries
+  (2026-07-25, 08-07, 08-19, 09-10) name Opus 5; none shows Opus 5.5
+  repeating them, and none shows it has stopped. Path-trace claims, long
+  sessions, and the empty-search control stay.
+- **Sizes, bytes** — `AGENTS.global.md` 69,407 → 67,358. Claude boot 81,448 →
+  89,596; a YA-launched Claude session that obeyed the old routes read a
+  further 7,782 (frontier, anthropic, YA), so its total is unchanged and the
+  gain is that nothing depends on a startup read. Codex boot 83,289 →
+  90,901. `AGENTS.opus.md` 3,972 → 2,711.
+- **Traces** — a Fable session from YA: all applicable text is in the boot;
+  the Opus line does not match, no read. An Opus 5.5 session: one read, of a
+  file two sections shorter. Sol through Claude Code: the Anthropic section's
+  condition fails and Sol's holds. A haiku subagent: the frontier condition
+  fails, as before. A harness linked to bare `AGENTS.global.md`: no compiled
+  headings, so the paragraph sends it to the `PROFILES` table. An agent about
+  to patch a symptom: nothing in the boot names the invariant rule now; this
+  is the presumption under trial.
+- **Not verified** — no session has yet started on the rebuilt boot, and no
+  compaction trace was run.
+
+Contributing-model: fable-5.2

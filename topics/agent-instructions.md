@@ -362,18 +362,27 @@ controlled instruction ablation for explicitly high-value questions.
 
 ## Launcher-, harness-, backend-, and model-scoped supplements
 
-`scripts/build-boot` embeds each present Codex, Claude, Grok, or Copilot
-supplement in its own `AGENTS.boot.<harness>.md`; standard harness install
-paths select that boot. Its compiled heading suppresses a second read of the
-same supplement. The shared boot remains available for other harnesses;
-model and launcher supplements retain their conditional routing.
+`scripts/build-boot` builds `AGENTS.boot.<harness>.md` for Codex, Claude,
+Grok, and Copilot; standard harness install paths select that boot. Each
+ends with every supplement that harness's sessions can need, so no startup
+read of a supplement remains: a supplement all its sessions use is appended
+whole, one that depends on the model, launcher, or backend is appended under
+an "Applies only when …" line, and a large conditional one is named by a
+single read-when line. The script's `PROFILES` table owns which supplement
+applies when; global policy only tells a session how to read those headings.
+The shared boot serves other harnesses with the same conditional supplements.
+
+The working population is frontier-tier: Opus 5.5 and later Claude models,
+current Codex, Sol, and Grok, and whatever frontier model Copilot serves.
+No profile routes `AGENTS.weak.md` or `AGENTS.deepseek.md`; they stay in the
+checkout for a launcher that surfaces one itself.
 
 `AGENTS.codex.md` and `AGENTS.claude.md` are sibling instruction files for
 harness-specific mechanics: session-log locations, real resume identifiers,
 provider skill paths, and launcher quirks. They recover model identity from
-launcher markers or, when absent, the harness record. The global instructions'
-“Authority and instruction files” section owns all harness, backend, launcher,
-and model activation conditions. Supplements contain guidance without a file
+launcher markers or, when absent, the harness record. The `PROFILES` table in
+`scripts/build-boot` owns all harness, backend, launcher, and model
+activation conditions. Supplements contain guidance without a file
 title or repeated conditions for loading themselves.
 
 `AGENTS.ya.md` is launcher-scoped: it applies when `AGENT_LAUNCHER=yepanywhere`
@@ -414,33 +423,33 @@ loading the main file gets it.
 
 `AGENTS.frontier.md` is the dual of `AGENTS.weak.md`: latitude
 grants — currently end-state-over-checklist step skipping — that a
-weaker model would read as a rationalization license. The Claude and
-Codex routes in global policy select it; the Grok route does not. Grok
+weaker model would read as a rationalization license. The Claude, Codex,
+and Copilot profiles compile it in; the Grok profile does not. Grok
 is not a weak route either: do not load `AGENTS.weak.md` for it, and do
-not restate that file's confirm-first rule in `AGENTS.grok.md`. Global
-policy excludes frontier latitude when `AGENTS.weak.md` is surfaced and
-owns the explicit model floors. Tier follows recorded model identity,
-never self-report.
+not restate that file's confirm-first rule in `AGENTS.grok.md`. The Claude
+and Codex profiles state the model floor as the compiled section's
+condition, because a subagent on a smaller model loads the same boot. Tier
+follows recorded model identity, never self-report.
 
 Edit policy: `AGENTS.frontier.md` carries relaxations only — never a
 rule an agent must follow, since weaker-model launches never load it.
 Anything binding belongs in `AGENTS.global.md`.
 
 `AGENTS.anthropic.md`, `AGENTS.opus.md`, `AGENTS.astra.md` and
-`AGENTS.sol.md` are model-scoped supplements. Global policy routes to them from the
-recorded id, so a model keeps its patch when served through another
-harness. The Anthropic-family patch requires technical glosses to state the
+`AGENTS.sol.md` are model-scoped supplements. Every profile that can serve
+the model carries them under a recorded-id condition, so a model keeps its
+patch when served through another harness. The Anthropic-family patch requires technical glosses to state the
 relevant operational distinction, expose uncertainty, or be omitted. Opus
 additionally carries the path-trace rule against overconfident assertions about
-unread code, the boot-list check before calling a request verb ambiguous, a
-long-session rule that rejects model-inferred context exhaustion as a reason to
-stop, and a compose-time check against self-matching process searches. Astra
+unread code, a long-session rule that rejects model-inferred context
+exhaustion as a reason to stop, and the positive control an empty search
+needs before it supports a claim. Astra
 keeps a claim's epistemic status out of a sentence of its own; graehl sees
 the habit in every current OpenAI model but writes only with Astra. Sol
 carries the confirmation rule formerly housed in the Codex supplement
-and the direct-work correction for Sol served through Claude Gateway. Like
-every model supplement, `AGENTS.astra.md` is a routed read, not part of a
-compiled harness boot; Astra still receives shared policy, applicable frontier
+and the direct-work correction for Sol served through Claude Gateway.
+`AGENTS.astra.md` is compiled under its model condition like the other
+small model supplements; Astra still receives shared policy, applicable frontier
 latitude, and its harness boot, and Sol's model-id condition does not select
 Astra. Proposed reductions live in
 [`agent-instructions.sketches.md`](agent-instructions.sketches.md#astra-and-shared-instruction-reductions),

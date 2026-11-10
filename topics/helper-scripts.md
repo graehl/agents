@@ -468,9 +468,15 @@ already needs; a protected file keeps it without the read. So the boot
 carries what every session would otherwise load: the global policy, the
 activity routes, and `AGENTS.user.md`. It also builds
 `AGENTS.boot.<harness>.md` for each present Codex, Claude, Grok, or Copilot
-supplement, appending that harness's complete text. Model and launcher
-supplements remain routed reads. A compiled harness heading suppresses the
-redundant startup read of that same supplement.
+supplement. Each boot ends with the supplements its entry in the script's
+`PROFILES` table names: the harness supplement, then model, launcher, and
+backend supplements. That table is the one statement of which supplement
+applies when. A supplement every session of that harness needs is appended
+under `# <Scope> policy (compiled from AGENTS.<name>.md)`; one that depends on
+the model or launcher is appended with an opening "Applies only when …" line;
+a large conditional one contributes a single read-when line under
+`# Supplements to read when they apply`. A supplement file that is absent is
+skipped. The shared `AGENTS.boot.md` carries the `None` profile.
 
 **CLI**: `build-boot [--repo <dir>] build [--check] [--index] [--output <path>]`
 and `build-boot link [--check] [--to-global]`; acli baseline with completion.

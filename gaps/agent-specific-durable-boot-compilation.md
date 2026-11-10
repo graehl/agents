@@ -58,3 +58,11 @@ them as reads.
 `AGENTS.boot.<harness>.md` with the complete matching supplement for Codex,
 Claude, Grok, and Copilot. Standard harness links select those boots.
 Model-, launcher-, and request-specific selection remain open.
+
+**Landed 2026-11-10 (model and launcher supplements):** each boot now ends
+with the model, launcher, and backend supplements its harness can need,
+conditional ones under an "Applies only when …" line, selected by the
+`PROFILES` table in `scripts/build-boot`. A link cannot choose a boot per
+model, so model conditions are still judged in the session. Still open:
+project- and request-scoped layers, a per-model profile chosen at launch,
+and the compaction trace this gap's fix sketch asks for.

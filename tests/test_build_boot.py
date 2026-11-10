@@ -205,6 +205,36 @@ def test_harness_boots_include_only_matching_supplement_and_refresh() -> None:
         assert target.resolve() == repo / "AGENTS.global.md"
 
 
+def test_boots_carry_their_profile_supplements_with_conditions() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        for name in ("claude", "grok", "frontier", "anthropic", "ya", "opus"):
+            (repo / f"AGENTS.{name}.md").write_text(f"{name} body.\n")
+        assert _run(repo, "build").returncode == 0
+        claude = (repo / "AGENTS.boot.claude.md").read_text()
+        assert (
+            "# Harness policy (compiled from AGENTS.claude.md)\n\nclaude body."
+            in claude
+        )
+        assert (
+            "# Model policy (compiled from AGENTS.frontier.md)\n\n"
+            "Applies only when the recorded model is not haiku-class.\n\nfrontier body."
+        ) in claude
+        assert "Applies only when `AGENT_LAUNCHER=yepanywhere`.\n\nya body." in claude
+        # A large conditional supplement is named, not inlined.
+        assert "opus body." not in claude
+        assert "contains `opus` → `~/agents/AGENTS.opus.md`" in claude
+        # An absent supplement leaves no heading or read line.
+        assert "AGENTS.sol.md" not in claude
+        grok = (repo / "AGENTS.boot.grok.md").read_text()
+        assert "ya body." in grok
+        assert "frontier body." not in grok and "AGENTS.opus.md" not in grok
+        shared = (repo / "AGENTS.boot.md").read_text()
+        assert "anthropic body." in shared and "claude body." not in shared
+        (repo / "AGENTS.frontier.md").write_text("changed frontier.\n")
+        assert _run(repo, "build", "--check").returncode == 3
+
+
 def test_missing_markers_fail_without_writing() -> None:
     with tempfile.TemporaryDirectory() as root:
         repo = _repo(Path(root))
