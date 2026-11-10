@@ -586,8 +586,10 @@ baseline with completion.
   counts after the skip. It never moves the marker.
 - Counting starts each file at the end of the furthest row covering it
   whose end is past the marker, else at the marker. Rows at or behind the
-  marker stay as the record and change no count. A row the tool cannot
-  parse exits 3.
+  marker stay as the record and change no count. The record may be edited
+  by hand: its prose and any list line the tool cannot read are kept across
+  rewrites, and such a line is ignored for counting, listed under
+  `skips_unreadable`, and named in a `hook` line.
 - A `--to` not after where the path is reviewed or skipped to, or not in
   HEAD's history, exits 5; an unknown `--to` exits 4. `--path` is
   normalized (`./legacy/` is `legacy`), repeats collapse, and a path with
@@ -595,9 +597,10 @@ baseline with completion.
   `no_code_changed`. `--reason` is one line.
 - `unskip --path <p>…` removes those paths' rows once a review has covered
   them, and the record file with its last row; no matching row exits 4.
-- A row whose end commit the repository no longer has stops applying;
-  `status` lists it under `skips_with_missing_commit` and `hook` prints a
-  `review-due: skipped-range row for …` line.
+- A row whose end commit is no longer in HEAD's history stops applying;
+  `status` lists it under `skips_needing_repair` and `hook` prints a line
+  giving the repair: `skip` for that path replaces the broken row, keeping
+  its start when that commit survived.
 - With no marker `status` and `hook` report nothing due: a repository is
   enrolled by its first strict review. `skip` without a marker, or a marker
   naming a commit the repository lacks, exits 4.

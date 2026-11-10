@@ -54,7 +54,7 @@ Shapes worth considering:
 - **Sequential fold** — one leaf re-engaged item by item over a bulky
   homogeneous sweep, keeping per-item detail out of the parent's
   context; the accumulator is the message stream back to the parent or
-  a handoff/journal file read in full before each append. Neutral, not
+  a handoff/journal file it appends to. Neutral, not
   preferred: direct work appending digests to such a journal has the
   same property. Do not fold away the core investigation — the parent
   keeps the trace it must reason over.

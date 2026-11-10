@@ -19,6 +19,7 @@ import sys
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
+from typing import Literal
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
@@ -61,7 +62,8 @@ class Section:
     title: str
     body_end: int
     tree_end: int
-    cls: str
+    # A heading tag, UNCLASSIFIED for none, or GAP for a front-matter-dated file.
+    cls: Literal["state", "owed", "durable", "unclassified", "gap"]
     stamped: date | None
 
 

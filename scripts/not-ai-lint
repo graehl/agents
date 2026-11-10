@@ -67,7 +67,11 @@ DENSE_VOCABULARY = 3
 # (0.9 to 1.0 times), so one alone is collapsed to a line number in text
 # output. Two or more candidates in a paragraph are listed in full.
 BULK = frozenset({"triad", "participle"})
-BOLD = re.compile(r"\*\*[^*\n]+\*\*|__[^_\n]+__")
+# The underscore form needs a non-word character inside and none beside it, so
+# `__init__` and `foo__bar__baz` are identifiers, not emphasis.
+BOLD = re.compile(r"\*\*[^*\n]+\*\*|(?<!\w)__(?=[^_\n]*[^\w\n])[^_\n]+__(?!\w)")
+# A run-in paragraph head, `**Reading.** Text…`, is a label like a bullet's lead.
+RUN_IN_HEAD = re.compile(r"^\s*(?:\*\*|__)[^*_\n]{1,60}?[.:](?:\*\*|__)")
 BOLD_LEAD = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*|__)[^*_\n]{1,60}?(?:\*\*|__)")
 LONG_WORD = re.compile(r"[A-Za-z]{4,}")
 DEFAULT_LIMIT = 40
@@ -142,15 +146,17 @@ def scan_text(prose: Prose) -> tuple[str, list[int], dict[int, int]]:
     source: list[int] = []
     paragraph: dict[int, int] = {}
     previous = 0
+    breaks = 0
     for line in prose.lines:
         if line.kind == "table" or not line.text.strip():
             continue
         if rows and line.number != previous + 1:
             rows.append("")
             source.append(0)
+            breaks += 1
         rows.append(line.text)
         source.append(line.number)
-        paragraph[line.number] = source.count(0)
+        paragraph[line.number] = breaks
         previous = line.number
     return "\n".join(rows) + "\n", source, paragraph
 
@@ -199,7 +205,7 @@ def local_findings(
             )
         if line.kind == "heading":
             continue
-        lead = BOLD_LEAD.match(line.text) if line.kind == "bullet" else None
+        lead = (BOLD_LEAD if line.kind == "bullet" else RUN_IN_HEAD).match(line.text)
         for match in BOLD.finditer(line.text):
             # A bullet's bold lead is the scan's list-shape rule; a bold symbol
             # or short label is notation, not emphasis.
@@ -313,7 +319,10 @@ def report(path: str, args, limit: int | None) -> dict:
             "category": h["category"],
             "note": h["note"],
             "match": " ".join(h["match"].split()),
-            "alone": h["category"] in BULK and crowd[paragraph[h["line"]]] < 2,
+            # A hit on a separator row has no source line and no paragraph.
+            "alone": h["category"] in BULK
+            and h["line"] in paragraph
+            and crowd[paragraph[h["line"]]] < 2,
         }
         for h in hits
     ]

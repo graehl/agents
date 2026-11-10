@@ -40,7 +40,6 @@ from acli import (
 
 CAPABILITIES = ("complete",)
 EXIT_CODES = {
-    3: "the skipped-range record has a malformed row",
     4: "the marker is absent for `skip`, or names a commit this repository lacks",
     5: "`skip --to` is not after where that path is already reviewed or skipped to",
 }
@@ -193,32 +192,71 @@ _SKIP_ROW = re.compile(
 )
 
 
-def read_skips(record: Path) -> list[SkippedRange]:
-    """The approved skips in the record file; a malformed row is an error."""
-    if not record.is_file():
-        return []
-    rows = []
-    for number, line in enumerate(record.read_text().splitlines(), 1):
-        if not line.startswith("- `"):
-            continue
-        row = _SKIP_ROW.match(line)
-        if not row:
-            die(
-                f"Malformed skipped-range row at {record}:{number}; rows are "
-                "written by `review-due skip`",
-                ExitCode.DATA,
-            )
-        fields = row.groupdict()
-        rows.append(
-            SkippedRange(
-                **{**fields, "lines": int(row["lines"]), "commits": int(row["commits"])}
-            )
-        )
-    return rows
+SKIPS_PREAMBLE = """\
+---
+slug: unreviewed-code
+noticed: {today}
+where: the paths and commit ranges listed below
+---
+
+**Gap:** code changed in these ranges never had the strict review. The user
+approved skipping each so that automatic reviews could resume from a point
+small enough to act on. Each list line below is one skipped range: a path,
+the commits in which its code changes went unreviewed, and their size.
+`review-due skip` adds a line and `review-due` starts counting that path
+after its range.
+**Fix sketch:** strict-review one line's path over its range, then remove the
+line (`review-due unskip --path <path>`, or by hand). Remove this file with
+its last line.
+
+## Skipped ranges
+
+"""
+
+
+@dataclass
+class SkipRecord:
+    """The committed file of approved skips: its prose, its ranges, and any list
+    line a hand edit left unreadable, which is kept and reported, never dropped."""
+
+    file: Path
+    prose: str
+    ranges: list[SkippedRange]
+    unreadable: list[str]
+
+    @classmethod
+    def load(cls, file: Path) -> SkipRecord:
+        today = datetime.now(timezone.utc).date().isoformat()
+        record = cls(file, SKIPS_PREAMBLE.format(today=today), [], [])
+        if not file.is_file():
+            return record
+        prose = []
+        for line in file.read_text().splitlines():
+            if not line.startswith("- `"):
+                prose.append(line)
+                continue
+            fields = _SKIP_ROW.match(line)
+            if not fields:
+                record.unreadable.append(line)
+                continue
+            counts = {"lines": int(fields["lines"]), "commits": int(fields["commits"])}
+            record.ranges.append(SkippedRange(**{**fields.groupdict(), **counts}))
+        record.prose = "\n".join(prose).rstrip("\n") + "\n\n"
+        return record
+
+    def save(self) -> None:
+        """Write the file, or remove it once it lists nothing."""
+        if not self.ranges and not self.unreadable:
+            self.file.unlink(missing_ok=True)
+            return
+        self.file.parent.mkdir(parents=True, exist_ok=True)
+        entries = [row.as_row() for row in self.ranges]
+        entries += [line + "\n" for line in self.unreadable]
+        self.file.write_text(self.prose + "".join(entries))
 
 
 @dataclass(frozen=True)
-class Limits:
+class Settings:
     """Thresholds for a due review, the size past which one review is too much,
     and the committed record of ranges the user agreed to skip."""
 
@@ -247,21 +285,30 @@ def reviewed_marker(repo: Path) -> str | None:
     return reviewed
 
 
+NOT_ENROLLED = {
+    "reviewed": None,
+    "skips_needing_repair": [],
+    "skips_unreadable": [],
+    "due": [],
+}
+
+
 def unreviewed_code(
-    repo: Path, limits: Limits, recorded: list[SkippedRange] | None = None
+    repo: Path, limits: Settings, record: SkipRecord | None = None
 ) -> dict:
     """Count code changed since the marker and say which reviews that makes due.
 
-    `recorded` stands in for the record file's rows, to preview a skip.
+    `record` stands in for the record file, to preview a skip.
     """
     reviewed = reviewed_marker(repo)
     if reviewed is None:
-        return {"reviewed": None, "skips_with_missing_commit": [], "due": []}
+        return dict(NOT_ENROLLED)
     modes = _file_modes(repo)
-    rows = read_skips(repo / limits.skips_file) if recorded is None else recorded
-    # A rebase can orphan a row's end commit; its skip then silently stops
-    # applying, so it is reported instead of ignored.
-    lost = [row for row in rows if not _commit_exists(repo, row.end)]
+    record = record or SkipRecord.load(repo / limits.skips_file)
+    rows = record.ranges
+    # A rebase can leave a range ending at a commit that is gone or off this
+    # history; it then stops applying, so it is reported for repair.
+    lost = [row for row in rows if not _is_ancestor(repo, row.end, "HEAD")]
     skips = [
         row
         for row in rows
@@ -273,7 +320,8 @@ def unreviewed_code(
     # skip covering it, else the marker.
     depth = {row.end: _commits_between(repo, reviewed, row.end) for row in skips}
     by_start: dict[str, list[str]] = {}
-    for _, path in changed_code(repo, f"{reviewed}..HEAD", modes):
+    since_marker = changed_code(repo, f"{reviewed}..HEAD", modes)
+    for _, path in since_marker:
         covering = [row.end for row in skips if row.covers(path)]
         start = max(covering, key=depth.__getitem__) if covering else reviewed
         by_start.setdefault(start, []).append(path)
@@ -283,11 +331,14 @@ def unreviewed_code(
     by_subtree: dict[str, int] = {}
     for start, paths in by_start.items():
         span = f"{start}..HEAD"
-        new_files += [
-            path
-            for status, path in changed_code(repo, span, modes, paths)
-            if status == "A"
-        ]
+        # The marker's own group was just listed; only a skip's later start
+        # needs its own listing to tell which files are new since then.
+        listed = (
+            [entry for entry in since_marker if entry[1] in set(paths)]
+            if start == reviewed
+            else changed_code(repo, span, modes, paths)
+        )
+        new_files += [path for status, path in listed if status == "A"]
         for path, count in changed_line_counts(repo, span, paths).items():
             changed_lines += count
             top = path.split("/", 1)[0] if "/" in path else "."
@@ -318,7 +369,8 @@ def unreviewed_code(
         "max_review_commits": limits.max_review_commits,
         "by_subtree": dict(largest),
         "skips_in_effect": [row.as_dict() for row in skips],
-        "skips_with_missing_commit": [row.as_dict() for row in lost],
+        "skips_needing_repair": [row.as_dict() for row in lost],
+        "skips_unreadable": record.unreadable,
         "due": due,
     }
 
@@ -336,11 +388,14 @@ def due_lines(result: dict) -> list[str]:
             f"review-due: periodic review due: {result['changed_lines']} changed code "
             f"lines in {result['commits']} commits since {result['reviewed'][:12]}"
         )
-    for row in result["skips_with_missing_commit"]:
+    for row in result["skips_needing_repair"]:
         lines.append(
-            f"review-due: skipped-range row for `{row['path']}` ends at a commit this "
-            f"repository no longer has ({row['end'][:12]}); it no longer applies"
+            f"review-due: the skipped range for `{row['path']}` ends at {row['end'][:12]}, "
+            "which is no longer in this history, so it has stopped applying; repair it "
+            f"with `review-due skip --path {row['path']} --to <the commit it became>`"
         )
+    for line in result["skips_unreadable"]:
+        lines.append(f"review-due: unreadable skipped-range line, ignored: {line}")
     if "oversized" in result["due"]:
         largest = ", ".join(
             f"{path} {count}" for path, count in list(result["by_subtree"].items())[:3]
@@ -354,34 +409,14 @@ def due_lines(result: dict) -> list[str]:
     return lines
 
 
-def _limits(args) -> Limits:
-    return Limits(
+def _limits(args) -> Settings:
+    return Settings(
         args.max_lines,
         args.max_commits,
         args.max_review_lines,
         args.max_review_commits,
         args.skips_file,
     )
-
-
-SKIPS_PREAMBLE = """\
----
-slug: unreviewed-code
-noticed: {today}
-where: the paths and commit ranges listed below
----
-
-**Gap:** code changed in these ranges never had the strict review. The user
-approved skipping each so that automatic reviews could resume from a point
-small enough to act on. `review-due skip` writes these rows and `review-due`
-reads them; do not edit them by hand.
-**Fix sketch:** strict-review one row's path over its range, then run
-`review-due unskip --path <path>`, which also removes this file with its last
-row.
-
-## Skipped ranges
-
-"""
 
 
 def skip(args) -> int:
@@ -396,22 +431,28 @@ def skip(args) -> int:
         die(f"--to {end[:12]} is not in HEAD's history", ExitCode.CONFLICT)
     if "\n" in args.reason or not args.reason.strip():
         die("--reason must be one nonempty line")
-    record = repo / args.skips_file
-    rows = read_skips(record)
+    record = SkipRecord.load(repo / args.skips_file)
+    rows = record.ranges
     modes = _file_modes(repo)
     today = datetime.now(timezone.utc).date().isoformat()
     added = []
     unchanged = []
     for path in dict.fromkeys(map(_repo_path, args.path or ["."])):
+        own = [row for row in rows if row.path == path]
+        # Repair: this path's range that a rebase left ending off this history
+        # is replaced, keeping its start when that commit survived.
+        broken = [row for row in own if not _is_ancestor(repo, row.end, "HEAD")]
         # Extend this path's own earlier skip when it reaches the marker or past it.
         earlier = [
             row
-            for row in rows
-            if row.path == path and _is_ancestor(repo, reviewed, row.end)
+            for row in own
+            if row not in broken and _is_ancestor(repo, reviewed, row.end)
         ]
-        base = earlier[0].base if earlier else reviewed
+        kept_start = [row.base for row in broken if _is_ancestor(repo, row.base, end)]
+        base = earlier[0].base if earlier else (kept_start or [reviewed])[0]
         reached = earlier[-1].end if earlier else reviewed
-        if reached == end or not _is_ancestor(repo, reached, end):
+        rows = [row for row in rows if row not in broken]
+        if not broken and (reached == end or not _is_ancestor(repo, reached, end)):
             die(
                 f"--to {end[:12]} is not after {reached[:12]}, where `{path}` is "
                 "reviewed or skipped to",
@@ -430,22 +471,16 @@ def skip(args) -> int:
         added.append(
             SkippedRange(path, base, end, lines, len(commits), today, args.reason)
         )
-    rows += added
+    record.ranges = rows + added
     result = {
-        "record": str(record),
+        "record": str(record.file),
         "written": not args.dry_run,
         "skipped": [row.as_dict() for row in added],
         "no_code_changed": unchanged,
     }
     if not args.dry_run:
-        record.parent.mkdir(parents=True, exist_ok=True)
-        head = (
-            record.read_text().split("\n- `", 1)[0].rstrip("\n") + "\n\n"
-            if record.is_file()
-            else SKIPS_PREAMBLE.format(today=today)
-        )
-        record.write_text(head + "".join(row.as_row() for row in rows))
-    remaining = result["remaining"] = unreviewed_code(repo, _limits(args), rows)
+        record.save()
+    remaining = result["remaining"] = unreviewed_code(repo, _limits(args), record)
     emit(
         result,
         resolve_format(args),
@@ -464,23 +499,18 @@ def skip(args) -> int:
 
 def unskip(args) -> int:
     """Drop the rows for paths whose skipped ranges a review has now covered."""
-    record = Path(args.repo).resolve() / args.skips_file
-    rows = read_skips(record)
+    record = SkipRecord.load(Path(args.repo).resolve() / args.skips_file)
     named = set(map(_repo_path, args.path))
-    removed = [row for row in rows if row.path in named]
+    removed = [row for row in record.ranges if row.path in named]
     if not removed:
-        die("No skipped-range row has that path", ExitCode.NOT_FOUND)
-    kept = [row for row in rows if row.path not in named]
-    if kept:
-        head = record.read_text().split("\n- `", 1)[0].rstrip("\n") + "\n\n"
-        record.write_text(head + "".join(row.as_row() for row in kept))
-    else:
-        record.unlink()
+        die("No skipped range has that path", ExitCode.NOT_FOUND)
+    record.ranges = [row for row in record.ranges if row.path not in named]
+    record.save()
     emit(
         {
-            "record": str(record),
+            "record": str(record.file),
             "removed": [row.as_dict() for row in removed],
-            "record_deleted": not kept,
+            "record_deleted": not record.file.exists(),
         },
         resolve_format(args),
         text="\n".join(f"removed {row.as_row().rstrip()}" for row in removed),

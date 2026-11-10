@@ -74,7 +74,8 @@ class Scan(unittest.TestCase):
     ) -> None:
         source = (
             "The outside label is **O** and the gain is **quite large** here.\n\n"
-            "- **Recall.** It rose on every language we measured this year.\n"
+            "- **Recall.** It rose on every language we measured this year.\n\n"
+            "**Reading.** Call __init__ or foo__bar__baz from the setup code.\n"
         )
         (report,) = reports(stdin=source)
         bold = [

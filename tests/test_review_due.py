@@ -210,16 +210,31 @@ def test_a_skip_row_whose_commit_is_gone_is_reported() -> None:
             f"- `legacy` `{_marker(repo)}..{gone}` 3 lines, 1 commits; "
             "skipped 2026-11-10: r\n"
         )
-        assert "no longer has (111111111111)" in _run(repo, "hook").stdout
+        _commit(repo, "legacy/old.py", "a = 1\n")
+        hook = _run(repo, "hook").stdout
+        assert "ends at 111111111111, which is no longer in this history" in hook
+        # Skipping that path again replaces the broken range instead of adding one.
+        _run(repo, "skip", "--path", "legacy", "--to", "HEAD", "--reason", "repair")
+        record = (repo / "gaps" / "unreviewed-code.md").read_text()
+        assert gone not in record and record.count("- `legacy`") == 1
+        assert _run(repo, "hook").stdout == ""
 
 
-def test_a_malformed_skip_row_is_an_error() -> None:
+def test_a_hand_edited_line_that_cannot_be_read_is_reported_and_kept() -> None:
     with tempfile.TemporaryDirectory() as root:
         repo = _repo(Path(root))
         _mark(repo)
-        (repo / "gaps").mkdir()
-        (repo / "gaps" / "unreviewed-code.md").write_text("- `legacy` oops\n")
-        assert _run(repo, "hook").returncode == 3
+        _commit(repo, "legacy/old.py", "a = 1\n")
+        record = repo / "gaps" / "unreviewed-code.md"
+        record.parent.mkdir()
+        record.write_text("My note.\n\n- `legacy` oops\n")
+        hook = _run(repo, "hook")
+        assert hook.returncode == 0
+        assert "unreadable skipped-range line, ignored: - `legacy` oops" in hook.stdout
+        _run(repo, "skip", "--to", "HEAD", "--reason", "r")
+        text = record.read_text()
+        assert text.startswith("My note.") and "- `legacy` oops\n" in text
+        assert "- `.` `" in text
 
 
 def test_marker_naming_an_unknown_commit_fails() -> None:
