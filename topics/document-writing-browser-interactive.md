@@ -170,8 +170,9 @@ It renders an isolated sibling copy of the document directory with
 
 The receipt and regenerate descriptor are the general convention for a
 rebuildable static output: the project browser judges staleness by the
-receipt's input hashes and, under `serve --rebuild`, reruns the command for a
-stale HTML page on request and for a stale PDF before serving it
+receipt's input hashes and, under `serve --rebuild`, reruns the command in
+the background for a stale HTML page or PDF when it is requested, serving the
+old file meanwhile
 (`project-templates/bases/repo-view/guide.md` § Freshness and rebuilds).
 Another builder of static output adopts it by writing the same receipt.
 
