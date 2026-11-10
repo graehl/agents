@@ -338,10 +338,13 @@ class Builds:
         """Start the build of a stale output that was opened where no notice
         can offer it (a PDF in a viewer), once per freshness `stamp`: a build
         that fails, or leaves the output stale, is not rerun by every request."""
+        # Per output: every PDF of one project shares a recipe and has its own
+        # stamp, so a per-recipe memory would restart on alternating requests.
+        once = (recipe.key, source)
         with self._lock:
-            if self._started_once.get(recipe.key) == stamp:
+            if self._started_once.get(once) == stamp:
                 return
-            self._started_once[recipe.key] = stamp
+            self._started_once[once] = stamp
         self.start(recipe, source)
 
     def status(self, source: str) -> dict:

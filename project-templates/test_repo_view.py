@@ -565,6 +565,40 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(self.get(base + "index.pdf")[2], "pdf new")
         self.assertEqual(runs.read_text(), "render --to pdf\n")
 
+    def test_failing_pdf_render_is_started_once_per_stale_pdf(self) -> None:
+        # Two PDFs of one project share the render command; a build that fails
+        # must not be restarted each time a viewer asks for the other one.
+        bin_dir = self.repo.parent / "bin"
+        bin_dir.mkdir()
+        runs = self.repo.parent / "quarto-runs"
+        fake = bin_dir / "quarto"
+        fake.write_text(
+            f"#!{sys.executable}\n"
+            "import sys\n"
+            f"with open({str(runs)!r}, 'a') as runs:\n"
+            "    runs.write(' '.join(sys.argv[1:]) + '\\n')\n"
+            "sys.exit(1)\n"
+        )
+        fake.chmod(0o755)
+        self.write(
+            "README.md", "[a](paper/_build/index.pdf) [b](paper/_build/supp.pdf)\n"
+        )
+        self.write("paper/_quarto.yml", "project:\n  output-dir: _build\n")
+        for name in ("index", "supp"):
+            self.write(f"paper/_build/{name}.pdf", "pdf old")
+            os.utime(
+                self.repo / f"paper/_build/{name}.pdf",
+                ns=(1_000_000_000_000_000_000,) * 2,
+            )
+            self.write(f"paper/{name}.qmd", "new")
+        env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
+        base = self.serve("--rebuild", env=env) + "/paper/_build/"
+        for _ in range(3):
+            for name in ("index.pdf", "supp.pdf"):
+                self.assertEqual(self.get(base + name)[2], "pdf old")
+                self.assertEqual(self.finished_rebuild(base + name)["state"], "failed")
+        self.assertEqual(runs.read_text().count("render --to pdf"), 2)
+
     def test_unreceipted_quarto_output_rebuilds_with_quarto_render(self) -> None:
         # A stand-in `quarto` that renders the project's HTML from index.qmd.
         bin_dir = self.repo.parent / "bin"

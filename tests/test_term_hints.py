@@ -249,3 +249,22 @@ def test_html_builder_runs_a_project_registered_filter_once(tmp_path: Path) -> N
     html = (tmp_path / "index.html").read_text()
     assert html.count('id="term-first-1"') == 1
     assert html.count('data-term-card="term-first-1"') == 1
+
+
+def test_html_builder_runs_a_document_registered_filter_once(tmp_path: Path) -> None:
+    # A standalone document may list the filter in its own front matter.
+    (tmp_path / "index.qmd").write_text(
+        f"---\ntitle: Standalone\nfilters:\n  - {FILTER}\n"
+        "term-hints-implicit: true\n---\n\n## Use\n\n"
+        "The $x$ value is *introduced* here.\n\nLater $x$ is *introduced* again.\n"
+    )
+    result = subprocess.run(
+        [str(REPO / "scripts/qmd-html"), str(tmp_path / "index.qmd"), "--text"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    html = (tmp_path / "index.html").read_text()
+    assert html.count('id="term-first-1"') == 1
+    assert html.count('data-term-card="term-first-1"') == 1

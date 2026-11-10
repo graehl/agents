@@ -4750,37 +4750,51 @@ def test_source_deps_loading_phase_ends_by_marker_timeout_or_guard():
 
 def test_source_deps_loading_guard_stops_processes_the_payload_started():
     ws = Workspace()
-    worker = 0
+    workers: list[int] = []
     try:
         dep = _write(ws.tmp / "dep.py", "D = 1\n")
-        worker_pid_file = ws.scratch / "worker.pid"
-        # The shell keeps running beside its worker instead of exec'ing it.
+        pid_files = [ws.scratch / "worker.pid", ws.scratch / "own-group.pid"]
+        # The shell keeps running beside its workers instead of exec'ing one.
+        # The second worker leaves the shell's process group, as a job under
+        # `timeout` does, so only its parentage ties it to the run.
         script = _write(
-            ws.tmp / "run.sh", f"sleep 30 &\necho $! > {worker_pid_file}\nwait\n"
+            ws.tmp / "run.sh",
+            f"sleep 30 &\necho $! > {pid_files[0]}\n"
+            f"setsid sleep 30 &\necho $! > {pid_files[1]}\nwait\n",
         )
         ws.commit(dep, script)
         _start(ws, "--source-dep", "dep.py", "tree", "--", "bash", "run.sh")
         deadline = time.time() + 10
-        while time.time() < deadline and not worker:
+        while time.time() < deadline and len(workers) < len(pid_files):
             time.sleep(0.05)
-            if worker_pid_file.exists():
-                worker = int(worker_pid_file.read_text(encoding="utf-8") or 0)
-        _assert(worker, "payload never started its worker")
+            workers = [
+                int(text)
+                for text in (
+                    f.read_text(encoding="utf-8").strip()
+                    for f in pid_files
+                    if f.exists()
+                )
+                if text
+            ]
+        _assert(len(workers) == len(pid_files), "payload never started its workers")
         dep.write_text("D = 2\n", encoding="utf-8")
         state = ws.wait_finished("tree", timeout=15)
         _assert(state["returncode"] == 2, state)
         loading = state["source_snapshot"]["source_deps"]["loading"]
         _assert(loading["ended_by"] == "guard-terminated", loading)
-        # The wrapper records the result only after the worker is gone; an
+        # The wrapper records the result only after the workers are gone; an
         # unreaped zombie no longer runs.
-        try:
-            stat = Path(f"/proc/{worker}/stat").read_text(encoding="utf-8")
-        except OSError:
-            stat = ") Z"
-        _assert(stat.rsplit(")", 1)[1].split()[0] == "Z", f"worker survived: {stat}")
-        worker = 0
+        for worker in workers:
+            try:
+                stat = Path(f"/proc/{worker}/stat").read_text(encoding="utf-8")
+            except OSError:
+                stat = ") Z"
+            _assert(
+                stat.rsplit(")", 1)[1].split()[0] == "Z", f"worker survived: {stat}"
+            )
+        workers = []
     finally:
-        if worker:
+        for worker in workers:
             try:
                 os.kill(worker, signal.SIGKILL)
             except ProcessLookupError:

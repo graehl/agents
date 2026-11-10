@@ -697,8 +697,11 @@ notices.
   it in `loading_violations`. Termination reaches every process the payload
   started (its descendants, and orphans left in the wrapper's process group),
   with SIGTERM then SIGKILL after `stop`'s default grace; the wrapper
-  survives to record the result once they are gone. A process that both left
-  the process group and was orphaned is not found. Later edits are not
+  survives to record the result once they are gone. The processes are listed
+  before the first signal, so a child in its own process group (a job under
+  `timeout` or `setsid`) is stopped too. Only a process that had already been
+  orphaned outside the wrapper's group before the stop is not found. Later
+  edits are not
   violations. The signal that
   ended loading is `source_deps.loading.ended_by` (`marker`, `timeout`,
   `payload-exit`, `guard-terminated`), written to state as soon as loading

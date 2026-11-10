@@ -97,10 +97,11 @@ def quarto_facts(root: Path, quarto: str) -> dict:
     else:
         output_dir, resources, filters = home, [home], []
     return {
-        # File names of the filters the project's `_quarto.yml` registers.
-        "project_filters": {
+        # File names of the filters this render already runs: the project's
+        # `_quarto.yml` list and the document's own front matter.
+        "registered_filters": {
             Path(entry["path"] if isinstance(entry, dict) else entry).name
-            for entry in filters
+            for entry in [*filters, *pandoc.get("filters", [])]
         },
         "output": (
             output_dir / pandoc.get("output-file", root.stem + ".html")
@@ -229,9 +230,10 @@ def render_root(args, config: Config, root: Path) -> dict:
         command += ["--lua-filter", str(PACKAGE / "included_documents.lua")]
         command += ["--lua-filter", str(PACKAGE / "table_notes.lua")]
         # A project whose `_quarto.yml` lists the filter (the paper scaffold
-        # does, for a plain `quarto render`) already runs it in this render.
-        # A second run would read the first run's links and anchors as source.
-        if TERM_HINTS.name not in facts["project_filters"]:
+        # does, for a plain `quarto render`), or a document that lists it in
+        # its front matter, already runs it in this render. A second run
+        # would read the first run's links and anchors as source.
+        if TERM_HINTS.name not in facts["registered_filters"]:
             command += ["--lua-filter", str(TERM_HINTS)]
         if source_map:
             command += ["--lua-filter", str(PACKAGE / "source_map.lua")]

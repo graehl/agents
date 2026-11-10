@@ -3324,20 +3324,26 @@ def terminate_payload(proc: subprocess.Popen, *, grace: float) -> None:
     by one, leaving itself out.
     """
 
+    # Remembered across signals: once the payload dies, a child in another
+    # process group is an orphan that no later listing connects to this run.
+    started: set[int] = set()
+
+    def started_and_alive() -> list[int]:
+        started.update(payload_process_ids(proc.pid))
+        started.discard(proc.pid)
+        return [pid for pid in sorted(started) if pid_alive(pid)]
+
     def deliver(sig: signal.Signals) -> None:
+        targets = started_and_alive()  # listed before the payload is signalled
         proc.send_signal(sig)
-        for pid in payload_process_ids(proc.pid):
-            if pid == proc.pid:
-                continue
+        for pid in targets:
             try:
                 os.kill(pid, sig)
             except ProcessLookupError:
                 pass
 
     signal_then_kill(
-        deliver,
-        lambda: proc.poll() is None or bool(payload_process_ids(proc.pid)),
-        grace,
+        deliver, lambda: proc.poll() is None or bool(started_and_alive()), grace
     )
 
 
