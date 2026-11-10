@@ -9,7 +9,8 @@ source file.
 
 Skipped: YAML front matter; fenced code (including Quarto chunks) and
 inline code; display and inline math; HTML comments; URLs and link targets;
-Quarto div fences, attribute blocks, and shortcodes; file paths, file
+Quarto div fences, attribute blocks, shortcodes, and unconditionally
+hidden (`.content-hidden`) blocks; file paths, file
 names, snake_case identifiers, and `--flags`; citations (pandoc `@key` and
 `[@key]`, numeric `[1-3]`, author-year `(Smith et al., 2020)`, LaTeX
 `\\cite{}`); and References/Bibliography sections. Figure lines keep their
@@ -150,6 +151,11 @@ REFERENCES_TITLE = re.compile(
     re.IGNORECASE,
 )
 REFS_DIV = re.compile(r"^\s*:::+\s*\{#refs\b")
+# Unconditionally hidden: `when-format`/`unless-format` variants do render somewhere.
+HIDDEN_DIV = re.compile(
+    r"^\s*:::+\s*\{[^}]*\.content-hidden\b(?![^}]*-(?:format|profile|meta)=)"
+)
+DIV_CLOSE = re.compile(r"^\s*:::+\s*$")
 
 
 def _spaces(match: re.Match[str]) -> str:
@@ -228,7 +234,9 @@ def from_markdown(source: str) -> Prose:
     in_math = False
     refs_level: int | None = None  # inside a References heading's section
     refs_div = False
+    hidden_depth = 0  # open divs inside an unconditionally hidden Quarto div
     skipped_refs = 0
+    skipped_hidden = 0
     for index, text in enumerate(raw[start:], start=start):
         number = index + 1
         opened = FENCE.match(text)
@@ -263,6 +271,16 @@ def from_markdown(source: str) -> Prose:
         if REFS_DIV.match(text):
             refs_div = True
             continue
+        if hidden_depth:
+            if DIV_CLOSE.match(text):
+                hidden_depth -= 1
+            elif DIV_FENCE.match(text):
+                hidden_depth += 1
+            skipped_hidden += bool(text.strip())
+            continue
+        if HIDDEN_DIV.match(text):
+            hidden_depth = 1
+            continue
         if heading and REFERENCES_TITLE.match(re.sub(r"[*_`]", "", heading.group(2))):
             refs_level = len(heading.group(1))
             continue
@@ -274,6 +292,8 @@ def from_markdown(source: str) -> Prose:
     notes = []
     if skipped_refs:
         notes.append(f"Skipped a References section ({skipped_refs} lines).")
+    if skipped_hidden:
+        notes.append(f"Skipped hidden Quarto blocks ({skipped_hidden} lines).")
     return Prose(lines, "markdown", notes)
 
 

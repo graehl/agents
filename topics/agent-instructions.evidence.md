@@ -6302,3 +6302,44 @@ Contributing-model: fable-5.2
   that are cheap to violate; the detection method is one read away.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — not-ai pass rebuilt on the vendored declauding skill
+
+- **User direction** — graehl pointed at the `declauding` skill
+  (oaustegard/claude-skills, release `declauding-v0.13.0`): "i strongly
+  agree w/ these LLM tics and their names", both Astra and Opus having used
+  them heavily in the ACL PII paper; "my previous not-ai lint script was
+  very clumsy and can be completely rethought in light of this", vendoring
+  allowed with provenance, and it should serve the paper revision flow in
+  `~/draft`. This supersedes the 2026-09-24 request for a fitted score.
+- **Decision** — `skills/declauding/` is vendored (pinned, auto-invocation
+  off) and `skills/not-ai/SKILL.md` is a short entry that defers to it and
+  states the differences. `scripts/not-ai-lint` keeps its name and now runs
+  upstream's scan on `prose_text` output. The fitted score, its bands, the
+  derived lexicon, and `validate.py` are removed.
+- **Measurement behind dropping the score** — run on the corpora cached by
+  the old validation. Upstream's scan is the weaker AI-versus-human
+  detector: AUC 0.77 for located candidates per 1000 words on the 300
+  Russell et al. articles, against 0.93 for the old score on its test half.
+  Neither tool locates what editors change: on LAMP's 1,282 expert edits,
+  32% of upstream's candidates and 38% of the old flags fall inside edited
+  spans, which cover 35% of the text. Those corpora are 2024-era news and
+  fiction and contain few of the constructions at issue (10 negation-first
+  hits in 300 articles), so they do not test the register on current
+  models' technical prose. The choice rests on graehl's report of what
+  needed editing, a shared vocabulary with a maintained register, and the
+  claim-preservation check, with detection given up knowingly.
+- **On the paper** — raw upstream scan over the 46 section sources gave 215
+  candidates, many from HTML comments, anchors, math, file paths, and
+  author-only sections. Through `not-ai-lint --manuscript`, the included
+  manuscript gives 69 located candidates. `prose_text` gained
+  `.content-hidden` skipping for this.
+- **Trace** — "/not-ai this section" → entry skill → vendored procedure,
+  scan via the adapter. "Review this draft" → `writing` § Revising runs the
+  adapter as before. A commit message being written → nothing fires; the
+  vendored description's auto-load scope is switched off.
+- **Open** — `~/draft` `research/pii/frontier/PROGRAM.md` § Prose and author
+  review still says to record the "advisory score, band and rule counts";
+  it is a binding program instruction, so it waits for graehl's wording.
+
+Contributing-model: fable-5.2

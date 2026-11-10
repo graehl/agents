@@ -91,6 +91,18 @@ class Markdown(unittest.TestCase):
         source = "Body text.\n\n::: {#refs}\nSmith. A tapestry.\n:::\n\nAfter.\n"
         self.assertEqual(words(source), ["Body", "text", "After"])
 
+    def test_hidden_quarto_div_is_skipped_with_its_nested_divs(self) -> None:
+        source = (
+            "Shown.\n\n::: {.content-hidden}\nAuthor note.\n\n"
+            "::: {.callout-note}\nNested.\n:::\n\nStill hidden.\n:::\n\nAfter.\n"
+        )
+        self.assertEqual(words(source), ["Shown", "After"])
+        self.assertTrue(any("hidden" in note for note in from_markdown(source).notes))
+
+    def test_format_conditional_quarto_div_stays_prose(self) -> None:
+        source = '::: {.content-hidden when-format="html"}\nPrint only.\n:::\n'
+        self.assertEqual(words(source), ["Print", "only"])
+
     def test_figure_caption_is_prose_of_its_own_kind(self) -> None:
         prose = from_markdown("![A cache diagram](fig.png){#fig-cache}\n")
         self.assertEqual(prose.lines[0].kind, "figure")

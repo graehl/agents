@@ -795,44 +795,55 @@ or `--kill-group` without `--kill`).
 
 ### not-ai-lint
 
-**CLI**: `not-ai-lint [paths...] [--text|--json|--pretty] [--limit N]
-[--rules]`. Reads each path, or stdin when none (or `-`) is given, as
-Markdown, Quarto, or text. A `.pdf` path goes through `pdftotext`. Prose
-extraction is the shared `prose_text` module. For each input it emits one
+**CLI**: `not-ai-lint [paths...] [--manuscript ROOT] [--since REVISION]
+[--skip CATEGORY] [--skip-quoted] [--statement-headers]
+[--text|--json|--pretty] [--limit N]`. Reads each path, or stdin when none
+(or `-`) is given, as Markdown, Quarto, or text. A `.pdf` path goes through
+`pdftotext`. Prose extraction is the shared `prose_text` module; the
+candidates come from the vendored scan
+`skills/declauding/scripts/declaude_lint.py`, run on the extracted prose.
+`--manuscript` adds a Quarto root and the files its live `{{< include >}}`
+directives name, in order. `--since` keeps only candidates on lines changed
+in the working tree since a git revision. For each input it emits one
 record: `format`, `notes` (extraction caveats; always present for PDF),
-`summary` (`score` 0–100, `band` low/moderate/high, prose `words`,
-`reliable` when at least 150 words, and `by_rule` counts with rate,
-`scored`, top matches, and note), `findings` (line, `loc`, col, rule,
-match; `--limit`, default 40, truncates the list and `--full` or
-`--limit 0` shows all), and `findings_total`. `loc` is the source line, or
-`p<page>:<line>` for PDF. `--text` prints the notes, a per-rule table, one
-`path:loc:col: [rule] match` line per finding, the band definitions, and a
-final `Advisory:` line. It is acli with `complete` and `+commentary`.
+prose `words`, `by_category` (count and top matches), `findings` (line,
+`loc`, col, category, note, match; `--limit`, default 40, truncates the
+list and `--full` or `--limit 0` shows all), and `findings_total`. `loc` is
+the source line, `p<page>:<line>` for PDF, or `-` for a whole-document
+candidate (line 0). `--text` prints the notes, a per-category table, one
+`path:loc:col: [category] match — note` line per finding, and a final
+`Advisory:` line. There is no score. It is acli with `complete` and
+`+commentary`.
 
 **Post-conditions**:
 - code, math, URLs, emails, paths and file names, identifiers, `--flags`,
-  Quarto markup, citations, References sections, HTML comments, and YAML
-  front matter never produce findings;
-- counts in `by_rule` cover every finding regardless of `--limit`;
-- only rules with a positive weight in `skills/not-ai/data/weights.json`
-  are `scored`, and no rule lowers the score; bands come from the same
-  file;
-- missing or malformed `lexicon.tsv`/`weights.json` exits 3 with an error
-  envelope, an unreadable input exits 4, and a PDF without a working
-  `pdftotext` exits 69. It never falls back to a built-in lexicon or
-  another extractor.
+  Quarto markup and unconditionally hidden Quarto blocks, tables,
+  citations, References sections, HTML comments, and YAML front matter
+  never produce findings;
+- counts in `by_category` cover every finding regardless of `--limit`;
+- with `--since`, whole-document candidates are omitted and a note says how
+  many;
+- a missing vendored scan, or one that does not return its JSON report,
+  exits 3 with an error envelope; an unreadable input exits 4; `--since`
+  outside a git work tree or with an unknown revision exits 5; and a PDF
+  without a working `pdftotext` exits 69. It never falls back to built-in
+  rules or another extractor.
 
 **Examples** (the test suite is `tests/test_not_ai_lint.py`):
-1. `echo 'In conclusion, this underscores it.' | not-ai-lint --text` →
-   `wrap-up` and `excess-vocab` rows and an `Advisory:` last line, exit 0.
-2. Text whose only prose sits inside a code fence and backticks → an empty
-   `by_rule`, exit 0.
+1. `echo 'The gain is not a tuning artifact. It is a property of the
+   labels.' | not-ai-lint --text` → a `-:1:…: [negation-first]` line and an
+   `Advisory:` last line, exit 0.
+2. Text whose only such construction sits inside a code fence, an HTML
+   comment, or a `.content-hidden` block → no `negation-first` category,
+   exit 0.
 3. `not-ai-lint /nonexistent.md` → stderr error envelope, exit 4.
 4. `not-ai-lint --text paper.pdf` → `note: PDF text extracted with
    pdftotext …` and findings located as `paper.pdf:p2:14:5:`.
+5. `not-ai-lint --text --manuscript paper/index.qmd` → one report for the
+   root and one per included section, in include order.
 
-Lexicon, weights, and bands are derived, not hand-edited: `skills/not-ai/validate.py`
-regenerates both and the numbers in `skills/not-ai/validation.md`.
+The rules are upstream's: change them by re-vendoring `skills/declauding`
+or by a local change recorded in its `VENDORED.md`, never in this script.
 
 **Canonical source**: `scripts/not-ai-lint` (in this repo).
 **Install target**: `~/bin/not-ai-lint` (symlink by default).
