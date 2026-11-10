@@ -6434,7 +6434,8 @@ Contributing-model: fable-5.2
 - **Reading of "discuss on text/docs/plans"** (mine) — it covers a change
   of what a document intends, not routine upkeep such as a script entry
   following its script. If he meant every document edit, the second bullet
-  of the section needs tightening.
+  of the section needs tightening. Confirmed the same day: "correct i
+  currently only vaguely direct state of docs".
 - **Cost** — about 190 words in every boot. `AGENTS.frontier.md` § Latitude
   scales with the user's authorship is left as the general rule and named
   as superseded for his projects; it still governs sessions for anyone
