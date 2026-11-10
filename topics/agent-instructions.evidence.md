@@ -6415,3 +6415,33 @@ Contributing-model: fable-5.2
   before changing it. An agent in `~/x` keeps recommend-only.
 
 Contributing-model: fable-5.2
+
+## 2026-11-10 — correction: code authority is the global default
+
+- **User correction** — the entry above placed the grant in the local files
+  of `~/agents` and `~/draft`. graehl: "i meant for those projects ~/x etc
+  - make sure my AGENTS.local specifies the authority appropriately. i want
+  my default to be go-for-it on code. discuss on text/docs/plans."
+- **Change** — the grant is now `AGENTS.user.md` § Authority over code,
+  compiled into every boot: go for it on code; discuss first before
+  overriding a decision recorded as his or changing what text, a document
+  or a plan says or intends. Keeping a document accurate to code that
+  changed within its intent is still part of the code change. The
+  restriction lives where it applies: `~/x/AGENTS.local.md` and a new
+  git-excluded `~/aip-lwportable-app/AGENTS.local.md` say the default does
+  not hold there. The `~/agents` local section is removed and the `~/draft`
+  one reduced to a pointer saying that project is his.
+- **Reading of "discuss on text/docs/plans"** (mine) — it covers a change
+  of what a document intends, not routine upkeep such as a script entry
+  following its script. If he meant every document edit, the second bullet
+  of the section needs tightening.
+- **Cost** — about 190 words in every boot. `AGENTS.frontier.md` § Latitude
+  scales with the user's authorship is left as the general rule and named
+  as superseded for his projects; it still governs sessions for anyone
+  else's install.
+- **Not covered** — other `~/aip-*` checkouts have no local file; the
+  global section's "origin is the work Gerrit server" criterion is what
+  restrains an agent there. `~/ya` has a second core contributor and was
+  not addressed.
+
+Contributing-model: fable-5.2

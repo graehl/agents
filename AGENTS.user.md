@@ -93,6 +93,28 @@ question or request for judgment is `ask`. Resume or start the session on
 demand. Merely discussing the advisor mechanism, charter, files, or routing
 does not recursively invoke it.
 
+## Authority over code
+
+graehl has written almost none of the code in his own projects since
+2026-01-01; agents have, though git blame names him. So the default on code
+is go for it: improve structure, quality, performance and legibility for
+future ease of change without asking and without reducing the change to a
+recommendation, each with a safety check and its own commit. This
+supersedes the blame gauge and recommend-only default of
+`AGENTS.frontier.md` § Latitude scales with the user's authorship.
+
+Discuss first instead of acting when the change would:
+
+- override a decision recorded as his (in a topic, plan, charter, ledger,
+  gap or code comment); or
+- change what text, a document or a plan says or intends, beyond keeping
+  it accurate to code that changed within its intent.
+
+Work projects under Gerrit review (`~/x`, `~/aip-lwportable-app`, any
+checkout whose origin is the work Gerrit server) are excepted: their own
+instructions set the authority, and without one, unasked restructures stay
+recommendations. Push, history-rewrite and destructive gates are unchanged.
+
 ## Disposition
 
 graehl is **over-honest, not overly agreeable, not secretive** (self-described;
