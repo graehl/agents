@@ -139,6 +139,33 @@ class RepoViewTest(unittest.TestCase):
                     error.read().decode("utf-8", "replace"),
                 )
 
+    def post_rebuild(self, url: str) -> tuple[int, str]:
+        request = urllib.request.Request(
+            url + "?repo-view=rebuild",
+            method="POST",
+            headers={"X-Repo-View": "rebuild"},
+        )
+        try:
+            # The POST only starts the build, so it answers promptly.
+            with OPENER.open(request, timeout=5) as reply:
+                return reply.status, reply.read().decode()
+        except urllib.error.HTTPError as error:
+            with error:
+                return error.code, error.read().decode()
+
+    def rebuild_status(self, url: str) -> dict:
+        return json.loads(self.get(url + "?repo-view=rebuild")[2])
+
+    def finished_rebuild(self, url: str) -> dict:
+        """Poll a page's rebuild status, as the page does, until it ends."""
+        deadline = time.monotonic() + 30
+        while time.monotonic() < deadline:
+            status = self.rebuild_status(url)
+            if status["state"] != "running":
+                return status
+            time.sleep(0.05)
+        self.fail("rebuild did not finish")
+
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_live_view_serves_documents_at_their_own_paths(self) -> None:
         base = self.serve()
@@ -463,15 +490,53 @@ class RepoViewTest(unittest.TestCase):
         stale = json.loads(self.get(url + "?repo-view=fresh")[2])["stale"]
         self.assertTrue(stale["rebuild"])
         self.assertEqual(stale["hint"], "quarto render --to html")
-        request = urllib.request.Request(
-            url + "?repo-view=rebuild",
-            method="POST",
-            headers={"X-Repo-View": "rebuild"},
-        )
-        with OPENER.open(request, timeout=30) as reply:
-            self.assertTrue(json.loads(reply.read())["ok"])
+        status, body = self.post_rebuild(url)
+        self.assertEqual(status, 200, body)
+        self.assertIn(json.loads(body)["state"], ("running", "done"))
+        self.assertEqual(self.finished_rebuild(url)["state"], "done")
         self.assertIsNone(json.loads(self.get(url + "?repo-view=fresh")[2])["stale"])
         self.assertIn("new", self.get(url)[2])
+
+    def test_slow_rebuild_answers_at_once_and_reports_progress_and_failure(
+        self,
+    ) -> None:
+        # A stand-in `quarto` that takes a while and then fails.
+        bin_dir = self.repo.parent / "bin"
+        bin_dir.mkdir()
+        fake = bin_dir / "quarto"
+        fake.write_text(
+            f"#!{sys.executable}\n"
+            "import sys, time\n"
+            "time.sleep(1.5)\n"
+            "print('render broke')\n"
+            "sys.exit(1)\n"
+        )
+        fake.chmod(0o755)
+        self.write("README.md", "[paper](paper/_build/index.html)\n")
+        self.write("paper/_quarto.yml", "project:\n  output-dir: _build\n")
+        self.write(
+            "paper/_build/index.html", "<html><head></head><body>old</body></html>"
+        )
+        self.write("paper/index.qmd", "new")
+        os.utime(
+            self.repo / "paper/_build/index.html", ns=(1_000_000_000_000_000_000,) * 2
+        )
+        env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
+        url = self.serve("--rebuild", env=env) + "/paper/_build/index.html"
+        began = time.monotonic()
+        status, body = self.post_rebuild(url)
+        self.assertLess(time.monotonic() - began, 1.0)
+        self.assertEqual(json.loads(body)["state"], "running", body)
+        running = self.rebuild_status(url)
+        self.assertEqual(running["state"], "running")
+        self.assertGreaterEqual(running["elapsed"], 0)
+        # A second request joins the run rather than starting another.
+        self.assertEqual(json.loads(self.post_rebuild(url)[1])["state"], "running")
+        finished = self.finished_rebuild(url)
+        self.assertEqual(finished["state"], "failed", finished)
+        self.assertIn("render broke", finished["log"])
+        self.assertGreaterEqual(finished["seconds"], 1.0)
+        self.assertIn("old", self.get(url)[2])
 
     def test_receipted_output_rebuilds_on_request_and_a_stale_pdf_before_serving(
         self,
@@ -507,27 +572,21 @@ class RepoViewTest(unittest.TestCase):
         def fresh() -> dict:
             return json.loads(self.get(url + "?repo-view=fresh")[2])
 
-        def post(target: str) -> tuple[int, str]:
-            request = urllib.request.Request(
-                target + "?repo-view=rebuild",
-                method="POST",
-                headers={"X-Repo-View": "rebuild"},
-            )
-            try:
-                with OPENER.open(request, timeout=30) as reply:
-                    return reply.status, reply.read().decode()
-            except urllib.error.HTTPError as error:
-                with error:
-                    return error.code, error.read().decode()
-
+        post = self.post_rebuild
         self.assertIsNone(fresh()["stale"])
+        self.assertEqual(self.rebuild_status(url)["state"], "none")
         self.write("doc/in.qmd", "second")
         stale = fresh()["stale"]
         self.assertEqual(stale["input"], "doc/in.qmd")
         self.assertTrue(stale["rebuild"])
         status, body = post(url)
         self.assertEqual(status, 200, body)
-        self.assertTrue(json.loads(body)["ok"])
+        self.assertIn(json.loads(body)["state"], ("running", "done"))
+        finished = self.finished_rebuild(url)
+        self.assertEqual(finished["state"], "done", finished)
+        self.assertGreaterEqual(finished["seconds"], 0)
+        # Asking again once current starts nothing.
+        self.assertEqual(json.loads(post(url)[1])["state"], "current")
         self.assertIsNone(fresh()["stale"])
         self.assertIn("second", self.get(url)[2])
         # A stale PDF opened on its own is rebuilt before it is served.

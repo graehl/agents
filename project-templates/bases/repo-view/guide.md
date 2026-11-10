@@ -167,7 +167,12 @@ receipt. `serve --rebuild` makes stale receipted outputs rebuildable by any
 visitor: the page's notice offers **Rebuild**, which reruns the receipt's
 command (one run per receipt at a time, joined by concurrent requests, within
 its timeout; the directory must be inside the repository) while the old page
-stays readable, then reloads into the new build. A stale receipted PDF or
+stays readable. The POST only starts the build; the notice then asks
+`GET ?repo-view=rebuild` every second, shows the seconds so far, and reloads
+into the new build when it is done, or shows the failure and its log (as the
+notice text's tooltip) with **Retry**. No request is held open for the
+build, since a proxy in between may drop a long one and leave the page
+waiting. A stale receipted PDF or
 other non-HTML output, which may open in a viewer that cannot show a notice,
 is rebuilt before it is served; a failed build serves the old file. Without
 `--rebuild` the notice names the command instead.

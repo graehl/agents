@@ -33,6 +33,9 @@
 			});
 		let notice = null;
 		let dismissed = "";
+		// While a rebuild runs, its notice owns the corner; freshness checks
+		// would replace it mid-build.
+		let rebuilding = false;
 		// `action`: the notice's button, `{ label, run(button, text) }`, if any.
 		const show = (key, parts, action) => {
 			if (key === dismissed) return;
@@ -71,38 +74,93 @@
 			document.body.append(notice);
 		};
 		const reload = { label: "Reload", run: () => location.reload() };
-		// Rebuilds while this page stays readable, then reloads into the new
-		// build; the browser keeps the old page painted until the new one is.
+		// One request to this page's server, given up after `ms` so that a
+		// dropped answer can never leave the notice waiting.
+		const ask = async (init, ms) => {
+			const url = new URL(location.href);
+			url.hash = "";
+			url.searchParams.set("repo-view", "rebuild");
+			const response = await fetch(url, {
+				cache: "no-store",
+				...init,
+				signal: AbortSignal.timeout(ms),
+			});
+			if (!response.ok) throw new Error(await response.text());
+			return response.json();
+		};
+		const pause = (ms) => new Promise((done) => setTimeout(done, ms));
+		// Starts the build, then asks every second how it stands, showing the
+		// time so far; reloads into the new build when it succeeds. The
+		// browser keeps the old page painted until the new one is.
 		const rebuild = {
 			label: "Rebuild",
 			run: async (button, text) => {
 				button.disabled = true;
-				button.textContent = "Rebuilding...";
-				let result;
+				rebuilding = true;
+				const started = Date.now();
+				const say = (message) => {
+					text.textContent = message;
+				};
+				const progress = () =>
+					say(`Rebuilding... ${Math.round((Date.now() - started) / 1000)} s`);
+				const fail = (message, log) => {
+					rebuilding = false;
+					button.disabled = false;
+					button.style.display = "";
+					button.textContent = "Retry";
+					say(message);
+					text.title = log || "";
+					if (log) console.warn(`repo-view rebuild: ${message}\n${log}`);
+				};
+				// The notice's text carries the progress; `all: unset` on the
+				// button defeats the `hidden` attribute.
+				button.style.display = "none";
+				progress();
+				let status;
 				try {
-					const url = new URL(location.href);
-					url.hash = "";
-					url.searchParams.set("repo-view", "rebuild");
-					const response = await fetch(url, {
-						method: "POST",
-						headers: { "X-Repo-View": "rebuild" },
-					});
-					result = response.ok
-						? await response.json()
-						: { ok: false, log: await response.text() };
+					status = await ask(
+						{ method: "POST", headers: { "X-Repo-View": "rebuild" } },
+						15000,
+					);
 				} catch (error) {
-					result = { ok: false, log: String(error) };
-				}
-				if (result.ok) {
-					location.reload();
+					fail("Could not start the rebuild.", String(error));
 					return;
 				}
-				button.disabled = false;
-				button.textContent = "Rebuild";
-				text.textContent =
-					"Rebuild failed; the page still shows the old build.";
-				text.title = result.log;
-				console.warn("repo-view rebuild failed:\n" + result.log);
+				// Consecutive unanswered status requests; the server may be
+				// restarting, so a few are tolerated.
+				let misses = 0;
+				while (status.state === "running") {
+					progress();
+					await pause(1000);
+					try {
+						status = await ask({}, 5000);
+						misses = 0;
+					} catch (error) {
+						if (++misses >= 15) {
+							fail(
+								"Lost contact with the server; reload to see whether the build finished.",
+								String(error),
+							);
+							return;
+						}
+					}
+				}
+				if (status.state === "done" || status.state === "current") {
+					say(
+						status.state === "done"
+							? `Rebuilt in ${Math.round(status.seconds)} s; reloading...`
+							: "Already rebuilt; reloading...",
+					);
+					location.reload();
+				} else if (status.state === "failed")
+					fail(
+						`Rebuild failed after ${Math.round(status.seconds)} s; the page still shows the old build.`,
+						status.log,
+					);
+				else
+					fail(
+						"The server no longer knows this build (it may have restarted); reload to check.",
+					);
 			},
 		};
 		const staleParts = (stale) => [
@@ -130,7 +188,7 @@
 		let checking = false;
 		let lastCheck = 0;
 		const check = async () => {
-			if (checking || Date.now() - lastCheck < 2000) return;
+			if (checking || rebuilding || Date.now() - lastCheck < 2000) return;
 			checking = true;
 			lastCheck = Date.now();
 			try {

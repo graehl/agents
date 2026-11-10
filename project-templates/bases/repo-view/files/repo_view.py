@@ -530,7 +530,8 @@ def path_actions(root_url: str, current: str) -> str:
 # A served page asks for its freshness with this query; the answer is the
 # JSON its `repo-fresh` meta tag carried when served.
 FRESHNESS_QUERY = "repo-view=fresh"
-# POSTed, with header `X-Repo-View: rebuild`, to rebuild a stale output.
+# POSTed, with header `X-Repo-View: rebuild`, to start rebuilding a stale
+# output; a GET with it reports how that build stands (`Builds.status`).
 REBUILD_QUERY = "repo-view=rebuild"
 # Files a Quarto project's HTML render reads, by suffix. Prose (`.md`) and
 # LaTeX-only inputs are left out: a project keeps notes and a kept `.tex`
@@ -621,7 +622,13 @@ class Builds:
         self.repo, self.enabled = repo, enabled
         self._lock = threading.Lock()
         self._hashes: dict[Path, tuple[tuple[int, int], str]] = {}
-        self._runs: dict[Path, Future] = {}
+        # Per recipe key: the run in progress (its result, and its start on
+        # the monotonic clock), and the last finished run's result.
+        self._runs: dict[Path, tuple[Future, float]] = {}
+        self._finished: dict[Path, dict] = {}
+        # Which build a page last started, so it can ask how that build went
+        # after the output is current and no recipe is stale any more.
+        self._started_for: dict[str, Path] = {}
 
     def sha256(self, path: Path) -> str | None:
         try:
@@ -715,21 +722,61 @@ class Builds:
         return sorted(changed, key=lambda item: -item[1])
 
     def rebuild(self, recipe: Recipe) -> dict:
-        """Run the recipe's command, or join the run already going."""
-        with self._lock:
-            run = self._runs.get(recipe.key)
-            starter = run is None
-            if starter:
-                run = self._runs[recipe.key] = Future()
+        """Run the recipe's command, or join the run already going, and wait."""
+        run, starter = self._begin(recipe)
         if starter:
-            try:
-                run.set_result(self._run(recipe))
-            except Exception as error:  # reported to every joined requester
-                run.set_result({"ok": False, "log": f"{type(error).__name__}: {error}"})
-            finally:
-                with self._lock:
-                    del self._runs[recipe.key]
+            self._complete(recipe, run)
         return run.result()
+
+    def start(self, recipe: Recipe, source: str) -> dict:
+        """Start the recipe's command in the background (or join the run
+        already going) for the page shown from `source`; its status."""
+        run, starter = self._begin(recipe)
+        with self._lock:
+            self._started_for[source] = recipe.key
+        if starter:
+            threading.Thread(
+                target=self._complete, args=(recipe, run), daemon=True
+            ).start()
+        return self.status(source)
+
+    def status(self, source: str) -> dict:
+        """How the build last started for `source` stands: `running` with
+        `elapsed` seconds, `done` or `failed` with `seconds` and `log`, or
+        `none` when this server started none (it may have restarted)."""
+        with self._lock:
+            key = self._started_for.get(source)
+            running = self._runs.get(key) if key else None
+            if running:
+                return {
+                    "state": "running",
+                    "elapsed": round(time.monotonic() - running[1], 1),
+                }
+            finished = self._finished.get(key) if key else None
+        if not finished:
+            return {"state": "none"}
+        return {"state": "done" if finished["ok"] else "failed", **finished}
+
+    def _begin(self, recipe: Recipe) -> tuple[Future, bool]:
+        with self._lock:
+            entry = self._runs.get(recipe.key)
+            if entry:
+                return entry[0], False
+            run: Future = Future()
+            self._runs[recipe.key] = (run, time.monotonic())
+            return run, True
+
+    def _complete(self, recipe: Recipe, run: Future) -> None:
+        started = self._runs[recipe.key][1]
+        try:
+            result = self._run(recipe)
+        except Exception as error:  # reported to every joined requester
+            result = {"ok": False, "log": f"{type(error).__name__}: {error}"}
+        result["seconds"] = round(time.monotonic() - started, 1)
+        with self._lock:
+            self._finished[recipe.key] = result
+            del self._runs[recipe.key]
+        run.set_result(result)
 
     def _run(self, recipe: Recipe) -> dict:
         cwd = recipe.cwd.resolve()
@@ -1364,6 +1411,9 @@ class LiveSite:
         source = self.source(node, kind)
         if rebuild:
             return self.rebuild(source)
+        if REBUILD_QUERY in query.split("&"):
+            status = self.builds.status(source) if source else {"state": "none"}
+            return Reply(HTTPStatus.OK, "application/json", json.dumps(status).encode())
         if FRESHNESS_QUERY in query.split("&"):
             fresh = freshness(self.repo, self.builds, source) if source else None
             return Reply(HTTPStatus.OK, "application/json", json.dumps(fresh).encode())
@@ -1386,13 +1436,11 @@ class LiveSite:
                 HTTPStatus.CONFLICT,
                 body=b"not rebuildable here (needs serve --rebuild)\n",
             )
+        # Answer at once and let the page poll: a request held open for a
+        # whole build can be dropped by a proxy and leave the page waiting.
         recipe = self.builds.stale_recipe(source)
-        result = (
-            self.builds.rebuild(recipe)
-            if recipe
-            else {"ok": True, "log": "already current or not a known build output\n"}
-        )
-        return Reply(HTTPStatus.OK, "application/json", json.dumps(result).encode())
+        status = self.builds.start(recipe, source) if recipe else {"state": "current"}
+        return Reply(HTTPStatus.OK, "application/json", json.dumps(status).encode())
 
     def source(self, node: str, kind: str) -> str | None:
         """The repository file a page for `node` shows, if one does."""
