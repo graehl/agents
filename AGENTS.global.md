@@ -67,8 +67,9 @@ Gaps record unresolved work; handoffs preserve live continuity. Before planning
 or implementing, search the relevant gaps and handoffs and follow their topic
 links. Read a handoff with `handoff-age read --text <file>`, never whole; a
 section it marks aged is a claim to reconfirm under `topics/handoffs.md`
-§ Age and reconfirmation before relying or acting on it. Keep the last explicitly specified handoff current for its work scope,
-including before a foreseeable interruption or token exhaustion. New handoffs
+§ Age and reconfirmation before relying or acting on it. Keep the last
+explicitly specified handoff current for its work scope, including before a
+foreseeable interruption or token exhaustion. New handoffs
 default to the most specific owning program's `handoffs/`, or project-root
 `handoffs/` when no narrower program owns the work. `ROOT` or
 `<program-path>/ROOT` may temporarily point to the most recently worked-on

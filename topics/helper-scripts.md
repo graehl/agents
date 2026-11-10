@@ -551,8 +551,9 @@ session does with its output.
 
 **CLI**: `review-due [--repo <dir>] [--max-lines N] [--max-commits N]
 [--max-review-lines N] [--max-review-commits N] [--skips-file <path>] status`,
-`review-due … hook`, and `review-due … skip --to <rev> [--path <p>]…
---reason <text> [--dry-run]`; acli baseline with completion.
+`review-due … hook`, `review-due … skip --to <rev> [--path <p>]…
+--reason <text> [--dry-run]`, and `review-due … unskip --path <p>…`; acli
+baseline with completion.
 
 **Post-conditions**:
 - Code is a tracked file with a source-code suffix, or an executable file
@@ -587,7 +588,16 @@ session does with its output.
   whose end is past the marker, else at the marker. Rows at or behind the
   marker stay as the record and change no count. A row the tool cannot
   parse exits 3.
-- A `--to` not after where the path is reviewed or skipped to exits 5.
+- A `--to` not after where the path is reviewed or skipped to, or not in
+  HEAD's history, exits 5; an unknown `--to` exits 4. `--path` is
+  normalized (`./legacy/` is `legacy`), repeats collapse, and a path with
+  no code change in the range gets no row and is listed under
+  `no_code_changed`. `--reason` is one line.
+- `unskip --path <p>…` removes those paths' rows once a review has covered
+  them, and the record file with its last row; no matching row exits 4.
+- A row whose end commit the repository no longer has stops applying;
+  `status` lists it under `skips_with_missing_commit` and `hook` prints a
+  `review-due: skipped-range row for …` line.
 - With no marker `status` and `hook` report nothing due: a repository is
   enrolled by its first strict review. `skip` without a marker, or a marker
   naming a commit the repository lacks, exits 4.
@@ -1013,7 +1023,9 @@ with it; `gaps/README.md` § Reading covers gaps.
 - A section is a Markdown heading with its text up to the next heading of
   any level; `#` lines inside a code fence are not headings.
 - A section's date is the `confirmed <date>` in its heading, else the first
-  ISO date there, else its nearest enclosing section's. Leading front
+  ISO date there that is not part of a path or longer token (a `T<time>`
+  suffix is fine), else its nearest enclosing section's. A date later than
+  today leaves the section aged. Leading front
   matter with `noticed:` dates the whole file (`confirmed:` wins) and makes
   it class `gap`.
 - A heading tag `[state]`, `[owed]`, or `[durable]` sets the class, which

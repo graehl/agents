@@ -47,7 +47,7 @@ _CLASS_TAG = re.compile(r"\[(state|owed|durable)\]\s*")
 _ISO_DATE = r"(\d{4}-\d{2}-\d{2})"
 _CONFIRMED = re.compile(r"confirmed\s+" + _ISO_DATE)
 # Not part of a path or longer token: `runs/2026-09-01/x` dates nothing.
-_ANY_DATE = re.compile(r"(?<![\w/.-])" + _ISO_DATE + r"(?![\w/-])")
+_ANY_DATE = re.compile(r"(?<![\w/.-])" + _ISO_DATE + r"(?=T\d|[^\w/-]|$)")
 _FRONT_MATTER_FIELD = re.compile(r"^([\w-]+):(.*)$")
 _SOURCE_SESSION = re.compile(r"^Source session:")
 
@@ -88,8 +88,10 @@ def _front_matter_end(lines: list[str]) -> int:
         stripped = lines[index].strip()
         if stripped == "---":
             return index
-        # A leading `---` that is a horizontal rule is followed by prose.
-        if stripped and not _FRONT_MATTER_FIELD.match(stripped):
+        # A leading `---` that is a horizontal rule is followed by prose, not by
+        # fields, their indented continuation lines, or `#` comments.
+        continues = lines[index][0] in " \t#"
+        if stripped and not continues and not _FRONT_MATTER_FIELD.match(stripped):
             return 0
     return 0
 

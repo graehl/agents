@@ -16,6 +16,7 @@ Contract: topics/helper-scripts.md § review-due.
 from __future__ import annotations
 
 import dataclasses
+import posixpath
 import re
 import subprocess
 import sys
@@ -143,6 +144,19 @@ def _is_ancestor(repo: Path, older: str, newer: str) -> bool:
     return subprocess.run(command, capture_output=True, check=False).returncode == 0
 
 
+def _commit_exists(repo: Path, rev: str) -> bool:
+    command = ["git", "-C", str(repo), "cat-file", "-e", f"{rev}^{{commit}}"]
+    return subprocess.run(command, capture_output=True, check=False).returncode == 0
+
+
+def _repo_path(given: str) -> str:
+    """A `--path` in the form Git prints paths, so a row matches changed files."""
+    path = posixpath.normpath(given)
+    if path.startswith(("/", "..")) or "`" in path:
+        die(f"--path must be a plain path inside the repository: {given}")
+    return path
+
+
 def _commits_between(repo: Path, older: str, newer: str) -> int:
     return int(_git(repo, "rev-list", "--count", f"{older}..{newer}"))
 
@@ -242,14 +256,18 @@ def unreviewed_code(
     """
     reviewed = reviewed_marker(repo)
     if reviewed is None:
-        return {"reviewed": None, "due": []}
+        return {"reviewed": None, "skips_with_missing_commit": [], "due": []}
     modes = _file_modes(repo)
+    rows = read_skips(repo / limits.skips_file) if recorded is None else recorded
+    # A rebase can orphan a row's end commit; its skip then silently stops
+    # applying, so it is reported instead of ignored.
+    lost = [row for row in rows if not _commit_exists(repo, row.end)]
     skips = [
         row
-        for row in (
-            read_skips(repo / limits.skips_file) if recorded is None else recorded
-        )
-        if row.end != reviewed and _is_ancestor(repo, reviewed, row.end)
+        for row in rows
+        if row not in lost
+        and row.end != reviewed
+        and _is_ancestor(repo, reviewed, row.end)
     ]
     # Each file is measured from its own start: the end of the furthest approved
     # skip covering it, else the marker.
@@ -300,6 +318,7 @@ def unreviewed_code(
         "max_review_commits": limits.max_review_commits,
         "by_subtree": dict(largest),
         "skips_in_effect": [row.as_dict() for row in skips],
+        "skips_with_missing_commit": [row.as_dict() for row in lost],
         "due": due,
     }
 
@@ -316,6 +335,11 @@ def due_lines(result: dict) -> list[str]:
         lines.append(
             f"review-due: periodic review due: {result['changed_lines']} changed code "
             f"lines in {result['commits']} commits since {result['reviewed'][:12]}"
+        )
+    for row in result["skips_with_missing_commit"]:
+        lines.append(
+            f"review-due: skipped-range row for `{row['path']}` ends at a commit this "
+            f"repository no longer has ({row['end'][:12]}); it no longer applies"
         )
     if "oversized" in result["due"]:
         largest = ", ".join(
@@ -347,12 +371,13 @@ noticed: {today}
 where: the paths and commit ranges listed below
 ---
 
-**Gap:** code changed in these ranges never had the strict review. graehl
+**Gap:** code changed in these ranges never had the strict review. The user
 approved skipping each so that automatic reviews could resume from a point
-small enough to act on. `scripts/review-due skip` writes these rows and
-`review-due` reads them; do not edit them by hand.
-**Fix sketch:** strict-review one row's path over its range, then delete the
-row. Delete this file with its last row.
+small enough to act on. `review-due skip` writes these rows and `review-due`
+reads them; do not edit them by hand.
+**Fix sketch:** strict-review one row's path over its range, then run
+`review-due unskip --path <path>`, which also removes this file with its last
+row.
 
 ## Skipped ranges
 
@@ -364,13 +389,20 @@ def skip(args) -> int:
     reviewed = reviewed_marker(repo)
     if reviewed is None:
         die(f"No {MARKER} marker: nothing is counted here yet", ExitCode.NOT_FOUND)
+    if not _commit_exists(repo, args.to):
+        die(f"--to {args.to} is not a commit here", ExitCode.NOT_FOUND)
     end = _git(repo, "rev-parse", "--verify", f"{args.to}^{{commit}}").strip()
+    if not _is_ancestor(repo, end, "HEAD"):
+        die(f"--to {end[:12]} is not in HEAD's history", ExitCode.CONFLICT)
+    if "\n" in args.reason or not args.reason.strip():
+        die("--reason must be one nonempty line")
     record = repo / args.skips_file
     rows = read_skips(record)
     modes = _file_modes(repo)
     today = datetime.now(timezone.utc).date().isoformat()
     added = []
-    for path in [each.rstrip("/") or "." for each in args.path or ["."]]:
+    unchanged = []
+    for path in dict.fromkeys(map(_repo_path, args.path or ["."])):
         # Extend this path's own earlier skip when it reaches the marker or past it.
         earlier = [
             row
@@ -390,7 +422,10 @@ def skip(args) -> int:
         commits = (
             _git(repo, LITERAL, "rev-list", span, "--", *paths).split() if paths else []
         )
-        lines = sum(changed_line_counts(repo, span, paths).values()) if paths else 0
+        if not paths:
+            unchanged.append(path)
+            continue
+        lines = sum(changed_line_counts(repo, span, paths).values())
         rows = [row for row in rows if row not in earlier]
         added.append(
             SkippedRange(path, base, end, lines, len(commits), today, args.reason)
@@ -400,6 +435,7 @@ def skip(args) -> int:
         "record": str(record),
         "written": not args.dry_run,
         "skipped": [row.as_dict() for row in added],
+        "no_code_changed": unchanged,
     }
     if not args.dry_run:
         record.parent.mkdir(parents=True, exist_ok=True)
@@ -409,11 +445,45 @@ def skip(args) -> int:
             else SKIPS_PREAMBLE.format(today=today)
         )
         record.write_text(head + "".join(row.as_row() for row in rows))
-    result["remaining"] = unreviewed_code(repo, _limits(args), rows)
+    remaining = result["remaining"] = unreviewed_code(repo, _limits(args), rows)
     emit(
         result,
         resolve_format(args),
-        text="\n".join(row.as_row().rstrip() for row in added),
+        text="\n".join(
+            [
+                *(row.as_row().rstrip() for row in added),
+                *(f"no code changed under `{path}`; no row" for path in unchanged),
+                f"remaining: {remaining['changed_lines']} changed code lines in "
+                f"{remaining['commits']} commits; due: "
+                + (", ".join(remaining["due"]) or "nothing"),
+            ]
+        ),
+    )
+    return 0
+
+
+def unskip(args) -> int:
+    """Drop the rows for paths whose skipped ranges a review has now covered."""
+    record = Path(args.repo).resolve() / args.skips_file
+    rows = read_skips(record)
+    named = set(map(_repo_path, args.path))
+    removed = [row for row in rows if row.path in named]
+    if not removed:
+        die("No skipped-range row has that path", ExitCode.NOT_FOUND)
+    kept = [row for row in rows if row.path not in named]
+    if kept:
+        head = record.read_text().split("\n- `", 1)[0].rstrip("\n") + "\n\n"
+        record.write_text(head + "".join(row.as_row() for row in kept))
+    else:
+        record.unlink()
+    emit(
+        {
+            "record": str(record),
+            "removed": [row.as_dict() for row in removed],
+            "record_deleted": not kept,
+        },
+        resolve_format(args),
+        text="\n".join(f"removed {row.as_row().rstrip()}" for row in removed),
     )
     return 0
 
@@ -511,6 +581,16 @@ def build_parser():
     )
     add_standard_args(skip_cmd)
     skip_cmd.set_defaults(func=skip)
+    unskip_cmd = commands.add_parser(
+        "unskip",
+        help="Remove the skipped-range rows for the given paths, once a review has "
+        "covered them; deletes the record file with its last row.",
+    )
+    unskip_cmd.add_argument(
+        "--path", action="append", required=True, help="Row path, repeatable."
+    )
+    add_standard_args(unskip_cmd)
+    unskip_cmd.set_defaults(func=unskip)
     status_cmd = commands.add_parser(
         "status",
         help="Emit the counts, the new code files, the largest subtrees, the skips in "

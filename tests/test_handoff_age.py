@@ -62,8 +62,11 @@ where: scripts/x
 """
 
 
+_SCRATCH = tempfile.TemporaryDirectory(prefix="handoff-age-test-")
+
+
 def _file(text: str, name: str = "work.md") -> Path:
-    path = Path(tempfile.mkdtemp(prefix="handoff-age-test-")) / name
+    path = Path(tempfile.mkdtemp(dir=_SCRATCH.name)) / name
     path.write_text(text)
     return path
 
@@ -137,6 +140,8 @@ def test_dates_in_paths_or_the_future_do_not_make_a_section_fresh() -> None:
     rows = _sections(path)
     assert rows["See runs/2026-11-10/x"]["date"] is None
     assert rows["Due 2026-12-01"]["aged"]
+    stamped = _sections(_file("# [state] Checkpoint 2026-11-10T21:30Z\n\nA.\n"))
+    assert not stamped["[state] Checkpoint 2026-11-10T21:30Z"]["aged"]
 
 
 def test_a_gap_with_an_annotated_date_still_ages_and_confirms() -> None:

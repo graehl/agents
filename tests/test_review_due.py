@@ -156,6 +156,62 @@ def test_an_approved_skip_is_recorded_and_no_longer_counted() -> None:
         again = _run(repo, "skip", "--to", cut, "--reason", "twice")
         assert again.returncode == 5, again.stderr
 
+        _run(repo, "unskip", "--path", "./legacy/")
+        assert "`legacy`" not in record.read_text()
+        _run(repo, "unskip", "--path", ".")
+        assert not record.exists()
+
+
+def test_skip_refuses_rows_it_could_not_honor() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        _mark(repo)
+        _commit(repo, "legacy/old.py", "a = 1\n")
+        record = repo / "gaps" / "unreviewed-code.md"
+        two_lines = _run(repo, "skip", "--to", "HEAD", "--reason", "a\n- `b` c")
+        assert two_lines.returncode == 2, two_lines.stderr
+        assert _run(repo, "skip", "--to", "nope", "--reason", "r").returncode == 4
+        _git(repo, "branch", "side")
+        _commit(repo, "lib.py", "x = 3\n")
+        _git(repo, "checkout", "-q", "side")
+        off_history = _run(repo, "skip", "--to", "master", "--reason", "r")
+        if off_history.returncode == 4:  # default branch is named main here
+            off_history = _run(repo, "skip", "--to", "main", "--reason", "r")
+        assert off_history.returncode == 5, off_history.stderr
+        assert not record.exists()
+
+        # A path spelled differently, twice, makes one row that still matches.
+        _run(
+            repo,
+            "skip",
+            "--to",
+            "HEAD",
+            "--path",
+            "./legacy",
+            "--path",
+            "legacy/",
+            "--path",
+            "docs",
+            "--reason",
+            "r",
+        )
+        assert record.read_text().count("- `legacy`") == 1
+        assert "`docs`" not in record.read_text()
+        assert json.loads(_run(repo, "status", "--json").stdout)["changed_lines"] == 0
+
+
+def test_a_skip_row_whose_commit_is_gone_is_reported() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        _mark(repo)
+        gone = "1" * 40
+        (repo / "gaps").mkdir()
+        (repo / "gaps" / "unreviewed-code.md").write_text(
+            f"- `legacy` `{_marker(repo)}..{gone}` 3 lines, 1 commits; "
+            "skipped 2026-11-10: r\n"
+        )
+        assert "no longer has (111111111111)" in _run(repo, "hook").stdout
+
 
 def test_a_malformed_skip_row_is_an_error() -> None:
     with tempfile.TemporaryDirectory() as root:
