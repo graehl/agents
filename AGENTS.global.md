@@ -165,7 +165,8 @@ hypotheses.
 
 Delegation is optional judgment unless a higher instruction requires/forbids
 it. Keep planning, the core investigation trace, and final synthesis in the
-parent. Never send implementation to a lesser model than the session's.
+parent. Never send implementation to a lesser model than the session's,
+unless a model supplement sets a delegation default.
 
 Delegation is flat, depth 1: a leaf reports to its creator and does not spawn.
 Useful shapes are independent fan-out, a sequential fold over bulky homogeneous

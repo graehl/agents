@@ -6575,3 +6575,27 @@ Contributing-model: fable-5.2
   name.
 
 Contributing-model: fable-5.2
+
+## 2026-11-11 — Claude sessions cap default subagents at Opus, medium effort
+
+- **User decision:** "durable ~/agents fable or claude specific note: max
+  default subagent delegation to opus-medium (exceptions for good reason -
+  task difficulty, cost savings for simple research, etc still allowed)".
+- **Context:** a Fable 5.2 session in `~/draft` had started several
+  general-purpose subagents, which inherit the session's model, for
+  multi-hour build-and-fit work while the Claude week stood at 81% used.
+  The cost motive is my inference; graehl stated only the cap.
+- **Decision:** `AGENTS.anthropic.md` § Subagent model default. Global
+  § Delegation's "never send implementation to a lesser model than the
+  session's" (2026-08-08) gains "unless a model supplement sets a
+  delegation default", since global wins on conflict and the 2026-08-08
+  motive ("i do not use lesser quality models for impl") predates a tier
+  above Opus.
+- **Trace:** Fable session delegates an implementation task: Opus,
+  medium. Same session judges the task hard: may state the reason and
+  keep Fable or raise effort. Opus session at high effort: subagent at
+  medium. Codex or Grok session: unaffected.
+- **Cost:** about 60 words in each boot that carries the Claude supplement.
+- **Status:** user-directed; no outcome measurement.
+
+Contributing-model: fable-5.2
