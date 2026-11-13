@@ -182,6 +182,21 @@ class RepoViewTest(unittest.TestCase):
         self.assertEqual(self.get(base + "/.git/config")[0], 404)
 
     @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
+    def test_contents_entries_render_heading_math_without_tex_source(self) -> None:
+        self.write(
+            "docs/math.md",
+            "# Math\n\n## Maps, $\\widehat{\\mathrm{WER}}$ (a < b)\n\n## Two\n\n## Three\n",
+        )
+        self.write("docs/other.md", "# Other\n\n[math](math.md)\n")
+        status, _, page = self.get(self.serve() + "/docs/math.md")
+        self.assertEqual(status, 200)
+        contents = page[page.index('aria-label="Contents"') :]
+        contents = contents[: contents.index("</nav>")]
+        self.assertIn("<mover>", contents)
+        self.assertIn("(a &lt; b)", contents)
+        self.assertNotIn("\\widehat", contents)
+
+    @unittest.skipUnless(HAS_PANDOC, "pandoc renders documents")
     def test_reachable_set_grows_on_demand_and_never_shrinks(self) -> None:
         base = self.serve("--rewalk-after", "0")
         self.assertEqual(self.get(base + "/img/unlinked.txt")[0], 404)
