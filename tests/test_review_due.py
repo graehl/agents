@@ -213,11 +213,33 @@ def test_a_skip_row_whose_commit_is_gone_is_reported() -> None:
         _commit(repo, "legacy/old.py", "a = 1\n")
         hook = _run(repo, "hook").stdout
         assert "ends at 111111111111, which is no longer in this history" in hook
-        # Skipping that path again replaces the broken range instead of adding one.
-        _run(repo, "skip", "--path", "legacy", "--to", "HEAD", "--reason", "repair")
-        record = (repo / "gaps" / "unreviewed-code.md").read_text()
-        assert gone not in record and record.count("- `legacy`") == 1
+        # The repair the hook prints runs as printed, with no --reason.
+        assert "`review-due skip --path legacy --to <" in hook
+        record = repo / "gaps" / "unreviewed-code.md"
+        before = record.read_text()
+
+        # A repair that reaches no code under the path is refused, and the
+        # approved range stays on record.
+        _commit(repo, "notes.md", "prose\n")
+        empty = _run(repo, "skip", "--path", "legacy", "--to", "HEAD~1^")
+        assert empty.returncode == 5, empty.stderr
+        assert "broken range is kept" in empty.stderr
+        assert record.read_text() == before
+
+        # Skipping that path again replaces the broken range instead of adding
+        # one, keeps what was approved, and reports the old size beside the new.
+        repair = _run(repo, "skip", "--path", "legacy", "--to", "HEAD", "--json")
+        assert repair.returncode == 0, repair.stderr
+        (repaired,) = json.loads(repair.stdout)["repaired"]
+        assert (repaired["was"]["lines"], repaired["now"]["lines"]) == (3, 1)
+        text = record.read_text()
+        assert gone not in text and text.count("- `legacy`") == 1
+        assert "1 lines, 1 commits; skipped 2026-11-10: r\n" in text
         assert _run(repo, "hook").stdout == ""
+
+        # Without a broken range to repair, a skip still needs its reason.
+        _commit(repo, "legacy/old.py", "a = 2\n")
+        assert _run(repo, "skip", "--path", "legacy", "--to", "HEAD").returncode == 2
 
 
 def test_a_hand_edited_line_that_cannot_be_read_is_reported_and_kept() -> None:
@@ -227,14 +249,22 @@ def test_a_hand_edited_line_that_cannot_be_read_is_reported_and_kept() -> None:
         _commit(repo, "legacy/old.py", "a = 1\n")
         record = repo / "gaps" / "unreviewed-code.md"
         record.parent.mkdir()
-        record.write_text("My note.\n\n- `legacy` oops\n")
+        marker = _marker(repo)
+        wrapped = (
+            f"- `docs` `{marker}..{marker}` 0 lines, 0 commits; skipped 2026-11-10: a\n"
+            "  reason wrapped by hand\n"
+        )
+        record.write_text(f"My note.\n\n- `legacy` oops\n{wrapped}\nAfter the list.\n")
         hook = _run(repo, "hook")
         assert hook.returncode == 0
         assert "unreadable skipped-range line, ignored: - `legacy` oops" in hook.stdout
         _run(repo, "skip", "--to", "HEAD", "--reason", "r")
-        text = record.read_text()
-        assert text.startswith("My note.") and "- `legacy` oops\n" in text
-        assert "- `.` `" in text
+        # Every line stays where it was written; the new row joins the list,
+        # and a wrapped row is read whole.
+        lines = record.read_text().splitlines()
+        assert lines[:3] == ["My note.", "", "- `legacy` oops"]
+        assert lines[3].endswith("skipped 2026-11-10: a reason wrapped by hand")
+        assert lines[4].startswith("- `.` `") and lines[5:] == ["", "After the list."]
 
 
 def test_marker_naming_an_unknown_commit_fails() -> None:

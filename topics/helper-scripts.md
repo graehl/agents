@@ -552,7 +552,7 @@ session does with its output.
 **CLI**: `review-due [--repo <dir>] [--max-lines N] [--max-commits N]
 [--max-review-lines N] [--max-review-commits N] [--skips-file <path>] status`,
 `review-due … hook`, `review-due … skip --to <rev> [--path <p>]…
---reason <text> [--dry-run]`, and `review-due … unskip --path <p>…`; acli
+[--reason <text>] [--dry-run]`, and `review-due … unskip --path <p>…`; acli
 baseline with completion.
 
 **Post-conditions**:
@@ -587,20 +587,26 @@ baseline with completion.
 - Counting starts each file at the end of the furthest row covering it
   whose end is past the marker, else at the marker. Rows at or behind the
   marker stay as the record and change no count. The record may be edited
-  by hand: its prose and any list line the tool cannot read are kept across
-  rewrites, and such a line is ignored for counting, listed under
-  `skips_unreadable`, and named in a `hook` line.
+  by hand: its prose and any list line the tool cannot read stay where they
+  were written across rewrites, and such a line is ignored for counting,
+  listed under `skips_unreadable`, and named in a `hook` line. A row wrapped
+  onto indented continuation lines is read whole and rewritten on one line.
 - A `--to` not after where the path is reviewed or skipped to, or not in
   HEAD's history, exits 5; an unknown `--to` exits 4. `--path` is
   normalized (`./legacy/` is `legacy`), repeats collapse, and a path with
   no code change in the range gets no row and is listed under
-  `no_code_changed`. `--reason` is one line.
+  `no_code_changed`. `--reason` is one line, required for every path
+  except one being repaired.
 - `unskip --path <p>…` removes those paths' rows once a review has covered
   them, and the record file with its last row; no matching row exits 4.
 - A row whose end commit is no longer in HEAD's history stops applying;
   `status` lists it under `skips_needing_repair` and `hook` prints a line
-  giving the repair: `skip` for that path replaces the broken row, keeping
-  its start when that commit survived.
+  giving the repair: `skip --path <p> --to <rev>` for that path replaces
+  the broken row in place, keeping its start when that commit survived and
+  the reason and date the user approved, and reports the old row beside the
+  new one under `repaired` so a changed size is visible. A repair whose
+  span holds no code under the path exits 5 and keeps the broken row; when
+  the rewrite removed that code, `unskip` is the way to drop it.
 - With no marker `status` and `hook` report nothing due: a repository is
   enrolled by its first strict review. `skip` without a marker, or a marker
   naming a commit the repository lacks, exits 4.
