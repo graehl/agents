@@ -107,6 +107,17 @@ Finalize and retain: decide remediations under the output invariant (§ Range an
 
 The session response links the verdict with its project-relative path as the link text and does not duplicate the findings inline. For a same-range second opinion, also state concise noticed-and-resolved annotations for any valid prior finding the independent pass missed and any valid finding it newly found; keep those reviewer-comparison annotations out of the verdict. If the verdict cannot be written, do not claim delivery or advance the marker.
 
+## Fixing and amending
+
+Two modifiers make the review fix its findings right after delivery instead of only reporting them. They go before the range: `harsh-review fixing since`, `harsh-review amending <range>`. Without either one, the review reports only. A fix covers every finding whose remediation is settled, whether blocker or advisory. A finding that needs a user decision, or a restructure too large for this session, stays open in the verdict and gets a gap. Fixes follow ordinary project practice: run the formatter and the project's checks, and use the project's commit conventions.
+
+- **`fixing`** lands the fixes as new commits on top of HEAD and rewrites nothing.
+- **`amending`** folds each fix into the in-range commit that introduced the defect. Make a `fixup!` commit for each target, then run `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash <base>`. A fix that spans several commits goes to the latest commit it needs. The user's `amending` request authorizes rewriting the in-range commits even when an earlier session made them. Everything else in `~/agents/topics/commits.md` § Amends and § History rewrites in a shared worktree still applies: no active peers, the `REWRITE` banner for the whole chain, and messages amended additively. Rebase needs a clean tracked tree. When the tree is dirty, or the rebase conflicts, `git rebase --abort` and land the remaining fixes the `fixing` way. Never use `--autostash` or a broad stash.
+
+**Published commits are not amendable.** Before rewriting, list the in-range commits already published: those reachable from any remote-tracking ref (`git for-each-ref --contains <sha> refs/remotes`), plus any you know were pushed elsewhere, such as an open PR or a Gerrit change. Rewriting a published commit, or anything below one, needs a force push. The word `amending` does not authorize that push. Amend only the commits after the last published one. For fixes aimed at published commits, ask once whether a force push to that remote is authorized; the usual answer is no. Without an explicit yes, land those fixes the `fixing` way and say which ones went that way.
+
+**Advance the marker after fixing.** The fixes are this review's own remediation, so the marker moves to the rewritten end (`amending`) or the new HEAD (`fixing`). Note the reviewed end on line 2 so the rewritten-marker rule in § Review marker does not raise the fix delta as an unreviewed amend. The verdict lists each fix with the commit it landed in.
+
 ## Review pass
 
 Walk these in order; skip any with no real hit — a short review is success, not a form left unfilled.

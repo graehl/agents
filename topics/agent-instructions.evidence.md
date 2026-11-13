@@ -6671,3 +6671,24 @@ Contributing-model: opus-5.5
 - **Status:** user-directed; soft.
 
 Contributing-model: fable-5.2
+
+## 2026-11-13 — harsh-review: `fixing` and `amending` modifiers
+
+- **User-directed:** `amending` means fix immediately by amending the
+  reviewed commits. `fixing` means fix immediately with new commits.
+  The user stressed one constraint: commits any upstream already has
+  are not amendable without explicit authorization for the force push
+  that follows, and that authorization will usually be declined.
+- **Agent-derived choices:**
+  - Fixes for published commits fall back to new commits instead of
+    blocking the review.
+  - Rebase conflicts and a dirty tracked tree also fall back to new
+    commits, because `--autostash` is a bare stash and the global
+    stash ban forbids it.
+  - The marker advances past the review's own fixes, with a note so the
+    rewritten-marker rule does not flag them.
+  - Fixes cover settled remediations at any severity; decisions and
+    large restructures go to gaps.
+- **Status:** untested.
+
+Contributing-model: opus-5.5
