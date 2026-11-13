@@ -160,7 +160,8 @@ meets the cross-cutting bar and needs a dedicated decision surface under
 
 Regeneration targets one glossary and only the topic collection it owns. Scan
 its main `topics/*.md` docs, excluding recognized companion files
-(`*.evidence.md`, `*.bearings.md`, `*.testing.md`, and `*.sketches.md`). For
+(`*.evidence.md`, `*.bearings.md`, `*.testing.md`, `*.sketches.md`, and
+`*.local.md`). For
 the project glossary, use the established `docs/topics/*.md` alternate when
 root `topics/` is absent.
 

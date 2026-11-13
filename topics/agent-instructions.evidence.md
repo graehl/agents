@@ -6599,3 +6599,34 @@ Contributing-model: fable-5.2
 - **Status:** user-directed; no outcome measurement.
 
 Contributing-model: fable-5.2
+
+## 2026-11-13 — `.local.md` private riders for committed docs
+
+- **Incident:** a design topic in the public fork
+  `~/sherpa-onnx-fusion` cited its evidence and port source as
+  `~/draft/research/...` paths with a draft commit SHA, and a sketch cited
+  `~/x/graehl/shared/configure.hpp`. A harsh review flagged that the
+  fork's readers cannot open either.
+- **User decision:** "public docs should not cite ~/draft ~/x. you can
+  include uncommitted riders. in ~/agents define that committed .md docs
+  have optional .local.md riders or whatever (or subdir, don't care)".
+- **Decision:** `topics/topic-doc-format.md` § Companions and § Private
+  riders define `<stem>.local.md`, excluded per clone. The suffix matches
+  the existing private `AGENTS.local.md` and `session.local.md`. A sibling
+  file was chosen over a subdirectory so a rider is found, moved and
+  deleted with its doc. `topics/glossary.md` regeneration skips it.
+- **Scope choice (mine):** no boot rule. `~/agents` and private projects
+  cite `~/agents/topics/...` and each other routinely, so a global "never
+  cite outside paths" would misfire; the ban is a project rule, added to
+  the fork's `AGENTS.md`, and the topic only names where a withheld
+  locator goes.
+- **Trace:** a session writing a topic in the fork reads the project rule
+  at entry, states the result in the doc, and writes the locator to the
+  rider. A fresh clone has no rider and the doc still reads complete. A
+  later session verifying a cited number finds the rider beside the doc.
+  Glossary regeneration over `topics/*.md` does not list the rider.
+- **Cost:** no boot text; about 200 words in a conditionally read topic.
+- **Status:** user-directed; the committed doc not mentioning its rider is
+  my choice and untested.
+
+Contributing-model: fable-5.2

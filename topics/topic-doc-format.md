@@ -3,7 +3,7 @@
 > Layout of a glossary-owned `topics/<name>.md` doc — H1, blockquote
 > lede, scoped topic name, body — and the suffix vocabulary for companion
 > artifacts (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`,
-> `.sketches.md`).
+> `.sketches.md`, `.local.md`).
 > Includes the glyph set for `.bearings.md` plan outlines.
 
 Topic: `topic-doc-format`
@@ -11,7 +11,7 @@ Governs: creating or normalizing topic docs, companions, bearings, or epistemic 
 
 Read this topic before creating or normalizing topic docs, using companion
 suffixes (`.evidence.md`, `.runs/`, `.bearings.md`, `.testing.md`,
-`.sketches.md`),
+`.sketches.md`, `.local.md`),
 maintaining bearings outlines, or applying epistemic labels.
 
 ## Topic scope and name
@@ -80,6 +80,11 @@ file or a `.<suffix>/` directory, by convention:
 - `.sketches.md` — dormant or candidate designs that are not current
   guidance. Routine topic reads exclude it; read it when exploring future
   work, reconsidering a named candidate, or explicitly asked about sketches.
+- `.local.md` — private rider, never committed. It holds what the committed
+  doc's readers cannot open or should not see: paths into another checkout,
+  a source revision of a private repository, unpublished run records, names.
+  Any committed Markdown doc may have one, not only a topic:
+  `gaps/<slug>.local.md`, `README.local.md`. See *Private riders* below.
 - `.mandatory-reread.md` — generated essential excerpts of this base topic;
   `.mandatory-reread.recursive.md` also inlines flagged content in reachable
   topics. Base topics keep all content. Never hand-edit these build products.
@@ -111,6 +116,28 @@ binding moves into the main topic or an implementation plan; leaving it only in
 whose absence is current project incompleteness, link it to the existing
 project gap that tracks closure, and link that gap back to the topic/sketch.
 Gap granularity and scope: root `gaps/README.md`.
+
+## Private riders
+
+Use `<stem>.local.md` beside a committed doc when the doc is published more
+widely than a locator it would cite: a public repository whose design note
+rests on results in a private one, for example. The committed doc states
+the fact its reader needs (the number, the decision, that the source is a
+private research repository) and stands alone in a fresh clone. The rider
+holds the locator that lets the owner or a later session trace it.
+
+- Exclude riders per clone with a `*.local.md` line in
+  `$(git rev-parse --git-common-dir)/info/exclude`, never `.gitignore`.
+- The committed doc does not link or mention its rider; a reader who lacks
+  the file gains nothing from the pointer. Look for a rider when opening a
+  doc to verify or extend what it cites.
+- Head the rider with the committed doc's path, and key each entry by that
+  doc's section heading so it survives edits to the text.
+- A rider moves and is deleted with its doc. It is not a second home for
+  content: anything the public reader needs stays in the committed doc.
+
+A project decides whether its committed docs may cite outside locators;
+without such a rule this section only names where a withheld one goes.
 
 ## Bearings outline format
 
