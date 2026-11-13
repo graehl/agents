@@ -6651,3 +6651,23 @@ Contributing-model: fable-5.2
   asking.
 
 Contributing-model: opus-5.5
+
+## 2026-11-13 — C++: keep implementation templates out of library headers
+
+- **Incident:** in `~/sherpa-onnx-fusion` a search class's public header
+  carried a decode-loop function template used by one `.cc` and a private
+  member template in the class declaration.
+- **User statement:** "in C++ libraries that don't need to show templates
+  to user (just impl details) hiding them without an observable material
+  perf diff is always preferred (exception being when efficient use of the
+  facility requires it be accessed in full template glory) and is worth a
+  few lines of boilerplate. fwd decl template struct etc considered
+  negligible but still nice to avoid". He called it a soft preference.
+- **Decision:** `topics/cpp.md` § Templates in library interfaces. Read at
+  first C++ edit in a repo, so no boot cost.
+- **Trace:** a shared helper needed by two `.cc` files goes in an internal
+  header those include, not the public one. A registration template whose
+  callers must instantiate it (one per options struct) stays public.
+- **Status:** user-directed; soft.
+
+Contributing-model: fable-5.2
