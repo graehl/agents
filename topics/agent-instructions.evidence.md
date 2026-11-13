@@ -6692,3 +6692,12 @@ Contributing-model: fable-5.2
 - **Status:** untested.
 
 Contributing-model: opus-5.5
+
+- **2026-11-13 follow-up (user-directed):** `amending` requires an
+  extra confirmation when other sessions are active. This relaxes the
+  outright no-rewrite-with-peers ban in `topics/commits.md`, but only
+  for this explicitly requested review mode. A peer could still commit
+  mid-rebase. The user's confirmation accepts that risk; the skill names
+  the active peers so the user can judge it.
+
+Contributing-model: opus-5.5
