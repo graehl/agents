@@ -124,6 +124,7 @@ shell producers implement the format directly.
 | --- | --- | --- |
 | `acli.session` | `is_agent_session`, `resolve_format`, `Format` | Resolve flags and pass the selected format to the writer. |
 | `acli.emit` | `emit`, `write_jsonl`, `write_pretty`, `write_toon_table` | Supply the application value, text renderer, and supported TOON shape. |
+| `acli.emit` | `emit_table`, `write_csv_table`, `write_markdown_table`, `markdown_table` | Pass rows and their ordered columns through `emit_table` so `--csv` and `--md` are honored; `markdown=` supplies a rendering with a caption or notes. `emit` falls back for a value that is no table. Advertise `+tables` when a command uses it. |
 | `acli.commentary` | `commentary`; writer-side validation/projection | Pass the suppression choice to the emitter. |
 | `acli.errors` | `ExitCode`, `error_envelope`, `die` | Translate application failures at the execution boundary. |
 | `acli.args` | `argument_parser`, `add_standard_args`, capability footer/banner | Advertise only wired capabilities; define application arguments and help. |

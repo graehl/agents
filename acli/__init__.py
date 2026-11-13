@@ -19,7 +19,16 @@ from .args import (
     set_completer,
 )
 from .commentary import commentary
-from .emit import emit, emit_table, write_jsonl, write_pretty, write_toon_table
+from .emit import (
+    emit,
+    emit_table,
+    markdown_table,
+    write_csv_table,
+    write_jsonl,
+    write_markdown_table,
+    write_pretty,
+    write_toon_table,
+)
 from .errors import ExitCode, die, error_envelope
 from .session import Format, is_agent_session, resolve_format
 from .status import ProgramStatus, program_status, terminal_status_enabled
@@ -41,6 +50,7 @@ __all__ = [
     "hint",
     "is_agent_session",
     "line_commentary",
+    "markdown_table",
     "maybe_banner",
     "maybe_complete",
     "maybe_repl",
@@ -48,7 +58,9 @@ __all__ = [
     "resolve_format",
     "set_completer",
     "terminal_status_enabled",
+    "write_csv_table",
     "write_jsonl",
+    "write_markdown_table",
     "write_pretty",
     "write_toon_table",
 ]

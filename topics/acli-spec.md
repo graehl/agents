@@ -36,6 +36,7 @@ Optional packages are:
 | `complete/1` | `complete` | Argument completion through `--acli-complete`. |
 | `repl/1` | `repl` | An explicitly requested command loop through `--repl`. |
 | `toon/1` | `+toon` | Explicitly selected flat-table TOON output. |
+| `tables/1` | `+tables` | CSV and Markdown table output on request, with fallback. |
 
 The second-column spellings are v1 shorthands for the packages.
 None is implied by `acli: 1`. Application features need not become packages.
@@ -508,6 +509,31 @@ upstream version stated in tool help. Comma is the default delimiter; document
 tab or pipe variants. Consumers must understand the declared version and
 profile before selecting TOON. This capability promises neither a token
 saving on a particular payload nor a particular encoder implementation.
+
+## Table formats package: tables/1
+
+`--csv` and `--md` (also `--format csv`, `--format md`) request a result
+table as CSV or as Markdown. Unlike TOON they are requests, not encoding
+guarantees: a command whose result is one table of rows honors them, and
+any other command emits what it would have without the request (its text
+for `--md` when it has a text renderer, otherwise JSONL). A consumer that
+requires the format uses a command whose help promises a table. A tool
+may accept the options on every command; `+tables` declares that at least
+one command honors them.
+
+- **CSV** is RFC 4180 with LF line ends: one header line of column names,
+  then one line per row. A missing or null value is an empty cell;
+  booleans are `true`/`false`; a nested value is its compact JSON. An empty
+  table is the header alone. Nothing precedes or follows the table.
+- **Markdown** is a GitHub-flavored pipe table: header row, delimiter row
+  (`---:` marks a right-aligned column), one row per line. Cells may be
+  padded with spaces so columns align in a terminal. A `|` in a cell is
+  written `\|` and a line break becomes a space. A command may print a
+  caption line before the table and free text after it, each separated
+  from the table by a blank line.
+
+Both project rows onto the command's declared ordered columns, like TOON,
+and carry no commentary.
 
 ## Long-running work and progress
 

@@ -259,9 +259,9 @@ def add_standard_args(
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--format",
-        choices=["compact", "jsonl", "pretty", "toon", "text"],
+        choices=["compact", "jsonl", "pretty", "toon", "text", "csv", "md"],
         dest="format",
-        help="Output format. compact/jsonl is JSON Lines; pretty is indented JSON; toon is flat-table TOON; text prefers readable output with JSON fallback.",
+        help="Output format. compact/jsonl is JSON Lines; pretty is indented JSON; toon is flat-table TOON; text prefers readable output with JSON fallback; csv and md request a table, with the command's usual output as fallback.",
     )
     group.add_argument(
         "--compact",
@@ -290,6 +290,20 @@ def add_standard_args(
         const="toon",
         dest="format",
         help="Output TOON; valid only for table-producing subcommands.",
+    )
+    group.add_argument(
+        "--csv",
+        action="store_const",
+        const="csv",
+        dest="format",
+        help="Request a CSV table; a command with no table emits its usual output.",
+    )
+    group.add_argument(
+        "--md",
+        action="store_const",
+        const="md",
+        dest="format",
+        help="Request a Markdown table; a command with no table emits its text or usual output.",
     )
     parser.add_argument(
         "--full",

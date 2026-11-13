@@ -466,6 +466,57 @@ def test_emit_table_projects_toon_and_marks_empty_line_formats() -> None:
     _assert([json.loads(line) for line in out.getvalue().splitlines()] == rows)
 
 
+def test_emit_table_writes_csv_and_aligned_markdown() -> None:
+    import csv
+
+    rows = [
+        {"system": "a|b", "score": 1.5, "note": 'x, "y"\nz'},
+        {"system": "සිංහල", "score": 22, "ok": True},
+    ]
+    columns = ["system", "score", "note", "ok"]
+    out = io.StringIO()
+    _acli.emit_table(rows, columns, Format.CSV, out, name="results")
+    parsed = list(csv.reader(io.StringIO(out.getvalue())))
+    _assert(parsed[0] == columns, parsed)
+    _assert(parsed[1] == ["a|b", "1.5", 'x, "y"\nz', ""], parsed)
+    _assert(parsed[2] == ["සිංහල", "22", "", "true"], parsed)
+    out = io.StringIO()
+    _acli.emit_table([], columns, "csv", out, name="results")
+    _assert(out.getvalue() == "system,score,note,ok\n", out.getvalue())
+
+    out = io.StringIO()
+    _acli.emit_table(rows, columns, Format.MD, out, name="results")
+    lines = out.getvalue().splitlines()
+    _assert(len(lines) == 4, lines)
+    _assert(len({_emit._display_width(line) for line in lines}) == 1, lines)
+    # Only the all-number column is right-aligned; each row keeps its four cells.
+    rule = [cell.strip() for cell in lines[1].strip("|").split("|")]
+    _assert([cell.endswith(":") for cell in rule] == [False, True, False, False], rule)
+    _assert(all(line.replace("\\|", "").count("|") == 5 for line in lines), lines)
+    _assert("a\\|b" in lines[2] and 'x, "y" z' in lines[2], lines[2])
+
+    out = io.StringIO()
+    _acli.emit_table(
+        rows, columns, "md", out, name="results", markdown="Caption\n\n| t |\n"
+    )
+    _assert(out.getvalue() == "Caption\n\n| t |\n", out.getvalue())
+
+
+def test_csv_and_markdown_requests_fall_back_for_a_value_that_is_no_table() -> None:
+    record = {"ok": True}
+    out = io.StringIO()
+    _acli.emit(record, Format.CSV, out, text="fine")
+    _assert(json.loads(out.getvalue()) == record, out.getvalue())
+    out = io.StringIO()
+    _acli.emit(record, Format.MD, out, text="fine")
+    _assert(out.getvalue() == "fine\n", out.getvalue())
+    out = io.StringIO()
+    _acli.emit(record, "markdown", out)
+    _assert(json.loads(out.getvalue()) == record, out.getvalue())
+    _assert(resolve_format(Args("csv"), FakeStdout(True), {}) is Format.CSV)
+    _assert(resolve_format(Args("md"), FakeStdout(False), {}) is Format.MD)
+
+
 def test_toon_table_quotes_scalars_and_preserves_inner_spaces():
     rows = [
         {"id": 1, "name": "Alice Smith", "note": "hello, world", "literal": "true"},

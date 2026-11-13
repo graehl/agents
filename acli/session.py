@@ -12,6 +12,8 @@ class Format(str, Enum):
     PRETTY = "pretty"
     TOON = "toon"
     TEXT = "text"
+    CSV = "csv"
+    MD = "md"
 
 
 _AGENT_ENV_NAMES = (
@@ -60,6 +62,10 @@ def _normalize_format(raw: Any) -> Format:
         return Format.TOON
     if text == "text":
         return Format.TEXT
+    if text == "csv":
+        return Format.CSV
+    if text in {"md", "markdown"}:
+        return Format.MD
     raise ValueError(f"unknown output format {raw!r}")
 
 

@@ -182,3 +182,27 @@ release, contains no OSC 7501 string.
   names, errors), so control characters become spaces and the text is cut
   at the byte limit on a character boundary rather than letting the
   terminal discard the whole report.
+
+## 2026-11-13 CSV and Markdown table output in the Python library
+
+graehl asked, while making a scoring tool usable by colleagues, for the
+tool's result tables in CSV and in Markdown that reads well in a
+terminal, and accepted that the format options be requests.
+
+- **`--csv` and `--md` are requests with fallback** (vs. guarantees that
+  fail on a command with no table, as `--toon` does): graehl, 2026-11-13,
+  "reasonable for non-table outputting verbs to just write json or text or
+  whatever they find easiest". One flag works across a tool's verbs
+  without the caller knowing which produce tables. Accepts that a consumer
+  must use a verb whose help promises a table, or check the first line,
+  before parsing.
+- **Markdown tables padded to align, and still valid** (vs. compact
+  `|a|b|` rows, or a box-drawing terminal table): graehl wanted terminal
+  legibility and "fully officially parseable form". Padding inside cells
+  is ignored by Markdown, so one rendering serves a person and a parser.
+  A pipe in a cell is escaped and a line break flattened.
+- **A command may supply its own Markdown** (`emit_table(markdown=...)`;
+  vs. only the bare table): a verb with a caption or notes after the
+  table keeps them in `--md`, while `--csv` stays the bare table.
+- **No row-count or TTY auto-selection**, as for TOON: JSON stays the
+  default for every caller.

@@ -52,6 +52,7 @@ before applying a root command's capability list.
 | `complete` | `complete/1` | Request argument candidates. |
 | `repl` | `repl/1` | Start an explicit command loop. |
 | `+toon` | `toon/1` | Select documented flat-table TOON output. |
+| `+tables` | `tables/1` | Request a CSV or Markdown table. |
 
 None of these packages is implied by bare `acli: 1`. Use capabilities whose
 versions you understand. A script-header marker can help identify a candidate,
@@ -70,6 +71,7 @@ For a full acli tool:
 | Omitted details | `--full`. |
 | Data without commentary | `--no-commentary`, when commentary is supported. |
 | TOON table | `--toon`, only on an advertised supporting verb. |
+| CSV or Markdown table | `--csv` or `--md`: a request. A verb with one result table honors it; any other emits its usual output, so check the first line before parsing. |
 
 V1's `--json` means one JSON value per line, possibly multiple records.
 A command's help tells you whether it emits rows or a single response envelope.
