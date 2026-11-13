@@ -6701,3 +6701,13 @@ Contributing-model: opus-5.5
   the active peers so the user can judge it.
 
 Contributing-model: opus-5.5
+
+- **2026-11-13 follow-up (user-directed):** with peers active,
+  `amending` pauses and sends each peer a hold request asking it not to
+  commit, using live-only (non-waking) `agentctl message`. It proceeds
+  only when every peer acknowledges or the user directs, and sends a
+  release when the rewrite ends. A peer that is not running gets only an
+  inbox note and cannot acknowledge, so the user's direction is the only
+  way past it.
+
+Contributing-model: opus-5.5
