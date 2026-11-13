@@ -577,7 +577,8 @@ together.
 ### Amends
 
 Before any history rewrite, read the matching amend/rewrite sections of
-`topics/commits.md`, require no active peers, and verify the target is this
+`topics/commits.md`, require no active peers unless that topic names an
+exception, and verify the target is this
 session's intended work. Capture the complete existing message before an
 amend; preserve it and its trailers/Change-Id except deliberate corrections.
 Never amend after a PR opens. A multi-command rewrite holds the `agentctl

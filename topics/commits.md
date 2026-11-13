@@ -280,7 +280,10 @@ is an amend in everything but name; it gets no separate latitude.
 
 Check for active peers first (`find .agentctl/active -maxdepth 1
 -type f -mmin -70`; entries not starting with `DONE`). With any
-active peer, no history rewrite at all. The scope is peer presence,
+active peer, no history rewrite at all, with one user-directed
+exception: a `harsh-review amending` request may rewrite its range
+after the peer hold or user confirmation in
+`skills/harsh-review/fixing.md`. The scope is peer presence,
 not `HEAD` ownership: a peer may commit at any moment, so verifying
 "my commit is at `HEAD`" immediately before the rewind still leaves
 the race open — the reset point can end up below a freshly landed

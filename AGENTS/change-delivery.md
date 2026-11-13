@@ -356,7 +356,8 @@ message-preservation mechanics.
 When amending, keep the subject, preserve existing message content except
 deliberate corrections, and prefer amend over a local correction commit;
 never amend after a PR has opened. In a shared worktree, first check active
-peers; with any active peer, no history rewrite at all — not amend, not
+peers; with any active peer, no history rewrite at all, apart from the
+`harsh-review amending` exception `topics/commits.md` names — not amend, not
 rebase, and not a `git reset` that rewinds the branch to split, squash, or
 reorder what you believe is your tip commit. The scope is peer presence,
 not `HEAD` ownership: a peer may commit at any moment, so no `HEAD` check

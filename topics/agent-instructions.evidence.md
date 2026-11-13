@@ -6718,3 +6718,37 @@ Contributing-model: opus-5.5
   keep the fixes as ordinary commits, or leave them uncommitted.
 
 Contributing-model: opus-5.5
+
+- **2026-11-13 follow-up (strict-review findings, range
+  `80e80e3dbef9..ed441c97f4f1`):**
+  - **User-directed:** asked about the finding that `amending` with
+    active peers contradicts the outright ban, the user confirmed the
+    relaxation is his directive. The ban's own texts now name the
+    exception (`topics/commits.md` § History rewrites in a shared
+    worktree, `AGENTS.global.md` § Amends by pointer), because an agent
+    doing the mandated `commits.md` read before a rewrite otherwise
+    finds an absolute ban that outranks the skill.
+  - **Agent-derived:** the stop checks (published, peers, tracked tree)
+    now run before any `fixup!` commit, since a `fixup!` made before a
+    failed check is a fix in history in a form nobody asked for. An
+    aborted rebase leaves its `fixup!` commits at the tip to be named in
+    the stop question; removing them would be a second rewrite.
+  - **Agent-derived:** the marker note is `fixed-by-review <sha>`, which
+    § Review marker exempts. The earlier free-form line-2 note matched
+    that section's "original SHA on a later line" clause and so
+    triggered the delta review it was meant to prevent.
+  - **Agent-derived:** after `fixing`, the marker advances only across
+    this review's own fix commits while they directly follow the
+    reviewed end. "The new HEAD" skipped any peer commit that landed
+    during the review.
+  - **Agent-derived:** the section moved to `skills/harsh-review/fixing.md`
+    behind a trigger in `SKILL.md` that itself says to commit and
+    rewrite nothing until the file is read.
+  - **Traces:** `fixing` solo (marker reaches the last fix; next `since`
+    raises no delta); `fixing` with a peer commit directly above the
+    reviewed end (marker stays; the next `since` reviews the peer commit
+    and the fixes); `amending` with a published target (question asked
+    before any commit); `amending` with a conflict (abort, `fixup!`
+    commits named, marker at the reviewed end). Untested in a live run.
+
+Contributing-model: fable-5.2
