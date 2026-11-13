@@ -222,6 +222,8 @@ SECTION_HEADING = re.compile(
     r"<h([23])\b[^>]*\bid=\"([^\"]+)\"[^>]*>(.*?)</h\1>", re.DOTALL
 )
 OUTLINE_MIN_SECTIONS = 3
+MATH_ELEMENT = re.compile(r"(<math\b.*?</math>)", re.DOTALL)
+MATH_ANNOTATION = re.compile(r"<annotation\b.*?</annotation>", re.DOTALL)
 # A project page element that shows a directory: <details id="x" data-repo-dir="a/b">.
 DIRECTORY_MARK = re.compile(
     r"<[a-z][^>]*\bdata-repo-dir=\"([^\"]*)\"[^>]*>", re.IGNORECASE
@@ -553,13 +555,27 @@ def freshness_meta(fresh: Freshness) -> str:
     )
 
 
+def outline_label(heading: str) -> str:
+    """A heading's contents as plain text, keeping its MathML formulas.
+
+    Pandoc's MathML carries the TeX source in an <annotation>; stripping
+    every tag would print it beside the rendered glyphs."""
+    parts = MATH_ELEMENT.split(heading)
+    return "".join(
+        MATH_ANNOTATION.sub("", part)
+        if index % 2
+        else html.escape(html.unescape(re.sub(r"<[^>]+>", "", part)))
+        for index, part in enumerate(parts)
+    ).strip()
+
+
 def outline(body: str) -> str:
     """A contents sidebar from a long document's section headings."""
     sections = SECTION_HEADING.findall(body)
     if len(sections) < OUTLINE_MIN_SECTIONS:
         return ""
     items = "".join(
-        f'<li class="h{level}"><a href="#{anchor}">{html.escape(html.unescape(re.sub(r"<[^>]+>", "", text)).strip())}</a></li>'
+        f'<li class="h{level}"><a href="#{anchor}">{outline_label(text)}</a></li>'
         for level, anchor, text in sections
     )
     return f'<nav class="outline" aria-label="Contents"><details open><summary>Contents</summary><ul>{items}</ul></details></nav>'
