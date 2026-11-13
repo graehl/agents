@@ -6711,3 +6711,10 @@ Contributing-model: opus-5.5
   way past it.
 
 Contributing-model: opus-5.5
+
+- **2026-11-13 follow-up (user-directed):** no silent fallback from
+  `amending` to ordinary commits, because it surprises the user. Every
+  blocked fold now stops and asks, offering three options: fold later,
+  keep the fixes as ordinary commits, or leave them uncommitted.
+
+Contributing-model: opus-5.5
