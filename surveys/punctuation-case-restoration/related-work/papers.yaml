@@ -1,0 +1,316 @@
+# Metadata manifest for surveys/punctuation-case-restoration.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: punctuation-case-restoration
+  coverage_cutoff: 2026-11-13
+  grounding_mode: grounded
+
+papers:
+  - key: nguyen2019-chunk-merging
+    title: 'Fast and Accurate Capitalization and Punctuation for Automatic Speech Recognition Using Transformer and Chunk Merging'
+    authors: ['Binh Nguyen', 'Vu Bao Hung Nguyen', 'Hien Nguyen', 'Pham Ngoc Phuong', 'The-Loc Nguyen', 'Quoc Truong Do', 'Luong Chi Mai']
+    venue: 'arXiv 2019 (O-COCOSDA 2019)'
+    year: 2019
+    arxiv: '1908.02404'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/tagger-formulation.md
+    reading: related-work/readings/nguyen2019-chunk-merging.md
+    cluster: vietnamese
+  - key: liu2024-sponspeech
+    title: 'Spontaneous Informal Speech Dataset for Punctuation Restoration'
+    authors: ['Xing Yi Liu', 'Homayoon Beigi']
+    venue: 'Recognition Technologies technical report 2024'
+    year: 2024
+    arxiv: '2409.11241'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/spoken-vs-written.md
+    reading: related-work/readings/liu2024-sponspeech.md
+    cluster: llm
+  - key: you2024-cnn-bilstm
+    title: 'A light-weight and efficient punctuation and word casing prediction model for on-device streaming ASR'
+    authors: ['Jian You', 'Xiangfeng Li']
+    venue: 'arXiv 2024'
+    year: 2024
+    arxiv: '2407.13142'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/compact-models.md
+    reading: related-work/readings/you2024-cnn-bilstm.md
+    cluster: compact
+  - key: pais2021-survey
+    title: 'Capitalization and Punctuation Restoration: a Survey'
+    authors: ['Vasile Păiş', 'Dan Tufiş']
+    venue: 'Artificial Intelligence Review 2021'
+    year: 2021
+    arxiv: '2111.10746'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/tagger-formulation.md
+    reading: related-work/readings/pais2021-survey.md
+    cluster: taggers
+  - key: zhu2022-unipunc
+    title: 'Unified Multimodal Punctuation Restoration Framework for Mixed-Modality Corpus'
+    authors: ['Yaoming Zhu', 'Liwei Wu', 'Shanbo Cheng', 'Mingxuan Wang']
+    venue: 'ICASSP 2022'
+    year: 2022
+    arxiv: '2202.00468'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/acoustic-features.md
+    reading: related-work/readings/zhu2022-unipunc.md
+    cluster: acoustic
+  - key: meister2023-librispeech-pc
+    title: 'LibriSpeech-PC: Benchmark for Evaluation of Punctuation and Capitalization Capabilities of end-to-end ASR Models'
+    authors: ['Aleksandr Meister', 'Matvei Novikov', 'Nikolay Karpov', 'Evelina Bakhturina', 'Vitaly Lavrukhin', 'Boris Ginsburg']
+    venue: 'ASRU 2023'
+    year: 2023
+    arxiv: '2310.02943'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/end-to-end-formatted-asr.md
+    reading: related-work/readings/meister2023-librispeech-pc.md
+    cluster: end-to-end
+  - key: ling2023-small-fast-bert
+    title: 'A Small and Fast BERT for Chinese Medical Punctuation Restoration'
+    authors: ['Tongtao Ling', 'Yutao Lai', 'Lei Chen', 'Shilei Huang', 'Yi Liu']
+    venue: 'Interspeech 2024'
+    year: 2023
+    arxiv: '2308.12568'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/compact-models.md
+    reading: related-work/readings/ling2023-small-fast-bert.md
+    cluster: compact
+  - key: behre2022-streaming-dictation
+    title: 'Streaming Punctuation for Long-form Dictation with Transformers'
+    authors: ['Piyush Behre', 'Sharman Tan', 'Padma Varadharajan', 'Shuangyu Chang']
+    venue: 'SIGEM 2022'
+    year: 2022
+    arxiv: '2210.05756'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/segmentation-and-streaming.md
+    reading: related-work/readings/behre2022-streaming-dictation.md
+    cluster: segmentation
+  - key: kim2023-e2e-streaming-punct
+    title: 'Improved Training for End-to-End Streaming Automatic Speech Recognition Model with Punctuation'
+    authors: ['Hanbyul Kim', 'Seunghyun Seo', 'Lukas Lee', 'Seolki Baek']
+    venue: 'Interspeech 2023'
+    year: 2023
+    arxiv: '2306.01296'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/end-to-end-formatted-asr.md
+    reading: related-work/readings/kim2023-e2e-streaming-punct.md
+    cluster: end-to-end
+  - key: you2025-formatted-e2e-distill
+    title: 'Enhancing Fully Formatted End-to-End Speech Recognition with Knowledge Distillation via Multi-Codebook Vector Quantization'
+    authors: ['Jian You', 'Xiangfeng Li', 'Erwan Zerhouni']
+    venue: 'ASRU 2025'
+    year: 2025
+    arxiv: '2512.18967'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/end-to-end-formatted-asr.md
+    reading: related-work/readings/you2025-formatted-e2e-distill.md
+    cluster: end-to-end
+  - key: uyen2022-jointcappunc
+    title: 'Vietnamese Capitalization and Punctuation Recovery Models'
+    authors: ['Hoang Thi Thu Uyen', 'Nguyen Anh Tu', 'Ta Duc Huy']
+    venue: 'Interspeech 2022'
+    year: 2022
+    arxiv: '2207.01312'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/vietnamese.md
+    reading: related-work/readings/uyen2022-jointcappunc.md
+    cluster: vietnamese
+  - key: woo2026-lookahead-scoring
+    title: 'Efficient Punctuation Restoration via Weighted Lookahead Scoring Method for Streaming ASR Systems'
+    authors: ['Sungmook Woo', 'Hyungu Kang', 'Chanwoo Kim']
+    venue: 'IJCNN 2026'
+    year: 2026
+    arxiv: '2606.05179'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/llm-restoration.md
+    reading: related-work/readings/woo2026-lookahead-scoring.md
+    cluster: llm
+  - key: nguyen2026-phopunct
+    title: 'PhoPunct: A Large-Scale Benchmark of Transformer Architectures for Vietnamese Punctuation Restoration'
+    authors: ['Khoa D. Nguyen', 'Thai Bao Huynh', 'Binh T. Nguyen']
+    venue: 'PACLIC 40 (2026)'
+    year: 2026
+    arxiv: '2611.09107'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/vietnamese.md
+    reading: related-work/readings/nguyen2026-phopunct.md
+    cluster: vietnamese
+  - key: vandeghinste2023-fullstop-dutch
+    title: 'FullStop:Punctuation and Segmentation Prediction for Dutch with Transformers'
+    authors: ['Vincent Vandeghinste', 'Oliver Guhr']
+    venue: 'arXiv 2023'
+    year: 2023
+    arxiv: '2301.03319'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/tagger-formulation.md
+    reading: related-work/readings/vandeghinste2023-fullstop-dutch.md
+    cluster: taggers
+  - key: behre2023-streaming-punct
+    title: 'Streaming Punctuation: A Novel Punctuation Technique Leveraging Bidirectional Context for Continuous Speech Recognition'
+    authors: ['Piyush Behre', 'Sharman Tan', 'Padma Varadharajan', 'Shuangyu Chang']
+    venue: 'IJNLC 11(6) 2022'
+    year: 2023
+    arxiv: '2301.03819'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/segmentation-and-streaming.md
+    reading: related-work/readings/behre2023-streaming-punct.md
+    cluster: segmentation
+  - key: gris2023-whisper-punct
+    title: 'Evaluating OpenAI''s Whisper ASR for Punctuation Prediction and Topic Modeling of life histories of the Museum of the Person'
+    authors: ['Lucas Rafael Stefanel Gris', 'Ricardo Marcacini', 'Arnaldo Candido Junior', 'Edresson Casanova', 'Anderson Soares', 'Sandra Maria Aluísio']
+    venue: 'arXiv 2023'
+    year: 2023
+    arxiv: '2305.14580'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/evaluation-metrics.md
+    reading: related-work/readings/gris2023-whisper-punct.md
+    cluster: end-to-end
+  - key: koluguri2024-punctuated-long-seq
+    title: 'Longer is (Not Necessarily) Stronger: Punctuated Long-Sequence Training for Enhanced Speech Recognition and Translation'
+    authors: ['Nithin Rao Koluguri', 'Travis Bartley', 'Hainan Xu', 'Oleksii Hrinchuk', 'Jagadeesh Balam', 'Boris Ginsburg', 'Georg Kucsko']
+    venue: 'SLT 2024'
+    year: 2024
+    arxiv: '2409.05601'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/end-to-end-formatted-asr.md
+    reading: related-work/readings/koluguri2024-punctuated-long-seq.md
+    cluster: end-to-end
+  - key: pang2024-llama-fpod
+    title: 'LLaMA based Punctuation Restoration With Forward Pass Only Decoding'
+    authors: ['Yutong Pang', 'Debjyoti Paul', 'Kevin Jiang', 'Xuedong Zhang', 'Xin Lei']
+    venue: 'arXiv 2024'
+    year: 2024
+    arxiv: '2408.11845'
+    verified: true
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/llm-restoration.md
+    reading: related-work/readings/pang2024-llama-fpod.md
+    cluster: llm
+
+  - key: alam2020-transformer-punct
+    title: 'Punctuation Restoration using Transformer Models for High-and Low-Resource Languages'
+    authors: ['Tanvirul Alam', 'Akib Khan', 'Firoj Alam']
+    venue: 'W-NUT 2020'
+    year: 2020
+    url: 'https://aclanthology.org/2020.wnut-1.18.pdf'
+    verified: true
+    source: ACL Anthology BibTeX
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/tagger-formulation.md
+    reading: related-work/readings/alam2020-transformer-punct.md
+    cluster: taggers
+  - key: courtland2020-robust-inference
+    title: 'Efficient Automatic Punctuation Restoration Using Bidirectional Transformers with Robust Inference'
+    authors: ['Maury Courtland', 'Adam Faulkner', 'Gayle McElvain']
+    venue: 'IWSLT 2020'
+    year: 2020
+    url: 'https://aclanthology.org/2020.iwslt-1.33.pdf'
+    verified: true
+    source: ACL Anthology BibTeX
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/tagger-formulation.md
+    reading: related-work/readings/courtland2020-robust-inference.md
+    cluster: taggers
+  - key: znotins2025-readable-text
+    title: 'From Conversational Speech to Readable Text: Post-Processing Noisy Transcripts in a Low-Resource Setting'
+    authors: ['Arturs Znotins', 'Normunds Gruzitis', 'Roberts Dargis']
+    venue: 'W-NUT 2025'
+    year: 2025
+    url: 'https://aclanthology.org/2025.wnut-1.15.pdf'
+    verified: true
+    source: ACL Anthology BibTeX
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/llm-restoration.md
+    reading: related-work/readings/znotins2025-readable-text.md
+    cluster: llm
+  - key: suen2025-cantonese-llm-annotated
+    title: 'Cantonese Punctuation Restoration using LLM Annotated Data'
+    authors: ['King Yiu Suen', 'Rudolf Chow', 'Albert Y. S. Lam']
+    venue: 'Interspeech 2025'
+    year: 2025
+    url: 'https://www.isca-archive.org/interspeech_2025/suen25_interspeech.pdf'
+    verified: true
+    source: OpenAlex
+    grounded: true
+    fetched: 2026-11-13
+    concept_page: concepts/llm-restoration.md
+    reading: related-work/readings/suen2025-cantonese-llm-annotated.md
+    cluster: llm
+  - key: vu2026-phoasr
+    title: 'Vietnamese Automatic Speech Recognition: A Revisit'
+    authors: ['Thi Vu', 'Linh The Nguyen', 'Dat Quoc Nguyen']
+    venue: 'Findings of EACL 2026'
+    year: 2026
+    arxiv: '2603.14779'
+    verified: true
+    source: reference list of nguyen2026-phopunct; arXiv page
+    grounded: false
+    read: arXiv HTML read through a page fetch for its punctuation and capitalization content only; no committed extract
+    fetched: null
+    cluster: vietnamese
+  - key: huyen2026-vietnamese-e2e-edge
+    title: 'End-to-End Vietnamese ASR with Acoustic-Aware Punctuation and Capitalization for Edge Devices'
+    authors: ['Trang Trinh Thi Huyen', 'Hoa Tran Nhat', 'Thuan Nguyen Dinh', 'Hiep Hoang Van', 'Vinh La The', 'Hung Pham Ngoc', 'Ngoc Mai Xuan']
+    venue: 'Journal of Science and Technology - Smart Systems and Devices 36(3)'
+    year: 2026
+    url: 'https://jst.vn/index.php/ssad/article/view/1348'
+    verified: true
+    source: reference list of nguyen2026-phopunct; journal page
+    grounded: false
+    read: abstract page only
+    fetched: null
+    cluster: vietnamese
