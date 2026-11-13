@@ -86,14 +86,18 @@ def _front_matter_end(lines: list[str]) -> int:
     """Index of the closing `---` of leading front matter, or 0 when absent."""
     if not lines or lines[0].strip() != "---":
         return 0
+    fields = 0
     for index in range(1, len(lines)):
         stripped = lines[index].strip()
         if stripped == "---":
-            return index
+            # Two horizontal rules around a `#` heading hold no field.
+            return index if fields else 0
         # A leading `---` that is a horizontal rule is followed by prose, not by
         # fields, their indented continuation lines, or `#` comments.
         continues = lines[index][0] in " \t#"
-        if stripped and not continues and not _FRONT_MATTER_FIELD.match(stripped):
+        if _FRONT_MATTER_FIELD.match(stripped):
+            fields += 1
+        elif stripped and not continues:
             return 0
     return 0
 

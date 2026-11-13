@@ -142,7 +142,9 @@ _EXT = (
 PATH_CANDIDATE = re.compile(r"(?<![\w/@.])(?:~/|\.{1,2}/|/)?(?:[\w.-]+/)+[\w.-]*")
 FILE_NAME = re.compile(r"(?<![\w/])[\w-]+(?:\.[\w-]+)*\." + _EXT + r"\b")
 FILE_EXT_END = re.compile(r"\." + _EXT + r"$")
-SNAKE_IDENT = re.compile(r"\b[A-Za-z]\w*_\w+\b")
+# Ends on a letter or digit, so the `__` closing underscore emphasis after
+# `once__` is not an identifier's tail.
+SNAKE_IDENT = re.compile(r"\b[A-Za-z]\w*_\w*[A-Za-z0-9]\b")
 CLI_FLAG = re.compile(r"(?<![\w-])--[a-z][\w-]*")
 
 REFERENCES_TITLE = re.compile(

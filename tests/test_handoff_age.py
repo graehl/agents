@@ -127,6 +127,11 @@ def test_confirm_stamps_gap_front_matter() -> None:
     assert not json.loads(_run("list", str(path)).stdout)["sections"][0]["aged"]
 
 
+def test_rules_around_a_heading_are_not_front_matter() -> None:
+    path = _file("---\n# Between rules\n---\n\nText.\n")
+    assert "Between rules" in _sections(path)
+
+
 def test_edits_through_a_symlink_change_the_real_file() -> None:
     path = _file(HANDOFF)
     link = path.with_name("link.md")

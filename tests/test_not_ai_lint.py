@@ -75,13 +75,18 @@ class Scan(unittest.TestCase):
         source = (
             "The outside label is **O** and the gain is **quite large** here.\n\n"
             "- **Recall.** It rose on every language we measured this year.\n\n"
-            "**Reading.** Call __init__ or foo__bar__baz from the setup code.\n"
+            "**Reading.** Call __init__ or foo__bar__baz from the setup code, and\n"
+            "**Strictly speaking.** is emphasis on a wrapped line, not a head.\n\n"
+            # One underscored word reads as an identifier: the accepted miss.
+            "It __never__ fails, but __never once__ is emphasis.\n"
         )
         (report,) = reports(stdin=source)
         bold = [
             f["match"] for f in report["findings"] if f["category"] == "bold-inline"
         ]
-        self.assertEqual(bold, ["**quite large**"])
+        self.assertEqual(
+            bold, ["**quite large**", "**Strictly speaking.**", "__never once__"]
+        )
 
     def test_vocabulary_is_a_rate_and_located_only_in_a_dense_paragraph(self) -> None:
         sparse = "The intricate decoder was trained on 35 languages last year.\n"

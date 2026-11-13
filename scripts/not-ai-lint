@@ -68,7 +68,8 @@ DENSE_VOCABULARY = 3
 # output. Two or more candidates in a paragraph are listed in full.
 BULK = frozenset({"triad", "participle"})
 # The underscore form needs a non-word character inside and none beside it, so
-# `__init__` and `foo__bar__baz` are identifiers, not emphasis.
+# `__init__` and `foo__bar__baz` are identifiers, not emphasis. One emphasized
+# word, `__never__`, looks the same and is the accepted miss.
 BOLD = re.compile(r"\*\*[^*\n]+\*\*|(?<!\w)__(?=[^_\n]*[^\w\n])[^_\n]+__(?!\w)")
 # A run-in paragraph head, `**Reading.** Text…`, is a label like a bullet's lead.
 RUN_IN_HEAD = re.compile(r"^\s*(?:\*\*|__)[^*_\n]{1,60}?[.:](?:\*\*|__)")
@@ -189,9 +190,12 @@ def local_findings(
     """
     hits: list[dict] = []
     vocabulary: dict[int, list[dict]] = {}
+    opened: set[int] = set()
     for line in prose.lines:
         if line.number not in paragraph:
             continue
+        opens_paragraph = paragraph[line.number] not in opened
+        opened.add(paragraph[line.number])
         for match in lexicon.finditer(line.text):
             vocabulary.setdefault(paragraph[line.number], []).append(
                 {
@@ -205,10 +209,14 @@ def local_findings(
             )
         if line.kind == "heading":
             continue
-        lead = (BOLD_LEAD if line.kind == "bullet" else RUN_IN_HEAD).match(line.text)
+        if line.kind == "bullet":
+            lead = BOLD_LEAD.match(line.text)
+        else:
+            lead = RUN_IN_HEAD.match(line.text) if opens_paragraph else None
         for match in BOLD.finditer(line.text):
-            # A bullet's bold lead is the scan's list-shape rule; a bold symbol
-            # or short label is notation, not emphasis.
+            # A bullet's bold lead is the scan's list-shape rule, and a run-in
+            # head labels only the paragraph it opens; a bold symbol or short
+            # label is notation, not emphasis.
             if (lead and match.start() < lead.end()) or not LONG_WORD.search(
                 match.group(0)
             ):
