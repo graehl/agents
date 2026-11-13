@@ -6630,3 +6630,24 @@ Contributing-model: fable-5.2
   my choice and untested.
 
 Contributing-model: fable-5.2
+
+## 2026-11-13 — harsh-review: a rewritten marker commit hides its amend delta
+
+- **Incident (user-reported):** in `sherpa-onnx-fusion`, a harsh review
+  delivered at 05:55 over `d95db692..50d6c501`. The last commit in that
+  range was amended about 10 more times over the next 30 minutes, and the
+  marker was then re-pointed to the final amend (`0766b8d8`) one second
+  after it landed. The skill had no rewrite rule, so the agent improvised
+  it. A later bare `since` would have silently skipped +813/−606 lines,
+  including a test edit. The user asked that `since` review amend deltas
+  by default, or at least point them out and ask.
+- **Change:** § Review marker now says line 1 keeps the SHA that was
+  reviewed. A bare `since` that finds it rewritten locates the
+  counterpart, states the delta, and reviews it with the new commits
+  unless the user waives it. A marker already re-pointed, with the
+  original SHA noted on a later line, gets the same treatment.
+- **Status:** user-directed; untested. The counterpart search is by
+  subject plus reflog. A reworded subject or a squash falls through to
+  asking.
+
+Contributing-model: opus-5.5
