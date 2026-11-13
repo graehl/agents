@@ -27,3 +27,23 @@ Append-only notes supporting the field-survey and frontier-map contracts.
   `light frontier survey` returns speculative chat output and writes no
   `frontier.md`; `what is known about X?` remains an ordinary explanation
   unless it actually requests a survey.
+
+## 2026-11-13 — per-paper results are committed
+
+- **User decision:** a grounded survey commits our understanding of each
+  paper read, emphasizing the purpose of the read, and not only the
+  extracted text. Concept level is sufficient: the summary-level result
+  for a paper is saved in sections of the concept page or pages. A reader
+  may also produce one per-paper summary whose filename relates to the
+  extracted Markdown.
+- **Gap this closed:** the contract required concept pages but did not say
+  that each reader's per-paper result must land in one. During the
+  `punctuation-case-restoration` survey, three delegated readers were first
+  briefed to return digests in their final reply, which would have survived
+  only as whatever the synthesis kept.
+- **Placement of the optional file:** `related-work/readings/<key>.md`,
+  outside `extract/`, because the engine treats Markdown inside
+  `extract/<key>/` as the extract (it renames a lone `*.md` there to
+  `<key>.md` and hashes it).
+- **Not done:** `related-work audit` and `status` do not check or count
+  per-paper summaries.

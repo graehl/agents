@@ -27,7 +27,7 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
   the subdir by path, as a research program's glossary governs its subtree);
   `concepts/<short>.md` (committed per-concept understanding/analysis pages);
   `related-work/` (`papers.yaml` manifest + committed Markdown/provenance under
-  `extract/`); and
+  `extract/` + committed per-paper reading notes under `readings/`); and
   `frontier.md` (the frontier overlay). Where the top-level glossary is a
   lone `GLOSSARY.md`, each survey subdir is also listed as a row there so
   surveys are discoverable from the shared vocabulary; beside a
@@ -62,6 +62,24 @@ Governs: surveying a research field, mapping its frontier, or fetching related w
   (`concepts/<short>.md`) — our distillation, the working artifact, written
   from a **fetch+read** of the full text and hyperlinking it (invariants
   below). (3) The compact **map node** in `survey.md`, linking to both.
+- **Our understanding of each paper read is committed, not only its text.**
+  Whatever summary-level result a reader produces for a paper (a subagent's
+  digest, the user's remarks, a later rereading) is saved in a section of
+  the concept page or pages it bears on, under a heading naming the paper's
+  citation key, written for the purpose that prompted the read. A result
+  that reaches only the conversation or a synthesis sentence is lost.
+  A reader normally writes one per-paper summary first,
+  `related-work/readings/<key>.md`, named after the extract's key and kept
+  outside `extract/` (whose Markdown the engine owns and hashes): producing
+  it helps the reader, and it saves later readers the full text in most
+  cases. It opens
+  with the extract's `**Source:**` link line, then a dated entry naming the
+  reader (the model's short name, or the user), the purpose, and how much
+  was read. It gives what the paper claims, with numbers cited to
+  `extract/<key>/…md:line`; what that means for the purpose; what the paper
+  does not show; and leads worth fetching. Brief a delegated reader to
+  write these sections and files itself, so the saved text is the reader's
+  own. Concept sections link the per-paper summary when one exists.
 - **Two names per paper, and the extract takes the durable one.** The
   **citation key** exists from the moment a paper enters `papers.yaml`; the
   **short handle** — our name for the concept, which may only vaguely resemble

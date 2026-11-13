@@ -84,6 +84,10 @@ surveys/<field-slug>/
     extract/<key>/     full-text extract + images — .gitignored, workdir-durable,
                        a computed artifact; consulted only for specifics the
                        summary omits. Keyed by citation key, not short handle
+    readings/<key>.md  committed per-paper summary by its reader, normally
+                       written first; per-paper results must at least reach a
+                       section of the relevant concept page
+                       (topics/research-survey.md)
   frontier.md          provisional claims + void map (see frontier-map.md)
 ```
 
