@@ -487,17 +487,23 @@ reads, verify target files did not drift.
 
 # Pre-edit re-Read and parallel-worker noticing
 
+<!-- omit:begin claude -->
 Re-read a file before editing when its content fell out of context or when a
 peer/user/indirect writer could have changed it since the last read. After
 compaction, missing content is an unconditional re-read. One visible edit
 followed by rapid edits needs no ceremony.
 
-At the point of caution, run `agentctl others` (exclude a peer
+<!-- omit:end -->
+The worktree may be shared with other sessions. When a peer, the user, or an
+indirect writer could have changed a file since you last read it, run
+`agentctl others` (exclude a peer
 you already coordinate with via `--expect <its-id>`; Solo then means no
 surprising peers):
 
+<!-- omit:begin claude -->
 - **Solo:** rely on the user supplement's reciprocal announcement convention;
   skip slow-gap rereads unless a user edit was announced or context was lost.
+<!-- omit:end -->
 - **Peers present:** reread the specific file immediately before edit, narrowed
   by the peer's scope — or use `agentctl take <paths>` before the edit sequence
   and proceed only on exit 0. A fresh specific claim removes per-edit checks;
@@ -520,6 +526,7 @@ temporarily failed edit tool. Solve the gate/tool error directly; if impossible,
 state the execution limitation once and stop. Shell transforms remain correct
 for genuine bulk codemods/formatters, not disguised targeted edits.
 
+<!-- omit:begin claude -->
 ## Edit anchors: copy, don't compose
 
 Exact-match edit material—an `old_string` or patch-hunk context—must be copied
@@ -528,9 +535,13 @@ wraps, whitespace, or escapes. Use the smallest unique span or hunk. Any
 intervening writer, formatter, or script invalidates that copied context; reread
 before using it.
 
-Source escapes such as `\0`, `\n`, `\t`, and `\\` remain two source characters;
-never insert literal control bytes. After a second failure on one file, stop
-guessing: reread the exact range and copy it.
+<!-- omit:end -->
+In written file content, source escapes such as `\0`, `\n`, `\t`, and `\\`
+remain two source characters; never insert literal control bytes.
+<!-- omit:begin claude -->
+After a second failed edit on one file, stop guessing: reread the exact range
+and copy it.
+<!-- omit:end -->
 
 ## Author long content in sections
 

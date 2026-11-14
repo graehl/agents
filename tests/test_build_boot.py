@@ -205,6 +205,28 @@ def test_harness_boots_include_only_matching_supplement_and_refresh() -> None:
         assert target.resolve() == repo / "AGENTS.global.md"
 
 
+def test_omit_block_leaves_only_the_named_harness_boot() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        for name in ("claude", "codex"):
+            (repo / f"AGENTS.{name}.md").write_text(f"{name} body.\n")
+        user = repo / "AGENTS.user.md"
+        user.write_text(
+            "Peer rule.\n<!-- omit:begin claude -->\nReread rule.\n"
+            "<!-- omit:end -->\nAfter.\n"
+        )
+        assert _run(repo, "build").returncode == 0
+        claude = (repo / "AGENTS.boot.claude.md").read_text()
+        assert "Peer rule.\nAfter.\n" in claude and "Reread rule." not in claude
+        for name in ("AGENTS.boot.codex.md", "AGENTS.boot.md"):
+            text = (repo / name).read_text()
+            assert "Peer rule.\nReread rule.\nAfter.\n" in text, name
+        user.write_text("<!-- omit:begin claud -->\nReread rule.\n<!-- omit:end -->\n")
+        failed = _run(repo, "build")
+        assert failed.returncode == 4 and "unknown harness" in failed.stderr
+        assert "Peer rule." in (repo / "AGENTS.boot.claude.md").read_text()
+
+
 def test_boots_carry_their_profile_supplements_with_conditions() -> None:
     with tempfile.TemporaryDirectory() as root:
         repo = _repo(Path(root))

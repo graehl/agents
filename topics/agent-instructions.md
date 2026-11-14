@@ -372,6 +372,24 @@ single read-when line. The script's `PROFILES` table owns which supplement
 applies when; global policy only tells a session how to read those headings.
 The shared boot serves other harnesses with the same conditional supplements.
 
+A harness boot can also carry less than the shared source. Lines of
+`AGENTS.global.md`, `AGENTS.user.md`, or a supplement wrapped in
+`<!-- omit:begin <harness> -->` … `<!-- omit:end -->` are left out of that
+harness's boot and kept everywhere else
+(`topics/helper-scripts.md` § build-boot). This is the home for a relaxation
+that holds for one harness's models and tools: the text stops costing those
+sessions tokens, where a supplement could only add a paragraph cancelling
+text they had still loaded. The first use, 2026-11-14, exempts the Claude
+boot from generic read-and-edit technique: when to reread, copying exact-match
+edit text, and skipping rereads when solo. Current Claude models read before
+editing unprompted and the harness states its own edit contract, so that text
+either repeated or contradicted the default. The shared-worktree peer check
+(`agentctl others`, reread or `take` when peers are present), the ban on
+shell rewrites that bypass a denied edit, the source-escape rule, and the
+section-size rule stay in every boot: none of them is something a model can
+infer from the tool. The unit is the harness, so Opus and a Sol model served
+through Claude Code lose the same text.
+
 The working population is frontier-tier: Opus 5.5 and later Claude models,
 current Codex, Sol, and Grok, and whatever frontier model Copilot serves.
 No profile routes `AGENTS.weak.md` or `AGENTS.deepseek.md`; they stay in the

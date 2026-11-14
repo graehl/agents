@@ -6752,3 +6752,51 @@ Contributing-model: opus-5.5
     commits named, marker at the reviewed end). Untested in a live run.
 
 Contributing-model: fable-5.2
+
+## 2026-11-14 — Claude boot exempted from generic read-and-edit rules
+
+- **Trigger (user-directed)** — graehl was told Fable 5.2 reads and edits
+  through tools more readily than earlier models, does not want his
+  instructions to fight that, and accepts a small Opus regression because
+  the per-harness boot is the cheapest place to make the cut. He named the
+  shared-worktree awareness through `agentctl` as the part to preserve.
+- **Mechanism** — `scripts/build-boot` gained `<!-- omit:begin <harness> -->`
+  blocks. A model supplement could only have added a paragraph cancelling
+  text the session still loads, which the 2026-09-06 Astra sketch already
+  rejected; an omit block removes the tokens.
+- **Left out of the Claude boot** — the reread-when-stale paragraph and the
+  Solo bullet of § Pre-edit re-Read; all of § Edit anchors except the
+  escape sentence; the "skip slow-gap rereads" sentence of the user
+  supplement; and `AGENTS.claude.md` § Literal Edit anchors (retired, text
+  in `AGENTS/presumed-defaults.md`). Claude boot 92,742 → 91,775 bytes.
+- **Kept, agent-derived** — (1) the peer check and the Peers-present
+  bullet, reworded to open with "the worktree may be shared" because the
+  omitted paragraph had defined "the point of caution"; (2) § Edit
+  mechanism discipline, since its content is a ban on bypassing a denied
+  edit through the shell, which is authorization, not technique, and
+  `AGENTS.frontier.md` lists it as a no-latitude contract; (3) the
+  escape sentence, for the 2026-08-05 literal-NUL incident: it passed
+  tests, hid two files from `rg`, and reached `origin/main`, and nothing in
+  the tool surface warns of it; (4) § Author long content in sections,
+  which exists for interruption loss and visibility, not model skill.
+- **Direction of each cut** — the reread and anchor-copy rules repeat what
+  the model is reported to do. The two "skip rereads" texts oppose it;
+  those are the ones that plausibly cost something.
+- **Trace: solo, long gap** — a Claude session edits a file read forty
+  minutes earlier. No boot text now says either to reread or to skip; the
+  model and the harness's own edit contract decide.
+- **Trace: peer present** — the session is about to edit in a worktree
+  where it has not checked for peers. "A peer could have changed a file"
+  holds, so it runs `agentctl others`, finds one, and rereads or takes the
+  path. Same outcome as before the cut.
+- **Trace: failed edit** — the surviving last paragraph still turns a
+  failed anchor into a fresh peer check.
+- **Trace: Codex** — its boot differs only by the reworded lead-in and
+  reflowed lines; every rule is present.
+- **Unmeasured** — the report about 5.2 was not checked here. The only
+  count on file runs the other way for its predecessor: `claude-fable-5`
+  failed 29 of 167 `Edit` calls (2026-08-05), with these rules written
+  in response. A tool-surprises survey of Claude sessions after this date
+  is the cheap check; the register row names the restore condition.
+
+Contributing-model: fable-5.2

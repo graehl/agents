@@ -73,3 +73,15 @@ A poll whose match count never drops is self-matching until shown
 otherwise. Never explain an anomalous duration from process-search
 output alone — confirm the work through output size, exit status, or the
 destination file.
+
+## Removed from `AGENTS.claude.md`
+
+Removed 2026-11-14 with the Claude boot's exemption from generic read-and-edit
+guidance (`topics/frontier-capability-review.md`). The exempted global
+passages stay in `AGENTS.global.md` inside `omit:begin claude` blocks; this
+one lived only in the Claude supplement.
+
+### Literal Edit anchors
+
+For repeated `Edit.old_string` text, add a nearby unique source line instead
+of more repeated body text.

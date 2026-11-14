@@ -478,6 +478,15 @@ a large conditional one contributes a single read-when line under
 `# Supplements to read when they apply`. A supplement file that is absent is
 skipped. The shared `AGENTS.boot.md` carries the `None` profile.
 
+Any compiled source may withhold lines from named harness boots:
+`<!-- omit:begin claude, codex -->` … `<!-- omit:end -->`, each marker alone
+on its line. Those harnesses' boots lose the block; every other boot, the
+shared boot, and `AGENTS.on-compact.md` keep its lines and lose only the
+markers, so a block may split a paragraph. An unknown harness name, a nested
+or unclosed block, or a stray end fails the build (exit 4). Use it for a rule
+that one harness's population makes dead weight while others still need it;
+a rule only one harness needs belongs in that harness's supplement.
+
 **CLI**: `build-boot [--repo <dir>] build [--check] [--index] [--output <path>]`
 and `build-boot link [--check] [--to-global]`; acli baseline with completion.
 

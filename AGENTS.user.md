@@ -28,9 +28,13 @@ then record the answer in `AGENTS.local.md` so it doesn't recur.
 ## Worktree coordination
 
 graehl announces peers joining a worktree and hand-edits to files you are
-working on. After a solo peer-check, skip slow-gap rereads absent such an
-announcement or context loss. Failed edits and unexpected Git state still
-trigger the global peer-check rule.
+working on.
+<!-- omit:begin claude -->
+After a solo peer-check, skip slow-gap rereads absent such an
+announcement or context loss.
+<!-- omit:end -->
+Failed edits and unexpected Git state still trigger the global peer-check
+rule.
 
 ## Background assumptions
 

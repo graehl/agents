@@ -21,11 +21,6 @@ launch cwd with every character but ASCII letters and digits replaced by `-`
 Use top-level ISO-8601 `timestamp` for elapsed time; `queued-anchor` handles
 queued-message timing (see `topics/helper-scripts.md`).
 
-## Literal Edit anchors
-
-For repeated `Edit.old_string` text, add a nearby unique source line instead
-of more repeated body text.
-
 ## Waits and continuation
 
 An optional steering pause needs an absolute deadline and a supported scheduled
