@@ -307,10 +307,21 @@ papers:
     authors: ['Trang Trinh Thi Huyen', 'Hoa Tran Nhat', 'Thuan Nguyen Dinh', 'Hiep Hoang Van', 'Vinh La The', 'Hung Pham Ngoc', 'Ngoc Mai Xuan']
     venue: 'Journal of Science and Technology - Smart Systems and Devices 36(3)'
     year: 2026
-    url: 'https://jst.vn/index.php/ssad/article/view/1348'
+    url: 'https://jst.vn/index.php/ssad/article/download/1348/1433'
     verified: true
     source: reference list of nguyen2026-phopunct; journal page
     grounded: false
     read: abstract page only
     fetched: null
     cluster: vietnamese
+  - key: caseiro2020-capitalization-masks
+    title: 'Mixed Case Contextual ASR Using Capitalization Masks'
+    authors: ['Diamantino Caseiro', 'Pat Rondon', 'Quoc-Nam Le The', 'Petar S. Aleksic']
+    venue: 'Interspeech 2020'
+    year: 2020
+    url: 'https://www.isca-archive.org/interspeech_2020/caseiro20_interspeech.pdf'
+    verified: true
+    source: dblp and Crossref (DOI 10.21437/Interspeech.2020-2367)
+    grounded: false
+    fetched: null
+    cluster: end-to-end
