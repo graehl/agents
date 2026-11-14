@@ -133,6 +133,25 @@ tool action, and cross-context persistence discussion is the manuscript's
 scenario analysis, not a reported experiment. No construction instructions or
 fixed-architecture overhead guarantee are attributed to this source.
 
+## zhan2026persistency
+
+Fetched 2026-11-14: https://arxiv.org/abs/2610.07510 (v3 dated
+2026-10-29, latest listed) and the full HTML text, cached 2026-11-07 under
+`surveys/open-weight-model-censorship/related-work/extract/zhan2026-backdoor-persistency-agents/`.
+Verified title, eight authors and DOI against the abstract page's citation
+metadata.
+
+Support: §3.2 threat model (attacker supplies weights; developer controls
+benign SFT and RL; attacker knows the task domain but not the developer's
+data); Figure 2 comment trigger and credential-exfiltration target; §4.2
+Base backdoor ASR 100% falling after SFT to 8%, 20% and 7% (3B, 7B, 30B);
+§4.3 RL leaving the residue within a few points; §5.1 strength and
+gradient compatibility, with first-order Eq. 7; §6.1 Eq. 14 objective using
+attacker-side benign trajectories disjoint from the developer's; §6.2
+post-SFT ASR 21%, 74%, 37% with resolved-task rate matching or exceeding the
+Base backdoor. The manuscript's generalization caveat (one fixed-output
+backdoor, one agent domain) is our scope statement.
+
 ## meng2023rome
 
 Fetched: https://arxiv.org/abs/2202.05262

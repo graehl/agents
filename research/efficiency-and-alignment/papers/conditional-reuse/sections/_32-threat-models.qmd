@@ -22,6 +22,21 @@ from **undetectability**, difficulty recognizing that the artifact is suspect.
 The authors explicitly stop short of full white-box undetectability against a
 representative distribution of normally trained language models.
 
+A developer who adopts released weights usually continues training them, so a
+supplied trigger must also survive that training. Zhan et al. plant a
+repository-comment trigger that makes a software-engineering agent issue a
+credential-exfiltration command, then apply benign supervised fine-tuning and
+task reinforcement learning as the developer would [@zhan2026persistency].
+Fine-tuning lowered attack success from 100% to between 7% and 20% across three
+model sizes; reinforcement learning left that residue nearly unchanged. Before
+release, the attacker can also train the backdoored model so that a benign
+gradient step lowers rather than raises the backdoor's loss, using only benign
+trajectories from the same task domain. This raised post-fine-tuning attack
+success to between 21% and 74%, without a lower benign task success rate than
+the unhardened backdoor. These results cover one fixed-output backdoor in one
+agent domain; within that regime, the developer's own post-training is an
+unreliable cleanse.
+
 In a deployment scenario, an attacker might supply an activating input through
 a retrieved document. A tool-using system could then act on the changed output,
 but communication with a controller and persistence across cleared contexts
