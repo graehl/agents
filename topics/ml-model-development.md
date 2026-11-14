@@ -41,6 +41,9 @@ needs discovery, rather than copying recipes or accumulating every run here.
 
 ## Quality, experiment order and execution
 
+- Before creating or changing an ONNX sequence-model export or its batching
+  interface, read [ONNX exports](onnx-exports.md). Default to right-padded
+  inputs with explicit lengths and masks constructed inside the graph.
 - Before acquiring or partitioning training/evaluation data, including a
   small corpus-quality smoke, read [training data](training-data.md).
   Reserve whole source documents/recordings across splits where possible;
