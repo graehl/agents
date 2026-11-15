@@ -204,6 +204,48 @@ For periodic audits of an existing UI — a screenshot-backed markdown
 report scored first against the project's own prevailing style and
 second against these principles — see [`ui-report`](ui-report.md).
 
+## Web platform implementation references
+
+The three concerns above say what a good UI is. For how to build specific
+browser behavior, nine third-party guides are vendored under
+`vendor/modern-web-guidance/guides/`. Read the matching guide before
+implementing that concern in a web app; do not read them all up front.
+
+| when the work involves | read |
+|---|---|
+| naming controls, ARIA roles and states, keyboard handling, focus order, live regions, alt text | `accessibility/accessibility.md` |
+| high-contrast or forced-colors support, contrast of borders and state marks | `visual-design/color.md` |
+| setting up or restructuring a stylesheet's cascade, selectors or token tiers | `css/css.md` |
+| a modal, a non-modal panel, or choosing between dialog and popover | `ui-components/dialog.md` |
+| an `Enter` key handler on any text field | `forms/ime-safe-enter-submit.md` |
+| inserting HTML into the page, response security headers, cookies, `postMessage` | `security/security.md`, then `security/trusted-types.md` |
+| a loop or computation that can hold the main thread past 50 ms | `performance/break-up-long-tasks.md` |
+| a long page or list whose off-screen parts are costly to render | `performance/defer-rendering-heavy-content.md` |
+
+The guides come from a browser vendor's agent skill and are held to these
+limits:
+
+- **The project's recorded decisions win.** Where a project topic, lint rule
+  or code comment already decides the concern, follow it and treat the guide
+  as background. Example: a modal `<dialog>` makes everything outside it
+  inert, including tooltips, menus and toasts that the app portals into
+  `body`; an app with such layers either renders them inside the open dialog
+  or keeps a custom modal, as `~/ya` does.
+- **`MANDATORY` in a guide is the guide's emphasis**, not a rule here.
+- **Check browser support against the project's own support floor.** The
+  guides' "Browser support" lines date from the pinned commit and lean
+  toward Chrome; a "limited availability" feature needs the guide's fallback
+  or should be skipped.
+- **Add no dependency or CDN script on a guide's suggestion.** Polyfills
+  loaded from a public CDN at `@latest` break a strict content security
+  policy and pin nothing.
+- **Never run `npx modern-web-guidance`.** A reference marked "upstream
+  guide, not vendored" names a file in the upstream repository; read it from
+  a pinned checkout if it is needed.
+
+What was left out and why, the comparison against `~/ya`, and the re-sync
+steps are in `vendor/modern-web-guidance/VENDORED.md`.
+
 ## Learn more — beginner tutorials
 
 Exceptional, mostly-free, novice-friendly material, gentlest first. These
