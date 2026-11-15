@@ -125,5 +125,6 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `verified-provenance` | Governs: row-wise translating, paraphrasing, or rewriting a dataset | [verified-provenance](topics/verified-provenance.md) |
 | `verify` | Governs: running a project's tests or checks, when it has a verify.toml | [verify](topics/verify.md) |
 | `web-digest` | Governs: updating the claude.ai preferences paste or web digest | [web-digest](topics/web-digest.md) |
+| `web-platform-guidance` | Governs: writing or changing a web app's browser-facing code: a control or overlay, a key handler, HTML insertion, security headers or cookies, or heavy main-thread work | [web-platform-guidance](topics/web-platform-guidance.md) |
 | `workflow-tags` | Governs: adopting or emitting schema-announced workflow tags | [workflow-tags](topics/workflow-tags.md) |
 | `writing` | Governs: drafting or revising a document for readers (report, brief, essay, article, letter, web copy, story), not a working record | [writing](topics/writing.md) |

@@ -250,6 +250,7 @@ GROUPS = (
             "python",
             "shell",
             "typescript",
+            "web-platform-guidance",
             "helper-scripts",
             "acli",
             "acli-implementer",

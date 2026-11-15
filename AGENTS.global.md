@@ -911,6 +911,7 @@ row, not this section.
 - first editing Python in a repo → `python`
 - first editing shell scripts in a repo → `shell`
 - first editing TypeScript or JavaScript in a repo → `typescript`
+- writing or changing a web app's browser-facing code: a control or overlay, a key handler, HTML insertion, security headers or cookies, or heavy main-thread work → `web-platform-guidance`
 - adding a helper to ~/bin or scripts/, or using queued-anchor or session-turn → `helper-scripts`
 - calling a tool that identifies itself as acli or declares acli capabilities → `acli`
 - implementing an acli tool or library in any language → `acli-implementer`

@@ -2,8 +2,8 @@
 
 Nine of upstream's 210 web-platform guides, copied in and pinned to an exact
 upstream commit. Convention: `topics/vendoring.md`. When to read which guide,
-and the standing caveats for using them, are in `topics/ui-quality.md`
-§ Web platform implementation references.
+and the standing caveats for using them, are in
+`topics/web-platform-guidance.md`.
 
 ## Upstream
 
@@ -60,7 +60,7 @@ Both changes are mechanical and apply to every vendored file.
 Nothing else differs. In particular the guides' `MANDATORY` wording, their
 browser-support lines and the polyfill-from-CDN suggestion in
 `guides/ui-components/dialog.md` are upstream's, kept verbatim and qualified
-by the caveats in `topics/ui-quality.md`.
+by the limits in `topics/web-platform-guidance.md`.
 
 ## Selection
 
