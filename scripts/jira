@@ -234,19 +234,23 @@ def _comment_rows(issue: dict) -> list[dict]:
 
 
 def _paged(args, path: str, limit: int) -> list[dict]:
-    """Follow Jira startAt paging until `limit` issues or exhaustion."""
+    """Follow `nextPageToken` paging until `limit` issues or exhaustion.
+
+    `/rest/api/3/search/jql` replaced the removed `/search` (CHANGE-2046);
+    it pages by token, not `startAt`, and reports no `total`.
+    """
     rows: list[dict] = []
-    start_at = len(rows)
+    token = None
     while len(rows) < limit:
+        query = f"maxResults={min(limit - len(rows), 100)}"
+        if token:
+            query += f"&nextPageToken={urllib.parse.quote(token, safe='')}"
         sep = "&" if "?" in path else "?"
-        page = _request(
-            args, "GET", f"{path}{sep}startAt={start_at}&maxResults={limit}"
-        )
-        batch = page.get("issues", [])
-        rows.extend(batch)
-        if not batch or start_at + len(batch) >= page.get("total", 0):
+        page = _request(args, "GET", f"{path}{sep}{query}")
+        rows.extend(page.get("issues", []))
+        token = page.get("nextPageToken")
+        if page.get("isLast") or not token:
             break
-        start_at += len(batch)
     return rows[:limit]
 
 
@@ -303,10 +307,12 @@ def cmd_get(args) -> dict:
 
 def cmd_search(args) -> dict:
     jql = urllib.parse.quote(args.jql, safe="")
-    found = _request(
-        args, "GET", f"/rest/api/3/search?jql={jql}&fields=summary,status,assignee"
+    issues = _paged(
+        args,
+        f"/rest/api/3/search/jql?jql={jql}&fields=summary,status,assignee",
+        args.limit,
     )
-    rows = [_fields(i, args.site) for i in found.get("issues", [])]
+    rows = [_fields(i, args.site) for i in issues]
     return {
         "name": "issues",
         "columns": ["key", "summary", "status", "assignee"],
