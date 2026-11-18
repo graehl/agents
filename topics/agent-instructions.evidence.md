@@ -6800,3 +6800,38 @@ Contributing-model: fable-5.2
   is the cheap check; the register row names the restore condition.
 
 Contributing-model: fable-5.2
+
+## 2026-11-18 — untracked authored sketch series lost; ban added
+
+- **Incident (a)** — a private series of nine sketches that a Codex session
+  (6-Astra, rollout `01a16a16-00e5-7ad3-b041-e4b33c053db9`) wrote on
+  2026-10-23 to `/local/graehl/yepanywhere/tasks/asr-data-sketches/` was
+  found missing. `tasks/` is Git-ignored there and the series was never
+  committed, by its own instruction (keep out of Git until placement is
+  discussed). Other `tasks/` files survived; the parent directory's mtime
+  was 2026-11-05T22:37:46Z, the likely removal time. A scan of Claude and
+  Codex tool calls 21:30–23:00 that day for `rm -r`, `git clean`,
+  `rsync --delete`, `find -delete`, stash/checkout/restore or the path found
+  nothing, so the remover is unidentified (a non-agent process, a log not on
+  this host, or a time mismatch).
+- **Recovery** — the files were rebuilt byte-for-content by replaying the
+  rollout's `apply_patch` Add operations (embedded as JS string literals in
+  Codex `exec` calls); the session never edited them after adding. A
+  rollout replay is therefore a viable recovery path for agent-authored
+  untracked files, but not for user-authored ones.
+- **User directive (verbatim)** — "please ban in ~/agents any operation that
+  loses untracked explicitly authored (as opposed to run side effect,
+  agent-initiated temporary scripts etc) primary-project-workdir files
+  without *specific* confirmed permission". Landed as `AGENTS.global.md`
+  § Untracked authored files.
+- **Related same-day defect** — draft `scripts/asr_pub.py` `--prune` could
+  delete files in `~/pub/asr` that sync had not placed, such as fusion-fork
+  builds and a speaker's sample clip (fixed in draft commit `af3ef4765`:
+  prune only files recorded as placed; whether it actually deleted any was
+  not checked). That is the origin of the rule's last sentence on durable
+  prune tools.
+- **Why the existing ban missed it** — § Shared-workdir discard ban names Git
+  discard commands in shared workdirs; ignored files and plain `rm`/scripted
+  cleanup in a solo workdir sat outside its wording.
+
+Contributing-model: opus-5.5

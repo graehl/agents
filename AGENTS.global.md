@@ -466,6 +466,20 @@ exact operation after being warned, and is narrowed to named paths. Use
 Shared projects should launch through `agent-guarded`. If `AGENT_GUARD` is
 unset, warn once. Contract and deployment: `topics/agent-guard.md`.
 
+# Untracked authored files
+
+In a primary project workdir, never delete, move away, truncate or overwrite an
+untracked or Git-ignored file someone deliberately authored (sketches, notes,
+`tasks/`, handoffs, drafts, local config, data the user placed) without
+specific confirmed permission: the user approves those listed paths for that
+operation after seeing them. This covers `rm`, `mv`, every `git clean` form
+(`-x`/`-X` included), `rsync --delete`, `find -delete`, cleanup or prune
+scripts, archive-and-replace, and any write that drops content nobody asked to
+change. A general cleanup request, apparent staleness, or being ignored grants
+nothing. Exempt: outputs a run or build regenerates, and scratch you created
+for your own task. If the class is unclear, treat the file as authored. A
+durable cleanup or prune tool deletes only files its own record says it placed.
+
 # Never reach system-wide
 
 Never use `/` as an operation's scope/root (`find /`, `grep -r /`, `du /`)
