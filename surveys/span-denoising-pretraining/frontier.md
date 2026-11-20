@@ -40,9 +40,34 @@ its regime, independent-check status, and what would change it.
 
   One direction, one recipe, no sweep: this bounds the claim for MT without
   settling it.
+- **Local on-domain follow-up (2026-10-14).** Using 112,174 on-domain pairs
+  and punctuation normalization, adapting T5Gemma 2 at a lower learning
+  rate brought the 4B decoder-size pair to 2.078 vs 2.100 MetricX-24 on the
+  1,412-row production test and 2.085 vs 2.124 on 1,012 FLORES rows. The
+  1B decoder-size pair still favors T5Gemma 2 (2.868 vs 3.030 on the
+  production test). The 4B result was inconclusive under paired bootstrap.
+  The encoder–decoder had a larger checkpoint and received two learning-rate
+  trials, while Gemma 3 received one. This is local English→Chinese evidence.
 - **Revisit when** a matched fine-tuning comparison exists, scored with a
   neural metric and paired bootstrap on a held-out test set. It should report
   parameters and measured decode throughput, not size labels.
+
+## Compact MoE versus a pretrained decoder-only translator
+
+- **Evidence.** [EDWARD-NMT](concepts/multilingual-mt-systems.md#nguyen2026-edward)
+  improves on earlier multilingual encoder–decoder MoEs at a few hundred
+  million parameters. [OMT-NLLB](concepts/multilingual-mt-systems.md#alastruey2026-omt)
+  is competitive against small pretrained decoder-only systems, with a
+  different recipe and target-language inventory.
+- **Open comparison.** The cited studies leave open whether sparse routing
+  improves multilingual MT or prompt adherence at matched resident memory
+  and serving latency against a modern dense encoder–decoder and a
+  specialized decoder-only model using the same training distribution.
+  OPUS-16 and aggregate multilingual scores leave non-English translation
+  and low-resource target generation especially important to measure.
+- **Revisit when** a published comparison includes those baselines, reports
+  performance by source and target resource tier, and distinguishes
+  language-code obedience from domain and style adherence.
 
 ## Encoder-decoder inference is cheaper per translated token
 

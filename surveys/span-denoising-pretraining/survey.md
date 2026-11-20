@@ -1,31 +1,32 @@
 # Span-denoising pretraining and encoder-decoder LLMs
 
-> **Mode:** grounded field survey. **Coverage cutoff:** 2026-10-13.
+> **Mode:** grounded field survey. **Coverage cutoff:** 2026-11-20 for MT,
+> 2026-10-13 for denoising pretraining.
 > **Scope:** sequence-to-sequence denoising objectives (MASS, T5 span
 > corruption, BART text infilling, the UL2 mixture), decoder-only infilling
 > (fill-in-the-middle), the 2025 revival of encoder-decoder LLMs adapted from
 > decoder-only checkpoints (T5Gemma, T5Gemma 2), and the architecture-scaling
-> studies that bear on machine translation. `[G]` marks a fetched and read
-> primary source; every concept page links its local Markdown extract.
+> studies that bear on machine translation (MT), plus multilingual MT
+> systems, sparse experts and prompted translation. `[G]` marks claims
+> checked against a primary full text.
 
 ## Decision summary
 
-For machine translation (MT) with modern pretrained models, no source here
-shows an encoder-decoder beating a matched decoder-only LLM:
+Decoder-only LLMs dominate recent WMT submissions. Small encoder–decoders
+still win some multilingual evaluations. Meta's OMT-NLLB 3B leads OMT-LLaMA
+3B by 0.4 chrF++ on BOUQuET and leads OMT-LLaMA 8B by 1.5 on FLORES+.
+Conversely, the focused AfriSLM 2B decoder beats dense NLLB 3.3B across three
+benchmarks covering 19 African languages. Direction, training data and
+adaptation differ between systems. [Multilingual system comparisons](concepts/multilingual-mt-systems.md)
 
-- **Old models.** The 2019–2022 evidence favoring encoder-decoders for MT
-  comes from models of 220M–412M parameters, either without pretraining or
-  pretrained on English only.
-- **Pretrained LLMs.** With multilingual pretraining at 1–9B parameters,
-  every comparison goes the other way or ties. A from-scratch study trails on
-  WMT. T5Gemma's adapted encoder-decoders trail their own Gemma 2 source on
-  WMT23. T5Gemma 2 ties Gemma 3 at 4B on WMT24++ and wins only at 1B and
-  below [G].
-- **Untested.** No paper fine-tunes an adapted encoder-decoder LLM on
-  parallel data against its decoder-only source. That is the comparison an
-  MT practitioner needs ([frontier](frontier.md)).
+Two capabilities often associated with decoder-only models already work in
+small encoder–decoders. EDWARD-NMT's 226M multilingual mixture of experts
+beats earlier sparse encoder–decoders on OPUS-16. A 225M Marian model
+learns natural-language translation controls, and a 600M NLLB model with
+attribute tags matches an adapted Qwen3-8B on CoCoA-MT COMET. [Multilingual MoE](concepts/multilingual-mt-systems.md#nguyen2026-edward)
+· [Prompted MT](concepts/prompted-mt.md)
 
-The encoder-decoder LLMs' measured advantages lie elsewhere:
+Adapted encoder-decoder LLMs also have measured advantages outside MT:
 
 - higher instruction-tuned aggregate scores;
 - better long-context retrieval (T5Gemma 2);
@@ -44,24 +45,28 @@ understanding and in-context benchmarks, not WMT BLEU.
 
 ## Grounding and coverage
 
-Nine primary full texts were fetched, read and distilled into concept pages.
-The search started from the three objective-defining papers the question
+The denoising search started from the three objective-defining papers the question
 named (T5, BART, UL2). It added MASS as the single-span precursor and FIM as
 the decoder-only analogue. It followed T5Gemma and T5Gemma 2 back to their
 from-scratch scaling study (RedLLM) and to the 2022 MT architecture study
 both cite.
 
-Not covered:
+The November MT pass used Zhang et al.'s architecture study, NLLB and the
+T5Gemma work as anchors. It queried recent and highly cited OpenAlex
+citers for Zhang and NLLB, checked ACL Anthology and arXiv for architectures,
+MoE routing and translation controls, and read the WMT26 general-task
+findings as a check on field adoption. It covers the main comparisons that
+bear on small models, with no claim of citation saturation. Core extracts
+are listed in the [manifest](related-work/papers.yaml). Some secondary
+comparisons link to the original full text.
 
-- multilingual variants (mT5, mBART, ByT5);
-- dedicated MT models (NLLB, MADLAD-400);
+Outside this scope:
+
+- a general survey of multilingual pretraining variants (mT5, mBART, ByT5);
 - ELECTRA's replaced-token detection;
 - GLM;
 - Wang et al. 2022 on architecture and objective for zero-shot
   generalization (cited by T5Gemma, not fetched).
-
-The MT-relevant region stopped adding new evidence after the 2025 adaptation
-papers.
 
 ## Reading list
 
@@ -79,6 +84,9 @@ read as fetched.
 | RedLLM: from-scratch LLM comparison | Zhang et al., 2025 | [encoder-decoder scaling](concepts/encoder-decoder-scaling.md) | [extract](related-work/extract/zhang2025-redllm/zhang2025-redllm.md) |
 | T5Gemma: adapting a decoder LLM | Zhang et al., 2025 | [encoder-decoder adaptation](concepts/encoder-decoder-adaptation.md) | [extract](related-work/extract/zhang2025-t5gemma/html/2504.06225v1.md) |
 | T5Gemma 2 | Zhang et al., 2025 | [T5Gemma 2](concepts/t5gemma-2.md) | [extract](related-work/extract/zhang2025-t5gemma2/html/2512.14856v2.md) |
+| OMT-NLLB and OMT-LLaMA | Alastruey et al., EMNLP 2026 | [Multilingual systems](concepts/multilingual-mt-systems.md#alastruey2026-omt) | [extract](related-work/extract/alastruey2026-omt/html/2603.16309v3.md) |
+| EDWARD-NMT: small elastic MoE | Nguyen et al., Findings of EMNLP 2026 | [Multilingual MoE](concepts/multilingual-mt-systems.md#nguyen2026-edward) | [extract](related-work/extract/nguyen2026-edward/html/2610.32115v1.md) |
+| Marian instruction tuning | Raunak et al., WMT 2024 | [Prompted MT](concepts/prompted-mt.md#raunak2024-instruction-nmt) | [extract](related-work/extract/raunak2024-instruction-nmt/html/2410.05553v1.md) |
 
 ## Concept map
 
@@ -166,8 +174,11 @@ vision encoder [G].
   ([encoder-decoder adaptation](concepts/encoder-decoder-adaptation.md);
   `single-source`).
 - **Adapted from Gemma 3 (T5Gemma 2).** On WMT24++ chrF (pretrained) the
-  encoder-decoder gains at 270M (+8.6) and 1B (+4.2) and ties at 4B (+0.8).
-  After light post-training, 4B-4B is 0.5 behind Gemma 3 4B IT [G]
+  encoder-decoder gains at the 270M (+8.6), 1B (+4.2) and 4B (+0.8) decoder
+  sizes. After post-training, the corresponding margins are +7.1, +3.8,
+  and −0.5. The encoder–decoder text stacks alone total 368M, 1.698B and
+  7.093B parameters, respectively. The model receives additional
+  UL2 adaptation and a different post-training recipe [G]
   ([T5Gemma 2](concepts/t5gemma-2.md); `single-source`).
 - **Monolingual denoisers need help for MT.** BART improved RO→EN by about
   1.2 BLEU only with an extra source encoder and back-translation, and
@@ -176,11 +187,12 @@ vision encoder [G].
 
 ## Contested results
 
-- **Is the encoder-decoder better for translation?** Yes at 2019–2022 scale
-  without multilingual LLM pretraining (T5, the 2022 MT study). No or tie
-  with it (RedLLM, T5Gemma, T5Gemma 2). The disputed axes are pretraining
-  data and model scale. All the later evidence comes from one Google group
-  evaluating its own models (`contested`).
+- **Architecture and multilingual pretraining.** Supervised small-model
+  studies tend to favor a bidirectional source. RedLLM and T5Gemma v1
+  favor the decoder-only system on the reported WMT tests. T5Gemma 2
+  favors the adapted encoder–decoder at small matched decoder sizes, at
+  greater total size. OMT and AfriSLM establish opposing system-level
+  results under distinct training recipes (`contested`).
 - **UL2 vs prefix LM as the adaptation objective.** T5Gemma found PrefixLM
   with distillation the better generator, by up to 3.6 points at 9B-2B. T5Gemma 2
   found UL2 better at 1B and below and dropped distillation. The authors
@@ -228,8 +240,11 @@ vision encoder [G].
 ## Disconfirming pass
 
 For the headline claim “encoder-decoders are the better MT architecture”, the
-search looked for results that bound or refute it, not restatements. It
-found the WMT23 row where T5Gemma trails Gemma 2, RedLLM's WMT curves, and
-T5Gemma 2's 4B parity. For “adapted encoder-decoders fine-tune better”, it
-looked for any parallel-data fine-tuning result and found none. Each paper's
-own MT numbers and its stated limitations were also checked.
+search found the WMT23 row where T5Gemma trails Gemma 2, RedLLM's WMT curves,
+T5Gemma 2's near-tie at 4B, and AfriSLM's wins over NLLB. For the reverse
+claim, it found OMT-NLLB and the WMT26 LiLa results. The MoE search included
+language-conditioned routing, expert pruning and elastic subnetworks. The
+closest small MoE papers benchmark earlier encoder–decoders. The prompted
+MT search included domain tags, attribute preference tuning, lexical
+constraints and translation memory, and found limits in unseen instruction
+combinations and harder formality tests.

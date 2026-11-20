@@ -17,7 +17,7 @@
 
 meta:
   field_slug: span-denoising-pretraining
-  coverage_cutoff: 2026-10-13
+  coverage_cutoff: 2026-11-20
   grounding_mode: grounded
 
 papers:
@@ -138,3 +138,77 @@ papers:
     fetched: 2026-10-13
     source: 'arXiv API metadata; proceedings.mlr.press/v162/zhang22h.html, 2026-10-13'
     cluster: mt-architecture-scaling
+  - key: alastruey2026-omt
+    short: multilingual-mt-systems
+    concept_page: concepts/multilingual-mt-systems.md
+    title: 'Omnilingual MT: Machine Translation for 1,600 Languages'
+    authors: [Omnilingual MT Team]
+    venue: EMNLP 2026 (extended arXiv version)
+    year: 2026
+    url: https://arxiv.org/html/2603.16309v3
+    verified: true
+    grounded: true
+    fetched: 2026-11-20
+    source: 'arXiv v3 and ACL Anthology 2026.emnlp-main.1280, 2026-11-20'
+    cluster: multilingual-mt-systems
+  - key: gritta2026-afrislm
+    short: multilingual-mt-systems
+    concept_page: concepts/multilingual-mt-systems.md
+    title: 'TranslatePsy-AfriSLM: High-Quality Data Scaling For Low-Resource Machine Translation'
+    authors: [Milan Gritta, Patrik Lambert, Jihye Back, Amril Nazir]
+    venue: EMNLP 2026
+    year: 2026
+    url: https://arxiv.org/html/2608.18655v2
+    verified: true
+    source: 'arXiv v2 metadata, 2026-11-20'
+    cluster: multilingual-mt-systems
+  - key: nguyen2026-edward
+    short: multilingual-mt-systems
+    concept_page: concepts/multilingual-mt-systems.md
+    title: 'EDWARD-NMT: Elastic Dimensions With Adaptive Routing and Dual-consistency for Neural Machine Translation'
+    authors: [Edward Nguyen, Thai Tran, Kiet Anh Hoang, Duy Hoang, Duy Vo, Khanh Le, Vu Le]
+    venue: Findings of EMNLP 2026
+    year: 2026
+    url: https://arxiv.org/html/2610.32115v1
+    verified: true
+    grounded: true
+    fetched: 2026-11-20
+    source: 'arXiv v1 metadata, 2026-11-20'
+    cluster: multilingual-mt-systems
+  - key: kudugunta2023-madlad
+    short: multilingual-mt-systems
+    concept_page: concepts/multilingual-mt-systems.md
+    title: 'MADLAD-400: A Multilingual And Document-Level Large Audited Dataset'
+    authors: [Sneha Kudugunta, Isaac Caswell, Biao Zhang, Xavier Garcia, Christopher A. Choquette-Choo, Katherine Lee, Derrick Xin, Aditya Kusupati, Romi Stella, Ankur Bapna, Orhan Firat]
+    venue: NeurIPS 2023 Datasets and Benchmarks
+    year: 2023
+    url: https://arxiv.org/html/2309.04662v1
+    verified: true
+    source: 'arXiv v1 and NeurIPS proceedings, 2026-11-20'
+    cluster: multilingual-mt-systems
+  - key: raunak2024-instruction-nmt
+    short: prompted-mt
+    concept_page: concepts/prompted-mt.md
+    title: On Instruction-Finetuning Neural Machine Translation Models
+    authors: [Vikas Raunak, Roman Grundkiewicz, Marcin Junczys-Dowmunt]
+    venue: WMT 2024
+    year: 2024
+    url: https://arxiv.org/html/2410.05553v1
+    doi: 10.18653/v1/2024.wmt-1.114
+    verified: true
+    grounded: true
+    fetched: 2026-11-20
+    source: 'ACL Anthology proceedings, 2026-11-20'
+    cluster: prompted-mt
+  - key: luo2025-lamate
+    short: prompted-mt
+    concept_page: concepts/prompted-mt.md
+    title: 'Beyond Decoder-only: Large Language Models Can be Good Encoders for Machine Translation'
+    authors: [Yingfeng Luo, Tong Zheng, Yongyu Mu, Bei Li, Qinghong Zhang, Yongqi Gao, Ziqiang Xu, Peinan Feng, Xiaoqian Liu, Tong Xiao, Jingbo Zhu]
+    venue: Findings of ACL 2025
+    year: 2025
+    url: https://arxiv.org/html/2503.06594v2
+    doi: 10.18653/v1/2025.findings-acl.490
+    verified: true
+    source: 'arXiv v2 and ACL Anthology proceedings, 2026-11-20'
+    cluster: prompted-mt
