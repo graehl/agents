@@ -17,7 +17,7 @@
 
 meta:
   field_slug: asr-training-audio-enhancement
-  coverage_cutoff: 2026-11-05
+  coverage_cutoff: 2026-11-21
   grounding_mode: grounded
 
 papers:
@@ -65,3 +65,181 @@ papers:
     fetched: '2026-11-05'
     short: artifact-noise-tradeoff
     concept_page: concepts/artifact-noise-tradeoff.md
+  # --- inference-time front-end extension (2026-11-21) ---
+  - key: islam2026-sam-audio-whisper
+    title: 'When Audio Separation Hurts Zero-Shot ASR: Evaluating SAM-Audio with Whisper on Bengali and English Speech'
+    authors: [Akif Islam, Raufun Nahar, Md. Ekramul Hamid]
+    venue: arXiv
+    year: 2026
+    arxiv: 2603.04710v2
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: inference-time-enhancement
+    concept_page: concepts/inference-time-enhancement.md
+  - key: chondhekar2025-denoising-hurts
+    title: 'When De-noising Hurts: A Systematic Study of Speech Enhancement Effects on Modern Medical ASR Systems'
+    authors: [Sujal Chondhekar, Vasanth Murukuri, Rushabh Vasani, Sanika Goyal, Rajshree Badami, Anushree Rana, Sanjana SN, Karthik Pandia, Sulabh Katiyar, Neha Jagadeesh, Sankalp Gulati]
+    venue: arXiv
+    year: 2025
+    arxiv: 2512.17562v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: inference-time-enhancement
+    concept_page: concepts/inference-time-enhancement.md
+  - key: wang2024-bridging
+    title: 'Bridging the Gap: Integrating Pre-trained Speech Enhancement and Recognition Models for Robust Speech Recognition'
+    authors: [Kuan-Chen Wang, You-Jin Li, Wei-Lun Chen, Yu-Wen Chen, Yi-Ching Wang, Ping-Cheng Yeh, Chao Zhang, Yu Tsao]
+    venue: arXiv
+    year: 2024
+    arxiv: 2406.12699v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: inference-time-enhancement
+    concept_page: concepts/inference-time-enhancement.md
+  - key: dissen2024-packet-loss
+    title: Enhanced ASR Robustness to Packet Loss with a Front-End Adaptation Network
+    authors: [Yehoshua Dissen, Shiry Yonash, Israel Cohen, Joseph Keshet]
+    venue: arXiv
+    year: 2024
+    arxiv: 2406.18928v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: inference-time-enhancement
+    concept_page: concepts/inference-time-enhancement.md
+  - key: lin2022-suta
+    title: 'Listen, Adapt, Better WER: Source-free Single-utterance Test-time Adaptation for Automatic Speech Recognition'
+    authors: [Guan-Ting Lin, Shang-Wen Li, Hung-yi Lee]
+    venue: Interspeech
+    year: 2022
+    arxiv: 2203.14222v2
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: other-input-operations
+    concept_page: concepts/other-input-operations.md
+  - key: tipaksorn2025-lotusdis
+    title: 'LOTUSDIS: A Thai far-field meeting corpus for robust conversational ASR'
+    authors: [Pattara Tipaksorn, Sumonmas Thatphithakkul, Vataya Chunwijitra, Kwanchiva Thangthai]
+    venue: arXiv
+    year: 2025
+    arxiv: 2509.18722v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: other-input-operations
+    concept_page: concepts/other-input-operations.md
+  - key: zhu2022-joint-se-ssl
+    title: Joint Training of Speech Enhancement and Self-supervised Model for Noise-robust ASR
+    authors: [Qiu-Shi Zhu, Jie Zhang, Zi-Qiang Zhang, Li-Rong Dai]
+    venue: arXiv
+    year: 2022
+    arxiv: 2205.13293v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: inference-time-enhancement
+    concept_page: concepts/inference-time-enhancement.md
+  - key: liu2024-low-frequency
+    title: 'How Private is Low-Frequency Speech Audio in the Wild? An Analysis of Verbal Intelligibility by Humans and Machines'
+    authors: [Ailin Liu, Pepijn Vunderink, Jose Vargas Quiros, Chirag Raman, Hayley Hung]
+    venue: arXiv
+    year: 2024
+    arxiv: 2407.13266v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: other-input-operations
+    concept_page: concepts/other-input-operations.md
+  - key: baranski2025-whisper-hallucination
+    title: Investigation of Whisper ASR Hallucinations Induced by Non-Speech Audio
+    authors: [Mateusz Barański, Jan Jasiński, Julitta Bartolewska, Stanisław Kacprzak, Marcin Witkowski, Konrad Kowalczyk]
+    venue: arXiv
+    year: 2025
+    arxiv: 2501.11378v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: other-input-operations
+    concept_page: concepts/other-input-operations.md
+  - key: polok2024-target-speaker-whisper
+    title: Target Speaker ASR with Whisper
+    authors: [Alexander Polok, Dominik Klement, Matthew Wiesner, Sanjeev Khudanpur, Jan Černocký, Lukáš Burget]
+    venue: arXiv
+    year: 2024
+    arxiv: 2409.09543v2
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-side-information
+    concept_page: concepts/condition-side-information.md
+  - key: goswami2026-whisper-rir
+    title: 'Whisper-RIR-Mega: A Paired Clean-Reverberant Speech Benchmark for ASR Robustness to Room Acoustics'
+    authors: [Mandip Goswami]
+    venue: arXiv
+    year: 2026
+    arxiv: 2603.02252v3
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: other-input-operations
+    concept_page: concepts/other-input-operations.md
+  - key: keskin2021-one-or-two-mics
+    title: Do You Listen with One or Two Microphones? A Unified ASR Model for Single and Multi-Channel Audio
+    authors: [Gokce Keskin, Minhua Wu, Brian King, Harish Mallidi, Yang Gao, Jasha Droppo, Ariya Rastrow, Roland Maas]
+    venue: arXiv
+    year: 2021
+    arxiv: 2106.02750v2
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: other-input-operations
+    concept_page: concepts/other-input-operations.md
+  - key: jeffries2024-moonshine
+    title: 'Moonshine: Speech Recognition for Live Transcription and Voice Commands'
+    authors: [Nat Jeffries, Evan King, Manjunath Kudlur, Guy Nicholson, James Wang, Pete Warden]
+    venue: arXiv
+    year: 2024
+    arxiv: 2410.15608v2
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: other-input-operations
+    concept_page: concepts/other-input-operations.md
+  # --- side-information leads read 2026-11-21 ---
+  - key: mantena2019-bandwidth-embeddings
+    title: Bandwidth Embeddings for Mixed-bandwidth Speech Recognition
+    authors: [Gautam Mantena, Ozlem Kalinli, Ossama Abdel-Hamid, Don McAllaster]
+    venue: arXiv
+    year: 2019
+    arxiv: 1909.02667v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-side-information
+    concept_page: concepts/condition-side-information.md
+  - key: raj2020-noise-aware-training
+    title: Frustratingly Easy Noise-aware Training of Acoustic Models
+    authors: [Desh Raj, Jesus Villalba, Daniel Povey, Sanjeev Khudanpur]
+    venue: arXiv
+    year: 2020
+    arxiv: 2011.02090v2
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-side-information
+    concept_page: concepts/condition-side-information.md
+  - key: gong2023-whisper-at
+    title: 'Whisper-AT: Noise-Robust Automatic Speech Recognizers are Also Strong General Audio Event Taggers'
+    authors: [Yuan Gong, Sameer Khurana, Leonid Karlinsky, James Glass]
+    venue: arXiv
+    year: 2023
+    arxiv: 2307.03183v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-side-information
+    concept_page: concepts/condition-side-information.md

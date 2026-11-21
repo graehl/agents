@@ -58,3 +58,38 @@ live in the draft repository's
 `research/speech-recognition/gaps/sketches/audio-enhancement-and-filtering.md`.
 The objective is the trained recognizer's utility on held-out audio, separate
 from designing a system-ranking ASR evaluation metric.
+
+# Inference-time candidates for a phone recognizer
+
+Grounded inputs: [inference-time section of the survey](survey.md#inference-time-processing-of-the-input-audio),
+sixteen read primary sources through 2026-11-21. These are hypotheses; none
+has been run for the motivating recognizer. Revisit when a Whisper-class
+low-resource test of any of them appears.
+
+## Provisional claims
+
+| Claim | Regime and evidence | Check status | Cheapest discriminating check |
+|---|---|---|---|
+| A standalone denoiser before a Whisper-class recognizer raises WER | three independent studies, synthetic noise, English-heavy | consistent across groups, not reproduced by us; weak baselines in one | run one enhancer on the target-language dev set, raw vs enhanced vs 0.6-weighted mix, same recognizer |
+| Mixing the original back in is the safe form | one study (Wang et al.), LibriSpeech/Aurora-4/VoiceBank, Whisper base and large-v3 | single-source, gains of 0 to 1 point absolute for large-v3 | the same run as above, adds one column |
+| A narrowband/wideband flag plus a common sampling rate helps small narrowband data | one hybrid DNN, 600 h narrowband | single-source, pre-pretrained-encoder era | add a bandwidth flag embedding when fine-tuning on mixed 8 kHz/16 kHz data; compare with upsampling alone |
+| Whisper-class encoders infer noise condition without side information | linear probe plus class-level correlation (Gong et al.) | no intervention experiment | inject an oracle SNR/bandwidth label into a fine-tuned encoder and see if dev WER moves |
+| Voice-activity trimming matters only when long non-speech is present | one Whisper large-v3 padding experiment | built-in failure case | measure hallucination rate on real phone recordings with and without trimming |
+| Test-time adaptation could stand in for an enhancer | one wav2vec 2.0 base CTC study | not tested on Whisper-class or on phone compute | adapt layer norm only for 5 to 10 steps on a handful of mismatched utterances; time it |
+
+## Void map for the owner's question (axes: operation by recognizer class)
+
+- Filled with a read result: denoising, observation adding, recognizer-loss
+  front end, WPE (one Thai study), VAD (one study), joint training (one
+  study), test-time adaptation (one study), mixed bandwidth (hybrid only),
+  noise-aware training (hybrid only).
+- Untried in located work, not believed impossible: a band-presence or
+  per-band reliability side input to a pretrained encoder; bandwidth or
+  codec flag conditioning of a self-supervised or Whisper-class model;
+  utterance-level environment vector for end-to-end models. Falsification
+  search recorded: web queries "noise-aware training", "mixed bandwidth",
+  "environment embedding conditioning wav2vec Whisper" returned only hybrid
+  or adjacent work (see the survey's coverage section); no forward-citation
+  search, so these are not yet capstone candidates.
+- Not searched deeply: missing-feature and uncertainty decoding as applied to
+  end-to-end models; speaking-rate normalization; codec restoration.

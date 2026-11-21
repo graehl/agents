@@ -1,10 +1,13 @@
 # Enhancing audio for ASR training
 
-Grounded, bounded field survey; searched through 2026-11-05. Four primary
-papers fetched and read; four citation records verified. Results below are
-`single-source` unless stated otherwise; none was independently reproduced
-here. The search covers enhancement-induced distortion and train/test matching,
-not a comprehensive review of codecs, bandwidth extension or restoration.
+Grounded, bounded field survey in two parts: the training question below
+(searched through 2026-11-05; four primary papers) and the inference-time
+question, [Does processing the input audio help a modern recognizer?](#inference-time-processing-of-the-input-audio)
+(searched through 2026-11-21; sixteen further primary papers fetched and
+read). Results are `single-source` unless stated otherwise; none was
+independently reproduced here. The training part covers enhancement-induced
+distortion and train/test matching, not a comprehensive review of codecs,
+bandwidth extension or restoration.
 
 ## Training benefit depends on what is changed at deployment
 
@@ -90,6 +93,78 @@ Candidate tests are in [frontier.md](frontier.md); the project-specific proposal
 is the draft repository's
 `research/speech-recognition/gaps/sketches/audio-enhancement-and-filtering.md`.
 
+## Inference-time processing of the input audio
+
+Question: for a large pretrained or large-supervised recognizer (Whisper,
+wav2vec 2.0 and similar, Conformer or Zipformer transducers), does
+processing the input audio at recognition time improve accuracy, and under
+what conditions? Deployment of interest: single utterance on a phone, one
+or two microphones, limited compute, lower-resource languages. Far-field
+multi-microphone meeting rooms appear only as a boundary. Detail and
+numbers are on the concept pages; every row cites a fetched and read paper.
+
+**Verdict on the prior that the fitted encoder already does the work.**
+Largely supported for standalone enhancement, `single-source` each but
+consistent across independent groups: a denoiser or separator placed
+before Whisper-class models raised WER in three studies (a separation
+model on Bengali and English, a GAN denoiser on four recognizers in 40 of
+40 cells, four pretrained enhancers on LibriSpeech with noise); see
+[inference-time enhancement](concepts/inference-time-enhancement.md). The
+mildest repair, mixing the original observation back in, only recovers to
+about parity or a small gain (large-v3 14.4 to 15.5% against 15.4%
+noisy). Not supported as an absolute claim: a front end trained through
+the frozen recognizer's loss for a defect it had not seen (packet loss)
+helped Whisper base 24.0 to 18.1% and large-v2 15.4 to 14.2%, and jointly
+trained enhancement with fused noisy features helped a smaller wav2vec
+2.0 model. Direct mechanistic evidence is thin: Whisper's encoder keeps
+background-sound information at all depths ([Gong et al.](concepts/condition-side-information.md)),
+consistent with a recognizer that infers its condition, but that result
+is a probe, not an intervention.
+
+**Operations.**
+
+| Operation | Located evidence | Page |
+|---|---|---|
+| Single-channel denoising/separation | harm before Whisper-class models | [enhancement](concepts/inference-time-enhancement.md) |
+| Observation adding | recovers the loss; small gain at best | [enhancement](concepts/inference-time-enhancement.md) |
+| Recognizer-loss-trained front end | helps for packet loss; helps small more than large | [enhancement](concepts/inference-time-enhancement.md) |
+| WPE dereverberation | harm test-side in one Thai Whisper study; no Whisper-class WPE controlled test found | [other operations](concepts/other-input-operations.md) |
+| Beamforming, two channels | jointly trained front end helps a proprietary recognizer; no handset or open-model evidence | [other operations](concepts/other-input-operations.md) |
+| Separation / target-speaker extraction | conditioning Whisper's encoder far outperforms masking the audio | [side information](concepts/condition-side-information.md) |
+| Bandwidth extension, band-limiting | 800 to 2000 Hz extension helped Whisper (figures only); no 8 kHz result | [other operations](concepts/other-input-operations.md) |
+| Codec restoration | packet-loss only; no codec-artifact test | [enhancement](concepts/inference-time-enhancement.md) |
+| Loudness / gain | flat to about -40 dB for small models (figures) | [other operations](concepts/other-input-operations.md) |
+| Voice-activity trimming | large effect on Whisper hallucination with long non-speech | [other operations](concepts/other-input-operations.md) |
+| Speaking-rate normalization | none located for modern recognizers | gap |
+| Test-time adaptation instead of changing audio | sizeable gains on a modest CTC model | [other operations](concepts/other-input-operations.md) |
+| Side information about the input's condition | hybrid-era gains of 7 to 13% relative; none on pretrained encoders | [side information](concepts/condition-side-information.md) |
+
+**Is there an audio analogue of erasing input differences for small
+corpora?** One located case: Mantena et al. fold 600 h of narrowband into
+3,400 h of wideband speech for a hybrid DNN. Naive mixing hurt narrowband
+WER (26.2 vs 21.0 narrowband-only); upsampling to a common rate removed
+most of the harm (20.9); adding a narrowband/wideband flag embedding gave
+18.2, a 13% relative gain over narrowband-only
+([reading](related-work/readings/mantena2019-bandwidth-embeddings.md)).
+Raj et al.'s utterance-level noise vectors add 7 to 10% on hybrid models
+and are complementary to multi-condition training. Both are pre-2021
+hybrid systems with the condition known or estimated by a simple
+classifier; none tests a pretrained encoder, and Tipaksorn et al.'s
+Thai result points the other way for fixed test-side processing (training
+with room-impulse augmentation beat dereverberation). No located paper
+shows a normalizing transform that helps a pretrained encoder on a small
+corpus; absence under these queries is not proof of absence.
+
+**Contested and quiet.** Positive and negative enhancement results do not
+contradict each other on a shared test: they differ in whether the front
+end saw the recognizer's loss, whether the recognizer was adapted to its
+output, and the defect (packet loss and low SNR with a small model help;
+mild noise with a large model hurts). Sample gaps: Islam et al.'s English
+and Bengali baselines exceed 100% WER for several models, Goswami's clean
+WER is implausibly high, and the Thai study's WPE row does not say whether
+the recognizer saw processed training audio; those results are weaker than
+their statements.
+
 ## Retrieval and coverage
 
 Search anchors were Zorila's explicit train/test experiment, Plantinga's
@@ -113,3 +188,28 @@ made for the proposed experiments.
 Verified bibliography and reconstructible source provenance:
 [papers.yaml](related-work/papers.yaml). Each concept page links the primary
 full text and the retained extract.
+
+### Inference-time extension (searched through 2026-11-21)
+
+Method: web searches by operation (enhancement with Whisper, dereverberation,
+bandwidth, codec, separation, voice-activity detection, test-time adaptation,
+gain, noise-aware training, mixed bandwidth, conditioning), then fetch and read
+of 16 papers through the shared `related-work` engine (not a citation
+snowball; no OpenAlex or Semantic Scholar forward-citation pass was run, so
+saturation is not claimed). Papers read: Islam 2026, Chondhekar 2025, Wang
+2024, Dissen 2024, Zhu 2022, Lin 2022, Tipaksorn 2025, Liu 2024, Baranski 2025,
+Polok 2024, Goswami 2026, Keskin 2021, Jeffries 2024, Mantena 2019, Raj 2020,
+Gong 2023. Several results are in figures only (Liu, Jeffries) and are reported
+as such.
+
+Not fetched or not covered: Seltzer et al. 2013 (original noise-aware
+training), Saon et al. 2013 (i-vector adaptation), missing-feature recognition
+and uncertainty decoding (Cooke, Raj and Stern, Deng, Astudillo), channel- or
+environment-embedding work for end-to-end models, Whisper itself (Radford et
+al. 2022) and robust wav2vec 2.0 (Hsu et al. 2021), SGEM (arXiv 2306.01981) and
+other test-time adaptation for Whisper-class models, Whisper-based
+enhancement-with-adaptation follow-ups (arXiv 2501.02452, 2403.06387, FAT-HuBERT
+2311.17790), WhisperX and VAD ablations beyond Baranski, Calm-Whisper (arXiv
+2505.12969), codec-artifact and speaking-rate studies for modern recognizers,
+and low-resource-language evidence beyond Tipaksorn. These are leads, not
+findings; search engine summaries of them are not grounded here.
