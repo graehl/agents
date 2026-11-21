@@ -120,3 +120,32 @@ ten further primary sources through 2026-11-21. Hypotheses, none run.
   Falsification search: web queries on each returned only the adjacent
   items listed in the survey's unretrieved leads; no forward-citation
   search, so none is yet a capstone candidate.
+
+# Third pass: what changed in the claims and voids (2026-11-21)
+
+Grounded inputs: 21 further primary sources; see the
+[survey's third-pass section](survey.md#third-pass-six-areas-widened-2026-11-21).
+
+## Claims updated
+
+| Earlier claim or void | Now | Evidence | Remaining check |
+|---|---|---|---|
+| Mixing band-limited and codec copies is safe for clean wideband at a moderate share: weak, hybrid only | still weak, but a lower-resource Bluetooth case and a codec-share recipe exist | Zhuang 2017: band-limited wideband stands in for real narrowband (25.7 to 42.8 vs 24.0 to 38.4 WER), initialization plus 20 h real: 17.4 to 29.8; Borodin 2026 (speaker verification): 30% codec examples, no ablation | train a pretrained encoder with 0 / 10 / 25 / 50% codec and band-limited copies; report clean wideband and 8 kHz WER; compare with masking-only |
+| Explicit running state vs augmentation: no head-to-head | arms exist for condition input or target, none for running state or pretrained encoders | Lin 2026 (+1.9 to +5.8 accuracy points over augmentation, per-band floor from the previous 2 s); Prasad 2021 (noise-type target, 8 to 20% at 0 dB, clean unchanged); Amazon (device ID input -4 to +4%; experts up to 10%) | the same arms with a Conformer or Whisper encoder and an estimated floor |
+| Carried state helps only modest CTC models | also helps open streaming transducers at inference without retraining | Chattopadhyay 2026: 15 to 21% relative at onsets (carry-over with rollback); Cui 2023: 3 to 4% | add a noise-floor or channel carry to the encoder cache and compare with augmentation |
+| Whisper session or text state | text carry hurts in long form | Ahn 2026: previous-text conditioning +190 and +500 points on Whisper large-v3 | acoustic (not text) carry for Whisper, short utterances |
+| Transcript-driven fitting: lineage unread | lineage read (MLLR report) and TTS-likelihood scoring read | Gales: S5 unknown microphone 9.00 to 7.15; READ: up to 20% relative reranking, largest at low SNR | speaker or channel fitting from a TTS-scored transcript; READ with a low-resource TTS |
+| Benchmarks: no moving talker, no handheld | both read, but event noise and route switches still absent | FFASR: moving penalty 1.3 to 2.7 points; CHiME-3 stationarity and microphone failure analysis | construct and publish an event-noise plus route-switch test |
+
+## Void map (third pass)
+
+- Untried in located work after wide search: an augmentation vs
+  augmentation-plus-condition arm for a pretrained encoder; an event-noise ASR
+  benchmark; a route-switch benchmark; a quantified share of band-limited phone
+  paths; a TTS-likelihood label filter for training data; unsupervised
+  Whisper test-time speaker adaptation with carried state. These were searched
+  with at least two query rounds each and remain unfilled; none is yet a capstone
+  candidate (no forward-citation chase beyond five anchors).
+- Filled with read evidence since the last pass: band-limited training copies
+  (hybrid), condition input or target arms (small models), encoder-state carry
+  in streaming transducers, MLLR lineage, TTS-likelihood rerank.

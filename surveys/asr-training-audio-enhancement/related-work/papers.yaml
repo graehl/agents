@@ -354,3 +354,235 @@ papers:
     fetched: '2026-11-21'
     short: carried-state-and-adaptation
     concept_page: concepts/carried-state-and-adaptation.md
+  # --- third pass (2026-11-21) ---
+  - key: chattopadhyay2026-fresh-starts
+    title: 'Beyond Fresh Starts: Stateful Inference for Streaming ASR in Conversational Voice Agents'
+    authors: ['Sameep Chattopadhyay', 'Alexander Erdmann', 'Mari Ostendorf']
+    venue: arXiv
+    year: 2026
+    arxiv: '2608.22101'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: dong2025-ebats
+    title: 'E-BATS: Efficient Backpropagation-Free Test-Time Adaptation for Speech Foundation Models'
+    authors: ['Jiaheng Dong', 'Hong Jia', 'Soumyajit Chatterjee', 'Abhirup Ghosh', 'James Bailey', 'Ting Dang']
+    venue: arXiv
+    year: 2025
+    arxiv: '2506.07078'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: lin2026-normalise-or-condition
+    title: 'Normalise or condition? Noise-floor front-ends for on-board keyword spotting under UAV rotor ego-noise'
+    authors: ['Yida Lin', 'Bing Xue', 'Mengjie Zhang', 'Sam D. Schofield', 'Richard D. Green']
+    venue: arXiv
+    year: 2026
+    arxiv: '2609.31699'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-input-vs-augmentation
+    concept_page: concepts/condition-input-vs-augmentation.md
+  - key: li2026-read
+    title: 'Read What You Hear: Reference-Free Hypotheses Evaluation with Acoustic Discrepancy'
+    authors: ['Zhihan Li', 'Hankun Wang', 'Yiwei Guo', 'Bohan J Li', 'Xie Chen', 'Kai Yu']
+    venue: arXiv
+    year: 2026
+    arxiv: '2606.04680'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: saini2026-ffasr
+    title: 'FFASR: Benchmarking Far-Field Automatic Speech Recognition using High-Fidelity Simulated RIRs'
+    authors: ['Shivam Saini', 'Eric Bezzam', 'Georg Götz', 'Alessia Milo', 'Steinar Guðjónsson', 'Konstantinos Gkanos', 'Finnur Pind', 'Daniel Gert Nielsen']
+    venue: arXiv
+    year: 2026
+    arxiv: '2609.38897'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: nonstationary-and-augmentation
+    concept_page: concepts/nonstationary-and-augmentation.md
+  - key: hsu2021-robust-w2v2
+    title: 'Robust wav2vec 2.0: Analyzing Domain Shift in Self-Supervised Pre-Training'
+    authors: ['Wei-Ning Hsu', 'Anuroop Sriram', 'Alexei Baevski', 'Tatiana Likhomanenko', 'Qiantong Xu', 'Vineel Pratap', 'Jacob Kahn', 'Ann Lee', 'Ronan Collobert', 'Gabriel Synnaeve', 'Michael Auli']
+    venue: Interspeech
+    year: 2021
+    arxiv: '2104.01027'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: narrowband-and-codec-training
+    concept_page: concepts/narrowband-and-codec-training.md
+  - key: sukhadia2023-channel-aware
+    title: 'Channel-Aware Pretraining Of Joint Encoder-Decoder Self-Supervised Model For Telephonic-Speech ASR'
+    authors: ['Vrunda Nileshkumar Sukhadia', 'Srinivasan Umesh']
+    venue: arXiv
+    year: 2023
+    arxiv: '2211.01669'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: narrowband-and-codec-training
+    concept_page: concepts/narrowband-and-codec-training.md
+  - key: prasad2021-e2e-robust
+    title: 'An Investigation of End-to-End Models for Robust Speech Recognition'
+    authors: ['Archiki Prasad', 'Preethi Jyothi', 'Rajbabu Velmurugan']
+    venue: arXiv
+    year: 2021
+    arxiv: '2102.06237'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-input-vs-augmentation
+    concept_page: concepts/condition-input-vs-augmentation.md
+  - key: serdyuk2016-invariant
+    title: 'Invariant Representations for Noisy Speech Recognition'
+    authors: ['Dmitriy Serdyuk', 'Kartik Audhkhasi', 'Philémon Brakel', 'Bhuvana Ramabhadran', 'Samuel Thomas', 'Yoshua Bengio']
+    venue: arXiv
+    year: 2016
+    arxiv: '1612.01928'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-input-vs-augmentation
+    concept_page: concepts/condition-input-vs-augmentation.md
+  - key: ahn2026-whisper-cd
+    title: 'Whisper-CD: Accurate Long-Form Speech Recognition using Multi-Negative Contrastive Decoding'
+    authors: ['Hoseong Ahn', 'Jeongyun Chae', 'Yoonji Park', 'Kyuhong Shim']
+    venue: arXiv
+    year: 2026
+    arxiv: '2603.06193'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: cui2023-compact-context
+    title: 'Towards Effective and Compact Contextual Representation for Conformer Transducer Speech Recognition Systems'
+    authors: ['Mingyu Cui', 'Jiawen Kang', 'Jiajun Deng', 'Xi Yin', 'Yutao Xie', 'Xie Chen', 'Xunying Liu']
+    venue: arXiv
+    year: 2023
+    arxiv: '2306.13307'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: borodin2026-redimnet2plus
+    title: 'ReDimNet2+: Multi-Corpus Data Scaling for Robust Speaker Verification'
+    authors: ['Kirill Borodin', 'Vasilii Kudryavtsev', 'Maxim Maslov', 'Grach Mkrtchian']
+    venue: arXiv
+    year: 2026
+    arxiv: '2609.37014'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: narrowband-and-codec-training
+    concept_page: concepts/narrowband-and-codec-training.md
+  - key: shao2025-dhauds
+    title: 'DHAuDS: A Dynamic and Heterogeneous Audio Benchmark for Test-Time Adaptation'
+    authors: ['Weichuang Shao', 'Iman Yi Liao', 'Tomás Maul', 'Tissa Chandesa']
+    venue: arXiv
+    year: 2025
+    arxiv: '2511.18421'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: nonstationary-and-augmentation
+    concept_page: concepts/nonstationary-and-augmentation.md
+  - key: gales1997-mllr-cmllr
+    title: 'Maximum likelihood linear transformations for HMM-based speech recognition'
+    authors: ['M. J. F. Gales']
+    venue: 'Cambridge University Engineering Department technical report CUED/F-INFENG/TR291'
+    year: 1997
+    url: https://mi.eng.cam.ac.uk/reports/svr-ftp/auto-pdf/gales_tr291.pdf
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: vincent2017-mismatches
+    title: 'An analysis of environment, microphone and data simulation mismatches in robust speech recognition'
+    authors: ['Emmanuel Vincent', 'Shinji Watanabe', 'Aditya Arie Nugraha', 'Jon Barker', 'Ricard Marxer']
+    venue: 'Computer Speech & Language'
+    year: 2017
+    url: https://eprints.whiterose.ac.uk/111196/1/vincent_CSL16.pdf
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: nonstationary-and-augmentation
+    concept_page: concepts/nonstationary-and-augmentation.md
+  - key: barker2017-chime3
+    title: 'The third CHiME speech separation and recognition challenge: Analysis and outcomes'
+    authors: ['Jon Barker', 'Ricard Marxer', 'Emmanuel Vincent', 'Shinji Watanabe']
+    venue: 'Computer Speech & Language'
+    year: 2017
+    url: https://eprints.whiterose.ac.uk/110977/1/barker_csl.pdf
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: nonstationary-and-augmentation
+    concept_page: concepts/nonstationary-and-augmentation.md
+  - key: seltzer2007-mixed-bandwidth
+    title: 'Training wideband acoustic models using mixed-bandwidth training data for speech recognition'
+    authors: ['Michael L. Seltzer', 'Alex Acero']
+    venue: 'IEEE Transactions on Audio, Speech, and Language Processing'
+    year: 2007
+    url: https://microsoft.com/en-us/research/wp-content/uploads/2007/01/2007-mseltzer-taslp.pdf
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: narrowband-and-codec-training
+    concept_page: concepts/narrowband-and-codec-training.md
+  - key: dmsuta2025-model-bank
+    title: 'Dynamic Model-Bank Test-Time Adaptation for Automatic Speech Recognition'
+    authors: ['Yanshuo Wang', 'Yanghao Zhou', 'Yukang Lin', 'Haoxing Chen', 'Jin Zhang', 'Wentao Zhu', 'Jie Hong', 'Xuesong Li']
+    venue: 'EMNLP'
+    year: 2025
+    url: https://aclanthology.org/2025.emnlp-main.1107.pdf
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: zhuang2017-bluetooth-narrowband
+    title: Improving DNN Bluetooth Narrowband Acoustic Models by Cross-Bandwidth and Cross-Lingual Initialization
+    authors: ['Xiaodan Zhuang', 'Arnab Ghoshal', 'Antti-Veikko Rosti', 'Matthias Paulik', 'Daben Liu']
+    venue: Interspeech
+    year: 2017
+    url: https://www.isca-archive.org/interspeech_2017/zhuang17_interspeech.pdf
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: narrowband-and-codec-training
+    concept_page: concepts/narrowband-and-codec-training.md
+  - key: weninger2021-dual-encoder
+    title: Dual-Encoder Architecture with Encoder Selection for Joint Close-Talk and Far-Talk Speech Recognition
+    authors: ['Felix Johannes Weninger', 'Marco Gaudesi', 'Ralf Leibold', 'Roberto Gemello', 'Puming Zhan']
+    venue: arXiv
+    year: 2021
+    arxiv: '2109.08744'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-input-vs-augmentation
+    concept_page: concepts/condition-input-vs-augmentation.md
+  - key: amazon2021-multi-device
+    title: Unified modeling of multi-domain multi-device ASR systems
+    authors: ['Soumyajit Mitra', 'Swayambhu Nath Ray', 'Bharat Padi', 'Raghavendra Bilgi', 'Harish Arsikere', 'Shalini Ghosh', 'Ajay Srinivasamurthy', 'Sri Garimella']
+    venue: preprint (Amazon Alexa)
+    year: 2021
+    url: https://cdn.amazon.science/ba/d7/679a60ab4bcdb9a8b57f34a5dc45/unified-modeling-of-multi-domain-multi-device-asr-systems.pdf
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-input-vs-augmentation
+    concept_page: concepts/condition-input-vs-augmentation.md

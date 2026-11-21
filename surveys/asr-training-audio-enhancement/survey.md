@@ -5,7 +5,8 @@ Grounded, bounded field survey in two parts: the training question below
 question, [Does processing the input audio help a modern recognizer?](#inference-time-processing-of-the-input-audio)
 (searched through 2026-11-21; sixteen further primary papers fetched and
 read, then ten more in a second pass on carried state, top-down fitting,
-changing conditions and augmentation). Results are `single-source` unless stated otherwise; none was
+changing conditions and augmentation, then 21 in a third pass widening the
+areas the second left open). Results are `single-source` unless stated otherwise; none was
 independently reproduced here. The training part covers enhancement-induced
 distortion and train/test matching, not a comprehensive review of codecs,
 bandwidth extension or restoration.
@@ -154,7 +155,12 @@ classifier; none tests a pretrained encoder, and Tipaksorn et al.'s
 Thai result points the other way for fixed test-side processing (training
 with room-impulse augmentation beat dereverberation). No located paper
 shows a normalizing transform that helps a pretrained encoder on a small
-corpus; absence under these queries is not proof of absence.
+corpus; absence under these queries is not proof of absence. Third pass: a
+nearer case was read, Zhuang et al. 2017, where band-limited wideband data
+initialize a Bluetooth narrowband model for four newer languages (Dutch,
+Portuguese, Thai, Turkish): 20 h of real Bluetooth audio after band-limited
+initialization gives 17.4 / 23.5 / 20.7 / 29.8 WER against 24.0 / 26.1 / 29.8 /
+38.4 for training on the real narrowband data alone (hybrid DNN).
 
 **Contested and quiet.** Positive and negative enhancement results do not
 contradict each other on a shared test: they differ in whether the front
@@ -185,37 +191,69 @@ encoders the signal is weaker: per-utterance speaker vectors gave wav2vec
 2.0 at most 6.3% and nothing at 9 and 0 dB SNR. See
 [carried state](concepts/carried-state-and-adaptation.md).
 
-**Transcript top-down.** The lineage (MLLR, fMLLR, VTS) was not fetched. Modern
-forms read: confidence-selected speaker adaptation of a Conformer (9.5 to
+**Transcript top-down.** The lineage was read in the third pass (Gales's
+MLLR and constrained-transform report; see below); VTS and the lattice- and
+confidence-based MLLR variants were not fetched. Modern forms read: confidence-selected speaker adaptation of a Conformer (9.5 to
 11.3% relative on Switchboard; needs speaker-adaptive training), multi-
 hypothesis entropy loss, continual adaptation with a reset detector,
 and an audio-text reward instead of confidence (SUTA worse than no
 adaptation on 3 of 8 noises on Whisper-Tiny). Raw confidence is a poor
 guard. Original noise-aware training was read (Seltzer 2013: 13.4 to
 13.1 on Aurora 4 for the noise estimate, a small gain; enhancement alone
-13.8). Saon 2013 (i-vectors) stays unretrieved; its headline (about 10%
-relative on Switchboard) is attested only by a second source (Wagner et al.
-cite it; IBM's abstract page, not read as a paper).
+13.8). Saon 2013 (i-vectors) stays unretrieved after a wider search (IBM abstract
+page, DOI and citing papers only; its headline, about 10% relative on
+Switchboard, is attested by Wagner et al. and a 2016 arXiv paper's summary,
+not read as the paper).
 
-**Non-stationary conditions on a handheld.** Benchmarks read measure steady
-noise at fixed levels (Speech Robust Bench) or static phone positions
-(BERSt: Whisper medium.en 24.9% near the body to 45.1% outside the room).
-No fetched benchmark has noise events with start and end, a continuously
-moving microphone, or a path switch inside a recording. See
+**Non-stationary conditions on a handheld.** First pass: benchmarks read
+measure steady noise at fixed levels (Speech Robust Bench) or static phone
+positions (BERSt: Whisper medium.en 24.9% near the body to 45.1% outside the
+room). The third pass added FFASR (moving talker) and CHiME-3 (handheld tablet);
+see the third-pass section and
 [non-stationary and augmentation](concepts/nonstationary-and-augmentation.md).
 
-**Narrowband and codec augmentation.** No ASR paper on band-limited or
-codec-simulated copies for a modern recognizer was located and read;
-nothing read gives the right mixing share, the cost on clean wideband
-input, or whether generic masking covers it. The hybrid-era mixed-bandwidth
-result and a Thai Whisper study (room-impulse augmentation beat test-side
-dereverberation) are the nearest. On how often phone or Bluetooth paths are
-band-limited, only developer documentation was found (CVSD 8 kHz fallback
-exists; wideband mSBC may not be negotiated), with no share.
+**Narrowband and codec augmentation.** First-pass statement that no paper on
+band-limited or codec-simulated copies was located is overturned in part by the
+third pass: Zhuang et al. 2017 (Apple, Bluetooth narrowband, lower-resource
+languages) and a codec-share recipe for speaker verification were read; see
+[narrowband and codec training](concepts/narrowband-and-codec-training.md). Still
+open: an ablation on a pretrained recognizer, and the share of real phone
+paths that are band-limited (no number found).
 
-**Inverse direction (text to audio as an independent score).** No text-to-
-speech likelihood filter was located; the nearest read result scores
-candidates with CLAP, not a synthesis model.
+**Inverse direction (text to audio as an independent score).** First pass:
+none located, nearest CLAP. Overturned by the third pass: READ scores a
+transcript with a pretrained TTS likelihood (below).
+
+## Third pass: six areas widened (2026-11-21)
+
+The second pass ended with several areas as "none found". This pass treated
+those as search failures: wider vocabulary, older literature, adjacent fields,
+OpenAlex forward citations from Seltzer 2013, Mantena 2019, Lin 2024, Gomez-Alanis
+2022 and van Dalen 2025, and the reference lists of papers already held.
+21 more primary papers were read (51 in all in this survey's manifest). Earlier
+statements overturned or narrowed are listed last.
+
+| Area | Searched | Read (key results) | Still open |
+|---|---|---|---|
+| 1 Narrowband, codec, band-limited copies ([page](concepts/narrowband-and-codec-training.md)) | mixed-bandwidth and multi-rate ASR, codec augmentation, telephony Whisper and wav2vec, speaker-verification codec work, forward citations of Mantena 2019 | Zhuang 2017: Bluetooth narrowband, Dutch/Portuguese/Thai/Turkish, band-limited wideband stand-in 25.7 to 42.8 WER vs real narrowband 24.0 to 38.4, cross-bandwidth initialization 17.4 to 29.8 with 20 h; Seltzer 2007; Sukhadia 2023 (channel indicator 13.2 to 12.6); Hsu 2021 (resample and pool); Borodin 2026 (30% codec, speaker verification) | ablation on a pretrained recognizer: codec share, clean wideband cost, versus SpecAugment |
+| 2 Condition input vs augmentation alone ([page](concepts/condition-input-vs-augmentation.md)) | noise-aware follow-ups, environment, SNR, device embeddings, auxiliary targets, domain-adversarial, device tokens, Whisper and audio-LLM prompts | Lin 2026 (noise-floor channel: 81.2 to 83.5, mismatched 72.3 to 78.1), Prasad 2021 (augmentation vs plus noise-type target vs adversary), Serdyuk 2016, Amazon multi-device RNN-T (one-hot -4 to +4%, experts up to 10%), Weninger 2021 (9%) | pretrained encoders; estimated rather than given flags; Whisper/audio-LLM prompting (searched twice, nothing) |
+| 3 Non-stationary, handheld ([page](concepts/nonstationary-and-augmentation.md)) | CHiME 3 to 8, DiPCo, VOiCES, AMI, DNS, wearables, in-car, transient noise, route changes, VoIP | FFASR (moving talker +1.3 to +2.7 points), CHiME-3 (stationarity and microphone failure analysis), Vincent 2017 (mismatch barely matters with several environments), DHAuDS | event-noise ASR benchmark, moving handheld microphone, route switch: searched widely, found nothing |
+| 4 How often paths are band-limited | Bluetooth HFP/CVSD/mSBC/LC3, VoIP, field studies, crowdsourced device statistics | Apple: "a small fraction" of usage is 8 kHz Bluetooth (no number) | no quantified share found (VoLTE news item not retrievable); not searched: telecom operator reports behind paywalls |
+| 5 Transcript-guided, inverse ([page](concepts/carried-state-and-adaptation.md)) | Saon 2013, MLLR/fMLLR originals, analysis-by-synthesis, TTS rescoring, cycle consistency | Gales 1997 (unknown microphone 9.00 to 7.15 to 7.99); READ (TTS likelihood reranks Whisper hypotheses, up to 20% relative) | Saon 2013 unretrieved; label filtering with a TTS score; speech-LM scoring |
+| 6 Session state, large pretrained | Whisper previous context, long-form, speaker-adapted Whisper, continual TTA, cross-utterance | Fresh Starts (carry-over 15 to 21% relative at onsets), Cui 2023 (3.1 to 4.3%), Whisper-CD (previous text +190 pp), DM-SUTA, E-BATS | unsupervised Whisper test-time speaker adaptation with carried state |
+
+**Overturned or narrowed.** (1) "No ASR paper on band-limited or codec copies":
+Zhuang 2017 and the speaker-verification codec recipe exist; the ablation for
+pretrained recognizers is what remains. (2) "No paper with an augmentation-only
+arm against augmentation plus an explicit condition": Lin 2026, Prasad 2021,
+Serdyuk 2016 and the Amazon multi-device study have such arms, none on a
+pretrained encoder. (3) "No benchmark with moving talkers; CHiME-3 and FFASR not
+fetched": both read; moving talker costs 1 to 3 points in simulation. (4) "No
+text-to-speech likelihood score": READ. (5) "No evidence on Whisper-class or
+open transducer session state; cross-utterance papers unfetched": Fresh Starts
+and Cui 2023 read; Whisper previous-text context hurts. (6) "MLLR, fMLLR originals
+not fetched": Gales's report read. Not overturned: no quantified share of
+band-limited phone paths; no event-noise or route-switch benchmark; Saon 2013.
 
 ## Retrieval and coverage
 
@@ -293,3 +331,46 @@ Codec-ASR (arXiv 2407.03495), CTC-score transcription-quality annotation,
 speech-translation filtering with model likelihoods (arXiv 2402.01945), and
 Bluetooth HFP specification pages. Statements about these come from search
 summaries only and are not grounded here.
+
+### Third pass (searched through 2026-11-21)
+
+Queries by area (web search, then OpenAlex forward citations from Seltzer 2013,
+Mantena 2019, Lin 2024, Gomez-Alanis 2022; van Dalen 2025 had no citers yet):
+(1) mixed-bandwidth and multi-rate ASR, codec augmentation for ASR and speaker
+verification, Whisper or wav2vec telephony; (2) noise-aware, environment,
+SNR and device embeddings, auxiliary noise targets, domain-adversarial,
+device tokens, Whisper and audio-LLM condition prompts; (3) CHiME 3 to 8, DiPCo,
+VOiCES, DNS, wearable and egocentric sets, transient noise, moving sources;
+(4) Bluetooth HFP prevalence, VoIP and mobile field statistics, crowd corpora;
+(5) Saon 2013, MLLR/fMLLR, analysis-by-synthesis and TTS rescoring; (6) Whisper
+previous context, speaker-adapted Whisper, continual TTA, cross-utterance.
+Two successive rounds on area 4 and on Whisper condition prompting added
+nothing new, so those were stopped. Read: Seltzer 2007, Sukhadia 2023, Hsu
+2021, Borodin 2026, Zhuang 2017, Lin 2026, Prasad 2021, Serdyuk 2016, Amazon
+multi-device (Mitra et al.), Weninger 2021, Saini 2026 (FFASR), Barker 2017
+(CHiME-3), Vincent 2017, Shao 2025 (DHAuDS), Gales 1997, Li 2026 (READ),
+Chattopadhyay 2026, Wang 2025 (DM-SUTA), Dong 2025 (E-BATS), Ahn 2026
+(Whisper-CD), Cui 2023.
+
+Unretrieved or unread leads, with what attests them: Saon et al. 2013 (IBM page,
+DOI, citing papers); Shinohara 2016 adversarial multitask learning, Hsu et al.
+NIESR (arXiv 1907.03233), Meng 2019 attentive adversarial learning (arXiv
+1904.12400), Lin et al. 2021 noise-domain labels (search results);
+"Identifying and Calibrating Overconfidence in Noisy Speech Recognition" (ASRU
+2025, OpenAlex citer of Seltzer 2013); "Failure localisation in code-mixed
+spoken intent recognition under lossy voice coding and packet erasure" (2026
+journal, OpenAlex citer); Noisy Disentanglement with Tri-stage Training (arXiv
+2509.01087); the Amazon patent family on conditioning an E2E recognizer on a
+key-phrase sound embedding (USPTO, not a paper); CHiME-8 MMCSG glasses task
+and system papers (arXiv 2410.05986, 2502.09859) and CHiME-6, DiPCo, VOiCES
+results; Hugging Face far-field leaderboard; SUTA-LM, ZO-ASR (ASRU 2025),
+"Rethinking Entropy Minimization in TTA for Autoregressive Models" (Interspeech
+2026); arXiv 2508.10456, 2409.08797 (cross-utterance); Whisper per-speaker LoRA
+studies (dysarthric, search summaries); Baskar et al. 2019 and Makishima et al.
+2022 (ASR-TTS cycle training); CTC-score transcription quality annotation;
+speech-translation filtering (arXiv 2402.01945); a Fierce Network item on
+VoLTE share of calls (HTTP 403); an ODYSSEY 2026 codec source-tracing paper
+and a codec augmentation paper for audio watermarking (arXiv 2409.13382), both
+not ASR; HiFiTTS-2 and an unified mixed-bandwidth speaker embedding (arXiv
+2012.00486), OpenAlex citers of Mantena 2019. Statements about these come from
+search summaries or citation metadata and are not grounded here.
