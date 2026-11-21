@@ -243,3 +243,114 @@ papers:
     fetched: '2026-11-21'
     short: condition-side-information
     concept_page: concepts/condition-side-information.md
+  # --- carried state, top-down adaptation, non-stationary conditions, augmentation (2026-11-21, second extension) ---
+  - key: lin2024-dsuta
+    title: Continual Test-time Adaptation for End-to-end Speech Recognition on Noisy Speech
+    authors: [Guan-Ting Lin, Wei-Ping Huang, Hung-yi Lee]
+    venue: arXiv
+    year: 2024
+    arxiv: 2406.11064v2
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: fang2026-asr-tra
+    title: Boosting ASR Robustness via Test-Time Reinforcement Learning with Audio-Text Semantic Rewards
+    authors: [Linghan Fang, Tianxin Xie, Li Liu]
+    venue: arXiv
+    year: 2026
+    arxiv: 2603.05231v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: gomezalanis2022-contextual-utterance
+    title: Contextual-Utterance Training for Automatic Speech Recognition
+    authors: [Alejandro Gomez-Alanis, Lukas Drude, Andreas Schwarz, Rupak Vignesh Swaminathan, Simon Wiesler]
+    venue: arXiv
+    year: 2022
+    arxiv: 2210.16238v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: wagner2022-speaker-adaptation-noisy
+    title: Speaker Adaptation for End-To-End Speech Recognition Systems in Noisy Environments
+    authors: [Dominik Wagner, Ilja Baumann, Sebastian P. Bayerl, Korbinian Riedhammer, Tobias Bocklet]
+    venue: arXiv
+    year: 2022
+    arxiv: 2211.08774v3
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: shah2024-speech-robust-bench
+    title: 'Speech Robust Bench: A Robustness Benchmark For Speech Recognition'
+    authors: [Muhammad A. Shah, David Solans Noguero, Mikko A. Heikkila, Bhiksha Raj, Nicolas Kourtellis]
+    venue: arXiv
+    year: 2024
+    arxiv: 2403.07937v3
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: nonstationary-and-augmentation
+    concept_page: concepts/nonstationary-and-augmentation.md
+  - key: tuttosi2025-berst
+    title: 'BERSting at the Screams: A Benchmark for Distanced, Emotional and Shouted Speech Recognition'
+    authors: [Paige Tuttösí, Mantaj Dhillon, Luna Sang, Shane Eastwood, Poorvi Bhatia, Quang Minh Dinh, Avni Kapoor, Yewon Jin, Angelica Lim]
+    venue: arXiv
+    year: 2025
+    arxiv: 2505.00059v2
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: nonstationary-and-augmentation
+    concept_page: concepts/nonstationary-and-augmentation.md
+  - key: liu2025-acoustic-aware-augmentation
+    title: Towards Pretraining Robust ASR Foundation Model with Acoustic-Aware Data Augmentation
+    authors: [Dancheng Liu, Amir Nassereldine, Chenhui Xu, Jinjun Xiong]
+    venue: arXiv
+    year: 2025
+    arxiv: 2505.20606v1
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: nonstationary-and-augmentation
+    concept_page: concepts/nonstationary-and-augmentation.md
+  - key: seltzer2013-noise-aware-training
+    title: An Investigation of Deep Neural Networks for Noise Robust Speech Recognition
+    authors: [Michael L. Seltzer, Dong Yu, Yongqiang Wang]
+    venue: ICASSP
+    year: 2013
+    url: https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/0007398.pdf
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: condition-side-information
+    concept_page: concepts/condition-side-information.md
+  - key: deng2023-confidence-speaker-adaptation
+    title: Confidence Score Based Speaker Adaptation of Conformer Speech Recognition Systems
+    authors: [Jiajun Deng, Xurong Xie, Tianzi Wang, Mingyu Cui, Boyang Xue, Zengrui Jin, Guinan Li, Shujie Hu, Xunying Liu]
+    venue: arXiv
+    year: 2023
+    arxiv: '2302.07521'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md
+  - key: vandalen2025-entropy-speaker-codes
+    title: Robust Unsupervised Adaptation of a Speech Recogniser Using Entropy Minimisation and Speaker Codes
+    authors: [Rogier C. van Dalen, Shucong Zhang, Titouan Parcollet, Sourav Bhattacharya]
+    venue: arXiv
+    year: 2025
+    arxiv: '2506.10653'
+    verified: true
+    grounded: true
+    fetched: '2026-11-21'
+    short: carried-state-and-adaptation
+    concept_page: concepts/carried-state-and-adaptation.md

@@ -93,3 +93,30 @@ low-resource test of any of them appears.
   search, so these are not yet capstone candidates.
 - Not searched deeply: missing-feature and uncertainty decoding as applied to
   end-to-end models; speaking-rate normalization; codec restoration.
+
+# Carried state, transcript-driven fitting and augmentation (second pass)
+
+Grounded inputs: [survey section](survey.md#carried-state-top-down-fitting-changing-conditions-augmentation),
+ten further primary sources through 2026-11-21. Hypotheses, none run.
+
+## Provisional claims
+
+| Claim | Regime and evidence | Status | Cheapest discriminating check |
+|---|---|---|---|
+| Explicit running session or speaker state beats noise-augmented training alone | no paper compares them head to head; carried state helps on top of augmentation (speaker code 24.4 to 19.4% on simulated far-field, 100M Conformer) | untested as stated; the bet is plausible but unproven | train two small recognizers on identical data: augmentation only vs augmentation plus a learned session code fitted from the first N seconds, evaluated on whole sessions with a channel switch |
+| Carried state beats reset-per-utterance adaptation, and needs a shift detector | one CTC wav2vec 2.0 base study, synthetic noise streams | single-source | reproduce on the target language with real phone sessions; measure a naive carry vs reset vs detector |
+| Large pretrained encoders infer the condition themselves, so explicit vectors help them less | per-utterance vectors gave wav2vec 2.0 at most 6.3% and none at 9 and 0 dB; Whisper probe | indirect | oracle channel label injected into a fine-tuned encoder (also listed above) |
+| First-pass confidence is an unreliable guard for transcript-driven adaptation | SUTA worse than no adaptation on 3 of 8 noises (Whisper-Tiny); confidence selection needs a trained estimator for Conformers | two sources | compare raw confidence, a small trained estimator and multi-hypothesis loss on a held-out noisy set |
+| Steady-noise benchmarks hide event-noise and path-switch failures | SRB and BERSt measure steady or static conditions; no event benchmark found | search-limited | build a small test: concatenate clean and event-corrupted segments and a mid-recording codec switch; compare augmentation recipes |
+| Mixing band-limited and codec copies into training is safe for clean wideband if the share is moderate | only a hybrid-era mixed-bandwidth study (wideband unchanged) and non-ASR summaries | weak | train with 0, 10, 25, 50% band-limited/codec copies; measure clean wideband and narrowband WER |
+
+## Void map additions
+
+- Untried in located work, not believed impossible: explicit carried
+  session state compared head to head with augmentation on a
+  pretrained encoder; a benchmark of event noise and mid-recording path
+  switches; narrowband/codec augmentation share and clean-wideband cost for
+  modern recognizers; a text-to-audio likelihood as a label-quality score.
+  Falsification search: web queries on each returned only the adjacent
+  items listed in the survey's unretrieved leads; no forward-citation
+  search, so none is yet a capstone candidate.

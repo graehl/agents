@@ -4,7 +4,8 @@ Grounded, bounded field survey in two parts: the training question below
 (searched through 2026-11-05; four primary papers) and the inference-time
 question, [Does processing the input audio help a modern recognizer?](#inference-time-processing-of-the-input-audio)
 (searched through 2026-11-21; sixteen further primary papers fetched and
-read). Results are `single-source` unless stated otherwise; none was
+read, then ten more in a second pass on carried state, top-down fitting,
+changing conditions and augmentation). Results are `single-source` unless stated otherwise; none was
 independently reproduced here. The training part covers enhancement-induced
 distortion and train/test matching, not a comprehensive review of codecs,
 bandwidth extension or restoration.
@@ -165,6 +166,57 @@ WER is implausibly high, and the Thai study's WPE row does not say whether
 the recognizer saw processed training audio; those results are weaker than
 their statements.
 
+## Carried state, top-down fitting, changing conditions, augmentation
+
+Second inference-time pass (2026-11-21): four questions about the
+deployment, each with its concept page and a verdict.
+
+**Running analysis carried across utterances.** Supported in direction,
+not shown to beat noise augmentation. Every located modern case where
+information is carried helps (Conformer-transducer with previous
+utterances' audio: 2.9 to 6.3% streaming, up to 12.1% non-streaming; a
+1024-number speaker code fitted from one to ten minutes of unlabelled
+audio: 24.4 to 19.4% WER, 20% relative; continual test-time adaptation
+beats resetting for each utterance: CHiME-3 23.3 to 21.7, and 60.4 to 39.8
+on a stream whose conditions change), but each baseline either lacks
+history or already uses noise augmentation, so no paper tests the owner's
+bet "explicit running analysis instead of augmentation". On pretrained
+encoders the signal is weaker: per-utterance speaker vectors gave wav2vec
+2.0 at most 6.3% and nothing at 9 and 0 dB SNR. See
+[carried state](concepts/carried-state-and-adaptation.md).
+
+**Transcript top-down.** The lineage (MLLR, fMLLR, VTS) was not fetched. Modern
+forms read: confidence-selected speaker adaptation of a Conformer (9.5 to
+11.3% relative on Switchboard; needs speaker-adaptive training), multi-
+hypothesis entropy loss, continual adaptation with a reset detector,
+and an audio-text reward instead of confidence (SUTA worse than no
+adaptation on 3 of 8 noises on Whisper-Tiny). Raw confidence is a poor
+guard. Original noise-aware training was read (Seltzer 2013: 13.4 to
+13.1 on Aurora 4 for the noise estimate, a small gain; enhancement alone
+13.8). Saon 2013 (i-vectors) stays unretrieved; its headline (about 10%
+relative on Switchboard) is attested only by a second source (Wagner et al.
+cite it; IBM's abstract page, not read as a paper).
+
+**Non-stationary conditions on a handheld.** Benchmarks read measure steady
+noise at fixed levels (Speech Robust Bench) or static phone positions
+(BERSt: Whisper medium.en 24.9% near the body to 45.1% outside the room).
+No fetched benchmark has noise events with start and end, a continuously
+moving microphone, or a path switch inside a recording. See
+[non-stationary and augmentation](concepts/nonstationary-and-augmentation.md).
+
+**Narrowband and codec augmentation.** No ASR paper on band-limited or
+codec-simulated copies for a modern recognizer was located and read;
+nothing read gives the right mixing share, the cost on clean wideband
+input, or whether generic masking covers it. The hybrid-era mixed-bandwidth
+result and a Thai Whisper study (room-impulse augmentation beat test-side
+dereverberation) are the nearest. On how often phone or Bluetooth paths are
+band-limited, only developer documentation was found (CVSD 8 kHz fallback
+exists; wideband mSBC may not be negotiated), with no share.
+
+**Inverse direction (text to audio as an independent score).** No text-to-
+speech likelihood filter was located; the nearest read result scores
+candidates with CLAP, not a synthesis model.
+
 ## Retrieval and coverage
 
 Search anchors were Zorila's explicit train/test experiment, Plantinga's
@@ -202,8 +254,8 @@ Polok 2024, Goswami 2026, Keskin 2021, Jeffries 2024, Mantena 2019, Raj 2020,
 Gong 2023. Several results are in figures only (Liu, Jeffries) and are reported
 as such.
 
-Not fetched or not covered: Seltzer et al. 2013 (original noise-aware
-training), Saon et al. 2013 (i-vector adaptation), missing-feature recognition
+Not fetched or not covered after the first pass (Seltzer 2013 was fetched in the
+second pass, below): Saon et al. 2013 (i-vector adaptation), missing-feature recognition
 and uncertainty decoding (Cooke, Raj and Stern, Deng, Astudillo), channel- or
 environment-embedding work for end-to-end models, Whisper itself (Radford et
 al. 2022) and robust wav2vec 2.0 (Hsu et al. 2021), SGEM (arXiv 2306.01981) and
@@ -213,3 +265,31 @@ enhancement-with-adaptation follow-ups (arXiv 2501.02452, 2403.06387, FAT-HuBERT
 2505.12969), codec-artifact and speaking-rate studies for modern recognizers,
 and low-resource-language evidence beyond Tipaksorn. These are leads, not
 findings; search engine summaries of them are not grounded here.
+
+### Second inference-time pass (searched through 2026-11-21)
+
+Method: web searches per question (continual and test-time adaptation,
+cross-utterance context, speaker adaptation for end-to-end models, narrowband
+and codec augmentation, benchmarks for moving or event noise, Bluetooth audio
+paths, text-to-audio scoring, confidence-weighted adaptation), then fetch and
+read of 10 more papers: Seltzer 2013, Lin 2024 (DSUTA), Fang 2026 (ASR-TRA),
+Gomez-Alanis 2022, Wagner 2022, van Dalen 2025, Deng 2023, Shah 2024 (Speech
+Robust Bench), Tuttosi 2025 (BERSt), Liu 2025 (acoustic-aware augmentation).
+No forward-citation search was run.
+
+Unretrieved or unread leads: Saon et al. 2013 (i-vector adaptation; IBM
+page and DOI 10.1109/ASRU.2013.6707705 only), MLLR/fMLLR/VTS originals
+(Leggetter and Woodland; Gales; Moreno), IBM lattice-based MLLR (ASRU 2000),
+Jha et al. confidence-based MLLR, Cui et al. 2023 compact contextual
+representation (arXiv 2306.13307), cross-utterance contexts for
+Conformer-transducer (arXiv 2508.10456), Zipformer with discrete-token
+context (arXiv 2409.08797), DM-SUTA and DSS (EMNLP 2025 continual adaptation),
+AWMC (Lee et al. 2023), SGEM (arXiv 2306.01981), STAR pseudo-label quality
+(arXiv 2405.14161), FFASR far-field benchmark with moving talkers
+(arXiv 2609.38897), the Hugging Face far-field leaderboard, CHiME-3, a 2026
+Odyssey telephony-codec source-tracing paper (not ASR), Opus-and-ASR
+speech-enhancement paper (arXiv 2309.14521), Whisper-with-bandwidth work,
+Codec-ASR (arXiv 2407.03495), CTC-score transcription-quality annotation,
+speech-translation filtering with model likelihoods (arXiv 2402.01945), and
+Bluetooth HFP specification pages. Statements about these come from search
+summaries only and are not grounded here.
