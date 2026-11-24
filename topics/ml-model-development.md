@@ -92,7 +92,9 @@ misleads a reader comparing runs across sessions.
   "LoRA r64 fine-tune" or "fine-tune, first 8 layers frozen", never a
   bare "fine-tune", for such a run. When the adapted module set differs
   between compared arms (attention only against attention and MLP), add
-  it to the tag (`r64-attn`); otherwise the recipe records it.
+  it to the tag (`r64-attn`); otherwise the recipe records it. Tags
+  compose: `r64-attn·frz10` is rank 64 on attention only, with no
+  adapter on the first 10 layers.
 - **The tag survives shortening.** When a label must shrink to fit a
   table or legend, drop something else. A table that mixes scopes may
   move the tag into its own "Trained" column; a footnote or caption
