@@ -1,0 +1,103 @@
+# Metadata manifest for surveys/speech-translation-evaluation.
+#
+# One entry per paper the field map references. `verified: true` means the
+# citation was checked against a fetched source THIS repo can regenerate;
+# `verified: false` means it is pretrained-recall reconstruction and the
+# arxiv/venue/year/authors must be confirmed on a grounded pass. Do not cite
+# a verified:false entry as authoritative.
+#
+# Fields: key, title, authors, venue, year, arxiv/url, grounded (source
+# fetched?), verified (citation checked?), source (where a verified but
+# ungrounded citation was checked), fetched (date or null), short + concept_page
+# (once the paper earns a digest), cluster (survey.md section).
+#
+# Extracts are keyed by `key`, never by `short`: a short handle is assigned
+# later, and rekeying would orphan every extract a concept page cites.
+# Build and check them with `related-work fetch` / `related-work audit`.
+
+meta:
+  field_slug: speech-translation-evaluation
+  coverage_cutoff: 2026-11-24
+  grounding_mode: grounded
+
+papers:
+  - key: cettolo2026-sourceaware-st
+    title: "How to Evaluate Speech Translation with Source-Aware Neural MT Metrics"
+    authors: ["Mauro Cettolo", "Marco Gaido", "Matteo Negri", "Sara Papi", "Luisa Bentivogli"]
+    venue: "Computational Linguistics"
+    year: 2026
+    arxiv: "2511.03295"
+    doi: "10.1162/COLI.a.627"
+    grounded: true
+    verified: true
+    fetched: 2026-11-24
+    cluster: synthetic-source
+
+  - key: han2024-speechqe
+    title: "SpeechQE: Estimating the Quality of Direct Speech Translation"
+    authors: ["HyoJung Han", "Kevin Duh", "Marine Carpuat"]
+    venue: "EMNLP"
+    year: 2024
+    arxiv: "2410.21485"
+    doi: "10.18653/v1/2024.emnlp-main.1218"
+    grounded: true
+    verified: true
+    fetched: 2026-11-24
+    cluster: audio-source
+
+  - key: sperber2024-iwslt23eval
+    title: "Evaluating the IWSLT2023 Speech Translation Tasks: Human Annotations, Automatic Metrics, and Segmentation"
+    authors: ["Matthias Sperber", "Ondřej Bojar", "Barry Haddow", "Dávid Javorský", "Xutai Ma", "Matteo Negri", "Jan Niehues", "Peter Polák", "Elizabeth Salesky", "Katsuhito Sudoh", "Marco Turchi"]
+    venue: "LREC-COLING"
+    year: 2024
+    arxiv: "2406.03881"
+    grounded: true
+    verified: true
+    fetched: 2026-11-24
+    cluster: human-validation
+
+  - key: papi2025-hearing
+    title: "Hearing to Translate: The Effectiveness of Speech Modality Integration into LLMs"
+    authors: ["Sara Papi", "Javier Garcia Gilabert", "Zachary Hopton", "Vilém Zouhar", "Carlos Escolano", "Gerard I. Gállego", "Jorge Iranzo-Sánchez", "Ahrii Kim", "Dominik Macháček", "Patricia Schmidtova", "Maike Züfle"]
+    venue: "arXiv"
+    year: 2025
+    arxiv: "2512.16378"
+    grounded: true
+    verified: true
+    fetched: 2026-11-24
+    cluster: direct-vs-cascade
+
+  - key: post2025-alignment
+    title: "Effects of Automatic Alignment on Speech Translation Metrics"
+    authors: ["Matt Post", "Hieu Hoang"]
+    venue: "IWSLT"
+    year: 2025
+    url: "https://aclanthology.org/2025.iwslt-1.7.pdf"
+    doi: "10.18653/v1/2025.iwslt-1.7"
+    grounded: true
+    verified: true
+    fetched: 2026-11-24
+    cluster: resegmentation
+
+  - key: dale2024-blaser2
+    title: "BLASER 2.0: a Metric for Evaluation and Quality Estimation of Massively Multilingual Speech and Text Translation"
+    authors: ["David Dale", "Marta R. Costa-jussà"]
+    venue: "Findings of EMNLP"
+    year: 2024
+    url: "https://aclanthology.org/2024.findings-emnlp.943.pdf"
+    doi: "10.18653/v1/2024.findings-emnlp.943"
+    grounded: true
+    verified: true
+    fetched: 2026-11-24
+    cluster: audio-source
+
+  - key: matusov2005-mwersegmenter
+    title: "Evaluating Machine Translation Output with Automatic Sentence Segmentation"
+    authors: ["Evgeny Matusov", "Gregor Leusch", "Oliver Bender", "Hermann Ney"]
+    venue: "IWSLT"
+    year: 2005
+    url: "https://aclanthology.org/2005.iwslt-1.19.pdf"
+    grounded: true
+    verified: true
+    fetched: 2026-11-24
+    cluster: resegmentation
