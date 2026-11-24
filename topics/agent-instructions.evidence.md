@@ -6835,3 +6835,36 @@ Contributing-model: fable-5.2
   cleanup in a solo workdir sat outside its wording.
 
 Contributing-model: opus-5.5
+
+## 2026-11-24 — partial training must stay in the name
+
+- **Rule landed** — `topics/ml-model-development.md` § Partial training is
+  named and chosen explicitly, with the label half repeated in
+  `_RESEARCH/artifacts.md` (result-table rules) and a binding bullet in the
+  draft repository's `research/PROGRAM.md`.
+- **User directive (verbatim)** — "please write binding ~/agents and program
+  instructions that if trainings are low rank or frozen-initial layers they
+  should be referred to as such; make sure that skipping any layers in a
+  train is an explicit trainer-driver option that will be hard to miss.
+  noticed in other sessions that gemma4-E2B finetunes were only tuning the
+  last few layers and at lora rank 64. … i'm primarily concerned that table
+  labels tend to drop the rN or (first 8 frozen) etc description, which
+  misleads as i track multiple sessions".
+- **Failure the rule prevents** — a qualifier present at launch is dropped
+  when a label is shortened for a table, and a later reader, tracking
+  several sessions, takes the row for a full fine-tune.
+- **What was found in draft on the day** — the two Gemma 4 E2B tuners
+  (`research/single-gpu-rl/mt-gspo/tune_mt.py`,
+  `research/speech-recognition/mt/asr-e2b-pilot/tune.py`) hardcode a rank-64
+  attention-only adapter with no command-line option; neither sets a layer
+  range, so the last-few-layers restriction the user saw was not located in
+  that checkout. The speech trainers checked already freeze only through
+  named options.
+- **Tag wording** — the tag forms (`r64`, `r64·top8`, `frz8`, `top4`,
+  `enc-frz`, `head`) are the agent's suggestion, offered at the user's
+  request ("suggestion for language?"); revise them if he prefers others.
+- **Placement** — not in the boot: the existing boot routes (read
+  `ml-model-development.md` before training; `_RESEARCH/artifacts.md` before
+  a result table) already reach both halves.
+
+Contributing-model: fable-5.2

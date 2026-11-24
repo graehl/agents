@@ -298,6 +298,17 @@ table.
   **batch width** whenever more than one request/example was translated concurrently.
   Many methods are attempted speedups, so a result is incomplete unless a future reader can
   place it on the time/performance Pareto frontier.
+- **A partially trained model's label says so** (graehl, 2026-11-24).
+  When a row, column or legend entry names a model trained with a
+  low-rank adapter, frozen layers or only some layers, the label keeps
+  that scope: `r64`, `r64·top8` (last 8 layers), `frz8` (first 8 frozen),
+  `top4`, `enc-frz`, `head`. An untagged label asserts every weight was
+  trained. Shorten some other part of the label, or give the table a
+  "Trained" column; a footnote or caption alone is not enough. Check the
+  scope against the run's recipe or start-up log, not the label it was
+  handed down with. Full rule:
+  `topics/ml-model-development.md` § Partial training is named and
+  chosen explicitly.
 - **One typed column per quantity; caveats go in footnotes, never in the cell.**
   Carry units in headers. Bold, confidence intervals, declared significance
   markers, exception marks, and footnote references may annotate numbers.

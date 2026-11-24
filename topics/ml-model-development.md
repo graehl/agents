@@ -67,6 +67,52 @@ needs discovery, rather than copying recipes or accumulating every run here.
   and for its LR schedules and early-stopping rules on any extension,
   adaptation or distillation run.
 
+## Partial training is named and chosen explicitly
+
+Binding (graehl, 2026-11-24). **Partial training** is any run in which
+some of the starting model's weights cannot change freely: a low-rank or
+other adapter, frozen layers or modules, or head-only training. Results
+from it read as full fine-tunes once the qualifier is dropped, which
+misleads a reader comparing runs across sessions.
+
+- **Every name carries the scope tag.** The run tag, output directory,
+  table row or column label, plot legend, handoff line and prose
+  shorthand for a partially trained model all state its scope:
+
+  | Tag | Meaning |
+  |---|---|
+  | `r64` | rank-64 adapter on every layer |
+  | `r64·top8` | rank-64 adapter on the last 8 layers only |
+  | `frz8` | first 8 layers frozen, the rest trained in full |
+  | `top4` | only the last 4 layers trained |
+  | `enc-frz`, `dec-frz` | encoder or decoder frozen |
+  | `head` | only the output head trained |
+
+  A name with no tag asserts that every weight was trained. Write
+  "LoRA r64 fine-tune" or "fine-tune, first 8 layers frozen", never a
+  bare "fine-tune", for such a run. When the adapted module set differs
+  between compared arms (attention only against attention and MLP), add
+  it to the tag (`r64-attn`); otherwise the recipe records it.
+- **The tag survives shortening.** When a label must shrink to fit a
+  table or legend, drop something else. A table that mixes scopes may
+  move the tag into its own "Trained" column; a footnote or caption
+  alone does not satisfy this.
+- **A restriction is a driver option, never a silent default.** A
+  trainer driver trains every weight unless an explicitly named option
+  on its command line says otherwise (`--lora-rank`, `--train-top-layers`,
+  `--freeze-encoder-through`); an adapter-only driver takes its rank and
+  layer range as options a caller can see. No library default, config
+  file or hardcoded constant may narrow the trained set unannounced.
+- **The driver announces what it trains.** At start it prints one line,
+  and writes the same facts into the run's recipe or metadata: trained
+  and total parameter counts, the layers trained out of how many, and
+  the adapter rank and modules. A resumed adapter inherits its scope and
+  still prints it. Read that line before naming a run; a restriction
+  found there that the name lacks is a naming defect to fix, including
+  in tables already written.
+- **Existing drivers:** bring a driver that hardcodes a restriction to
+  this form before its next use for a reported result, or open a gap.
+
 ## In-flight batching for inference
 
 For a queue larger than the physical batch, consider in-flight batching
