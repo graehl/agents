@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read Jira Cloud issues from an agent session, and comment on them.
+"""Read, create and update Jira Cloud issues from an agent session.
 
 The credential is never passed on a command line. It comes from the
 environment when already exported, otherwise from sourcing the user's
@@ -7,9 +7,13 @@ environment when already exported, otherwise from sourcing the user's
 pipe. The file is never printed, and no verb echoes the token.
 
 This is the issue reader (and light query) counterpart to `confluence`;
-both share the same Atlassian credential. `comment` is the only mutating
-verb: it adds one comment written in Jira wiki markup (`||h||` header
-rows, `|c|` cells, `*bold*`) and never edits or deletes existing ones.
+both share the same Atlassian credential. The mutating verbs are narrow:
+`comment` adds one comment written in Jira wiki markup (`||h||` header
+rows, `|c|` cells, `*bold*`) and never edits or deletes existing ones;
+`create` files one issue from a Markdown description; `update` sets an
+issue's story points or sprint; `transition` moves it to a named status.
+Nothing here deletes. Field ids, boards and sprints are looked up by name
+on each call, so no site's ids are baked in.
 """
 
 from __future__ import annotations
@@ -221,6 +225,120 @@ def _adf_text(node, out: list[str] | None = None) -> str:
     return "".join(out) if out_local else ""
 
 
+_INLINE = re.compile(
+    r"`(?P<code>[^`]+)`"
+    r"|\*\*(?P<strong>.+?)\*\*"
+    r"|\[(?P<label>[^\]]+)\]\((?P<href>[^)\s]+)\)"
+    r"|(?<![\w*])\*(?P<em>[^*\s](?:[^*]*[^*\s])?)\*(?!\w)"
+)
+_HEADING = re.compile(r"(?P<marks>#{1,6})\s+(?P<text>.+)")
+_ITEM = re.compile(r"(?:(?P<bullet>[-*+])|(?P<number>\d+)[.)])\s+(?P<text>.+)")
+_FENCE = "```"
+
+
+def _adf_inline(text: str) -> list[dict]:
+    """Text nodes for one run of Markdown: code, bold, emphasis and links."""
+    nodes: list[dict] = []
+
+    def add(piece: str, mark: dict | None = None) -> None:
+        if piece:
+            node = {"type": "text", "text": piece}
+            if mark:
+                node["marks"] = [mark]
+            nodes.append(node)
+
+    at = 0
+    for match in _INLINE.finditer(text):
+        add(text[at : match.start()])
+        if match["code"] is not None:
+            add(match["code"], {"type": "code"})
+        elif match["strong"] is not None:
+            add(match["strong"], {"type": "strong"})
+        elif match["label"] is not None:
+            add(match["label"], {"type": "link", "attrs": {"href": match["href"]}})
+        else:
+            add(match["em"], {"type": "em"})
+        at = match.end()
+    add(text[at:])
+    return nodes
+
+
+def _adf_block(kind: str, text: str, **attrs) -> dict:
+    node = {"type": kind, "content": _adf_inline(text)}
+    if attrs:
+        node["attrs"] = attrs
+    return node
+
+
+def markdown_to_adf(markdown: str) -> dict:
+    """An Atlassian Document Format document from plain Markdown.
+
+    Handles what a ticket description uses: paragraphs, `#` headings, fenced
+    code, bullet and numbered lists, and the inline marks of `_adf_inline`.
+    A nested list flattens into its parent, and marks do not nest; anything
+    else (tables, images, quotes) stays literal paragraph text.
+    """
+    blocks: list[dict] = []
+    paragraph: list[str] = []
+    items: list[str] = []
+    list_kind = ""
+
+    def close() -> None:
+        nonlocal list_kind
+        if paragraph:
+            blocks.append(_adf_block("paragraph", " ".join(paragraph)))
+            paragraph.clear()
+        if items:
+            rows = [
+                {"type": "listItem", "content": [_adf_block("paragraph", item)]}
+                for item in items
+            ]
+            blocks.append({"type": list_kind, "content": rows})
+            items.clear()
+        list_kind = ""
+
+    lines = markdown.splitlines()
+    at = 0
+    while at < len(lines):
+        line = lines[at]
+        text = line.strip()
+        at += 1
+        if text.startswith(_FENCE):
+            close()
+            code: list[str] = []
+            while at < len(lines) and not lines[at].strip().startswith(_FENCE):
+                code.append(lines[at])
+                at += 1
+            at += 1  # the closing fence, or one past the end when it is missing
+            block: dict = {"type": "codeBlock"}
+            if text[len(_FENCE) :].strip():
+                block["attrs"] = {"language": text[len(_FENCE) :].strip()}
+            if code:
+                block["content"] = [{"type": "text", "text": "\n".join(code)}]
+            blocks.append(block)
+        elif not text:
+            if paragraph:  # a blank line inside a list leaves the list open
+                close()
+        elif heading := _HEADING.fullmatch(text):
+            close()
+            level = len(heading["marks"])
+            blocks.append(_adf_block("heading", heading["text"], level=level))
+        elif item := _ITEM.fullmatch(text):
+            kind = "bulletList" if item["bullet"] else "orderedList"
+            if paragraph or (items and kind != list_kind and not line[:1].isspace()):
+                close()
+            list_kind = list_kind or kind
+            items.append(item["text"])
+        elif items and line[:1].isspace():
+            items[-1] += " " + text  # wrapped continuation of the last item
+        else:
+            if items:
+                close()
+            paragraph.append(text)
+    close()
+    return {"type": "doc", "version": 1, "content": blocks}
+
+
 def _comment_rows(issue: dict) -> list[dict]:
     comments = (((issue.get("fields") or {}).get("comment")) or {}).get("comments", [])
     return [
@@ -342,9 +460,210 @@ def cmd_comment(args) -> dict:
     return result
 
 
+def _field_id(args, name: str) -> str:
+    """The id of the one field with this display name, e.g. `Story Points`."""
+    found = [
+        f["id"] for f in _request(args, "GET", "/rest/api/3/field") if f["name"] == name
+    ]
+    if len(found) != 1:
+        acli.die(
+            f"expected one field named {name!r}, found {len(found)}",
+            acli.ExitCode.NOT_FOUND,
+            detail={"ids": found},
+        )
+    return found[0]
+
+
+def _sprints(args, project: str) -> list[dict]:
+    """Active and future sprints on the project's scrum boards, active first."""
+    boards = _request(
+        args, "GET", f"/rest/agile/1.0/board?projectKeyOrId={project}&type=scrum"
+    )
+    seen: dict[int, dict] = {}
+    for board in boards.get("values", []):
+        page = _request(
+            args,
+            "GET",
+            f"/rest/agile/1.0/board/{board['id']}/sprint?state=active,future",
+        )
+        for sprint in page.get("values", []):
+            seen.setdefault(
+                sprint["id"],
+                {
+                    "id": sprint["id"],
+                    "name": sprint["name"],
+                    "state": sprint["state"],
+                    "start": sprint.get("startDate"),
+                    "end": sprint.get("endDate"),
+                    "board": board["name"],
+                },
+            )
+    return sorted(seen.values(), key=lambda s: (s["state"] != "active", s["name"]))
+
+
+def _sprint(args, project: str, want: str) -> dict:
+    """The sprint `want` names: `active` for the only active one, else a name."""
+    sprints = _sprints(args, project)
+    if want == "active":
+        found = [s for s in sprints if s["state"] == "active"]
+    else:
+        found = [s for s in sprints if s["name"].casefold() == want.casefold()]
+    if len(found) != 1:
+        acli.die(
+            f"--sprint {want}: {len(found)} matching sprints in {project}; "
+            "name one of the sprints listed",
+            acli.ExitCode.NOT_FOUND,
+            detail={"sprints": [f"{s['name']} ({s['state']})" for s in sprints]},
+        )
+    return found[0]
+
+
+def _transition(args, issue: str, want: str) -> str:
+    """Move `issue` to the status `want` names; returns the resulting status.
+
+    `want` matches a reachable status first, then a transition's own name,
+    ignoring case. An issue already in that status is left alone. Only a
+    single workflow step is taken: an unreachable status is refused with the
+    reachable ones listed.
+    """
+    fields = _request(args, "GET", f"/rest/api/3/issue/{issue}?fields=status")
+    current = _field_name((fields.get("fields") or {}).get("status"))
+    if current.casefold() == want.casefold():
+        return current
+    listed = _request(args, "GET", f"/rest/api/3/issue/{issue}/transitions")
+    steps = listed.get("transitions", [])
+    for label in (lambda t: t["to"]["name"], lambda t: t["name"]):
+        for step in steps:
+            if label(step).casefold() == want.casefold():
+                _request(
+                    args,
+                    "POST",
+                    f"/rest/api/3/issue/{issue}/transitions",
+                    {"transition": {"id": step["id"]}},
+                )
+                return step["to"]["name"]
+    acli.die(
+        f"{issue} is {current!r}; no single step reaches status {want!r}",
+        acli.ExitCode.NOT_FOUND,
+        detail={"reachable": [t["to"]["name"] for t in steps]},
+    )
+
+
+def _planning_fields(args, project: str, result: dict) -> dict:
+    """The `--points` and `--sprint` options as issue fields; notes them in `result`."""
+    fields: dict = {}
+    if args.points is not None:
+        fields[_field_id(args, args.points_field)] = args.points
+        result["points"] = args.points
+    if args.sprint:
+        sprint = _sprint(args, project, args.sprint)
+        fields[_field_id(args, "Sprint")] = sprint["id"]
+        result["sprint"] = sprint["name"]
+    return fields
+
+
+def cmd_sprints(args) -> dict:
+    return {
+        "name": "sprints",
+        "columns": ["id", "name", "state", "start", "end", "board"],
+        "rows": _sprints(args, args.project),
+    }
+
+
+def cmd_create(args) -> dict:
+    result: dict = {"project": args.project, "type": args.type}
+    fields: dict = {
+        "project": {"key": args.project},
+        "issuetype": {"name": args.type},
+        "summary": args.summary,
+    }
+    if args.description_file:
+        markdown = (
+            sys.stdin.read()
+            if args.description_file == "-"
+            else Path(args.description_file).read_text(encoding="utf-8")
+        )
+        fields["description"] = markdown_to_adf(markdown)
+    if args.assignee == "me":
+        who = _request(args, "GET", "/rest/api/3/myself")
+        fields["assignee"] = {"accountId": who["accountId"]}
+        result["assignee"] = who.get("displayName")
+    fields.update(_planning_fields(args, args.project, result))
+    if args.dry_run:
+        return {**result, "dry_run": True, "status": args.status, "fields": fields}
+    created = _request(args, "POST", "/rest/api/3/issue", {"fields": fields})
+    key = created["key"]
+    result |= {"key": key, "url": f"{args.site}/browse/{key}"}
+    if args.status:
+        try:
+            result["status"] = _transition(args, key, args.status)
+        except SystemExit:
+            print(f"jira: created {key}, but --status failed", file=sys.stderr)
+            raise
+    return result
+
+
+def cmd_update(args) -> dict:
+    issue = _request(args, "GET", f"/rest/api/3/issue/{args.issue}?fields=project")
+    key = issue["key"]
+    result: dict = {"key": key, "url": f"{args.site}/browse/{key}"}
+    fields = _planning_fields(args, issue["fields"]["project"]["key"], result)
+    if not fields:
+        acli.die("update needs --points or --sprint", acli.ExitCode.USAGE)
+    if args.dry_run:
+        return {**result, "dry_run": True, "fields": fields}
+    _request(args, "PUT", f"/rest/api/3/issue/{key}", {"fields": fields})
+    return result
+
+
+def cmd_transition(args) -> dict:
+    status = _transition(args, args.issue, args.status)
+    return {"key": args.issue, "status": status}
+
+
 # --- wiring ---------------------------------------------------------------
 
-TABLE_VERBS = {"search"}
+TABLE_VERBS = {"search", "sprints"}
+_PROJECT_KEY = re.compile(r"[A-Za-z][A-Za-z0-9_]*")
+
+
+def project_key(value: str) -> str:
+    """A project key (AIP); it becomes a request query value."""
+    if not _PROJECT_KEY.fullmatch(value):
+        raise argparse.ArgumentTypeError(f"not a project key like AIP: {value!r}")
+    return value
+
+
+def story_points(value: str) -> float:
+    points = float(value)
+    if points <= 0:
+        raise argparse.ArgumentTypeError(f"story points must be positive: {value!r}")
+    return points
+
+
+def _add_planning_args(sub) -> None:
+    sub.add_argument(
+        "--points",
+        type=story_points,
+        help="Story points to set.",
+    )
+    sub.add_argument(
+        "--points-field",
+        default="Story Points",
+        metavar="NAME",
+        help="Display name of the field --points sets.",
+    )
+    sub.add_argument(
+        "--sprint",
+        metavar="NAME",
+        help="Sprint to place the issue in: a sprint name, or `active` for the "
+        "project's only active sprint (see the sprints verb).",
+    )
+    sub.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Resolve --points and --sprint and show the fields; change nothing.",
+    )
 
 
 def build_parser():
@@ -395,6 +714,43 @@ def build_parser():
         help="Read and size the body, post nothing.",
     )
 
+    sprints = subs.add_parser(
+        "sprints", help="List a project's active and future sprints."
+    )
+    sprints.add_argument("project", type=project_key, help="Project key like AIP.")
+
+    create = subs.add_parser(
+        "create", help="File one issue, assigned to you unless --assignee none."
+    )
+    create.add_argument("project", type=project_key, help="Project key like AIP.")
+    create.add_argument("--summary", required=True, help="The issue's title line.")
+    create.add_argument("--type", default="Story", help="Issue type name.")
+    create.add_argument(
+        "--description-file",
+        metavar="FILE",
+        help="Description in Markdown (headings, lists, fenced code, bold, "
+        "emphasis, inline code, links); - reads standard input.",
+    )
+    create.add_argument("--assignee", choices=("me", "none"), default="me")
+    create.add_argument(
+        "--status",
+        metavar="NAME",
+        help="Status to move the new issue to, e.g. 'In Progress'.",
+    )
+    _add_planning_args(create)
+
+    update = subs.add_parser("update", help="Set an issue's story points or sprint.")
+    update.add_argument("issue", type=issue_ref, help="Issue key like AIP-2747.")
+    _add_planning_args(update)
+
+    transition = subs.add_parser(
+        "transition", help="Move an issue one workflow step to a named status."
+    )
+    transition.add_argument("issue", type=issue_ref, help="Issue key like AIP-2747.")
+    transition.add_argument("status", help="Target status, e.g. 'QA Ready'.")
+
+    for sub in (sprints, create, update, transition):
+        acli.add_standard_args(sub, allow_toon=True)
     for sub in (get, search, comment, subs.choices["whoami"]):
         acli.add_standard_args(sub, allow_toon=True)
     acli.add_standard_args(parser, allow_toon=True)
