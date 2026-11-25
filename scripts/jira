@@ -6,7 +6,7 @@ environment when already exported, otherwise from sourcing the user's
 `~/keys.sh` in a throwaway shell and reading JIRA_API_TOKEN back over a
 pipe. The file is never printed, and no verb echoes the token.
 
-This is the issue reader (and light query) counterpart to `confluence`;
+This is the issue counterpart to `confluence`;
 both share the same Atlassian credential. The mutating verbs are narrow:
 `comment` adds one comment written in Jira wiki markup (`||h||` header
 rows, `|c|` cells, `*bold*`) and never edits or deletes existing ones;
@@ -52,7 +52,7 @@ EXIT_CODES = {
     0: "success",
     2: "usage error",
     3: "unusable response or body",
-    4: "issue or credential source not found",
+    4: "issue, field, sprint, status or credential source not found",
     69: "Jira unreachable or rejected the credential",
 }
 
@@ -227,7 +227,7 @@ def _adf_text(node, out: list[str] | None = None) -> str:
 
 _INLINE = re.compile(
     r"`(?P<code>[^`]+)`"
-    r"|\*\*(?P<strong>.+?)\*\*"
+    r"|(?<![\w*])\*\*(?P<strong>[^*\s](?:.*?[^*\s])?)\*\*(?![\w*])"
     r"|\[(?P<label>[^\]]+)\]\((?P<href>[^)\s]+)\)"
     r"|(?<![\w*])\*(?P<em>[^*\s](?:[^*]*[^*\s])?)\*(?!\w)"
 )
@@ -282,6 +282,7 @@ def markdown_to_adf(markdown: str) -> dict:
     paragraph: list[str] = []
     items: list[str] = []
     list_kind = ""
+    first_number = 1
 
     def close() -> None:
         nonlocal list_kind
@@ -293,7 +294,10 @@ def markdown_to_adf(markdown: str) -> dict:
                 {"type": "listItem", "content": [_adf_block("paragraph", item)]}
                 for item in items
             ]
-            blocks.append({"type": list_kind, "content": rows})
+            block = {"type": list_kind, "content": rows}
+            if list_kind == "orderedList" and first_number != 1:
+                block["attrs"] = {"order": first_number}
+            blocks.append(block)
             items.clear()
         list_kind = ""
 
@@ -303,7 +307,7 @@ def markdown_to_adf(markdown: str) -> dict:
         line = lines[at]
         text = line.strip()
         at += 1
-        if text.startswith(_FENCE):
+        if text.startswith(_FENCE) and "`" not in text[len(_FENCE) :]:
             close()
             code: list[str] = []
             while at < len(lines) and not lines[at].strip().startswith(_FENCE):
@@ -313,8 +317,8 @@ def markdown_to_adf(markdown: str) -> dict:
             block: dict = {"type": "codeBlock"}
             if text[len(_FENCE) :].strip():
                 block["attrs"] = {"language": text[len(_FENCE) :].strip()}
-            if code:
-                block["content"] = [{"type": "text", "text": "\n".join(code)}]
+            if body := "\n".join(code):
+                block["content"] = [{"type": "text", "text": body}]
             blocks.append(block)
         elif not text:
             if paragraph:  # a blank line inside a list leaves the list open
@@ -323,11 +327,14 @@ def markdown_to_adf(markdown: str) -> dict:
             close()
             level = len(heading["marks"])
             blocks.append(_adf_block("heading", heading["text"], level=level))
-        elif item := _ITEM.fullmatch(text):
+        elif (item := _ITEM.fullmatch(text)) and not (paragraph and item["number"]):
+            # A number cannot interrupt a paragraph: "in\n2024. Then" is prose.
             kind = "bulletList" if item["bullet"] else "orderedList"
             if paragraph or (items and kind != list_kind and not line[:1].isspace()):
                 close()
-            list_kind = list_kind or kind
+            if not items:
+                list_kind = kind
+                first_number = int(item["number"] or 1)
             items.append(item["text"])
         elif items and line[:1].isspace():
             items[-1] += " " + text  # wrapped continuation of the last item
@@ -598,18 +605,20 @@ def cmd_create(args) -> dict:
         try:
             result["status"] = _transition(args, key, args.status)
         except SystemExit:
-            print(f"jira: created {key}, but --status failed", file=sys.stderr)
-            raise
+            # The issue exists, so report it as created: a failing exit here
+            # invites a retry that files a duplicate. `_transition` has
+            # already written why, with the reachable statuses, to stderr.
+            result["status_not_set"] = args.status
     return result
 
 
 def cmd_update(args) -> dict:
+    if args.points is None and not args.sprint:
+        acli.die("update needs --points or --sprint", acli.ExitCode.USAGE)
     issue = _request(args, "GET", f"/rest/api/3/issue/{args.issue}?fields=project")
     key = issue["key"]
     result: dict = {"key": key, "url": f"{args.site}/browse/{key}"}
     fields = _planning_fields(args, issue["fields"]["project"]["key"], result)
-    if not fields:
-        acli.die("update needs --points or --sprint", acli.ExitCode.USAGE)
     if args.dry_run:
         return {**result, "dry_run": True, "fields": fields}
     _request(args, "PUT", f"/rest/api/3/issue/{key}", {"fields": fields})
@@ -636,7 +645,7 @@ def project_key(value: str) -> str:
 
 def story_points(value: str) -> float:
     points = float(value)
-    if points <= 0:
+    if not (0 < points < float("inf")):
         raise argparse.ArgumentTypeError(f"story points must be positive: {value!r}")
     return points
 
@@ -735,7 +744,9 @@ def build_parser():
     create.add_argument(
         "--status",
         metavar="NAME",
-        help="Status to move the new issue to, e.g. 'In Progress'.",
+        help="Status to move the new issue to, e.g. 'In Progress'. If one "
+        "workflow step cannot reach it, the issue is still created and the "
+        "result carries status_not_set.",
     )
     _add_planning_args(create)
 
@@ -749,9 +760,7 @@ def build_parser():
     transition.add_argument("issue", type=issue_ref, help="Issue key like AIP-2747.")
     transition.add_argument("status", help="Target status, e.g. 'QA Ready'.")
 
-    for sub in (sprints, create, update, transition):
-        acli.add_standard_args(sub, allow_toon=True)
-    for sub in (get, search, comment, subs.choices["whoami"]):
+    for sub in subs.choices.values():
         acli.add_standard_args(sub, allow_toon=True)
     acli.add_standard_args(parser, allow_toon=True)
     return parser

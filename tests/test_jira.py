@@ -43,6 +43,27 @@ def test_arithmetic_stars_stay_literal() -> None:
     assert paragraph["content"] == [{"type": "text", "text": "cost is 2 * n * m"}]
 
 
+def test_double_stars_in_arithmetic_and_globs_stay_literal() -> None:
+    for prose in ("cost is x ** 2 + y ** 2", "match **/*.py and **/*.md files"):
+        (paragraph,) = _blocks(prose)
+        assert paragraph["content"] == [{"type": "text", "text": prose}]
+
+
+def test_number_ending_a_wrapped_line_stays_prose() -> None:
+    (paragraph,) = _blocks("We shipped it in\n2024. Then we stopped.")
+    assert _text(paragraph) == "We shipped it in 2024. Then we stopped."
+
+
+def test_numbered_list_keeps_its_first_number() -> None:
+    (numbered,) = _blocks("3. c\n4. d")
+    assert numbered["attrs"] == {"order": 3}
+
+
+def test_inline_triple_backticks_do_not_open_a_fence() -> None:
+    first, second = _blocks("```x``` is inline\n\nstill prose")
+    assert first["type"] == second["type"] == "paragraph"
+
+
 def test_wrapped_lines_join_and_blank_lines_split_paragraphs() -> None:
     first, second = _blocks("one\ntwo\n\nthree")
     assert (_text(first), _text(second)) == ("one two", "three")
@@ -72,7 +93,7 @@ def test_no_empty_text_nodes() -> None:
         for child in node.get("content", []):
             walk(child)
 
-    walk(jira.markdown_to_adf("# h\n\n```\n```\n\n- `a`\n\n**b**\n"))
+    walk(jira.markdown_to_adf("# h\n\n```\n```\n\n```\n\n```\n\n- `a`\n\n**b**\n"))
 
 
 def main() -> int:
