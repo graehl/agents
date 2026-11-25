@@ -110,7 +110,9 @@ supersedes the blame gauge and recommend-only default of
 Discuss first instead of acting when the change would:
 
 - override a decision recorded as his (in a topic, plan, charter, ledger,
-  gap or code comment); or
+  gap or code comment). A parenthesized date beside a statement,
+  `(2026-11-21)`, records that he explicitly directed it that day; a
+  name before the date, `(William, 2026-11-11)`, names someone else; or
 - change what text, a document or a plan says or intends, beyond keeping
   it accurate to code that changed within its intent.
 

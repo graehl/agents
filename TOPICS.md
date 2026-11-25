@@ -131,6 +131,20 @@ consequential uncertainty rather than converting it into false certainty.
 glossary scope whose artifacts support such a program; a plain vocabulary
 scope does not gain a charter merely to make the sweep exhaustive.
 
+### Directive dates
+
+A parenthesized date beside a statement in a charter, topic, gap or plan,
+`(2026-11-21)`, records that the user explicitly directed that statement
+on that day. A name before the date, `(William, 2026-11-11)`, attributes
+it to someone else; no name means the user. Write the date only where a
+reader gains from knowing the directive was explicit: a rule, decision,
+authorization, budget or priority an agent might otherwise revise, the
+higher the stakes the more so. Omit it on description, on agent-derived
+text (mark that as agent-derived where it sits among directives), and
+where Git history is enough. Add no lead-in such as "as the user
+described it"; the date carries it. A qualifier may follow the date:
+`(2026-11-22; provisional)`.
+
 ### Self-rooted programs
 
 Only on an explicit user request to make a program self-rooted, place the
