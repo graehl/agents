@@ -400,6 +400,31 @@ def test_link_disables_opencode_discovery_links_covering_the_checkout() -> None:
         assert _run(repo, "link", "--check", home=home).returncode == 0
 
 
+def test_agy_boot_and_empty_supplements() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        root = Path(root)
+        repo = _repo(root)
+        (repo / "AGENTS.agy.md").write_text("")
+        (repo / "AGENTS.neon.md").write_text("")
+        assert _run(repo, "build").returncode == 0
+        agy = repo / "AGENTS.boot.agy.md"
+        assert agy.is_file()
+        agy_text = agy.read_text()
+        assert "AGENTS.agy.md" not in agy_text
+        assert "AGENTS.neon.md" not in agy_text
+        home = root / "home"
+        (home / ".gemini/config").mkdir(parents=True)
+        target = home / ".gemini/config/AGENTS.md"
+        target.symlink_to(repo / "AGENTS.boot.md")
+        assert _run(repo, "link", home=home).returncode == 0
+        assert target.resolve() == agy
+        (repo / "AGENTS.neon.md").write_text("Neon-specific rule.\n")
+        assert _run(repo, "build", "--check").returncode == 3
+        assert _run(repo, "build").returncode == 0
+        assert "Neon-specific rule." in agy.read_text()
+        assert "Neon-specific rule." in (repo / "AGENTS.boot.md").read_text()
+
+
 if __name__ == "__main__":
     tests = [
         value for name, value in sorted(globals().items()) if name.startswith("test_")

@@ -64,7 +64,7 @@ CONFIG = Path("~/.config/agents/build-boot.json")
 BEGIN = "<!-- BEGIN generated: activity routes (scripts/build-boot) -->"
 END = "<!-- END generated: activity routes -->"
 USER_HEADING = "# User policy (compiled from AGENTS.user.md)"
-HARNESSES = ("claude", "codex", "grok", "copilot")
+HARNESSES = ("claude", "codex", "grok", "copilot", "agy")
 OMIT_BEGIN = re.compile(r"<!-- omit:begin (?P<harnesses>[^>]*?) -->")
 OMIT_END = "<!-- omit:end -->"
 
@@ -88,6 +88,7 @@ _CLAUDE_MODEL = "the recorded model id contains `claude`"
 _OPUS = "the recorded model id contains `opus`"
 _SOL = "the recorded model id has a `sol` family segment"
 _ASTRA = "the recorded model id has an `astra` family segment (`gpt-6-astra`)"
+_NEON = "the recorded model id contains `neon`"
 _YA = "`AGENT_LAUNCHER=yepanywhere`"
 _COPILOT_API = (
     "`AGENT_LAUNCH_BACKEND=copilot-api`, or `YEP_COPILOT_API=1` while that "
@@ -97,6 +98,7 @@ _MODEL_FAMILIES = (
     Supplement("anthropic", "Model", _CLAUDE_MODEL),
     Supplement("sol", "Model", _SOL),
     Supplement("astra", "Model", _ASTRA),
+    Supplement("neon", "Model", _NEON),
     Supplement("opus", "Model", _OPUS, inline=False),
 )
 
@@ -122,6 +124,11 @@ PROFILES: dict[str | None, tuple[Supplement, ...]] = {
         Supplement("frontier", "Model"),
         *_MODEL_FAMILIES,
     ),
+    "agy": (
+        Supplement("agy", "Harness"),
+        Supplement("frontier", "Model"),
+        *_MODEL_FAMILIES,
+    ),
     None: (Supplement("ya", "Launcher", _YA), *_MODEL_FAMILIES),
 }
 ROUTED_HEADING = "# Supplements to read when they apply"
@@ -135,6 +142,8 @@ def target_harness(path: Path) -> str | None:
     for harness in HARNESSES:
         if f".{harness}" in path.parts:
             return harness
+    if ".gemini" in path.parts:
+        return "agy"
     return None
 
 
@@ -150,6 +159,10 @@ DEFAULT_TARGETS = (
     "~/.opencode/AGENTS.md",
     "~/.grok/AGENTS.md",
     "~/.copilot/copilot-instructions.md",
+    "~/.gemini/GEMINI.md",
+    "~/.gemini/AGENTS.md",
+    "~/.gemini/config/GEMINI.md",
+    "~/.gemini/config/AGENTS.md",
 )
 
 # OpenCode config-directory subtrees it globs for definitions at startup
@@ -607,11 +620,14 @@ def supplement_sections(repo: Path, harness: str | None) -> str:
         if not item.inline:
             routed.append(f"- {item.condition} → `~/agents/{source.name}`")
             continue
+        body = source.read_text().rstrip()
+        if not body.strip():
+            continue
         applies = f"Applies only when {item.condition}.\n\n" if item.condition else ""
         parts.append(
             f"\n# {item.scope} policy (compiled from {source.name})\n\n"
             + applies
-            + source.read_text().rstrip()
+            + body
             + "\n"
         )
     if routed:
