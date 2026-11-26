@@ -1,6 +1,6 @@
 # Vendored: modern-web-guidance (selected guides)
 
-Nine of upstream's 210 web-platform guides, copied in and pinned to an exact
+Nine of upstream's 209 web-platform guides, copied in and pinned to an exact
 upstream commit. Convention: `topics/vendoring.md`. When to read which guide,
 and the standing caveats for using them, are in
 `topics/web-platform-guidance.md`.
