@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Description formatting tests for scripts/jira; no network."""
+"""Tests for scripts/jira: description formatting, and the sprint, status and
+planning-field lookups with the request layer stubbed; no network."""
 
 from __future__ import annotations
 
+import argparse
 import importlib.machinery
 import importlib.util
 import traceback
@@ -94,6 +96,143 @@ def test_no_empty_text_nodes() -> None:
             walk(child)
 
     walk(jira.markdown_to_adf("# h\n\n```\n```\n\n```\n\n```\n\n- `a`\n\n**b**\n"))
+
+
+class FakeJira:
+    """Stands in for `jira._request`: answers GETs from `replies`, records writes.
+
+    A reply is a dict, or an int status; a status the caller lists in
+    `absent_on` reads as `None`, any other fails the test.
+    """
+
+    def __init__(self, replies: dict[str, dict | int]) -> None:
+        self.replies = replies
+        self.writes: list[tuple[str, str, dict | None]] = []
+
+    def __call__(self, args, method, path, payload=None, *, absent_on=()):
+        if method != "GET":
+            self.writes.append((method, path, payload))
+            return {}
+        reply = self.replies[path]
+        if isinstance(reply, int):
+            assert reply in absent_on, f"unexpected {reply} for {path}"
+            return None
+        return reply
+
+
+def _with_fake(replies: dict[str, dict | int]) -> FakeJira:
+    fake = FakeJira(replies)
+    jira._request = fake
+    return fake
+
+
+def _args(**overrides) -> argparse.Namespace:
+    values = {"points": None, "points_field": "Story Points", "sprint": None}
+    return argparse.Namespace(**(values | overrides))
+
+
+def _dies(call) -> int:
+    try:
+        call()
+    except SystemExit as stop:
+        return stop.code
+    raise AssertionError("expected acli.die")
+
+
+BOARDS = "/rest/agile/1.0/board?projectKeyOrId=P"
+SPRINTS = "/rest/agile/1.0/board/{}/sprint?state=active,future&startAt={}"
+
+
+def _sprint_site() -> dict[str, dict | int]:
+    return {
+        f"{BOARDS}&startAt=0": {
+            "isLast": False,
+            "values": [{"id": 1, "type": "scrum", "name": "Team"}],
+        },
+        f"{BOARDS}&startAt=1": {
+            "isLast": True,
+            "values": [
+                {"id": 2, "type": "kanban", "name": "Flow"},
+                {"id": 3, "type": "simple", "name": "No sprints"},
+            ],
+        },
+        SPRINTS.format(1, 0): {
+            "isLast": False,
+            "values": [{"id": 11, "name": "S2", "state": "future"}],
+        },
+        SPRINTS.format(1, 1): {
+            "isLast": True,
+            "values": [{"id": 10, "name": "S1", "state": "active"}],
+        },
+        SPRINTS.format(3, 0): 400,
+    }
+
+
+def test_sprints_page_boards_and_sprints_and_skip_sprintless_boards() -> None:
+    _with_fake(_sprint_site())
+    rows = jira._sprints(_args(), "P")
+    assert [(s["name"], s["state"], s["board"]) for s in rows] == [
+        ("S1", "active", "Team"),
+        ("S2", "future", "Team"),
+    ]
+
+
+def test_sprint_resolves_active_or_a_name_and_refuses_no_match() -> None:
+    _with_fake(_sprint_site())
+    assert jira._sprint(_args(), "P", "active")["id"] == 10
+    assert jira._sprint(_args(), "P", "s2")["id"] == 11
+    assert _dies(lambda: jira._sprint(_args(), "P", "S9")) == 4
+
+
+TRANSITIONS = {
+    "transitions": [
+        {"id": "21", "name": "Start", "to": {"name": "In Progress"}},
+        {"id": "31", "name": "In Progress", "to": {"name": "Blocked"}},
+    ]
+}
+
+
+def _status_site(status: str) -> dict[str, dict | int]:
+    return {
+        "/rest/api/3/issue/P-1?fields=status": {"fields": {"status": {"name": status}}},
+        "/rest/api/3/issue/P-1/transitions": TRANSITIONS,
+    }
+
+
+def test_transition_prefers_target_status_over_transition_name() -> None:
+    fake = _with_fake(_status_site("To Do"))
+    assert jira._transition(_args(), "P-1", "in progress") == "In Progress"
+    assert fake.writes == [
+        ("POST", "/rest/api/3/issue/P-1/transitions", {"transition": {"id": "21"}})
+    ]
+
+
+def test_transition_by_name_dry_run_and_already_there_write_nothing() -> None:
+    dry = _with_fake(_status_site("To Do"))
+    assert jira._transition(_args(), "P-1", "start", dry_run=True) == "In Progress"
+    there = _with_fake(_status_site("In Progress"))
+    assert jira._transition(_args(), "P-1", "IN PROGRESS") == "In Progress"
+    assert dry.writes == there.writes == []
+
+
+def test_transition_refuses_an_unreachable_status() -> None:
+    fake = _with_fake(_status_site("To Do"))
+    assert _dies(lambda: jira._transition(_args(), "P-1", "Done")) == 4
+    assert fake.writes == []
+
+
+def test_planning_fields_map_points_and_sprint_to_field_ids() -> None:
+    site = _sprint_site()
+    site["/rest/api/3/field"] = [
+        {"id": "customfield_1", "name": "Story Points"},
+        {"id": "customfield_2", "name": "Sprint"},
+    ]
+    _with_fake(site)
+    result: dict = {}
+    fields = jira._planning_fields(_args(points=3.0, sprint="active"), "P", result)
+    assert fields == {"customfield_1": 3.0, "customfield_2": 10}
+    assert result == {"points": 3.0, "sprint": "S1"}
+    assert jira._planning_fields(_args(), "P", {}) == {}
 
 
 def main() -> int:

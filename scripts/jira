@@ -9,7 +9,8 @@ pipe. The file is never printed, and no verb echoes the token.
 This is the issue counterpart to `confluence`;
 both share the same Atlassian credential. The mutating verbs are narrow:
 `comment` adds one comment written in Jira wiki markup (`||h||` header
-rows, `|c|` cells, `*bold*`) and never edits or deletes existing ones;
+rows, `|c|` cells, `*bold*`), or in Markdown with `--markdown`, and never
+edits or deletes existing ones;
 `create` files one issue from a Markdown description; `update` sets an
 issue's story points or sprint; `transition` moves it to a named status.
 Nothing here deletes. Field ids, boards and sprints are looked up by name
@@ -121,7 +122,15 @@ def _token() -> str:
 # --- transport ------------------------------------------------------------
 
 
-def _request(args, method: str, path: str, payload: dict | None = None) -> dict:
+def _request(
+    args,
+    method: str,
+    path: str,
+    payload: dict | None = None,
+    *,
+    absent_on: tuple[int, ...] = (),
+) -> dict | None:
+    """The JSON reply; `None` when the status is one of `absent_on`, else die."""
     site = args.site.rstrip("/")
     url = path if path.startswith("http") else f"{site}{path}"
     basic = b64encode(f"{args.email}:{_token()}".encode()).decode()
@@ -135,6 +144,8 @@ def _request(args, method: str, path: str, payload: dict | None = None) -> dict:
         with urllib.request.urlopen(request, timeout=args.timeout) as response:
             raw = response.read().decode("utf-8")
     except urllib.error.HTTPError as err:
+        if err.code in absent_on:
+            return None
         detail = err.read().decode("utf-8", "replace")[:600]
         code = {
             401: acli.ExitCode.UNAVAILABLE,
@@ -457,10 +468,11 @@ def cmd_comment(args) -> dict:
     if args.dry_run:
         result["dry_run"] = True
         return result
-    # API v2 takes the body as wiki markup; v3 would need an ADF tree.
-    posted = _request(
-        args, "POST", f"/rest/api/2/issue/{args.issue}/comment", {"body": body}
-    )
+    if args.markdown:  # API v3 takes the body as an ADF tree
+        path, payload = f"/rest/api/3/issue/{args.issue}/comment", markdown_to_adf(body)
+    else:  # API v2 takes it as wiki markup, which has tables the converter lacks
+        path, payload = f"/rest/api/2/issue/{args.issue}/comment", body
+    posted = _request(args, "POST", path, {"body": payload})
     comment_id = posted.get("id")
     result["id"] = comment_id
     result["url"] = f"{args.site}/browse/{args.issue}?focusedCommentId={comment_id}"
@@ -481,19 +493,42 @@ def _field_id(args, name: str) -> str:
     return found[0]
 
 
-def _sprints(args, project: str) -> list[dict]:
-    """Active and future sprints on the project's scrum boards, active first."""
-    boards = _request(
-        args, "GET", f"/rest/agile/1.0/board?projectKeyOrId={project}&type=scrum"
-    )
-    seen: dict[int, dict] = {}
-    for board in boards.get("values", []):
+def _agile_values(args, path: str, *, absent_on: tuple[int, ...] = ()) -> list[dict]:
+    """Every `values` row of a Jira Software listing, following `startAt` pages.
+
+    A status in `absent_on` reads as an empty listing.
+    """
+    rows: list[dict] = []
+    sep = "&" if "?" in path else "?"
+    while True:
         page = _request(
-            args,
-            "GET",
-            f"/rest/agile/1.0/board/{board['id']}/sprint?state=active,future",
+            args, "GET", f"{path}{sep}startAt={len(rows)}", absent_on=absent_on
         )
-        for sprint in page.get("values", []):
+        if page is None:
+            return rows
+        values = page.get("values", [])
+        rows.extend(values)
+        if page.get("isLast", True) or not values:
+            return rows
+
+
+def _sprints(args, project: str) -> list[dict]:
+    """Active and future sprints on the project's boards, active first.
+
+    Kanban boards never hold sprints and are skipped. A team-managed (`simple`)
+    board answers 400 when its sprints feature is off, which reads as none.
+    """
+    boards = _agile_values(args, f"/rest/agile/1.0/board?projectKeyOrId={project}")
+    seen: dict[int, dict] = {}
+    for board in boards:
+        if board.get("type") == "kanban":
+            continue
+        sprints = _agile_values(
+            args,
+            f"/rest/agile/1.0/board/{board['id']}/sprint?state=active,future",
+            absent_on=(400,),
+        )
+        for sprint in sprints:
             seen.setdefault(
                 sprint["id"],
                 {
@@ -525,13 +560,13 @@ def _sprint(args, project: str, want: str) -> dict:
     return found[0]
 
 
-def _transition(args, issue: str, want: str) -> str:
+def _transition(args, issue: str, want: str, *, dry_run: bool = False) -> str:
     """Move `issue` to the status `want` names; returns the resulting status.
 
     `want` matches a reachable status first, then a transition's own name,
     ignoring case. An issue already in that status is left alone. Only a
     single workflow step is taken: an unreachable status is refused with the
-    reachable ones listed.
+    reachable ones listed. A dry run resolves the step and does not take it.
     """
     fields = _request(args, "GET", f"/rest/api/3/issue/{issue}?fields=status")
     current = _field_name((fields.get("fields") or {}).get("status"))
@@ -542,6 +577,8 @@ def _transition(args, issue: str, want: str) -> str:
     for label in (lambda t: t["to"]["name"], lambda t: t["name"]):
         for step in steps:
             if label(step).casefold() == want.casefold():
+                if dry_run:
+                    return step["to"]["name"]
                 _request(
                     args,
                     "POST",
@@ -626,8 +663,11 @@ def cmd_update(args) -> dict:
 
 
 def cmd_transition(args) -> dict:
-    status = _transition(args, args.issue, args.status)
-    return {"key": args.issue, "status": status}
+    status = _transition(args, args.issue, args.status, dry_run=args.dry_run)
+    result = {"key": args.issue, "status": status}
+    if args.dry_run:
+        result["dry_run"] = True
+    return result
 
 
 # --- wiring ---------------------------------------------------------------
@@ -715,7 +755,14 @@ def build_parser():
         "--body-file",
         required=True,
         metavar="FILE",
-        help="Comment in Jira wiki markup; - reads standard input.",
+        help="Comment in Jira wiki markup, or Markdown with --markdown; "
+        "- reads standard input.",
+    )
+    comment.add_argument(
+        "--markdown",
+        action="store_true",
+        help="Read the body as Markdown, as create's description is; tables "
+        "stay literal text, so use wiki markup for them.",
     )
     comment.add_argument(
         "--dry-run",
@@ -759,6 +806,11 @@ def build_parser():
     )
     transition.add_argument("issue", type=issue_ref, help="Issue key like AIP-2747.")
     transition.add_argument("status", help="Target status, e.g. 'QA Ready'.")
+    transition.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Resolve the workflow step and report its status; move nothing.",
+    )
 
     for sub in subs.choices.values():
         acli.add_standard_args(sub, allow_toon=True)
