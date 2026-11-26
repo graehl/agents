@@ -55,6 +55,26 @@ These rules come from the draft repository's speech-recognition program
   conservative leg.
 - **Fresh or fragile parameters keep a longer warm-up:** a new head, a new
   language, or an unconverged student takes large early gradients.
+- **Prefer Schedule-Free AdamW or WSD over multi-segment cosine legs.**
+  Repeated cosine legs regress at each restart and underperform a single
+  horizon. When training with **fp32 master weights** (standard mixed
+  precision: fp32 parameters + bf16 autocast, as in HF `Trainer(bf16=True)`),
+  default to `AdamWScheduleFree` (Defazio et al., 2024;
+  `optim="schedule_free_adamw"` in HF Transformers) for anytime evaluation and
+  seamless multi-segment continuation with carried optimizer state, or
+  Warmup-Stable-Decay (WSD) when an explicit cooldown branch is preferred.
+  - **fp32 master weights are mandatory for `AdamWScheduleFree`.** Under pure
+    `bfloat16` parameter storage, in-place `lerp_` and the `1 - 1/beta1`
+    eval/train inversion suffer severe 7-bit mantissa rounding drift and stall
+    or diverge; fall back to `AdamW` + WSD when weights are stored in pure
+    `bfloat16`.
+  - **Call `optimizer.eval()` before both evaluation and checkpoint saving**,
+    and `optimizer.train()` before stepping (HF `Trainer` does this
+    automatically; custom PyTorch loops must do it explicitly).
+  - **BatchNorm caveat:** models with BatchNorm layers (e.g. CNN/Conformer
+    conv modules) need a short forward pass in `model.train(); optimizer.eval()`
+    to refresh BN running stats at $x$ before eval, or should use WSD instead.
+    LayerNorm/RMSNorm Transformers need nothing extra.
 
 ### Early stopping during adaptation
 
@@ -90,3 +110,41 @@ repository, `research/speech-recognition/multilingual/add-language.md`):
 
 The 10–50% range and the fade-in come from graehl (2026-10-15); the
 20%-replay and faded-in runs that test them are pending.
+
+Schedule-Free AdamW vs. multi-segment cosine legs (`Qwen/Qwen2.5-0.5B` full
+fine-tune on Albanian `cust-voanews`, 600 steps, matched data stream and
+seed, 2026-11-26):
+
+- **fp32 master weights + bf16 autocast** (13.57 GB peak VRAM all arms):
+  single-leg oracle cosine (`5e-5`) reached `1.2979` dev NLL; 3×200-step
+  cosine legs (`cos-3legs-fresh`) regressed at restarts and finished at
+  `1.3533` (+0.0554); WSD (`5e-5`, 10% cooldown) reached `1.3142`;
+  `AdamWScheduleFree` (`5e-5`) beat oracle cosine at early/mid checkpoints
+  (`1.4888` vs `1.5358` at step 200) and tied it at step 600 (`1.2983`,
+  −0.0550 vs 3-leg cosine).
+- **Pure `bfloat16` weights** (no fp32 master weights, 9.48 GB VRAM):
+  `AdamWScheduleFree` stalled at `2.1028` (`5e-5`) and drifted upward after
+  step 400 at `1.5e-4` (`1.5398 → 1.6473`), while `AdamW` + WSD reached
+  `1.3353`.
+
+Tiny-state, Muon, and Blackwell FP8 evaluation (`Qwen/Qwen2.5-0.5B`, 300
+steps, fp32 master + bf16 autocast, same Albanian `cust-voanews` stream,
+2026-11-26):
+
+- **Native `torch.optim.Muon` (`1e-3`, 2D hidden matrices) + `AdamW` (`5e-5`,
+  1D/embed/head)** beat `AdamW` at every checkpoint (`1.4118` vs `1.4258` at
+  step 300) while cutting optimizer state by 36% (`2.40 GB` vs `3.77 GB`,
+  peak VRAM `12.24 GB` vs `13.57 GB`).
+- **Tiny-state (VRAM-limited) winner: `Adafactor`** (`scale_parameter=False,
+  relative_step=False`): `3.0 MB` optimizer state (99.9% smaller than AdamW),
+  `9.89 GB` peak VRAM, fastest wall time (`57.4s` vs `75.2s` AdamW and
+  `165.4s` `AdamW8bit`), and `1.4475` NLL (matching `AdamW8bit`'s `1.4492`).
+- **Not promoted for fine-tuning:** `ScheduleFree+`
+  (`AdamCScheduleFreePlusPaper`: `9.42 GB` opt state, `2.2795` NLL — Polyak
+  step size tuned for long from-scratch pretraining), `AMUSE` (`1.4779`,
+  `5.13 GB` opt state), and `SF-NorMuon` (`1.5126`, `5.13 GB` opt state).
+- **Blackwell SM 12.0 FP8 (`torch._scaled_mm`):** raw FP8 kernels are
+  `1.94×–2.37×` faster than BF16 for 0.5B–12B MLP shapes (`1.07×` for 115M
+  FastConformer FFN), but eager PyTorch quantization overhead makes it
+  `0.39×–0.88×` slower end-to-end; requires fused kernels (`torchao` +
+  `torch.compile` or `transformer_engine` / `DeepGEMM`).
