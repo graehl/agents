@@ -82,10 +82,8 @@ confidence estimator, or a loss over many hypotheses).
 Reading: carried acoustic state helps in streaming transducers at inference
 time even without retraining (the nearest to "encoders with a rolling state or
 marked-boundary history"), while carrying Whisper's own text hurts in
-long-form audio. This overturns the earlier statement that the transducer
-cross-utterance papers were unfetched and that no Whisper-class session
-evidence was read; there is still no read paper that adapts Whisper
-unsupervised at test time with carried speaker state (search summaries
+long-form audio. No read paper adapts Whisper unsupervised at test time
+with carried speaker state (search summaries
 list per-speaker Whisper LoRA studies on dysarthric speech, supervised; not
 read). The cross-utterance papers not fetched: arXiv 2508.10456, 2409.08797.
 Test-time adaptation follow-ups not fetched: DSS, AWMC, SGEM, SUTA-LM, ZO-ASR.

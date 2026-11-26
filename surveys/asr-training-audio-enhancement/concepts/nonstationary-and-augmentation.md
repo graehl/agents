@@ -22,9 +22,7 @@ has its own page: [narrowband-and-codec-training](narrowband-and-codec-training.
 | [Vincent 2017](../related-work/readings/vincent2017-mismatches.md) | CHiME-3 environment, microphone and simulation mismatches | training on several environments and different microphones "barely affects" ASR; only the number of microphones matters; most methods behave alike on real and simulated data | end-to-end models |
 | [DHAuDS](../related-work/readings/shao2025-dhauds.md) | audio-classification benchmark with dynamic severity and heterogeneous noise | tabulates that ASR TTA studies use fixed levels (SUTA, SGEM 10 dB, DSUTA 5 dB) | ASR |
 
-This page replaces earlier statements that no benchmark with moving talkers
-and no handheld mobile-device benchmark was located; FFASR and CHiME-3 were
-fetched and read. Still not found after wider search: a benchmark whose
+Not found after wider search: a benchmark whose
 variable is noise as events with a start and end for ASR, a continuously moving handheld
 microphone, or a mid-recording switch between the phone microphone and a
 Bluetooth path. Search queries covered CHiME-3 to 8, DiPCo, VOiCES, AMI, DNS

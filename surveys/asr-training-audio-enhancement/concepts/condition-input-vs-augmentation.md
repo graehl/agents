@@ -11,10 +11,6 @@ Seltzer 2013, Raj 2020 and Wagner 2022 on the
 [carried-state](carried-state-and-adaptation.md) pages. Notes in
 [readings](../related-work/readings/).
 
-This page replaces the earlier statement that no paper had an arm with
-augmentation only and an arm with augmentation plus explicit condition
-input or target.
-
 ## Head-to-head arms found
 
 | Paper | Model, condition | Augmentation-only arm | Plus explicit condition | Result |

@@ -10,9 +10,6 @@ Mantena et al. 2019 ([HTML](https://arxiv.org/html/1909.02667v1)), Hsu et al.
 ([HTML](https://arxiv.org/html/2609.37014)). Notes in
 [readings](../related-work/readings/).
 
-This page replaces the earlier statement that no paper on band-limited or
-codec-simulated training copies had been found.
-
 ## What was found
 
 | Question | Source | Recognizer | Result |

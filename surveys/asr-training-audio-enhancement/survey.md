@@ -293,10 +293,11 @@ Gong 2023. Several results are in figures only (Liu, Jeffries) and are reported
 as such.
 
 Not fetched or not covered after the first pass (Seltzer 2013 was fetched in the
-second pass, below): Saon et al. 2013 (i-vector adaptation), missing-feature recognition
+second pass, below; items marked "third pass" were read then): Saon et al. 2013 (i-vector adaptation), missing-feature recognition
 and uncertainty decoding (Cooke, Raj and Stern, Deng, Astudillo), channel- or
-environment-embedding work for end-to-end models, Whisper itself (Radford et
-al. 2022) and robust wav2vec 2.0 (Hsu et al. 2021), SGEM (arXiv 2306.01981) and
+environment-embedding work for end-to-end models (third pass: Lin 2026,
+Serdyuk 2016, Mitra et al., Weninger 2021), Whisper itself (Radford et
+al. 2022) and robust wav2vec 2.0 (Hsu et al. 2021; third pass), SGEM (arXiv 2306.01981) and
 other test-time adaptation for Whisper-class models, Whisper-based
 enhancement-with-adaptation follow-ups (arXiv 2501.02452, 2403.06387, FAT-HuBERT
 2311.17790), WhisperX and VAD ablations beyond Baranski, Calm-Whisper (arXiv
@@ -315,16 +316,17 @@ Gomez-Alanis 2022, Wagner 2022, van Dalen 2025, Deng 2023, Shah 2024 (Speech
 Robust Bench), Tuttosi 2025 (BERSt), Liu 2025 (acoustic-aware augmentation).
 No forward-citation search was run.
 
-Unretrieved or unread leads: Saon et al. 2013 (i-vector adaptation; IBM
+Unretrieved or unread leads after this pass (items marked "third pass" were
+read then): Saon et al. 2013 (i-vector adaptation; IBM
 page and DOI 10.1109/ASRU.2013.6707705 only), MLLR/fMLLR/VTS originals
-(Leggetter and Woodland; Gales; Moreno), IBM lattice-based MLLR (ASRU 2000),
+(Leggetter and Woodland; Gales, third pass; Moreno), IBM lattice-based MLLR (ASRU 2000),
 Jha et al. confidence-based MLLR, Cui et al. 2023 compact contextual
-representation (arXiv 2306.13307), cross-utterance contexts for
+representation (arXiv 2306.13307; third pass), cross-utterance contexts for
 Conformer-transducer (arXiv 2508.10456), Zipformer with discrete-token
-context (arXiv 2409.08797), DM-SUTA and DSS (EMNLP 2025 continual adaptation),
+context (arXiv 2409.08797), DM-SUTA (third pass) and DSS (EMNLP 2025 continual adaptation),
 AWMC (Lee et al. 2023), SGEM (arXiv 2306.01981), STAR pseudo-label quality
 (arXiv 2405.14161), FFASR far-field benchmark with moving talkers
-(arXiv 2609.38897), the Hugging Face far-field leaderboard, CHiME-3, a 2026
+(arXiv 2609.38897; third pass), the Hugging Face far-field leaderboard, CHiME-3 (third pass), a 2026
 Odyssey telephony-codec source-tracing paper (not ASR), Opus-and-ASR
 speech-enhancement paper (arXiv 2309.14521), Whisper-with-bandwidth work,
 Codec-ASR (arXiv 2407.03495), CTC-score transcription-quality annotation,
