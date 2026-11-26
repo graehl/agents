@@ -127,7 +127,7 @@ PROFILES: dict[str | None, tuple[Supplement, ...]] = {
     "agy": (
         Supplement("agy", "Harness"),
         Supplement("frontier", "Model"),
-        *_MODEL_FAMILIES,
+        Supplement("neon", "Model", _NEON),
     ),
     None: (Supplement("ya", "Launcher", _YA), *_MODEL_FAMILIES),
 }

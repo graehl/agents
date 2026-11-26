@@ -27,9 +27,15 @@ HARNESSES = {
         (".copilot", "copilot-instructions.md"),
         (".agents", "skills"),
     ),
+    "agy": Harness(
+        "agy",
+        (".gemini", "config", "AGENTS.md"),
+        (".agents", "skills"),
+    ),
 }
 
 ALIASES = {
+    "antigravity": "agy",
     "claude-code": "claude",
     "copilot-cli": "copilot",
     "grok-build": "grok",

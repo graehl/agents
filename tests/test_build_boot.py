@@ -406,12 +406,14 @@ def test_agy_boot_and_empty_supplements() -> None:
         repo = _repo(root)
         (repo / "AGENTS.agy.md").write_text("")
         (repo / "AGENTS.neon.md").write_text("")
+        (repo / "AGENTS.anthropic.md").write_text("Anthropic-only rule.\n")
         assert _run(repo, "build").returncode == 0
         agy = repo / "AGENTS.boot.agy.md"
         assert agy.is_file()
         agy_text = agy.read_text()
         assert "AGENTS.agy.md" not in agy_text
         assert "AGENTS.neon.md" not in agy_text
+        assert "Anthropic-only rule." not in agy_text
         home = root / "home"
         (home / ".gemini/config").mkdir(parents=True)
         target = home / ".gemini/config/AGENTS.md"
