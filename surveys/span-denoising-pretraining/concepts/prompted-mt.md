@@ -79,7 +79,7 @@ does not include an encoder–decoder (`benchmark-reported`).
 
 LaMaTE turns Llama 3 8B into the source and prompt processor. A small
 bidirectional stack combines its representations and a separate shallow MT
-decoder cross-attends to them. Table 3 reports 82.32 COMET for the full
+decoder cross-attends to them. Table 4 reports 82.32 COMET for the full
 model, 82.02 without the bidirectional stack, and 81.66 when the decoder
 uses a prefix in place of cross-attention. The authors report 2.4–6.5×
 inference speedups and 75% less KV cache versus Llama 3 8B in their setup.
@@ -87,3 +87,4 @@ Its total size remains above 8B, and mT5-large beats it in the low and
 very-low resource bins of the multilingual comparison. This is evidence
 for reusing a large pretrained model on the source side with a cheaper
 autoregressive path (`single-source`). [ACL Findings 2025](https://aclanthology.org/2025.findings-acl.490/)
+· [Local extract](../related-work/extract/luo2025-lamate/html/2503.06594v2.md)

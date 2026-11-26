@@ -76,13 +76,15 @@ point, with no matched pretrained decoder-only comparison (`benchmark-reported`)
   published baseline in EDWARD's depth-aligned OPUS-16 table. Each study
   compares routing interventions within its own recipe (`benchmark-reported`).
   [TaskMoE](https://aclanthology.org/2021.findings-emnlp.304/) · [Lingual-SMoE](https://proceedings.iclr.cc/paper_files/paper/2024/hash/3b4e1336f775c3dba16ebbb8d2afd258-Abstract-Conference.html) · [THOR-MoE](https://aclanthology.org/2025.acl-long.1040/)
-- **kudugunta2023-madlad.** MADLAD-400 uses a target-language tag with an
-  encoder-heavy dense Transformer. Its released 3B configuration has 26
-  encoder and three decoder layers. SMaLL-100 tests a related 12:3 allocation
-  at 330M and reports +3.1 spBLEU and 2.5× inference speed over M2M100-418M
-  in its evaluation. These are design and system results. Speed depends on
-  batch, lengths and serving implementation (`single-source`).
+- **kudugunta2023-madlad.** MADLAD-400 prepends a `<2xx>` target-language
+  token to a dense, symmetric T5 encoder–decoder: the 3B and 10.7B models
+  each have 32 encoder and 32 decoder layers (paper §4.1; both released
+  configurations agree). It does not shrink the decoder. SMaLL-100 does,
+  with a 12:3 encoder–decoder allocation at 330M, and reports +3.1 spBLEU
+  and 2.5× inference speed over M2M100-418M in its evaluation. Speed
+  depends on batch, lengths and serving implementation (`single-source`).
   [MADLAD paper](https://arxiv.org/html/2309.04662) · [3B configuration](https://huggingface.co/google/madlad400-3b-mt/blob/main/config.json) · [SMaLL-100](https://arxiv.org/abs/2210.11621)
+  · [Local extract](../related-work/extract/kudugunta2023-madlad/html/2309.04662v1.md)
 
 ## Small systems win in both directions
 
@@ -94,6 +96,7 @@ point, with no matched pretrained decoder-only comparison (`benchmark-reported`)
   FLORES-200 chrF++ by 1.45 but ties on SSA-COMET. A focused data recipe can
   outweigh broader coverage and larger size (`benchmark-reported`).
   [Paper, Appendix E.2](https://arxiv.org/html/2608.18655v2)
+  · [Local extract](../related-work/extract/gritta2026-afrislm/html/2608.18655v2.md)
 - **LiLa at WMT26.** Fully fine-tuned NLLB 1.3B beats the strongest
   attempted Gemma 4 E4B LoRA in the system paper's English→Ladin FLORES+
   (55.24 vs 50.40 chrF++), English→Ligurian FLORES+ (57.40 vs 55.35) and

@@ -160,6 +160,8 @@ papers:
     year: 2026
     url: https://arxiv.org/html/2608.18655v2
     verified: true
+    grounded: true
+    fetched: 2026-11-26
     source: 'arXiv v2 metadata, 2026-11-20'
     cluster: multilingual-mt-systems
   - key: nguyen2026-edward
@@ -184,6 +186,8 @@ papers:
     year: 2023
     url: https://arxiv.org/html/2309.04662v1
     verified: true
+    grounded: true
+    fetched: 2026-11-26
     source: 'arXiv v1 and NeurIPS proceedings, 2026-11-20'
     cluster: multilingual-mt-systems
   - key: raunak2024-instruction-nmt
@@ -210,5 +214,7 @@ papers:
     url: https://arxiv.org/html/2503.06594v2
     doi: 10.18653/v1/2025.findings-acl.490
     verified: true
+    grounded: true
+    fetched: 2026-11-26
     source: 'arXiv v2 and ACL Anthology proceedings, 2026-11-20'
     cluster: prompted-mt
