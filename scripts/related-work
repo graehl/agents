@@ -710,6 +710,8 @@ class _MathPreprocessor(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         tag = tag.lower()
+        if self.svg_depth and tag in _HTML_VOID:
+            return  # a stray `</br>`: `_svg_child` never pushed its start
         if self.svg_depth:
             original_tag = self.svg_tags.pop()
             if original_tag.lower() != tag:
@@ -1348,6 +1350,8 @@ class _RichContentParser(HTMLParser):
         if not self.capture_tag:
             self.output.append(f"</{tag}>")
             return
+        if self.capture_tag == "svg" and tag in _HTML_VOID:
+            return  # a stray `</br>`: `_svg_child` never pushed its start
         original_tag = self.svg_tags.pop() if self.capture_tag == "svg" else tag
         self.capture.append(f"</{original_tag}>")
         if tag != self.capture_tag:
@@ -1454,7 +1458,7 @@ def _verify_visible_blocks(
             blocks = [fallback]
     if not blocks:
         if allow_textless:
-            return "visible-blocks-v2 blocks=0/0"
+            return f"{HTML_FIDELITY} blocks=0/0"
         raise HtmlDerivationError("source HTML has no auditable visible text block")
 
     target_words = _semantic_words(_delink_markdown(prose_markdown))

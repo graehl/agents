@@ -720,7 +720,7 @@ def test_html_derivation_accepts_latexml_svg_br_and_a_textless_table():
         source = directory / "paper.html"
         source.write_text(
             "<article><p>Text stays fully visible here.</p><svg><foreignObject>"
-            "<span>left<br>right</span></foreignObject></svg>"
+            "<span>left<br>right</br></span></foreignObject></svg>"
             '<table><tr><td><span class="ltx_rule"></span></td></tr></table>'
             "</article>"
         )

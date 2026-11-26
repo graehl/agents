@@ -238,6 +238,10 @@ def test_omit_markers_in_a_read_when_supplement_are_refused() -> None:
         )
         failed = _run(repo, "build")
         assert failed.returncode == 4 and "AGENTS.opus.md" in failed.stderr
+        (repo / "AGENTS.opus.md").write_text(
+            "Mention `<!-- omit:begin claude -->` inline; not a marker.\n"
+        )
+        assert _run(repo, "build").returncode == 0
 
 
 def test_boots_carry_their_profile_supplements_with_conditions() -> None:

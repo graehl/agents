@@ -570,7 +570,11 @@ def check_omit_markers(repo: Path, global_text: str, user_text: str) -> None:
             continue
         text = path.read_text()
         without_omitted(text, None, source=name)
-        if not inline and OMIT_BEGIN.search(text):
+        # A marker is a whole line, as `without_omitted` reads it; prose that
+        # mentions the syntax inline is not one.
+        if not inline and any(
+            OMIT_BEGIN.fullmatch(line.strip()) for line in text.splitlines()
+        ):
             raise BuildError(
                 f"{name}: omit markers in a read-when supplement are never "
                 "applied; sessions read it as written",
