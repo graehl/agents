@@ -712,6 +712,46 @@ def test_html_derivation_normalizes_candidate_links_before_scoring():
         _assert((directory / "paper.md").read_text() == linked)
 
 
+def test_html_derivation_accepts_latexml_svg_br_and_a_textless_table():
+    # LaTeXML leaves HTML `<br>` unclosed inside an SVG figure's
+    # foreignObject, and draws some rules as tables with no text.
+    with tempfile.TemporaryDirectory() as tmp:
+        directory = Path(tmp)
+        source = directory / "paper.html"
+        source.write_text(
+            "<article><p>Text stays fully visible here.</p><svg><foreignObject>"
+            "<span>left<br>right</span></foreignObject></svg>"
+            '<table><tr><td><span class="ltx_rule"></span></td></tr></table>'
+            "</article>"
+        )
+        original_have, original_run = rw.have, rw.subprocess.run
+        rw.have = lambda tool: tool == "uvx" or original_have(tool)
+        rw.subprocess.run = _passthrough_html2text
+        try:
+            result = rw.derive_saved_html(
+                directory, "https://example.test/paper", "key"
+            )
+        finally:
+            rw.have, rw.subprocess.run = original_have, original_run
+        _assert(result.fidelity.startswith(rw.HTML_FIDELITY), result)
+        (figure,) = (directory / "figures").glob("*.svg")
+        _assert("left<html:br />right" in figure.read_text(), figure.read_text())
+
+
+def test_svg_charrefs_xml_forbids_become_replacement_characters():
+    fixed = rw._INVALID_XML_CHARREF.sub(
+        rw._replacement_charref, b'<t a="&#xffff;&#0;&#65;&#x1F600;&#9;"/>'
+    )
+    _assert(fixed == b'<t a="&#xfffd;&#xfffd;&#65;&#x1F600;&#9;"/>', fixed)
+
+
+def test_delinking_keeps_bracketed_labels_and_image_alt_text():
+    delinked = rw._delink_markdown(
+        "by [Siddhant et al. [61]](https://x.test/#bib61) and ![plot](fig.svg)"
+    )
+    _assert(delinked == "by Siddhant et al. [61] and plot", delinked)
+
+
 def test_html_derivation_keeps_content_presentation_not_page_chrome():
     with tempfile.TemporaryDirectory() as tmp:
         directory = Path(tmp)

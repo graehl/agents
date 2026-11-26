@@ -370,6 +370,46 @@ class HtmlDerivation:
     fidelity: str
 
 
+# HTML elements that never take an end tag. LaTeXML puts HTML (`<br>` in a
+# label, say) inside an SVG figure's foreignObject, unclosed.
+_HTML_VOID = frozenset(
+    ("area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta")
+    + ("source", "track", "wbr")
+)
+
+
+def _svg_child(markup: str, svg_tags: list[str]) -> str:
+    """Track a start tag inside an SVG visual; returns it as SVG may carry it.
+
+    An HTML void element is closed in place (`<br/>`) and not pushed, so the
+    saved SVG stays well-formed XML and the next end tag still matches.
+    """
+    name = re.match(r"<\s*([^\s/>]+)", markup)[1]
+    if name.lower() in _HTML_VOID:
+        return markup if markup.endswith("/>") else markup[:-1].rstrip() + "/>"
+    svg_tags.append(name)
+    return markup
+
+
+_INVALID_XML_CHARREF = re.compile(rb"&#(?:x([0-9a-fA-F]+)|([0-9]+));")
+
+
+def _replacement_charref(match: re.Match[bytes]) -> bytes:
+    """A character reference XML 1.0 forbids becomes U+FFFD; others stay.
+
+    arXiv's SVG figures carry `data-text="&#xffff;"` on font glyphs, which
+    makes the whole figure unparseable although the attribute is cosmetic.
+    """
+    code = int(match[1], 16) if match[1] else int(match[2])
+    legal = (
+        code in (0x9, 0xA, 0xD)
+        or 0x20 <= code <= 0xD7FF
+        or 0xE000 <= code <= 0xFFFD
+        or 0x10000 <= code <= 0x10FFFF
+    )
+    return match[0] if legal else b"&#xfffd;"
+
+
 class _MathPreprocessor(HTMLParser):
     """Replace MathML with collision-free tokens and inventory rich content."""
 
@@ -619,10 +659,7 @@ class _MathPreprocessor(HTMLParser):
             if tag == "svg":
                 self.svg_depth += 1
                 self._record_presentation(tag, attributes)
-            self._append(self.get_starttag_text())
-            self.svg_tags.append(
-                re.match(r"<\s*([^\s/>]+)", self.get_starttag_text())[1]
-            )
+            self._append(_svg_child(self.get_starttag_text(), self.svg_tags))
             return
         if self.math_depth:
             self.math_depth += 1
@@ -816,8 +853,10 @@ def _semantic_words(text: str) -> tuple[str, ...]:
     return tuple(token.casefold() for token in _SEMANTIC_WORD.findall(text))
 
 
-_MARKDOWN_IMAGE = re.compile(r"!\[([^][]*)\]\([^()]*\)")
-_MARKDOWN_LINK = re.compile(r"\[([^][]*)\]\([^()]*\)")
+# A label may hold one level of brackets: `[Siddhant et al. [61]](#bib.bib61)`.
+_LINK_LABEL = r"((?:[^][]|\[[^][]*\])*)"
+_MARKDOWN_IMAGE = re.compile(rf"!\[{_LINK_LABEL}\]\([^()]*\)")
+_MARKDOWN_LINK = re.compile(rf"\[{_LINK_LABEL}\]\([^()]*\)")
 
 
 def _delink_markdown(markdown: str) -> str:
@@ -1055,6 +1094,7 @@ class _RichContentParser(HTMLParser):
                     f"> {BUDGET_BYTES}"
                 )
             repaired_style = False
+            content = _INVALID_XML_CHARREF.sub(_replacement_charref, content)
             try:
                 root = ET.fromstring(content)
             except ET.ParseError as exc:
@@ -1271,9 +1311,9 @@ class _RichContentParser(HTMLParser):
         markup = self.get_starttag_text()
         attrs = {name: value or "" for name, value in attributes}
         if self.capture_tag:
-            self.capture.append(markup)
             if self.capture_tag == "svg":
-                self.svg_tags.append(re.match(r"<\s*([^\s/>]+)", markup)[1])
+                markup = _svg_child(markup, self.svg_tags)
+            self.capture.append(markup)
             if tag == self.capture_tag:
                 self.capture_depth += 1
         elif tag in ("svg", "object") or (tag == "table" and self.protect_tables):
@@ -1355,7 +1395,9 @@ class _RichContentParser(HTMLParser):
                     )
             else:
                 replacement = _run_html2text(markup)
-                _verify_visible_blocks(markup, [], replacement, min_tokens=1)
+                _verify_visible_blocks(
+                    markup, [], replacement, min_tokens=1, allow_textless=True
+                )
                 for token, image in children.replacements:
                     if replacement.count(token) != 1:
                         raise HtmlDerivationError(
@@ -1389,7 +1431,13 @@ def _verify_visible_blocks(
     markdown: str,
     *,
     min_tokens: int = 4,
+    allow_textless: bool = False,
 ) -> str:
+    """Fail unless the Markdown keeps the source's visible text; report fidelity.
+
+    `allow_textless` accepts a fragment with no words at all, such as a
+    table holding only a drawn rule, which conversion cannot lose.
+    """
     prose_source = processed
     prose_markdown = markdown
     for placeholder, _tex, _block in replacements:
@@ -1405,6 +1453,8 @@ def _verify_visible_blocks(
         if fallback:
             blocks = [fallback]
     if not blocks:
+        if allow_textless:
+            return "visible-blocks-v2 blocks=0/0"
         raise HtmlDerivationError("source HTML has no auditable visible text block")
 
     target_words = _semantic_words(_delink_markdown(prose_markdown))
@@ -2072,13 +2122,13 @@ def fetch_paper(
 # --- audit ---
 
 
-_MARKDOWN_IMAGE = re.compile(r"!\[[^\]]*\]\(((?:\\.|[^)])+)\)")
+_MARKDOWN_IMAGE_TARGET = re.compile(r"!\[[^\]]*\]\(((?:\\.|[^)])+)\)")
 
 
 def _local_markdown_assets(markdown: Path, extract_root: Path) -> list[Path]:
     assets = []
     text = markdown.read_text(errors="replace")
-    targets = [match.group(1) for match in _MARKDOWN_IMAGE.finditer(text)]
+    targets = [match.group(1) for match in _MARKDOWN_IMAGE_TARGET.finditer(text)]
     raw_images = _HtmlImageSources()
     raw_images.feed(text)
     targets.extend(raw_images.sources)
