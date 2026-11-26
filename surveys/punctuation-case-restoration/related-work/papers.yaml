@@ -322,6 +322,8 @@ papers:
     url: 'https://www.isca-archive.org/interspeech_2020/caseiro20_interspeech.pdf'
     verified: true
     source: dblp and Crossref (DOI 10.21437/Interspeech.2020-2367)
-    grounded: false
-    fetched: null
+    grounded: true
+    fetched: 2026-11-14
+    concept_page: concepts/end-to-end-formatted-asr.md
+    reading: related-work/readings/caseiro2020-capitalization-masks.md
     cluster: end-to-end

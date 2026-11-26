@@ -200,6 +200,12 @@ Detail: [end-to-end formatted ASR](concepts/end-to-end-formatted-asr.md).
 - **It works at this size.** A 65M Zipformer transducer with a 500-token
   cased vocabulary reached punctuation error rate 29.74 / 28.18 and WER
   2.20 / 5.23 (You 2025).
+- **Case can be marker tokens instead of cased pieces.** A streaming
+  RNN-T over lower-case pieces plus 16 per-character capitalization-mask
+  tokens written after each word matched a cased vocabulary's WER (6.5
+  both) and slightly improved capitalization error, 13.4 → 13.1 (Caseiro
+  2020; English voice search, trained from scratch on 184M utterances, no
+  punctuation). `single-source`.
 - **Case is the easy half** for both routes: capitalisation F1 94.5–95.5,
   punctuation F1 84.75 against 87.40 (Meister 2023).
 - **Limits.** It needs speech with formatted transcripts; the sources use

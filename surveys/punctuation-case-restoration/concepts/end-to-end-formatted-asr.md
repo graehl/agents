@@ -30,6 +30,10 @@ from a local extract and cited as `tag:line`. No figure comes from recall.
   Person* — [HTML](https://arxiv.org/html/2305.14580) ·
   [PDF](https://arxiv.org/pdf/2305.14580) ·
   [extract](../related-work/extract/gris2023-whisper-punct/html/2305.14580.md)
+- `C` — Caseiro, Rondon, Le The, Aleksic (Google), Interspeech 2020, *Mixed
+  Case Contextual ASR Using Capitalization Masks* (read 2026-11-14) —
+  [PDF](https://www.isca-archive.org/interspeech_2020/caseiro20_interspeech.pdf) ·
+  [extract](../related-work/extract/caseiro2020-capitalization-masks/caseiro2020-capitalization-masks.md)
 
 Metric names (PER, WER C, WER PC, zero-WER F1) are defined in
 [evaluation-metrics.md](evaluation-metrics.md). The acoustic-versus-text
@@ -43,7 +47,7 @@ tokens, and it is trained on audio paired with cased, punctuated transcripts,
 so no second model runs after it. The alternative is a cascade: a words-only
 recogniser followed by a text model that inserts punctuation and case.
 
-All five sources are English or Portuguese. None is Vietnamese, none starts
+All six sources are English or Portuguese. None is Vietnamese, none starts
 from an all-uppercase recogniser, and none handles spelled-out numbers.
 
 ## Recipes
@@ -69,6 +73,16 @@ Notes on the recipes:
   reimplementation in a streaming CTC model made things worse (below).
 - **A token LM trained on cased punctuated text** is a cheap add-on for an
   already formatted recogniser; a web-text-only LM hurt punctuation (below).
+- **Case need not multiply the vocabulary.** Caseiro et al. keep 4,096
+  lower-case pieces plus 16 control tokens; a word is written in single
+  case, then an optional capitalization mask of one bit per character,
+  four bits per token, after it (`C:54-56`, `C:76-86`). A streaming RNN-T
+  (8 LSTM encoder layers) trained from scratch on 184M English utterances
+  scored WER 6.5 with masks and with a cased vocabulary, capitalization
+  error rate 13.1 against 13.4 (`C:64`, `C:72`, `C:115-117`). The mask
+  model writes about 44% more upper-case characters (`C:188`). No
+  punctuation, and nothing on converting an already trained single-case
+  model.
 
 ## Effect on plain WER
 
@@ -210,4 +224,5 @@ means period" and has no evidence for a period in the middle of a stream
 [you2025-formatted-e2e-distill](../related-work/readings/you2025-formatted-e2e-distill.md) ·
 [koluguri2024-punctuated-long-seq](../related-work/readings/koluguri2024-punctuated-long-seq.md) ·
 [gris2023-whisper-punct](../related-work/readings/gris2023-whisper-punct.md) ·
-[zhu2022-unipunc](../related-work/readings/zhu2022-unipunc.md)
+[zhu2022-unipunc](../related-work/readings/zhu2022-unipunc.md) ·
+[caseiro2020-capitalization-masks](../related-work/readings/caseiro2020-capitalization-masks.md)
