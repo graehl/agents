@@ -483,7 +483,9 @@ Any compiled source may withhold lines from named harness boots:
 on its line. Those harnesses' boots lose the block; every other boot, the
 shared boot, and `AGENTS.on-compact.md` keep its lines and lose only the
 markers, so a block may split a paragraph. An unknown harness name, a nested
-or unclosed block, or a stray end fails the build (exit 4). Use it for a rule
+or unclosed block, or a stray end fails the build (exit 4), naming the
+source file and its line; so does any marker in a read-when supplement,
+which sessions read uncompiled. Use it for a rule
 that one harness's population makes dead weight while others still need it;
 a rule only one harness needs belongs in that harness's supplement.
 

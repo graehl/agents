@@ -373,10 +373,11 @@ applies when; global policy only tells a session how to read those headings.
 The shared boot serves other harnesses with the same conditional supplements.
 
 A harness boot can also carry less than the shared source. Lines of
-`AGENTS.global.md`, `AGENTS.user.md`, or a supplement wrapped in
+`AGENTS.global.md`, `AGENTS.user.md`, or an inlined supplement wrapped in
 `<!-- omit:begin <harness> -->` … `<!-- omit:end -->` are left out of that
 harness's boot and kept everywhere else
-(`topics/helper-scripts.md` § build-boot). This is the home for a relaxation
+(`topics/helper-scripts.md` § build-boot). A read-when supplement is read
+as written, so the build refuses markers in one. This is the home for a relaxation
 that holds for one harness's models and tools: the text stops costing those
 sessions tokens, where a supplement could only add a paragraph cancelling
 text they had still loaded. The first use, 2026-11-14, exempts the Claude

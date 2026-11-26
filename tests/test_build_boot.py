@@ -221,10 +221,23 @@ def test_omit_block_leaves_only_the_named_harness_boot() -> None:
         for name in ("AGENTS.boot.codex.md", "AGENTS.boot.md"):
             text = (repo / name).read_text()
             assert "Peer rule.\nReread rule.\nAfter.\n" in text, name
-        user.write_text("<!-- omit:begin claud -->\nReread rule.\n<!-- omit:end -->\n")
+        user.write_text(
+            "x\n<!-- omit:begin claud -->\nReread rule.\n<!-- omit:end -->\n"
+        )
         failed = _run(repo, "build")
         assert failed.returncode == 4 and "unknown harness" in failed.stderr
+        assert "AGENTS.user.md:2:" in failed.stderr, failed.stderr
         assert "Peer rule." in (repo / "AGENTS.boot.claude.md").read_text()
+
+
+def test_omit_markers_in_a_read_when_supplement_are_refused() -> None:
+    with tempfile.TemporaryDirectory() as root:
+        repo = _repo(Path(root))
+        (repo / "AGENTS.opus.md").write_text(
+            "<!-- omit:begin claude -->\nx\n<!-- omit:end -->\n"
+        )
+        failed = _run(repo, "build")
+        assert failed.returncode == 4 and "AGENTS.opus.md" in failed.stderr
 
 
 def test_boots_carry_their_profile_supplements_with_conditions() -> None:
