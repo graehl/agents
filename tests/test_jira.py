@@ -7,6 +7,8 @@ from __future__ import annotations
 import argparse
 import importlib.machinery
 import importlib.util
+import io
+import sys
 import traceback
 from pathlib import Path
 
@@ -38,6 +40,33 @@ def test_inline_marks_become_marked_text() -> None:
     assert marked["it"] == {"type": "em"}
     assert marked["docs"] == {"type": "link", "attrs": {"href": "https://x.y/z"}}
     assert _text(paragraph) == "Use get for all of it, see docs."
+
+
+def test_two_bold_spans_on_one_line_stay_separate() -> None:
+    (paragraph,) = _blocks("**a** and **b**")
+    assert paragraph["content"] == [
+        {"type": "text", "text": "a", "marks": [{"type": "strong"}]},
+        {"type": "text", "text": " and "},
+        {"type": "text", "text": "b", "marks": [{"type": "strong"}]},
+    ]
+
+
+def test_a_list_starting_at_one_interrupts_a_paragraph() -> None:
+    intro, steps = _blocks("Steps:\n1. a\n2. b")
+    assert (intro["type"], steps["type"]) == ("paragraph", "orderedList")
+    assert len(steps["content"]) == 2
+
+
+def test_markdown_comment_dry_run_shows_the_converted_body() -> None:
+    args = argparse.Namespace(
+        issue="P-1", body_file="-", markdown=True, dry_run=True, site="https://s"
+    )
+    sys.stdin, saved = io.StringIO("**hi**\n"), sys.stdin
+    try:
+        result = jira.cmd_comment(args)
+    finally:
+        sys.stdin = saved
+    assert result["dry_run"] and result["body"]["type"] == "doc", result
 
 
 def test_arithmetic_stars_stay_literal() -> None:
@@ -120,6 +149,9 @@ class FakeJira:
         return reply
 
 
+_REAL_REQUEST = jira._request  # main() restores it after every test
+
+
 def _with_fake(replies: dict[str, dict | int]) -> FakeJira:
     fake = FakeJira(replies)
     jira._request = fake
@@ -175,6 +207,18 @@ def test_sprints_page_boards_and_sprints_and_skip_sprintless_boards() -> None:
         ("S1", "active", "Team"),
         ("S2", "future", "Team"),
     ]
+
+
+def test_a_scrum_board_400_is_an_error_not_an_empty_listing() -> None:
+    site = _sprint_site()
+    site[SPRINTS.format(1, 0)] = 400
+    _with_fake(site)
+    try:
+        jira._sprints(_args(), "P")
+    except AssertionError as refused:  # the stub refuses an unlisted status
+        assert "unexpected 400" in str(refused)
+    else:
+        raise AssertionError("a scrum board's 400 read as no sprints")
 
 
 def test_sprint_resolves_active_or_a_name_and_refuses_no_match() -> None:
@@ -250,6 +294,8 @@ def main() -> int:
             failed += 1
             print(f"FAIL  {name}")
             traceback.print_exc()
+        finally:
+            jira._request = _REAL_REQUEST
     print(f"\n{len(tests) - failed} passed, {failed} failed")
     return 1 if failed else 0
 

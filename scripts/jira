@@ -238,7 +238,7 @@ def _adf_text(node, out: list[str] | None = None) -> str:
 
 _INLINE = re.compile(
     r"`(?P<code>[^`]+)`"
-    r"|(?<![\w*])\*\*(?P<strong>[^*\s](?:.*?[^*\s])?)\*\*(?![\w*])"
+    r"|(?<![\w*])\*\*(?P<strong>[^*\s](?:.*?[^*\s])??)\*\*(?![\w*])"
     r"|\[(?P<label>[^\]]+)\]\((?P<href>[^)\s]+)\)"
     r"|(?<![\w*])\*(?P<em>[^*\s](?:[^*]*[^*\s])?)\*(?!\w)"
 )
@@ -338,8 +338,11 @@ def markdown_to_adf(markdown: str) -> dict:
             close()
             level = len(heading["marks"])
             blocks.append(_adf_block("heading", heading["text"], level=level))
-        elif (item := _ITEM.fullmatch(text)) and not (paragraph and item["number"]):
-            # A number cannot interrupt a paragraph: "in\n2024. Then" is prose.
+        elif (item := _ITEM.fullmatch(text)) and not (
+            paragraph and item["number"] not in (None, "1")
+        ):
+            # Only a list starting at 1 interrupts a paragraph (CommonMark):
+            # "Steps:\n1. a" is a list, "in\n2024. Then" is prose.
             kind = "bulletList" if item["bullet"] else "orderedList"
             if paragraph or (items and kind != list_kind and not line[:1].isspace()):
                 close()
@@ -465,13 +468,12 @@ def cmd_comment(args) -> dict:
     if not body.strip():
         acli.die("refusing to post an empty comment", acli.ExitCode.DATA)
     result = {"issue": args.issue, "chars": len(body)}
-    if args.dry_run:
-        result["dry_run"] = True
-        return result
     if args.markdown:  # API v3 takes the body as an ADF tree
         path, payload = f"/rest/api/3/issue/{args.issue}/comment", markdown_to_adf(body)
     else:  # API v2 takes it as wiki markup, which has tables the converter lacks
         path, payload = f"/rest/api/2/issue/{args.issue}/comment", body
+    if args.dry_run:
+        return {**result, "dry_run": True, "body": payload}
     posted = _request(args, "POST", path, {"body": payload})
     comment_id = posted.get("id")
     result["id"] = comment_id
@@ -496,13 +498,17 @@ def _field_id(args, name: str) -> str:
 def _agile_values(args, path: str, *, absent_on: tuple[int, ...] = ()) -> list[dict]:
     """Every `values` row of a Jira Software listing, following `startAt` pages.
 
-    A status in `absent_on` reads as an empty listing.
+    A status in `absent_on` on the first page reads as an empty listing; on a
+    later page it is an error, so a listing never silently truncates.
     """
     rows: list[dict] = []
     sep = "&" if "?" in path else "?"
     while True:
         page = _request(
-            args, "GET", f"{path}{sep}startAt={len(rows)}", absent_on=absent_on
+            args,
+            "GET",
+            f"{path}{sep}startAt={len(rows)}",
+            absent_on=() if rows else absent_on,
         )
         if page is None:
             return rows
@@ -526,7 +532,9 @@ def _sprints(args, project: str) -> list[dict]:
         sprints = _agile_values(
             args,
             f"/rest/agile/1.0/board/{board['id']}/sprint?state=active,future",
-            absent_on=(400,),
+            # Only a team-managed board may lack sprints; a 400 from a scrum
+            # board is a real failure and must not read as "no sprints".
+            absent_on=(400,) if board.get("type") == "simple" else (),
         )
         for sprint in sprints:
             seen.setdefault(
