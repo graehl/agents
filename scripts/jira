@@ -12,7 +12,8 @@ both share the same Atlassian credential. The mutating verbs are narrow:
 rows, `|c|` cells, `*bold*`), or in Markdown with `--markdown`, and never
 edits or deletes existing ones;
 `create` files one issue from a Markdown description; `update` sets an
-issue's story points or sprint; `transition` moves it to a named status.
+issue's story points or sprint; `transition` moves it to a named status;
+`review-ready` links a pushed Gerrit change and updates its AIP issue.
 Nothing here deletes. Field ids, boards and sprints are looked up by name
 on each call, so no site's ids are baked in.
 """
@@ -36,8 +37,10 @@ if str(AGENTS_ROOT) not in sys.path:
     sys.path.insert(0, str(AGENTS_ROOT))
 
 import acli
+from agentctl_coordination import file_lock
 
 KEYS_FILE = Path(os.environ.get("JIRA_KEYS_FILE", Path.home() / "keys.sh"))
+REVIEW_LOCK_DIR = Path.home() / ".cache" / "jira-review-ready"
 TOKEN_VARS = (
     "JIRA_API_TOKEN",
     "AGENT_JIRA_API_TOKEN",
@@ -568,6 +571,33 @@ def _sprint(args, project: str, want: str) -> dict:
     return found[0]
 
 
+def _issue_status(args, issue: str) -> str:
+    fields = _request(args, "GET", f"/rest/api/3/issue/{issue}?fields=status")
+    return _field_name((fields.get("fields") or {}).get("status"))
+
+
+def _transitions(args, issue: str) -> list[dict]:
+    listed = _request(args, "GET", f"/rest/api/3/issue/{issue}/transitions")
+    return listed.get("transitions", [])
+
+
+def _take_transition(args, issue: str, step: dict) -> str:
+    _request(
+        args,
+        "POST",
+        f"/rest/api/3/issue/{issue}/transitions",
+        {"transition": {"id": step["id"]}},
+    )
+    return step["to"]["name"]
+
+
+def _step_to(steps: list[dict], status: str) -> dict | None:
+    return next(
+        (step for step in steps if step["to"]["name"].casefold() == status.casefold()),
+        None,
+    )
+
+
 def _transition(args, issue: str, want: str, *, dry_run: bool = False) -> str:
     """Move `issue` to the status `want` names; returns the resulting status.
 
@@ -576,24 +606,15 @@ def _transition(args, issue: str, want: str, *, dry_run: bool = False) -> str:
     single workflow step is taken: an unreachable status is refused with the
     reachable ones listed. A dry run resolves the step and does not take it.
     """
-    fields = _request(args, "GET", f"/rest/api/3/issue/{issue}?fields=status")
-    current = _field_name((fields.get("fields") or {}).get("status"))
+    current = _issue_status(args, issue)
     if current.casefold() == want.casefold():
         return current
-    listed = _request(args, "GET", f"/rest/api/3/issue/{issue}/transitions")
-    steps = listed.get("transitions", [])
-    for label in (lambda t: t["to"]["name"], lambda t: t["name"]):
-        for step in steps:
-            if label(step).casefold() == want.casefold():
-                if dry_run:
-                    return step["to"]["name"]
-                _request(
-                    args,
-                    "POST",
-                    f"/rest/api/3/issue/{issue}/transitions",
-                    {"transition": {"id": step["id"]}},
-                )
-                return step["to"]["name"]
+    steps = _transitions(args, issue)
+    step = _step_to(steps, want) or next(
+        (step for step in steps if step["name"].casefold() == want.casefold()), None
+    )
+    if step is not None:
+        return step["to"]["name"] if dry_run else _take_transition(args, issue, step)
     acli.die(
         f"{issue} is {current!r}; no single step reaches status {want!r}",
         acli.ExitCode.NOT_FOUND,
@@ -678,10 +699,76 @@ def cmd_transition(args) -> dict:
     return result
 
 
+def _review_status(args, issue: str, current: str) -> str:
+    if current.casefold() not in {"new", "in progress"}:
+        return current
+    steps = _transitions(args, issue)
+    ready = _step_to(steps, "QA Ready")
+    if ready is None and current.casefold() == "new":
+        start = _step_to(steps, "In Progress")
+        if start is not None:
+            current = _take_transition(args, issue, start)
+            steps = _transitions(args, issue)
+            ready = _step_to(steps, "QA Ready")
+    if ready is None:
+        acli.die(
+            f"{issue} is {current!r}; no available step reaches 'QA Ready'",
+            acli.ExitCode.NOT_FOUND,
+            detail={"reachable": [step["to"]["name"] for step in steps]},
+        )
+    return _take_transition(args, issue, ready)
+
+
+def _ensure_review_comment(args, issue: str, url: str) -> str:
+    path = f"/rest/api/3/issue/{issue}/comment"
+    start = 0
+    while True:
+        page = _request(args, "GET", f"{path}?startAt={start}")
+        comments = page["comments"]
+        for comment in comments:
+            if _adf_text(comment["body"]).strip() == f"Gerrit review: {url}":
+                return "already present"
+        start += len(comments)
+        if start >= page["total"]:
+            break
+        if not comments:
+            acli.die(f"incomplete comment listing for {issue}", acli.ExitCode.DATA)
+    body = markdown_to_adf(f"Gerrit review: [{url}]({url})")
+    _request(args, "POST", path, {"body": body})
+    return "added"
+
+
+def cmd_review_ready(args) -> dict:
+    REVIEW_LOCK_DIR.mkdir(parents=True, exist_ok=True)
+    with file_lock(REVIEW_LOCK_DIR / args.issue):
+        comment = _ensure_review_comment(args, args.issue, args.url)
+        current = _issue_status(args, args.issue)
+        status = (
+            current if args.link_only else _review_status(args, args.issue, current)
+        )
+    return {"key": args.issue, "status": status, "review": args.url, "comment": comment}
+
+
 # --- wiring ---------------------------------------------------------------
 
 TABLE_VERBS = {"search", "sprints"}
 _PROJECT_KEY = re.compile(r"[A-Za-z][A-Za-z0-9_]*")
+
+
+def aip_issue(value: str) -> str:
+    key = value.upper()
+    if not re.fullmatch(r"AIP-[0-9]+", key):
+        raise argparse.ArgumentTypeError(f"expected an AIP ticket key: {value!r}")
+    return key
+
+
+def review_url(value: str) -> str:
+    url = value.rstrip("/")
+    if not re.fullmatch(r"https://[^/@\s?#]+/(?:c/[^\s?#()]+/\+/)?[0-9]+", url):
+        raise argparse.ArgumentTypeError(
+            "expected an HTTPS Gerrit change URL without a patchset or file suffix"
+        )
+    return url
 
 
 def project_key(value: str) -> str:
@@ -820,6 +907,19 @@ def build_parser():
         help="Resolve the workflow step and report its status; move nothing.",
     )
 
+    review = subs.add_parser(
+        "review-ready", help="Link a pushed Gerrit change and advance its AIP ticket."
+    )
+    review.add_argument("issue", type=aip_issue, help="AIP ticket key.")
+    review.add_argument(
+        "url", type=review_url, help="Gerrit change URL, without a patchset."
+    )
+    review.add_argument(
+        "--link-only",
+        action="store_true",
+        help="Add the review link and keep the status.",
+    )
+
     for sub in subs.choices.values():
         acli.add_standard_args(sub, allow_toon=True)
     acli.add_standard_args(parser, allow_toon=True)
@@ -837,7 +937,7 @@ def main(argv: list[str] | None = None) -> int:
         acli.die(str(err), acli.ExitCode.USAGE)
     args.site = (args.site or _setting(SITE_VARS, "Jira site URL")).rstrip("/")
     args.email = args.email or _setting(EMAIL_VARS, "Atlassian account email")
-    handler = globals()[f"cmd_{args.verb}"]
+    handler = globals()["cmd_" + args.verb.replace("-", "_")]
     result = handler(args)
     acli.emit(result, fmt, commentary=not getattr(args, "no_commentary", False))
     return 0

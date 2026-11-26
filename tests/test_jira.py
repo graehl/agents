@@ -8,9 +8,13 @@ import argparse
 import importlib.machinery
 import importlib.util
 import io
+import json
 import sys
 import traceback
+from functools import partial
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "jira"
 _loader = importlib.machinery.SourceFileLoader("jira_tool", str(SCRIPT))
@@ -263,6 +267,88 @@ def test_transition_refuses_an_unreachable_status() -> None:
     fake = _with_fake(_status_site("To Do"))
     assert _dies(lambda: jira._transition(_args(), "P-1", "Done")) == 4
     assert fake.writes == []
+
+
+def test_review_ready_cli_links_once_and_resumes_a_partial_transition() -> None:
+    issue = "/rest/api/3/issue/AIP-42"
+    url = "https://gerrit.example.com/c/project/+/42"
+    comment_path = f"{issue}/comment"
+    transition_path = f"{issue}/transitions"
+    comment = {}
+    status = "New"
+    allow_qa = False
+    writes = []
+
+    def request(args, method, path, payload=None):
+        nonlocal status, comment
+        if method == "POST":
+            writes.append(path)
+            if path == comment_path:
+                comment = payload
+            else:
+                assert path == transition_path
+                status = {"start": "In Progress", "ready": "QA Ready"}[
+                    payload["transition"]["id"]
+                ]
+            return {}
+        if path == f"{issue}?fields=status":
+            return {"fields": {"status": {"name": status}}}
+        if path == transition_path:
+            start = {"id": "start", "to": {"name": "In Progress"}}
+            ready = {"id": "ready", "to": {"name": "QA Ready"}}
+            steps = {
+                "New": [start, ready] if allow_qa else [start],
+                "In Progress": [ready] if allow_qa else [],
+            }
+            return {"transitions": steps[status]}
+        # The Gerrit comment, if present, is on the second page.
+        if path == f"{comment_path}?startAt=0":
+            return {"comments": [{"body": "Other comment"}], "total": 1 + bool(comment)}
+        assert path == f"{comment_path}?startAt=1"
+        return {"comments": [comment], "total": 2}
+
+    argv = [
+        "--site",
+        "https://jira.example.com",
+        "--email",
+        "tester@example.com",
+        "review-ready",
+        "aip-42",
+        url + "/",
+        "--json",
+    ]
+
+    def run(*options: str) -> dict:
+        out = io.StringIO()
+        with patch.object(jira.acli, "emit", partial(jira.acli.emit, out=out)):
+            assert jira.main([*argv, *options]) == 0
+        return json.loads(out.getvalue())
+
+    with (
+        TemporaryDirectory() as lock_dir,
+        patch.object(jira, "REVIEW_LOCK_DIR", Path(lock_dir)),
+        patch.object(jira, "_request", request),
+    ):
+        assert run("--link-only")["status"] == "New"
+        assert writes == [comment_path]
+        assert comment == {
+            "body": jira.markdown_to_adf(f"Gerrit review: [{url}]({url})")
+        }
+        assert _dies(lambda: jira.main(argv)) == 4
+        assert status == "In Progress"
+        allow_qa = True
+        assert run() == {
+            "key": "AIP-42",
+            "status": "QA Ready",
+            "review": url,
+            "comment": "already present",
+        }
+        assert run()["status"] == "QA Ready"
+        status = "Done"
+        assert run()["status"] == "Done"
+        status = "New"
+        assert run()["status"] == "QA Ready"
+    assert writes == [comment_path, transition_path, transition_path, transition_path]
 
 
 def test_planning_fields_map_points_and_sprint_to_field_ids() -> None:

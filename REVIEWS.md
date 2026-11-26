@@ -1,8 +1,9 @@
 # REVIEWS
 
 Project-activated policy for tracking the code reviews a checkout has pushed
-(Gerrit changes, GitHub pull requests) and what each is waiting on. It applies
-only in a project whose instructions name it. Read it at these boundaries:
+(Gerrit changes, GitHub pull requests) and what each is waiting on. Review
+tracking applies in projects whose instructions name it. Read it at these
+boundaries:
 after pushing or updating a review, when asked what a review or the project's
 reviews are waiting on, when catching up on review activity (comments, CI,
 votes, merge state), and before answering anything about a review's current
@@ -128,6 +129,28 @@ lists each branch's review. A sibling's CI pass is evidence about the shared
 code, never this review's vote; the branch reviews may be at different
 revisions.
 
+## Jira after a Gerrit push
+
+After an agent successfully pushes a Gerrit review for an AIP ticket,
+update Jira in the same turn, including in checkouts without `reviews/`.
+Use the ticket key from the pushed commit's subject or an explicit ticket
+association from the user. Match the pushed commit and target branch to
+the URL Gerrit returned or confirmed by query. Use the full change URL
+(`/c/<project>/+/<number>`) without a patchset suffix. If the ticket or
+URL cannot be identified unambiguously, report what is missing. A failed
+push or a read-only review catch-up does not trigger a Jira write.
+
+    jira review-ready <AIP-KEY> '<Gerrit change URL>'
+
+The command adds the review link once and moves `New` or `In Progress` to
+`QA Ready`. It tries the direct step first, with `In Progress` as the
+fallback from `New`. Other statuses are preserved. For an explicitly
+requested progress push with work still underway, use `--link-only`.
+Run the command for each ticketed review actually pushed. Patchset
+updates reuse the same change URL. Report the Jira result with the Gerrit
+link. If Jira fails, report the failure and retry the Jira command alone
+when the issue is resolved.
+
 ## Catch-up: observe what changed
 
 Run this when asked what a review is waiting on, when catching up after time
@@ -181,4 +204,3 @@ review leaves open goes to `gaps/`. The review file cites both.
   usually closed; `--merge-check` uses a local merge-tree instead.
 - The GitHub backend is smoke-tested only:
   [`gaps/reviews-github-backend.md`](gaps/reviews-github-backend.md).
-- Ticket trackers are linked, not queried; ticket status stays manual.

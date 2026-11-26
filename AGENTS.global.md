@@ -387,6 +387,9 @@ win on packet conflict.
   review activity, and before answering about a review's current state. One
   private `reviews/` file per change; the file is never the authority, so
   re-query the backend (`reviews sync`) first.
+- After a successful Gerrit review push for an AIP ticket, follow
+  `~/agents/REVIEWS.md` § Jira after a Gerrit push to set QA Ready and add the
+  review link. This also applies in checkouts without review tracking.
 - `AGENTS/` — optional slow-path detail only for a matching named section or a
   rare ambiguity. Do not load the directory indiscriminately:
   - handoff/session registration/resume/scheduled prompt → `AGENTS/session.md`;
