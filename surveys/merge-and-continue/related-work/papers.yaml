@@ -13,7 +13,7 @@ papers:
     year: 2026
     url: "https://github.com/hanxiao/embedding-compatibility-adapters"
     report_url: "https://github.com/hanxiao/embedding-compatibility-adapters/blob/main/report.pdf"
-    grounded: false
+    grounded: true
     verified: true
     source: "Neon read README.md 2026-11-26"
     cluster: layer-transfer
@@ -45,7 +45,7 @@ papers:
     year: 2021
     arxiv: "2106.07682"
     url: "https://arxiv.org/html/2106.07682"
-    grounded: false
+    grounded: true
     verified: true
     source: "arXiv API metadata 2026-11-26"
     cluster: layer-transfer
@@ -56,7 +56,7 @@ papers:
     year: 2023
     arxiv: "2209.04836"
     url: "https://arxiv.org/html/2209.04836"
-    grounded: false
+    grounded: true
     verified: true
     source: "arXiv API metadata 2026-11-26"
     cluster: model-merging
@@ -67,7 +67,7 @@ papers:
     year: 2024
     arxiv: "2305.03053"
     url: "https://arxiv.org/html/2305.03053"
-    grounded: false
+    grounded: true
     verified: true
     source: "arXiv API metadata 2026-11-26"
     cluster: model-merging
