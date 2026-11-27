@@ -163,6 +163,7 @@ reuse. All paths are within the user's `~/draft` checkout.
 | Compact convolutional sequence branches | `~/draft/topics/convolution-training-defaults.md` |
 | ASR technique status and linked measurements | `~/draft/research/speech-recognition/topics/asr-techniques.md` and its evidence companion |
 | PII data/training/evaluation lineage | `~/draft/research/pii/topics/ontology-v2-process-map.md`; scoped contracts linked by `~/draft/research/pii/frontier/PROGRAM.md` |
+| Mixed-policy / async RL default | `~/agents/topics/mixed-policy-rl.md` — tentative standard: bounded-staleness AsyncRL + Score Centering (`arXiv:2609.20807` / Tinker `StableReinforce`) and model-specific hazards (MoE routing replay `arXiv:2512.01374`, SSM/looped resumability) |
 
 ## Ownership and availability
 
