@@ -143,8 +143,9 @@ push or a read-only review catch-up does not trigger a Jira write.
     jira review-ready <AIP-KEY> '<Gerrit change URL>'
 
 The command adds the review link once and moves `New` or `In Progress` to
-`QA Ready`. It tries the direct step first, with `In Progress` as the
-fallback from `New`. Other statuses are preserved. For an explicitly
+`QA Ready`. From `New`, it tries the direct step first and otherwise bridges
+through `In Progress` → `QA Ready` (exiting non-zero if `QA Ready` is still
+unreachable). Other statuses are preserved. For an explicitly
 requested progress push with work still underway, use `--link-only`.
 Run the command for each ticketed review actually pushed. Patchset
 updates reuse the same change URL. Report the Jira result with the Gerrit
