@@ -6868,3 +6868,44 @@ Contributing-model: opus-5.5
   a result table) already reach both halves.
 
 Contributing-model: fable-5.2
+
+## 2026-11-27 — cloud-gpu topic and global activity route
+
+- **Rule landed** — `topics/cloud-gpu.md` (decision surface, `$40/mo` GCP
+  free-credit / `$0` net-spend budget cap, and operational guards for headless
+  `sky` Spot, `colab` CLI, `scripts/spot-acquire`, and data transfer without
+  Google Drive FUSE), routed via `Governs:` into `AGENTS.global.md`
+  (`scripts/build-boot`) for all harnesses instead of `AGENTS.agy.md` alone.
+- **User directive** — leave instructions in an `~/agents` topic for running GPU
+  work on Colab or GCloud using `sky`, `colab` CLI, or other recommended means,
+  have `~/agents/AGENTS.agy.md` require reading it when asked to run that way,
+  and note that the `$40/mo` free GCP credit must not be exceeded (`$0`
+  alert/limit on billing).
+- **Observed failures prevented (verified live 2026-11-27)** —
+  1. `gcloud` set to a numeric project number caused SkyPilot's YAML provisioner
+     to fail with `TypeError: 'int' object is not iterable`, and client
+     `--config workspaces...` was ignored by the local API server; pinning
+     string `workspaces.default.gcp.project_id` in `~/.sky/config.yaml` fixed it.
+  2. `sky check gcp` failed with 403 on fresh GCP projects until
+     `cloudresourcemanager.googleapis.com` was enabled ahead of SkyPilot's own
+     auto-enable loop.
+  3. Host EC2 role passed `sky check aws` yet failed `sky launch --infra aws`
+     with `AccessDenied` on `iam:GetInstanceProfile` (`skypilot-v1`).
+  4. Headless Linux defaulted `keyring` to `fail.Keyring` (losing `colab` OAuth
+     tokens after each invocation) until `keyrings.alt` was installed, and
+     conda-linked `uv` tool venvs failed with `bad interpreter` inside the `agy`
+     sandbox until linked to `/usr/bin/python3`.
+- **Trace simulation** —
+  1. *Quick Colab GPU probe ("run `bench.py` on Colab"):* `AGENTS.agy.md` fires,
+     loads `topics/cloud-gpu.md`, runs `colab run --gpu T4 -s ... bench.py`
+     without TTY-hanging `repl`/`drivemount` or browser UI, verifies
+     `colab sessions` empty.
+  2. *Multi-hour training with dataset sync:* `AGENTS.agy.md` fires, chooses
+     `sky jobs launch -d` or `sky launch -i 0 --down -y` with `rsync`/`scp` or
+     same-cloud bucket mounts instead of `colab upload` or `colab drivemount`,
+     checks string `project_id`, verifies `sky status` afterward.
+  3. *Local host CUDA test ("run `pytest tests/test_cuda.py`"):* trigger names
+     remote Colab/GCP/AWS/`sky`/`colab`, so ordinary local GPU runs do not pay
+     the `cloud-gpu.md` read (`RUNS.md` / `_RUNS/resources.md` still governs).
+
+Contributing-model: 4-carbon

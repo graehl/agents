@@ -32,6 +32,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | `backward-compat` | Governs: breaking or shimming a public API, CLI flag, wire format, or persisted schema | [backward-compat](topics/backward-compat.md) |
 | `blog-post-writing` | Governs: writing a technical or research blog post for a static site | [blog-post-writing](topics/blog-post-writing.md) |
 | `claim-provenance` | Governs: citing evidence in a manuscript, verifying its claims, or moving its run records | [claim-provenance](topics/claim-provenance.md) |
+| `cloud-gpu` | Governs: running, smoking, or provisioning remote GPU/TPU work on Google Colab, GCP, or AWS, or invoking `sky` or `colab` | [cloud-gpu](topics/cloud-gpu.md) |
 | code map | A regenerable developer-facing orientation report over a codebase's structure, flows, seams, and refresh commands; not a topic doc. | [code-map](code-map/README.md) |
 | `codex-session` | Governs: recovering Codex session identity or waiting on owned jobs under Codex | [codex-session](topics/codex-session.md) |
 | `commits` | Governs: writing a non-trivial commit message, amending, rewriting history, or choosing trailers | [commits](topics/commits.md) |

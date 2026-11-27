@@ -969,6 +969,10 @@ row, not this section.
 - adding, sorting, promoting, or regenerating glossary rows, or creating a scoped glossary → `glossary`
 - creating or normalizing topic docs, companions, bearings, or epistemic labels → `topic-doc-format`
 - choosing a path or name for a program's handout, report, paper or focus document, or changing what the program dashboard discovers → `project-directory`
+
+**Other activities.**
+
+- running, smoking, or provisioning remote GPU/TPU work on Google Colab, GCP, or AWS, or invoking `sky` or `colab` → `cloud-gpu`
 <!-- END generated: activity routes -->
 
 # Language tooling
