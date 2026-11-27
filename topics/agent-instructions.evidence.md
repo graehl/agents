@@ -6909,3 +6909,18 @@ Contributing-model: fable-5.2
      the `cloud-gpu.md` read (`RUNS.md` / `_RUNS/resources.md` still governs).
 
 Contributing-model: 4-carbon
+
+## 2026-11-27 — auto-commit completed slices in AGENTS.agy.md
+
+- **Rule landed** — `AGENTS.agy.md`: commit completed work slices once tested or
+  reviewed without waiting to be asked (outside project overrides in shared
+  repos; staging only own changes; progress commits allowed).
+- **Observed failure** — Multiple `agy` sessions (Neon and Carbon) left finished topics and
+  survey updates uncommitted in `~/agents` (`topics/cloud-gpu.md`,
+  `topics/mixed-policy-rl.md`, `surveys/merge-and-continue/`, 2026-11-26 survey
+  refreshes), unlike Claude/Codex sessions that commit completed work by
+  default.
+- **Scoping** — Placed in `AGENTS.agy.md` only (narrowest supplement; 0 bytes
+  added to `AGENTS.global.md`).
+
+Contributing-model: 4-neon
