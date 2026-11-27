@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animation in three steps, idealized. Twelve views: 12 LLMs each hold the same layout of facts, rotated and scaled their own way. Rotate: one rotation and scale per LLM, fit for all 12 at once, carries every layout into one coordinate system. One shared system: if the LLMs share one coordinate system, the 12 copies of each fact, France among them, land together in it."><style>.katex svg{fill:currentColor;stroke:currentColor;fill-rule:nonzero;fill-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;display:block;height:inherit;position:absolute;width:100%}.Post_linkButton__fKycd img,.Post_linkButton__fKycd svg{
+    margin-right: var(--xs)
+}.anim-stage svg{
+  display: block;
+  width: 100%;
+  height: auto;
+}#kv svg{  
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  font-family: inherit;
+}#kv svg.wide{
+  max-width: 560px;
+}#kv svg.narrow{
+  display: none;
+  max-width: 400px;
+}@media (max-width:600px){#kv svg.wide{
+    display: none;
+  }#kv svg.narrow{
+    display: block;
+  }}.kv svg{  
+  display: block;
+  width: 100%;
+  height: auto;
+}.kv svg.narrow{
+  display: none;
+  max-width: 400px;
+}.kv svg.wide{  
+  max-width: 560px;
+  margin: 0 auto;
+}@media (max-width:600px){.kv svg.wide{
+    display: none;
+  }.kv svg.narrow{
+    display: block;
+  }}.panels svg{
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  display: block;
+}@media (max-width: 600px){.panels svg{  
+    flex: none;
+    max-width: 420px;
+  }}</style></svg>

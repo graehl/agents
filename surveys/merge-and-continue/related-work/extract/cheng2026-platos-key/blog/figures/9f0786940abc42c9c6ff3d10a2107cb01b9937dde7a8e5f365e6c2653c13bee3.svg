@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 280" role="img" aria-label="Per pair, six other maps are rarely significantly better than the rotation: at most 4 of 20 pairs for any map, and never for least-squares scale or Wasserstein."><style>.katex svg{fill:currentColor;stroke:currentColor;fill-rule:nonzero;fill-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;display:block;height:inherit;position:absolute;width:100%}.Post_linkButton__fKycd img,.Post_linkButton__fKycd svg{
+    margin-right: var(--xs)
+}.anim-stage svg{
+  display: block;
+  width: 100%;
+  height: auto;
+}#kv svg{  
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  font-family: inherit;
+}#kv svg.wide{
+  max-width: 560px;
+}#kv svg.narrow{
+  display: none;
+  max-width: 400px;
+}@media (max-width:600px){#kv svg.wide{
+    display: none;
+  }#kv svg.narrow{
+    display: block;
+  }}.kv svg{  
+  display: block;
+  width: 100%;
+  height: auto;
+}.kv svg.narrow{
+  display: none;
+  max-width: 400px;
+}.kv svg.wide{  
+  max-width: 560px;
+  margin: 0 auto;
+}@media (max-width:600px){.kv svg.wide{
+    display: none;
+  }.kv svg.narrow{
+    display: block;
+  }}.panels svg{
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  display: block;
+}@media (max-width: 600px){.panels svg{  
+    flex: none;
+    max-width: 420px;
+  }}</style><text x="6" y="20" font-size="13.5" font-weight="700" fill="#212121"><tspan fill="#888888">b</tspan><tspan dx="7">Other maps rarely beat our rotation</tspan></text><text x="21.5" y="38.0" font-size="11" fill="#666666" text-anchor="start">significant differences from our rotation</text><rect x="21.5" y="57" width="10" height="10" rx="2" fill="#2468b0"/><text x="36.5" y="66.0" font-size="10.5" fill="#444444" text-anchor="start">better</text><rect x="85.4" y="57" width="10" height="10" rx="2" fill="#e9e8e4"/><text x="100.4" y="66.0" font-size="10.5" fill="#444444" text-anchor="start">not significant</text><rect x="195.65" y="57" width="10" height="10" rx="2" fill="#b63629"/><text x="210.7" y="66.0" font-size="10.5" fill="#444444" text-anchor="start">worse</text><text x="130.0" y="96.0" font-size="11" fill="#444444" text-anchor="end">ridge, rescaled</text><rect x="140.0" y="84" width="35.2" height="16" fill="#2468b0"><title>ridge, rescaled: better than the rotation in 4 of 20 pairs</title></rect><text x="157.6" y="96.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">4</text><rect x="176.2" y="84" width="113.4" height="16" fill="#e9e8e4"><title>ridge, rescaled: no significant difference in 13 of 20 pairs</title></rect><text x="232.4" y="96.0" font-size="10.5" fill="#444444" text-anchor="middle">13</text><rect x="290.6" y="84" width="25.4" height="16" fill="#b63629"><title>ridge, rescaled: worse than the rotation in 3 of 20 pairs</title></rect><text x="302.8" y="96.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">3</text><text x="130.0" y="120.0" font-size="11" fill="#444444" text-anchor="end">whitened rotation</text><rect x="140.0" y="108" width="17.6" height="16" fill="#2468b0"><title>whitened rotation: better than the rotation in 2 of 20 pairs</title></rect><text x="148.8" y="120.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">2</text><rect x="158.6" y="108" width="113.4" height="16" fill="#e9e8e4"><title>whitened rotation: no significant difference in 13 of 20 pairs</title></rect><text x="214.8" y="120.0" font-size="10.5" fill="#444444" text-anchor="middle">13</text><rect x="273.0" y="108" width="43.0" height="16" fill="#b63629"><title>whitened rotation: worse than the rotation in 5 of 20 pairs</title></rect><text x="294.0" y="120.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">5</text><text x="130.0" y="144.0" font-size="11" fill="#444444" text-anchor="end">trained MLP</text><rect x="140.0" y="132" width="8.8" height="16" fill="#2468b0"><title>trained MLP: better than the rotation in 1 of 20 pairs</title></rect><text x="144.4" y="144.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">1</text><rect x="149.8" y="132" width="69.4" height="16" fill="#e9e8e4"><title>trained MLP: no significant difference in 8 of 20 pairs</title></rect><text x="184.0" y="144.0" font-size="10.5" fill="#444444" text-anchor="middle">8</text><rect x="220.2" y="132" width="95.8" height="16" fill="#b63629"><title>trained MLP: worse than the rotation in 11 of 20 pairs</title></rect><text x="267.6" y="144.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">11</text><text x="130.0" y="168.0" font-size="11" fill="#444444" text-anchor="end">ridge regression</text><rect x="140.0" y="156" width="8.8" height="16" fill="#2468b0"><title>ridge regression: better than the rotation in 1 of 20 pairs</title></rect><text x="144.4" y="168.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">1</text><rect x="149.8" y="156" width="69.4" height="16" fill="#e9e8e4"><title>ridge regression: no significant difference in 8 of 20 pairs</title></rect><text x="184.0" y="168.0" font-size="10.5" fill="#444444" text-anchor="middle">8</text><rect x="220.2" y="156" width="95.8" height="16" fill="#b63629"><title>ridge regression: worse than the rotation in 11 of 20 pairs</title></rect><text x="267.6" y="168.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">11</text><text x="130.0" y="192.0" font-size="11" fill="#444444" text-anchor="end">least-squares scale</text><rect x="140.0" y="180" width="61.6" height="16" fill="#e9e8e4"><title>least-squares scale: no significant difference in 7 of 20 pairs</title></rect><text x="170.8" y="192.0" font-size="10.5" fill="#444444" text-anchor="middle">7</text><rect x="202.6" y="180" width="113.4" height="16" fill="#b63629"><title>least-squares scale: worse than the rotation in 13 of 20 pairs</title></rect><text x="258.8" y="192.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">13</text><text x="130.0" y="216.0" font-size="11" fill="#444444" text-anchor="end">Wasserstein Procrustes</text><rect x="140.0" y="204" width="35.2" height="16" fill="#e9e8e4"><title>Wasserstein Procrustes: no significant difference in 4 of 20 pairs</title></rect><text x="157.6" y="216.0" font-size="10.5" fill="#444444" text-anchor="middle">4</text><rect x="176.2" y="204" width="139.8" height="16" fill="#b63629"><title>Wasserstein Procrustes: worse than the rotation in 16 of 20 pairs</title></rect><text x="245.6" y="216.0" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="700">16</text><text x="140.0" y="234.0" font-size="10.5" fill="#888888" text-anchor="middle">0</text><text x="228.0" y="234.0" font-size="10.5" fill="#888888" text-anchor="middle">10</text><text x="316.0" y="234.0" font-size="10.5" fill="#888888" text-anchor="middle">20</text><text x="228.0" y="256.0" font-size="11" fill="#666666" text-anchor="middle">model pairs</text></svg>

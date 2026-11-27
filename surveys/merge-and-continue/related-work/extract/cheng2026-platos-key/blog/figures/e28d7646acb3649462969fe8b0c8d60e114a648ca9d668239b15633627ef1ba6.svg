@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustrative animation in three steps. Own key: asked which country Nice is in, the recipient’s own key looks up the wrong stored fact, and it answers Italy. Rotate: the donor’s key for Nice is rotated and scaled and swapped in. Unlock: it reaches a stored fact the own key missed, a dark memory, and the recipient answers France."><style>.katex svg{fill:currentColor;stroke:currentColor;fill-rule:nonzero;fill-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;display:block;height:inherit;position:absolute;width:100%}.Post_linkButton__fKycd img,.Post_linkButton__fKycd svg{
+    margin-right: var(--xs)
+}.anim-stage svg{
+  display: block;
+  width: 100%;
+  height: auto;
+}#kv svg{  
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  font-family: inherit;
+}#kv svg.wide{
+  max-width: 560px;
+}#kv svg.narrow{
+  display: none;
+  max-width: 400px;
+}@media (max-width:600px){#kv svg.wide{
+    display: none;
+  }#kv svg.narrow{
+    display: block;
+  }}.kv svg{  
+  display: block;
+  width: 100%;
+  height: auto;
+}.kv svg.narrow{
+  display: none;
+  max-width: 400px;
+}.kv svg.wide{  
+  max-width: 560px;
+  margin: 0 auto;
+}@media (max-width:600px){.kv svg.wide{
+    display: none;
+  }.kv svg.narrow{
+    display: block;
+  }}.panels svg{
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  display: block;
+}@media (max-width: 600px){.panels svg{  
+    flex: none;
+    max-width: 420px;
+  }}</style></svg>

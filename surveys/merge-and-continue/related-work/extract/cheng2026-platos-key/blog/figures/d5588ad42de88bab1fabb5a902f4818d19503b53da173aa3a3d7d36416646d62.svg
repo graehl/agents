@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 290" role="img" aria-label="Fit in each model&#x27;s top 256 principal components, the rotation keeps a median 74% of the full rotation&#x27;s transfer accuracy; 16 components keep almost none."><style>.katex svg{fill:currentColor;stroke:currentColor;fill-rule:nonzero;fill-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;display:block;height:inherit;position:absolute;width:100%}.Post_linkButton__fKycd img,.Post_linkButton__fKycd svg{
+    margin-right: var(--xs)
+}.anim-stage svg{
+  display: block;
+  width: 100%;
+  height: auto;
+}#kv svg{  
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  font-family: inherit;
+}#kv svg.wide{
+  max-width: 560px;
+}#kv svg.narrow{
+  display: none;
+  max-width: 400px;
+}@media (max-width:600px){#kv svg.wide{
+    display: none;
+  }#kv svg.narrow{
+    display: block;
+  }}.kv svg{  
+  display: block;
+  width: 100%;
+  height: auto;
+}.kv svg.narrow{
+  display: none;
+  max-width: 400px;
+}.kv svg.wide{  
+  max-width: 560px;
+  margin: 0 auto;
+}@media (max-width:600px){.kv svg.wide{
+    display: none;
+  }.kv svg.narrow{
+    display: block;
+  }}.panels svg{
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  display: block;
+}@media (max-width: 600px){.panels svg{  
+    flex: none;
+    max-width: 420px;
+  }}</style><text x="6" y="20" font-size="13.5" font-weight="700" fill="#212121"><tspan fill="#888888">b</tspan><tspan dx="7">256 components keep 74% of the transfer</tspan></text><text x="21.5" y="38.0" font-size="11" fill="#666666" text-anchor="start">rotation fit in each model’s top principal components</text><line x1="56.0" y1="244.0" x2="312.0" y2="244.0" stroke="#ececec" stroke-width="1"/><text x="50.0" y="248.0" font-size="10.5" fill="#888888" text-anchor="end">0%</text><line x1="56.0" y1="201.5" x2="312.0" y2="201.5" stroke="#ececec" stroke-width="1"/><text x="50.0" y="205.5" font-size="10.5" fill="#888888" text-anchor="end">25%</text><line x1="56.0" y1="159.0" x2="312.0" y2="159.0" stroke="#ececec" stroke-width="1"/><text x="50.0" y="163.0" font-size="10.5" fill="#888888" text-anchor="end">50%</text><line x1="56.0" y1="116.5" x2="312.0" y2="116.5" stroke="#ececec" stroke-width="1"/><text x="50.0" y="120.5" font-size="10.5" fill="#888888" text-anchor="end">75%</text><line x1="56.0" y1="74.0" x2="312.0" y2="74.0" stroke="#212121" stroke-width="1.2" stroke-dasharray="4 3"/><text x="50.0" y="78.0" font-size="10.5" fill="#888888" text-anchor="end">100%</text><text x="60.0" y="67.0" font-size="11" fill="#212121" text-anchor="start">full rotation (all dimensions)</text><polygon points="56.0,237.4 98.7,216.2 141.3,179.2 184.0,139.3 226.7,106.6 269.3,92.4 312.0,83.5 312.0,95.7 269.3,107.4 226.7,124.7 184.0,155.8 141.3,192.6 98.7,225.3 56.0,238.9" fill="#b63629" fill-opacity="0.13"/><polyline points="56.0,238.0 98.7,221.7 141.3,183.9 184.0,147.8 226.7,118.7 269.3,96.2 312.0,90.3" fill="none" stroke="#b63629" stroke-width="2" stroke-linejoin="round"/><circle cx="56.0" cy="238.0" r="3.2" fill="#b63629" stroke="#ffffff" stroke-width="1.2"><title>top 16 components: median 4% of the full rotation (middle half 3%–4%)</title></circle><text x="56.0" y="259.0" font-size="10.5" fill="#888888" text-anchor="middle">16</text><text x="56.0" y="227.0" font-size="11.5" fill="#212121" text-anchor="middle">4%</text><circle cx="98.7" cy="221.7" r="3.2" fill="#b63629" stroke="#ffffff" stroke-width="1.2"><title>top 32 components: median 13% of the full rotation (middle half 11%–16%)</title></circle><text x="98.7" y="259.0" font-size="10.5" fill="#888888" text-anchor="middle">32</text><circle cx="141.3" cy="183.9" r="3.2" fill="#b63629" stroke="#ffffff" stroke-width="1.2"><title>top 64 components: median 35% of the full rotation (middle half 30%–38%)</title></circle><text x="141.3" y="259.0" font-size="10.5" fill="#888888" text-anchor="middle">64</text><circle cx="184.0" cy="147.8" r="3.2" fill="#b63629" stroke="#ffffff" stroke-width="1.2"><title>top 128 components: median 57% of the full rotation (middle half 52%–62%)</title></circle><text x="184.0" y="259.0" font-size="10.5" fill="#888888" text-anchor="middle">128</text><circle cx="226.7" cy="118.7" r="3.2" fill="#b63629" stroke="#ffffff" stroke-width="1.2"><title>top 256 components: median 74% of the full rotation (middle half 70%–81%)</title></circle><text x="226.7" y="259.0" font-size="10.5" fill="#888888" text-anchor="middle">256</text><text x="234.7" y="134.7" font-size="11.5" fill="#212121" text-anchor="start" font-weight="700">74%</text><circle cx="269.3" cy="96.2" r="3.2" fill="#b63629" stroke="#ffffff" stroke-width="1.2"><title>top 512 components: median 87% of the full rotation (middle half 80%–89%)</title></circle><text x="269.3" y="259.0" font-size="10.5" fill="#888888" text-anchor="middle">512</text><text x="277.3" y="113.2" font-size="11.5" fill="#212121" text-anchor="start">87%</text><circle cx="312.0" cy="90.3" r="3.2" fill="#b63629" stroke="#ffffff" stroke-width="1.2"><title>top 1,024 components: median 90% of the full rotation (middle half 87%–94%)</title></circle><text x="312.0" y="259.0" font-size="10.5" fill="#888888" text-anchor="middle">1,024</text><text x="184.0" y="282.0" font-size="11" fill="#666666" text-anchor="middle">components kept per model (widths 1,536–5,120)</text><text x="14" y="159.0" font-size="11" fill="#666666" text-anchor="middle" transform="rotate(-90 14 159.0)">relative transfer accuracy</text></svg>

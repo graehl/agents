@@ -1,0 +1,73 @@
+# Metadata manifest for surveys/merge-and-continue.
+
+meta:
+  field_slug: merge-and-continue
+  coverage_cutoff: 2026-11-26
+  grounding_mode: grounded-initial
+
+papers:
+  - key: hanxiao2026-eca
+    title: "Embedding Compatibility Adapters"
+    authors: ["Han Xiao"]
+    venue: "GitHub / Technical Report (Jina AI)"
+    year: 2026
+    url: "https://github.com/hanxiao/embedding-compatibility-adapters"
+    report_url: "https://github.com/hanxiao/embedding-compatibility-adapters/blob/main/report.pdf"
+    grounded: false
+    verified: true
+    source: "Neon read README.md 2026-11-26"
+    cluster: layer-transfer
+  - key: cheng2026-platos-key
+    title: "Plato's Key"
+    authors: ["Vivien Cheng", "Jerry Liu", "Morris Yau", "Chris Ré"]
+    venue: "Hazy Research Blog"
+    year: 2026
+    url: "https://hazyresearch.stanford.edu/blog/2026-11-25-platos-key"
+    grounded: false
+    verified: true
+    source: "Neon read full blog HTML 2026-11-26"
+    cluster: layer-transfer
+  - key: unicon-iclr
+    title: "UniCon: Unified Framework for Efficient Contrastive Alignment via Kernels"
+    authors: ["Hangke Sui", "Yuqing Wang", "Minh N. Do"]
+    venue: "ICLR 2026"
+    year: 2026
+    arxiv: "2604.16678"
+    url: "https://arxiv.org/html/2604.16678"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata 2026-11-26"
+    cluster: contrastive-alignment
+  - key: bansal2021-stitching
+    title: "Revisiting Model Stitching to Compare Neural Representations"
+    authors: ["Yamini Bansal", "Preetum Nakkiran", "Boaz Barak"]
+    venue: "NeurIPS 2021"
+    year: 2021
+    arxiv: "2106.07682"
+    url: "https://arxiv.org/html/2106.07682"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata 2026-11-26"
+    cluster: layer-transfer
+  - key: ainsworth2023-gitrebasin
+    title: "Git Re-Basin: Merging Models modulo Permutation Symmetries"
+    authors: ["Samuel K. Ainsworth", "Jonathan Hayase", "Siddhartha Srinivasa"]
+    venue: "ICLR 2023"
+    year: 2023
+    arxiv: "2209.04836"
+    url: "https://arxiv.org/html/2209.04836"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata 2026-11-26"
+    cluster: model-merging
+  - key: stoica2024-zipit
+    title: "ZipIt! Merging Models from Different Tasks without Training"
+    authors: ["George Stoica", "Daniel Bolya", "Jakob Bjorner", "Pratik Ramesh", "Taylor Hearn"]
+    venue: "ICLR 2024"
+    year: 2024
+    arxiv: "2305.03053"
+    url: "https://arxiv.org/html/2305.03053"
+    grounded: false
+    verified: true
+    source: "arXiv API metadata 2026-11-26"
+    cluster: model-merging
