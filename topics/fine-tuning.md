@@ -75,6 +75,13 @@ These rules come from the draft repository's speech-recognition program
     conv modules) need a short forward pass in `model.train(); optimizer.eval()`
     to refresh BN running stats at $x$ before eval, or should use WSD instead.
     LayerNorm/RMSNorm Transformers need nothing extra.
+  - **Partial optimizer-state retention across leg boundaries
+    (`--resume-state-retain` in `[0, 1]`):** default `1.0` carries full state
+    (appropriate for continuations and adding same-task data). Use `0.0` to
+    start fresh, or `(0, 1)` on structural shifts (new objective, new
+    head/unfrozen modules, or large batch/LR jumps) to keep curvature
+    conditioning (`exp_avg_sq`) while damping first-moment/momentum buffers
+    and Schedule-Free's `k` / `weight_sum` / `z` offset.
 
 ### Early stopping during adaptation
 
