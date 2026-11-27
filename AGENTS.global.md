@@ -973,6 +973,7 @@ row, not this section.
 **Other activities.**
 
 - running, smoking, or provisioning remote GPU/TPU work on Google Colab, GCP, or AWS, or invoking `sky` or `colab` → `cloud-gpu`
+- designing, debugging, or configuring asynchronous, off-policy, or mixed-policy reinforcement learning for language models → `mixed-policy-rl`
 <!-- END generated: activity routes -->
 
 # Language tooling

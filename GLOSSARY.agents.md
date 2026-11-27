@@ -70,6 +70,7 @@ topic doc's `Governs:` line; sense rows are curated. Procedure:
 | leaf (subagent) | A depth-1 delegated agent that reports to its creator and cannot spawn; may be re-engaged across turns. | |
 | lede (topic-doc) | The `> ` blockquote lines after a topic doc's H1; the definition consumed by glossary regeneration. | [topic-doc-format](topics/topic-doc-format.md) |
 | load-bearing instruction | An instruction whose presence demonstrably steers behavior beyond a capable agent's default; others are cut candidates. | |
+| `mixed-policy-rl` | Governs: designing, debugging, or configuring asynchronous, off-policy, or mixed-policy reinforcement learning for language models | [mixed-policy-rl](topics/mixed-policy-rl.md) |
 | `on-deck` | Governs: servicing, authoring, or ratifying on-deck queue entries; tending | [on-deck](topics/on-deck.md) |
 | paper form | The governing expository lens and reader promise that controls a paper's abstract, section order, and cadence; independent of discovery value. | [successful-paper-forms](topics/successful-paper-forms.md) |
 | `paper-attractiveness` | Governs: deciding what makes a paper attractive beyond its form | [paper-attractiveness](topics/paper-attractiveness.md) |
