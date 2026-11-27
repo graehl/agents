@@ -189,3 +189,25 @@ papers:
     source: "Borrowed committed full text: surveys/tokenizer-free-span-tagging/related-work/extract/farina2023-seqlabel-distillation/html/2302.05454.md; not fetched twice"
     fetched: null
     cluster: signals
+  - key: gu2024minillm
+    title: "MiniLLM: On-Policy Distillation of Large Language Models"
+    authors: ["Yuxian Gu", "Li Dong", "Furu Wei", "Minlie Huang"]
+    venue: "ICLR 2024"
+    year: 2024
+    arxiv: "2306.08543"
+    url: "https://arxiv.org/html/2306.08543"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API metadata)"
+    cluster: generative
+  - key: ko2024distillm
+    title: "DistiLLM: Towards Streamlined Distillation for Large Language Models"
+    authors: ["Jongwoo Ko", "Sungnyun Kim", "Tianyi Chen", "Se-Young Yun"]
+    venue: "ICML 2024"
+    year: 2024
+    arxiv: "2402.03898"
+    url: "https://arxiv.org/html/2402.03898"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API metadata)"
+    cluster: generative

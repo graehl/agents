@@ -54,6 +54,16 @@ epochs without requiring independent logical-step membership. Its reported
 speed result combines semi-sorting, randomized batch order and, for the
 largest gain, dynamic batch sizes. See the digest for attribution limits.
 
+**Alternative that deletes the padding/randomness tradeoff for pure
+transformers (`krell2021packing`, arXiv:2107.02027, added 2026-11-26,
+`grounded: false`):** unpadded sequence packing with block-diagonal attention
+masks (now standard via FlashAttention `varlen` / PyTorch `FlexAttention`)
+concatenates arbitrary-length sequences into fixed-token-budget microbatches
+with zero padding and no cross-sequence contamination, eliminating length
+sorting altogether. Length-aware batching remains necessary when the model
+cannot use unpadded varlen packing cleanly (e.g., 2D-conv / strided-subsampling
+speech encoders without boundary-masked convs, or rigid static-shape runtimes).
+
 ## Weighted draws and physical packing
 
 Let row i have nonnegative configured weight w_i and normalized mass
@@ -348,3 +358,5 @@ effect of minibatch homogeneity in its English–Czech setting;
 systematic from residual/stratified resampling variance guarantees. Neither
 was full-text extracted in this pass, so neither supports a concept digest
 or a broad theorem claim here.
+
+<!-- reviewed 2026-11-26 (Neon) -->

@@ -263,6 +263,12 @@ WMT14 English–German, and GSM8K favor on-policy variants over fixed-data
 distillation, with task- and decoding-dependent choices of divergence.
 The XSum analysis also reports less diversity with more mode-seeking losses.
 That is a direct reason to measure panel variety when distilling creativity.
+Two direct neighbors (added 2026-11-26, `grounded: false`): **MiniLLM**
+(`gu2024minillm`, ICLR 2024, arXiv:2306.08543) motivates reverse KL for
+generative LLM distillation to avoid forward-KL mode-covering hallucination,
+and **DistiLLM** (`ko2024distillm`, ICML 2024, arXiv:2402.03898) introduces
+skew KL plus an adaptive off-policy/on-policy replay buffer that cuts GKD's
+student-generation overhead up to 4.3× while matching or improving quality.
 
 [On-policy context distillation](concepts/on-policy-context.md) (Ye et al.,
 2026) uses a teacher with extra context and a student without it. The student
@@ -297,6 +303,10 @@ causal influence or successful creative transfer. Compare added trace targets
 against output-only and unrelated-target controls on new briefs, retaining
 competence and creative diversity as separate outcomes.
 
+## In-training compression vs. post-hoc distillation
+
+- **Model Carving** (Zheng & Sharma, Nov 2026, [arXiv:2611.27962](https://arxiv.org/abs/2611.27962); under review at ICLR 2027): learns weights and sublayer topology in a single pretraining run by gating each **whole attention or MLP sublayer** (per loop in looped Transformers) with a scalar $g_u \ge 0$ plus DenseFormer-style learned cross-layer residual connections $c_{kj}$ ($\|\mathbf{c}_k\|_1 \le 1$). An online compute-value pressure $\pi_u(t)$ (from a power-law forecast of the run's own learning rate $v(T)$) drives low-value sublayers to $g_u=0$ via a $\ln g_u$ penalty, after which the static graph is recompiled without them and freed FLOPs buy extra tokens. At equal training FLOPs (140M–2.7B standard, 140M–1.3B 4× looped), carved models beat size-matched post-hoc pruning (Sheared-LLaMA, Minitron, ShortGPT) and forward-KL distillation from the full-depth teacher, cut inference FLOPs 8–34% (KV cache 5–31%), and decode up to 1.45× faster at equal batch / 1.61× at max batch on H100. Caveat: standard-Transformer compute multiplier is modest (~1.07× at fixed 50 tok/param vs. 1.33–1.71× for looped); most pruning happens in the first 20% of training under a scaling-law prior, and it is not yet tested on pretrained-model carving or finer-than-sublayer granularity.
+
 ## Research questions worth testing
 
 The [frontier note](frontier.md) gives a bounded proposal: use existing outcomes
@@ -310,3 +320,5 @@ the final student remains substantially behind the teacher.
 [span-head]: ../tokenizer-free-span-tagging/concepts/label-conditioned-span-classification.md
 [combination]: ../tokenizer-free-span-tagging/concepts/train-then-mask.md
 [surface]: ../shallow-surface-encoders/survey.md
+
+<!-- reviewed 2026-11-26 (Neon) -->

@@ -345,6 +345,22 @@ verified causal account of every edge in the original model. Evidence:
 
 ## Contested results
 
+**Cross-model representation interchangeability (`cheng2026-platos-key`, Hazy
+Research blog, 2026-11-25, `single-source`, no companion paper yet):** Cheng et
+al. fit a closed-form orthogonal Procrustes rotation (including reflections and
+semi-orthogonal maps across different widths) plus mean-centering and one global
+scalar scale ($\hat{z}_B = \mu_B + sR(z_A - \mu_A)$) on <5,000 shared factual
+recall keys across 12 base LLMs (1.5B–27B, 8 families). Swapping a single
+last-subject-token hidden state at validation-selected layers achieves 41%
+median transfer accuracy (vs. 55% same-model self-swap; ≤2.2% controls),
+retains 99% under A→B→C chaining and 74% in 256 PCs, and recovers 18%
+(267/1,463) of recipient "dark memories" (defined as test facts the **donor
+already recalls on a direct prompt** and the recipient misses directly but
+passes via 3-shot, paraphrase, or 50-way ranking). Scope bounds: base models
+only, 16 single-hop factual relations, single-layer swap; 82% of dark memories
+still fail, and aligning one layer's factual-key subspace does not establish
+whole-network compatibility for weight/head merging without continued training.
+
 The central disagreement is partly about the target. Native-neuron analysis
 asks what the implemented components do. Dictionary learning searches for a
 useful decomposition of their activity. Either can reveal structure the other
@@ -492,3 +508,5 @@ limitation, not evidence of no descendants. Citation counts are not reported
 where unverified, and saturation was not reached. The map is deliberately
 selective: it does not cover all attention algorithms, multimodal models,
 training-data attribution, or safety applications.
+
+<!-- reviewed 2026-11-26 (Neon) -->

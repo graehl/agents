@@ -504,3 +504,5 @@ not treat it as an automatic repair for language-dominated neighbors.
 [sift]: https://arxiv.org/html/2410.08020v3
 [ttt-repro]: https://arxiv.org/html/2511.16691v1
 [lwf]: https://arxiv.org/html/1606.09282
+
+<!-- reviewed 2026-11-26 (Neon) -->

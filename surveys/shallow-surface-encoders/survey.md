@@ -325,3 +325,5 @@ that non-codepoint-aligned byte-BPE fragments improve a clean-text model, or
 that a binary Huffman encoding of Unicode codepoints is a competitive sole
 input. Novelty confidence for the exact composition is **moderate**, not high,
 because the focused search did not reach citation saturation.
+
+<!-- reviewed 2026-11-26 (Neon) -->

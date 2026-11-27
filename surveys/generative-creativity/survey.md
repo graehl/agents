@@ -76,6 +76,16 @@ ICL would obscure whether a new rule was inferred or an existing behavior was
 elicited. For the proposal, record the exact prompt and observable state change
 rather than treating the category label as a mechanism.
 
+**Root-cause context (added 2026-11-26, `grounded: false`):** prompt-level
+diversity tricks (SSoT, VS) only poke at the surface of post-training mode
+collapse. **Kirk et al.** (`kirk2024rlhfdiversity`, ICLR 2024, arXiv:2310.06452)
+document that RLHF sharply collapses output diversity relative to SFT/base
+models, and **NoveltyBench** (`zhang2025noveltybench`, arXiv:2504.05228)
+provides the standard distinct-output benchmark showing how little ordinary
+prompting/temperature recovers compared with base-model diversity. In practice,
+VS/SSoT often yield superficial variation rather than genuine conceptual
+diversity unless paired with stronger structural or post-training interventions.
+
 ## Randomness supplied as a continuous model input
 
 [Reasoning Palette](concepts/latent-randomness.md), Long et al., December 2025,
@@ -177,3 +187,5 @@ Preserve the proposal's separate judgments of quality, conceptual diversity,
 recognizable style, and goal fit. A prompt that changes a classifier's prediction
 has not thereby improved an artifact. [Frontier questions](frontier.md) retain
 that distinction without asserting an unoccupied research area.
+
+<!-- reviewed 2026-11-26 (Neon) -->

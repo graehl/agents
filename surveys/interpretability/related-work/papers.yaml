@@ -273,3 +273,13 @@ papers:
     source: https://arxiv.org/abs/2511.08579
     verified: true
     grounded: false
+  - key: cheng2026-platos-key
+    title: "Plato's Key"
+    authors: ["Vivien Cheng", "Jerry Liu", "Morris Yau", "Chris Ré"]
+    venue: "Hazy Research Blog"
+    year: 2026
+    url: "https://hazyresearch.stanford.edu/blog/2026-11-25-platos-key"
+    grounded: false
+    verified: true
+    source: "Neon read full blog HTML 2026-11-26"
+    cluster: cross-model-alignment

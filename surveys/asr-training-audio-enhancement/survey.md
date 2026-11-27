@@ -376,3 +376,5 @@ and a codec augmentation paper for audio watermarking (arXiv 2409.13382), both
 not ASR; HiFiTTS-2 and an unified mixed-bandwidth speaker embedding (arXiv
 2012.00486), OpenAlex citers of Mantena 2019. Statements about these come from
 search summaries or citation metadata and are not grounded here.
+
+<!-- reviewed 2026-11-26 (Neon) -->

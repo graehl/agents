@@ -294,3 +294,5 @@ Reference-only anchors: Do et al., *Limplock* (SoCC 2013) and Chen et
 al., *Chronos* (IEEE S&P 2024) [R]. Their citation metadata and source links are
 kept in the manifest; no detailed result in this survey depends on an
 unretained extract.
+
+<!-- reviewed 2026-11-26 (Neon) -->

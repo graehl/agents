@@ -235,3 +235,4 @@ Macháček et al. 2023; xCOMET and CometKiwi source sensitivity;
 subtitle-oriented alignment (SubER); LLM-judge evaluation of speech
 translation.
 
+<!-- reviewed 2026-11-26 (Neon) -->

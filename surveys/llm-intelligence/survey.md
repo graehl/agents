@@ -722,3 +722,5 @@ per paper). Extracts are git-ignored and rebuilt by the shared engine:
 `related-work fetch KEY...` (arXiv HTML view preferred, marker PDF fallback
 needs a free GPU), `related-work audit` to reconcile the manifest against them,
 `related-work status` for the counts in the banner above.
+
+<!-- reviewed 2026-11-26 (Neon) -->

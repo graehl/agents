@@ -782,3 +782,5 @@ for Perplexity.
    ordinary training cannot be assumed for Qwen-style speech models.
    *Grade: single-source per study, consistent in direction across
    Hubinger, Zhan, Cui and Krčo.*
+
+<!-- reviewed 2026-11-26 (Neon) -->

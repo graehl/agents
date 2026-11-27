@@ -96,3 +96,25 @@ papers:
     source: "Primary arXiv metadata and accepted full-text extract checked 2026-09-27."
     short: shared-attention-style
     concept_page: concepts/shared-attention-style.md
+  - key: kirk2024rlhfdiversity
+    title: "Understanding the Effects of RLHF on LLM Generalisation and Diversity"
+    authors: ["Robert Kirk", "Ishita Mediratta", "Christoforos Nalmpantis", "Jelena Luketina", "Eric Hambro", "Edward Grefenstette", "Roberta Raileanu"]
+    venue: "ICLR 2024"
+    year: 2024
+    arxiv: "2310.06452"
+    url: "https://arxiv.org/html/2310.06452"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API metadata)"
+    cluster: diversity
+  - key: zhang2025noveltybench
+    title: "NoveltyBench: Evaluating Language Models for Humanlike Diversity"
+    authors: ["Yiming Zhang", "Harshita Diddee", "Susan Holm", "Hanchen Liu", "Xinyue Liu", "Vinay Samuel", "Barry Wang", "Daphne Ippolito"]
+    venue: "arXiv"
+    year: 2025
+    arxiv: "2504.05228"
+    url: "https://arxiv.org/html/2504.05228"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API metadata)"
+    cluster: diversity

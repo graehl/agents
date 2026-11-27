@@ -43,6 +43,47 @@ generation. An asynchronous API does not itself imply stale training data.
 Conversely, masking the old prefix's loss does not turn a mixed-policy
 trajectory into a fresh on-policy sample.
 
+### Tentative standard for mixed-policy RL: bounded-staleness AsyncRL + Score Centering (`StableReinforce`)
+
+When relaxing strict same-policy synchronization, **bounded-staleness AsyncRL
+with Score Centering / `StableReinforce`** is the tentative standard:
+- **Underlying open method:** **Score Centering** (Marek & Ryabinin, Sept 2026,
+  [arXiv:2609.20807](https://arxiv.org/abs/2609.20807),
+  [code](https://github.com/martin-marek/score-centering)) — shows that RL
+  instability under training–inference mismatch (TIM) and policy staleness is
+  driven by accumulating *drift*, and derives an **additive score-centering
+  correction** that cancels drift, beats pure importance sampling (IS) under
+  sampler quantization (0.6B–30B), and composes cleanly with IS under
+  staleness.
+- **Production async recipe:** Thinking Machines Lab's Tinker `AsyncConfig`
+  (`StableReinforce`, used for Inkling 2 Small): `sampling_steps_ahead` cap,
+  **no straggler dropping** (oldest completed groups consumed first—avoiding
+  the length/difficulty selection bias of deprecated `max_steps_off_policy`),
+  and token-level `sequence_id` provenance (`record_stability_info=True`).
+
+**Model-specific complications & resumability hazards:**
+- **Mixture-of-Experts (MoE):** discrete top-$k$ routing can flip between the
+  sampling engine and learner (or across stale snapshots / precision), causing
+  importance-ratio blowups and collapse; requires **Routing Replay** (saving
+  sampler expert indices alongside token provenance, as in Qwen's
+  `arXiv:2512.01374`).
+- **Recurrent / SSM / hybrid linear-attention models (Mamba, RWKV, DeltaNet,
+  Jamba):** unlike pure KV-cache Transformers where a partial rollout can be
+  resumed or migrated by copying/re-prefilling KV blocks, recurrent states are
+  compressed fixed-size tensors that cannot be spliced across policy versions
+  without full re-prefill from token 0.
+- **Looped / adaptive-depth Transformers:** halting/loop-count decisions are
+  discrete and sensitive to weight updates; mid-trajectory resumption under
+  updated weights can change loop depth on the suffix relative to the prefix.
+- **Multi-turn / tool-use / stateful-environment agents:** rollouts cannot be
+  cheaply re-prefilled or restarted if the external environment state (sandbox,
+  DB, shell) is non-idempotent; never-drop-stragglers is especially important
+  here, paired with environment snapshotting.
+- **Quantized / FP8 samplers vs. BF16 learners:** token log-prob drift from
+  quantization noise mimics off-policy staleness even at lag 0, making
+  provenance-aware divergence control (`StableReinforce` / IS correction)
+  necessary even for synchronous runs.
+
 [SGLang's prefill/decode disaggregation](https://docs.sglang.ai/backend/pd_disaggregation.html)
 already provides Mooncake/NIXL KV-transfer primitives. That reduces the
 novelty of the plumbing, but a prefill-to-decode handoff is not arbitrary
@@ -166,6 +207,16 @@ the other approaches' direction. It refits reconstructed points; it does
 not retrain Chinchilla. Exact constants remain more contestable than the
 general allocation lesson.
 
+Two major 2024–2025 pretraining-efficiency levers beyond the 2019–2023
+baselines above (added 2026-11-26, `grounded: false`): **Muon**
+(`liu2025muon`, arXiv:2502.16982) orthogonalizes 2D weight-matrix momentum via
+Newton-Schulz iterations and reports roughly 2× compute efficiency over AdamW
+at scale (with decoupled weight decay and RMS-matched update scaling, used in
+Moonlight); and **fine-grained FP8 mixed-precision training** (`deepseek2024v3`,
+arXiv:2412.19437, tile/block-wise FP8 scaling) achieves near-BF16 loss with
+1.5–2× matmul throughput on Hopper/Blackwell GPUs without the instability of
+naive per-tensor FP8.
+
 ## Finetuning and optimizer memory: fitting is not speeding up
 
 [QLoRA](https://arxiv.org/html/2305.14314v1) combines frozen 4-bit weights,
@@ -228,3 +279,5 @@ This first map does not rank all current low-precision training, distributed
 parallelism, data selection, optimizer or routing methods. Those are
 expansion areas, not negative findings. [Frontier checks](frontier.md)
 record the comparisons needed to upgrade the Seer verdict.
+
+<!-- reviewed 2026-11-26 (Neon) -->

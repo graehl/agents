@@ -135,3 +135,14 @@ papers:
     grounded: true
     fetched: 2026-09-27
     concept_page: concepts/streaming-implementations.md
+  - key: krell2021packing
+    title: "Efficient Sequence Packing without Cross-contamination: Accelerating Large Language Models without Impacting Performance"
+    authors: ["Mario Michael Krell", "Matej Kosec", "Sergio P. Perez", "Andrew Fitzgibbon"]
+    venue: "arXiv"
+    year: 2021
+    arxiv: "2107.02027"
+    url: "https://arxiv.org/html/2107.02027"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API metadata)"
+    cluster: packing

@@ -324,3 +324,5 @@ Cited by the read papers and not fetched:
 - The cross-paper gap between the CNN-BiLSTM and RoBERTa-base assumes the
   same IWSLT 2011 test set and scoring in both papers.
 - No source reports phone latency or memory for a tagger.
+
+<!-- reviewed 2026-11-26 (Neon) -->

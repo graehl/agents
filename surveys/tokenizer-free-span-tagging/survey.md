@@ -570,3 +570,5 @@ n-gram-augmented, noise-regularized, structured decode, multilingual, distilled)
 supplies the speed argument, and does **not** contain a single matched comparison
 against a fine-tuned multilingual subword tagger. Running that comparison is the
 contribution; predicting its sign from this literature is not supported.
+
+<!-- reviewed 2026-11-26 (Neon) -->

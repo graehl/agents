@@ -248,3 +248,5 @@ closest small MoE papers benchmark earlier encoder–decoders. The prompted
 MT search included domain tags, attribute preference tuning, lexical
 constraints and translation memory, and found limits in unseen instruction
 combinations and harder formality tests.
+
+<!-- reviewed 2026-11-26 (Neon) -->

@@ -262,6 +262,11 @@ rates, so its dollar cost is small. Its context-pressure cost is not (§H).
 - Multi-harness RL learns harness identity rather than portable skill
   (`le2026multiharnessrl`); native-harness RL moves one base model 6.8
   points apart across harnesses before training (`du2026legorl`).
+- Counterweight on co-evolution: alternating harness-proposal and policy RL
+  (Self-HPO) lifts Qwen3.5-35B-A3B from 57.8% to 64.8% across three coding
+  benchmarks, with joint gains exceeding the sum of individual gains and both
+  components retaining gains when paired with base counterparts
+  (`wei2026selfhpo`, abstract-read 2026-11-26).
 
 Grade: benchmark-reported. No study tests the mechanism on a vendor
 frontier model.
@@ -399,6 +404,24 @@ over-delegation correction.
   violations from 0% to 30%; pinning about 47 tokens restores 0%
   (`chen2026governancedecay`). This is directly relevant to instruction-file
   rules surviving compaction.
+- **Compaction damage is large and uneven (`sun2026compactbench`, abstract-read
+  2026-11-26):** pairing full-history against summary-only continuations from a
+  shared repo state (35 SWE-bench repairs, 146 sessions, 106 production chains),
+  stable repair damage ranges from 5–64% across 14 summarizers. LLM summaries
+  retain at most 16.0% of recurring details versus 79.1% for mechanical
+  extraction (production summaries: 15.7% at the first boundary), sharpening the
+  case for mechanical masking/extraction over free-form LLM summarization.
+- **Formal bound (`tirmazi2026compactiontheory`, abstract-read 2026-11-26):**
+  reduces generative compaction to one-way communication complexity and
+  selection-based compaction to a restricted subclass, proving generative
+  compaction strictly beats selection on some query classes even though current
+  LLM summarizers underperform mechanical extraction in practice.
+- **Move recurring control from context to code (`li2026growingharness`,
+  abstract-read 2026-11-26):** compiling recurring control and error-recovery
+  logic from execution traces into persistent harness code cuts LLM calls
+  76.0–91.8% and deployed inference cost 74.4–98.6% on BrowseComp-Plus and
+  WebArena-Verified (4B–120B models), keeping 4B models at 44.7–45.3% where
+  tool-calling drops to 6.7%.
 
 Grades: benchmark-reported except the last (single-source).
 
@@ -508,3 +531,5 @@ correction.
 - Rerun the Copilot quota-blocked probe.
 
 Voids and candidate experiments are in [frontier.md](frontier.md).
+
+<!-- reviewed 2026-11-26 (Neon) -->

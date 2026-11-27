@@ -623,3 +623,5 @@ abstract level. Its search trail and remaining Arabic validation are recorded
 in that concept note.
 
 This is a practical map, not an exhaustive inventory of corpora.
+
+<!-- reviewed 2026-11-26 (Neon) -->

@@ -147,3 +147,25 @@ papers:
     grounded: true
     fetched: 2026-10-10
     cluster: compute-allocation
+  - key: liu2025muon
+    title: "Muon is Scalable for LLM Training"
+    authors: ["Jingyuan Liu", "Jianlin Su", "Xingcheng Yao", "Zhejun Jiang", "Guokun Lai", "Yulun Du"]
+    venue: "arXiv"
+    year: 2025
+    arxiv: "2502.16982"
+    url: "https://arxiv.org/html/2502.16982"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API metadata)"
+    cluster: pretraining
+  - key: deepseek2024v3
+    title: "DeepSeek-V3 Technical Report"
+    authors: ["DeepSeek-AI"]
+    venue: "arXiv"
+    year: 2024
+    arxiv: "2412.19437"
+    url: "https://arxiv.org/html/2412.19437"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API metadata)"
+    cluster: pretraining

@@ -558,3 +558,5 @@ Concept pages: [test selection](concepts/test-selection.md),
 ## Open questions
 
 The void map and falsification records are in [frontier.md](frontier.md).
+
+<!-- reviewed 2026-11-26 (Neon) -->

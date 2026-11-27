@@ -262,3 +262,25 @@ papers:
     source: "ACL Anthology metadata checked 2026-08-22"
     fetched: 2026-08-22
     cluster: D
+  - key: defazio2024schedulefree
+    title: "The Road Less Scheduled"
+    authors: ["Aaron Defazio", "Xingyu Alice Yang", "Harsh Mehta", "Konstantin Mishchenko", "Ahmed Khaled", "Ashok Cutkosky"]
+    venue: "NeurIPS 2024"
+    year: 2024
+    arxiv: "2405.15682"
+    url: "https://arxiv.org/html/2405.15682"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API metadata)"
+    cluster: A
+  - key: hagele2024wsd
+    title: "Scaling Laws and Compute-Optimal Training Beyond Fixed Training Durations"
+    authors: ["Alexander Hägele", "Elie Bakouch", "Atli Kosson", "Loubna Ben Allal", "Leandro Von Werra", "Martin Jaggi"]
+    venue: "NeurIPS 2024"
+    year: 2024
+    arxiv: "2405.18392"
+    url: "https://arxiv.org/html/2405.18392"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API metadata)"
+    cluster: A

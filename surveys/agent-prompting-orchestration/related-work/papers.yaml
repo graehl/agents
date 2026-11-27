@@ -385,3 +385,47 @@ papers:
       Extends RHI's task-specific textual workflow search with supervised
       fine-tuning on selected orchestrator/subagent trajectories. Evaluation
       and relation to the instruction-ablation proposal: concepts/mass.md.
+  - key: mohammadabadi2026pace
+    title: "PACE: More Agents, More Samples, or More Thinking? Untangling Coordination, Ensembling, and Test-Time Compute in Multi-Agent LLMs"
+    authors: ["Seyed Mahmoud Sajjadi Mohammadabadi"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2611.17610"
+    url: "https://arxiv.org/html/2611.17610"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API abstract read)"
+    cluster: C
+  - key: deng2026reskill
+    title: "RESKILL: Explicit Failure Attribution and Structured Repair for Interactive Language Agents"
+    authors: ["Mengyi Deng", "Xin Li", "Duyi Pan", "Zilin Wang", "Zhiwei Li", "Zhijiang Guo", "Wei Wang"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2609.15684"
+    url: "https://arxiv.org/html/2609.15684"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API abstract read)"
+    cluster: F
+  - key: li2026growingharness
+    title: "Grow the Harness, Not the Context: From Strategy-Free Scaffolds to Reusable Specialist Agents"
+    authors: ["Laizhen Li", "Jiarui Li", "Juanjuan Zhao", "Kejiang Ye", "Ye Li", "Cheng-zhong Xu", "Xitong Gao"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2609.26760"
+    url: "https://arxiv.org/html/2609.26760"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API abstract read)"
+    cluster: J
+  - key: wei2026selfhpo
+    title: "Self-Evolving Coding Agents via Harness-Policy Optimization"
+    authors: ["Zhepei Wei", "Wenlin Yao", "Baolin Peng", "Danqing Wang", "Qianhui Wu", "Hao Cheng", "Yu Meng", "Jianfeng Gao"]
+    venue: "arXiv"
+    year: 2026
+    arxiv: "2610.22791"
+    url: "https://arxiv.org/html/2610.22791"
+    grounded: false
+    verified: true
+    source: "Neon review pass 2026-11-26 (arXiv API abstract read)"
+    cluster: J

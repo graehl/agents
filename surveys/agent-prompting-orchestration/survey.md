@@ -128,9 +128,14 @@ one answer. Problem addressed: single-sample unreliability.
   applies to any specific number).
 - **C2 Multi-agent debate** (Du et al., ~2023; MAD and successors; includes
   heterogeneous cross-model debate): agents exchange answers and revise
-  toward consensus. Grade: `contested`-shaped in the literature, recorded
-  here as `single-source` per recall cap — several later papers report
-  debate ≈ self-consistency at matched compute (see *Contested results*).
+  toward consensus. **PACE** (`mohammadabadi2026pace`, arXiv 2611.17610,
+  abstract-read 2026-11-26) audits 9 published multi-agent studies under
+  resource parity: 53 of 123 paired contrasts that beat a greedy pass become
+  nonpositive against a sampled baseline (mean difference −0.042 vs. sampled
+  or budget-matched baselines), and in a controlled MMLU-Pro test neither
+  debate (−0.015) nor mixture-of-agents clears the equal-token
+  self-consistency frontier. Grade: `single-source` (meta-audit + controlled
+  experiment).
 - **C3 Judge panels / mixture-of-agents:** aggregate via a judge or layered
   synthesis rather than voting. Grade: `single-source` (recall).
 
@@ -169,6 +174,13 @@ Read 2026-08-15 (prompted arXiv-HTML extraction; keys in
   `skilltriage2026`): contrastive target-vs-reference trajectories on one
   system (OpenCode + Claude Opus 4.6); attribution at skill-module
   granularity, 88.8% subcategory accuracy; classification only, no repair.
+- **RESKILL** (arXiv 2609.15684, `deng2026reskill`, abstract-read 2026-11-26):
+  closes the repair gap next to SkillTriage for interactive agents by
+  maintaining an explicit repair state linking failure hypotheses to candidate
+  skill patches, selecting local repairs by coverage-based attribution, and
+  conditioning later rounds on unsuccessful retests (+3.7 pp over direct
+  repair, +3.3 pp over hypothesis-conditioned repair on ALFWorld/TextCraft).
+  Single-system failure signal, no cross-model divergence.
 - **Black-box forensics** (arXiv 2606.22698, `agentforensics2026`):
   attributes which system prompt / base model powers an endpoint from
   conversations alone; prompts are opaque classification units — no
@@ -317,10 +329,16 @@ J searches from scores).
     (2606.28374; abstract only, `[R]`): accepts only changes that pass a
     held-out gate — the separate-selection-split remedy RRSI cites
     (Dwork et al. reusable holdout) but does not implement.
+  - **Growing Harness** (`li2026growingharness`, arXiv 2609.26760,
+    abstract-read 2026-11-26): trace-localized edits, joint failure-window
+    repair, and a success-first held-out rollback gate compile recurring
+    control out of LLM context into persistent executable harness code,
+    cutting LLM calls 76–92% and inference cost 74–99% across 4B–120B models
+    on BrowseComp-Plus and WebArena-Verified.
   Grade: `single-source` each; no method has been evaluated by another
   group.
 
-- **J4 Workflow search followed by weight adaptation.** MASS
+- **J4 Workflow/harness search followed by weight adaptation.** MASS
   ([full appendix report](concepts/mass.md); `lee2026mass`, 2610.12176v1)
   extends RHI with SFT on selected orchestrator/worker traces: 119 episodes
   from eight distinct tasks, then a second cycle. Its fixed collection
@@ -333,7 +351,12 @@ J searches from scores).
   seed. Appendix G.3 records a simulator revision that weakens task meaning
   yet wins 5/6 judgments. Public SWE-bench Verified scores decline
   62.6→61.1 over two cycles (500 scheduled tasks × three trials), while
-  research gains often accompany higher deliverable completion. Grade:
+  research gains often accompany higher deliverable completion. **Self-HPO**
+  (`wei2026selfhpo`, arXiv 2610.22791, abstract-read 2026-11-26) is the
+  RL-backed counterweight: alternating harness-proposal (H-step) and policy
+  RL (P-step) on hard training tasks lifts Qwen3.5-35B-A3B from 57.8% to
+  64.8% across three coding benchmarks with super-additive joint gains that
+  retain benefit when paired with base counterparts. Grade:
   `single-source`; public scores `benchmark-reported`. Design consequence:
   measure frozen instruction value separately from lucky-output selection,
   generic prompting, training-data composition, and changed weights.
@@ -351,10 +374,11 @@ fitting pass them by construction.
 
 ## Contested results
 
-- **Debate vs matched-compute sampling:** multiple post-2023 papers report
-  multi-agent debate failing to beat self-consistency at equal token budget;
-  axis of disagreement: compute matching and answer-extraction protocol.
-  (Recall; needs grounded pass to name papers.)
+- **Debate vs matched-compute sampling:** PACE (`mohammadabadi2026pace`,
+  arXiv 2611.17610) audits 9 multi-agent studies and finds 53/123 greedy-beating
+  contrasts turn nonpositive against sampled baselines (mean −0.042), and
+  debate/MoA fail to clear equal-token self-consistency on MMLU-Pro. Axis of
+  disagreement: compute matching and answer-extraction protocol.
 - **Prompt-optimizer margins vs baseline strength:** reported gains for
   optimizers (B1–B3) shrink against strong hand-tuned or few-shot baselines;
   axis: baseline effort budget. (Recall.)
@@ -466,3 +490,5 @@ general web search; prompted arXiv-HTML reads):
 Still not checked: forward citations of Arbiter, Instruction Bleed, and
 One Recipe; debate-survey reference lists; systematic non-arXiv
 industrial write-ups.
+
+<!-- reviewed 2026-11-26 (Neon) -->

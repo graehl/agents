@@ -181,6 +181,29 @@ Detail and sources: [concepts/lm-aware-training.md](concepts/lm-aware-training.m
 - **Applicability:** MWER-style training applies to every decoder type;
   architectural fusion needs a decoder (transducer or AED), so not CTC.
   No located paper trains CTC with a fused character LM in the loop.
+  **Training-time linguistic regularization for CTC (`altinok2025-lail`,
+  arXiv:2506.22846, full-text read 2026-11-26):** LAIL attaches connector
+  layers from intermediate CTC encoder layers into a frozen LLM's embedding
+  space and applies a causal LM auxiliary loss during training, reporting
+  Conformer-CTC WER gains on LibriSpeech, TEDLIUM2, and WSJ with zero
+  inference overhead (tested with LLaMA on English rather than low-resource
+  character LMs). *Conditional rejection in our setting (2026-11-26):* in a
+  matched 600-update continuation of a converged Sinhala 1B CTC recognizer,
+  both causal (`gemma-3-1b-pt`, $\lambda=0.2$, 1.18× step time) and
+  bidirectional MLM (`xlm-roberta-large`, $\lambda=0.05$, 0.91×) LAIL
+  regressed on held-out read (+0.26 ER2 greedy, p=.0066/.014; +0.20/+0.29
+  after character-LSTM fusion) and conversational (+0.37 greedy causal,
+  p=.014) test sets without closing the greedy-to-fused gap. Failure
+  condition: cold-start connector gradient shock into a converged encoder
+  plus auxiliary loss-scale dominance. A follow-up with a 150-step
+  frozen-encoder connector warm-start and 150-step linear weight/LR ramp
+  ($\lambda=0.10$, `schedule_free_adamw`, dynamic ≥20 s concat) eliminated
+  the shock, yielded strictly monotonic validation loss, and improved over
+  its matched control directionally (−0.16 read greedy, p=.079; −0.27
+  conversational +LSTM, p=.072), but still only tied/trailed the converged
+  starting checkpoint. Recovery condition if revisited: apply warm-started
+  LAIL during initial fine-tuning from base pretrained weights rather than
+  late-stage continuation of an already-converged student.
 - **Decision it changes:** for CTC, start with decode-time correction;
   treat LM-aware MWER as a frontier experiment. For Zipformer and the AED,
   LM-aware MWER is a measured fine-tuning stage.
@@ -344,3 +367,5 @@ worth an arm only if arm 4 shows attention helps at small scale.
   extraction.
 - **Bibliography:** every cited paper, with venue, identifier and read
   status, is in [related-work/papers.yaml](related-work/papers.yaml).
+
+<!-- reviewed 2026-11-26 (Neon) -->

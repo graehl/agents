@@ -1166,3 +1166,73 @@ papers:
   verified: true
   source: track A leaf-worker read 2026-09-30
   cluster: I
+- key: li2026growingharness
+  title: 'Grow the Harness, Not the Context: From Strategy-Free Scaffolds to Reusable
+    Specialist Agents'
+  authors:
+  - Laizhen Li
+  - Jiarui Li
+  - Juanjuan Zhao
+  - Kejiang Ye
+  - Ye Li
+  - Cheng-zhong Xu
+  - Xitong Gao
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2609.26760'
+  url: https://arxiv.org/html/2609.26760
+  grounded: false
+  verified: true
+  source: Neon review pass 2026-11-26 (arXiv API abstract read)
+  cluster: G
+- key: sun2026compactbench
+  title: 'Compact-Bench: Measuring What Context Compaction Costs Long-Horizon Coding
+    Agents'
+  authors:
+  - Ruopei Sun
+  - Jianfeng Cai
+  - Kangwen Zhao
+  - Wengang Zhou
+  - Houqiang Li
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2610.31710'
+  url: https://arxiv.org/html/2610.31710
+  grounded: false
+  verified: true
+  source: Neon review pass 2026-11-26 (arXiv API abstract read)
+  cluster: G
+- key: tirmazi2026compactiontheory
+  title: Context Compaction Theory
+  authors:
+  - Hayder Tirmazi
+  - Sam Markelon
+  - Allison Bishop
+  - Michael Mitzenmacher
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2608.01326'
+  url: https://arxiv.org/html/2608.01326
+  grounded: false
+  verified: true
+  source: Neon review pass 2026-11-26 (arXiv API abstract read)
+  cluster: G
+- key: wei2026selfhpo
+  title: Self-Evolving Coding Agents via Harness-Policy Optimization
+  authors:
+  - Zhepei Wei
+  - Wenlin Yao
+  - Baolin Peng
+  - Danqing Wang
+  - Qianhui Wu
+  - Hao Cheng
+  - Yu Meng
+  - Jianfeng Gao
+  venue: arXiv preprint
+  year: 2026
+  arxiv: '2610.22791'
+  url: https://arxiv.org/html/2610.22791
+  grounded: false
+  verified: true
+  source: Neon review pass 2026-11-26 (arXiv API abstract read)
+  cluster: D

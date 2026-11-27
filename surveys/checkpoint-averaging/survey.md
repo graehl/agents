@@ -258,8 +258,17 @@ establish transfer to a fresh domain.
   pretraining study; the 2025 multi-workload benchmark did not find high
   learning rates inherently beneficial across its tuned settings.
 - Weight averaging can mimic a shorter learning-rate decay and expose a good
-  model earlier, but broad benchmarking finds it does not generally replace a
-  well-tuned decay-to-zero schedule.
+  model earlier, but broad benchmarking finds post-hoc averaging alone does not
+  generally replace a well-tuned decay-to-zero schedule. Two important
+  counterweights from 2024 (added 2026-11-26, `grounded: false`):
+  **Schedule-Free AdamW/SGD** (`defazio2024schedulefree`, arXiv:2405.15682,
+  NeurIPS 2024) integrates primal iterate averaging directly into the optimizer
+  update so gradients are evaluated at the interpolated point, replacing LR
+  decay schedules and winning the AlgoPerf 2024 self-tuning track; and
+  **Hägele et al.** (`hagele2024wsd`, arXiv:2405.18392, NeurIPS 2024) show that
+  during the constant-LR phase of warmup-stable-decay (WSD), SWA/weight
+  averaging closely tracks a short cooldown, giving anytime checkpoints without
+  committing to a decay horizon.
 
 ## Negative and quiet results
 
@@ -305,3 +314,5 @@ average if it merely changes the fourth decimal place.
 | C | [pretrained interpolation](concepts/pretrained-interpolation.md) | pretrain-to-fine-tune interpolation trades adaptation and OOD retention |
 | C | [divergent merging](concepts/divergent-merging.md) | Fisher weighting and permutation alignment belong to harder regimes |
 | D | [paired resampling](concepts/paired-resampling.md) | paired bootstrap supports complex F1; domain shift remains outside the test |
+
+<!-- reviewed 2026-11-26 (Neon) -->

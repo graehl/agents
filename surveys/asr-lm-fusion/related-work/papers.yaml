@@ -522,3 +522,13 @@ papers:
     read: not read (PDF-only); claims cited only from a web-search snippet
     fetched: null
     cluster: data-scale
+  - key: altinok2025-lail
+    title: 'Boosting CTC-Based ASR Using LLM-Based Intermediate Loss Regularization'
+    authors: ['Duygu Altinok']
+    venue: arXiv preprint
+    year: 2025
+    arxiv: '2506.22846'
+    verified: true
+    grounded: false
+    source: 'Neon review pass 2026-11-26 (arXiv API abstract read)'
+    cluster: lm-aware-training
