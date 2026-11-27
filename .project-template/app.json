@@ -16,7 +16,8 @@
         "--pages",
         "project-templates/bases/program-view/files/program_view.py:pages",
         "--pages-max-age",
-        "300"
+        "300",
+        "--rebuild"
       ],
       "portEnv": "PORT"
     },
