@@ -481,15 +481,6 @@ temporarily failed edit tool. Solve the gate/tool error directly; if impossible,
 state the execution limitation once and stop. Shell transforms remain correct
 for genuine bulk codemods/formatters, not disguised targeted edits.
 
-## Author long content in sections
-
-When writing a long new document or a large rewrite, put at most roughly
-1–2k tokens of content in each tool call: write a skeleton or first section,
-then append or patch one section per call. Tool-call input is invisible to the
-user until the call completes, and a user message arriving meanwhile can
-discard it; one multi-document call leaves minutes of apparent inactivity and
-loses everything to a single interruption.
-
 # Commits
 
 Aim for a subject of at most 65 characters. Manually wrap body prose to 71
