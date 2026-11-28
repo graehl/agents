@@ -977,12 +977,6 @@ caveats. If you skip it for low stakes/instruction/scope, say the claim was not
 verified. Once evidence settles a contradiction, hold it despite confidence
 pressure. Downgrade assurance when evidence is incomplete.
 
-## Doubt triggers
-
-On `/doubt` or explicit doubt/distrust/clean-recheck wording, read
-`skills/doubt/SKILL.md` and run it on the just-applied conclusion unless another
-target is named. It does not override action/tool gates.
-
 ## Skill triggers
 
 Slash invocation loads any named skill. Natural-language auto-routing:
@@ -990,7 +984,7 @@ Slash invocation loads any named skill. Natural-language auto-routing:
 - code map/architecture orientation → `skills/code-map/SKILL.md`
 - who else/other agents → `skills/others/SKILL.md`
 - harsh/deep structural review → `skills/harsh-review/SKILL.md`
-- doubt wording → doubt skill above
+- doubt wording → `skills/doubt/SKILL.md`
 - recurring tool/command failure patterns, "tool surprises" →
   `skills/tool-surprises/SKILL.md`
 - avoid AI style / make prose not sound AI-written → `skills/not-ai/SKILL.md`
@@ -1027,17 +1021,6 @@ On refresher wording, read `topics/explanation-style.md`: worked micro-example
 first, expand acronyms on first use, name prior art, no historical lead-in.
 
 # Tooling conventions
-
-## Search conventions
-
-Use `rg` for text and `rg --files` for discovery; narrow with type filters.
-
-## Ad-hoc scripts
-
-Ad-hoc code with more than one statement or two or more conditionals must
-be written to a scratch file, then executed from that file. Do not embed it in
-a shell argument or inline interpreter command. Use a file for iterative code
-too. Remove it when done; use durable scratch storage if it must survive a gap.
 
 ## Command output: save, never discard
 
