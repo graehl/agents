@@ -41,9 +41,18 @@ claim](ui-verification.md) (rendered sizes should come from the ramp).
 **Weight, not just size, for hierarchy.** A typeface's **weight** is the
 stroke-thickness axis (400 regular, 500 medium, 700 bold). Build hierarchy
 from a few weights plus the scale — two or three weights is usually
-enough — rather than from many sizes or from color alone. Avoid
-*faux-bold*: if a weight isn't loaded, the browser synthesizes a smeared
-approximation; load the real weight or don't use it.
+enough — rather than from many sizes or from color alone; differentiate
+subheadings, buttons, and labels via weight, family, and color before
+inventing intermediate sizes. Keep body paragraphs and body bullet/numbered
+lists at one consistent body scale (do not inflate a `.lead` paragraph or
+shrink body lists to caption size), and use **sentence case** for UI labels
+and table headers rather than tracked-out ALL CAPS. Avoid *faux-bold*: if a
+weight isn't loaded, the browser synthesizes a smeared approximation; load
+the real weight or don't use it.
+
+**Tabular numerals.** For prices, counts, timers, and aligned numeric columns,
+use `font-variant-numeric: tabular-nums` on the body font instead of adding a
+third monospace family (outside code, documentation, or terminal tools).
 
 **x-height and optical sizing.** Two faces at the same nominal size can
 look very different because **x-height** (the height of a lowercase "x")
@@ -152,6 +161,33 @@ group's contracts, so it drifts the moment the group reflows. "Put this next
 to that" is a request to *join the representation*, not to position a sibling
 in adjacent screen space; the latter is the layout face of
 [`software-aesthetic`](software-aesthetic.md) § Structure.
+
+## Avoid decorative chrome and AI-default clutter
+
+Models default to decorative scaffolding that adds visual noise without
+aiding comprehension. Reject these unless the brief explicitly asks for them:
+
+- **No hero banners on content or tool formats.** Dashboards, operator tools,
+  docs, news front pages, blogs, directories, and resumes open directly into
+  live content or the workspace — never behind a `100vh` marketing hero.
+  (For brand/marketing surfaces where a hero is earned, see
+  [`ui-quality`](ui-quality.md) §1.)
+- **No pre-heading eyebrows, decorative chips, or hero spec strips.** Start
+  sections directly with `<h1>`/`<h2>` — no `.eyebrow`/`.kicker` ALL-CAPS
+  lines, no decorative non-interactive pills, chips, or badges (rounded or
+  bordered) above headings, over images, or inside cards, and no 3–4 column
+  KPI/metadata strips tacked onto a hero. Convey metadata with plain
+  typographic hierarchy; reserve bordered or capsule shapes for interactive
+  controls or genuine semantic status cells.
+- **No decorative numbering or fake telemetry.** Omit `01`/`02`/`[ 01 / 04 ]`/
+  Roman heading prefixes unless steps are a real sequence, and omit synthetic
+  `"LIVE"` dots, `"SCROLL"` cues, or rotated edge text.
+- **No button walls or nested card cages.** Give content sections at most one
+  primary CTA unless the workflow genuinely requires two distinct actions.
+  Use segmented controls, tabs, radios, switches, or `<select>` for
+  mode/filter/size choices instead of clusters of bordered buttons. Group
+  related content with whitespace, `1px` dividers, or surface tint rather
+  than bordered cards nested inside cards.
 
 ## Responsive — adapt to the viewport
 
@@ -351,8 +387,10 @@ layout change *should* be animated (an item moving, a panel opening), use
 transform to visually put it back, then *play* by animating the transform
 to identity. Because it animates only `transform`/`opacity` (compositor
 properties, not layout-triggering ones), it is smooth and doesn't itself
-cause shift. Gate all non-essential motion behind `prefers-reduced-motion:
-reduce` (WCAG 2.3.3) — large motion triggers vestibular symptoms in a
+cause shift. Keep interactive transitions brisk (`140–240ms`, ease-out), name
+explicit properties (`transform`, `opacity`, `clip-path`) — never
+`transition: all` / `transition-all` — and avoid idle bobbing loops. Gate all
+non-essential motion behind `prefers-reduced-motion: reduce` (WCAG 2.3.3) — large motion triggers vestibular symptoms in a
 substantial population; provide a reduced alternative (a cross-fade instead
 of a big translate), don't just delete the feedback.
 

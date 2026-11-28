@@ -8,15 +8,14 @@
 Topic: ui-quality
 Governs: starting UI work in a project
 
-This is the tutorial entry point for UI work in the project, written for a
-reader who is comfortable with code but a relative novice at layout, type,
-and visual design. It lays out three concerns at a basic level and links to
-a deeper doc for each:
+This is the entry point for UI work in a project. It frames three concerns
+and links to the binding subtopic for each:
 
 - **Design language** — [`functional-layout`](functional-layout.md): how to
   lay out a screen so it is legible, understood, responsive, and stable.
-- **Verification** — [`ui-verification`](ui-verification.md): how to check
-  that a UI is actually correct, since the markup almost never tells you.
+- **Verification** — [`ui-verification`](ui-verification.md) and
+  [`ui-testing`](ui-testing.md): how to check that a UI is actually correct,
+  since the markup almost never tells you.
 - **Theming** — [`theming`](theming.md): how to offer cosmetic variants
   (dark mode, brand skins) without disturbing the first two.
 
@@ -25,255 +24,122 @@ and theming must not break the design or invalidate the verification.
 
 ## Why an agent (or anyone) gets UI wrong
 
-The central trap is treating the **markup as the UI**. The HTML/DOM, or the
-accessibility tree built from it, describes *structure and meaning*: a
-button named "Send" exists, is enabled, and comes after the text field. It
-says nothing about whether that button is 12 px tall and unreadable,
-overlaps the field, sits at 2:1 contrast, jumps three lines down when the
-window narrows, or gives no visible feedback when pressed. Those are
-*pixel* facts, and they are exactly the facts that make a UI feel broken.
+The central trap is treating **markup or the accessibility tree as the UI**.
+The DOM/a11y tree describes *structure and meaning* (role, name, state), not
+*pixel* facts — size, weight, spacing, contrast, overlap, clipping,
+truncation, or press feedback. Because browser automation defaults to cheap
+a11y-tree snapshots, an agent that reasons only over snapshots will
+confidently approve a UI it has never *seen*.
 
-This split is not academic. The dominant way agents drive a browser in
-2025–2026 (the Playwright "MCP" server) defaults to an **accessibility-tree
-snapshot** — a few kilobytes of structured `role / name / state` data —
-because a screenshot is 10–100× larger and slower to process, and vision is
-only a fallback "when you need pixel-level verification." So the cheap,
-default path is structurally blind to most visual defects. An agent that
-reasons only over that path will confidently approve a UI it has never
-*seen*.
-
-The corrective stance, developed in [`ui-verification`](ui-verification.md):
+The corrective stance (developed in [`ui-verification`](ui-verification.md)):
 
 - **Query the tree** for structure — presence, role, name, state, value,
-  focus order. Cheap, deterministic, robust to restyling.
-- **Render and look** for appearance and space — at a *matrix* of viewport
-  sizes — for size, weight, spacing, contrast, overlap, clipping,
-  truncation, and centering. These do not exist in the tree.
-- **Exercise** behavior with realistic event sequences — hover, click,
-  long-press, type-then-Enter, drag-resize — because state transitions and
-  their feedback are invisible to a static snapshot.
-
-A reader who internalizes only one thing should internalize this: *the
-representation you test against decides which bugs you can possibly find.*
+  focus order.
+- **Render and look** across a *matrix* of viewport sizes for appearance and
+  space.
+- **Exercise** realistic event sequences (hover, click, long-press,
+  type-then-Enter, drag-resize) for state transitions and feedback.
 
 ## 1. Design language: functional, not trendy
 
-The goal is a layout that is **legible** (easy to read), **understood**
-(works the way users already expect), **responsive** (adapts to the
-viewport), and **stable** (does not jump around). None of that requires
-fashion; it requires a small number of durable principles. Full treatment
-in [`functional-layout`](functional-layout.md); the basics:
+Full contract in [`functional-layout`](functional-layout.md):
 
-**Legible — typography.** Four levers decide whether body text reads well
-(Butterick): point size (≈15–25 px on the web), line spacing / *leading*
-(≈120–145% of size), line length / *measure*, and the typeface itself. The
-single most cited number is the **measure**: 45–75 characters per line,
-~66 ideal for a single column (Bringhurst). Too long and the eye loses the
-next line's start; too short and rhythm breaks. Establish a **type scale**
-(a small ramp of sizes) and a clear weight hierarchy rather than many
-ad-hoc sizes.
+- **Legible** — modular type scale, hierarchy via weight/color rather than
+  ad-hoc sizes, consistent body/list scale, sentence-case UI labels,
+  `tabular-nums` for aligned numbers, leading ≈ 120–145%, measure ≈ 45–75
+  chars (~66 ideal).
+- **Understood** — visible signifiers and feedback (Norman), convention over
+  novelty (Jakob's Law), visual grouping backed by code structure, and no
+  decorative chrome (eyebrows, non-interactive chips/badges, button walls,
+  nested card cages, fake telemetry).
+- **Responsive** — fluid/intrinsic layout (`Grid`/`Flexbox`, `clamp()`,
+  `@container`) before breakpoints; measured allocators for conditional
+  toolbars.
+- **Stable** — no layout shift (CLS < 0.1), anchored scroll (bottom for
+  chat/logs, top for reading) across loads and drag-resizes, brisk explicit
+  compositor transitions (never `transition: all`), and
+  `prefers-reduced-motion` honored.
 
-Traditional typography advice (Bringhurst, Butterick) was written for
-print and wide desktop reading; on a screen it is **always compromised**
-toward the overriding constraints of human context and small-screen
-efficiency. Allow cramping when the alternative is forcing the user to
-scroll past every paragraph: tighter leading, narrower measure, smaller
-type, and denser spacing are the correct response on phone-sized
-viewports and information-dense panes (logs, tables, TUIs, side rails).
-The textbook numbers are a *reference* — not a budget to defend at the
-cost of fitting the content on the screen the user actually has.
-
-**Understood — convention and signifiers.** Don Norman's distinction is the
-core idea: an *affordance* is what an element can do; a *signifier* is the
-visible cue that tells the user it can (the button looks pressable, the
-link looks clickable). Most "intuitive" design is just **convention** —
-Jakob's Law: users spend nearly all their time on *other* sites, so they
-expect yours to work like those. Steve Krug's "Don't Make Me Think" and
-Dieter Rams' "as little design as possible" point the same way: remove the
-need for thought rather than decorating it.
-
-**Responsive — adapt to the viewport.** Prefer fluid, intrinsic layout (CSS
-Grid/Flexbox, `clamp()` for fluid type, container queries) over a few
-hard-coded breakpoints. The layout should degrade gracefully from a wide
-desktop to a narrow phone without horizontal scrolling or clipping.
-
-**Stable — no jitter.** Two named failure modes: content that *shifts* as
-images/fonts/async data load (measured by **CLS**, Cumulative Layout Shift,
-a Core Web Vital), and scroll position that *jumps* when content is
-inserted above the viewport or when the window is drag-resized. The browser
-primitive for the second is **scroll anchoring** (`overflow-anchor`). Two
-common anchoring intents:
-
-- **Bottom-anchored** (chat, logs): new content appends at the bottom and
-  the view stays pinned there *unless the user has scrolled up*.
-- **Top-anchored** (articles, long scroll): the user's current reading
-  position is preserved; content loading above must not push it down.
-
-Motion, when used, should preserve the user's focal point (the FLIP
-technique animates from first to last position smoothly) and must honor
-`prefers-reduced-motion` — large motion triggers vestibular symptoms in a
-substantial population (WCAG 2.3.3).
+**Small-screen and density tradeoff.** Textbook typography numbers
+(Bringhurst, Butterick) are a wide-screen *reference*, not a budget to defend
+at the cost of fitting the user's screen. On phone viewports and
+information-dense panes (logs, tables, TUIs, side rails), tighter leading,
+narrower measure, smaller type, and denser spacing are the right choice over
+forcing constant scrolling.
 
 **Functional by default, distinctive when distinctiveness is the job.**
-The "functional, not trendy" stance above is the *default* regime — it is
-right for operator tools, dense data views, logs, config, and anything a
-returning user drives many times a day, where convention is a feature and a
-bold aesthetic is friction. A second regime exists: **brand surfaces** —
-marketing pages, landing pages, editorial/launch content — where being
-memorable *is* the function and defaulting to convention is the failure.
-There, the move is to commit to one clear aesthetic direction and execute it
-precisely (refined-minimal and maximal both work; intentionality, not
-intensity, is the lever), and to avoid the generic-AI defaults that signal
-"no one chose this": the system/utility fonts (Inter, Roboto, Arial), the
-cliché color schemes (notably purple gradients on white), and the handful of
-"distinctive" choices that everyone converges on anyway (Space Grotesk).
-Match code complexity to the vision — maximalism earns elaborate
-animation/effects; restraint earns precision in spacing and type. The two
-regimes share every §2 verification threshold (contrast, target size,
-motion, stability); distinctiveness never buys an exemption from those.
+The "functional, not trendy" stance is the *default* regime — right for
+operator tools, dense data views, logs, docs, config, and anything a
+returning user drives daily, where convention is a feature, a bold aesthetic
+is friction, and the page opens directly into live content rather than a
+hero banner. A second regime exists: **brand surfaces** — marketing pages,
+landing pages, portfolios, editorial/launch content — where being memorable
+*is* the function and defaulting to convention is the failure. There:
+
+- Commit to one clear aesthetic direction drawn from the subject's real
+  materials and audience, and sustain it below the fold rather than dropping
+  into generic three-column card rows.
+- Avoid generic-AI defaults that signal an unmade choice: system/utility
+  fonts (Inter, Roboto, Arial), converged "distinctive" picks (Space
+  Grotesk), and cliché palettes — purple gradients on white, dark slate with
+  neon purple glow, and warm beige/cream paired with terracotta/rust on
+  "craft/warm/food/artisanal" briefs.
+- When a page earns a hero, abandon the generic 50/50 split (`H1` + long
+  paragraph + 2 buttons + divider + 3–4 stat columns beside a media box): let
+  display type or full-bleed imagery command the viewport, pair `<h1>` with
+  at most 1–2 short lines (`≤ 25` words) and one primary action, and omit
+  bottom KPI/spec strips.
+- Match code complexity to the vision — maximalism earns elaborate
+  motion/effects; restraint earns precision in spacing and type. Both regimes
+  share every §2 verification threshold (contrast, target size, motion,
+  stability); distinctiveness never buys an exemption.
 
 ## 2. Verification: test what the user meets
 
-A UI is verified across four layers, cheap to costly. Full treatment in
-[`ui-verification`](ui-verification.md):
+Verify across four layers (full method in
+[`ui-verification`](ui-verification.md); capture rules in
+[`ui-testing`](ui-testing.md)):
 
-1. **Structure** — assert presence/role/name/state via the accessibility
-   tree or DOM queries (Testing Library's "query like a user"; axe-core for
-   accessibility rules). Cheap, robust to restyling.
-2. **Appearance** — visual-regression snapshots compared pixel-for-pixel
-   across a **viewport matrix** (Playwright `toHaveScreenshot`, Chromatic,
-   Percy). This is the only layer that catches spacing, weight, contrast,
-   overlap, and clipping.
-3. **Behavior** — drive realistic event *sequences* (Playwright; Testing
-   Library `user-event`), not single synthetic events: a real click fires
-   hover→down→up; a real "type fast then Enter" can submit before async
-   validation or debounce settles.
-4. **Responsiveness** — measure interaction latency: **INP** (Interaction
-   to Next Paint, the Core Web Vital that replaced FID in March 2024;
-   "good" ≤ 200 ms) and CLS for stability.
-
-Several design properties from §1 are **directly testable thresholds**,
-which is why typography belongs in the verification story too:
-
-- **Contrast ratio** — WCAG 1.4.3 requires ≥ 4.5:1 for normal text (AA),
-  7:1 (AAA). Automatable.
-- **Target size** — WCAG 2.5.8 (new in 2.2, AA) requires ≥ 24×24 CSS px (or
-  24 px spacing); 2.5.5 (AAA) wants 44×44. Automatable.
-- **Measure** — characters-per-line can be asserted, with care (the CSS
-  `ch` unit measures the width of "0", so it over-counts for proportional
-  fonts).
-
-The **interaction matrix** the project cares about — and that agents
-routinely skip — includes: mouseover/hover (and its absence on touch),
-click, long-press duration (~500 ms), typing quickly then Enter,
-drag-resizing the window, and the same flows on a phone-sized viewport and,
-where relevant, in a clickable TUI.
+1. **Structure** — accessibility tree / DOM queries and axe-core.
+2. **Appearance** — rendered captures inspected across a viewport matrix
+   (desktop + phone) for spacing, weight, contrast, overlap, and clipping.
+3. **Behavior** — realistic event sequences (hover, click, long-press,
+   fast-type-then-Enter, drag-resize) on desktop, phone, and TUI where
+   applicable.
+4. **Responsiveness & stability** — INP ≤ 200 ms, CLS < 0.1, WCAG AA
+   contrast ≥ 4.5:1 (1.4.3), target size ≥ 24×24 CSS px (2.5.8).
 
 ## 3. Theming: cosmetic layers only
 
-A **theme** is a coherent set of presentation values (color, typography,
-elevation) that can be swapped *without changing layout or behavior*. The
-modern mechanism is **design tokens** — named design decisions stored as
-data (the W3C Design Tokens Format Module) and consumed as CSS custom
-properties. Full treatment in
-[`theming`](theming.md). The vocabulary worth fixing now:
+Full contract in [`theming`](theming.md). A **theme** swaps design-token
+values (color, typography, elevation) via CSS custom properties *without
+changing layout or behavior*:
 
-- **mode** — a paired environmental variant: light/dark, high-contrast.
-- **theme / skin** — a brand or cosmetic value set; "skin" connotes the
-  purely surface end (color, texture) with no structural effect.
-- **density** — compact vs. comfortable spacing. This is the **boundary
-  case**: density *does* change spacing and therefore layout, so it is
-  *not* a pure skin and must be verified like a layout change, not waved
-  through as cosmetic.
-
-The contract: theming changes tokens, never structure or logic. A theme
-swap should produce *zero* layout-shift and *zero* behavior change — which
-makes "does the dark theme alter any geometry?" a verifiable claim, not a
-matter of taste.
+- **mode** (light/dark, high-contrast, `forced-colors`) and **theme / skin**
+  (brand/surface values) must produce zero layout shift and zero behavior
+  change.
+- **density** (compact vs. comfortable spacing) changes geometry, so it is
+  *not* a pure skin and must be verified as a layout change.
 
 ## How the three fit
 
-Design sets the contract (what *good* means here), verification proves a
-given change meets it across appearance/behavior/viewport, and theming is
-held to the promise that it touches neither. A change that improves one
-while silently breaking another (a prettier theme that shifts layout; a
-"responsive" tweak that drops the measure to 30 characters on mobile) has
-not improved UI quality.
-
-For periodic audits of an existing UI — a screenshot-backed markdown
-report scored first against the project's own prevailing style and
-second against these principles — see [`ui-report`](ui-report.md).
+Design sets the contract, verification proves a change meets it across
+appearance/behavior/viewport, and theming touches neither. For periodic
+screenshot-backed audits of an existing UI — scored first against the
+project's own prevailing style and second against these principles — see
+[`ui-report`](ui-report.md).
 
 ## Web platform implementation references
 
-The three concerns above say what a good UI is. How to build specific
-browser behavior (accessible controls, overlays, key handlers, HTML
-insertion, security headers, main-thread work) is in
+How to build specific browser behavior (accessible controls, overlays, key
+handlers, HTML insertion, security headers, main-thread work) lives in
 [`web-platform-guidance`](web-platform-guidance.md), which has its own
-activity route: a one-line default per concern and a vendored guide behind
-each.
+activity route.
 
+## Further reading
 
-## Learn more — beginner tutorials
-
-Exceptional, mostly-free, novice-friendly material, gentlest first. These
-teach the *why*; the Sources below are the reference specs.
-
-**Start here (for non-designers).**
-- Erik Kennedy, [*7 Rules for Creating Gorgeous UI*](https://www.learnui.design/blog/7-rules-for-creating-gorgeous-ui-part-1.html)
-  — a "non-artsy primer" by someone who learned UI design *as* a developer;
-  pure application, no color-theory detours. The best single starting read.
-- Robin Williams, *The Non-Designer's Design Book* — the classic intro for
-  "the visual novice"; four principles (CRAP: Contrast, Repetition,
-  Alignment, Proximity), readable in an afternoon
-  ([borrow on Internet Archive](https://archive.org/details/nondesignersdesi00will)).
-
-**Design language & layout (→ functional-layout).**
-- web.dev, [*Learn Responsive Design*](https://web.dev/learn/design) — free
-  structured course: layout, media queries, responsive type, even dark
-  mode; aimed at beginners with basic HTML/CSS.
-- Josh W. Comeau, interactive guides to
-  [Flexbox](https://www.joshwcomeau.com/css/interactive-guide-to-flexbox/)
-  and [CSS Grid](https://www.joshwcomeau.com/css/interactive-guide-to-grid/)
-  — the friendliest, most visual explanations of the two core layout
-  engines.
-- CSS-Tricks, [*A Complete Guide to Grid*](https://css-tricks.com/snippets/css/complete-guide-grid/)
-  — the canonical cheat-sheet to keep open while working.
-
-**Typography (→ functional-layout).**
-- Matthew Butterick, [*Practical Typography*](https://practicaltypography.com/typography-in-ten-minutes.html)
-  — a free online book; the ["typography in ten minutes"](https://practicaltypography.com/typography-in-ten-minutes.html)
-  and [summary of key rules](https://practicaltypography.com/summary-of-key-rules.html)
-  pages are the fastest competent on-ramp anywhere.
-- Richard Rutter, [*The Elements of Typographic Style Applied to the Web*](https://webtypography.net/)
-  — free, CC-licensed; walks Bringhurst's textbook principles into concrete
-  HTML/CSS.
-
-**Verification, accessibility & motion (→ ui-verification, functional-layout).**
-- web.dev, [*Learn Accessibility*](https://web.dev/learn/accessibility) and
-  MDN's [Accessibility learning path](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Accessibility)
-  — evergreen courses; accessibility is where many testable thresholds live.
-- Smashing Magazine, [*Designing With Reduced Motion For Motion Sensitivities*](https://www.smashingmagazine.com/2020/09/design-reduced-motion-sensitivities/)
-  — the practical guide to the vestibular / `prefers-reduced-motion` topic.
-
-## Sources
-
-Distillers and primary references these docs lean on. The subtopic docs
-carry the specific citations.
-
-- Typography: Robert Bringhurst, *The Elements of Typographic Style*;
-  Matthew Butterick, *Practical Typography* (practicaltypography.com).
-- Visual design: Adam Wathan & Steve Schoger, *Refactoring UI*; Dieter
-  Rams, Ten Principles of Good Design; Josef Müller-Brockmann, *Grid
-  Systems in Graphic Design*.
-- Usability: Don Norman, *The Design of Everyday Things* (affordance vs.
-  signifier); Jakob Nielsen / Nielsen Norman Group (10 heuristics, Jakob's
-  Law, response-time limits); Steve Krug, *Don't Make Me Think*.
-- Web platform: web.dev Core Web Vitals (LCP/INP/CLS); MDN scroll anchoring
-  (`overflow-anchor`); CSS `prefers-reduced-motion`; Paul Lewis, the FLIP
-  technique.
-- Verification: Kent C. Dodds, the Testing Trophy & Testing Library;
-  Playwright (incl. the MCP accessibility-tree model); axe-core / Deque;
-  WCAG 2.2 (W3C).
-- Theming: W3C Design Tokens Format Module; Brad Frost, *Atomic Design*;
-  Nathan Curtis (EightShapes) on tokens.
+Subtopic docs carry full reference citations. For human-facing primers:
+Erik Kennedy, [*7 Rules for Creating Gorgeous UI*](https://www.learnui.design/blog/7-rules-for-creating-gorgeous-ui-part-1.html);
+Matthew Butterick, [*Practical Typography*](https://practicaltypography.com/typography-in-ten-minutes.html);
+web.dev, [*Learn Responsive Design*](https://web.dev/learn/design) and
+[*Learn Accessibility*](https://web.dev/learn/accessibility).
