@@ -1065,30 +1065,8 @@ before writing one, read repo `topics/acli.md`, else
 commands may stay bare shell scripts or long commands; the boundary is
 retention, not size.
 
-## Matching processes by pattern
-
-A command-line process search from an agent shell — `pgrep -f`,
-`pkill -f`, `ps | grep` — also matches the shell wrapper running that
-very search, so a finished job reads as still running and a wait loop
-never drains. Prefer name matching (`pgrep -x rsync`), which ignores
-argv and so cannot match on the search text. When the command line is
-required, list candidates with `ps -o pid=,args= -p <pids>` and drop
-your own shell before believing the result or killing anything.
-
 ## PDF reading
 
 For PDF reading use `marker-pdf`, not `pdftotext`. Before installing or
 configuring it, read [topics/pdf.md](topics/pdf.md) for the isolated environment
 and cache instructions.
-
-## Git patch output
-
-Every agent-facing patch-producing Git read bypasses human diff config:
-
-```bash
-git --no-pager diff --no-ext-diff --no-color
-git --no-pager show --no-ext-diff --no-color <rev>
-```
-
-Default to unified `+/-`. Use a before/after table only for prose when
-within-line changes matter; avoid ANSI word diff.
