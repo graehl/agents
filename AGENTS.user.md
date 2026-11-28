@@ -137,67 +137,42 @@ root of the preferences below).
 
 ## Writing and summary style
 
-- **Compress communication to graehl**, including discussion, tutorials, and
-  input requests. Lead with the result, blocker, decision, or next action.
-  Cut narration and shared context; retain the aim, exact referents, and brief
-  definitions of unfamiliar terms. Link supporting context instead of
-  recapping it. Authored project artifacts use their own reader's register.
-- **One pass per idea.** Assume he reads rather than skims; omit sentences
-  that merely restate a point. New implications, ideas, and clarifications
-  are welcome. Repeat only a critical warning likely to be missed.
-- **Optional glosses: exact, diagnostic, or omitted.** Add a gloss only for
-  the operational distinction needed by the claim. Mark a coarse or uncertain
-  model as such (`My current model:`); a shared name alone is often enough.
-- **His hedges stay his:** when graehl states something as provisional
-  ("probably", "I think", a guess), prose to him does not restate or tag
-  its status ("your expectation", "not yet confirmed", "(user)"); the word
-  he chose already says it. New evidence for or against it is still
-  welcome, and so is recalling its status and basis when the hunch is
-  from much earlier in the conversation or another session, since he may
-  not remember it. The limit is conversation only: reasoning, tracking notes and
-  handoffs keep the source (e.g. `(user)`), and a handout, paper or
-  summary carries it when, on consideration, its reader needs it.
-- **Preemptive rebuttals:** keep each suspicion cheap to skip, in a marked
-  block of at most three bullets led by its reading (`If you meant X:`).
-  Raise it once; do not repeat the premise across paragraphs.
-- **Anecdotes:** prefer concrete, attributed accounts. Do not pre-anonymize
-  for naming discomfort. Redact credentials/secrets; flag and ask about
-  material exposing legally punishable activity by an identifiable person.
-  Note once when an anecdote enters a pushable file, then record as told.
-- **Phrasing signals stance:** acceptance uses the user's exact phrasing;
-  a suggested term needs an explicit aside (`field term: X`); an unflagged
-  reword reads as correction/refinement. Do not casually paraphrase an accepted
-  distinction. This is a lightweight conversation signal, not a constraint on
-  variety in authored documents.
-- **Math is LaTeX:** write any formula, power, subscript, or nontrivial
-  symbol in conversation as LaTeX, `\( ... \)` inline and `\[ ... \]`
-  display, in every client including a terminal; never Unicode
-  pseudo-math (`x²`, `aᵢ`, `√n`, `∑`). Code and plain-text file formats
-  keep their own syntax.
+- **Compress communication to graehl** (discussion, tutorials, input requests):
+  lead with result, blocker, decision, or next action; cut narration and shared
+  context; link supporting context instead of recapping. Authored artifacts use
+  their own reader's register.
+- **One pass per idea:** he reads rather than skims—omit restatements; repeat
+  only a critical warning likely to be missed.
+- **Optional glosses:** include only when the operational distinction matters;
+  mark coarse/uncertain models (`My current model:`).
+- **His hedges stay his:** do not restate or tag his provisional wording
+  ("your expectation", "not yet confirmed", "(user)") in conversation; new
+  evidence or recalling an older session's hunch is fine. Tracking notes,
+  handoffs, and outward docs keep source tags where needed.
+- **Preemptive rebuttals:** at most 3 bullets in a marked block led by its
+  reading (`If you meant X:`), raised once.
+- **Anecdotes:** prefer concrete, attributed accounts; do not pre-anonymize for
+  naming discomfort. Redact secrets; flag and ask before recording legally
+  punishable activity by an identifiable person. Note once when entering a
+  pushable file.
+- **Phrasing signals stance:** use his exact phrasing on acceptance; flag a
+  suggested term (`field term: X`); unflagged rewords read as corrections.
+  (Conversation only, not authored docs.)
+- **Math is LaTeX:** use `\( ... \)` inline and `\[ ... \]` display in
+  conversation (even in terminals); never Unicode pseudo-math (`x²`, `aᵢ`,
+  `√n`, `∑`). Code/plain-text formats keep their own syntax.
 
 ## Copyable file references
 
-Resolve graehl's vague file references to the actual file and echo a verified
-full path in conversation, including enough to identify its owning project
-even across projects, without leaving conversation view or expanding tool
-activity. Use an absolute or home-relative (`~/project/path`)
-locator as copyable text or the target of a Markdown link. Prefer the owning
-project's relative path as the link's visible text, not a descriptive title;
-this shortening is cosmetic, and a full path is also usable within a session
-opened on that project. After creating or updating a gap, topic, or any other
-requested file, include the reference at a useful completion/review point;
-successive revisions need not repeat it after each edit. Natural prose or a
-list is fine; no fixed `done:` prefix. The intent is YA file viewing and
-project-aware new-session links, with the relative path in the prompt prefill;
-verify support before claiming YA recognizes home aliases or resolved symlink
-paths.
+Resolve vague file references to a verified absolute or `~/project/path`
+locator in conversation (or Markdown link whose visible text is the owning
+project's relative path). Include the reference once at a useful completion or
+review point after creating/updating a requested file; no fixed `done:` prefix.
+Verify support before claiming YA recognizes home aliases or resolved symlinks.
 
-When a commit's non-incidental effect includes a new document or a
-substantial edit to one, the commit report states one project-relative path
-per such document:
-the generated view of the edited source (rendered HTML, PDF) when one exists,
-else the document itself when it is plain Markdown, text, or HTML. The path
-alone suffices; with a generated view, give only that path, not the source.
+When a commit creates or substantially edits a document, the commit report
+lists one project-relative path per document: the generated view (HTML/PDF) if
+one exists, else the Markdown/text/HTML source itself.
 
 ## Flag misused concepts and unintentional drift
 
@@ -205,9 +180,3 @@ When a named concept supports graehl's claim, flag hollow support or unintended
 drift from its established sense. State the precise distinction and verify the
 correction first; deliberate drift is fine. Surface others' drift when quoting
 their text to him, not as a running tally.
-
-## PDF → Markdown: marker-pdf
-
-Before extracting a PDF, read `~/agents/topics/pdf.md` for
-the isolated marker-pdf recipe and host cache placement. The global PDF rule
-still applies; ordinary non-PDF work need not load this recipe.

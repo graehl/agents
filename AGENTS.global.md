@@ -9,52 +9,32 @@ its named sections when needed; never request a separate read or reread of
 `AGENTS.global.md`. Its source path remains the authoring and installation target.
 
 <!-- BEGIN on-compact -->
-A routed file read before compaction is not thereby protected. After compaction
-or resume, obey this file's current read trigger at the next governed action
-boundary even if summarized history says the file was read earlier. Unless a
-boot-loaded harness/model/effort supplement states an evidence-backed cadence,
-skip that refresh only when the harness is verified to reconstruct the exact
-current routed packet in model context.
-
-**Instruction material tiers:** a **protected trigger** lives in boot and
-names an activity, required packet, and refresh condition. A **required packet**
-holds the essential binding instructions to read in full when triggered.
-**Conditional material** belongs to the full topic and retains its ordinary
-activity trigger; it is omitted from the reread packet. Required packets
-recursively inline their essential instruction dependencies, never delegate
-those reads through references. These tiers do not weaken other read mandates.
+A routed file read before compaction or resume is not protected: re-obey its
+read trigger at the next governed action boundary even if summarized history
+says it was read earlier (skip only when a boot-loaded supplement sets a
+cadence or the harness verifiably reconstructs the exact current packet).
 
 **Once-opened obligation:** when reading a topic with `Mandatory-reread:`
-metadata as instructions, retain its resolved path and activation condition
-in continuity state and any compaction summary. After every compaction or
-resume the obligation becomes pending again. Before the next matching action,
-tool-read its entire compiled `<topic>.mandatory-reread.recursive.md` companion. A first
-encounter requires the full base topic. If the companion is missing or known
-stale, read the full base and its essential dependencies instead. The recursive
-packet pre-includes flagged content in potentially reached topics, including
-indirect and conditional routes. The non-recursive `.mandatory-reread.md` is
-for a harness tracking actual reads. Coverage metadata in a complete recursive
-read discharges its included packets too; do not reread them separately.
+metadata, retain its resolved path and activation condition across compaction.
+After every compaction or resume, tool-read its full compiled
+`<topic>.mandatory-reread.recursive.md` before the next matching action (or the
+full base topic and essential dependencies on first encounter or if the
+companion is missing/stale). A complete recursive read discharges its included
+packets.
 
-**Mandatory reread registry:** these activities also trigger the companion
-when the once-opened set was lost. Resolve repo `topics/` first, else
-`~/agents/topics/`. Working records (handoffs, gaps, logs, commit messages,
-instructions, code and comments) are outside this writing scope.
+**Mandatory reread registry** (resolve repo `topics/` first, else
+`~/agents/topics/`; working records—handoffs, gaps, logs, commits,
+instructions, code—are outside scope):
 
 <!-- BEGIN generated: mandatory rereads (scripts/build-boot) -->
 - before continuing a selected research paper, or an artifact whose applicable topic explicitly inherits these authoring rules → `paper-writing.mandatory-reread.recursive.md`
 - before drafting or substantially revising a technical report, brief, estimate, proposal, handout, progress report, blog post, or paper for readers outside the working session → `technical-writing.mandatory-reread.recursive.md`
 <!-- END generated: mandatory rereads -->
 
-A summary's “already read”, retained style advice, or confidence in equivalent
-results cannot satisfy the required post-boundary read.
-The observable read is the contract; generic cadence/reconstruction exceptions
-and frontier step-skipping do not waive it. If no complete post-boundary read
-is visible in current context, read before proceeding; a missing or truncated
+The observable post-boundary read is the contract—summaries, retained style
+advice, and frontier step-skipping do not waive it. A missing or truncated
 packet blocks the governed writing until retrieved in full. One complete read
-serves subsequent actions until the next compaction/resume or relevant file
-change. Unrelated work triggers no packet; other topics keep their
-existing routing and refresh rules.
+holds until the next compaction/resume or file change.
 <!-- END on-compact -->
 
 Session continuity is primarily resume-by-session-id plus live state:
@@ -102,10 +82,9 @@ protocol. Update at significant milestones, not between routine edits/tests.
 
 ## Active sessions
 
-Use `agentctl` from PATH for session coordination. On the first
-planning-to-act step in a shared workdir, register your work; refresh at
-milestones, after ten minutes of continuous work, and at least hourly.
-Pure read-only/interview sessions may skip registration.
+Use `agentctl` from PATH in shared workdirs: register on the first
+planning-to-act step, refresh at milestones / every 10 min of continuous work /
+hourly (read-only sessions may skip).
 
 ```bash
 agentctl active "<present-tense status>" [paths...]
@@ -115,22 +94,12 @@ agentctl clear --drop <finished-paths...>
 agentctl active "DONE: <summary>"
 ```
 
-`others` rechecks peers at caution points (0 alone, 1 peers) and surfaces
-fallback inbox notices. `take` acquires paths on exit 0. If no active owner
-process can be verified, it assumes no progress and retires that owner's claims.
-A verified live owner blocks with exit 1, receives a best-effort notice, and the
-requester subscribes to release notification. Release through `agentctl` so
-waiters are notified. A notification is not a claim: rerun `take` before editing.
-
-The helper resolves your real session identity; accept `[yours]` without
-re-deriving it. Trust the launcher's published id, never one copied from a
-fork's context; use the harness supplement if identity cannot be resolved.
-
-If these commands are insufficient, read `topics/agentctl.md` § Other
-coordination uses: discovery, messaging, conservative wake, waits, and raw-file
-fallback/schema. On receiving a coordination request, read its § Receiving
-coordination requests. Read the applicable sections before changing or
-diagnosing agentctl semantics; the topic is not a routine boot read.
+`others` rechecks peers (0 alone, 1 peers) and surfaces inbox notices. `take`
+acquires paths on exit 0 (retiring unverified dead owners) or blocks with exit
+1 on a live owner and subscribes to release; release via `agentctl`, and rerun
+`take` after a release notice before editing. Accept `[yours]` from the helper;
+trust the launcher's id, never one copied from a fork. For messaging, waits,
+coordination requests, or diagnostics, read `topics/agentctl.md`.
 
 ## Resume source priority
 
@@ -160,6 +129,13 @@ cheaply checkable fact about the user's system/tool/config—path, default, flag
 schema—check it instead of presenting memory or agreement as fact. Treat user
 preferences and direct observations as authoritative; treat causal guesses as
 hypotheses.
+
+When reversing a previously stated recommendation, decision, or plan, state
+why. Before finalizing a non-trivial deliverable or outward output, run a
+concrete verification pass against files or command output (do not invent
+nitpicks if it checks out). For decisions, specs, or findings that future
+sessions or the user will need, write them to the appropriate file before
+answering.
 
 ## Delegation
 
@@ -339,67 +315,29 @@ layout; existing authoring rules still decide where new work belongs.
 
 ## Optional supplements
 
-Resolve triggered companions at repo root first, then `~/agents/`. Report a
-missing one once and continue. Re-read the triggered companion at the governed action
-boundary after compaction/resume unless the harness verifiably reconstructs
-that exact current packet or a boot-loaded scoped supplement explicitly sets an
-evidence-backed cadence; summarized recollection is insufficient.
-`AGENTS/` detail is optional and this main wins. Routed _RESEARCH/_RUNS packets
-are binding for their named conditions; their short indexes own routing and
-win on packet conflict.
+Resolve triggered companions at repo root first, then `~/agents/` (report a
+missing one once and continue; re-read after compaction/resume per
+`# Session management`). `AGENTS/` detail is optional and this main wins;
+routed `_RESEARCH/` and `_RUNS/` packets are binding for their conditions.
 
-- `RESEARCH.md` — before substantive research/experimentation, paper/report,
-  handout/research-blog, field-survey/prior-art/direction-ranking,
-  significance/comparison, or research-advisor work. It is a short router.
-  Compaction-durable high-value routes are:
-  - research paper/handout/research-blog/log/program/result-table/
-    progress-report work →
-    `_RESEARCH/artifacts.md`;
-  - field survey, prior art, direction ranking, or a material advisor decision
-    → `_RESEARCH/direction.md`;
-  - a newly ingested or materially transformed dataset, newly wired
-    experimental result, train/eval/gate summary or score/stop readout,
-    comparison, or significance claim → `_RESEARCH/evidence.md`; and
-  - selecting or ordering ML training/evaluation experiments (refine upstream
-    quality cheaply before costly inference add-ons), an untuned elaborate arm,
-    multi-difference attribution, promoting changes
-    during hill-climbing, or closure of a substantial weak/surprising line →
-    `_RESEARCH/judgment.md`.
-- `RUNS.md` — before implementing, repeating, or scaling ML training/evaluation/
-  decoding, using local accelerators, launching work with a
-  nontrivial storage footprint, receiving or resuming a yielded live terminal
-  handle from run work, or launching, monitoring, waiting for, or summarizing
-  tracked/long-running jobs. It is a short router:
-  - implementing, repeating, or scaling ML training/evaluation/decoding
-    (verify execution efficiency before repetition or fan-out),
-    a Python command that may import an accelerator stack, GPU-capacity
-    allocation, or a run with a nontrivial storage footprint →
-    `_RUNS/resources.md`;
-  - an important saved output, in-flight record, or row-wise transformed
-    dataset → `_RUNS/provenance.md`; and
-  - a session-outliving launch, yielded live terminal handle, foreground wait,
-    monitor/summary, or run-policy failure reconstruction →
-    `_RUNS/monitoring.md`.
+- `RESEARCH.md` — short router before substantive research/experimentation,
+  papers/reports/blogs/handouts, surveys/direction-ranking,
+  evidence/significance/comparisons, or ML experiment selection/hill-climbing
+  (routes `_RESEARCH/{artifacts,direction,evidence,judgment}.md`).
+- `RUNS.md` — short router before ML training/eval/decoding, accelerator use,
+  large-storage runs, provenance/dataset transforms, or tracked/long-running
+  jobs and yielded terminal handles (routes
+  `_RUNS/{resources,provenance,monitoring}.md`).
 - `feature-branch.md` — when project instructions name it or the repo plainly
   uses feature branches; otherwise stay branch-agnostic.
-- `REVIEWS.md` — when project instructions name it: after pushing or updating
-  a code review, when asked what a review is waiting on, when catching up on
-  review activity, and before answering about a review's current state. One
-  private `reviews/` file per change; the file is never the authority, so
-  re-query the backend (`reviews sync`) first.
-- After a successful Gerrit review push for an AIP ticket, follow
-  `~/agents/REVIEWS.md` § Jira after a Gerrit push to set QA Ready and add the
-  review link. This also applies in checkouts without review tracking.
-- `AGENTS/` — optional slow-path detail only for a matching named section or a
-  rare ambiguity. Do not load the directory indiscriminately:
-  - handoff/session registration/resume/scheduled prompt → `AGENTS/session.md`;
-  - unfamiliar-code investigation/delegation/standalone defect →
-    `AGENTS/investigation.md`;
-  - instruction/topic/glossary/language-policy authoring →
-    `AGENTS/instruction-system.md`;
-  - gated or destructive action/shared-worktree edit/commit/quality mechanics
-    → `AGENTS/change-delivery.md`; and
-  - a named interaction or tool-use edge case → `AGENTS/interaction-tools.md`.
+- `REVIEWS.md` — when project instructions name it: after pushing/updating a
+  review or before answering about review state (re-query `reviews sync`
+  first). After a successful Gerrit push for an AIP ticket, follow
+  `~/agents/REVIEWS.md` § Jira after a Gerrit push (even without review
+  tracking).
+- `AGENTS/` — optional slow-path detail only for a matching named section:
+  `session.md`, `investigation.md`, `instruction-system.md`,
+  `change-delivery.md`, `interaction-tools.md`.
 
 Reusable cross-project policy belongs in `~/agents/` unless dependent on a
 specific repo's data/scripts/schema.
@@ -543,23 +481,6 @@ temporarily failed edit tool. Solve the gate/tool error directly; if impossible,
 state the execution limitation once and stop. Shell transforms remain correct
 for genuine bulk codemods/formatters, not disguised targeted edits.
 
-<!-- omit:begin claude -->
-## Edit anchors: copy, don't compose
-
-Exact-match edit material—an `old_string` or patch-hunk context—must be copied
-from current file output or a visible prior edit; never reconstruct indentation,
-wraps, whitespace, or escapes. Use the smallest unique span or hunk. Any
-intervening writer, formatter, or script invalidates that copied context; reread
-before using it.
-
-<!-- omit:end -->
-In written file content, source escapes such as `\0`, `\n`, `\t`, and `\\`
-remain two source characters; never insert literal control bytes.
-<!-- omit:begin claude -->
-After a second failed edit on one file, stop guessing: reread the exact range
-and copy it.
-<!-- omit:end -->
-
 ## Author long content in sections
 
 When writing a long new document or a large rewrite, put at most roughly
@@ -568,13 +489,6 @@ then append or patch one section per call. Tool-call input is invisible to the
 user until the call completes, and a user message arriving meanwhile can
 discard it; one multi-document call leaves minutes of apparent inactivity and
 loses everything to a single interruption.
-
-# Reader-facing summaries
-
-In commit subjects/bodies, status lines, run headlines, notes, and prose, do not
-assume tool-internal flags/modes/library jargon as shared vocabulary. Drop the
-term, use the reader's phrase, or define it inline when needed. Precision is
-welcome; unexplained implementation nomenclature is not.
 
 # Commits
 
@@ -639,20 +553,6 @@ correctness, performance, reusable structure, and future sessions' ability to
 orient and improve it. Make proportionate improvements within that scope
 without awaiting a separate request; read `topics/design-thinking.md`
 § Retained prototypes. Training and evaluation code/resources are included.
-
-## Tolerant parsing in throwaway orchestration
-
-In throwaway orchestration, parsing more than one output form from one
-invocation is tolerance, not slop, when every handled form was actually
-observed rather than imagined, no accepted form loses needed information
-or admits two readings, a form mismatch is detected rather than read as
-zero results, and the unexpected branch logs that it fired. Probe once
-for an explicit format option before writing the second branch; output
-that switches on TTY/pipe or version makes the untested branch the live
-one. On a second surprise from the same tool, stop tolerating: fix the
-invocation, option, helper, or instruction, and capture what resists
-fixing. Durable scripts get no such tolerance: establish a required
-precondition or fail clearly.
 
 ## Backward compatibility
 
@@ -831,33 +731,18 @@ permission to adopt its write conventions; consult the local discovery table.
 
 ## Project glossary
 
-`GLOSSARY.agents.md`, where present at a scope, is the agent glossary: read
-it in full at project entry and on entering that scope, instead of the
-scope's `GLOSSARY.md`. Its `Governs:` rows name activities; before starting
-an activity a row names, read the topic it links. The trigger is the
-activity, not an occurrence of the word. Its other rows give the sense a term
-carries here when that differs from standard usage. The `~/agents` root
-glossary's Governs rows are § Activity routes below; there, read only its
-other rows (`rg -v 'Governs:' GLOSSARY.agents.md`).
+`GLOSSARY.agents.md`, where present at a scope, replaces `GLOSSARY.md` for
+agents: read it in full at project/scope entry (in `~/agents`, skip `Governs:`
+rows via `rg -v 'Governs:' GLOSSARY.agents.md` since they appear in
+§ Activity routes below). `Governs:` rows trigger on the activity, not word
+occurrence.
 
-Where no agent glossary exists, `GLOSSARY.md` is prescriptive vocabulary for
-talk, planning, symbols, docs, UI, and commits. Before interpreting or
-changing a file in a newly entered subtree, identify its nearest-enclosing
-glossary and the active parent glossary chain. Targeted row lookup/search is
-sufficient; fully read a `GLOSSARY.md` only when broader vocabulary is
-relevant. When reading a glossary, ensure its sibling `PROGRAM.md`, when
-present, has been read this session. Consult the chain for unfamiliar terms
-and before naming or paraphrasing. A named term is inherently topic-like;
-when asked for “the topic” for it, follow its existing link before
-considering creation. Define project-specific terms on first use in
-new-reader docs.
-
-If user phrasing is ambiguous and resolution changes action, state the inferred
-meaning plus one or two alternatives at an interruptible checkpoint. Surface a
-general-domain row once as a candidate for global topic definitions, but do not edit those
-autonomously. Read `topics/glossary.md` before adding/sorting/promoting rows,
-scoped glossaries, or deciding term versus topic. Create a glossary when jargon
-recurs or the project has multiple topics.
+Where no agent glossary exists, consult the enclosing `GLOSSARY.md` chain
+(targeted lookup) for unfamiliar terms and before naming or paraphrasing, and
+ensure any sibling `PROGRAM.md` has been read. Read `topics/glossary.md` before
+adding, editing, or promoting rows; create `GLOSSARY.md` on first substantive
+visit if absent (git-exclude via `.git/info/exclude` alongside `AGENTS.local.md`
+in foreign repos; skip throwaway scratch repos).
 
 <!-- BEGIN generated: activity routes (scripts/build-boot) -->
 ## Activity routes
@@ -1008,11 +893,6 @@ Do not end with aphorisms or cadence-driven “not X, but Y” reversals. A cont
 must put facts on the same axis; otherwise state each fact separately or mark a
 coarse model explicitly.
 
-## Paragraph and section openers
-
-Open with a complete context sentence or a typographically marked slug
-(bold/colon). Avoid unmarked fragments that resolve only after later sentences.
-
 ## Discussion vs. execution boundary
 
 In research/design/discussion mode, ask before crossing to writes/commands
@@ -1043,34 +923,6 @@ identity-bearing web request or form submission, read
 `~/agents/topics/web-identity.md`; on `ask`, missing policy, or an unavailable
 checker, stop and ask.
 
-## Confirmation threshold
-
-A clear affirmative means proceed; recheck only for a genuinely new ambiguity
-or risk.
-
-## Execution-context limits
-
-Solve observability/execution limitations yourself using available shells,
-tools, or mechanisms. State a limitation once when unavoidable. Telling the
-user to run a command is not the first-line solution.
-
-## Terse-reference ambiguity
-
-When terse text seems redundant, resolve pronouns/ellipsis against recent user
-instructions before treating tool output or logs as the referent.
-
-## Terse instructions contradicting recent work
-
-If terse input maps to already-completed work, surface the contradiction
-inline—“X is done; did you mean Y?”—and pause rather than silently switching.
-
-## "Add X" when X already exists
-
-Search conceptually before adding. If an exact equivalent exists, point to it
-and do not duplicate it. If the requested placement is a useful second access
-surface, wire it to the same mechanism; redundant UI entry points can be
-deliberate, duplicate implementation/prose is not.
-
 ## Speech-recognition noise
 
 For sparse punctuation/odd words, consider homophones and dropped words. When
@@ -1083,25 +935,6 @@ quote an incorrect/correct pair: assistant text feeds learned vocabulary and
 repeating the error can reinforce it in session-adaptive recognition. Apply
 this even without a visible speech prefix. If clarification is needed, ask
 using the proposed correction without reproducing the error.
-
-## Queued-send time separators
-
-Harness separators `--- (Ns ago)` and `--- (Ns later)` describe queued message
-composition intervals. Resolve content against what the sender had seen at
-composition, especially when a quoted visible-output tail is included.
-Steering messages have no separator; timestamps are metadata, not user text.
-
-For a large leading N without a quoted anchor, run `queued-anchor <N>`
-(`topics/helper-scripts.md`) and resolve referents against its transcript
-anchor/in-flight activity, not the current tail. If unsupported, use timestamp,
-content, and surrounding turns with uncertainty. Detailed separator semantics
-are under “Queued-send time separators” in
-[AGENTS/interaction-tools.md](AGENTS/interaction-tools.md).
-
-## "Don't forget" reminders
-
-Check whether X is already explicit in governing instructions. Reply with its
-location/closest phrase, or say it is not and may merit adding.
 
 ## Unversioned model names
 
@@ -1118,19 +951,6 @@ that rather than silently substituting an older one.
 Specify a concrete version when reproducibility matters, and honor explicit
 version pins. Record the concrete model used in run provenance; never relabel
 historical results as the latest version.
-
-## Annotation refusals
-
-Every model annotation or judging step, on any model or route including
-frontier models, detects sensitive-content refusals before accepting labels
-and reports them separately from valid negative or empty annotations. Before
-building or running one, read `~/agents/topics/document-annotation.md`
-§ Refusal detection.
-
-## Agent-chosen implementation paths
-
-When the user explicitly delegates a choice, state the chosen path and brief
-reason at the decision point and in completed commit/status summaries.
 
 ## Agreement and disagreement quality
 
@@ -1156,12 +976,6 @@ If the disconfirming pass finds nothing, state agreement and stop inventing
 caveats. If you skip it for low stakes/instruction/scope, say the claim was not
 verified. Once evidence settles a contradiction, hold it despite confidence
 pressure. Downgrade assurance when evidence is incomplete.
-
-## User guesses at why you erred
-
-Silence is assent to a plausible non-actionable meta explanation. Reply when
-the guess is likely wrong or yields a durable instruction fix. Silence never
-authorizes gated action.
 
 ## Doubt triggers
 
@@ -1195,41 +1009,17 @@ guidance. A generic recipe that assumes an unconfigured repo is the common
 case: prefer the project's own commands even when the injected steps look
 reasonable.
 
-## Epistemic treatment of user statements
-
-User preferences and direct observations are authoritative as stated. Verify
-only clearly speculative causal/factual claims; ask when the mode itself is
-ambiguous.
-
 ## Asking for a decision
 
 Ask once. Open with the aim, then 2–3 options named by what each changes, all in
 one short self-contained paragraph. Put larger context behind a link or exact
 searchable path/symbol. Never reopen a settled decision.
 
-## Asynchronous questions
-
-Prefer a first-class harness asynchronous-question form when available.
-Give each nonblocking question a session-unique tag `Q<suffix>:` (for example
-`Qlang:`), keep working on independent work, and expect many to go unanswered.
-
-## Interruptible checkpoints
-
-When active steering makes a misread costly, early state the user-facing
-interpretation, assumption, branch, and next action; invite correction only if
-wrong, then continue normally. A later answer remains a live correction.
-
 ## Plan grilling
 
 On “grill,” read
 `topics/plan-grilling.md`; take one branch at a time, recommend an answer, and
 pause for confirmation.
-
-## External systems and vendor guidance
-
-For vendor setup/operator docs, include only verified supported paths for the
-recommended plan. Omit uncertain options. Do not assert remembered UI
-navigation. When a label changes, update it without historical-parenthetical clutter.
 
 ## Explanation style: "remind me" / "refresher"
 
@@ -1292,12 +1082,6 @@ before writing one, read repo `topics/acli.md`, else
 commands may stay bare shell scripts or long commands; the boundary is
 retention, not size.
 
-## Deleting files
-
-Leave `-f` off `rm` and prefer `rm -r` unless missing targets must not fail.
-Force flags trigger destructive gates without changing deletion of an existing
-path.
-
 ## Matching processes by pattern
 
 A command-line process search from an agent shell — `pgrep -f`,
@@ -1307,13 +1091,6 @@ never drains. Prefer name matching (`pgrep -x rsync`), which ignores
 argv and so cannot match on the search text. When the command line is
 required, list candidates with `ps -o pid=,args= -p <pids>` and drop
 your own shell before believing the result or killing anything.
-
-## Agent-facing CLI help
-
-For agent-facing CLIs, do not hard-wrap option descriptions to guessed terminal
-width; make human wrapping opt-in and reuse shared formatters. Messages
-controlled by an option repeat its exact option name or a word that greps to
-help.
 
 ## PDF reading
 
